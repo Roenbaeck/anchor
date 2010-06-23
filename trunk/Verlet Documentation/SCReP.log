@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009) (format=pdflatex 2010.5.26)  16 JUN 2010 15:22
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009) (format=pdflatex 2010.5.26)  23 JUN 2010 14:40
 entering extended mode
  %&-line parsing enabled.
 **SCReP.tex
@@ -521,11 +521,11 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 Here is how much of TeX's memory you used:
  3373 strings out of 493848
  49574 string characters out of 3149207
- 115373 words of memory out of 3000000
+ 116373 words of memory out of 3000000
  6631 multiletter control sequences out of 15000+200000
  9705 words of font info for 34 fonts, out of 3000000 for 9000
  714 hyphenation exceptions out of 8191
- 44i,10n,43p,908b,188s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 44i,10n,43p,911b,186s stack positions out of 5000i,500n,10000p,200000b,50000s
 </usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfo
 nts/cm/cmex10.pfb></usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfon
 ts/cm/cmmi10.pfb></usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfont
@@ -536,7 +536,7 @@ mr17.pfb></usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfonts/cm/cmr
 8.pfb></usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfonts/cm/cmss12
 .pfb></usr/local/texlive/2009/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.
 pfb>
-Output written on SCReP.pdf (2 pages, 98825 bytes).
+Output written on SCReP.pdf (2 pages, 102110 bytes).
 PDF statistics:
  45 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
