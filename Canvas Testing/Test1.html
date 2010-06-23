@@ -1,62 +1,62 @@
 <html>
 <head>
-<title>Test 1</title>
-<script type="text/javascript">
-<!--
-var canvas = null;
-var context = null;
-var xVel = 1;
-var yVel = 1;
-var xPos = 0;
-var yPos = 0;
+    <title>Test 1</title>
+    <script type="text/javascript">
+        <!--
+        var canvas = null;
+        var context = null;
+        var xVel = 1;
+        var yVel = 1;
+        var xPos = 0;
+        var yPos = 0;
 
-var msg = "Hello World"
+        var msg = "Hello World"
 
-window.onload = init;
+        window.onload = init;
 
-function init() {
-  const FPS = 30;
+        function init() {
+            const FPS = 30;
 
-  // Get the canvas element.
-  canvas = document.getElementById('myCanvas');
-  if (!canvas || !canvas.getContext) {
-    return;
-  }
+            // Get the canvas element.
+            canvas = document.getElementById('myCanvas');
+            if (!canvas || !canvas.getContext) {
+                return;
+            }
 
-  // Get the canvas 2d context.
-  context = canvas.getContext('2d');
-  if (!context) {
-    return;
-  }
+            // Get the canvas 2d context.
+            context = canvas.getContext('2d');
+            if (!context) {
+                return;
+            }
 
-  // Start a new "thread".
-  setInterval(draw, 1000/FPS);
-}
+            // Start a new "thread".
+            setInterval(draw, 1000 / FPS);
+        }
 
-function draw() {
-  canvas.width = canvas.width; // clears the canvas
+        function draw() {
+            canvas.width = canvas.width; // clears the canvas
 
-  context.fillStyle = '#c0c0c0';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  
-  var msgWidth = context.measureText(msg).width;
+            context.fillStyle = '#c0c0c0';
+            context.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (xPos + msgWidth >= canvas.width) xVel = -1 * Math.random();
-  if (yPos >= canvas.height) yVel = -1 * Math.random();
-  if (xPos <= 0) xVel = Math.random();
-  if (yPos <= 0) yVel = Math.random();
+            var msgWidth = context.measureText(msg).width;
 
-  xPos += xVel;
-  yPos += yVel;
-  context.strokeText(msg, xPos, yPos);
-}
-// -->
-</script>
+            if (xPos + msgWidth >= canvas.width) xVel = -1 * Math.random();
+            if (yPos >= canvas.height) yVel = -1 * Math.random();
+            if (xPos <= 0) xVel = Math.random();
+            if (yPos <= 0) yVel = Math.random();
+
+            xPos += xVel;
+            yPos += yVel;
+            context.strokeText(msg, xPos, yPos);
+        }
+        // -->
+    </script>
 </head>
 <body>
 This is a canvas<br/>
 <canvas id="myCanvas" width="100" height="100">
-Your browser does not support HTML5 canvas!
+    Your browser does not support HTML5 canvas!
 </canvas>
 </body>
 </html>
