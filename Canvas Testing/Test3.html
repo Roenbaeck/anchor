@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Test 2</title>
+    <script type="text/javascript">
+        <!--
+        // globally accessible variables
+        var canvas = null;
+        var context = null;
+        var drawId = null;
+
+        // frames per second - set low when debugging
+        const FPS = 30;
+
+        // normal distance in pixels
+        var normalDistance = 50;
+        // 3 percent damping (simulated friction)
+        var damping = 0.97;
+        // stopping velocity is one tenth of a pixel per second
+        var stoppingVelocity = 0.1;
+        // starting velocity is a whole pixel
+        var startingVelocity = 1;
+
+        // create a singleton
+        var LayoutEngine = {
+            // default values
+            normalDistance: 50,
+            damping: 0.97,
+            stoppingVelocity: 0.1,
+            startingVelocity: 1,
+            attractionConstant: 0.000008,
+
+            // acts as a constructor
+            init: function(normalDistance, damping, stoppingVelocity, startingVelocity) {
+                if(normalDistance != null)
+                    this.normalDistance = normalDistance;
+                if(normalDistance != null)
+                    this.attractionConstant = 1.0/Math.pow(normalDistance, 3);
+                if(damping != null)
+                    this.damping = damping;
+                if(stoppingVelocity != null)
+                    this.stoppingVelocity = stoppingVelocity;
+                if(startingVelocity != null)
+                    this.startingVelocity = startingVelocity;
+                return this;
+            },
+
+            // use the taxi cab metric for measuring distances
+            distance: function(n1, n2) {
+                return Math.abs(n2.xPos - n1.xPos) + Math.abs(n2.yPos - n1.yPos);
+            },
+            // x component of the repelling force formula
+            xRepelling: function(n1, n2) {
+                return (n1.xPos - n2.xPos)/Math.pow(this.distance(n1, n2), 2);
+            },
+
+            // y component of the repelling force formula
+            yRepelling: function(n1, n2) {
+                return (n1.yPos - n2.yPos)/Math.pow(this.distance(n1, n2), 2);
+            },
+
+            // x component of the attracting force formula
+            xAttracting: function (n1, n2) {
+                return this.attractionConstant * (n2.xPos - n1.xPos) * this.distance(n1, n2);
+            },
+
+            // y component of the attracting force formula
+            yAttracting: function (n1, n2) {
+                return this.attractionConstant * (n2.yPos - n1.yPos) * this.distance(n1, n2);
+            },
+
+            withinRange: function(n1, n2) {
+                return  n2.xPos <= n1.xPos + this.normalDistance &&
+                        n2.xPos >= n1.xPos - this.normalDistance &&
+                        n2.yPos <= n1.yPos + this.normalDistance &&
+                        n2.yPos >= n1.yPos - this.normalDistance;
+            },
+
+            // iterates over all nodes and checks if any are still moving
+            complete: function(nodes) {
+                var node;
+                for(var i = 0; node = nodes[i]; i++)
+                    if(node.moving) 
+                        return false;
+                return true;
+            },
+
+            // calculate all forces and change the velocity and position of the node
+            layout: function(nodes, edges) {
+                var node, otherNode, nodeEdges;
+                for(var i = 0; node = nodes[i]; i++) {
+                    for(var j = 0; otherNode = nodes[j]; j++) {
+                        if(i != j) {
+                            // for nodes within range, add the repelling velocity
+                            if(this.withinRange(node, otherNode)) {
+                                node.xVel += this.xRepelling(node, otherNode);
+                                node.yVel += this.yRepelling(node, otherNode);
+                            }
+                        }
+                    }
+                    nodeEdges = edges[node];
+                    // for all edges, add the attracting velocity
+                    for(var k = 0; otherNode = nodeEdges[k]; k++) {
+                        node.xVel += this.xAttracting(node, otherNode);
+                        node.yVel += this.yAttracting(node, otherNode);
+                    }
+                    // apply damping
+                    node.xVel *= this.damping;
+                    node.yVel *= this.damping;
+                    // check to see if the node has stopped/started moving
+                    if(Math.abs(node.xVel) + Math.abs(node.yVel) <= this.stoppingVelocity)
+                        node.moving = false;
+                    if(Math.abs(node.xVel) + Math.abs(node.yVel) >= this.startingVelocity)
+                        node.moving = true;
+                    // if the node is moving and not fixed then calculate the new position
+                    if(node.moving && !node.fixed) {
+                        node.xPos += node.xVel;
+                        node.yPos += node.yVel;
+                    }
+                }
+            }
+        }.init(normalDistance, damping, stoppingVelocity, startingVelocity);
+
+        function Node(x, y, id) {
+            this.id = id;
+            this.xPos = x;
+            this.yPos = y;
+            this.xVel = 0;
+            this.yVel = 0;
+            this.moving = true;
+            this.fixed = false;
+        }
+        // override toString in order to provide a unique identifier to be used when emulating hash maps
+        Node.prototype.toString = function() {
+            return this.id.toString();
+        };
+
+        // create some nodes (that do not overlap)
+        var nodes = [
+            new Node(200, 300, "A1"),
+            new Node(300, 200, "A1B1"),
+            new Node(250, 300, "A1B2"),
+            new Node(300, 250, "A1B3"),
+            new Node(400, 300, "A2"),
+            new Node(300, 400, "A2B1"),
+            new Node(450, 300, "A2B2"),
+            new Node(300, 450, "A2B3")
+        ];
+
+        // set the edges (as arrays of nodes) of every node
+        var edges = {};
+        edges[nodes[0]] = [nodes[1], nodes[2], nodes[3], nodes[4]];
+        edges[nodes[1]] = [nodes[0]];
+        edges[nodes[2]] = [nodes[0]];
+        edges[nodes[3]] = [nodes[0]];
+        edges[nodes[4]] = [nodes[0], nodes[5], nodes[6], nodes[7]];
+        edges[nodes[5]] = [nodes[4]];
+        edges[nodes[6]] = [nodes[4]];
+        edges[nodes[7]] = [nodes[4]];
+
+        // make sure our init function is called when the page is loaded
+        window.onload = init;
+
+        // implementation of our init function
+        function init() {
+            // get the canvas element
+            canvas = document.getElementById('myCanvas');
+            if (!canvas || !canvas.getContext) {
+                return;
+            }
+
+            // get the canvas 2d context
+            context = canvas.getContext('2d');
+            if (!context) {
+                return;
+            }
+            context.fillStyle = '#55ff55';
+            context.strokeStyle = '#000000';
+
+            // start a new "thread"
+            drawId = setInterval(draw, 1000 / FPS);
+        }
+
+        function draw() {
+            // layout nodes
+            LayoutEngine.layout(nodes, edges);
+
+            // start the drawing
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            var node, otherNode, nodeEdges;
+
+            // draw all edges
+            for(var i = 0; node = nodes[i]; i++) {
+                nodeEdges = edges[node];
+                // for all edges, add the attracting velocity
+                for(var j = 0; otherNode = nodeEdges[j]; j++) {
+                    context.beginPath();
+                    context.moveTo(node.xPos, node.yPos)
+                    context.lineTo(otherNode.xPos, otherNode.yPos);
+                    context.stroke();
+                }
+            }
+
+            // draw all nodes
+            for(var i = 0; node = nodes[i]; i++) {
+                context.beginPath();
+                context.arc(node.xPos, node.yPos, 8, 0, 2*Math.PI, false);
+                context.fill();
+            }
+
+            // check if all nodes have stopped moving
+            if(LayoutEngine.complete(nodes)) {
+                alert("Layout complete");
+                clearInterval(drawId);
+            }
+        }
+        // -->
+    </script>
+</head>
+<body bgcolor="#f0f0f0">
+This is a canvas<br/>
+<canvas id="myCanvas" width="500" height="500">
+    Your browser does not support HTML5 canvas!
+</canvas>
+</body>
+</html>
