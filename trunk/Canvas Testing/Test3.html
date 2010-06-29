@@ -9,6 +9,7 @@
         var canvas = null;
         var context = null;
         var drawId = null;
+        var startTime = null;
 
         // frames per second - set low when debugging
         const FPS = 1000;
@@ -46,18 +47,28 @@
                 return this;
             },
 
+            // for some reason Math.abs is slower than this
+            absolute: function(value) {
+                return value < 0 ? -value : value;
+            },
+
+            // use our own squaring algorithm rather than Math.pow
+            square: function(value) {
+                return value * value;
+            },
+
             // use the taxi cab metric for measuring distances
             distance: function(n1, n2) {
-                return Math.abs(n2.xPos - n1.xPos) + Math.abs(n2.yPos - n1.yPos);
+                return this.absolute(n2.xPos - n1.xPos) + this.absolute(n2.yPos - n1.yPos);
             },
             // x component of the repelling force formula
             xRepelling: function(n1, n2) {
-                return (n1.xPos - n2.xPos)/Math.pow(this.distance(n1, n2), 2);
+                return (n1.xPos - n2.xPos)/this.square(this.distance(n1, n2));
             },
 
             // y component of the repelling force formula
             yRepelling: function(n1, n2) {
-                return (n1.yPos - n2.yPos)/Math.pow(this.distance(n1, n2), 2);
+                return (n1.yPos - n2.yPos)/this.square(this.distance(n1, n2));
             },
 
             // x component of the attracting force formula
@@ -88,9 +99,9 @@
 
             // calculate all forces and change the velocity and position of the node
             layout: function(nodes, edges) {
-                var node, otherNode, nodeEdges;
-                for(var i = 0; node = nodes[i]; i++) {
-                    for(var j = 0; otherNode = nodes[j]; j++) {
+                var node, otherNode, nodeEdges, i, j;
+                for(i = 0; node = nodes[i]; i++) {
+                    for(j = 0; otherNode = nodes[j]; j++) {
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
                             if(this.withinRange(node, otherNode)) {
@@ -101,7 +112,7 @@
                     }
                     nodeEdges = edges[node];
                     // for all edges, add the attracting velocity
-                    for(var k = 0; otherNode = nodeEdges[k]; k++) {
+                    for(j = 0; otherNode = nodeEdges[j]; j++) {
                         node.xVel += this.xAttracting(node, otherNode);
                         node.yVel += this.yAttracting(node, otherNode);
                     }
@@ -109,9 +120,9 @@
                     node.xVel *= this.damping;
                     node.yVel *= this.damping;
                     // check to see if the node has stopped/started moving
-                    if(Math.abs(node.xVel) + Math.abs(node.yVel) <= this.stoppingVelocity)
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity)
                         node.moving = false;
-                    if(Math.abs(node.xVel) + Math.abs(node.yVel) >= this.startingVelocity)
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity)
                         node.moving = true;
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
@@ -179,10 +190,11 @@
             context.strokeStyle = '#000000';
 
             // start a new "thread"
+            startTime = new Date();
             drawId = setInterval(draw, 1000 / FPS);
         }
 
-        function draw() {
+        function draw() {            
             // layout nodes
             LayoutEngine.layout(nodes, edges);
 
@@ -212,7 +224,8 @@
 
             // check if all nodes have stopped moving
             if(LayoutEngine.complete(nodes)) {
-                alert("Layout complete");
+                var stopTime = new Date();
+                alert("Layout complete in " + (stopTime.getTime() - startTime.getTime()) + "ms");
                 clearInterval(drawId);
             }
         }
