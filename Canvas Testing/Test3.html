@@ -156,19 +156,33 @@
             new Node(400, 300, "A2"),
             new Node(300, 400, "A2B1"),
             new Node(450, 300, "A2B2"),
-            new Node(300, 450, "A2B3")
+            new Node(300, 450, "A2B3"),
+            new Node(300, 500, "A2B4"),
+            new Node(400, 350, "A3"),
+            new Node(350, 400, "A3B1"),
+            new Node(450, 350, "A3B2"),
+            new Node(350, 450, "A3B3"),
+            new Node(350, 500, "A3B4"),
+            new Node(350, 550, "A3B5")
         ];
 
         // set the edges (as arrays of nodes) of every node
         var edges = {};
-        edges[nodes[0]] = [nodes[1], nodes[2], nodes[3], nodes[4]];
+        edges[nodes[0]] = [nodes[1], nodes[2], nodes[3], nodes[4], nodes[9]];
         edges[nodes[1]] = [nodes[0]];
         edges[nodes[2]] = [nodes[0]];
         edges[nodes[3]] = [nodes[0]];
-        edges[nodes[4]] = [nodes[0], nodes[5], nodes[6], nodes[7]];
+        edges[nodes[4]] = [nodes[0], nodes[5], nodes[6], nodes[7], nodes[8], nodes[9]];
         edges[nodes[5]] = [nodes[4]];
         edges[nodes[6]] = [nodes[4]];
         edges[nodes[7]] = [nodes[4]];
+        edges[nodes[8]] = [nodes[4]];
+        edges[nodes[9]] = [nodes[0], nodes[4], nodes[10], nodes[11], nodes[12], nodes[13], nodes[14]];
+        edges[nodes[10]] = [nodes[9]];
+        edges[nodes[11]] = [nodes[9]];
+        edges[nodes[12]] = [nodes[9]];
+        edges[nodes[13]] = [nodes[9]];
+        edges[nodes[14]] = [nodes[9]];
 
         // make sure our init function is called when the page is loaded
         window.onload = init;
