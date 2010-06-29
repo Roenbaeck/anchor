@@ -92,7 +92,7 @@
             complete: function(nodes) {
                 var node;
                 for(var i = 0; node = nodes[i]; i++)
-                    if(node.moving) 
+                    if(node.moving && !node.fixed)
                         return false;
                 return true;
             },
@@ -165,6 +165,9 @@
             new Node(350, 500, "A3B4"),
             new Node(350, 550, "A3B5")
         ];
+
+        // experimenting with fixed nodes
+        nodes[7].fixed = true;
 
         // set the edges (as arrays of nodes) of every node
         var edges = {};
@@ -248,7 +251,7 @@
 </head>
 <body bgcolor="#f0f0f0">
 This is a canvas<br/>
-<canvas id="myCanvas" width="500" height="500">
+<canvas id="myCanvas" width="800" height="800">
     Your browser does not support HTML5 canvas!
 </canvas>
 </body>
