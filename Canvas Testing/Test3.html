@@ -14,38 +14,25 @@
         // frames per second - set low when debugging
         const FPS = 1000;
 
-        // normal distance in pixels
-        var normalDistance = 50;
-        // 3 percent damping (simulated friction)
-        var damping = 0.97;
-        // stopping velocity is one tenth of a pixel per second
-        var stoppingVelocity = 0.1;
-        // starting velocity is a whole pixel
-        var startingVelocity = 1;
-
         // create a singleton
         var LayoutEngine = {
-            // default values
+            // normal distance in pixels
             normalDistance: 50,
+            // 3 percent damping (simulated friction)
             damping: 0.97,
+            // stopping velocity is one tenth of a pixel per second
             stoppingVelocity: 0.1,
+            // starting velocity is a whole pixel
             startingVelocity: 1,
+            // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.000008,
-
-            // acts as a constructor
-            init: function(normalDistance, damping, stoppingVelocity, startingVelocity) {
-                if(normalDistance != null)
-                    this.normalDistance = normalDistance;
-                if(normalDistance != null)
-                    this.attractionConstant = 1.0/Math.pow(normalDistance, 3);
-                if(damping != null)
-                    this.damping = damping;
-                if(stoppingVelocity != null)
-                    this.stoppingVelocity = stoppingVelocity;
-                if(startingVelocity != null)
-                    this.startingVelocity = startingVelocity;
-                return this;
-            },
+            // adjusts the size of the influence square by this factor
+            influenceConstant: 1.25,
+            // used to store the corners of the influence square
+            xMin: 0,
+            xMax: 0,
+            yMin: 0,
+            yMax: 0,
 
             // for some reason Math.abs is slower than this
             absolute: function(value) {
@@ -58,34 +45,41 @@
             },
 
             // use the taxi cab metric for measuring distances
-            distance: function(n1, n2) {
-                return this.absolute(n2.xPos - n1.xPos) + this.absolute(n2.yPos - n1.yPos);
+            distance: function(node, otherNode) {
+                return this.absolute(otherNode.xPos - node.xPos) + this.absolute(otherNode.yPos - node.yPos);
             },
             // x component of the repelling force formula
-            xRepelling: function(n1, n2) {
-                return (n1.xPos - n2.xPos)/this.square(this.distance(n1, n2));
+            xRepelling: function(node, otherNode) {
+                return (node.xPos - otherNode.xPos)/this.square(this.distance(node, otherNode));
             },
 
             // y component of the repelling force formula
-            yRepelling: function(n1, n2) {
-                return (n1.yPos - n2.yPos)/this.square(this.distance(n1, n2));
+            yRepelling: function(node, otherNode) {
+                return (node.yPos - otherNode.yPos)/this.square(this.distance(node, otherNode));
             },
 
             // x component of the attracting force formula
-            xAttracting: function (n1, n2) {
-                return this.attractionConstant * (n2.xPos - n1.xPos) * this.distance(n1, n2);
+            xAttracting: function (node, otherNode) {
+                return this.attractionConstant * (otherNode.xPos - node.xPos) * this.distance(node, otherNode);
             },
 
             // y component of the attracting force formula
-            yAttracting: function (n1, n2) {
-                return this.attractionConstant * (n2.yPos - n1.yPos) * this.distance(n1, n2);
+            yAttracting: function (node, otherNode) {
+                return this.attractionConstant * (otherNode.yPos - node.yPos) * this.distance(node, otherNode);
             },
 
-            withinRange: function(n1, n2) {
-                return  n2.xPos <= n1.xPos + this.normalDistance &&
-                        n2.xPos >= n1.xPos - this.normalDistance &&
-                        n2.yPos <= n1.yPos + this.normalDistance &&
-                        n2.yPos >= n1.yPos - this.normalDistance;
+            findSquareCorners: function(node) {
+                this.xMin = node.xPos - this.influenceConstant * this.normalDistance;
+                this.xMax = node.xPos + this.influenceConstant * this.normalDistance;
+                this.yMin = node.yPos - this.influenceConstant * this.normalDistance;
+                this.yMax = node.yPos + this.influenceConstant * this.normalDistance;
+            },
+
+            withinSquare: function(otherNode) {
+                return  otherNode.xPos >= this.xMin &&
+                        otherNode.xPos <= this.xMax &&
+                        otherNode.yPos >= this.yMin &&
+                        otherNode.yPos <= this.yMax;
             },
 
             // iterates over all nodes and checks if any are still moving
@@ -101,10 +95,11 @@
             layout: function(nodes, edges) {
                 var node, otherNode, nodeEdges, i, j;
                 for(i = 0; node = nodes[i]; i++) {
+                    this.findSquareCorners(node);
                     for(j = 0; otherNode = nodes[j]; j++) {
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
-                            if(this.withinRange(node, otherNode)) {
+                            if(this.withinSquare(otherNode)) {
                                 node.xVel += this.xRepelling(node, otherNode);
                                 node.yVel += this.yRepelling(node, otherNode);
                             }
@@ -131,7 +126,7 @@
                     }
                 }
             }
-        }.init(normalDistance, damping, stoppingVelocity, startingVelocity);
+        };
 
         function Node(x, y, id) {
             this.id = id;
@@ -163,7 +158,9 @@
             new Node(450, 350, "A3B2"),
             new Node(350, 450, "A3B3"),
             new Node(350, 500, "A3B4"),
-            new Node(350, 550, "A3B5")
+            new Node(350, 550, "A3B5"),
+            new Node(350, 600, "A3B5C1"),
+            new Node(350, 650, "A3B5C2")
         ];
 
         // experimenting with fixed nodes
@@ -185,7 +182,9 @@
         edges[nodes[11]] = [nodes[9]];
         edges[nodes[12]] = [nodes[9]];
         edges[nodes[13]] = [nodes[9]];
-        edges[nodes[14]] = [nodes[9]];
+        edges[nodes[14]] = [nodes[9], nodes[15], nodes[16]];
+        edges[nodes[15]] = [nodes[14]];
+        edges[nodes[16]] = [nodes[14], nodes[6], nodes[2]];
 
         // make sure our init function is called when the page is loaded
         window.onload = init;
@@ -203,7 +202,7 @@
             if (!context) {
                 return;
             }
-            context.fillStyle = '#55ff55';
+            context.fillStyle = '#55bb55';
             context.strokeStyle = '#000000';
 
             // start a new "thread"
@@ -237,6 +236,8 @@
                 context.beginPath();
                 context.arc(node.xPos, node.yPos, 8, 0, 2*Math.PI, false);
                 context.fill();
+                if(node.fixed)
+                    context.stroke();                    
             }
 
             // check if all nodes have stopped moving
