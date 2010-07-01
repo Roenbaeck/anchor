@@ -28,14 +28,14 @@
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.000008,
             // adjusts the size of the influence square by this factor
-            influenceConstant: 1.25,
+            influenceConstant: 3,
             // used to store the corners of the influence square
             xMin: 0,
             xMax: 0,
             yMin: 0,
             yMax: 0,
             // when the layout has reached equilibrium
-            equilibrium: false,
+            equilibrium: true,
 
             // for some reason Math.abs is slower than this
             absolute: function(value) {
@@ -88,6 +88,7 @@
             // calculate all forces and change the velocity and position of the node
             layout: function(nodes, edges) {
                 var node, otherNode, nodeEdges, i, j;
+                this.equilibrium = true;
                 for(i = 0; node = nodes[i]; i++) {
                     this.findSquareCorners(node);
                     for(j = 0; otherNode = nodes[j]; j++) {
@@ -109,18 +110,15 @@
                     node.xVel *= this.damping;
                     node.yVel *= this.damping;
                     // check to see if the node has stopped/started moving
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity) {
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity)
                         node.moving = false;
-                        this.equilibrium = true;
-                    }
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity) {
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity)
                         node.moving = true;
-                    }
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
+                        this.equilibrium = false;
                         node.xPos += node.xVel;
                         node.yPos += node.yVel;
-                        this.equilibrium = false;
                     }
                 }
             }
@@ -211,7 +209,6 @@
             }
             scaler.addEventListener('click', scaleEvent, false);
 
-            context.fillStyle = '#55bb55';
             context.strokeStyle = '#000000';
 
             // start a new "thread"
@@ -248,9 +245,13 @@
             for(var i = 0; node = nodes[i]; i++) {
                 context.beginPath();
                 context.arc(node.xPos, node.yPos, 8, 0, 2*Math.PI, false);
+                if(node.moving && !node.fixed)
+                    context.fillStyle = '#55bb55';
+                else
+                    context.fillStyle = '#bb5555';                                    
                 context.fill();
                 if(node.fixed)
-                    context.stroke();                    
+                    context.stroke();
             }
 
             // check if all nodes have stopped moving
