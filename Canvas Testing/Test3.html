@@ -8,6 +8,7 @@
         // globally accessible variables
         var canvas = null;
         var context = null;
+        var scaler = null;
         var drawId = null;
         var startTime = null;
 
@@ -33,6 +34,8 @@
             xMax: 0,
             yMin: 0,
             yMax: 0,
+            // when the layout has reached equilibrium
+            equilibrium: false,
 
             // for some reason Math.abs is slower than this
             absolute: function(value) {
@@ -82,15 +85,6 @@
                         otherNode.yPos <= this.yMax;
             },
 
-            // iterates over all nodes and checks if any are still moving
-            complete: function(nodes) {
-                var node;
-                for(var i = 0; node = nodes[i]; i++)
-                    if(node.moving && !node.fixed)
-                        return false;
-                return true;
-            },
-
             // calculate all forces and change the velocity and position of the node
             layout: function(nodes, edges) {
                 var node, otherNode, nodeEdges, i, j;
@@ -115,14 +109,18 @@
                     node.xVel *= this.damping;
                     node.yVel *= this.damping;
                     // check to see if the node has stopped/started moving
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity)
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity) {
                         node.moving = false;
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity)
+                        this.equilibrium = true;
+                    }
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity) {
                         node.moving = true;
+                    }
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
                         node.xPos += node.xVel;
                         node.yPos += node.yVel;
+                        this.equilibrium = false;
                     }
                 }
             }
@@ -194,20 +192,35 @@
             // get the canvas element
             canvas = document.getElementById('myCanvas');
             if (!canvas || !canvas.getContext) {
+                alert("Cannot find the canvas!");
                 return;
             }
 
             // get the canvas 2d context
             context = canvas.getContext('2d');
             if (!context) {
+                alert("The canvas has no 2d context!");
                 return;
             }
+
+            // get the slider
+            scaler = document.getElementById('myScale');
+            if (!scaler) {
+                alert("The slider that sets the scale cannot be found!");
+                return;
+            }
+            scaler.addEventListener('click', scaleEvent, false);
+
             context.fillStyle = '#55bb55';
             context.strokeStyle = '#000000';
 
             // start a new "thread"
             startTime = new Date();
             drawId = setInterval(draw, 1000 / FPS);
+        }
+
+        function scaleEvent(event) {
+            context.scale(scaler.value, scaler.value);
         }
 
         function draw() {            
@@ -241,7 +254,7 @@
             }
 
             // check if all nodes have stopped moving
-            if(LayoutEngine.complete(nodes)) {
+            if(LayoutEngine.equilibrium) {
                 var stopTime = new Date();
                 alert("Layout complete in " + (stopTime.getTime() - startTime.getTime()) + "ms");
                 clearInterval(drawId);
@@ -251,7 +264,10 @@
     </script>
 </head>
 <body bgcolor="#f0f0f0">
-This is a canvas<br/>
+The scaler only works while the graph is moving
+<br/>
+<input id="myScale" type="range" min="0.1" max="1.9" step="0.01" value="1" />
+<br/>
 <canvas id="myCanvas" width="800" height="800">
     Your browser does not support HTML5 canvas!
 </canvas>
