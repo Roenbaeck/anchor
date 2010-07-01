@@ -32,7 +32,6 @@
             canvas.addEventListener('mousedown', mouseEvent, false);
             canvas.addEventListener('mousemove', mouseEvent, false);
             canvas.addEventListener('mouseup',   mouseEvent, false);
-            // start a new "thread"
         }
 
         var EventHandler = {
@@ -68,10 +67,6 @@
             if(EventHandler[event.type]) {
                 EventHandler[event.type](context, event);
             }
-        }
-
-        function saveCursor() {
-            canvas.style.cursor = 'crosshair';
         }
 
         // -->
