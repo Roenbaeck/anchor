@@ -56,22 +56,31 @@
         }
 
         function mouseEvent(event) {
-            // TODO: Get these correct! Can we also deduce the canvas from within the event? (event.parent?)
-            event._x = event.clientX - canvas.clientLeft;
-            event._y = event.clientY - canvas.clientTop;
+            event._x = event.clientX
+                    + document.body.scrollLeft
+                    + document.documentElement.scrollLeft
+                    - event.srcElement.offsetLeft;
+            event._y = event.clientY
+                    + document.body.scrollTop
+                    + document.documentElement.scrollTop
+                    - event.srcElement.offsetTop;
 
             if(EventHandler[event.type]) {
                 EventHandler[event.type](context, event);
             }
         }
 
+        function saveCursor() {
+            canvas.style.cursor = 'crosshair';
+        }
+
         // -->
     </script>
 </head>
-<body bgcolor="#f0f0f0">
-This is a canvas<br/>
-<canvas id="myCanvas" width="800" height="800" border="1">
-    Your browser does not support HTML5 canvas!
-</canvas>
-</body>
+    <body bgcolor="#f0f0f0">
+        This is a canvas<br/>
+        <canvas id="myCanvas" width="800" height="800" style="border: 1px dotted; cursor: crosshair;">
+            Your browser does not support HTML5 canvas!
+        </canvas>
+    </body>
 </html>
