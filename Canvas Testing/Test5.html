@@ -2,7 +2,7 @@
         "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-    <title>Test 3</title>
+    <title>Test 5</title>
     <script type="text/javascript">
         <!--
         // frames per second - set low when debugging
@@ -82,6 +82,7 @@
             layout: function(nodes, edges) {
                 var node, otherNode, nodeEdges, i, j;
                 this.equilibrium = true;
+
                 for(i = 0; node = nodes[i]; i++) {
                     this.findSquareCorners(node);
                     for(j = 0; otherNode = nodes[j]; j++) {
@@ -233,17 +234,24 @@
 
         var MouseHandler = {
             dragging: false,
-            draggedNode: null,
+            focusedNode: null,
             mousedown: function(event) {
-                this.draggedNode = DrawingEngine.getNodeAt(event._x, event._y);
-                this.draggedNode.fixed = true;
-                this.dragging = true;
+                this.focusedNode = DrawingEngine.getNodeAt(event._x, event._y);
+                if(event.altKey) {
+                    this.focusedNode.fixed = !this.focusedNode.fixed;
+                    DrawingEngine.start();
+                } 
+                else {
+                    this.focusedNode.fixed = true;
+                    this.dragging = true;
+                }
+                window.status = "Node: " + this.focusedNode.toString();
             },
             mousemove: function(event) {
                 if (this.dragging) {
-                    this.draggedNode.xPos = event._x;
-                    this.draggedNode.yPos = event._y;
-                    this.draggedNode.moving = true;
+                    this.focusedNode.xPos = event._x;
+                    this.focusedNode.yPos = event._y;
+                    this.focusedNode.moving = true;
                     DrawingEngine.start();
                 }
             },
@@ -348,11 +356,11 @@
             var edges = {};
             edges[nodes[0]] = [nodes[1], nodes[2], nodes[3], nodes[4], nodes[9]];
             edges[nodes[1]] = [nodes[0]];
-            edges[nodes[2]] = [nodes[0]];
+            edges[nodes[2]] = [nodes[0], nodes[16]];
             edges[nodes[3]] = [nodes[0]];
             edges[nodes[4]] = [nodes[0], nodes[5], nodes[6], nodes[7], nodes[8], nodes[9]];
             edges[nodes[5]] = [nodes[4]];
-            edges[nodes[6]] = [nodes[4]];
+            edges[nodes[6]] = [nodes[4], nodes[16]];
             edges[nodes[7]] = [nodes[4]];
             edges[nodes[8]] = [nodes[4]];
             edges[nodes[9]] = [nodes[0], nodes[4], nodes[10], nodes[11], nodes[12], nodes[13], nodes[14]];
@@ -415,7 +423,8 @@
     </script>
 </head>
 <body style="background: #f0f0f0; overflow: hidden;">
-Click and drag a node to see what happens
+Click and drag a node to see what happens, use Alt + click to toggle if a node is fixed
+<div id="dynamic"/>
 <canvas id="canvas" style="position:absolute; top:0; left:0;">
     Your browser does not support HTML5 canvas!
 </canvas>
