@@ -21,7 +21,7 @@
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.000008,
             // adjusts the size of the influence square by this factor
-            influenceConstant: 3,
+            influenceConstant: 2,
             // used to store the corners of the influence square
             xMin: 0,
             xMax: 0,
@@ -42,7 +42,12 @@
 
             // use the taxi cab metric for measuring distances
             distance: function(node, otherNode) {
-                return this.absolute(otherNode.xPos - node.xPos) + this.absolute(otherNode.yPos - node.yPos);
+                var d = this.absolute(otherNode.xPos - node.xPos) + this.absolute(otherNode.yPos - node.yPos);
+                if(d > 0)
+                    return d;
+                // move one node a pixel to the right if both nodes overlap
+                node.xPos +=1;
+                return 1;
             },
             // x component of the repelling force formula
             xRepelling: function(node, otherNode) {
@@ -80,13 +85,16 @@
 
             // calculate all forces and change the velocity and position of the node
             layout: function(nodes, edges) {
-                var node, otherNode, nodeEdges, i, j;
+                var nodeName, node, otherNodeName, otherNode, nodeEdges;
                 this.equilibrium = true;
 
-                for(i = 0; node = nodes[i]; i++) {
+                for(nodeName in nodes) {
+                    node = nodes[nodeName];
                     this.findSquareCorners(node);
-                    for(j = 0; otherNode = nodes[j]; j++) {
-                        if(i != j) {
+                    for(otherNodeName in nodes) {
+                        // not the same node
+                        if(nodeName != otherNodeName) {
+                            otherNode = nodes[otherNodeName];
                             // for nodes within range, add the repelling velocity
                             if(this.withinSquare(otherNode)) {
                                 node.xVel += this.xRepelling(node, otherNode);
@@ -96,7 +104,8 @@
                     }
                     nodeEdges = edges[node];
                     // for all edges, add the attracting velocity
-                    for(j = 0; otherNode = nodeEdges[j]; j++) {
+                    for(otherNodeName in nodeEdges) {
+                        otherNode = nodeEdges[otherNodeName]
                         node.xVel += this.xAttracting(node, otherNode);
                         node.yVel += this.yAttracting(node, otherNode);
                     }
@@ -153,9 +162,24 @@
         };
 
         var Model = {
-            nodes: null,
-            shadows: null,
-            edges: null
+            nodes: {},
+            shadows: {},
+            edges: {},
+            addNode: function(node) {
+                this.nodes[node] = node;
+                this.shadows[node.shadowColor] = node;                
+            },
+            addEdge: function(nodeName, otherNodeName) {
+                var nodeEdges = this.edges[nodeName];
+                if(!nodeEdges)
+                    nodeEdges = {};
+                if(!nodeEdges[otherNodeName])
+                    nodeEdges[otherNodeName] = this.nodes[otherNodeName];
+                else
+                    return;
+                this.edges[nodeName] = nodeEdges;
+                this.addEdge(otherNodeName, nodeName);
+            }
         };
 
         var DrawingEngine = {
@@ -177,10 +201,10 @@
                 this.shadowContext.fillStyle = '#000000';
                 this.shadowContext.fillRect(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
 
-                var i, node;
+                var nodeName;
                 // draw all nodes on the shadow context
-                for(i = 0; node = Model.nodes[i]; i++)
-                    node.drawShadow(this.shadowContext);
+                for(nodeName in Model.nodes)
+                    Model.nodes[nodeName].drawShadow(this.shadowContext);
 
                 var data = this.shadowContext.getImageData(x, y, 1, 1).data;
                 return Model.shadows[UniqueColor.formatColor(data[0], data[1], data[2])];
@@ -198,24 +222,32 @@
                 // clear the visible context
                 this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                var i, node, otherNode, nodeEdges;
+                var nodeName, node, otherNodeName, otherNode, nodeEdges;
+                var drawnEdges = {};
 
                 // draw all edges on the visible context
                 this.context.strokeStyle = '#000000';
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    nodeEdges = Model.edges[node];
-                    // for all edges, add the attracting velocity
-                    for(var j = 0; otherNode = nodeEdges[j]; j++) {
-                        this.context.beginPath();
-                        this.context.moveTo(node.xPos, node.yPos);
-                        this.context.lineTo(otherNode.xPos, otherNode.yPos);
-                        this.context.stroke();
+                this.context.lineWidth = 1;
+                for(nodeName in Model.nodes) {
+                    node = Model.nodes[nodeName];
+                    nodeEdges = Model.edges[nodeName];
+                    for(otherNodeName in nodeEdges) {
+                        // no need to draw edges twice
+                        if(drawnEdges[nodeName] != otherNodeName) {
+                            otherNode = nodeEdges[otherNodeName];
+                            this.context.beginPath();
+                            this.context.moveTo(node.xPos, node.yPos);
+                            this.context.lineTo(otherNode.xPos, otherNode.yPos);
+                            this.context.stroke();
+                            drawnEdges[nodeName] = otherNodeName;
+                            drawnEdges[otherNodeName] = nodeName;
+                        }
                     }
                 }
 
                 // draw all nodes on the visible context
-                for(i = 0; node = Model.nodes[i]; i++)
-                    node.draw(this.context);
+                for(nodeName in Model.nodes)
+                    Model.nodes[nodeName].draw(this.context);
 
                 // check if all nodes have stopped moving and that we may stop
                 if(LayoutEngine.equilibrium) {
@@ -296,21 +328,22 @@
         // this is how a node draws itself on the visible context
         Node.prototype.draw = function(context) {
             context.beginPath();
-            context.arc(this.xPos, this.yPos, 8, 0, 2*Math.PI, false);
+            context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
             if(this.moving && !this.fixed)
                 context.fillStyle = '#55bb55';
             else
                 context.fillStyle = '#bb5555';
             context.fill();
             if(this.fixed) {
-                context.strokeStyle = '#000000';
+                context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                context.lineWidth = 4;
                 context.stroke();
             }
         };
         // this is how a node draws itself on the shadow context
         Node.prototype.drawShadow = function(context) {
             context.beginPath();
-            context.arc(this.xPos, this.yPos, 8, 0, 2*Math.PI, false);
+            context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
             context.fillStyle = this.shadowColor;
             context.fill();
         };
@@ -321,58 +354,43 @@
         // implementation of our init function
         function init() {
             // create some nodes (that do not overlap)
-            var nodes = [
-                new Node(200, 300, "A1"),
-                new Node(300, 200, "A1B1"),
-                new Node(250, 300, "A1B2"),
-                new Node(300, 250, "A1B3"),
-                new Node(400, 300, "A2"),
-                new Node(300, 400, "A2B1"),
-                new Node(450, 300, "A2B2"),
-                new Node(300, 450, "A2B3"),
-                new Node(300, 500, "A2B4"),
-                new Node(400, 350, "A3"),
-                new Node(350, 400, "A3B1"),
-                new Node(450, 350, "A3B2"),
-                new Node(350, 450, "A3B3"),
-                new Node(350, 500, "A3B4"),
-                new Node(350, 550, "A3B5"),
-                new Node(350, 600, "A3B5C1"),
-                new Node(350, 650, "A3B5C2")
-            ];
+            Model.addNode(new Node(200, 300, "A1"));
+            Model.addNode(new Node(300, 200, "A1B1"));
+            Model.addNode(new Node(250, 300, "A1B2"));
+            Model.addNode(new Node(300, 250, "A1B3"));
+            Model.addNode(new Node(400, 300, "A2"));
+            Model.addNode(new Node(300, 400, "A2B1"));
+            Model.addNode(new Node(450, 300, "A2B2"));
+            Model.addNode(new Node(300, 450, "A2B3"));
+            Model.addNode(new Node(300, 500, "A2B4"));
+            Model.addNode(new Node(400, 350, "A3"));
+            Model.addNode(new Node(350, 400, "A3B1"));
+            Model.addNode(new Node(450, 350, "A3B2"));
+            Model.addNode(new Node(350, 450, "A3B3"));
+            Model.addNode(new Node(350, 500, "A3B4"));
+            Model.addNode(new Node(350, 550, "A3B5"));
+            Model.addNode(new Node(350, 600, "A3B5C1"));
+            // overlap should be ok now
+            Model.addNode(new Node(350, 600, "A3B5C2"));
 
-            Model.nodes = nodes;
-
-            var i, node, shadows = {};
-            for(i = 0; node = nodes[i]; i++)
-                shadows[node.shadowColor] = node;
-
-            Model.shadows = shadows;
-
-            // experimenting with fixed nodes
-            nodes[7].fixed = true;
-
-            // set the edges (as arrays of nodes) of every node
-            var edges = {};
-            edges[nodes[0]] = [nodes[1], nodes[2], nodes[3], nodes[4], nodes[9]];
-            edges[nodes[1]] = [nodes[0]];
-            edges[nodes[2]] = [nodes[0], nodes[16]];
-            edges[nodes[3]] = [nodes[0]];
-            edges[nodes[4]] = [nodes[0], nodes[5], nodes[6], nodes[7], nodes[8], nodes[9]];
-            edges[nodes[5]] = [nodes[4]];
-            edges[nodes[6]] = [nodes[4], nodes[16]];
-            edges[nodes[7]] = [nodes[4]];
-            edges[nodes[8]] = [nodes[4]];
-            edges[nodes[9]] = [nodes[0], nodes[4], nodes[10], nodes[11], nodes[12], nodes[13], nodes[14]];
-            edges[nodes[10]] = [nodes[9]];
-            edges[nodes[11]] = [nodes[9]];
-            edges[nodes[12]] = [nodes[9]];
-            edges[nodes[13]] = [nodes[9]];
-            edges[nodes[14]] = [nodes[9], nodes[15], nodes[16]];
-            edges[nodes[15]] = [nodes[14]];
-            edges[nodes[16]] = [nodes[14], nodes[6], nodes[2]];
-
-            Model.edges = edges;
+            // define the edges
+            Model.addEdge("A1", "A1B1");
+            Model.addEdge("A1", "A1B2");
+            Model.addEdge("A1", "A1B3");
+            Model.addEdge("A1", "A2");
+            Model.addEdge("A1", "A3");
+            Model.addEdge("A2", "A2B1");
+            Model.addEdge("A2", "A2B2");
+            Model.addEdge("A2", "A2B3");
+            Model.addEdge("A2", "A2B4");
+            Model.addEdge("A2", "A3");
+            Model.addEdge("A3", "A3B1");
+            Model.addEdge("A3", "A3B2");
+            Model.addEdge("A3", "A3B3");
+            Model.addEdge("A3", "A3B4");
+            Model.addEdge("A3", "A3B5");
+            Model.addEdge("A3B5", "A3B5C1");
+            Model.addEdge("A3B5", "A3B5C2");
 
             var canvas, shadowCanvas, context, shadowContext;
 
