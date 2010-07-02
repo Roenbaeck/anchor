@@ -172,6 +172,15 @@
                 this.shadowContext = shadowContext;
             },
             getNodeAt: function(x, y) {
+                // clear the shadow context
+                this.shadowContext.fillStyle = '#000000';
+                this.shadowContext.fillRect(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+
+                var i, node;
+                // draw all nodes on the shadow context
+                for(i = 0; node = Model.nodes[i]; i++)
+                    node.drawShadow(this.shadowContext);
+
                 var data = this.shadowContext.getImageData(x, y, 1, 1).data;
                 return Model.shadows[UniqueColor.formatColor(data[0], data[1], data[2])];
             },
@@ -188,10 +197,6 @@
                 // clear the visible context
                 this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                // clear the shadow context
-                this.shadowContext.fillStyle = '#000000';
-                this.shadowContext.fillRect(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
-
                 var i, node, otherNode, nodeEdges;
 
                 // draw all edges on the visible context
@@ -207,12 +212,9 @@
                     }
                 }
 
-                // draw all nodes on the visible and shadow context
-                for(i = 0; node = Model.nodes[i]; i++) {
+                // draw all nodes on the visible context
+                for(i = 0; node = Model.nodes[i]; i++)
                     node.draw(this.context);
-                    node.drawShadow(this.shadowContext);
-                }
-
 
                 // check if all nodes have stopped moving and that we may stop
                 if(LayoutEngine.equilibrium) {
