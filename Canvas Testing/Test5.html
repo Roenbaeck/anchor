@@ -293,19 +293,18 @@
                 }
             },
             handleEvent: function(event) {
+                // note that "this" refers to the object on which we attached the event handler
                 event._x = event.clientX
                         + document.body.scrollLeft
                         + document.documentElement.scrollLeft
-                        - event.srcElement.offsetLeft;
+                        - this.offsetLeft;
                 event._y = event.clientY
                         + document.body.scrollTop
                         + document.documentElement.scrollTop
-                        - event.srcElement.offsetTop;
+                        - this.offsetTop;
 
-                if(this.mouseHandler[event.type]) {
-                    // note that "this" refers to the object on which we attached the event handler
+                if(this.mouseHandler[event.type])
                     this.mouseHandler[event.type](event);
-                }
             }
         };
 
