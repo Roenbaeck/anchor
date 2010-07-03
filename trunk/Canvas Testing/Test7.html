@@ -1,0 +1,115 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Test 6 - Inheritance</title>
+    <script type="text/javascript">
+        <!--
+        // globally accessible variables
+        var canvas = null;
+        var context = null;
+
+        // make sure our init function is called when the page is loaded
+        window.onload = init;
+
+
+        var EventHandler = {
+            dragging: false,
+            mousedown: function(context, event) {
+                context.beginPath();
+                context.moveTo(event._x, event._y);
+                this.dragging = true;
+            },
+            mousemove: function(context, event) {
+                if (this.dragging) {
+                    context.lineTo(event._x, event._y);
+                    context.stroke();
+                }
+            },
+            mouseup: function(context, event) {
+                if (this.dragging) {
+                    this.dragging = false;
+                }
+            }
+        };
+
+        function mouseEvent(event) {
+            event._x = event.clientX
+                    + document.body.scrollLeft
+                    + document.documentElement.scrollLeft
+                    - this.offsetLeft;
+            event._y = event.clientY
+                    + document.body.scrollTop
+                    + document.documentElement.scrollTop
+                    - this.offsetTop;
+
+            if(EventHandler[event.type]) {
+                EventHandler[event.type](context, event);
+            }
+        }
+
+        var ResizeHandler = {
+            resizeCanvas: function(canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        };
+
+        // make sure our init function is called when the page is loaded
+        window.onload = init;
+
+        // implementation of our init function
+        function init() {
+            // get the canvas element
+            canvas = document.getElementById('canvas');
+            if (!canvas || !canvas.getContext) {
+                alert("Cannot find the canvas!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(canvas);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas) }, false);
+
+            // get the canvas 2d context
+            context = canvas.getContext('2d');
+            if (!context) {
+                alert("The canvas has no 2d context!");
+                return;
+            }
+            context.fillStyle = '#55bb55';
+            context.strokeStyle = '#000000';
+            // attach the mousedown, mousemove and mouseup event listeners
+            canvas.addEventListener('mousedown', mouseEvent, false);
+            canvas.addEventListener('mousemove', mouseEvent, false);
+            canvas.addEventListener('mouseup',   mouseEvent, false);
+        }
+
+        var p, body;
+
+        function helloWorld() {
+            // does not yet work in Firefox
+            if(p) {
+                alert("Removing message");
+                body.removeChild(p);
+                p = null;
+            }
+            else {
+                alert("Adding message");
+                body = document.getElementById('body');
+                p = document.createElement('p');
+                p.innerText = 'Hello World!';
+                body.appendChild(p);
+            }
+        }
+
+        // -->
+    </script>
+</head>
+<body id="body" style="background: #f0f0f0; overflow: hidden;">
+Testing dynamic HTML
+<input type="button" value="Click Me!" onclick="helloWorld();" style="position:absolute; z-index: 1;"/>
+<canvas id="canvas" style="position:absolute; top:0; left:0; z-index: 0">
+    Your browser does not support HTML5 canvas!
+</canvas>
+</body>
+</html>
