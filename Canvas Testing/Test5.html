@@ -274,7 +274,6 @@
                     DrawingEngine.start();
                 } 
                 else {
-                    this.focusedNode.fixed = true;
                     this.dragging = true;
                 }
                 window.status = "Node: " + this.focusedNode.toString();
@@ -283,6 +282,7 @@
                 if (this.dragging) {
                     this.focusedNode.xPos = event._x;
                     this.focusedNode.yPos = event._y;
+                    this.focusedNode.fixed = true;
                     this.focusedNode.moving = true;
                     DrawingEngine.start();
                 }
@@ -334,9 +334,8 @@
                 context.fillStyle = '#bb5555';
             context.fill();
             if(this.fixed) {
-                context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                context.lineWidth = 4;
-                context.stroke();
+                context.fillStyle = 'rgba(0, 0, 0, 1)';
+                context.fillRect(this.xPos - 1, this.yPos - 1, 3, 3);
             }
         };
         // this is how a node draws itself on the shadow context
