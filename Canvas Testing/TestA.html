@@ -449,12 +449,9 @@
             drawMoving: function(context, radius) {
                 if(this.moving && !this.fixed) {
                     var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
-                    var radgrad = context.createRadialGradient(this.xPos, this.yPos, 0, this.xPos - this.xVel, this.yPos - this.yVel, radius);
-                    radgrad.addColorStop(0, 'rgba(128, 0, 0, ' + (velocity > 1 ? 1 : velocity) + ')');
-                    radgrad.addColorStop(1, 'rgba(64, 64, 64, 0)');
                     context.beginPath();
-                    context.arc(this.xPos, this.yPos, radius, 0, 2*Math.PI, false);
-                    context.fillStyle = radgrad;
+                    context.arc(this.xPos - this.xVel, this.yPos - this.yVel, radius, 0, 2*Math.PI, false);
+                    context.fillStyle = 'rgba(150, 120, 100, ' + ((velocity > 0.3 ? 0.3 : velocity) - LayoutEngine.stoppingVelocity) + ')';
                     context.fill();
                 }
                 else {
