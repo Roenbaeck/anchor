@@ -77,15 +77,15 @@
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
-            normalDistance: 30,
-            // 3 percent damping (simulated friction)
-            damping: 0.97,
+            normalDistance: 40,
+            // 5 percent damping (simulated friction)
+            damping: 0.95,
             // stopping velocity is one tenth of a pixel per second
             stoppingVelocity: 0.1,
             // starting velocity is a whole pixel
             startingVelocity: 1,
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
-            attractionConstant: 0.00004,
+            attractionConstant: 0.000015625,
             // adjusts the size of the influence square by this factor
             influenceConstant: 2,
             // used to store the corners of the influence square
@@ -450,7 +450,7 @@
                 if(this.moving && !this.fixed) {
                     var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
                     var radgrad = context.createRadialGradient(this.xPos, this.yPos, 0, this.xPos - this.xVel, this.yPos - this.yVel, radius);
-                    radgrad.addColorStop(0, 'rgba(255, 255, 255, ' + velocity + ')');
+                    radgrad.addColorStop(0, 'rgba(128, 0, 0, ' + (velocity > 1 ? 1 : velocity) + ')');
                     radgrad.addColorStop(1, 'rgba(64, 64, 64, 0)');
                     context.beginPath();
                     context.arc(this.xPos, this.yPos, radius, 0, 2*Math.PI, false);
@@ -618,45 +618,6 @@
 
         // implementation of our init function
         function init() {
-            // create some nodes (that do not overlap)
-
-            var A1 = new Anchor(200, 200, "A1");
-            Model.addNode(A1);
-            var A1B01 = new Attribute(200, 210, "A1B01", true);
-            Model.addNode(A1B01);
-            var A1B02 = new Attribute(250, 220, "A1B02", false);
-            Model.addNode(A1B02);
-            var A1B03 = new Attribute(230, 230, "A1B02", true);
-            Model.addNode(A1B03);
-            var A1_A1B01 = new Edge(A1, A1B01, "A1_A1B01");
-            Model.addEdge(A1_A1B01);
-            var A1_A1B02 = new Edge(A1, A1B02, "A1_A1B02");
-            Model.addEdge(A1_A1B02);
-            var A1_A1B03 = new Edge(A1, A1B03, "A1_A1B03");
-            Model.addEdge(A1_A1B03);
-
-            var A2 = new Anchor(300, 200, "A2");
-            Model.addNode(A2);
-            var A2B01 = new Attribute(300, 210, "A2B01", false);
-            Model.addNode(A2B01);
-            var A2B02 = new Attribute(350, 220, "A2B02", true);
-            Model.addNode(A2B02);
-            var A2B03 = new Attribute(330, 230, "A2B02", false);
-            Model.addNode(A2B03);
-            var A2_A2B01 = new Edge(A2, A2B01, "A2_A2B01");
-            Model.addEdge(A2_A2B01);
-            var A2_A2B02 = new Edge(A2, A2B02, "A2_A2B02");
-            Model.addEdge(A2_A2B02);
-            var A2_A2B03 = new Edge(A2, A2B03, "A2_A2B03");
-            Model.addEdge(A2_A2B03);
-
-            var A1A2 = new Tie(400, 400, "A1A2", false);
-            Model.addNode(A1A2);
-            var A1_A1A2 = new Edge(A1, A1A2, "A1_A1A2");
-            Model.addEdge(A1_A1A2);
-            var A2_A1A2 = new Edge(A2, A1A2, "A2_A1A2");
-            Model.addEdge(A2_A1A2);
-
             var canvas, shadowCanvas, context, shadowContext;
 
             // get the canvas element
@@ -698,6 +659,110 @@
             canvas.addEventListener('mousedown', MouseHandler.handleEvent, false);
             canvas.addEventListener('mousemove', MouseHandler.handleEvent, false);
             canvas.addEventListener('mouseup',   MouseHandler.handleEvent, false);
+
+            function r() {
+                return {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height
+                };
+            }
+
+            var A1 = new Anchor(r().x, r().y, "A1");
+            Model.addNode(A1);
+            var A1B01 = new Attribute(r().x, r().y, "A1B01", true);
+            Model.addNode(A1B01);
+            var A1B02 = new Attribute(r().x, r().y, "A1B02", false);
+            Model.addNode(A1B02);
+            var A1B03 = new Attribute(r().x, r().y, "A1B03", true);
+            Model.addNode(A1B03);
+            var A1_A1B01 = new Edge(A1, A1B01, "A1_A1B01");
+            Model.addEdge(A1_A1B01);
+            var A1_A1B02 = new Edge(A1, A1B02, "A1_A1B02");
+            Model.addEdge(A1_A1B02);
+            var A1_A1B03 = new Edge(A1, A1B03, "A1_A1B03");
+            Model.addEdge(A1_A1B03);
+
+            var A2 = new Anchor(r().x, r().y, "A2");
+            Model.addNode(A2);
+            var A2B01 = new Attribute(r().x, r().y, "A2B01", false);
+            Model.addNode(A2B01);
+            var A2B02 = new Attribute(r().x, r().y, "A2B02", true);
+            Model.addNode(A2B02);
+            var A2B03 = new Attribute(r().x, r().y, "A2B03", false);
+            Model.addNode(A2B03);
+            var A2B04 = new Attribute(r().x, r().y, "A2B04", true);
+            Model.addNode(A2B04);
+            var A2B05 = new Attribute(r().x, r().y, "A2B05", false);
+            Model.addNode(A2B05);
+            var A2B06 = new Attribute(r().x, r().y, "A2B06", true);
+            Model.addNode(A2B06);
+            var A2_A2B01 = new Edge(A2, A2B01, "A2_A2B01");
+            Model.addEdge(A2_A2B01);
+            var A2_A2B02 = new Edge(A2, A2B02, "A2_A2B02");
+            Model.addEdge(A2_A2B02);
+            var A2_A2B03 = new Edge(A2, A2B03, "A2_A2B03");
+            Model.addEdge(A2_A2B03);
+            var A2_A2B04 = new Edge(A2, A2B04, "A2_A2B04");
+            Model.addEdge(A2_A2B04);
+            var A2_A2B05 = new Edge(A2, A2B05, "A2_A2B05");
+            Model.addEdge(A2_A2B05);
+            var A2_A2B06 = new Edge(A2, A2B06, "A2_A2B06");
+            Model.addEdge(A2_A2B06);
+
+            var A1A2 = new Tie(r().x, r().y, "A1A2", false);
+            Model.addNode(A1A2);
+            var A1_A1A2 = new Edge(A1, A1A2, "A1_A1A2");
+            Model.addEdge(A1_A1A2);
+            var A2_A1A2 = new Edge(A2, A1A2, "A2_A1A2");
+            Model.addEdge(A2_A1A2);
+
+            var A1A1 = new Tie(r().x, r().y, "A1A1", false);
+            Model.addNode(A1A1);
+            var A1_a_A1A1 = new Edge(A1, A1A1, "A1_a_A1A1");
+            Model.addEdge(A1_a_A1A1);
+            var A1_b_A1A1 = new Edge(A1, A1A1, "A1_b_A1A1");
+            Model.addEdge(A1_b_A1A1);
+
+            var A1A1C = new Knot(r().x, r().y, "A1A1C");
+            Model.addNode(A1A1C);
+            var A1A1_C = new Edge(A1A1, A1A1C, "A1A1_C");
+            Model.addEdge(A1A1_C);
+
+
+            var A3 = new Anchor(r().x, r().y, "A3");
+            Model.addNode(A3);
+            var A3B01 = new Attribute(r().x, r().y, "A3B01", false);
+            Model.addNode(A3B01);
+            var A3B02 = new Attribute(r().x, r().y, "A3B02", true);
+            Model.addNode(A3B02);
+            var A3B03 = new Attribute(r().x, r().y, "A3B03", false);
+            Model.addNode(A3B03);
+            var A3_A3B01 = new Edge(A3, A3B01, "A3_A3B01");
+            Model.addEdge(A3_A3B01);
+            var A3_A3B02 = new Edge(A3, A3B02, "A3_A3B02");
+            Model.addEdge(A3_A3B02);
+            var A3_A3B03 = new Edge(A3, A3B03, "A3_A3B03");
+            Model.addEdge(A3_A3B03);
+
+            var A3B01C = new Knot(r().x, r().y, "A3B01C");
+            Model.addNode(A3B01C);
+            var A3B01_C = new Edge(A3B01, A3B01C, "A3B01_C");
+            Model.addEdge(A3B01_C);
+
+            var A1A3 = new Tie(r().x, r().y, "A1A3", true);
+            Model.addNode(A1A3);
+            var A1_A1A3 = new Edge(A1, A1A3, "A1_A1A3");
+            Model.addEdge(A1_A1A3);
+            var A3_A1A3 = new Edge(A3, A1A3, "A3_A1A3");
+            Model.addEdge(A3_A1A3);
+
+            var A2A3 = new Tie(r().x, r().y, "A2A3", true);
+            Model.addNode(A2A3);
+            var A2_A2A3 = new Edge(A2, A2A3, "A2_A2A3");
+            Model.addEdge(A2_A2A3);
+            var A3_A2A3 = new Edge(A3, A2A3, "A3_A2A3");
+            Model.addEdge(A3_A2A3);
+
 
             MenuHandler.init();
             DrawingEngine.start();
