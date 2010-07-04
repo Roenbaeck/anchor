@@ -78,8 +78,8 @@
         var LayoutEngine = {
             // normal distance in pixels
             normalDistance: 40,
-            // 5 percent damping (simulated friction)
-            damping: 0.95,
+            // 4 percent damping (simulated friction)
+            damping: 0.96,
             // stopping velocity is one tenth of a pixel per second
             stoppingVelocity: 0.1,
             // starting velocity is a whole pixel
@@ -87,7 +87,7 @@
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.000015625,
             // adjusts the size of the influence square by this factor
-            influenceConstant: 2,
+            influenceConstant: 3,
             // used to store the corners of the influence square
             xMin: 0,
             xMax: 0,
