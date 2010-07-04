@@ -12,7 +12,7 @@
         font:               75% georgia, sans-serif;
         line-height:        1.88889;
         color:              #000000;
-        background:         #f8f8f8;
+        background:         #f9f8f7;
         overflow:           hidden;
         margin:             0;
         padding:            0;
@@ -304,6 +304,7 @@
                             this.context.beginPath();
                             this.context.moveTo(node.xPos, node.yPos);
                             this.context.lineTo(otherNode.xPos, otherNode.yPos);
+                            this.context.lineWidth = 1;
                             this.context.stroke();
                             drawnEdges[nodeName] = otherNodeName;
                             drawnEdges[otherNodeName] = nodeName;
@@ -410,6 +411,7 @@
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.getUniqueColor();
+            this.movingColor = '#ff0000';
         }
         Node.prototype = {
             name: null,
@@ -426,24 +428,42 @@
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
-                if(this.fixed) {
+                if(this.moving) {
                     context.beginPath();
                     context.arc(this.xPos, this.yPos, 16, 0, 2*Math.PI, false);
-                    context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                    context.fillStyle = this.movingColor;
                     context.fill();
                 }
                 context.beginPath();
                 context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
-                if(this.moving && !this.fixed)
-                    context.fillStyle = '#55bb55';
-                else
-                    context.fillStyle = '#bb5555';
+                context.fillStyle = '#bb5555';
                 context.fill();
             },
             // this is how a node draws itself on the shadow context (just a rectangle)
             drawShadow: function(context) {
                 context.fillStyle = this.shadowColor;
                 context.fillRect(this.xPos - 15, this.yPos - 15, 30, 30);
+            },
+            drawMoving: function(context, radius) {
+                if(this.moving && !this.fixed) {
+                    var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
+                    var radgrad = context.createRadialGradient(this.xPos, this.yPos, 0, this.xPos - this.xVel, this.yPos - this.yVel, radius);
+                    radgrad.addColorStop(0, 'rgba(255, 255, 255, ' + velocity + ')');
+                    radgrad.addColorStop(1, 'rgba(64, 64, 64, 0)');
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, radius, 0, 2*Math.PI, false);
+                    context.fillStyle = radgrad;
+                    context.fill();
+                }
+                else {
+
+                }
+            },
+            drawFixed: function(context) {
+                if(this.fixed) {
+                    context.fillStyle = '#000000';
+                    context.fillRect(this.xPos - 1, this.yPos - 1, 2, 2);
+                }
             }
         };
 
@@ -455,20 +475,12 @@
             historized: false,
             draw: function(context) {
                 if(this.historized) {
-                    if(this.fixed) {
-                        context.beginPath();
-                        context.arc(this.xPos, this.yPos, 18, 0, 2*Math.PI, false);
-                        context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                        context.fill();
-                    }
+                    this.drawMoving(context, 20);
                     context.beginPath();
                     context.arc(this.xPos, this.yPos, 12, 0, 2*Math.PI, false);
                     context.fillStyle = '#ffffff';
                     context.fill();
-                    if(this.moving && !this.fixed)
-                        context.strokeStyle = '#55aa55';
-                    else
-                        context.strokeStyle = '#ff8888';
+                    context.strokeStyle = '#ff8888';
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
@@ -476,23 +488,16 @@
                     context.stroke();
                 }
                 else {
-                    if(this.fixed) {
-                        context.beginPath();
-                        context.arc(this.xPos, this.yPos, 16, 0, 2*Math.PI, false);
-                        context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                        context.fill();
-                    }
+                    this.drawMoving(context, 18);
                     context.beginPath();
                     context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
                     context.fillStyle = '#ffffff';
                     context.fill();
-                    if(this.moving && !this.fixed)
-                        context.strokeStyle = '#55aa55';
-                    else
-                        context.strokeStyle = '#ff8888';
+                    context.strokeStyle = '#ff8888';
                     context.lineWidth = 1.5;
                     context.stroke();
                 }
+                this.drawFixed(context);
             }
         };
 
@@ -504,15 +509,10 @@
         }
         Anchor.prototype = {
             draw: function(context) {
-                if(this.fixed) {
-                    context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                    context.fillRect(this.xPos - 16, this.yPos - 16, 32, 32);
-                }
-                if(this.moving && !this.fixed)
-                    context.fillStyle = '#55aa55';
-                else
-                    context.fillStyle = '#bb5555';
+                this.drawMoving(context, 18);
+                context.fillStyle = '#bb5555';
                 context.fillRect(this.xPos - 10, this.yPos - 10, 20, 20);
+                this.drawFixed(context);
             }
         };
 
@@ -524,18 +524,13 @@
         }
         Knot.prototype = {
             draw: function(context) {
-                if(this.fixed) {
-                    context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                    context.fillRect(this.xPos - 15, this.yPos - 15, 30, 30);
-                }
+                this.drawMoving(context, 17);
                 context.fillStyle = '#ffffff';
                 context.fillRect(this.xPos - 9, this.yPos - 9, 18, 18);
-                if(this.moving && !this.fixed)
-                    context.strokeStyle = '#55aa55';
-                else
-                    context.strokeStyle = '#ff8888';
+                context.strokeStyle = '#ff8888';
                 context.lineWidth = 1.5;
                 context.strokeRect(this.xPos - 9, this.yPos - 9, 18, 18);
+                this.drawFixed(context);
             }
         };
 
@@ -550,15 +545,7 @@
             historized: false,
             draw: function(context) {
                 if(this.historized) {
-                    if(this.fixed) {
-                        context.beginPath();
-                        context.moveTo(this.xPos - 26, this.yPos);
-                        context.lineTo(this.xPos, this.yPos + 25);
-                        context.lineTo(this.xPos + 26, this.yPos);
-                        context.lineTo(this.xPos, this.yPos - 25);
-                        context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                        context.fill();
-                    }
+                    this.drawMoving(context, 20);
                     context.beginPath();
                     context.moveTo(this.xPos - 18, this.yPos);
                     context.lineTo(this.xPos, this.yPos + 17);
@@ -567,10 +554,7 @@
                     context.lineTo(this.xPos - 18, this.yPos);
                     context.fillStyle = '#ffffff';
                     context.fill();
-                    if(this.moving && !this.fixed)
-                        context.strokeStyle = '#005500';
-                    else
-                        context.strokeStyle = '#a8a8a8';
+                    context.strokeStyle = '#a8a8a8';
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
@@ -578,34 +562,21 @@
                     context.lineTo(this.xPos, this.yPos + 11);
                     context.lineTo(this.xPos + 12, this.yPos);
                     context.lineTo(this.xPos, this.yPos - 11);
-                    if(this.moving && !this.fixed)
-                        context.fillStyle = '#005500';
-                    else
-                        context.fillStyle = '#a8a8a8';
+                    context.fillStyle = '#a8a8a8';
                     context.fill();
                 }
                 else {
-                    if(this.fixed) {
-                        context.beginPath();
-                        context.moveTo(this.xPos - 23, this.yPos);
-                        context.lineTo(this.xPos, this.yPos + 22);
-                        context.lineTo(this.xPos + 23, this.yPos);
-                        context.lineTo(this.xPos, this.yPos - 22);
-                        context.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                        context.fill();
-                    }
+                    this.drawMoving(context, 17);
                     context.beginPath();
                     context.moveTo(this.xPos - 15, this.yPos);
                     context.lineTo(this.xPos, this.yPos + 14);
                     context.lineTo(this.xPos + 15, this.yPos);
                     context.lineTo(this.xPos, this.yPos - 14);
                     context.lineTo(this.xPos - 15, this.yPos);
-                    if(this.moving && !this.fixed)
-                        context.fillStyle = '#005500';
-                    else
-                        context.fillStyle = '#a8a8a8';
+                    context.fillStyle = '#a8a8a8';
                     context.fill();
                 }
+                this.drawFixed(context);
             }
         };
 
