@@ -155,7 +155,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, nodeEdges, edge, fakeNode, ratio;
+                var i, j, node, otherNode, nodeEdges, edge, fakeNode, ratio, absoluteVelocity;
                 var fakeNodes = [];
 
                 // calculate the bending force on all edges (try to make edges as straight as possible)
@@ -200,10 +200,11 @@
                     // apply damping
                     node.xVel *= this.damping;
                     node.yVel *= this.damping;
+                    absoluteVelocity = this.absolute(node.xVel) + this.absolute(node.yVel);
                     // check to see if the node has stopped/started moving
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity)
+                    if(absoluteVelocity <= this.stoppingVelocity)
                         node.moving = false;
-                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity)
+                    if(absoluteVelocity >= this.startingVelocity)
                         node.moving = true;
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
