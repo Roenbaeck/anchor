@@ -155,7 +155,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, nodeEdges, edge, fakeNode;
+                var i, j, node, otherNode, nodeEdges, edge, fakeNode, ratio;
                 var fakeNodes = [];
 
                 // calculate the bending force on all edges (try to make edges as straight as possible)
@@ -166,9 +166,10 @@
                         yPos: edge.node.yPos + (edge.otherNode.yPos - edge.node.yPos) / 2
                     };
                     fakeNodes[fakeNodes.length] = fakeNode;
-                    // add a stronger attracting force between the control node and this fake node
-                    edge.xVel += this.xAttracting(edge, fakeNode);
-                    edge.yVel += this.yAttracting(edge, fakeNode);
+                    // add an attracting force between the control node and this fake node proportional to the curvature
+                    ratio = this.distance(edge, fakeNode) / this.distance(edge.node, edge.otherNode);
+                    edge.xVel += ratio * this.xAttracting(edge, fakeNode);
+                    edge.yVel += ratio * this.yAttracting(edge, fakeNode);
                 }
                 for(i = 0; node = model.nodes[i]; i++) {
                     this.findSquareCorners(node);
