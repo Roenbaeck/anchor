@@ -338,21 +338,18 @@
             focusedNode: null,
             mousedown: function(event) {
                 this.focusedNode = DrawingEngine.getNodeAt(event._x, event._y);
-                if(event.altKey) {
-                    this.focusedNode.fixed = !this.focusedNode.fixed;
-                    DrawingEngine.start();
+                if(this.focusedNode) {
+                    if(event.shiftKey) {
+                        MenuHandler.show("The name of this node is: " + this.focusedNode.name, this.focusedNode.xPos, this.focusedNode.yPos);
+                        this.menu = true;
+                    }
+                    else {
+                        this.dragging = true;
+                    }
                 }
-                else if(event.shiftKey) {
-                    MenuHandler.show("The name of this node is: " + this.focusedNode.name, this.focusedNode.xPos, this.focusedNode.yPos);
-                    this.menu = true;
-                }
-                else {
-                    this.dragging = true;
-                }
-                window.status = "Node: " + this.focusedNode.toString();
             },
             mousemove: function(event) {
-                if (this.dragging) {
+                if (this.dragging && this.focusedNode) {
                     this.focusedNode.xPos = event._x;
                     this.focusedNode.yPos = event._y;
                     this.focusedNode.fixed = true;
@@ -361,12 +358,18 @@
                 }
             },
             mouseup: function(event) {
-                if (this.menu) {
-                    MenuHandler.hide();
+                if(this.focusedNode) {
+                    if (this.menu) {
+                        MenuHandler.hide();
+                    }
+                    if (this.dragging) {
+                        this.dragging = false;
+                    }
+                    if(event.altKey)
+                        this.focusedNode.fixed = !this.focusedNode.fixed;
+                    this.focusedNode = null;
                 }
-                if (this.dragging) {
-                    this.dragging = false;
-                }
+                DrawingEngine.start();
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
