@@ -77,7 +77,7 @@
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
-            normalDistance: 40,
+            normalDistance: 30,
             // 4 percent damping (simulated friction)
             damping: 0.96,
             // stopping velocity is one tenth of a pixel per second
@@ -85,7 +85,7 @@
             // starting velocity is a whole pixel
             startingVelocity: 1,
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
-            attractionConstant: 0.000015625,
+            attractionConstant: 0.00003703703704,
             // adjusts the size of the influence square by this factor
             influenceConstant: 3,
             // used to store the corners of the influence square
@@ -151,9 +151,11 @@
 
             // calculate all forces and change the velocity and position of the node
             layout: function(model) {
+                // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
                 var i, j, node, otherNode, nodeEdges, edge, fakeNode;
+                var fakeNodes = [];
 
                 // calculate the bending force on all edges (try to make edges as straight as possible)
                 for(i = 0; edge = model.edges[i]; i++) {
@@ -162,6 +164,7 @@
                         xPos: edge.node.xPos + (edge.otherNode.xPos - edge.node.xPos) / 2,
                         yPos: edge.node.yPos + (edge.otherNode.yPos - edge.node.yPos) / 2
                     };
+                    fakeNodes[fakeNodes.length] = fakeNode;
                     // add a stronger attracting force between the control node and this fake node
                     edge.xVel += this.xAttracting(edge, fakeNode);
                     edge.yVel += this.yAttracting(edge, fakeNode);
@@ -176,6 +179,13 @@
                                 node.xVel += this.xRepelling(node, otherNode);
                                 node.yVel += this.yRepelling(node, otherNode);
                             }
+                        }
+                    }
+                    for(j = 0; fakeNode = fakeNodes[j]; j++) {
+                        // for fake nodes within range of a non-edge, add the repelling velocity
+                        if(!(node instanceof Edge) && this.withinSquare(fakeNode)) {
+                            node.xVel += this.xRepelling(node, fakeNode);
+                            node.yVel += this.yRepelling(node, fakeNode);
                         }
                     }
                     nodeEdges = model.getEdges(node);
