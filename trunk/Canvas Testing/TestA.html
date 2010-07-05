@@ -338,8 +338,9 @@
                 var i, node;
 
                 // draw all nodes and edges on the visible context
-                for(i = 0; node = Model.nodes[i]; i++)
+                for(i = 0; node = Model.nodes[i]; i++) {
                     node.draw(this.context);
+                }
 
                 // check if all nodes have stopped moving and that we may stop
                 if(LayoutEngine.equilibrium) {
@@ -481,9 +482,6 @@
                     context.arc(this.xPos - this.xVel, this.yPos - this.yVel, radius, 0, 2*Math.PI, false);
                     context.fillStyle = 'rgba(150, 120, 100, ' + ((velocity > 0.3 ? 0.3 : velocity) - LayoutEngine.stoppingVelocity) + ')';
                     context.fill();
-                }
-                else {
-
                 }
             },
             drawFixed: function(context) {
