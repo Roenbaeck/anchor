@@ -527,11 +527,22 @@
         Knot.prototype = {
             draw: function(context) {
                 this.drawMoving(context, 17);
+
+                context.beginPath();
+                context.moveTo(this.xPos - 6, this.yPos - 9);
+                context.lineTo(this.xPos + 6, this.yPos - 9);
+                context.quadraticCurveTo(this.xPos + 9, this.yPos - 9, this.xPos + 9, this.yPos - 6);
+                context.lineTo(this.xPos + 9, this.yPos + 6);
+                context.quadraticCurveTo(this.xPos + 9, this.yPos + 9, this.xPos + 6, this.yPos + 9);
+                context.lineTo(this.xPos - 6, this.yPos + 9);
+                context.quadraticCurveTo(this.xPos - 9, this.yPos + 9, this.xPos - 9, this.yPos + 6);
+                context.lineTo(this.xPos - 9, this.yPos - 6);
+                context.quadraticCurveTo(this.xPos - 9, this.yPos - 9, this.xPos - 6, this.yPos - 9);
                 context.fillStyle = '#ffffff';
-                context.fillRect(this.xPos - 9, this.yPos - 9, 18, 18);
+                context.fill();
                 context.strokeStyle = '#ff8888';
                 context.lineWidth = 1.5;
-                context.strokeRect(this.xPos - 9, this.yPos - 9, 18, 18);
+                context.stroke();
                 this.drawFixed(context);
             }
         };
