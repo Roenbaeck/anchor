@@ -153,8 +153,19 @@
             layout: function(model) {
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, nodeEdges, edge;
+                var i, j, node, otherNode, nodeEdges, edge, fakeNode;
 
+                // calculate the bending force on all edges (try to make edges as straight as possible)
+                for(i = 0; edge = model.edges[i]; i++) {
+                    // assume a fake node in the middle of the two nodes
+                    fakeNode = {
+                        xPos: edge.node.xPos + (edge.otherNode.xPos - edge.node.xPos) / 2,
+                        yPos: edge.node.yPos + (edge.otherNode.yPos - edge.node.yPos) / 2
+                    };
+                    // add a stronger attracting force between the control node and this fake node
+                    edge.xVel += this.xAttracting(edge, fakeNode);
+                    edge.yVel += this.yAttracting(edge, fakeNode);
+                }
                 for(i = 0; node = model.nodes[i]; i++) {
                     this.findSquareCorners(node);
                     for(j = 0; otherNode = model.nodes[j]; j++) {
@@ -329,6 +340,7 @@
             resizeCanvas: function(canvas) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
+                DrawingEngine.start();
             }
         };
 
@@ -598,7 +610,7 @@
 
         function Edge(node, otherNode, name) {
             // use the midpoint between the nodes
-            Node.call(this, (node.xPos - otherNode.xPos)/2, (node.yPos - otherNode.yPos)/2, name);
+            Node.call(this, node.xPos + (otherNode.xPos - node.xPos)/2, node.yPos + (otherNode.yPos - node.yPos)/2, name);
             this.node = node;
             this.otherNode = otherNode;
         }
