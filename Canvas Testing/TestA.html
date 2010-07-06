@@ -459,29 +459,36 @@
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
-                if(this.moving) {
-                    context.beginPath();
-                    context.arc(this.xPos, this.yPos, 16, 0, 2*Math.PI, false);
-                    context.fillStyle = this.movingColor;
-                    context.fill();
-                }
-                context.beginPath();
-                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
-                context.fillStyle = '#bb5555';
+                this.drawMoving(context);
+                this.drawOutline(context);
+                if(this.moving && !this.fixed)
+                    context.fillStyle = '#bb5555';
+                else
+                    context.fillStyle = '#55bb55';
                 context.fill();
             },
             // this is how a node draws itself on the shadow context (just a rectangle)
             drawShadow: function(context) {
+                this.drawOutline(context);
                 context.fillStyle = this.shadowColor;
-                context.fillRect(this.xPos - 15, this.yPos - 15, 30, 30);
+                context.fill();
             },
-            drawMoving: function(context, radius) {
+            drawOutline: function(context) {
+                context.beginPath();
+                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                context.closePath();
+            },
+            drawMoving: function(context) {
                 if(this.moving && !this.fixed) {
                     var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
-                    context.beginPath();
-                    context.arc(this.xPos - this.xVel, this.yPos - this.yVel, radius, 0, 2*Math.PI, false);
-                    context.fillStyle = 'rgba(150, 120, 100, ' + ((velocity > 0.3 ? 0.3 : velocity) - LayoutEngine.stoppingVelocity) + ')';
+                    var shadowOffsetX = 4 * ((velocity > 2) ? 2 : velocity);
+                    var shadowOffsetY = 4 * ((velocity > 3) ? 3 : velocity);
+                    context.save();
+                    context.translate(-shadowOffsetX, shadowOffsetY);
+                    this.drawOutline(context);
+                    context.fillStyle = 'rgba(150, 120, 100, ' + ((1/velocity > 0.5 ? 0.5 : 1/velocity) - LayoutEngine.stoppingVelocity) + ')';
                     context.fill();
+                    context.restore();
                 }
             },
             drawFixed: function(context) {
@@ -498,11 +505,19 @@
         }
         Attribute.prototype = {
             historized: false,
-            draw: function(context) {
-                if(this.historized) {
-                    this.drawMoving(context, 20);
-                    context.beginPath();
+            drawOutline: function(context) {
+                // the outermost path
+                context.beginPath();
+                if(this.historized)
                     context.arc(this.xPos, this.yPos, 12, 0, 2*Math.PI, false);
+                else
+                    context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);                
+            },
+            draw: function(context) {
+                this.drawMoving(context);
+                if(this.historized) {
+                    // then we get back to drawing the actual symbol
+                    this.drawOutline(context);
                     context.fillStyle = '#ffffff';
                     context.fill();
                     context.strokeStyle = '#ff8888';
@@ -510,12 +525,11 @@
                     context.stroke();
                     context.beginPath();
                     context.arc(this.xPos, this.yPos, 7, 0, 2*Math.PI, false);
+                    context.fill();
                     context.stroke();
                 }
                 else {
-                    this.drawMoving(context, 18);
-                    context.beginPath();
-                    context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                    this.drawOutline(context);
                     context.fillStyle = '#ffffff';
                     context.fill();
                     context.strokeStyle = '#ff8888';
@@ -533,10 +547,19 @@
             Node.call(this, x, y, name);
         }
         Anchor.prototype = {
+            drawOutline: function(context) {
+                context.beginPath();
+                context.moveTo(this.xPos - 10, this.yPos - 10);
+                context.lineTo(this.xPos + 10, this.yPos - 10);
+                context.lineTo(this.xPos + 10, this.yPos + 10);
+                context.lineTo(this.xPos - 10, this.yPos + 10);
+                context.lineTo(this.xPos - 10, this.yPos - 10);
+            },
             draw: function(context) {
-                this.drawMoving(context, 18);
+                this.drawMoving(context);
+                this.drawOutline(context);
                 context.fillStyle = '#bb5555';
-                context.fillRect(this.xPos - 10, this.yPos - 10, 20, 20);
+                context.fill();
                 this.drawFixed(context);
             }
         };
@@ -548,9 +571,7 @@
             Node.call(this, x, y, name);
         }
         Knot.prototype = {
-            draw: function(context) {
-                this.drawMoving(context, 17);
-
+            drawOutline: function(context) {
                 context.beginPath();
                 context.moveTo(this.xPos - 6, this.yPos - 9);
                 context.lineTo(this.xPos + 6, this.yPos - 9);
@@ -561,6 +582,10 @@
                 context.quadraticCurveTo(this.xPos - 9, this.yPos + 9, this.xPos - 9, this.yPos + 6);
                 context.lineTo(this.xPos - 9, this.yPos - 6);
                 context.quadraticCurveTo(this.xPos - 9, this.yPos - 9, this.xPos - 6, this.yPos - 9);
+            },
+            draw: function(context) {
+                this.drawMoving(context);
+                this.drawOutline(context);
                 context.fillStyle = '#ffffff';
                 context.fill();
                 context.strokeStyle = '#ff8888';
@@ -579,15 +604,28 @@
         }
         Tie.prototype = {
             historized: false,
-            draw: function(context) {
+            drawOutline: function(context) {
                 if(this.historized) {
-                    this.drawMoving(context, 20);
                     context.beginPath();
                     context.moveTo(this.xPos - 18, this.yPos);
                     context.lineTo(this.xPos, this.yPos + 17);
                     context.lineTo(this.xPos + 18, this.yPos);
                     context.lineTo(this.xPos, this.yPos - 17);
                     context.lineTo(this.xPos - 18, this.yPos);
+                }
+                else {
+                    context.beginPath();
+                    context.moveTo(this.xPos - 15, this.yPos);
+                    context.lineTo(this.xPos, this.yPos + 14);
+                    context.lineTo(this.xPos + 15, this.yPos);
+                    context.lineTo(this.xPos, this.yPos - 14);
+                    context.lineTo(this.xPos - 15, this.yPos);
+                }
+            },
+            draw: function(context) {
+                this.drawMoving(context);
+                if(this.historized) {
+                    this.drawOutline(context);
                     context.fillStyle = '#ffffff';
                     context.fill();
                     context.strokeStyle = '#a8a8a8';
@@ -602,13 +640,7 @@
                     context.fill();
                 }
                 else {
-                    this.drawMoving(context, 17);
-                    context.beginPath();
-                    context.moveTo(this.xPos - 15, this.yPos);
-                    context.lineTo(this.xPos, this.yPos + 14);
-                    context.lineTo(this.xPos + 15, this.yPos);
-                    context.lineTo(this.xPos, this.yPos - 14);
-                    context.lineTo(this.xPos - 15, this.yPos);
+                    this.drawOutline(context);
                     context.fillStyle = '#a8a8a8';
                     context.fill();
                 }
@@ -628,7 +660,38 @@
         Edge.prototype = {
             node: null,
             otherNode: null,
+            drawMoving: function(context) {
+                if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
+                    var nodeVelocity = 0;
+                    var nodeShadowOffsetX = 0;
+                    var nodeShadowOffsetY = 0;
+                    if(this.node.moving && !this.node.fixed) {
+                        nodeVelocity = LayoutEngine.absolute(this.node.xVel) + LayoutEngine.absolute(this.node.yVel);
+                        nodeShadowOffsetX = 4 * ((nodeVelocity > 2) ? 2 : nodeVelocity);
+                        nodeShadowOffsetY = 4 * ((nodeVelocity > 3) ? 3 : nodeVelocity);
+                    }
+                    var otherNodeVelocity = 0;
+                    var otherNodeShadowOffsetX = 0;
+                    var otherNodeShadowOffsetY = 0;
+                    if(this.otherNode.moving && !this.otherNode.fixed) {
+                        otherNodeVelocity = LayoutEngine.absolute(this.otherNode.xVel) + LayoutEngine.absolute(this.otherNode.yVel);
+                        otherNodeShadowOffsetX = 4 * ((otherNodeVelocity > 2) ? 2 : otherNodeVelocity);
+                        otherNodeShadowOffsetY = 4 * ((otherNodeVelocity > 3) ? 3 : otherNodeVelocity);
+                    }
+                    var averageVelocity = (nodeVelocity + otherNodeVelocity)/2;
+                    var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
+                    var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
+                    context.beginPath();
+                    context.moveTo(this.node.xPos - nodeShadowOffsetX, this.node.yPos + nodeShadowOffsetY);
+                    context.quadraticCurveTo(this.xPos - controlOffsetX, this.yPos + controlOffsetY,
+                            this.otherNode.xPos - otherNodeShadowOffsetX, this.otherNode.yPos + otherNodeShadowOffsetY);
+                    context.strokeStyle = 'rgba(150, 120, 100, ' + ((1/averageVelocity > 0.5 ? 0.5 : 1/averageVelocity) - LayoutEngine.stoppingVelocity) + ')';
+                    context.lineWidth = 1.0;
+                    context.stroke();                  
+                }
+            },
             draw: function(context) {
+                this.drawMoving(context);
                 context.beginPath();
                 context.moveTo(this.node.xPos, this.node.yPos);
                 context.quadraticCurveTo(this.xPos, this.yPos, this.otherNode.xPos, this.otherNode.yPos);
