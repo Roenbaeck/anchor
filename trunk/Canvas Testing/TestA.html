@@ -303,11 +303,18 @@
             context: null,
             shadowContext: null,
             running: false,
+            hoveredNodes: {},
             init: function(canvas, shadowCanvas, context, shadowContext) {
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
                 this.context = context;
                 this.shadowContext = shadowContext;
+            },
+            addHovered: function(hoveredNode) {
+                this.hoveredNodes[hoveredNode.id] = hoveredNode;
+            },
+            removeHovered: function(hoveredNode) {
+                delete this.hoveredNodes[hoveredNode.id];
             },
             getNodeAt: function(x, y) {
                 // clear the shadow context
@@ -335,7 +342,12 @@
                 // clear the visible context
                 this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-                var i, node;
+                var i, node, nodeId;
+                // draw palette around hovering nodes
+                for(nodeId in this.hoveredNodes) {
+                    node = this.hoveredNodes[nodeId];
+                    this.drawPalette(node.xPos, node.yPos);
+                }
 
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -347,6 +359,17 @@
                     clearInterval(this.drawId);
                     this.running = false;
                 }
+            },
+            drawPalette: function(x, y) {
+                this.context.beginPath();
+                this.context.arc(x, y, 1.5 * LayoutEngine.normalDistance, 0, 2*Math.PI, false);
+                this.context.fillStyle = '#e8e4e0';
+                this.context.fill();
+                this.context.beginPath();
+                this.context.arc(x, y, 1.4 * LayoutEngine.normalDistance, 0, 2*Math.PI, false);
+                this.context.strokeStyle = '#ffffff';
+                this.context.stroke();
+                this.context.beginPath();
             }
         };
 
@@ -362,6 +385,11 @@
             dragging: false,
             menu: false,
             focusedNode: null,
+            lastX: 0,
+            lastY: 0,
+            hoveringPrepared: false,
+            hoveringId: null,
+            hoveredNode: null,
             mousedown: function(event) {
                 this.focusedNode = DrawingEngine.getNodeAt(event._x, event._y);
                 if(this.focusedNode) {
@@ -375,18 +403,50 @@
                 }
             },
             mousemove: function(event) {
+                this.lastX = event._x;
+                this.lastY = event._y;
+                // if we are dragging a node, we must also be hovering over it
                 if (this.dragging && this.focusedNode) {
-                    this.focusedNode.xPos = event._x;
-                    this.focusedNode.yPos = event._y;
+                    this.focusedNode.xPos = this.lastX;
+                    this.focusedNode.yPos = this.lastY;
                     this.focusedNode.fixed = true;
                     this.focusedNode.moving = true;
                     DrawingEngine.start();
+                }
+                else {
+                    // we are hovering, but not dragging
+                    if(this.hoveredNode) {
+                        if(LayoutEngine.distance(this.hoveredNode, {xPos: this.lastX, yPos: this.lastY}) > 1.5 * LayoutEngine.normalDistance) {
+                            DrawingEngine.removeHovered(this.hoveredNode);
+                            this.hoveredNode = null;
+                            this.hoveringPrepared = false;
+                            DrawingEngine.start();
+                        }
+                    }
+                    // if we are not hovering, set up a check in half a second
+                    else if (!this.hoveringPrepared) {
+                        this.hoveringPrepared = true;
+                        this.hoveringId = setTimeout(function(reallyThis) { reallyThis.mousehover(event); }, 500, this);
+                    }
+                }
+            },
+            mousehover: function(event) {
+                this.hoveredNode = DrawingEngine.getNodeAt(this.lastX, this.lastY);
+                // mouse pointer over node
+                if(this.hoveredNode) {
+                    DrawingEngine.addHovered(this.hoveredNode);
+                    DrawingEngine.start();
+                }
+                // mouse pointer not over node, trigger a new check
+                else {
+                    this.hoveringPrepared = false;                    
                 }
             },
             mouseup: function(event) {
                 if(this.focusedNode) {
                     if (this.menu) {
                         MenuHandler.hide();
+                        this.menu = false;
                     }
                     if (this.dragging) {
                         this.dragging = false;
