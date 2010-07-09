@@ -192,10 +192,9 @@
                     }
                     nodeEdges = model.getEdges(node);
                     // for all edges, add the attracting velocity
-                    for(edge in nodeEdges) {
-                        edge = nodeEdges[edge];
-                        node.xVel += this.xAttracting(node, edge);
-                        node.yVel += this.yAttracting(node, edge);
+                    for(j = 0; edge = nodeEdges[j]; j++) {
+                        node.xVel += this.xAttracting(node, edge)/nodeEdges.length;
+                        node.yVel += this.yAttracting(node, edge)/nodeEdges.length;
                     }
                     // apply damping
                     node.xVel *= this.damping;
@@ -259,21 +258,19 @@
                 this.edges[this.edges.length] = edge;
                 var nodeEdges = this.idToEdges[edge.node.id];
                 if(!nodeEdges)
-                    nodeEdges = {};
-                if(!nodeEdges[edge.id])
-                    nodeEdges[edge.id] = edge;
+                    nodeEdges = [];
+                nodeEdges[nodeEdges.length] = edge;
                 this.idToEdges[edge.node.id] = nodeEdges;
                 nodeEdges = this.idToEdges[edge.otherNode.id];
                 if(!nodeEdges)
-                    nodeEdges = {};
-                if(!nodeEdges[edge.id])
-                    nodeEdges[edge.id] = edge;
+                    nodeEdges = [];
+                nodeEdges[nodeEdges.length] = edge;
                 this.idToEdges[edge.otherNode.id] = nodeEdges;
                 nodeEdges = this.idToEdges[edge.id];
                 if(!nodeEdges)
-                    nodeEdges = {};
-                nodeEdges[edge.node.id] = edge.node;
-                nodeEdges[edge.otherNode.id] = edge.otherNode;
+                    nodeEdges = [];
+                nodeEdges[nodeEdges.length] = edge.node;
+                nodeEdges[nodeEdges.length] = edge.otherNode;
                 this.idToEdges[edge.id] = nodeEdges;
             },
             getEdges: function(node) {
@@ -419,9 +416,7 @@
                 if(this.hoveredNode) {
                     DrawingEngine.addHovered(this.hoveredNode);
                     DrawingEngine.start();
-                    var contextualMessage = "Node: " + this.hoveredNode.name + "<br/>" + this.hoveredNode.actions;
-                    MenuHandler.setContent(contextualMessage);
-                    MenuHandler.show(this.hoveredNode.xPos + LayoutEngine.normalDistance/2, this.hoveredNode.yPos + LayoutEngine.normalDistance/2);
+                    MenuHandler.show(this.hoveredNode);
                     this.menu = true;
                 }
                 // mouse pointer not over node, trigger a new check
@@ -453,6 +448,20 @@
 
                 if(this.InputEventHandler[event.type])
                     this.InputEventHandler[event.type](event);
+            },
+            knotAttribute: function() {
+                var knot = new Knot(this.hoveredNode.xPos + LayoutEngine.normalDistance, this.hoveredNode.yPos - LayoutEngine.normalDistance, "Unnamed");
+                Model.addNode(knot);
+                var edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
+                Model.addEdge(edge);
+                DrawingEngine.start();
+            },
+            addAttribute: function() {
+                var attribute = new Attribute(this.hoveredNode.xPos + LayoutEngine.normalDistance, this.hoveredNode.yPos - LayoutEngine.normalDistance, "Unnamed", false);
+                Model.addNode(attribute);
+                var edge = new Edge(this.hoveredNode, attribute, this.hoveredNode + "_Unnamed", true);
+                Model.addEdge(edge);
+                DrawingEngine.start();                
             }
         };
 
@@ -462,10 +471,16 @@
                 menu = document.getElementById('menu');
                 this.hide();
             },
-            setContent: function(htmlContent) {
-                menu.innerHTML = htmlContent;
-            },
-            show: function(x, y) {
+            show: function(node) {
+                var x = node.xPos + LayoutEngine.normalDistance/2;
+                var y = node.yPos + LayoutEngine.normalDistance/2;
+
+                var action, content;
+                content = "Node: <input type=\"text\" value=\"" + node + "\" autofocus/>";
+                for(var i = 0; action = node.actions[i]; i++)
+                    content += "<br/>" + action;
+
+                menu.innerHTML = content;
                 menu.style.left = x + 'px';
                 menu.style.top = y + 'px';
                 // show the menu
@@ -487,7 +502,7 @@
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.id = this.shadowColor;
-            this.actions = "";
+            this.actions = [];
         }
         Node.prototype = {
             id: null,
@@ -499,7 +514,7 @@
             moving: true,
             fixed: false,
             shadowColor: '#ffffff',
-            actions: "",
+            actions: null,
             // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
                 return this.name.toString();
@@ -548,7 +563,7 @@
         function Attribute(x, y, name, historized) {
             Node.call(this, x, y, name);
             this.historized = historized;
-            this.actions = "+ to make this attribute knotted";
+            this.actions.push("<input type=\"button\" value=\"make this attribute knotted\" onclick=\"InputEventHandler.knotAttribute()\"/>");
         }
         Attribute.prototype = {
             historized: false,
@@ -591,7 +606,7 @@
 
         function Anchor(x, y, name) {
             Node.call(this, x, y, name);
-            this.actions = "+ to add a new attribue";
+            this.actions.push("<input type=\"button\" value=\"add a new attribute\" onclick=\"InputEventHandler.addAttribute()\"/>");
         }
         Anchor.prototype = {
             drawOutline: function(context) {
@@ -615,7 +630,7 @@
 
         function Knot(x, y, name) {
             Node.call(this, x, y, name);
-            this.actions = "- to remove this knot";
+            this.actions.push("<input type=\"button\" value=\"remove this knot\" onclick=\"InputEventHandler.removeKnot()\"/>");
         }
         Knot.prototype = {
             drawOutline: function(context) {
@@ -647,7 +662,7 @@
         function Tie(x, y, name, historized) {
             Node.call(this, x, y, name);
             this.historized = historized;
-            this.actions = "+ to add a new anchor";
+            this.actions.push("<input type=\"button\" value=\"add a new anchor\" onclick=\"InputEventHandler.addAnchor()\"/>");
         }
         Tie.prototype = {
             historized: false,
