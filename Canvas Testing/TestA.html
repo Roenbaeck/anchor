@@ -295,7 +295,7 @@
             shadowContext: null,
             running: false,
             hoveredNodes: {},
-            scale: 1,
+            xyScale: 1,
             xTranslation: 0,
             yTranslation: 0,
             init: function(canvas, shadowCanvas, context, shadowContext) {
@@ -303,6 +303,29 @@
                 this.shadowCanvas = shadowCanvas;
                 this.context = context;
                 this.shadowContext = shadowContext;
+            },
+            scale: function(scale) {
+                this.xyScale *= scale;
+                this.context.scale(scale, scale);
+                this.shadowContext.scale(scale, scale);
+            },
+            translate: function(x, y) {
+                this.xTranslation += x * this.xyScale;
+                this.yTranslation += y * this.xyScale;
+                this.context.translate(x, y);
+                this.shadowContext.translate(x, y);
+            },
+            xCanvas: function(xScreen) {
+                return Math.round((xScreen - this.xTranslation) / this.xyScale);
+            },
+            yCanvas: function(yScreen) {
+                return Math.round((yScreen - this.yTranslation) / this.xyScale);
+            },
+            xScreen: function(xCanvas) {
+                return Math.round(xCanvas * this.xyScale + this.xTranslation);
+            },
+            yScreen: function(yCanvas) {
+                return Math.round(yCanvas * this.xyScale + this.yTranslation);
             },
             addHovered: function(hoveredNode) {
                 this.hoveredNodes[hoveredNode.id] = hoveredNode;
@@ -382,18 +405,18 @@
             hoveringId: null,
             hoveredNode: null,
             mousedown: function(event) {
-                this.focusedNode = DrawingEngine.getNodeAt(event._x, event._y);
+                this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen);
                 if(this.focusedNode) {
                     this.dragging = true;
                 }
             },
             mousemove: function(event) {
-                this.xLastKnown = event._x;
-                this.yLastKnown = event._y;
+                this.xLastKnown = event.xScreen;
+                this.yLastKnown = event.yScreen;
                 // if we are dragging a node, we must also be hovering over it
                 if (this.dragging && this.focusedNode) {
-                    this.focusedNode.xPosition = this.xLastKnown;
-                    this.focusedNode.yPosition = this.yLastKnown;
+                    this.focusedNode.xPosition = DrawingEngine.xCanvas(this.xLastKnown);
+                    this.focusedNode.yPosition = DrawingEngine.yCanvas(this.yLastKnown);
                     this.focusedNode.fixed = true;
                     this.focusedNode.moving = true;
                     DrawingEngine.start();
@@ -401,7 +424,7 @@
                 else {
                     // we are hovering, but not dragging
                     if(this.hoveredNode) {
-                        if(LayoutEngine.distance(this.hoveredNode, {xPosition: this.xLastKnown, yPosition: this.yLastKnown}) > 1.5 * LayoutEngine.normalDistance) {
+                        if(LayoutEngine.distance(this.hoveredNode, {xPosition: DrawingEngine.xCanvas(this.xLastKnown), yPosition: DrawingEngine.yCanvas(this.yLastKnown)}) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.removeHovered(this.hoveredNode);
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
@@ -446,16 +469,14 @@
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
-                event._x = Math.round((event.clientX
+                event.xScreen = event.clientX
                         + document.body.scrollLeft
                         + document.documentElement.scrollLeft
-                        - this.offsetLeft
-                        + DrawingEngine.xTranslation) / DrawingEngine.scale);
-                event._y = Math.round((event.clientY
+                        - this.offsetLeft;
+                event.yScreen = event.clientY
                         + document.body.scrollTop
                         + document.documentElement.scrollTop
-                        - this.offsetTop
-                        + DrawingEngine.yTranslation) / DrawingEngine.scale);
+                        - this.offsetTop;
 
                 if(this.InputEventHandler[event.type])
                     this.InputEventHandler[event.type](event);
@@ -483,8 +504,8 @@
                 this.hide();
             },
             show: function(node) {
-                var x = node.xPosition + LayoutEngine.normalDistance/2;
-                var y = node.yPosition + LayoutEngine.normalDistance/2;
+                var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
+                var y = DrawingEngine.yScreen(node.yPosition + LayoutEngine.normalDistance/2);
 
                 var action, content;
                 content = "Node: <input type=\"text\" value=\"" + node + "\" autofocus/>";
@@ -838,6 +859,10 @@
             }
 
             DrawingEngine.init(canvas, shadowCanvas, context, shadowContext);
+            DrawingEngine.scale(1.1);
+            DrawingEngine.translate(-50, -100);
+            DrawingEngine.scale(1.1);
+            DrawingEngine.translate(-75, -125);
 
             canvas.InputEventHandler = InputEventHandler;
             // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
