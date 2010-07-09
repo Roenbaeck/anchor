@@ -156,20 +156,25 @@
                 this.equilibrium = true;
 
                 var i, j, node, otherNode, nodeEdges, edge, fakeNode, ratio, absoluteVelocity;
+                var x1Mid, y1Mid, x2Mid, y2Mid;
                 var fakeNodes = [];
 
                 // calculate the bending force on all edges (try to make edges as straight as possible)
                 for(i = 0; edge = model.edges[i]; i++) {
+                    // calculate the new "midpoint"
+                    x1Mid = edge.node.xPos + (edge.xPos - edge.node.xPos)/2;
+                    y1Mid = edge.node.yPos + (edge.yPos - edge.node.yPos)/2;
+                    x2Mid = edge.otherNode.xPos + (edge.xPos - edge.otherNode.xPos)/2;
+                    y2Mid = edge.otherNode.yPos + (edge.yPos - edge.otherNode.yPos)/2;
+                    edge.xMid = x1Mid + (x2Mid - x1Mid)/2;
+                    edge.yMid = y1Mid + (y2Mid - y1Mid)/2;
+
                     // assume a fake node in the middle of the two nodes
                     fakeNode = {
-                        xPos: edge.node.xPos + (edge.otherNode.xPos - edge.node.xPos) / 2,
-                        yPos: edge.node.yPos + (edge.otherNode.yPos - edge.node.yPos) / 2
+                        xPos: edge.xMid,
+                        yPos: edge.yMid
                     };
                     fakeNodes[fakeNodes.length] = fakeNode;
-                    // add an attracting force between the control node and this fake node proportional to the curvature
-                    ratio = this.distance(edge, fakeNode) / this.distance(edge.node, edge.otherNode);
-                    edge.xVel += ratio * this.xAttracting(edge, fakeNode);
-                    edge.yVel += ratio * this.yAttracting(edge, fakeNode);
                 }
                 for(i = 0; node = model.nodes[i]; i++) {
                     this.findSquareCorners(node);
@@ -458,7 +463,7 @@
                 DrawingEngine.start();
             },
             addAttribute: function() {
-                var attribute = new Attribute(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 2 * LayoutEngine.normalDistance, "Unnamed", false);
+                var attribute = new Attribute(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 3 * LayoutEngine.normalDistance, "Unnamed", false);
                 Model.addNode(attribute);
                 var edge = new Edge(this.hoveredNode, attribute, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
@@ -767,12 +772,6 @@
                 context.stroke();
                 // show if edges on ties are primary or not by drawing a filled or empty circle
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
-                    var x1Mid = this.node.xPos + (this.xPos - this.node.xPos)/2;
-                    var y1Mid = this.node.yPos + (this.yPos - this.node.yPos)/2;
-                    var x2Mid = this.otherNode.xPos + (this.xPos - this.otherNode.xPos)/2;
-                    var y2Mid = this.otherNode.yPos + (this.yPos - this.otherNode.yPos)/2;
-                    this.xMid = x1Mid + (x2Mid - x1Mid)/2;
-                    this.yMid = y1Mid + (y2Mid - y1Mid)/2;
                     context.beginPath();
                     context.arc(this.xMid, this.yMid, 6, 0, 2*Math.PI, false);
                     context.stroke();
