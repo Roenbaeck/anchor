@@ -109,45 +109,45 @@
 
             // use the taxi cab metric for measuring distances
             distance: function(node, otherNode) {
-                var d = this.absolute(otherNode.xPos - node.xPos) + this.absolute(otherNode.yPos - node.yPos);
+                var d = this.absolute(otherNode.xPosition - node.xPosition) + this.absolute(otherNode.yPosition - node.yPosition);
                 if(d > 0)
                     return d;
                 // move one node a pixel to the right if both nodes overlap
-                node.xPos +=1;
+                node.xPosition +=1;
                 return 1;
             },
             // x component of the repelling force formula
             xRepelling: function(node, otherNode) {
-                return (node.xPos - otherNode.xPos)/this.square(this.distance(node, otherNode));
+                return (node.xPosition - otherNode.xPosition)/this.square(this.distance(node, otherNode));
             },
 
             // y component of the repelling force formula
             yRepelling: function(node, otherNode) {
-                return (node.yPos - otherNode.yPos)/this.square(this.distance(node, otherNode));
+                return (node.yPosition - otherNode.yPosition)/this.square(this.distance(node, otherNode));
             },
 
             // x component of the attracting force formula
             xAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.xPos - node.xPos) * this.distance(node, otherNode);
+                return this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
             },
 
             // y component of the attracting force formula
             yAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.yPos - node.yPos) * this.distance(node, otherNode);
+                return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
             },
 
             findSquareCorners: function(node) {
-                this.xMin = node.xPos - this.influenceConstant * this.normalDistance;
-                this.xMax = node.xPos + this.influenceConstant * this.normalDistance;
-                this.yMin = node.yPos - this.influenceConstant * this.normalDistance;
-                this.yMax = node.yPos + this.influenceConstant * this.normalDistance;
+                this.xMin = node.xPosition - this.influenceConstant * this.normalDistance;
+                this.xMax = node.xPosition + this.influenceConstant * this.normalDistance;
+                this.yMin = node.yPosition - this.influenceConstant * this.normalDistance;
+                this.yMax = node.yPosition + this.influenceConstant * this.normalDistance;
             },
 
             withinSquare: function(otherNode) {
-                return  otherNode.xPos >= this.xMin &&
-                        otherNode.xPos <= this.xMax &&
-                        otherNode.yPos >= this.yMin &&
-                        otherNode.yPos <= this.yMax;
+                return  otherNode.xPosition >= this.xMin &&
+                        otherNode.xPosition <= this.xMax &&
+                        otherNode.yPosition >= this.yMin &&
+                        otherNode.yPosition <= this.yMax;
             },
 
             // calculate all forces and change the velocity and position of the node
@@ -159,20 +159,20 @@
                 var x1Mid, y1Mid, x2Mid, y2Mid;
                 var fakeNodes = [];
 
-                // calculate the bending force on all edges (try to make edges as straight as possible)
+                // calculate the midpoints of all edges and create a fake node there
                 for(i = 0; edge = model.edges[i]; i++) {
                     // calculate the new "midpoint"
-                    x1Mid = edge.node.xPos + (edge.xPos - edge.node.xPos)/2;
-                    y1Mid = edge.node.yPos + (edge.yPos - edge.node.yPos)/2;
-                    x2Mid = edge.otherNode.xPos + (edge.xPos - edge.otherNode.xPos)/2;
-                    y2Mid = edge.otherNode.yPos + (edge.yPos - edge.otherNode.yPos)/2;
+                    x1Mid = edge.node.xPosition + (edge.xPosition - edge.node.xPosition)/2;
+                    y1Mid = edge.node.yPosition + (edge.yPosition - edge.node.yPosition)/2;
+                    x2Mid = edge.otherNode.xPosition + (edge.xPosition - edge.otherNode.xPosition)/2;
+                    y2Mid = edge.otherNode.yPosition + (edge.yPosition - edge.otherNode.yPosition)/2;
                     edge.xMid = x1Mid + (x2Mid - x1Mid)/2;
                     edge.yMid = y1Mid + (y2Mid - y1Mid)/2;
 
                     // assume a fake node in the middle of the two nodes
                     fakeNode = {
-                        xPos: edge.xMid,
-                        yPos: edge.yMid
+                        xPosition: edge.xMid,
+                        yPosition: edge.yMid
                     };
                     fakeNodes[fakeNodes.length] = fakeNode;
                 }
@@ -183,28 +183,28 @@
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
                             if(this.withinSquare(otherNode)) {
-                                node.xVel += this.xRepelling(node, otherNode);
-                                node.yVel += this.yRepelling(node, otherNode);
+                                node.xVelocity += this.xRepelling(node, otherNode);
+                                node.yVelocity += this.yRepelling(node, otherNode);
                             }
                         }
                     }
                     for(j = 0; fakeNode = fakeNodes[j]; j++) {
                         // for fake nodes within range of a non-edge, add the repelling velocity
                         if(!(node instanceof Edge) && this.withinSquare(fakeNode)) {
-                            node.xVel += this.xRepelling(node, fakeNode);
-                            node.yVel += this.yRepelling(node, fakeNode);
+                            node.xVelocity += this.xRepelling(node, fakeNode);
+                            node.yVelocity += this.yRepelling(node, fakeNode);
                         }
                     }
                     nodeEdges = model.getEdges(node);
                     // for all edges, add the attracting velocity
                     for(j = 0; edge = nodeEdges[j]; j++) {
-                        node.xVel += this.xAttracting(node, edge)/nodeEdges.length;
-                        node.yVel += this.yAttracting(node, edge)/nodeEdges.length;
+                        node.xVelocity += this.xAttracting(node, edge)/nodeEdges.length;
+                        node.yVelocity += this.yAttracting(node, edge)/nodeEdges.length;
                     }
                     // apply damping
-                    node.xVel *= this.damping;
-                    node.yVel *= this.damping;
-                    absoluteVelocity = this.absolute(node.xVel) + this.absolute(node.yVel);
+                    node.xVelocity *= this.damping;
+                    node.yVelocity *= this.damping;
+                    absoluteVelocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
                     // check to see if the node has stopped/started moving
                     if(absoluteVelocity <= this.stoppingVelocity)
                         node.moving = false;
@@ -213,8 +213,8 @@
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
                         this.equilibrium = false;
-                        node.xPos += node.xVel;
-                        node.yPos += node.yVel;
+                        node.xPosition += node.xVelocity;
+                        node.yPosition += node.yVelocity;
                     }
                 }
             }
@@ -295,6 +295,9 @@
             shadowContext: null,
             running: false,
             hoveredNodes: {},
+            scale: 1,
+            xTranslation: 0,
+            yTranslation: 0,
             init: function(canvas, shadowCanvas, context, shadowContext) {
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
@@ -337,7 +340,7 @@
                 // draw palette around hovering nodes
                 for(nodeId in this.hoveredNodes) {
                     node = this.hoveredNodes[nodeId];
-                    this.drawPalette(node.xPos, node.yPos);
+                    this.drawPalette(node.xPosition, node.yPosition);
                 }
 
                 // draw all nodes and edges on the visible context
@@ -373,8 +376,8 @@
             dragging: false,
             menu: false,
             focusedNode: null,
-            lastX: 0,
-            lastY: 0,
+            xLastKnown: 0,
+            yLastKnown: 0,
             hoveringPrepared: false,
             hoveringId: null,
             hoveredNode: null,
@@ -385,12 +388,12 @@
                 }
             },
             mousemove: function(event) {
-                this.lastX = event._x;
-                this.lastY = event._y;
+                this.xLastKnown = event._x;
+                this.yLastKnown = event._y;
                 // if we are dragging a node, we must also be hovering over it
                 if (this.dragging && this.focusedNode) {
-                    this.focusedNode.xPos = this.lastX;
-                    this.focusedNode.yPos = this.lastY;
+                    this.focusedNode.xPosition = this.xLastKnown;
+                    this.focusedNode.yPosition = this.yLastKnown;
                     this.focusedNode.fixed = true;
                     this.focusedNode.moving = true;
                     DrawingEngine.start();
@@ -398,7 +401,7 @@
                 else {
                     // we are hovering, but not dragging
                     if(this.hoveredNode) {
-                        if(LayoutEngine.distance(this.hoveredNode, {xPos: this.lastX, yPos: this.lastY}) > 1.5 * LayoutEngine.normalDistance) {
+                        if(LayoutEngine.distance(this.hoveredNode, {xPosition: this.xLastKnown, yPosition: this.yLastKnown}) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.removeHovered(this.hoveredNode);
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
@@ -417,7 +420,7 @@
                 }
             },
             mousehover: function(event) {
-                this.hoveredNode = DrawingEngine.getNodeAt(this.lastX, this.lastY);
+                this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown);
                 // mouse pointer over node
                 if(this.hoveredNode) {
                     DrawingEngine.addHovered(this.hoveredNode);
@@ -443,27 +446,29 @@
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
-                event._x = event.clientX
+                event._x = Math.round((event.clientX
                         + document.body.scrollLeft
                         + document.documentElement.scrollLeft
-                        - this.offsetLeft;
-                event._y = event.clientY
+                        - this.offsetLeft
+                        + DrawingEngine.xTranslation) / DrawingEngine.scale);
+                event._y = Math.round((event.clientY
                         + document.body.scrollTop
                         + document.documentElement.scrollTop
-                        - this.offsetTop;
+                        - this.offsetTop
+                        + DrawingEngine.yTranslation) / DrawingEngine.scale);
 
                 if(this.InputEventHandler[event.type])
                     this.InputEventHandler[event.type](event);
             },
             knotAttribute: function() {
-                var knot = new Knot(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 2 * LayoutEngine.normalDistance, "Unnamed");
+                var knot = new Knot(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 2 * LayoutEngine.normalDistance, "Unnamed");
                 Model.addNode(knot);
                 var edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
                 DrawingEngine.start();
             },
             addAttribute: function() {
-                var attribute = new Attribute(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 3 * LayoutEngine.normalDistance, "Unnamed", false);
+                var attribute = new Attribute(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 3 * LayoutEngine.normalDistance, "Unnamed", false);
                 Model.addNode(attribute);
                 var edge = new Edge(this.hoveredNode, attribute, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
@@ -478,8 +483,8 @@
                 this.hide();
             },
             show: function(node) {
-                var x = node.xPos + LayoutEngine.normalDistance/2;
-                var y = node.yPos + LayoutEngine.normalDistance/2;
+                var x = node.xPosition + LayoutEngine.normalDistance/2;
+                var y = node.yPosition + LayoutEngine.normalDistance/2;
 
                 var action, content;
                 content = "Node: <input type=\"text\" value=\"" + node + "\" autofocus/>";
@@ -500,10 +505,10 @@
 
         function Node(x, y, name) {
             this.name = name;
-            this.xPos = x;
-            this.yPos = y;
-            this.xVel = 0;
-            this.yVel = 0;
+            this.xPosition = x;
+            this.yPosition = y;
+            this.xVelocity = 0;
+            this.yVelocity = 0;
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
@@ -513,10 +518,10 @@
         Node.prototype = {
             id: null,
             name: null,
-            xPos: null,
-            yPos: null,
-            xVel: null,
-            yVel: null,
+            xPosition: null,
+            yPosition: null,
+            xVelocity: null,
+            yVelocity: null,
             moving: true,
             fixed: false,
             shadowColor: '#ffffff',
@@ -542,12 +547,12 @@
             },
             drawOutline: function(context) {
                 context.beginPath();
-                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                context.arc(this.xPosition, this.yPosition, 10, 0, 2*Math.PI, false);
                 context.closePath();
             },
             drawMoving: function(context) {
                 if(this.moving && !this.fixed) {
-                    var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
+                    var velocity = LayoutEngine.absolute(this.xVelocity) + LayoutEngine.absolute(this.yVelocity);
                     var shadowOffsetX = 4 * ((velocity > 2) ? 2 : velocity);
                     var shadowOffsetY = 4 * ((velocity > 3) ? 3 : velocity);
                     context.save();
@@ -561,7 +566,7 @@
             drawFixed: function(context) {
                 if(this.fixed) {
                     context.fillStyle = '#000000';
-                    context.fillRect(this.xPos - 1, this.yPos - 1, 2, 2);
+                    context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
                 }
             }
         };
@@ -577,9 +582,9 @@
                 // the outermost path
                 context.beginPath();
                 if(this.historized)
-                    context.arc(this.xPos, this.yPos, 12, 0, 2*Math.PI, false);
+                    context.arc(this.xPosition, this.yPosition, 12, 0, 2*Math.PI, false);
                 else
-                    context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);                
+                    context.arc(this.xPosition, this.yPosition, 10, 0, 2*Math.PI, false);                
             },
             draw: function(context) {
                 if(this.historized) {
@@ -591,7 +596,7 @@
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
-                    context.arc(this.xPos, this.yPos, 7, 0, 2*Math.PI, false);
+                    context.arc(this.xPosition, this.yPosition, 7, 0, 2*Math.PI, false);
                     context.fill();
                     context.stroke();
                 }
@@ -617,11 +622,11 @@
         Anchor.prototype = {
             drawOutline: function(context) {
                 context.beginPath();
-                context.moveTo(this.xPos - 10, this.yPos - 10);
-                context.lineTo(this.xPos + 10, this.yPos - 10);
-                context.lineTo(this.xPos + 10, this.yPos + 10);
-                context.lineTo(this.xPos - 10, this.yPos + 10);
-                context.lineTo(this.xPos - 10, this.yPos - 10);
+                context.moveTo(this.xPosition - 10, this.yPosition - 10);
+                context.lineTo(this.xPosition + 10, this.yPosition - 10);
+                context.lineTo(this.xPosition + 10, this.yPosition + 10);
+                context.lineTo(this.xPosition - 10, this.yPosition + 10);
+                context.lineTo(this.xPosition - 10, this.yPosition - 10);
             },
             draw: function(context) {
                 this.drawOutline(context);
@@ -641,15 +646,15 @@
         Knot.prototype = {
             drawOutline: function(context) {
                 context.beginPath();
-                context.moveTo(this.xPos - 6, this.yPos - 9);
-                context.lineTo(this.xPos + 6, this.yPos - 9);
-                context.quadraticCurveTo(this.xPos + 9, this.yPos - 9, this.xPos + 9, this.yPos - 6);
-                context.lineTo(this.xPos + 9, this.yPos + 6);
-                context.quadraticCurveTo(this.xPos + 9, this.yPos + 9, this.xPos + 6, this.yPos + 9);
-                context.lineTo(this.xPos - 6, this.yPos + 9);
-                context.quadraticCurveTo(this.xPos - 9, this.yPos + 9, this.xPos - 9, this.yPos + 6);
-                context.lineTo(this.xPos - 9, this.yPos - 6);
-                context.quadraticCurveTo(this.xPos - 9, this.yPos - 9, this.xPos - 6, this.yPos - 9);
+                context.moveTo(this.xPosition - 6, this.yPosition - 9);
+                context.lineTo(this.xPosition + 6, this.yPosition - 9);
+                context.quadraticCurveTo(this.xPosition + 9, this.yPosition - 9, this.xPosition + 9, this.yPosition - 6);
+                context.lineTo(this.xPosition + 9, this.yPosition + 6);
+                context.quadraticCurveTo(this.xPosition + 9, this.yPosition + 9, this.xPosition + 6, this.yPosition + 9);
+                context.lineTo(this.xPosition - 6, this.yPosition + 9);
+                context.quadraticCurveTo(this.xPosition - 9, this.yPosition + 9, this.xPosition - 9, this.yPosition + 6);
+                context.lineTo(this.xPosition - 9, this.yPosition - 6);
+                context.quadraticCurveTo(this.xPosition - 9, this.yPosition - 9, this.xPosition - 6, this.yPosition - 9);
             },
             draw: function(context) {
                 this.drawOutline(context);
@@ -675,19 +680,19 @@
             drawOutline: function(context) {
                 if(this.historized) {
                     context.beginPath();
-                    context.moveTo(this.xPos - 18, this.yPos);
-                    context.lineTo(this.xPos, this.yPos + 17);
-                    context.lineTo(this.xPos + 18, this.yPos);
-                    context.lineTo(this.xPos, this.yPos - 17);
-                    context.lineTo(this.xPos - 18, this.yPos);
+                    context.moveTo(this.xPosition - 18, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition + 17);
+                    context.lineTo(this.xPosition + 18, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition - 17);
+                    context.lineTo(this.xPosition - 18, this.yPosition);
                 }
                 else {
                     context.beginPath();
-                    context.moveTo(this.xPos - 15, this.yPos);
-                    context.lineTo(this.xPos, this.yPos + 14);
-                    context.lineTo(this.xPos + 15, this.yPos);
-                    context.lineTo(this.xPos, this.yPos - 14);
-                    context.lineTo(this.xPos - 15, this.yPos);
+                    context.moveTo(this.xPosition - 15, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition + 14);
+                    context.lineTo(this.xPosition + 15, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition - 14);
+                    context.lineTo(this.xPosition - 15, this.yPosition);
                 }
             },
             draw: function(context) {
@@ -699,10 +704,10 @@
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
-                    context.moveTo(this.xPos - 12, this.yPos);
-                    context.lineTo(this.xPos, this.yPos + 11);
-                    context.lineTo(this.xPos + 12, this.yPos);
-                    context.lineTo(this.xPos, this.yPos - 11);
+                    context.moveTo(this.xPosition - 12, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition + 11);
+                    context.lineTo(this.xPosition + 12, this.yPosition);
+                    context.lineTo(this.xPosition, this.yPosition - 11);
                     context.fillStyle = '#a8a8a8';
                     context.fill();
                 }
@@ -720,8 +725,8 @@
 
         function Edge(node, otherNode, name, primary) {
             // use the midpoint between the nodes
-            this.xMid = node.xPos + (otherNode.xPos - node.xPos)/2;
-            this.yMid = node.yPos + (otherNode.yPos - node.yPos)/2
+            this.xMid = node.xPosition + (otherNode.xPosition - node.xPosition)/2;
+            this.yMid = node.yPosition + (otherNode.yPosition - node.yPosition)/2
             Node.call(this, this.xMid, this.yMid, name);
             this.node = node;
             this.otherNode = otherNode;
@@ -739,7 +744,7 @@
                     var nodeShadowOffsetX = 0;
                     var nodeShadowOffsetY = 0;
                     if(this.node.moving && !this.node.fixed) {
-                        nodeVelocity = LayoutEngine.absolute(this.node.xVel) + LayoutEngine.absolute(this.node.yVel);
+                        nodeVelocity = LayoutEngine.absolute(this.node.xVelocity) + LayoutEngine.absolute(this.node.yVelocity);
                         nodeShadowOffsetX = 4 * ((nodeVelocity > 2) ? 2 : nodeVelocity);
                         nodeShadowOffsetY = 4 * ((nodeVelocity > 3) ? 3 : nodeVelocity);
                     }
@@ -747,7 +752,7 @@
                     var otherNodeShadowOffsetX = 0;
                     var otherNodeShadowOffsetY = 0;
                     if(this.otherNode.moving && !this.otherNode.fixed) {
-                        otherNodeVelocity = LayoutEngine.absolute(this.otherNode.xVel) + LayoutEngine.absolute(this.otherNode.yVel);
+                        otherNodeVelocity = LayoutEngine.absolute(this.otherNode.xVelocity) + LayoutEngine.absolute(this.otherNode.yVelocity);
                         otherNodeShadowOffsetX = 4 * ((otherNodeVelocity > 2) ? 2 : otherNodeVelocity);
                         otherNodeShadowOffsetY = 4 * ((otherNodeVelocity > 3) ? 3 : otherNodeVelocity);
                     }
@@ -755,9 +760,9 @@
                     var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
                     var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
                     context.beginPath();
-                    context.moveTo(this.node.xPos - nodeShadowOffsetX, this.node.yPos + nodeShadowOffsetY);
-                    context.quadraticCurveTo(this.xPos - controlOffsetX, this.yPos + controlOffsetY,
-                            this.otherNode.xPos - otherNodeShadowOffsetX, this.otherNode.yPos + otherNodeShadowOffsetY);
+                    context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
+                    context.quadraticCurveTo(this.xPosition - controlOffsetX, this.yPosition + controlOffsetY,
+                            this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
                     context.strokeStyle = 'rgba(150, 120, 100, ' + ((1/averageVelocity > 0.5 ? 0.5 : 1/averageVelocity) - LayoutEngine.stoppingVelocity) + ')';
                     context.lineWidth = 1.0;
                     context.stroke();                  
@@ -765,8 +770,8 @@
             },
             draw: function(context) {
                 context.beginPath();
-                context.moveTo(this.node.xPos, this.node.yPos);
-                context.quadraticCurveTo(this.xPos, this.yPos, this.otherNode.xPos, this.otherNode.yPos);
+                context.moveTo(this.node.xPosition, this.node.yPosition);
+                context.quadraticCurveTo(this.xPosition, this.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
                 context.strokeStyle = '#000000';
                 context.lineWidth = 1.0;
                 context.stroke();
