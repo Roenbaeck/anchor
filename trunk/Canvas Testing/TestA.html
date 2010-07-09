@@ -88,7 +88,7 @@
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.00003703703704,
             // adjusts the size of the influence square by this factor
-            influenceConstant: 3,
+            influenceConstant: 4,
             // used to store the corners of the influence square
             xMin: 0,
             xMax: 0,
@@ -350,8 +350,9 @@
             drawPalette: function(x, y) {
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.fillStyle = '#ebe8e8';
-                this.context.fill();
+                this.context.strokeStyle = '#ebe8e8';
+                this.context.lineWidth = 10;
+                this.context.stroke();
             }
         };
 
@@ -450,14 +451,14 @@
                     this.InputEventHandler[event.type](event);
             },
             knotAttribute: function() {
-                var knot = new Knot(this.hoveredNode.xPos + LayoutEngine.normalDistance, this.hoveredNode.yPos - LayoutEngine.normalDistance, "Unnamed");
+                var knot = new Knot(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 2 * LayoutEngine.normalDistance, "Unnamed");
                 Model.addNode(knot);
                 var edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
                 DrawingEngine.start();
             },
             addAttribute: function() {
-                var attribute = new Attribute(this.hoveredNode.xPos + LayoutEngine.normalDistance, this.hoveredNode.yPos - LayoutEngine.normalDistance, "Unnamed", false);
+                var attribute = new Attribute(this.hoveredNode.xPos + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPos - 2 * LayoutEngine.normalDistance, "Unnamed", false);
                 Model.addNode(attribute);
                 var edge = new Edge(this.hoveredNode, attribute, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
