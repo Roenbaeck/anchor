@@ -3,7 +3,7 @@
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <title>Test A - a little bit of everything, and then some</title>
+    <title>Test C - a little bit of everything, and then some</title>
     <style type="text/css">
     html {
         margin:             0;
@@ -357,8 +357,7 @@
                 LayoutEngine.layout(Model);
 
                 // clear the visible context
-                // TODO: this needs to be fixed, it does not work after scaling and translating right now
-                this.context.clearRect(-this.xScreen(0), -this.yScreen(0), this.canvas.width / this.xyScale, this.canvas.height / this.xyScale);
+                this.context.clearRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
 
                 var i, node, nodeId;
                 // draw palette around hovering nodes
@@ -421,7 +420,7 @@
                     // if the dragging started over an empty part of the canvas
                     else {
                         // TODO: this does not work as it should after scaling
-                        DrawingEngine.translate(event.xScreen - this.xLastKnown, event.yScreen - this.yLastKnown);
+                        DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale, (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
                     }
                     DrawingEngine.start();
                 }
