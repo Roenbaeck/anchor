@@ -388,9 +388,11 @@
         };
 
         var ResizeHandler = {
-            resizeCanvas: function(canvas) {
+            resizeCanvas: function(canvas, context) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
+                // apparently changing the canvas width or height resets the transform
+                context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale, DrawingEngine.xTranslation, DrawingEngine.yTranslation);
                 DrawingEngine.start();
             }
         };
@@ -460,6 +462,11 @@
                 else {
                     this.hoveringPrepared = false;
                 }
+            },
+            // this is special Firefox handling
+            DOMMouseScroll: function(event) {
+                event.wheelDelta = event.detail * 120;
+                this.mousewheel(event);
             },
             mousewheel: function(event) {
                 var zoom = 1 + 10/event.wheelDelta;
@@ -843,23 +850,19 @@
                 alert("Cannot find the canvas!");
                 return;
             }
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(canvas);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas) }, false);
-
-            shadowCanvas = document.getElementById('shadow');
-            if (!shadowCanvas || !shadowCanvas.getContext) {
-                alert("Cannot find the shadow canvas!");
-                return;
-            }
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(shadowCanvas);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas) }, false);
-
             // get the canvas 2d context
             context = canvas.getContext('2d');
             if (!context) {
                 alert("The canvas has no 2d context!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(canvas, context);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas, context) }, false);
+
+            shadowCanvas = document.getElementById('shadow');
+            if (!shadowCanvas || !shadowCanvas.getContext) {
+                alert("Cannot find the shadow canvas!");
                 return;
             }
             // get the shadow canvas 2d context
@@ -868,6 +871,10 @@
                 alert("The shadow canvas has no 2d context!");
                 return;
             }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas, shadowContext) }, false);
+
 
             DrawingEngine.init(canvas, shadowCanvas, context, shadowContext);
 
@@ -876,7 +883,8 @@
             canvas.addEventListener('mousedown', InputEventHandler.handleEvent, false);
             canvas.addEventListener('mousemove', InputEventHandler.handleEvent, false);
             canvas.addEventListener('mouseup', InputEventHandler.handleEvent, false);
-            canvas.addEventListener('mousewheel', InputEventHandler.handleEvent, false);
+            canvas.addEventListener('mousewheel', InputEventHandler.handleEvent, false); // Safari and Chrome
+            canvas.addEventListener('DOMMouseScroll', InputEventHandler.handleEvent, false); // Firefox
 
             function r() {
                 return {
