@@ -475,16 +475,12 @@
                 }
                 else {
                     // we are hovering, but not dragging
-                    if(this.hoveredNode) {
+                    if(this.hoveredNode && !this.menu) {
                         if(LayoutEngine.distance(this.hoveredNode, {xPosition: DrawingEngine.xContext(event.xScreen), yPosition: DrawingEngine.yContext(event.yScreen)}) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.removeHovered(this.hoveredNode);
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
                             DrawingEngine.start();
-                            if (this.menu) {
-                                MenuHandler.hide();
-                                this.menu = false;
-                            }
                         }
                     }
                     // if we are not hovering, set up a check in half a second
@@ -502,12 +498,23 @@
                 if(this.hoveredNode) {
                     DrawingEngine.addHovered(this.hoveredNode);
                     DrawingEngine.start();
-                    MenuHandler.show(this.hoveredNode);
-                    this.menu = true;
+                    this.keydown(event);
                 }
                 // mouse pointer not over node, trigger a new check
                 else {
                     this.hoveringPrepared = false;
+                }
+            },
+            keydown: function(event) {
+                if(event.shiftKey && this.hoveredNode) {
+                    if(this.menu) {
+                        this.menu = false;
+                        MenuHandler.hide();
+                    }
+                    else {
+                        MenuHandler.show(this.hoveredNode);
+                        this.menu = true;
+                    }
                 }
             },
             // this is special Firefox handling
@@ -1004,6 +1011,9 @@
             canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
 
+            // setting a listener on the canvas did not work, so this is a workaround
+            window.onkeydown = CanvasEventHandler.handleEvent;
+
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
             miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
@@ -1126,7 +1136,7 @@
     </script>
 </head>
 <body id="body" width="100%" height="100%">
-<canvas id="canvas">
+<canvas id="canvas" autofocus>
     Your browser does not support HTML5 canvas!
 </canvas>
 <canvas id="shadow">
@@ -1134,7 +1144,7 @@
 </canvas>
 <div id="header">
     <input type="button" value="DEBUG" onclick="toggleDebug()"/>
-    Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, or hover to bring up a context menu.
+    Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, or Shift + hover to toggle a context menu.
 </div>
 <div id="menu">
     <!-- this will be filled and shown dynamically -->
