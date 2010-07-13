@@ -78,8 +78,11 @@
 
     <script type="text/javascript">
         <!--
+        // set to true to show debugging information
+        var DEBUG = false;
+        
         // frames per second - set low when debugging
-        const FPS = 100;
+        var FPS = 1000;
 
         // create a singleton
         var LayoutEngine = {
@@ -653,24 +656,28 @@
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
-                this.drawOutline(context);
-                if(this.moving && !this.fixed)
-                    context.fillStyle = '#bb5555';
-                else
-                    context.fillStyle = '#55bb55';
-                context.fill();
+                if(DEBUG) {
+                    context.beginPath();
+                    context.moveTo(this.xPosition, this.yPosition);
+                    // draw an exaggerated velocity vector
+                    context.lineTo(this.xPosition + LayoutEngine.normalDistance * this.xVelocity, this.yPosition + LayoutEngine.normalDistance * this.yVelocity);
+                    context.strokeStyle = '#008800';
+                    context.lineWidth = 0.5;
+                    context.stroke();
+                    context.fillStyle = '#ffffff';
+                    context.fillRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
+                    context.strokeRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
+                }
             },
-            // this is how a node draws itself on the shadow context (just a rectangle)
+            // this is how a node draws itself on the shadow context
             drawShadow: function(context) {
                 this.drawOutline(context);
                 context.fillStyle = this.shadowColor;
                 context.fill();
             },
-            drawOutline: function(context) {
-                context.beginPath();
-                context.arc(this.xPosition, this.yPosition, 10, 0, 2*Math.PI, false);
-                context.closePath();
-            },
+            // this is used to draw the outline of a node, used in the shadow context
+            drawOutline: function(context) { },
+            // this is how to draw a graphical representation of the fact that a node is moving
             drawMoving: function(context) {
                 if(this.moving && !this.fixed) {
                     var velocity = LayoutEngine.absolute(this.xVelocity) + LayoutEngine.absolute(this.yVelocity);
@@ -728,6 +735,7 @@
                     context.lineWidth = 1.5;
                     context.stroke();
                 }
+                Node.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
             }
         };
@@ -752,6 +760,7 @@
                 this.drawOutline(context);
                 context.fillStyle = '#bb5555';
                 context.fill();
+                Node.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
             }
         };
@@ -783,6 +792,7 @@
                 context.strokeStyle = '#ff8888';
                 context.lineWidth = 1.5;
                 context.stroke();
+                Node.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
             }
         };
@@ -837,6 +847,7 @@
                     context.fillStyle = '#a8a8a8';
                     context.fill();
                 }
+                Node.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
             }
         };
@@ -902,11 +913,13 @@
                 context.strokeStyle = '#000000';
                 context.lineWidth = 1.0;
                 context.stroke();
-                // debugging
-                /*
-                context.fillStyle = '#00bb00';
-                context.fillRect(this.controlPoint.xPosition - 2, this.controlPoint.yPosition - 2, 4, 4);
-                */
+                if(DEBUG) {
+                    context.beginPath();
+                    context.arc(this.controlPoint.xPosition, this.controlPoint.yPosition, 4, 0, 2*Math.PI, false);
+                    context.fillStyle = '#00bb00';
+                    context.fill();
+                    context.stroke();
+                }
                 // show if edges on ties are primary or not by drawing a filled or empty circle
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
                     context.beginPath();
@@ -918,6 +931,7 @@
                         context.fillStyle = '#ffffff';
                     context.fill();
                 }
+                Node.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -1103,6 +1117,11 @@
             DrawingEngine.start();
         }
 
+        function toggleDebug() {
+            DEBUG = !DEBUG;
+            DrawingEngine.start();
+        }
+
         // -->
     </script>
 </head>
@@ -1114,6 +1133,7 @@
     <!-- nothing to see here -->
 </canvas>
 <div id="header">
+    <input type="button" value="DEBUG" onclick="toggleDebug()"/>
     Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, or hover to bring up a context menu.
 </div>
 <div id="menu">
