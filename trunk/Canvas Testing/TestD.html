@@ -318,6 +318,9 @@
             xTranslation: 0,
             yTranslation: 0,
             miniScale: 0.3,
+            miniPadding: 50,
+            miniWidth: 0,
+            miniHeight: 0,
             miniature: null,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
@@ -383,15 +386,8 @@
                 // clear the visible context
                 this.context.clearRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
 
-                // TODO: clean this up later
-                var padding = 50;
-                var width = Model.rightmostNode.xPosition - Model.leftmostNode.xPosition + 2 * padding;
-                var height = Model.bottommostNode.yPosition - Model.topmostNode.yPosition + 2 * padding;
-                this.miniatureCanvas.width = this.miniScale * width;
-                this.miniatureCanvas.height = this.miniScale * height;
-                this.miniature.style.width = this.miniatureCanvas.width;
-                this.miniature.style.height = this.miniatureCanvas.height;
-                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (padding - Model.leftmostNode.xPosition), this.miniScale * (padding - Model.topmostNode.yPosition));
+                // draw the miniature
+                this.drawMiniature(Model);
 
                 var i, node, nodeId;
                 // draw palette around hovering nodes
@@ -407,17 +403,25 @@
                     node.draw(this.miniatureContext);
                 }
 
-                // show the viewport on the miniature
-                this.miniatureContext.strokeStyle = '#000000';
-                this.miniatureContext.lineWidth = 1;
-                this.miniatureContext.strokeRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
-
-
                 // check if all nodes have stopped moving and that we may stop
                 if(LayoutEngine.equilibrium) {
                     clearInterval(this.drawId);
                     this.running = false;
                 }
+            },
+            drawMiniature: function(model) {
+                this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
+                this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
+                this.miniatureCanvas.width = this.miniScale * this.miniWidth;
+                this.miniatureCanvas.height = this.miniScale * this.miniHeight;
+                this.miniature.style.width = this.miniatureCanvas.width;
+                this.miniature.style.height = this.miniatureCanvas.height;
+                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - Model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - Model.topmostNode.yPosition));
+
+                // show the viewport on the miniature
+                this.miniatureContext.strokeStyle = '#bb5555';
+                this.miniatureContext.lineWidth = 1/this.miniScale;
+                this.miniatureContext.strokeRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
             },
             drawPalette: function(x, y) {
                 this.context.beginPath();
@@ -438,7 +442,7 @@
             }
         };
 
-        var InputEventHandler = {
+        var CanvasEventHandler = {
             dragging: false,
             menu: false,
             focusedNode: null,
@@ -462,7 +466,6 @@
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
-                        // TODO: this does not work as it should after scaling
                         DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale, (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
                     }
                     DrawingEngine.start();
@@ -537,8 +540,8 @@
                         + document.documentElement.scrollTop
                         - this.offsetTop;
 
-                if(this.InputEventHandler[event.type])
-                    this.InputEventHandler[event.type](event);
+                if(this.CanvasEventHandler[event.type])
+                    this.CanvasEventHandler[event.type](event);
             },
             knotAttribute: function() {
                 var knot = new Knot(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 2 * LayoutEngine.normalDistance, "Unnamed");
@@ -555,6 +558,44 @@
                 DrawingEngine.start();
             }
         };
+
+        var MiniatureEventHandler = {
+            dragging: false,
+            xLastKnown: 0,
+            yLastKnown: 0,
+            mousedown: function(event) {
+                // TODO: Position the viewport under mousepointer on click
+                this.dragging = true;
+            },
+            mousemove: function(event) {
+                if (this.dragging) {
+                    DrawingEngine.translate((this.xLastKnown - event.xScreen)/DrawingEngine.miniScale, (this.yLastKnown - event.yScreen)/DrawingEngine.miniScale);
+                    DrawingEngine.start();
+                }
+                this.xLastKnown = event.xScreen;
+                this.yLastKnown = event.yScreen;
+            },
+            mouseup: function(event) {
+                if (this.dragging)
+                    this.dragging = false;
+                DrawingEngine.start();
+            },
+            handleEvent: function(event) {
+                // note that "this" refers to the object on which we attached the event handler
+                event.xScreen = event.clientX
+                        + document.body.scrollLeft
+                        + document.documentElement.scrollLeft
+                        - this.offsetLeft;
+                event.yScreen = event.clientY
+                        + document.body.scrollTop
+                        + document.documentElement.scrollTop
+                        - this.offsetTop;
+
+                if(this.MiniatureEventHandler[event.type]) 
+                    this.MiniatureEventHandler[event.type](event);
+            }
+        };
+
 
         var MenuHandler = {
             menu: null,
@@ -654,7 +695,7 @@
         function Attribute(x, y, name, historized) {
             Node.call(this, x, y, name);
             this.historized = historized;
-            this.actions.push("<input type=\"button\" value=\"make this attribute knotted\" onclick=\"InputEventHandler.knotAttribute()\"/>");
+            this.actions.push("<input type=\"button\" value=\"make this attribute knotted\" onclick=\"CanvasEventHandler.knotAttribute()\"/>");
         }
         Attribute.prototype = {
             historized: false,
@@ -696,7 +737,7 @@
 
         function Anchor(x, y, name) {
             Node.call(this, x, y, name);
-            this.actions.push("<input type=\"button\" value=\"add a new attribute\" onclick=\"InputEventHandler.addAttribute()\"/>");
+            this.actions.push("<input type=\"button\" value=\"add a new attribute\" onclick=\"CanvasEventHandler.addAttribute()\"/>");
         }
         Anchor.prototype = {
             drawOutline: function(context) {
@@ -720,7 +761,7 @@
 
         function Knot(x, y, name) {
             Node.call(this, x, y, name);
-            this.actions.push("<input type=\"button\" value=\"remove this knot\" onclick=\"InputEventHandler.removeKnot()\"/>");
+            this.actions.push("<input type=\"button\" value=\"remove this knot\" onclick=\"CanvasEventHandler.removeKnot()\"/>");
         }
         Knot.prototype = {
             drawOutline: function(context) {
@@ -752,7 +793,7 @@
         function Tie(x, y, name, historized) {
             Node.call(this, x, y, name);
             this.historized = historized;
-            this.actions.push("<input type=\"button\" value=\"add a new anchor\" onclick=\"InputEventHandler.addAnchor()\"/>");
+            this.actions.push("<input type=\"button\" value=\"add a new anchor\" onclick=\"CanvasEventHandler.addAnchor()\"/>");
         }
         Tie.prototype = {
             historized: false,
@@ -941,13 +982,18 @@
 
             DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
 
-            canvas.InputEventHandler = InputEventHandler;
+            canvas.CanvasEventHandler = CanvasEventHandler;
             // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
-            canvas.addEventListener('mousedown', InputEventHandler.handleEvent, false);
-            canvas.addEventListener('mousemove', InputEventHandler.handleEvent, false);
-            canvas.addEventListener('mouseup', InputEventHandler.handleEvent, false);
-            canvas.addEventListener('mousewheel', InputEventHandler.handleEvent, false); // Safari and Chrome
-            canvas.addEventListener('DOMMouseScroll', InputEventHandler.handleEvent, false); // Firefox
+            canvas.addEventListener('mousedown', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mousemove', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
+            canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
+
+            miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
+            miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
+            miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
+            miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
             function r() {
                 return {
