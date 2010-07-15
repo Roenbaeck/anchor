@@ -186,7 +186,7 @@
                             }
                         }
                         // the first iteration we count the number of stopped nodes
-                        if(j == 0 && !otherNode.moving) {
+                        if(j == 0 && (!otherNode.moving || otherNode.fixed)) {
                             numberOfStoppedNodes++;
                         }
                     }
@@ -215,10 +215,10 @@
                     absoluteVelocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
                     // check to see if the node has stopped moving
                     if(absoluteVelocity <= this.stoppingVelocity)
-                        node.moving = false;
+                        node.stop();
                     // the more nodes that have stopped, the larger the starting velocity must be
                     if(absoluteVelocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
-                        node.moving = true;
+                        node.start();
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
                         this.equilibrium = false;
@@ -467,7 +467,7 @@
                         this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                         this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                         this.focusedNode.fixed = true;
-                        this.focusedNode.moving = true;
+                        this.focusedNode.start();
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
@@ -677,6 +677,15 @@
             // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
                 return this.name.toString();
+            },
+            stop: function() {
+                this.moving = false;
+            },
+            // movement is propagated to the edges of a node
+            start: function() {
+                this.moving = true;
+                for(var i = 0; i < this.edges.length; i++)
+                    this.edges[i].start();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
@@ -906,6 +915,10 @@
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             primary: true,
+            // overload to remove propagation of movement
+            start: function() {
+                this.moving = true;
+            },
             drawMoving: function(context) {
                 if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
                     var nodeVelocity = 0;
