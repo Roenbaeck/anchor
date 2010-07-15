@@ -92,8 +92,10 @@
             damping: 0.96,
             // stopping velocity is one tenth of a pixel per second
             stoppingVelocity: 0.1,
-            // starting velocity is a whole pixel
-            startingVelocity: 1,
+            // minimum starting velocity is a whole pixel
+            minimumStartingVelocity: 1,
+            // maximum starting velocity is higher (to remove "twitching" when few nodes are moving)
+            maximumStartingVelocity: 5,
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.00003703703704,
             // adjusts the size of the influence square by this factor
@@ -167,7 +169,10 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, nodeEdges, edge, absoluteVelocity, curvature;
+                var i, j, node, otherNode, edge, absoluteVelocity, curvature;
+                var numberOfNodes = model.nodes.length;
+                var numberOfStoppedNodes = 0;
+                var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
                 for(i = 0; node = model.nodes[i]; i++) {
                     this.findSquareCorners(node);
@@ -179,6 +184,10 @@
                                 node.xVelocity += this.xRepelling(node, otherNode);
                                 node.yVelocity += this.yRepelling(node, otherNode);
                             }
+                        }
+                        // the first iteration we count the number of stopped nodes
+                        if(j == 0 && !otherNode.moving) {
+                            numberOfStoppedNodes++;
                         }
                     }
                     // bending force (straightens out edges)
@@ -195,20 +204,20 @@
                         node.xVelocity -= curvature * this.xRepelling(node, node.centerPoint);
                         node.yVelocity -= curvature * this.yRepelling(node, node.centerPoint);
                     }
-                    nodeEdges = model.getEdges(node);
                     // for all edges, add the attracting velocity
-                    for(j = 0; edge = nodeEdges[j]; j++) {
-                        node.xVelocity += this.xAttracting(node, edge)/nodeEdges.length;
-                        node.yVelocity += this.yAttracting(node, edge)/nodeEdges.length;
+                    for(j = 0; edge = node.edges[j]; j++) {
+                        node.xVelocity += this.xAttracting(node, edge)/node.edges.length;
+                        node.yVelocity += this.yAttracting(node, edge)/node.edges.length;
                     }
                     // apply damping
                     node.xVelocity *= this.damping;
                     node.yVelocity *= this.damping;
                     absoluteVelocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
-                    // check to see if the node has stopped/started moving
+                    // check to see if the node has stopped moving
                     if(absoluteVelocity <= this.stoppingVelocity)
                         node.moving = false;
-                    if(absoluteVelocity >= this.startingVelocity)
+                    // the more nodes that have stopped, the larger the starting velocity must be
+                    if(absoluteVelocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                         node.moving = true;
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
@@ -254,8 +263,6 @@
         var Model = {
             nodes: [],
             edges: [],
-            idToEdges: {},
-            idToNode: {},
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -265,7 +272,6 @@
                 // add node at the end of the array
                 this.nodes[this.nodes.length] = node;
                 this.nodes.sort(function(a, b) { return (a instanceof Edge) ? -1 : 1; });
-                this.idToNode[node.id] = node;
                 this.shadowToNode[node.shadowColor] = node;
                 if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
                     this.topmostNode = node;
@@ -276,33 +282,29 @@
                 if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
                     this.leftmostNode = node;
             },
+            removeNode: function(node) {
+                UniqueColor.releaseUniqueColor(node.shadowColor);
+                delete this.shadowToNode[node.shadowColor];
+                this.deleteElementFromArray(this.nodes, node);
+            },
             addEdge: function(edge) {
                 // the edge is also a node
                 this.nodes[this.nodes.length] = edge;
                 this.nodes.sort(function(a, b) { return (a instanceof Edge) ? -1 : 1; });
                 this.edges[this.edges.length] = edge;
-                var nodeEdges = this.idToEdges[edge.node.id];
-                if(!nodeEdges)
-                    nodeEdges = [];
-                nodeEdges[nodeEdges.length] = edge;
-                this.idToEdges[edge.node.id] = nodeEdges;
-                nodeEdges = this.idToEdges[edge.otherNode.id];
-                if(!nodeEdges)
-                    nodeEdges = [];
-                nodeEdges[nodeEdges.length] = edge;
-                this.idToEdges[edge.otherNode.id] = nodeEdges;
-                nodeEdges = this.idToEdges[edge.id];
-                if(!nodeEdges)
-                    nodeEdges = [];
-                nodeEdges[nodeEdges.length] = edge.node;
-                nodeEdges[nodeEdges.length] = edge.otherNode;
-                this.idToEdges[edge.id] = nodeEdges;
             },
-            getEdges: function(node) {
-                return this.idToEdges[node.id];
+            removeEdge: function(edge) {
+                this.removeNode(edge);
+                this.deleteElementFromArray(this.edges, edge);
+                this.deleteElementFromArray(edge.node.edges, edge);
+                this.deleteElementFromArray(edge.otherNode.edges, edge);
             },
             getNodeFromShadow: function(shadow) {
                 return this.shadowToNode[shadow];
+            },
+            deleteElementFromArray: function(array, element) {
+                for(var i = 0; element != array[i]; i++);
+                array.splice(i, 1);
             }
         };
 
@@ -553,11 +555,24 @@
                 if(this.CanvasEventHandler[event.type])
                     this.CanvasEventHandler[event.type](event);
             },
-            knotAttribute: function() {
-                var knot = new Knot(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 2 * LayoutEngine.normalDistance, "Unnamed");
-                Model.addNode(knot);
-                var edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
-                Model.addEdge(edge);
+            toggleKnotted: function() {
+                var knot, edge;
+                if(this.hoveredNode.knotted) {
+                    for(var i = 0; edge = this.hoveredNode.edges[i]; i++) {
+                        if(edge.otherNode instanceof Knot) {
+                            Model.removeNode(edge.otherNode);
+                            Model.removeEdge(edge);
+                        }
+                    }
+                    this.hoveredNode.knotted = false;
+                }
+                else {
+                    knot = new Knot(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 2 * LayoutEngine.normalDistance, "Unnamed");
+                    Model.addNode(knot);
+                    edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
+                    Model.addEdge(edge);                                        
+                    this.hoveredNode.knotted = true;
+                }
                 DrawingEngine.start();
             },
             addAttribute: function() {
@@ -644,6 +659,7 @@
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.id = this.shadowColor;
+            this.edges = [];
             this.actions = [];
         }
         Node.prototype = {
@@ -653,6 +669,7 @@
             yPosition: null,
             xVelocity: null,
             yVelocity: null,
+            edges: null,
             moving: true,
             fixed: false,
             shadowColor: '#ffffff',
@@ -709,10 +726,12 @@
         function Attribute(x, y, name, historized) {
             Node.call(this, x, y, name);
             this.historized = historized;
-            this.actions.push("<input type=\"button\" value=\"make this attribute knotted\" onclick=\"CanvasEventHandler.knotAttribute()\"/>");
+            this.actions.push("<input type=\"button\" value=\"toggle knotted\" onclick=\"CanvasEventHandler.toggleKnotted()\"/>");
+            this.actions.push("<input type=\"button\" value=\"toggle historized\" onclick=\"CanvasEventHandler.toggleHistorized()\"/>");
         }
         Attribute.prototype = {
             historized: false,
+            knotted: false,
             drawOutline: function(context) {
                 // the outermost path
                 context.beginPath();
@@ -876,6 +895,10 @@
             this.node = node;
             this.otherNode = otherNode;
             this.primary = primary;
+            node.edges.push(this);
+            otherNode.edges.push(this);
+            this.edges.push(node);
+            this.edges.push(otherNode);            
         }
         Edge.prototype = {
             node: null,
