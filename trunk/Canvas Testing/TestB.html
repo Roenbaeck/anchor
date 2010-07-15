@@ -11,7 +11,7 @@
                         
             // TODO: This does at least not work locally in Chrome
             var xmlhttp = new window.XMLHttpRequest();
-            xmlhttp.open("GET", "transform.xslt", false);
+            xmlhttp.open("GET", "TestB.xslt", false);
             xmlhttp.send(null);
             var xslt = xmlhttp.responseXML.documentElement;
             processor.importStylesheet(xslt);
