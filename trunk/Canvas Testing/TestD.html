@@ -3,7 +3,7 @@
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <title>Test C - a little bit of everything, and then some</title>
+    <title>Test D - putting it together</title>
     <style type="text/css">
     html {
         margin:             0;
@@ -575,6 +575,12 @@
                 }
                 DrawingEngine.start();
             },
+            toggleHistorized: function() {
+                if(this.hoveredNode) {
+                    this.hoveredNode.historized = !this.hoveredNode.historized;
+                    DrawingEngine.start();                    
+                }
+            },
             addAttribute: function() {
                 var attribute = new Attribute(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 3 * LayoutEngine.normalDistance, "Unnamed", false);
                 Model.addNode(attribute);
@@ -741,6 +747,10 @@
         Attribute.prototype = {
             historized: false,
             knotted: false,
+            mnemonic: null,
+            descriptor: null,
+            dataRange: null,
+            timeRange: null,
             drawOutline: function(context) {
                 // the outermost path
                 context.beginPath();
@@ -783,6 +793,9 @@
             this.actions.push("<input type=\"button\" value=\"add a new attribute\" onclick=\"CanvasEventHandler.addAttribute()\"/>");
         }
         Anchor.prototype = {
+            mnemonic: null,
+            descriptor: null,
+            identity: null,
             drawOutline: function(context) {
                 context.beginPath();
                 context.moveTo(this.xPosition - 10, this.yPosition - 10);
@@ -808,6 +821,10 @@
             this.actions.push("<input type=\"button\" value=\"remove this knot\" onclick=\"CanvasEventHandler.removeKnot()\"/>");
         }
         Knot.prototype = {
+            mnemonic: null,
+            descriptor: null,
+            identity: null,
+            dataRange: null,
             drawOutline: function(context) {
                 context.beginPath();
                 context.moveTo(this.xPosition - 6, this.yPosition - 9);
@@ -839,9 +856,12 @@
             Node.call(this, x, y, name);
             this.historized = historized;
             this.actions.push("<input type=\"button\" value=\"add a new anchor\" onclick=\"CanvasEventHandler.addAnchor()\"/>");
+            this.actions.push("<input type=\"button\" value=\"toggle knotted\" onclick=\"CanvasEventHandler.toggleKnotted()\"/>");
+            this.actions.push("<input type=\"button\" value=\"toggle historized\" onclick=\"CanvasEventHandler.toggleHistorized()\"/>");
         }
         Tie.prototype = {
             historized: false,
+            timeRange: null,
             drawOutline: function(context) {
                 if(this.historized) {
                     context.beginPath();
@@ -890,7 +910,7 @@
         // inheritance
         extend(Tie, Node);
 
-        function Edge(node, otherNode, name, primary) {
+        function Edge(node, otherNode, name, identifier) {
             // assume that the control point and midway point coincide with the center point
             this.centerPoint = {
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
@@ -903,18 +923,19 @@
             Node.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition, name);
             this.node = node;
             this.otherNode = otherNode;
-            this.primary = primary;
+            this.identifier = identifier;
             node.edges.push(this);
             otherNode.edges.push(this);
             this.edges.push(node);
             this.edges.push(otherNode);            
         }
         Edge.prototype = {
+            role: null,
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
-            primary: true,
+            identifier: true,
             // overload to remove propagation of movement
             start: function() {
                 this.moving = true;
@@ -963,12 +984,12 @@
                     context.fill();
                     context.stroke();
                 }
-                // show if edges on ties are primary or not by drawing a filled or empty circle
+                // show if edges on ties are identifiers or not by drawing a filled or empty circle
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
                     context.stroke();
-                    if(this.primary)
+                    if(this.identifier)
                         context.fillStyle = '#565656';
                     else
                         context.fillStyle = '#ffffff';
@@ -1163,9 +1184,25 @@
             DrawingEngine.start();
         }
 
-        function toggleDebug() {
+        function toggleDebug(button) {
             DEBUG = !DEBUG;
+            if(DEBUG)
+                button.value = 'NORMAL MODE';
+            else
+                button.value = 'DEBUG MODE';
             DrawingEngine.start();
+        }
+        function invalidateLayout() {
+            for(var i = 0; i < Model.nodes.length; i++) {
+                Model.nodes[i].start();
+                DrawingEngine.start();
+            }
+        }
+        function toggleFixation() {
+            for(var i = 0; i < Model.nodes.length; i++) {
+                Model.nodes[i].fixed = !Model.nodes[i].fixed;
+                DrawingEngine.start();
+            }            
         }
 
         // -->
@@ -1179,8 +1216,11 @@
     <!-- nothing to see here -->
 </canvas>
 <div id="header">
-    <input type="button" value="DEBUG" onclick="toggleDebug()"/>
     Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, or Shift + hover to toggle a context menu.
+    <br/>
+    <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
+    <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
+    <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
 </div>
 <div id="menu">
     <!-- this will be filled and shown dynamically -->
