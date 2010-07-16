@@ -82,7 +82,10 @@
         var DEBUG = false;
         
         // frames per second - set low when debugging
-        var FPS = 1000;
+        var FPS = 100;
+
+        // draw the miniature every minirate frames
+        var MINIRATE = 50;
 
         // create a singleton
         var LayoutEngine = {
@@ -329,6 +332,7 @@
             miniPadding: 50,
             miniWidth: 0,
             miniHeight: 0,
+            miniCounter: 0,
             miniature: null,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
@@ -382,20 +386,32 @@
                 return Model.getNodeFromShadow(UniqueColor.formatColor(data[0], data[1], data[2]));
             },
             start: function() {
+                this.invalidateMiniature();
                 if(!this.running) {
                     this.running = true;
                     this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
                 }
             },
+            invalidateMiniature: function() {
+                this.miniCounter = 0;
+            },
             draw: function() {
                 // layout nodes
                 LayoutEngine.layout(Model);
+                // check if all nodes have stopped moving and that we may stop
+                if(LayoutEngine.equilibrium) {
+                    clearInterval(this.drawId);
+                    this.running = false;
+                    this.invalidateMiniature();
+                }
 
                 // clear the visible context
                 this.context.clearRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
 
-                // draw the miniature
-                this.drawMiniature(Model);
+                // draw the miniature every minirate frames
+                this.miniCounter = (this.miniCounter + 1) % MINIRATE;
+                if(this.miniCounter == 1)
+                    this.drawMiniature(Model);
 
                 var i, node, nodeId;
                 // draw palette around hovering nodes
@@ -408,13 +424,8 @@
                 for(i = 0; node = Model.nodes[i]; i++) {
                     node.drawMoving(this.context);
                     node.draw(this.context);
-                    node.draw(this.miniatureContext);
-                }
-
-                // check if all nodes have stopped moving and that we may stop
-                if(LayoutEngine.equilibrium) {
-                    clearInterval(this.drawId);
-                    this.running = false;
+                    if(this.miniCounter == 1)
+                        node.draw(this.miniatureContext);
                 }
             },
             drawMiniature: function(model) {
