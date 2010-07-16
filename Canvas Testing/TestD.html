@@ -311,6 +311,16 @@
                 for(var i = 0; i < this.nodes.length; i++)
                     if(LayoutEngine.withinSquare(this.nodes[i], square))
                         this.nodes[i].start();
+            },
+            toXML: function() {
+                // create the xml document (not using a namespace simplifies the transformations)
+                var schema = document.implementation.createDocument("", "schema", null);
+                for(var i = 0; i < this.nodes.length; i++) {
+                    var node = this.nodes[i].toXML(schema);
+                    if(node != null)
+                        schema.documentElement.appendChild(node);
+                }
+                return schema;
             }
         };
 
@@ -698,6 +708,10 @@
             toString: function() {
                 return this.name.toString();
             },
+            // subclasses that should appear in the XML needs to override this 
+            toXML: function() {
+                return null;
+            },
             stop: function() {
                 this.moving = false;
             },
@@ -765,6 +779,26 @@
             descriptor: null,
             dataRange: null,
             timeRange: null,
+            toXML: function(schema) {
+                // create an anchor element
+                var attribute = schema.createElement("attribute");
+                // set attributes on the element
+                attribute.setAttribute("mnemonic", this.mnemonic);
+                attribute.setAttribute("descriptor", this.descriptor);
+                if(this.historized)
+                    attribute.setAttribute("timeRange", this.timeRange);
+                if(this.knotted) {
+                    var knot, edge;
+                    for(var i = 0; edge = this.edges[i]; i++)
+                        if(edge.otherNode instanceof Knot)
+                            knot = edge.otherNode;
+                    attribute.setAttribute("knotRange", knot.mnemonic);
+                }
+                else {
+                    attribute.setAttribute("dataRange", this.dataRange);
+                }
+                return attribute;
+            },
             drawOutline: function(context) {
                 // the outermost path
                 context.beginPath();
@@ -810,6 +844,15 @@
             mnemonic: null,
             descriptor: null,
             identity: null,
+            toXML: function(schema) {
+                // create an anchor element
+                var anchor = schema.createElement("anchor");
+                // set attributes on the element
+                anchor.setAttribute("mnemonic", this.mnemonic);
+                anchor.setAttribute("descriptor", this.descriptor);
+                anchor.setAttribute("identity", this.identity);
+                return anchor;
+            },
             drawOutline: function(context) {
                 context.beginPath();
                 context.moveTo(this.xPosition - 10, this.yPosition - 10);
@@ -839,6 +882,16 @@
             descriptor: null,
             identity: null,
             dataRange: null,
+            toXML: function(schema) {
+                // create an anchor element
+                var knot = schema.createElement("knot");
+                // set attributes on the element
+                knot.setAttribute("mnemonic", this.mnemonic);
+                knot.setAttribute("descriptor", this.descriptor);
+                knot.setAttribute("identity", this.identity);
+                knot.setAttribute("dataRange", this.dataRange);
+                return knot;
+            },
             drawOutline: function(context) {
                 context.beginPath();
                 context.moveTo(this.xPosition - 6, this.yPosition - 9);
@@ -876,6 +929,24 @@
         Tie.prototype = {
             historized: false,
             timeRange: null,
+            toXML: function(schema) {
+                var tie = schema.createElement("tie");
+                if(this.historized)
+                    tie.setAttribute("timeRange", this.timeRange);
+                for(var i = 0; i < this.edges.length; i++) {
+                    var role;
+                    var node = this.edges[i].otherNode;
+                    if(this.edges[i].otherNode instanceof Anchor)
+                        role = schema.createElement("anchorRole");
+                    else if(this.edges[i].otherNode instanceof Knot)
+                        role = schema.createElement("knotRole");
+                    role.setAttribute("role", this.edges[i].role);
+                    role.setAttribute("type", node.mnemonic);
+                    role.setAttribute("identifier", this.edges[i].identifier);
+                    tie.appendChild(role);
+                }
+                return tie;
+            },
             drawOutline: function(context) {
                 if(this.historized) {
                     context.beginPath();
@@ -1141,16 +1212,16 @@
 
             var A1A2 = new Tie(r().x, r().y, "A1A2", false);
             Model.addNode(A1A2);
-            var A1_A1A2 = new Edge(A1, A1A2, "A1_A1A2", false);
+            var A1_A1A2 = new Edge(A1A2, A1, "A1_A1A2", false);
             Model.addEdge(A1_A1A2);
-            var A2_A1A2 = new Edge(A2, A1A2, "A2_A1A2", true);
+            var A2_A1A2 = new Edge(A1A2, A2, "A2_A1A2", true);
             Model.addEdge(A2_A1A2);
 
             var A1A1 = new Tie(r().x, r().y, "A1A1", false);
             Model.addNode(A1A1);
-            var A1_a_A1A1 = new Edge(A1, A1A1, "A1_a_A1A1", false);
+            var A1_a_A1A1 = new Edge(A1A1, A1, "A1_a_A1A1", false);
             Model.addEdge(A1_a_A1A1);
-            var A1_b_A1A1 = new Edge(A1, A1A1, "A1_b_A1A1", true);
+            var A1_b_A1A1 = new Edge(A1A1, A1, "A1_b_A1A1", true);
             Model.addEdge(A1_b_A1A1);
 
             var A1A1C = new Knot(r().x, r().y, "A1A1C");
@@ -1181,16 +1252,16 @@
 
             var A1A3 = new Tie(r().x, r().y, "A1A3", true);
             Model.addNode(A1A3);
-            var A1_A1A3 = new Edge(A1, A1A3, "A1_A1A3", false);
+            var A1_A1A3 = new Edge(A1A3, A1, "A1_A1A3", false);
             Model.addEdge(A1_A1A3);
-            var A3_A1A3 = new Edge(A3, A1A3, "A3_A1A3", true);
+            var A3_A1A3 = new Edge(A1A3, A3, "A3_A1A3", true);
             Model.addEdge(A3_A1A3);
 
             var A2A3 = new Tie(r().x, r().y, "A2A3", true);
             Model.addNode(A2A3);
-            var A2_A2A3 = new Edge(A2, A2A3, "A2_A2A3", true);
+            var A2_A2A3 = new Edge(A2A3, A2, "A2_A2A3", true);
             Model.addEdge(A2_A2A3);
-            var A3_A2A3 = new Edge(A3, A2A3, "A3_A2A3", false);
+            var A3_A2A3 = new Edge(A2A3, A3, "A3_A2A3", false);
             Model.addEdge(A3_A2A3);
 
 
@@ -1218,6 +1289,13 @@
                 DrawingEngine.start();
             }            
         }
+        function schema() {
+            // show the contents
+            if (typeof (XMLSerializer) != "undefined") {
+                var serializer = new XMLSerializer();
+                alert(serializer.serializeToString(Model.toXML()));
+            }
+        }
 
         // -->
     </script>
@@ -1235,6 +1313,7 @@
     <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
     <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
     <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
+    <input type="button" value="SCHEMA XML" onclick="schema()"/>
 </div>
 <div id="menu">
     <!-- this will be filled and shown dynamically -->
