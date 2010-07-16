@@ -100,11 +100,6 @@
             attractionConstant: 0.00003703703704,
             // adjusts the size of the influence square by this factor
             influenceConstant: 4,
-            // used to store the corners of the influence square
-            xMin: 0,
-            xMax: 0,
-            yMin: 0,
-            yMax: 0,
             // when the layout has reached equilibrium
             equilibrium: true,
 
@@ -149,19 +144,21 @@
             yAttracting: function (node, otherNode) {
                 return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
             },
-
-            findSquareCorners: function(node) {
-                this.xMin = node.xPosition - this.influenceConstant * this.normalDistance;
-                this.xMax = node.xPosition + this.influenceConstant * this.normalDistance;
-                this.yMin = node.yPosition - this.influenceConstant * this.normalDistance;
-                this.yMax = node.yPosition + this.influenceConstant * this.normalDistance;
+            // create the square of influence
+            createSquare: function(node, offset) {
+                return {
+                    xMin: node.xPosition - offset,
+                    xMax: node.xPosition + offset,
+                    yMin: node.yPosition - offset,
+                    yMax: node.yPosition + offset
+                };
             },
-
-            withinSquare: function(otherNode) {
-                return  otherNode.xPosition >= this.xMin &&
-                        otherNode.xPosition <= this.xMax &&
-                        otherNode.yPosition >= this.yMin &&
-                        otherNode.yPosition <= this.yMax;
+            // check if a node falls within the square of influence
+            withinSquare: function(otherNode, square) {
+                return  otherNode.xPosition >= square.xMin &&
+                        otherNode.xPosition <= square.xMax &&
+                        otherNode.yPosition >= square.yMin &&
+                        otherNode.yPosition <= square.yMax;
             },
 
             // calculate all forces and change the velocity and position of the node
@@ -169,18 +166,18 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, edge, absoluteVelocity, curvature;
+                var i, j, node, otherNode, edge, absoluteVelocity, curvature, square;
                 var numberOfNodes = model.nodes.length;
                 var numberOfStoppedNodes = 0;
                 var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
                 for(i = 0; node = model.nodes[i]; i++) {
-                    this.findSquareCorners(node);
+                    square = this.createSquare(node, this.influenceConstant * this.normalDistance);
                     for(j = 0; otherNode = model.nodes[j]; j++) {
                         // not the same node
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
-                            if(this.withinSquare(otherNode)) {
+                            if(this.withinSquare(otherNode, square)) {
                                 node.xVelocity += this.xRepelling(node, otherNode);
                                 node.yVelocity += this.yRepelling(node, otherNode);
                             }
@@ -281,6 +278,7 @@
                     this.bottommostNode = node;
                 if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
                     this.leftmostNode = node;
+                this.invalidateNode(node);
             },
             removeNode: function(node) {
                 UniqueColor.releaseUniqueColor(node.shadowColor);
@@ -289,8 +287,7 @@
             },
             addEdge: function(edge) {
                 // the edge is also a node
-                this.nodes[this.nodes.length] = edge;
-                this.nodes.sort(function(a, b) { return (a instanceof Edge) ? -1 : 1; });
+                this.addNode(edge);
                 this.edges[this.edges.length] = edge;
             },
             removeEdge: function(edge) {
@@ -305,6 +302,12 @@
             deleteElementFromArray: function(array, element) {
                 for(var i = 0; element != array[i]; i++);
                 array.splice(i, 1);
+            },
+            invalidateNode: function(node) {
+                var square = LayoutEngine.createSquare(node, LayoutEngine.normalDistance);
+                for(var i = 0; i < this.nodes.length; i++)
+                    if(LayoutEngine.withinSquare(this.nodes[i], square))
+                        this.nodes[i].start();
             }
         };
 
@@ -467,7 +470,7 @@
                         this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                         this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                         this.focusedNode.fixed = true;
-                        this.focusedNode.start();
+                        Model.invalidateNode(this.focusedNode);
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
