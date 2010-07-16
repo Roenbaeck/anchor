@@ -317,8 +317,19 @@
                 var schema = document.implementation.createDocument("", "schema", null);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
-                    if(node != null)
+                    if(node != null) {
+                        if(this.nodes[i].description != null) {
+                            var description = schema.createElement("description");
+                            description.innerHTML = this.nodes[i].description;
+                            node.appendChild(description);
+                        }
+                        var layout = schema.createElement("layout");
+                        layout.setAttribute("x", this.nodes[i].xPosition);
+                        layout.setAttribute("y", this.nodes[i].yPosition);
+                        layout.setAttribute("fixed", this.nodes[i].fixed);
+                        node.appendChild(layout);
                         schema.documentElement.appendChild(node);
+                    }
                 }
                 return schema;
             }
@@ -695,6 +706,7 @@
         Node.prototype = {
             id: null,
             name: null,
+            description: null,
             xPosition: null,
             yPosition: null,
             xVelocity: null,
