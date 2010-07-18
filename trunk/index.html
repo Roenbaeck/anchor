@@ -1351,7 +1351,8 @@
             var padding = window.innerWidth * 0.1;
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
-            content.style.top = padding + 'px';
+            // 16 is an approximation of the scrollbar height
+            content.style.top = (padding - 16) + 'px';
             content.appendChild(html);
             code.replaceChild(content, document.getElementById("content"));
             code.style.width = window.innerWidth + 'px';
