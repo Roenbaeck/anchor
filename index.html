@@ -72,36 +72,44 @@
     }
 
     #code {
-        font:               125% Andale Mono, monospace;
         position:           absolute;
         top:                0;
         left:               0;
         display:            none;
         background-color:   rgba(0, 0, 0, 0.8);
-        color:              white;
-        padding:            5px 10px;
         margin:             0;
-        text-align:         left;
-        border:             0;
-        overflow:           auto;
+        padding:            0;
+        overflow:           hidden;
         z-index:            5;
     }
 
     /* these classes style the xml representation */
-    #code .tabs {
+    #content {
+        position:           relative;
+        text-align:         left;
+        font:               125% Andale Mono, monospace;
+        padding:            5px 10px;
+        border:             10px solid white;
+        overflow:           auto;
+        margin:             auto;
+        background-color:   transparent;
+        color:              black;
+        z-index:            6;
+    }
+    #content .tabs {
         visibility:         hidden;
     }
-    #code .brackets {
+    #content .brackets {
         color:              white;
     }
-    #code .elements {
+    #content .elements {
         color:              #ffffc0;
     }
-    #code .attributes {
+    #content .attributes {
         color:              #c0c0c0;
         font-weight:        bold;
     }
-    #code .values {
+    #content .values {
         color:              #ffc0c0;
         font-style:         italic;
     }
@@ -1337,8 +1345,15 @@
             // TODO: why are there no scrollbars?
             var html = transform(Model.toXML(), 'xml2html.xsl');
             // alert(new XMLSerializer().serializeToString(html));
+            var content = document.createElement("div");
             var code = document.getElementById("code");
-            code.appendChild(html);
+            content.setAttribute("id", "content");
+            var padding = window.innerWidth * 0.1;
+            content.style.width = (window.innerWidth - 2 * padding) + 'px';
+            content.style.height = (window.innerHeight - 2 * padding) + 'px';
+            content.style.top = padding + 'px';
+            content.appendChild(html);
+            code.replaceChild(content, document.getElementById("content"));
             code.style.width = window.innerWidth + 'px';
             code.style.height = window.innerHeight + 'px';
             code.style.display = 'block';
@@ -1381,7 +1396,9 @@
         <!-- this will be filled and shown dynamically -->
     </div>
     <div id="code">
-        <!-- this will be filled and shown dynamically -->
+        <div id="content">
+            <!-- this will be filled and shown dynamically -->
+        </div>
     </div>
     <canvas id="miniature">
         <!-- shows a navigatable miniature of the model -->
