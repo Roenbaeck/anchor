@@ -49,7 +49,7 @@
             </xsl:when>
             <xsl:otherwise>
                 <span class="brackets">
-                    <xsl:text> /&gt;</xsl:text><br/>
+                    <xsl:text>/&gt;</xsl:text><br/>
                 </span>
             </xsl:otherwise>
         </xsl:choose>
