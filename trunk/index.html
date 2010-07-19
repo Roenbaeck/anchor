@@ -76,7 +76,7 @@
         top:                0;
         left:               0;
         display:            none;
-        background-color:   rgba(0, 0, 0, 0.8);
+        background-color:   rgba(8, 0, 0, 0.8);
         margin:             0;
         padding:            0;
         overflow:           hidden;
@@ -89,7 +89,7 @@
         text-align:         left;
         font:               125% Andale Mono, monospace;
         padding:            5px 10px;
-        border:             10px solid white;
+        border:             2px solid gray;
         overflow:           auto;
         margin:             auto;
         background-color:   transparent;
@@ -1348,7 +1348,7 @@
             var content = document.createElement("div");
             var code = document.getElementById("code");
             content.setAttribute("id", "content");
-            var padding = window.innerWidth * 0.1;
+            var padding = window.innerWidth * 0.05;
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
             // 16 is an approximation of the scrollbar height
