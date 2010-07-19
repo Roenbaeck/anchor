@@ -1145,10 +1145,10 @@
         }
 
         // make sure our init function is called when the page is loaded
-        window.onload = init;
+        window.onload = function() { try { init(this); } catch(e) { alert(e); } };
 
         // implementation of our init function
-        function init() {
+        function init(window) {
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -1386,6 +1386,13 @@
             },
             fileLoaded: function() {
                 alert(this.reader.result);
+                try {
+                    var parser = new DOMParser();
+                    var xml = parser.parseFromString(this.reader.result, "text/xml");
+                }
+                catch(exception) {
+                    alert(exception);
+                }
             }
         };
         // -->
