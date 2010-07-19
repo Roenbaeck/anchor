@@ -1379,6 +1379,7 @@
         var FileHandler = {
             reader: null,
             handleFiles: function(files) {
+                // does not work in Safari, but works in Firefox 3.6 and Chrome 6.
                 this.reader = new FileReader();
                 this.reader.onload = function() { FileHandler.fileLoaded() };
                 this.reader.readAsText(files[0]);
