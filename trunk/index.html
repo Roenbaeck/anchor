@@ -121,7 +121,7 @@
         var DEBUG = false;
 
         // frames per second - set low when debugging
-        var FPS = 100;
+        var FPS = 1000;
 
         // draw the miniature every minirate frames
         var MINIRATE = 50;
@@ -1375,6 +1375,18 @@
             }
             return result;
         }
+
+        var FileHandler = {
+            reader: null,
+            handleFiles: function(files) {
+                this.reader = new FileReader();
+                this.reader.onload = function() { FileHandler.fileLoaded() };
+                this.reader.readAsText(files[0]);
+            },
+            fileLoaded: function() {
+                alert(this.reader.result);
+            }
+        };
         // -->
     </script>
 </head>
@@ -1392,6 +1404,7 @@
         <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
         <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
         <input type="button" value="SCHEMA XML" onclick="viewSchema()"/>
+        <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
     </div>
     <div id="menu">
         <!-- this will be filled and shown dynamically -->
