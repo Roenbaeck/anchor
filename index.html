@@ -335,10 +335,23 @@
             rightmostNode: null,
             bottommostNode: null,
             leftmostNode: null,
+            sort: function() {
+                this.nodes.sort(function(a, b) {
+                    if (a instanceof Edge)
+                        return -1;
+                    if (a instanceof Knot && !(b instanceof Edge))
+                        return -1;
+                    if (a instanceof Anchor && !(b instanceof Edge) && !(b instanceof Knot))
+                        return -1;
+                    if (a instanceof Attribute && !(b instanceof Anchor) && !(b instanceof Edge) && !(b instanceof Knot))
+                        return -1;
+                    return 1;
+                });
+            },
             addNode: function(node) {
                 // add node at the end of the array
                 this.nodes[this.nodes.length] = node;
-                this.nodes.sort(function(a, b) { return (a instanceof Edge) ? -1 : 1; });
+                this.sort();
                 this.shadowToNode[node.shadowColor] = node;
                 if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
                     this.topmostNode = node;
@@ -399,6 +412,20 @@
                     }
                 }
                 return schema;
+            },
+            fromXML: function(xml) {
+                var i, knots = xml.getElementsByTagName('knot');
+                for (i = 0; i < knots.length; i++)
+                    this.addNode(Knot.fromXML(knots[i]));
+                var anchors = xml.getElementsByTagName('anchor');
+                for (i = 0; i < anchors.length; i++)
+                    this.addNode(Anchor.fromXML(anchors[i]));
+                var attributes = xml.getElementsByTagName('attribute');
+                for (i = 0; i < attributes.length; i++)
+                    this.addNode(Attribute.fromXML(attributes[i]));
+                var ties = xml.getElementsByTagName('tie');
+                for (i = 0; i < ties.length; i++)
+                    this.addNode(Tie.fromXML(ties[i]));
             }
         };
 
@@ -864,7 +891,7 @@
             descriptor: null,
             dataRange: null,
             timeRange: null,
-            toXML: function(schema) {
+            addXML: function(element, schema) {
                 // create an anchor element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
@@ -882,7 +909,7 @@
                 else {
                     attribute.setAttribute("dataRange", this.dataRange);
                 }
-                return attribute;
+                element.appendChild(attribute);
             },
             drawOutline: function(context) {
                 // the outermost path
@@ -936,6 +963,11 @@
                 anchor.setAttribute("mnemonic", this.mnemonic);
                 anchor.setAttribute("descriptor", this.descriptor);
                 anchor.setAttribute("identity", this.identity);
+
+                var edge;
+                for(var i = 0; edge = this.edges[i]; i++)
+                    if(edge.otherNode instanceof Attribute)
+                        edge.otherNode.addXML(anchor, schema);
                 return anchor;
             },
             drawOutline: function(context) {
@@ -1473,7 +1505,6 @@
                 this.reader.readAsText(files[0]);
             },
             fileLoaded: function() {
-                alert(this.reader.result);
                 try {
                     var parser = new DOMParser();
                     var xml = parser.parseFromString(this.reader.result, "text/xml");
@@ -1481,6 +1512,7 @@
                 catch(exception) {
                     alert(exception);
                 }
+                Model.fromXML(xml);
             }
         };
 
