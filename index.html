@@ -1483,6 +1483,26 @@
                 }
             }
         };
+
+        function DatabaseManager() {
+            var version = ""; // database version needed, leave empty
+            var size = 65536; // 65kB size
+            this.db = window.openDatabase("AnchorModeler", version, "Storage for the Anchor Modeler", size);
+        }
+        DatabaseManager.prototype = {
+            db: null,
+            init: function() {
+                this.db.transaction(function(tx) {
+                    tx.executeSql("SELECT * FROM Batches", [], function(result) {
+                        loadModel(result);
+                    }, function(tx, error) {
+                        tx.executeSql("CREATE TABLE Batches (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, timestamp TIMESTAMP)", [], function(result) {
+                            loadModel(result);
+                        });
+                    });
+                });
+            }
+        };
         // -->
     </script>
 </head>
