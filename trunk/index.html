@@ -49,12 +49,12 @@
     /* minature canvas - positioned in the southeast corner */
     #miniature {
         position:           absolute;
-        bottom:             20px;
-        right:              20px;
+        bottom:             30px;
+        right:              30px;
         background-color:   rgba(255, 255, 255, 0.8);
-        border:             1px dotted;
         z-index:            2;
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
     /* the leftmost part of the header - on top of the background */
@@ -85,6 +85,7 @@
         border:             1px dotted;
         z-index:            4;
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
     #modalBackground {
@@ -95,7 +96,7 @@
         margin:             0;
         padding:            0;
         overflow:           hidden;
-        z-index:            5;
+        z-index:            10;
     }
 
     /* these classes style the xml representation */
@@ -107,6 +108,8 @@
         background-color:   rgba(8, 0, 0, 0.8);
         z-index:            6;
         -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);        
+        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
+        z-index:            11;
     }
     #codePopover:hover .closebutton {
         display:            block;
@@ -475,6 +478,12 @@
                 if(!this.running) {
                     this.running = true;
                     this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
+                }
+            },
+            stop: function() {
+                if(this.running) {
+                    clearInterval(this.drawId);
+                    this.running = false;
                 }
             },
             invalidateMiniature: function() {
@@ -1353,9 +1362,26 @@
                 button.value = 'DEBUG MODE';
             DrawingEngine.start();
         }
+        function togglePause(button) {
+            if(DrawingEngine.running) {
+                button.value = 'PAUSE';
+                DrawingEngine.stop();
+            }
+            else {
+                button.value = 'PLAY';
+                DrawingEngine.start();                
+            }
+        }
         function invalidateLayout() {
             for(var i = 0; i < Model.nodes.length; i++) {
                 Model.nodes[i].start();
+                DrawingEngine.start();
+            }
+        }
+        function randomizeLayout() {
+            for(var i = 0; i < Model.nodes.length; i++) {
+                Model.nodes[i].xPosition = Math.random() * window.innerWidth;
+                Model.nodes[i].yPosition = Math.random() * window.innerHeight;
                 DrawingEngine.start();
             }
         }
@@ -1396,6 +1422,7 @@
             content.setAttribute("id", "content");
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
+            DrawingEngine.stop();
             var html = transform(Model.toXML(), 'xml2html.xsl');
             content.appendChild(html);
             codePopover.appendChild(content);
@@ -1416,6 +1443,7 @@
             close: function(event) {
                 document.body.removeChild(this.codePopover);
                 this.modalBackground.close();
+                DrawingEngine.start();
             }
         };
 
@@ -1471,6 +1499,8 @@
         <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
         <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
         <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
+        <input type="button" value="RANDOMIZE" onclick="randomizeLayout()"/>
+        <input type="button" value="PAUSE" onclick="togglePause(this)"/>
         <input type="button" value="SCHEMA XML" onclick="new CodePopover()"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
     </div>
