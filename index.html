@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <title>Test D - putting it together</title>
+    <title>Anchor Modeler</title>
     <style type="text/css">
     body {
         font:               75% georgia, sans-serif;
@@ -15,6 +15,20 @@
         padding:            0;
     }
 
+    .closebutton {
+        display:            none;
+        background-image:   url(deleteButton.png);
+        position:           absolute;
+        left:               -15px;
+        top:                -15px;
+        height:             30px;
+        width:              30px;
+        z-index:            999;
+    }
+    .closebutton:active {
+        background-image:   url(deleteButtonPressed.png);
+    }
+    
     /* visible canvas - at the bottom of the visible layers */
     #canvas {
         position:           absolute;
@@ -73,11 +87,10 @@
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
-    #code {
+    #modalBackground {
         position:           absolute;
         top:                0;
         left:               0;
-        display:            none;
         background-color:   rgba(16, 0, 0, 0.2);
         margin:             0;
         padding:            0;
@@ -86,18 +99,27 @@
     }
 
     /* these classes style the xml representation */
+    #codePopover {
+        position:           relative;
+        border:             2px solid black;
+        margin:             auto;
+        display:            table;
+        background-color:   rgba(8, 0, 0, 0.8);
+        z-index:            6;
+        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);        
+    }
+    #codePopover:hover .closebutton {
+        display:            block;
+    }
+    
     #content {
         position:           relative;
         text-align:         left;
         font:               125% Andale Mono, monospace;
         padding:            15px 20px;
-        border:             2px solid black;
         overflow:           auto;
-        margin:             auto;
-        background-color:   rgba(8, 0, 0, 0.8);
-        color:              black;
-        z-index:            6;
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+        background-color:   transparent;
+        z-index:            7;
     }
     #content .tabs {
         visibility:         hidden;
@@ -1343,25 +1365,60 @@
                 DrawingEngine.start();
             }
         }
-        function viewSchema() {
-            // TODO: "close" button in top right corner
-            // TODO: why are there no scrollbars?
-            var html = transform(Model.toXML(), 'xml2html.xsl');
-            // alert(new XMLSerializer().serializeToString(html));
-            var content = document.createElement("div");
-            var code = document.getElementById("code");
-            content.setAttribute("id", "content");
+
+        function ModalBackground() {
+            var modalBackground = document.createElement('div');
+            modalBackground.setAttribute("id", "modalBackground");
+            modalBackground.style.width = window.innerWidth + 'px';
+            modalBackground.style.height = window.innerHeight + 'px';
+            this.modalBackground = modalBackground;            
+            document.body.appendChild(modalBackground);
+            return this;
+        }
+        ModalBackground.prototype = {
+            modalBackground: null,
+            close: function(event) {
+                document.body.removeChild(this.modalBackground);
+            }
+        };
+
+        function CodePopover() {
+            var self = this;
+
+            this.modalBackground = new ModalBackground();
+
+            var codePopover = document.createElement('div');
+            codePopover.setAttribute("id", "codePopover");
             var padding = window.innerWidth * 0.1;
+            codePopover.style.top = (padding - 16) + 'px';
+
+            var content = document.createElement('div');
+            content.setAttribute("id", "content");
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
-            // 16 is an approximation of the scrollbar height
-            content.style.top = (padding - 16) + 'px';
+            var html = transform(Model.toXML(), 'xml2html.xsl');
             content.appendChild(html);
-            code.replaceChild(content, document.getElementById("content"));
-            code.style.width = window.innerWidth + 'px';
-            code.style.height = window.innerHeight + 'px';
-            code.style.display = 'block';
+            codePopover.appendChild(content);
+
+            var close = document.createElement('div');
+            close.className = 'closebutton';
+            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            codePopover.appendChild(close);
+
+            document.body.appendChild(codePopover);
+
+            this.codePopover = codePopover;
+            return this;
         }
+        CodePopover.prototype = {
+            codePopover: null,
+            modalBackground: null,
+            close: function(event) {
+                document.body.removeChild(this.codePopover);
+                this.modalBackground.close();
+            }
+        };
+
 
         function transform(xmlDocument, transformationURL) {
             var result;
@@ -1414,16 +1471,11 @@
         <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
         <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
         <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
-        <input type="button" value="SCHEMA XML" onclick="viewSchema()"/>
+        <input type="button" value="SCHEMA XML" onclick="new CodePopover()"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
     </div>
     <div id="menu">
         <!-- this will be filled and shown dynamically -->
-    </div>
-    <div id="code">
-        <div id="content">
-            <!-- this will be filled and shown dynamically -->
-        </div>
     </div>
     <canvas id="miniature">
         <!-- shows a navigatable miniature of the model -->
