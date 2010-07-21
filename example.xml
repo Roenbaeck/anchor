@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<schema>
+	<knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="string"/>
+	<knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="string"/>
+	<knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinytint" dataRange="string"/>
+	<knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="string"/>
+	<anchor mnemonic="AC" descriptor="Actor" identity="integer">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="string" timeRange="date"/>
+		<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
+		<attribute mnemonic="PLV" descriptor="ProfessionalLevel" knotRange="PLV" timeRange="date"/>
+	</anchor>
+	<anchor mnemonic="PR" descriptor="Program" identity="integer">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="string"/>
+	</anchor>
+	<anchor mnemonic="ST" descriptor="Stage" identity="integer">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="string" timeRange="date"/>
+		<attribute mnemonic="LOC" descriptor="Location" dataRange="string"/>
+	</anchor>
+	<anchor mnemonic="PE" descriptor="Performance" identity="integer">
+		<attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
+		<attribute mnemonic="AUD" descriptor="Audience" dataRange="integer"/>
+		<attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
+	</anchor>
+    <tie>
+        <anchorRole type="AC" role="parent" identifier="true"/>
+        <anchorRole type="AC" role="child" identifier="true"/>
+        <knotRole type="PAT" role="having" identifier="true"/>
+    </tie>
+    <tie>
+        <anchorRole type="PE" role="in" identifier="true"/>
+        <anchorRole type="AC" role="wasCast" identifier="true"/>
+    </tie>
+    <tie>
+        <anchorRole type="PE" role="at" identifier="true"/>
+        <anchorRole type="PR" role="wasPlayed"/>
+    </tie>
+    <tie>
+        <anchorRole type="PE" role="wasHeld" identifier="true"/>
+        <anchorRole type="ST" role="atLocation"/>
+    </tie>
+    <tie timeRange="date">
+        <anchorRole type="AC" role="part" identifier="true"/>
+        <anchorRole type="PR" role="in" identifier="true"/>
+        <knotRole type="RAT" role="got"/>
+    </tie>
+    <tie timeRange="date">
+        <anchorRole type="ST" role="atLocation" identifier="true"/>
+        <anchorRole type="PR" role="isPlaying" identifier="true"/>
+    </tie>
+</schema>
