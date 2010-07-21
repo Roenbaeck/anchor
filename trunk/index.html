@@ -741,7 +741,7 @@
             addAttribute: function() {
                 var attribute = new Attribute(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 3 * LayoutEngine.normalDistance, "Unnamed", false);
                 Model.addNode(attribute);
-                var edge = new Edge(this.hoveredNode, attribute, this.hoveredNode + "_Unnamed", true);
+                var edge = new Edge(attribute, this.hoveredNode, this.hoveredNode + "_Unnamed", true);
                 Model.addEdge(edge);
                 DrawingEngine.start();
             }
