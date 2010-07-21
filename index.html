@@ -471,6 +471,7 @@
             miniHeight: 0,
             miniCounter: 0,
             miniature: null,
+            showNames: false,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
@@ -569,6 +570,11 @@
                     node.draw(this.context);
                     if(this.miniCounter == 1)
                         node.draw(this.miniatureContext);
+                }
+                if(this.showNames) {
+                    for(i = 0; node = Model.nodes[i]; i++)
+                        if(!(node instanceof Edge))
+                            node.drawName(this.context);
                 }
             },
             drawMiniature: function(model) {
@@ -892,6 +898,26 @@
                 this.moving = true;
                 for(var i = 0; i < this.edges.length; i++)
                     this.edges[i].start();
+            },
+            drawName: function(context) {
+                var offset;
+                context.save();
+                if(this.xVelocity < 0) {
+                    context.textAlign = 'end';
+                    offset = -20;
+                }
+                else {
+                    context.textAlign = 'start';
+                    offset = 20;
+                }
+                context.textBaseline = 'middle';
+                context.shadowOffsetX = -1;
+                context.shadowOffsetY = 1;
+                context.shadowBlur    = 3;
+                context.shadowColor   = 'rgba(255, 250, 245, 0.9)';
+                context.fillStyle = '#000000';
+                context.fillText(this.name, this.xPosition + offset, this.yPosition);
+                context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
@@ -1240,6 +1266,8 @@
                     type = anchorRoles[i].getAttribute("type") || "XX";
                     role = anchorRoles[i].getAttribute("role") || "unknownRole";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
+                    if(i > 0)
+                        name += "_";
                     name += type + "_" + role;
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
@@ -1255,7 +1283,7 @@
                     type = knotRoles[i].getAttribute("type") || "XXX";
                     role = knotRoles[i].getAttribute("role") || "unknownRole";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
-                    name += type + "_" + role;
+                    name += "_" + type + "_" + role;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") == type) {
@@ -1557,6 +1585,10 @@
                 DrawingEngine.start();
             }
         }
+        function toggleNames() {
+            DrawingEngine.showNames = !DrawingEngine.showNames;
+            DrawingEngine.start();
+        }
 
         function ModalBackground() {
             var modalBackground = document.createElement('div');
@@ -1688,6 +1720,7 @@
         <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
         <input type="button" value="RANDOMIZE" onclick="randomizeLayout()"/>
         <input type="button" value="PAUSE" onclick="togglePause(this)"/>
+        <input type="button" value="TOGGLE NAMES" onclick="toggleNames(this)"/>
         <input type="button" value="SCHEMA XML" onclick="new CodePopover()"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
     </div>
