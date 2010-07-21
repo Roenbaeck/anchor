@@ -335,6 +335,15 @@
             rightmostNode: null,
             bottommostNode: null,
             leftmostNode: null,
+            empty: function() {
+                this.nodes = [];
+                this.edges = [];
+                this.shadowToNode = {};
+                this.topmostNode = null;
+                this.rightmostNode = null;
+                this.bottommostNode = null;
+                this.leftmostNode = null;                
+            },
             sort: function() {
                 this.nodes.sort(function(a, b) {
                     if (a instanceof Edge)
@@ -350,18 +359,20 @@
             },
             addNode: function(node) {
                 // add node at the end of the array
-                this.nodes[this.nodes.length] = node;
-                this.sort();
-                this.shadowToNode[node.shadowColor] = node;
-                if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
-                    this.topmostNode = node;
-                if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
-                    this.rightmostNode = node;
-                if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
-                    this.bottommostNode = node;
-                if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
-                    this.leftmostNode = node;
-                this.invalidateNode(node);
+                if(node) {
+                    this.nodes[this.nodes.length] = node;
+                    this.sort();
+                    this.shadowToNode[node.shadowColor] = node;
+                    if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
+                        this.topmostNode = node;
+                    if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
+                        this.rightmostNode = node;
+                    if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
+                        this.bottommostNode = node;
+                    if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
+                        this.leftmostNode = node;
+                    this.invalidateNode(node);                    
+                }
             },
             removeNode: function(node) {
                 UniqueColor.releaseUniqueColor(node.shadowColor);
@@ -370,8 +381,10 @@
             },
             addEdge: function(edge) {
                 // the edge is also a node
-                this.addNode(edge);
-                this.edges[this.edges.length] = edge;
+                if(edge) {
+                    this.addNode(edge);
+                    this.edges[this.edges.length] = edge;                    
+                }
             },
             removeEdge: function(edge) {
                 this.removeNode(edge);
@@ -403,18 +416,21 @@
                 return schema;
             },
             fromXML: function(xml) {
-                var i, knots = xml.getElementsByTagName('knot');
-                for (i = 0; i < knots.length; i++)
-                    this.addNode(Knot.fromXML(knots[i]));
-                var anchors = xml.getElementsByTagName('anchor');
-                for (i = 0; i < anchors.length; i++)
-                    this.addNode(Anchor.fromXML(anchors[i]));
-                var attributes = xml.getElementsByTagName('attribute');
-                for (i = 0; i < attributes.length; i++)
-                    this.addNode(Attribute.fromXML(attributes[i]));
-                var ties = xml.getElementsByTagName('tie');
-                for (i = 0; i < ties.length; i++)
-                    this.addNode(Tie.fromXML(ties[i]));
+                if(xml) {
+                    this.empty();
+                    var i, knots = xml.getElementsByTagName('knot');
+                    for (i = 0; i < knots.length; i++)
+                        this.addNode(Knot.prototype.fromXML(knots[i]));
+                    var anchors = xml.getElementsByTagName('anchor');
+                    for (i = 0; i < anchors.length; i++)
+                        this.addNode(Anchor.prototype.fromXML(anchors[i]));
+                    var attributes = xml.getElementsByTagName('attribute');
+                    for (i = 0; i < attributes.length; i++)
+                        this.addNode(Attribute.prototype.fromXML(attributes[i]));
+                    var ties = xml.getElementsByTagName('tie');
+                    for (i = 0; i < ties.length; i++)
+                        this.addNode(Tie.prototype.fromXML(ties[i]));
+                }
             }
         };
 
@@ -813,6 +829,9 @@
             toXML: function() {
                 return null;
             },
+            fromXML: function() {
+                return;
+            },
             addLayoutXML: function(element, schema) {
                 if(this.description != null) {
                     var description = schema.createElement("description");
@@ -892,6 +911,39 @@
             descriptor: null,
             dataRange: null,
             timeRange: null,
+            fromXML: function(element) {
+                var x, y, fixed;
+                var layouts = element.getElementsByTagName("layout");
+                if(layouts[0]) {
+                    x = layouts[0].getAttribute("x");
+                    y = layouts[0].getAttribute("y");
+                    fixed = layouts[0].getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? false : Boolean(fixed);
+                var descriptions = element.getElementsByTagName("description");
+                var mnemonic = element.getAttribute("mnemonic") || "YYY";
+                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var timeRange = element.getAttribute("timeRange") || null;
+                var historized = timeRange ? true : false;
+                var knotRange = element.getAttribute("knotRange") || null;
+                var knotted = knotRange ? true : false;
+                var dataRange = element.getAttribute("dataRange") || null;
+                var parent = element.parentNode;
+                var anchorMnemonic = parent.getAttribute("mnemonic") || "XX";
+                var anchorDescriptor = parent.getAttribute("descriptor") || "Unnamed";
+                var name = anchorMnemonic + "_" + mnemonic + "_" + anchorDescriptor + "_" + descriptor;
+                var attribute = new Attribute(x, y, name, historized);
+                attribute.fixed = fixed;
+                attribute.knotted = knotted;
+                attribute.timeRange = timeRange;
+                attribute.dataRange = dataRange;
+                attribute.description = descriptions[0] ? descriptions[0].innerText : null;
+                attribute.mnemonic = mnemonic;
+                attribute.descriptor = descriptor;
+                return attribute;
+            },
             addXML: function(element, schema) {
                 // create an anchor element
                 var attribute = schema.createElement("attribute");
@@ -958,6 +1010,30 @@
             mnemonic: null,
             descriptor: null,
             identity: null,
+            fromXML: function(element) {
+                var x, y, fixed;
+                var layouts = element.getElementsByTagName("layout");
+                if(layouts[0]) {
+                    x = layouts[0].getAttribute("x");
+                    y = layouts[0].getAttribute("y");
+                    fixed = layouts[0].getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? false : Boolean(fixed);
+                var descriptions = element.getElementsByTagName("description");
+                var mnemonic = element.getAttribute("mnemonic") || "XX";
+                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var identity = element.getAttribute("identity") || "untyped";
+                var name = mnemonic + "_" + descriptor;
+                var anchor = new Anchor(x, y, name);
+                anchor.fixed = fixed;
+                anchor.description = descriptions[0] ? descriptions[0].innerText : null;
+                anchor.mnemonic = mnemonic;
+                anchor.descriptor = descriptor;
+                anchor.identity = identity;
+                return anchor;
+            },
             toXML: function(schema) {
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
@@ -1518,6 +1594,7 @@
                     alert(exception);
                 }
                 Model.fromXML(xml);
+                DrawingEngine.start();
             }
         };
 
