@@ -428,9 +428,11 @@
                     // add an id to elements that are missing that attribute and take the ids that are specified
                     var i, id, elements = xml.getElementsByTagName('*');
                     for (i = 0; i < elements.length; i++) {
-                        id = elements[i].getAttribute("id");
-                        id = id ? UniqueIdentity.takeId(Number(id)) : UniqueIdentity.nextId();
-                        elements[i].setAttribute("id", id);
+                        if(elements[i].tagName in {knot:null, anchor:null, attribute:null, tie:null}) {
+                            id = elements[i].getAttribute("id");
+                            id = id ? UniqueIdentity.takeId(Number(id)) : UniqueIdentity.nextId();
+                            elements[i].setAttribute("id", id);                            
+                        }
                     }
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
@@ -832,12 +834,10 @@
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
-            this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.actions = [];
         }
         AbstractNode.prototype = {
-            id: null,
             name: null,
             description: null,
             xPosition: null,
@@ -849,6 +849,18 @@
             fixed: false,
             shadowColor: '#ffffff',
             actions: null,
+            // getters and setters (with hidden _id member)
+            set id(id)  {
+                if(id) {
+                    UniqueIdentity.takeId(id);
+                    this._id = id;
+                }
+            },
+            get id() {
+                if (!("_id" in this))
+                    this._id = UniqueIdentity.nextId();
+                return this._id;
+            },
             // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
                 return this.name.toString();
@@ -958,6 +970,7 @@
                 var knotRange = element.getAttribute("knotRange") || null;
                 var knotted = knotRange ? true : false;
                 var dataRange = element.getAttribute("dataRange") || null;
+                var id = element.getAttribute("id");
                 var parent = element.parentNode;
                 var anchorMnemonic = parent.getAttribute("mnemonic") || "XX";
                 var anchorDescriptor = parent.getAttribute("descriptor") || "Unnamed";
@@ -970,12 +983,27 @@
                 attribute.description = descriptions[0] ? descriptions[0].innerText : null;
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
+                attribute.id = id;
+                var anchor = Model.getNodeFromId(Number(parent.getAttribute("id")));
+                Model.addEdge(new Edge(attribute, anchor, "property of", true));
+                if(knotted) {
+                    var grandparent = parent.parentNode;
+                    var i, knots = grandparent.getElementsByTagName("knot");
+                    for(i = 0; i < knots.length; i++) {
+                        if(knots[i].getAttribute("mnemonic") == knotRange) {
+                            var knot = Model.getNodeFromId(Number(knots[i].getAttribute("id")));
+                            Model.addEdge(new Edge(attribute, knot, "instantiation of", false));
+                            break; // only one should match
+                        }
+                    }                    
+                }
                 return attribute;
             },
             addXML: function(element, schema) {
                 // create an anchor element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
+                attribute.setAttribute("id", this.id);
                 attribute.setAttribute("mnemonic", this.mnemonic);
                 attribute.setAttribute("descriptor", this.descriptor);
                 if(this.historized)
@@ -1050,6 +1078,7 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? false : Boolean(fixed);
                 var descriptions = element.getElementsByTagName("description");
+                var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "XX";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
                 var identity = element.getAttribute("identity") || "untyped";
@@ -1060,20 +1089,22 @@
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
+                anchor.id = id;
                 return anchor;
             },
             toXML: function(schema) {
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
                 // set attributes on the element
+                anchor.setAttribute("id", this.id);
                 anchor.setAttribute("mnemonic", this.mnemonic);
                 anchor.setAttribute("descriptor", this.descriptor);
                 anchor.setAttribute("identity", this.identity);
 
                 var edge;
                 for(var i = 0; edge = this.edges[i]; i++)
-                    if(edge.otherNode instanceof Attribute)
-                        edge.otherNode.addXML(anchor, schema);
+                    if(edge.node instanceof Attribute)
+                        edge.node.addXML(anchor, schema);
                 this.addLayoutXML(anchor, schema);
                 return anchor;
             },
@@ -1106,10 +1137,38 @@
             descriptor: null,
             identity: null,
             dataRange: null,
+            fromXML: function(element) {
+                var x, y, fixed;
+                var layouts = element.getElementsByTagName("layout");
+                if(layouts[0]) {
+                    x = layouts[0].getAttribute("x");
+                    y = layouts[0].getAttribute("y");
+                    fixed = layouts[0].getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? false : Boolean(fixed);
+                var descriptions = element.getElementsByTagName("description");
+                var id = element.getAttribute("id");
+                var mnemonic = element.getAttribute("mnemonic") || "XXX";
+                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var identity = element.getAttribute("identity") || "untyped";
+                var dataRange = element.getAttribute("dataRange") || "untyped";
+                var name = mnemonic + "_" + descriptor;
+                var knot = new Knot(x, y, name);
+                knot.fixed = fixed;
+                knot.description = descriptions[0] ? descriptions[0].innerText : null;
+                knot.mnemonic = mnemonic;
+                knot.descriptor = descriptor;
+                knot.identity = identity;
+                knot.id = id;
+                return knot;
+            },
             toXML: function(schema) {
                 // create an anchor element
                 var knot = schema.createElement("knot");
                 // set attributes on the element
+                knot.setAttribute("id", this.id);
                 knot.setAttribute("mnemonic", this.mnemonic);
                 knot.setAttribute("descriptor", this.descriptor);
                 knot.setAttribute("identity", this.identity);
@@ -1154,8 +1213,64 @@
         Tie.prototype = {
             historized: false,
             timeRange: null,
+            fromXML: function(element) {
+                var x, y, fixed;
+                var layouts = element.getElementsByTagName("layout");
+                if(layouts[0]) {
+                    x = layouts[0].getAttribute("x");
+                    y = layouts[0].getAttribute("y");
+                    fixed = layouts[0].getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? false : Boolean(fixed);
+                var descriptions = element.getElementsByTagName("description");
+                var timeRange = element.getAttribute("timeRange") || null;
+                var historized = timeRange ? true : false;
+                var id = element.getAttribute("id");
+                var name = "";
+                var tie = new Tie(x, y, name, historized);
+                tie.fixed = fixed;
+                tie.timeRange = timeRange;
+                tie.description = descriptions[0] ? descriptions[0].innerText : null;
+                tie.id = id;
+                var grandparent = element.parentNode.parentNode;
+                var i, j, type, role, identifier, anchorRoles = element.getElementsByTagName("anchorRole");
+                for(i = 0; i < anchorRoles.length; i++) {
+                    type = anchorRoles[i].getAttribute("type") || "XX";
+                    role = anchorRoles[i].getAttribute("role") || "unknownRole";
+                    identifier = anchorRoles[i].getAttribute("identifier") || false;
+                    name += type + "_" + role;
+                    var anchors = grandparent.getElementsByTagName("anchor");
+                    for(j = 0; j < anchors.length; j++) {
+                        if(anchors[j].getAttribute("mnemonic") == type) {
+                            var anchor = Model.getNodeFromId(Number(anchors[j].getAttribute("id")));
+                            Model.addEdge(new Edge(tie, anchor, role, Boolean(identifier)));
+                            break; // only one should match
+                        }
+                    }
+                }
+                var knotRoles = element.getElementsByTagName("knotRole");
+                for(i = 0; i < knotRoles.length; i++) {
+                    type = knotRoles[i].getAttribute("type") || "XXX";
+                    role = knotRoles[i].getAttribute("role") || "unknownRole";
+                    identifier = anchorRoles[i].getAttribute("identifier") || false;
+                    name += type + "_" + role;
+                    var knots = grandparent.getElementsByTagName("knot");
+                    for(j = 0; i < knots.length; j++) {
+                        if(knots[j].getAttribute("mnemonic") == type) {
+                            var knot = Model.getNodeFromId(Number(knots[j].getAttribute("id")));
+                            Model.addEdge(new Edge(tie, knot, role, Boolean(identifier)));
+                            break; // only one should match
+                        }
+                    }
+                }
+                tie.name = name;
+                return tie;
+            },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
+                tie.setAttribute("id", this.id);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.timeRange);
                 for(var i = 0; i < this.edges.length; i++) {
@@ -1387,112 +1502,22 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
-            function r() {
-                return {
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height
-                };
-            }
-
-            var A1 = new Anchor(r().x, r().y, "A1");
-            Model.addNode(A1);
-            var A1B01 = new Attribute(r().x, r().y, "A1B01", true);
-            Model.addNode(A1B01);
-            var A1B02 = new Attribute(r().x, r().y, "A1B02", false);
-            Model.addNode(A1B02);
-            var A1B03 = new Attribute(r().x, r().y, "A1B03", true);
-            Model.addNode(A1B03);
-            var A1_A1B01 = new Edge(A1, A1B01, "A1_A1B01");
-            Model.addEdge(A1_A1B01);
-            var A1_A1B02 = new Edge(A1, A1B02, "A1_A1B02");
-            Model.addEdge(A1_A1B02);
-            var A1_A1B03 = new Edge(A1, A1B03, "A1_A1B03");
-            Model.addEdge(A1_A1B03);
-
-            var A2 = new Anchor(r().x, r().y, "A2");
-            Model.addNode(A2);
-            var A2B01 = new Attribute(r().x, r().y, "A2B01", false);
-            Model.addNode(A2B01);
-            var A2B02 = new Attribute(r().x, r().y, "A2B02", true);
-            Model.addNode(A2B02);
-            var A2B03 = new Attribute(r().x, r().y, "A2B03", false);
-            Model.addNode(A2B03);
-            var A2B04 = new Attribute(r().x, r().y, "A2B04", true);
-            Model.addNode(A2B04);
-            var A2B05 = new Attribute(r().x, r().y, "A2B05", false);
-            Model.addNode(A2B05);
-            var A2B06 = new Attribute(r().x, r().y, "A2B06", true);
-            Model.addNode(A2B06);
-            var A2_A2B01 = new Edge(A2, A2B01, "A2_A2B01");
-            Model.addEdge(A2_A2B01);
-            var A2_A2B02 = new Edge(A2, A2B02, "A2_A2B02");
-            Model.addEdge(A2_A2B02);
-            var A2_A2B03 = new Edge(A2, A2B03, "A2_A2B03");
-            Model.addEdge(A2_A2B03);
-            var A2_A2B04 = new Edge(A2, A2B04, "A2_A2B04");
-            Model.addEdge(A2_A2B04);
-            var A2_A2B05 = new Edge(A2, A2B05, "A2_A2B05");
-            Model.addEdge(A2_A2B05);
-            var A2_A2B06 = new Edge(A2, A2B06, "A2_A2B06");
-            Model.addEdge(A2_A2B06);
-
-            var A1A2 = new Tie(r().x, r().y, "A1A2", false);
-            Model.addNode(A1A2);
-            var A1_A1A2 = new Edge(A1A2, A1, "A1_A1A2", false);
-            Model.addEdge(A1_A1A2);
-            var A2_A1A2 = new Edge(A1A2, A2, "A2_A1A2", true);
-            Model.addEdge(A2_A1A2);
-
-            var A1A1 = new Tie(r().x, r().y, "A1A1", false);
-            Model.addNode(A1A1);
-            var A1_a_A1A1 = new Edge(A1A1, A1, "A1_a_A1A1", false);
-            Model.addEdge(A1_a_A1A1);
-            var A1_b_A1A1 = new Edge(A1A1, A1, "A1_b_A1A1", true);
-            Model.addEdge(A1_b_A1A1);
-
-            var A1A1C = new Knot(r().x, r().y, "A1A1C");
-            Model.addNode(A1A1C);
-            var A1A1_C = new Edge(A1A1, A1A1C, "A1A1_C", true);
-            Model.addEdge(A1A1_C);
-
-
-            var A3 = new Anchor(r().x, r().y, "A3");
-            Model.addNode(A3);
-            var A3B01 = new Attribute(r().x, r().y, "A3B01", false);
-            Model.addNode(A3B01);
-            var A3B02 = new Attribute(r().x, r().y, "A3B02", true);
-            Model.addNode(A3B02);
-            var A3B03 = new Attribute(r().x, r().y, "A3B03", false);
-            Model.addNode(A3B03);
-            var A3_A3B01 = new Edge(A3, A3B01, "A3_A3B01");
-            Model.addEdge(A3_A3B01);
-            var A3_A3B02 = new Edge(A3, A3B02, "A3_A3B02");
-            Model.addEdge(A3_A3B02);
-            var A3_A3B03 = new Edge(A3, A3B03, "A3_A3B03");
-            Model.addEdge(A3_A3B03);
-
-            var A3B01C = new Knot(r().x, r().y, "A3B01C");
-            Model.addNode(A3B01C);
-            var A3B01_C = new Edge(A3B01, A3B01C, "A3B01_C");
-            Model.addEdge(A3B01_C);
-
-            var A1A3 = new Tie(r().x, r().y, "A1A3", true);
-            Model.addNode(A1A3);
-            var A1_A1A3 = new Edge(A1A3, A1, "A1_A1A3", false);
-            Model.addEdge(A1_A1A3);
-            var A3_A1A3 = new Edge(A1A3, A3, "A3_A1A3", true);
-            Model.addEdge(A3_A1A3);
-
-            var A2A3 = new Tie(r().x, r().y, "A2A3", true);
-            Model.addNode(A2A3);
-            var A2_A2A3 = new Edge(A2A3, A2, "A2_A2A3", true);
-            Model.addEdge(A2_A2A3);
-            var A3_A2A3 = new Edge(A2A3, A3, "A3_A2A3", false);
-            Model.addEdge(A3_A2A3);
-
+            loadExample();
 
             MenuHandler.init();
             DrawingEngine.start();
+        }
+
+        function loadExample() {
+            try {
+                var xmlhttp = new window.XMLHttpRequest();
+                xmlhttp.open("GET", "example.xml", false);
+                xmlhttp.send(null);
+                Model.fromXML(xmlhttp.responseXML);
+            }
+            catch(exception){
+                alert(exception);
+            }
         }
 
         function toggleDebug(button) {
