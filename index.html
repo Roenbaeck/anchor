@@ -397,19 +397,8 @@
                 var schema = document.implementation.createDocument("", "schema", null);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
-                    if(node != null) {
-                        if(this.nodes[i].description != null) {
-                            var description = schema.createElement("description");
-                            description.innerHTML = this.nodes[i].description;
-                            node.appendChild(description);
-                        }
-                        var layout = schema.createElement("layout");
-                        layout.setAttribute("x", this.nodes[i].xPosition.toFixed(2));
-                        layout.setAttribute("y", this.nodes[i].yPosition.toFixed(2));
-                        layout.setAttribute("fixed", this.nodes[i].fixed);
-                        node.appendChild(layout);
+                    if(node != null)
                         schema.documentElement.appendChild(node);
-                    }
                 }
                 return schema;
             },
@@ -820,9 +809,21 @@
             toString: function() {
                 return this.name.toString();
             },
-            // subclasses that should appear in the XML needs to override this
+            // subclasses that should appear in the XML need to override this
             toXML: function() {
                 return null;
+            },
+            addLayoutXML: function(element, schema) {
+                if(this.description != null) {
+                    var description = schema.createElement("description");
+                    description.innerHTML = this.description;
+                    element.appendChild(description);
+                }
+                var layout = schema.createElement("layout");
+                layout.setAttribute("x", this.xPosition.toFixed(2));
+                layout.setAttribute("y", this.yPosition.toFixed(2));
+                layout.setAttribute("fixed", this.fixed);
+                element.appendChild(layout);
             },
             stop: function() {
                 this.moving = false;
@@ -909,6 +910,7 @@
                 else {
                     attribute.setAttribute("dataRange", this.dataRange);
                 }
+                this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
             },
             drawOutline: function(context) {
@@ -968,6 +970,7 @@
                 for(var i = 0; edge = this.edges[i]; i++)
                     if(edge.otherNode instanceof Attribute)
                         edge.otherNode.addXML(anchor, schema);
+                this.addLayoutXML(anchor, schema);
                 return anchor;
             },
             drawOutline: function(context) {
@@ -1007,6 +1010,7 @@
                 knot.setAttribute("descriptor", this.descriptor);
                 knot.setAttribute("identity", this.identity);
                 knot.setAttribute("dataRange", this.dataRange);
+                this.addLayoutXML(knot, schema);
                 return knot;
             },
             drawOutline: function(context) {
@@ -1062,6 +1066,7 @@
                     role.setAttribute("identifier", this.edges[i].identifier);
                     tie.appendChild(role);
                 }
+                this.addLayoutXML(tie, schema);
                 return tie;
             },
             drawOutline: function(context) {
