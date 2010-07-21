@@ -330,6 +330,7 @@
         var Model = {
             nodes: [],
             edges: [],
+            idToNode: [],
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -338,6 +339,7 @@
             empty: function() {
                 this.nodes = [];
                 this.edges = [];
+                this.idToNode = [];
                 this.shadowToNode = {};
                 this.topmostNode = null;
                 this.rightmostNode = null;
@@ -362,6 +364,7 @@
                 if(node) {
                     this.nodes[this.nodes.length] = node;
                     this.sort();
+                    this.idToNode[node.id] = node;
                     this.shadowToNode[node.shadowColor] = node;
                     if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
                         this.topmostNode = node;
@@ -377,6 +380,7 @@
             removeNode: function(node) {
                 UniqueColor.releaseUniqueColor(node.shadowColor);
                 delete this.shadowToNode[node.shadowColor];
+                delete this.idToNode[node.id];
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
@@ -394,6 +398,9 @@
             },
             getNodeFromShadow: function(shadow) {
                 return this.shadowToNode[shadow];
+            },
+            getNodeFromId: function(id) {
+                return this.idToNode[id];
             },
             deleteElementFromArray: function(array, element) {
                 for(var i = 0; element != array[i]; i++);
@@ -418,7 +425,14 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var i, knots = xml.getElementsByTagName('knot');
+                    // add an id to elements that are missing that attribute and take the ids that are specified
+                    var i, id, elements = xml.getElementsByTagName('*');
+                    for (i = 0; i < elements.length; i++) {
+                        id = elements[i].getAttribute("id");
+                        id = id ? UniqueIdentity.takeId(Number(id)) : UniqueIdentity.nextId();
+                        elements[i].setAttribute("id", id);
+                    }
+                    var knots = xml.getElementsByTagName('knot');
                     for (i = 0; i < knots.length; i++)
                         this.addNode(Knot.prototype.fromXML(knots[i]));
                     var anchors = xml.getElementsByTagName('anchor');
@@ -794,6 +808,19 @@
             }
         };
 
+        var UniqueIdentity = {
+            lastId: 0,
+            usedIds: [],
+            nextId: function() {
+                while(this.usedIds[++this.lastId]);
+                this.usedIds[this.lastId] = true;
+                return this.lastId;
+            },
+            takeId: function(id) {
+                this.usedIds[id] = true;
+                return id;
+            }
+        };
 
         function AbstractNode(x, y, name) {
             this.name = name;
@@ -804,7 +831,7 @@
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
-            this.id = this.shadowColor;
+            this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.actions = [];
         }
