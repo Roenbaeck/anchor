@@ -432,6 +432,7 @@
                         id = id ? UniqueIdentity.takeId(Number(id)) : UniqueIdentity.nextId();
                         elements[i].setAttribute("id", id);
                     }
+                    // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
                     for (i = 0; i < knots.length; i++)
                         this.addNode(Knot.prototype.fromXML(knots[i]));
