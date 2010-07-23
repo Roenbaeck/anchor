@@ -28,7 +28,28 @@
     .closebutton:active {
         background-image:   url(deleteButtonPressed.png);
     }
-    
+
+    .zoominbutton {
+        display:            block;
+        background-image:   url(zoominbutton.png);
+        position:           absolute;
+        right:              6px;
+        bottom:             50px;
+        height:             20px;
+        width:              20px;
+        z-index:            999;
+    }
+    .zoomoutbutton {
+        display:            block;
+        background-image:   url(zoomoutbutton.png);
+        position:           absolute;
+        right:              6px;
+        bottom:             30px;
+        height:             20px;
+        width:              20px;
+        z-index:            999;
+    }
+
     /* visible canvas - at the bottom of the visible layers */
     #canvas {
         position:           absolute;
@@ -279,12 +300,12 @@
                     // apply damping
                     node.xVelocity *= this.damping;
                     node.yVelocity *= this.damping;
-                    absoluteVelocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
+                    node.velocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
                     // check to see if the node has stopped moving
-                    if(absoluteVelocity <= this.stoppingVelocity)
+                    if(node.velocity <= this.stoppingVelocity)
                         node.stop();
                     // the more nodes that have stopped, the larger the starting velocity must be
-                    if(absoluteVelocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                         node.start();
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.fixed) {
@@ -564,9 +585,13 @@
                     this.drawPalette(node.xPosition, node.yPosition);
                 }
 
-                // draw all nodes and edges on the visible context
+                // cast all shadows first
                 for(i = 0; node = Model.nodes[i]; i++) {
                     node.drawMoving(this.context);
+                }
+
+                // draw all nodes and edges on the visible context
+                for(i = 0; node = Model.nodes[i]; i++) {
                     node.draw(this.context);
                     if(this.miniCounter == 1)
                         node.draw(this.miniatureContext);
@@ -837,6 +862,7 @@
             this.yPosition = y;
             this.xVelocity = 0;
             this.yVelocity = 0;
+            this.velocity = 0;
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
@@ -850,6 +876,7 @@
             yPosition: null,
             xVelocity: null,
             yVelocity: null,
+            velocity: null,
             edges: null,
             moving: true,
             fixed: false,
@@ -945,13 +972,14 @@
             // this is how to draw a graphical representation of the fact that a node is moving
             drawMoving: function(context) {
                 if(this.moving && !this.fixed) {
-                    var velocity = LayoutEngine.absolute(this.xVelocity) + LayoutEngine.absolute(this.yVelocity);
-                    var shadowOffsetX = 4 * ((velocity > 2) ? 2 : velocity);
-                    var shadowOffsetY = 4 * ((velocity > 3) ? 3 : velocity);
+                    var shadowOffsetX = 4 * ((this.velocity > 2) ? 2 : this.velocity);
+                    var shadowOffsetY = 4 * ((this.velocity > 3) ? 3 : this.velocity);
                     context.save();
                     context.translate(-shadowOffsetX, shadowOffsetY);
                     this.drawOutline(context);
-                    context.fillStyle = 'rgba(150, 120, 100, ' + ((1/velocity > 0.5 ? 0.5 : 1/velocity) - LayoutEngine.stoppingVelocity) + ')';
+                    var color = Math.floor(96 + 128 * (1 - 1/(1 + this.velocity)));
+                    // shift the color slightly towards red
+                    context.fillStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
                     context.fill();
                     context.restore();
                 }
@@ -1396,30 +1424,28 @@
             },
             drawMoving: function(context) {
                 if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
-                    var nodeVelocity = 0;
                     var nodeShadowOffsetX = 0;
                     var nodeShadowOffsetY = 0;
                     if(this.node.moving && !this.node.fixed) {
-                        nodeVelocity = LayoutEngine.absolute(this.node.xVelocity) + LayoutEngine.absolute(this.node.yVelocity);
-                        nodeShadowOffsetX = 4 * ((nodeVelocity > 2) ? 2 : nodeVelocity);
-                        nodeShadowOffsetY = 4 * ((nodeVelocity > 3) ? 3 : nodeVelocity);
+                        nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
+                        nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
                     }
-                    var otherNodeVelocity = 0;
                     var otherNodeShadowOffsetX = 0;
                     var otherNodeShadowOffsetY = 0;
                     if(this.otherNode.moving && !this.otherNode.fixed) {
-                        otherNodeVelocity = LayoutEngine.absolute(this.otherNode.xVelocity) + LayoutEngine.absolute(this.otherNode.yVelocity);
-                        otherNodeShadowOffsetX = 4 * ((otherNodeVelocity > 2) ? 2 : otherNodeVelocity);
-                        otherNodeShadowOffsetY = 4 * ((otherNodeVelocity > 3) ? 3 : otherNodeVelocity);
+                        otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
+                        otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
                     }
-                    var averageVelocity = (nodeVelocity + otherNodeVelocity)/2;
+                    var averageVelocity = (this.node.velocity + this.otherNode.velocity)/2;
                     var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
                     var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
                     context.beginPath();
                     context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
                     context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
                             this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    context.strokeStyle = 'rgba(150, 120, 100, ' + ((1/averageVelocity > 0.5 ? 0.5 : 1/averageVelocity) - LayoutEngine.stoppingVelocity) + ')';
+                    var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
+                    // shift the color slightly towards red
+                    context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
                     context.lineWidth = 1.0;
                     context.stroke();
                 }
@@ -1727,8 +1753,11 @@
     <div id="menu">
         <!-- this will be filled and shown dynamically -->
     </div>
+
     <canvas id="miniature">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
+    <div class="zoominbutton"></div>
+    <div class="zoomoutbutton"></div>
 </body>
 </html>
