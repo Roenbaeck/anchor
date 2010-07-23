@@ -193,7 +193,8 @@
             influenceConstant: 4,
             // when the layout has reached equilibrium
             equilibrium: true,
-
+            // the metric in use
+            metric: null,
             // for some reason Math.abs is slower than this
             absolute: function(value) {
                 return value < 0 ? -value : value;
@@ -213,8 +214,12 @@
                 return 1;
             },
             // use the taxi cab metric for measuring distances
-            metric: function(x1, y1, x2, y2) {
+            manhattan: function(x1, y1, x2, y2) {
                 return this.absolute(x2 - x1) + this.absolute(y2 - y1);
+            },
+            // use the euclidean metric for measuring distances
+            euclidean: function(x1, y1, x2, y2) {
+                return Math.sqrt(this.square(x2 - x1) + this.square(y2 - y1));
             },
             // x component of the repelling force formula
             xRepelling: function(node, otherNode) {
@@ -1559,6 +1564,8 @@
             loadExample();
 
             MenuHandler.init();
+            LayoutEngine.metric = LayoutEngine.manhattan;
+//            LayoutEngine.metric = LayoutEngine.euclidean;
             DrawingEngine.start();
         }
 
