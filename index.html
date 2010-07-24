@@ -31,22 +31,22 @@
 
     .zoominbutton {
         display:            block;
-        background-image:   url(zoominbutton.png);
+        background-image:   url(zoominbutton.png); 
         position:           absolute;
-        right:              6px;
-        bottom:             50px;
-        height:             20px;
-        width:              20px;
+        right:              30px;
+        bottom:             48px;
+        width:              16px;
+        height:             16px;
         z-index:            999;
     }
     .zoomoutbutton {
         display:            block;
         background-image:   url(zoomoutbutton.png);
         position:           absolute;
-        right:              6px;
-        bottom:             30px;
-        height:             20px;
-        width:              20px;
+        right:              30px;
+        bottom:             32px;
+        width:              16px;
+        height:             16px;
         z-index:            999;
     }
 
@@ -71,7 +71,7 @@
     #miniature {
         position:           absolute;
         bottom:             30px;
-        right:              30px;
+        right:              38px;
         background-color:   rgba(255, 255, 255, 0.8);
         z-index:            2;
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
@@ -817,6 +817,20 @@
 
                 if(this.MiniatureEventHandler[event.type])
                     this.MiniatureEventHandler[event.type](event);
+            },
+            enlarge: function(event) {
+                if(DrawingEngine.miniatureCanvas.width < 0.8 * window.innerWidth && DrawingEngine.miniatureCanvas.height < 0.8 * window.innerHeight) {
+                    DrawingEngine.miniScale += 0.03;
+                    DrawingEngine.invalidateMiniature();
+                    DrawingEngine.start();
+                }
+            },
+            decrease: function(event) {
+                if(DrawingEngine.miniScale >= 0.1) {
+                    DrawingEngine.miniScale -= 0.03;
+                    DrawingEngine.invalidateMiniature();
+                    DrawingEngine.start();                    
+                }
             }
         };
 
@@ -1561,6 +1575,11 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
+            var miniEnlarge = document.getElementById("miniEnlarge");
+            miniEnlarge.addEventListener('click', MiniatureEventHandler.enlarge, false);
+            var miniDecrease = document.getElementById("miniDecrease");
+            miniDecrease.addEventListener('click', MiniatureEventHandler.decrease, false);
+
             loadExample();
 
             MenuHandler.init();
@@ -1764,7 +1783,7 @@
     <canvas id="miniature">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
-    <div class="zoominbutton"></div>
-    <div class="zoomoutbutton"></div>
+    <div id="miniEnlarge" class="zoominbutton"><!-- changes zoom in the miniature --></div>
+    <div id="miniDecrease" class="zoomoutbutton"><!-- changes zoom in the miniature --></div>
 </body>
 </html>
