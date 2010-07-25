@@ -491,6 +491,10 @@
             xyScale: 1,
             xTranslation: 0,
             yTranslation: 0,
+            xVisible: 0,
+            yVisible: 0,
+            widthVisible: 0,
+            heightVisible: 0,
             miniScale: 0.3,
             miniPadding: 50,
             miniWidth: 0,
@@ -506,17 +510,27 @@
                 this.shadowContext = shadowContext;
                 this.miniatureContext = miniatureContext;
                 this.miniature = document.getElementById('miniature');
+                this.widthVisible = this.canvas.width;
+                this.heightVisible = this.canvas.height;
             },
             scale: function(scale) {
                 this.xyScale *= scale;
                 this.context.scale(scale, scale);
                 this.shadowContext.scale(scale, scale);
+                this.xVisible = -this.xTranslation/this.xyScale;
+                this.yVisible = -this.yTranslation/this.xyScale;
+                this.widthVisible = this.canvas.width/this.xyScale;
+                this.heightVisible = this.canvas.height/this.xyScale;
             },
             translate: function(x, y) {
                 this.xTranslation += x * this.xyScale;
                 this.yTranslation += y * this.xyScale;
                 this.context.translate(x, y);
                 this.shadowContext.translate(x, y);
+                this.xVisible = -this.xTranslation/this.xyScale;
+                this.yVisible = -this.yTranslation/this.xyScale;
+                this.widthVisible = this.canvas.width/this.xyScale;
+                this.heightVisible = this.canvas.height/this.xyScale;
             },
             xContext: function(xScreen) {
                 return Math.round((xScreen - this.xTranslation) / this.xyScale);
@@ -576,7 +590,7 @@
                 }
 
                 // clear the visible context
-                this.context.clearRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
+                this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % MINIRATE;
@@ -619,7 +633,7 @@
                 // show the viewport on the miniature
                 this.miniatureContext.strokeStyle = '#bb5555';
                 this.miniatureContext.lineWidth = 1/this.miniScale;
-                this.miniatureContext.strokeRect(-this.xTranslation/this.xyScale, -this.yTranslation/this.xyScale, this.canvas.width/this.xyScale, this.canvas.height/this.xyScale);
+                this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
             },
             drawPalette: function(x, y) {
                 this.context.beginPath();
