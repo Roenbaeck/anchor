@@ -74,6 +74,7 @@
         right:              38px;
         background-color:   rgba(255, 255, 255, 0.8);
         z-index:            2;
+        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
@@ -105,6 +106,7 @@
         text-align:         left;
         border:             1px dotted;
         z-index:            4;
+        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
@@ -127,8 +129,8 @@
         margin:             auto;
         display:            table;
         background-color:   rgba(8, 0, 0, 0.8);
-        z-index:            6;
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);        
+        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
         z-index:            11;
     }
@@ -340,12 +342,13 @@
                         ('0' + blue.toString(16)).slice(-2);
             },
             reserveUniqueColor: function() {
-                var r = Math.random() * 255;
-                var g = Math.random() * 255;
-                var b = Math.random() * 255;
+                var r = Math.ceil(Math.random() * 255);
+                var g = Math.ceil(Math.random() * 255);
+                var b = Math.ceil(Math.random() * 255);
                 var color = this.formatColor(r, g, b);
                 if(this.takenColors[color] || (r + g + b) == 0)
                     return this.reserveUniqueColor();
+                this.takenColors[color] = true;
                 return color;
             },
             releaseUniqueColor: function(color) {
@@ -487,7 +490,7 @@
             shadowContext: null,
             miniatureContext: null,
             running: false,
-            hoveredNodes: {},
+            hoveredNodes: [],
             xyScale: 1,
             xTranslation: 0,
             yTranslation: 0,
@@ -545,10 +548,10 @@
                 return Math.round(yContext * this.xyScale + this.yTranslation);
             },
             addHovered: function(hoveredNode) {
-                this.hoveredNodes[hoveredNode.id] = hoveredNode;
+                this.hoveredNodes.push(hoveredNode);
             },
             removeHovered: function(hoveredNode) {
-                delete this.hoveredNodes[hoveredNode.id];
+                this.hoveredNodes.splice(this.hoveredNodes.indexOf(hoveredNode), 1);
             },
             getNodeAt: function(x, y) {
                 // clear the shadow context
@@ -597,11 +600,10 @@
                 if(this.miniCounter == 1)
                     this.drawMiniature(Model);
 
-                var i, node, nodeId;
+                var i, node;
                 this.context.globalAlpha = 0.8;
                 // draw palette around hovering nodes
-                for(nodeId in this.hoveredNodes) {
-                    node = this.hoveredNodes[nodeId];
+                for(i = 0; node = this.hoveredNodes[i]; i++) {
                     this.drawPalette(node.xPosition, node.yPosition);
                 }
 
