@@ -1676,7 +1676,7 @@
             }
         };
 
-        function CodePopover() {
+        function CodePopover(documentFragment) {
             var self = this;
 
             this.modalBackground = new ModalBackground();
@@ -1691,8 +1691,7 @@
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
             DrawingEngine.stop();
-            var html = transform(Model.toXML(), 'xml2html.xsl');
-            content.appendChild(html);
+            content.appendChild(documentFragment);
             codePopover.appendChild(content);
 
             var close = document.createElement('div');
@@ -1791,7 +1790,7 @@
         <input type="button" value="RANDOMIZE" onclick="randomizeLayout()"/>
         <input type="button" value="PAUSE" onclick="togglePause(this)"/>
         <input type="button" value="TOGGLE NAMES" onclick="toggleNames(this)"/>
-        <input type="button" value="SCHEMA XML" onclick="new CodePopover()"/>
+        <input type="button" value="SCHEMA XML" onclick="new CodePopover(transform(Model.toXML(), 'xml2html.xsl'))"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
         <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
     </div>
