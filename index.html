@@ -142,10 +142,11 @@
         position:           relative;
         text-align:         left;
         font:               125% Andale Mono, monospace;
+        color:              white;
         padding:            15px 20px;
         overflow:           auto;
         background-color:   transparent;
-        z-index:            7;
+        z-index:            12;
     }
     #content .tabs {
         visibility:         hidden;
@@ -163,6 +164,9 @@
     #content .values {
         color:              #ffc0c0;
         font-style:         italic;
+    }
+    .preformatted {
+        white-space:        pre;        
     }
     </style>
 
@@ -1676,7 +1680,8 @@
             }
         };
 
-        function CodePopover(documentFragment) {
+        function CodePopover(documentFragment, preformatted) {
+            DrawingEngine.stop();
             var self = this;
 
             this.modalBackground = new ModalBackground();
@@ -1688,9 +1693,10 @@
 
             var content = document.createElement('div');
             content.setAttribute("id", "content");
+            if(preformatted)
+                content.setAttribute("class", "preformatted");
             content.style.width = (window.innerWidth - 2 * padding) + 'px';
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
-            DrawingEngine.stop();
             content.appendChild(documentFragment);
             codePopover.appendChild(content);
 
@@ -1790,7 +1796,8 @@
         <input type="button" value="RANDOMIZE" onclick="randomizeLayout()"/>
         <input type="button" value="PAUSE" onclick="togglePause(this)"/>
         <input type="button" value="TOGGLE NAMES" onclick="toggleNames(this)"/>
-        <input type="button" value="SCHEMA XML" onclick="new CodePopover(transform(Model.toXML(), 'xml2html.xsl'))"/>
+        <input type="button" value="SCHEMA XML" onclick="new CodePopover(transform(Model.toXML(), 'xml2html.xsl'), false)"/>
+        <input type="button" value="SQL" onclick="new CodePopover(transform(Model.toXML(), 'SQLServer.xsl'), true)"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
         <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
     </div>
