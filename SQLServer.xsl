@@ -39,82 +39,69 @@
             )"/>
 		</xsl:for-each>
 
+        <!-- process all anchors -->
+        <xsl:for-each select="anchor">
+            <xsl:variable name="anchorName" select="concat(@mnemonic, '_', @descriptor)"/>
+            <xsl:variable name="identityName" select="concat(@mnemonic, '_ID')"/>
+            <xsl:value-of select="concat(
+            'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
+            'CREATE TABLE [', $anchorName, '] (', $N,
+            $T, $identityName, ' ', @identity, ' not null,', $N,
+            $metadataDefinition,
+            $T, 'primary key (', $N,
+            $T, $T, $identityName, ' asc', $N,
+            $T, ')', $N,
+            ');', $N,
+            'GO', $N
+            )"/>
+            <!-- process all attributes in the current anchor -->
+            <xsl:for-each select="attribute">
+                <xsl:variable name="attributeName" select="concat(parent::*/@mnemonic, '_', @mnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
+                <xsl:variable name="knotOrDataDefinition">
+                    <xsl:choose>
+                        <xsl:when test="key('knotLookup', @knotRange)">
+                            <xsl:value-of select="concat($T, @knotRange, '_ID ', key('knotLookup', @knotRange)/@identity, ' not null foreign key references ', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor, '(', @knotRange, '_ID),', $N)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, $attributeName, ' ', @dataRange, ' not null,', $N)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="historizationDefinition">
+                    <xsl:if test="@timeRange">
+                        <xsl:value-of select="concat($T, parent::*/@mnemonic, '_', @mnemonic, '_ValidFrom ', @timeRange, ' not null,', $N)"/>
+                    </xsl:if>
+                </xsl:variable>
+                <xsl:variable name="historizationKey">
+                    <xsl:choose>
+                        <xsl:when test="@timeRange">
+                            <xsl:value-of select="concat(',', $N, $T, $T, parent::*/@mnemonic, '_', @mnemonic, '_ValidFrom', $N)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$N"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $attributeName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
+                'CREATE TABLE [', $attributeName, '] (', $N,
+                $T, $identityName, ' ', parent::*/@identity, ' not null foreign key references ', $anchorName, '(', $identityName, '),', $N,
+                $knotOrDataDefinition,
+                $historizationDefinition,
+                $metadataDefinition,
+                $T, 'primary key (', $N,
+                $T, $T, $identityName, ' asc',
+                $historizationKey,
+                $T, ')', $N,
+                ');', $N,
+                'GO', $N
+                )"/>
+            </xsl:for-each>
+        </xsl:for-each>
+
 		<!-- process the anchors -->
 
 		<xsl:for-each select="anchor">
-			<xsl:text>IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>' and type LIKE '%U%')&#10;</xsl:text>
-			<xsl:text>CREATE TABLE [</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>] ( &#10;&#9;</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_ID </xsl:text>
-			<xsl:value-of select="@idType"/>
-			<xsl:if test="not(@idGenerator = 'false')">
-				<xsl:text> identity(1,1)</xsl:text>
-			</xsl:if>
-			<xsl:text> not null, &#10;&#9;</xsl:text>
-			<xsl:value-of select="$metadata"/>
-			<xsl:text>, &#10;&#9;PRIMARY KEY (</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_ID asc) &#10;);&#10;GO&#10;</xsl:text>
-
-			<!-- process the attributes belonging to the anchor in an inner loop -->
-
-			<xsl:for-each select="attribute">
-				<xsl:text>IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>_</xsl:text>
-				<xsl:value-of select="@name"/>
-				<xsl:text>' and type LIKE '%U%')&#10;</xsl:text>
-				<xsl:text>CREATE TABLE [</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>_</xsl:text>
-				<xsl:value-of select="@name"/>
-				<xsl:text>] ( &#10;&#9;</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID </xsl:text>
-				<xsl:value-of select="parent::anchor/@idType"/>
-				<xsl:text> not null, &#10;&#9;</xsl:text>
-				<xsl:choose>
-					<xsl:when test="key('mnemonicToEntity', relation/@reference)">
-						<xsl:value-of select="relation/@reference"/>
-						<xsl:text>_ID </xsl:text>
-						<xsl:value-of select="key('mnemonicToEntity', relation/@reference)/@idType"/>
-						<xsl:text> not null, &#10;&#9;</xsl:text>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="@name"/>
-						<xsl:text>&#32;</xsl:text>
-						<xsl:value-of select="@valueType"/>
-						<xsl:text> not null, &#10;&#9;</xsl:text>
-					</xsl:otherwise>
-				</xsl:choose>
-				<xsl:if test="@historized = 'true'">
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate </xsl:text>
-					<xsl:value-of select="$globalHistorizationType"/>
-					<xsl:text> not null, &#10;&#9;</xsl:text>
-				</xsl:if>
-				<xsl:value-of select="$metadata"/>
-				<xsl:text>, &#10;&#9;PRIMARY KEY (</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID asc</xsl:text>
-				<xsl:if test="@historized = 'true'">
-					<xsl:text>, </xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate desc</xsl:text>
-				</xsl:if>
-				<xsl:text>) &#10;);&#10;GO&#10;</xsl:text>
-			</xsl:for-each>
-
 			<!-- create the latest view -->
 
 			<xsl:text>IF EXISTS (SELECT * FROM sys.objects WHERE name = 'l</xsl:text>
