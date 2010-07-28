@@ -1,36 +1,42 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="html" indent="no"/>
+    <!-- lookup hash tables -->
 	<xsl:key name="mnemonicToEntity" match="//*[@mnemonic]" use="@mnemonic"/>
+    <xsl:key name="knotLookup" match="//knot[@mnemonic]" use="@mnemonic"/>
+    <xsl:key name="anchorLookup" match="//anchor[@mnemonic]" use="@mnemonic"/>
+    <!-- parameters controlling the output -->
+    <xsl:param name="metadata">
+        <xsl:text>_metadata int not null</xsl:text>
+    </xsl:param>
+    <!-- match the schema (root element) and process the different elements using for-each loops -->
 	<xsl:template match="/schema">
-		<xsl:variable name="metadata">
-			<xsl:text>_metadata int not null</xsl:text>
-		</xsl:variable>
+        <!-- "global" variables -->
 		<xsl:variable name="globalHistorizationType" select="@historizationType"/>
-        <xsl:variable name="LF"><xsl:text>&#10;</xsl:text></xsl:variable>
-        <xsl:variable name="TB"><xsl:text>&#9;</xsl:text></xsl:variable>
-        <xsl:variable name="SQ"><xsl:text>'</xsl:text></xsl:variable>
+        <xsl:variable name="N"><xsl:text>&#10;</xsl:text></xsl:variable>
+        <xsl:variable name="T"><xsl:text>&#32;&#32;&#32;</xsl:text></xsl:variable>
+        <xsl:variable name="Q"><xsl:text>'</xsl:text></xsl:variable>
+        <xsl:variable name="metadataDefinition">
+            <xsl:if test="normalize-space($metadata)">
+                <xsl:value-of select="concat($T, $metadata, ',', $N)"/>
+            </xsl:if>
+        </xsl:variable>
 
 		<!-- process all knots -->
-
 		<xsl:for-each select="knot">
-            <xsl:variable name="name" select="concat(@mnemonic, '_', @descriptor)"/>
-            <xsl:variable name="identityColumn" select="concat(@mnemonic, '_ID')"/>
+            <xsl:variable name="knotName" select="concat(@mnemonic, '_', @descriptor)"/>
+            <xsl:variable name="identityName" select="concat(@mnemonic, '_ID')"/>
             <xsl:value-of select="concat(
-            'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $SQ, $name, $SQ, ' and type LIKE ', $SQ, '%U%', $SQ, ')', $LF,
-            'CREATE TABLE [', $name, '] (', $LF,
-            $TB, $identityColumn, ' ', @identity, ' not null,', $LF
+            'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $knotName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
+            'CREATE TABLE [', $knotName, '] (', $N,
+            $T, $identityName, ' ', @identity, ' not null,', $N,
+            $T, $knotName, ' ', @dataRange, ' not null unique,', $N,
+            $metadataDefinition,
+            $T, 'primary key (', $N,
+            $T, $T, $identityName, ' asc', $N,
+            $T, ')', $N,
+            ');', $N,
+            'GO', $N
             )"/>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>&#32;</xsl:text>
-			<xsl:value-of select="@valueType"/>
-			<xsl:text> not null, &#10;&#9;</xsl:text>
-			<xsl:value-of select="$metadata"/>
-			<xsl:text>, &#10;&#9;PRIMARY KEY (</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_ID asc</xsl:text>
-			<xsl:text>) &#10;);&#10;GO&#10;</xsl:text>
 		</xsl:for-each>
 
 		<!-- process the anchors -->
