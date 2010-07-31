@@ -296,6 +296,7 @@
             'CREATE TABLE [', $tieName, '] (', $N,
             $columnDefinitions,
             $historizationDefinition,
+            $metadataDefinition,
             $T, 'primary key (', $N,
             $primaryKeyColumns,
             $historizationKey,
