@@ -208,6 +208,100 @@
                 'GO', $N, $N
                 )"/>
             </xsl:for-each>
+            <xsl:if test="attribute[@timeRange]">
+                <xsl:variable name="unionOfTimepoints">
+                    <xsl:for-each select="attribute[@timeRange]">
+                        <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                        <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
+                        <xsl:value-of select="concat(
+                        $T, 'SELECT DISTINCT', $N,
+                        $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' as inspectedTimepoint', $N,
+                        $T, 'FROM', $N,
+                        $T, $T, $attributeName, $N,
+                        $T, 'WHERE', $N,
+                        $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N
+                        )"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($T, 'UNION', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:variable name="differenceFunction" select="concat('d', $anchorName)"/>
+                <xsl:value-of select="concat(
+                '------------------------------ [Difference Perspective] ------------------------------', $N,
+                '-- ', $anchorName, ' viewed by differences in every historized attribute', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunction, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $differenceFunction, '];', $N,
+                'GO', $N,
+                'CREATE FUNCTION [', $differenceFunction, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'RETURNS TABLE RETURN', $N,
+                'SELECT', $N,
+                $T, 'timepoints.inspectedTimepoint,', $N,
+                $T, '[', $anchorMnemonic, '].*', $N,
+                'FROM (', $N,
+                $unionOfTimepoints,
+                ') timepoints', $N,
+                'CROSS APPLY', $N,
+                $T, $point-in-timeFunctionName, '(timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
+                'GO', $N, $N
+                )"/>                
+            </xsl:if>
+        </xsl:for-each>
+        <!-- process all ties -->
+        <xsl:for-each select="tie">
+            <xsl:variable name="tieName">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:value-of select="concat(@type, '_', @role)"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:text>_</xsl:text>
+                    </xsl:if>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="columnDefinitions">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
+                    <xsl:value-of select="concat($T, @type, '_', $identitySuffix, ' ', $identityType, ' not null,', $N)"/>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="primaryKeyColumns">
+                <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                    <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, ' asc')"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="historizationDefinition">
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat($T, $tieName, '_', $historizationSuffix, ' ', @timeRange, ' not null,', $N)"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="historizationKey">
+                <xsl:choose>
+                    <xsl:when test="@timeRange">
+                        <xsl:value-of select="concat(',', $N, $T, $T, $tieName, '_', $historizationSuffix, ' desc', $N)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="$N"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:value-of select="concat(
+            '------------------------------------- [Tie Table] ------------------------------------', $N,
+            '-- ', $tieName, ' table (', count(anchorRole|knotRole), '-ary)', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $tieName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
+            'CREATE TABLE [', $tieName, '] (', $N,
+            $columnDefinitions,
+            $historizationDefinition,
+            $T, 'primary key (', $N,
+            $primaryKeyColumns,
+            $historizationKey,
+            $T, ')', $N,
+            ')', $N,
+            'GO', $N, $N
+            )"/>
         </xsl:for-each>
     </xsl:template>
     <xsl:template name="joinCondition">
@@ -262,416 +356,6 @@
     </xsl:template>
     
     <xsl:template name="theOldStuff">
-
-		<xsl:for-each select="anchor">
-			<!-- create the difference function -->
-
-			<xsl:text>IF EXISTS (SELECT * FROM sys.objects WHERE name = 'd</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>' and type LIKE '%F%')&#10;</xsl:text>
-			<xsl:text>DROP FUNCTION [d</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>]; &#10;GO&#10;</xsl:text>
-			<xsl:text>CREATE FUNCTION [d</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>] (@intervalStart </xsl:text>
-			<xsl:value-of select="'datetime'"/>
-			<xsl:text>, @intervalEnd </xsl:text>
-			<xsl:value-of select="'datetime'"/>
-			<xsl:text>) &#10;RETURNS TABLE RETURN &#10;SELECT &#10;&#9;</xsl:text>
-			<xsl:choose>
-				<xsl:when test="attribute[@historized = 'true']">
-					<xsl:text>[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]._inspectedDate, &#10;&#9;</xsl:text>
-				</xsl:when>
-				<xsl:otherwise>
-					<xsl:text>NULL as _inspectedDate, &#10;&#9;</xsl:text>
-				</xsl:otherwise>
-			</xsl:choose>
-			<xsl:text>[</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>].</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_ID</xsl:text>
-			<xsl:if test="attribute">
-				<xsl:text>, &#10;&#9;</xsl:text>
-			</xsl:if>
-			<xsl:for-each select="attribute">
-				<xsl:choose>
-					<xsl:when test="key('mnemonicToEntity', relation/@reference)">
-						<xsl:text>[</xsl:text>
-						<xsl:value-of select="relation/@reference"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="relation/@reference"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="key('mnemonicToEntity', relation/@reference)/@name"/>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:text>[</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="@name"/>
-					</xsl:otherwise>
-				</xsl:choose>
-				<xsl:if test="@historized = 'true'">
-					<xsl:text>, &#10;&#9;[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate</xsl:text>
-				</xsl:if>
-				<xsl:if test="not(position() = last())">
-					<xsl:text>, &#10;&#9;</xsl:text>
-				</xsl:if>
-			</xsl:for-each>
-			<xsl:text>&#10;FROM </xsl:text>
-			<xsl:choose>
-				<xsl:when test="attribute[@historized = 'true']">
-					<xsl:text>(&#10;&#9;SELECT DISTINCT &#10;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_ID, &#10;&#9;&#9;_inspectedDate &#10;&#9;FROM (&#10;&#9;&#9;SELECT &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:text>[s</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_ID, &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:text>[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate</xsl:text>
-						<xsl:if test="not(position() = last())">
-							<xsl:text>, &#10;&#9;&#9;&#9;</xsl:text>
-						</xsl:if>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;&#9;FROM &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text> [s</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:text>&#10;&#9;&#9;LEFT JOIN &#10;&#9;&#9;&#9;</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="@name"/>
-						<xsl:text> [s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>]&#10;&#9;&#9;ON &#10;&#9;&#9;&#9;[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>_ID = [s</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>_ID</xsl:text>
-						<xsl:text>&#10;&#9;&#9;AND &#10;&#9;&#9;&#9;[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate between @intervalStart and @intervalEnd</xsl:text>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;) piv &#10;&#9;UNPIVOT (&#10;&#9;&#9;_inspectedDate for _historizationColumn in (&#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate</xsl:text>
-						<xsl:if test="not(position() = last())">
-							<xsl:text>, &#10;&#9;&#9;&#9;</xsl:text>
-						</xsl:if>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;&#9;) &#10;&#9;) unpiv &#10;) </xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-				</xsl:when>
-				<xsl:otherwise>
-					<xsl:text>&#10;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text>&#32;[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]</xsl:text>
-				</xsl:otherwise>
-			</xsl:choose>
-			<xsl:for-each select="attribute">
-				<xsl:text>&#10;LEFT JOIN &#10;&#9;</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>_</xsl:text>
-				<xsl:value-of select="@name"/>
-				<xsl:text>&#32;[</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>]&#10;ON &#10;&#9;[</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>].</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID = [</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>].</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID</xsl:text>
-				<xsl:if test="@historized = 'true'">
-					<xsl:text>&#10;AND &#10;&#9;</xsl:text>
-					<xsl:text>[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate = (&#10;&#9;&#9;SELECT &#10;&#9;&#9;&#9;max(</xsl:text>
-					<xsl:text>sub.</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate) &#10;&#9;&#9;FROM &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text> sub &#10;&#9;&#9;WHERE &#10;&#9;&#9;&#9;sub.</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>_ID = [</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>_ID &#10;&#9;&#9;AND &#10;&#9;&#9;&#9;sub.</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate &lt;= [</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>]._inspectedDate</xsl:text>
-					<xsl:text>&#10;&#9;)</xsl:text>
-				</xsl:if>
-				<xsl:if test="relation">
-					<xsl:text>&#10;LEFT JOIN &#10;&#9;</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="key('mnemonicToEntity', relation/@reference)/@name"/>
-					<xsl:text>&#32;[</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>]&#10;ON &#10;&#9;[</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_ID = [</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_ID</xsl:text>
-				</xsl:if>
-			</xsl:for-each>
-			<xsl:text>;&#10;GO&#10;</xsl:text>
-
-			<!-- create the extended difference function -->
-
-			<xsl:text>IF EXISTS (SELECT * FROM sys.objects WHERE name = 'x</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>' and type LIKE '%F%')&#10;</xsl:text>
-			<xsl:text>DROP FUNCTION [x</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>]; &#10;GO&#10;</xsl:text>
-			<xsl:text>CREATE FUNCTION [x</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_</xsl:text>
-			<xsl:value-of select="@name"/>
-			<xsl:text>] (&#10;&#9;@intervalStart </xsl:text>
-			<xsl:value-of select="'datetime'"/>
-			<xsl:text>, &#10;&#9;@intervalEnd </xsl:text>
-			<xsl:value-of select="'datetime'"/>
-			<xsl:text>, &#10;&#9;@columns xml = '</xsl:text>
-			<xsl:for-each select="attribute[@historized = 'true']">
-				<xsl:text>&#10;&#9;&#9;&lt;col&gt;</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>_FromDate&lt;/col&gt;</xsl:text>
-			</xsl:for-each>
-			<xsl:text>&#10;&#9;'&#10;) &#10;RETURNS TABLE RETURN &#10;SELECT &#10;&#9;</xsl:text>
-			<xsl:choose>
-				<xsl:when test="attribute[@historized = 'true']">
-					<xsl:text>[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]._inspectedDate, &#10;&#9;</xsl:text>
-				</xsl:when>
-				<xsl:otherwise>
-					<xsl:text>NULL as _inspectedDate, &#10;&#9;</xsl:text>
-				</xsl:otherwise>
-			</xsl:choose>
-			<xsl:text>[</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>].</xsl:text>
-			<xsl:value-of select="@mnemonic"/>
-			<xsl:text>_ID</xsl:text>
-			<xsl:if test="attribute">
-				<xsl:text>, &#10;&#9;</xsl:text>
-			</xsl:if>
-			<xsl:for-each select="attribute">
-				<xsl:choose>
-					<xsl:when test="key('mnemonicToEntity', relation/@reference)">
-						<xsl:text>[</xsl:text>
-						<xsl:value-of select="relation/@reference"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="relation/@reference"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="key('mnemonicToEntity', relation/@reference)/@name"/>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:text>[</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="@name"/>
-					</xsl:otherwise>
-				</xsl:choose>
-				<xsl:if test="@historized = 'true'">
-					<xsl:text>, &#10;&#9;[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate</xsl:text>
-				</xsl:if>
-				<xsl:if test="not(position() = last())">
-					<xsl:text>, &#10;&#9;</xsl:text>
-				</xsl:if>
-			</xsl:for-each>
-			<xsl:text>&#10;FROM </xsl:text>
-			<xsl:choose>
-				<xsl:when test="attribute[@historized = 'true']">
-					<xsl:text>(&#10;&#9;SELECT DISTINCT &#10;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_ID, &#10;&#9;&#9;_inspectedDate &#10;&#9;FROM (&#10;&#9;&#9;SELECT &#10;&#9;&#9;&#9;[s</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_ID, &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:text>[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate</xsl:text>
-						<xsl:if test="not(position() = last())">
-							<xsl:text>, &#10;&#9;&#9;&#9;</xsl:text>
-						</xsl:if>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;&#9;FROM &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text> [s</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:text>&#10;&#9;&#9;LEFT JOIN &#10;&#9;&#9;&#9;</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_</xsl:text>
-						<xsl:value-of select="@name"/>
-						<xsl:text> [s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>]&#10;&#9;&#9;ON &#10;&#9;&#9;&#9;[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>_ID = [s</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="parent::anchor/@mnemonic"/>
-						<xsl:text>_ID</xsl:text>
-						<xsl:text>&#10;&#9;&#9;AND &#10;&#9;&#9;&#9;[s</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>].</xsl:text>
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate between @intervalStart and @intervalEnd</xsl:text>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;) piv &#10;&#9;UNPIVOT (&#10;&#9;&#9;_inspectedDate for _historizationColumn in (&#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:for-each select="attribute[@historized = 'true']">
-						<xsl:value-of select="@mnemonic"/>
-						<xsl:text>_FromDate</xsl:text>
-						<xsl:if test="not(position() = last())">
-							<xsl:text>, &#10;&#9;&#9;&#9;</xsl:text>
-						</xsl:if>
-					</xsl:for-each>
-					<xsl:text>&#10;&#9;&#9;) &#10;&#9;) unpiv &#10;&#9;WHERE &#10;&#9;&#9; _historizationColumn IN ((select name.value('.', 'varchar(255)') from @columns.nodes('/col') as T(name)))&#10;) </xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-				</xsl:when>
-				<xsl:otherwise>
-					<xsl:text>&#10;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text>&#32;[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>]</xsl:text>
-				</xsl:otherwise>
-			</xsl:choose>
-			<xsl:for-each select="attribute">
-				<xsl:text>&#10;LEFT JOIN &#10;&#9;</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>_</xsl:text>
-				<xsl:value-of select="@name"/>
-				<xsl:text>&#32;[</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>]&#10;ON &#10;&#9;[</xsl:text>
-				<xsl:value-of select="@mnemonic"/>
-				<xsl:text>].</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID = [</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>].</xsl:text>
-				<xsl:value-of select="parent::anchor/@mnemonic"/>
-				<xsl:text>_ID</xsl:text>
-				<xsl:if test="@historized = 'true'">
-					<xsl:text>&#10;AND &#10;&#9;[</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate = (&#10;&#9;&#9;SELECT &#10;&#9;&#9;&#9;max(</xsl:text>
-					<xsl:text>sub.</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate) &#10;&#9;&#9;FROM &#10;&#9;&#9;&#9;</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="@name"/>
-					<xsl:text> sub &#10;&#9;&#9;WHERE &#10;&#9;&#9;&#9;sub.</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>_ID = [</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>_ID &#10;&#9;&#9;AND &#10;&#9;&#9;&#9;sub.</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>_FromDate &lt;= [</xsl:text>
-					<xsl:value-of select="parent::anchor/@mnemonic"/>
-					<xsl:text>]._inspectedDate</xsl:text>
-					<xsl:text>&#10;&#9;)</xsl:text>
-				</xsl:if>
-				<xsl:if test="relation">
-					<xsl:text>&#10;LEFT JOIN &#10;&#9;</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_</xsl:text>
-					<xsl:value-of select="key('mnemonicToEntity', relation/@reference)/@name"/>
-					<xsl:text>&#32;[</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>]&#10;ON &#10;&#9;[</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_ID = [</xsl:text>
-					<xsl:value-of select="@mnemonic"/>
-					<xsl:text>].</xsl:text>
-					<xsl:value-of select="relation/@reference"/>
-					<xsl:text>_ID</xsl:text>
-				</xsl:if>
-			</xsl:for-each>
-			<xsl:text>;&#10;GO&#10;</xsl:text>
-		</xsl:for-each>
 
 		<!-- process all ties -->
 
