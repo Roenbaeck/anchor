@@ -261,7 +261,8 @@
             <xsl:variable name="columnDefinitions">
                 <xsl:for-each select="anchorRole|knotRole">
                     <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
-                    <xsl:value-of select="concat($T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null,', $N)"/>
+                    <xsl:variable name="referent" select="concat(@type, '_', key('anchorLookup', @type)/@descriptor, key('knotLookup', @type)/@descriptor)"/>
+                    <xsl:value-of select="concat($T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null foreign key references ', $referent, '(', @type, '_', $identitySuffix, '),', $N)"/>
                 </xsl:for-each>
             </xsl:variable>
             <xsl:variable name="primaryKeyColumns">
