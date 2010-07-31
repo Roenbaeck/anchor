@@ -1,24 +1,24 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <schema>
-	<knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="string"/>
-	<knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="string"/>
-	<knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinytint" dataRange="string"/>
-	<knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="string"/>
-	<anchor mnemonic="AC" descriptor="Actor" identity="integer">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="string" timeRange="date"/>
+	<knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)"/>
+	<knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
+	<knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(42)"/>
+	<knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)"/>
+	<anchor mnemonic="AC" descriptor="Actor" identity="int">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)" timeRange="date"/>
 		<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
 		<attribute mnemonic="PLV" descriptor="ProfessionalLevel" knotRange="PLV" timeRange="date"/>
 	</anchor>
-	<anchor mnemonic="PR" descriptor="Program" identity="integer">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="string"/>
+	<anchor mnemonic="PR" descriptor="Program" identity="int">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)"/>
 	</anchor>
-	<anchor mnemonic="ST" descriptor="Stage" identity="integer">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="string" timeRange="date"/>
-		<attribute mnemonic="LOC" descriptor="Location" dataRange="string"/>
+	<anchor mnemonic="ST" descriptor="Stage" identity="int">
+		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)" timeRange="date"/>
+		<attribute mnemonic="LOC" descriptor="Location" dataRange="varchar(42)"/>
 	</anchor>
-	<anchor mnemonic="PE" descriptor="Performance" identity="integer">
+	<anchor mnemonic="PE" descriptor="Performance" identity="int">
 		<attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
-		<attribute mnemonic="AUD" descriptor="Audience" dataRange="integer"/>
+		<attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
 		<attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
 	</anchor>
     <tie>
