@@ -1352,7 +1352,7 @@
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "XXX";
                     role = knotRoles[i].getAttribute("role") || "unknownRole";
-                    identifier = anchorRoles[i].getAttribute("identifier") || false;
+                    identifier = knotRoles[i].getAttribute("identifier") || false;
                     name += "_" + type + "_" + role;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
@@ -1378,7 +1378,7 @@
                         role = schema.createElement("anchorRole");
                     else if(this.edges[i].otherNode instanceof Knot)
                         role = schema.createElement("knotRole");
-                    role.setAttribute("role", this.edges[i].role);
+                    role.setAttribute("role", this.edges[i].name);
                     role.setAttribute("type", node.mnemonic);
                     role.setAttribute("identifier", this.edges[i].identifier);
                     tie.appendChild(role);
@@ -1454,7 +1454,6 @@
             this.edges.push(otherNode);
         }
         Edge.prototype = {
-            role: null,
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
