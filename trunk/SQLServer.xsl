@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-    <xsl:output method="html" indent="no"/>
+    <xsl:output method="text" indent="no"/>
 
     <!-- lookup hash tables -->
 	<xsl:key name="mnemonicToEntity" match="//*[@mnemonic]" use="@mnemonic"/>
@@ -34,17 +35,22 @@
 		<xsl:for-each select="knot">
             <xsl:variable name="knotName" select="concat(@mnemonic, '_', @descriptor)"/>
             <xsl:variable name="knotIdentity" select="concat(@mnemonic, '_', $identitySuffix)"/>
+            <xsl:variable name="knotIdentityType" select="@identity"/>
+            <xsl:variable name="knotDataType" select="@dataRange"/>
             <xsl:value-of select="concat(
+            '----------------------------------- [Knot Table] -------------------------------------', $N,
+            '-- ', $knotName, ' table', $N,
+            '--------------------------------------------------------------------------------------', $N,
             'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $knotName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
             'CREATE TABLE [', $knotName, '] (', $N,
-            $T, $knotIdentity, ' ', @identity, ' not null,', $N,
-            $T, $knotName, ' ', @dataRange, ' not null unique,', $N,
+            $T, $knotIdentity, ' ', $knotIdentityType, ' not null,', $N,
+            $T, $knotName, ' ', $knotDataType, ' not null unique,', $N,
             $metadataDefinition,
             $T, 'primary key (', $N,
             $T, $T, $knotIdentity, ' asc', $N,
             $T, ')', $N,
             ');', $N,
-            'GO', $N
+            'GO', $N, $N
             )"/>
 		</xsl:for-each>
 
@@ -54,6 +60,9 @@
             <xsl:variable name="anchorName" select="concat(@mnemonic, '_', @descriptor)"/>
             <xsl:variable name="anchorIdentity" select="concat(@mnemonic, '_', $identitySuffix)"/>
             <xsl:value-of select="concat(
+            '---------------------------------- [Anchor Table] ------------------------------------', $N,
+            '-- ', $anchorName, ' table (with ', count(attribute), ' attributes)', $N,
+            '--------------------------------------------------------------------------------------', $N,
             'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
             'CREATE TABLE [', $anchorName, '] (', $N,
             $T, $anchorIdentity, ' ', @identity, ' not null,', $N,
@@ -62,7 +71,7 @@
             $T, $T, $anchorIdentity, ' asc', $N,
             $T, ')', $N,
             ');', $N,
-            'GO', $N
+            'GO', $N, $N
             )"/>
             <!-- process all attributes in the current anchor -->
             <xsl:for-each select="attribute">
@@ -94,6 +103,9 @@
                     </xsl:choose>
                 </xsl:variable>
                 <xsl:value-of select="concat(
+                '--------------------------------- [Attribute Table] ----------------------------------', $N,
+                '-- ', $attributeName, ' table (on ', $anchorName, ')', $N,
+                '--------------------------------------------------------------------------------------', $N,
                 'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $attributeName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
                 'CREATE TABLE [', $attributeName, '] (', $N,
                 $T, $anchorIdentity, ' ', parent::*/@identity, ' not null foreign key references ', $anchorName, '(', $anchorIdentity, '),', $N,
@@ -105,7 +117,7 @@
                 $historizationKey,
                 $T, ')', $N,
                 ');', $N,
-                'GO', $N
+                'GO', $N, $N
                 )"/>
             </xsl:for-each>
             <!-- create the time perspectives -->
@@ -126,6 +138,9 @@
             </xsl:variable>
             <xsl:variable name="latestViewName" select="concat('l', $anchorName)"/>
             <xsl:value-of select="concat(
+            '------------------------------- [Latest Perspective] ---------------------------------', $N,
+            '-- ', $anchorName, ' viewed as is (given by the latest available information)', $N,
+            '--------------------------------------------------------------------------------------', $N,
             'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestViewName, $Q, ' and type LIKE ', $Q, '%V%', $Q, ')', $N,
             'DROP VIEW [', $latestViewName, '];', $N,
             'GO', $N,
@@ -136,7 +151,7 @@
             'FROM', $N,
             $T, $anchorName, ' [', $anchorMnemonic, ']',
             $latestJoinConditions, ';', $N,
-            'GO', $N
+            'GO', $N, $N
             )"/>
             <xsl:variable name="point-in-timeJoinConditions">
                 <xsl:for-each select="attribute">
@@ -148,6 +163,9 @@
             </xsl:variable>
             <xsl:variable name="point-in-timeFunctionName" select="concat('p', $anchorName)"/>
             <xsl:value-of select="concat(
+            '---------------------------- [Point-in-Time Perspective] -----------------------------', $N,
+            '-- ', $anchorName, ' viewed as was (at the given timepoint)', $N,
+            '--------------------------------------------------------------------------------------', $N,
             'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timeFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
             'DROP FUNCTION [', $point-in-timeFunctionName, '];', $N,
             'GO', $N,
@@ -159,8 +177,37 @@
             'FROM', $N,
             $T, $anchorName, ' [', $anchorMnemonic, ']',
             $point-in-timeJoinConditions, ';', $N,
-            'GO', $N
+            'GO', $N, $N
             )"/>
+            <xsl:for-each select="attribute[@timeRange]">
+                <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
+                <xsl:variable name="differenceFunction" select="concat('d', $attributeName)"/>
+                <xsl:value-of select="concat(
+                '------------------------------ [Difference Perspective] ------------------------------', $N,
+                '-- ', $anchorName, ' viewed by differences in ', $attributeName, $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunction, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $differenceFunction, '];', $N,
+                'GO', $N,
+                'CREATE FUNCTION [', $differenceFunction, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'RETURNS TABLE RETURN', $N,
+                'SELECT', $N,
+                $T, 'timepoints.inspectedTimepoint,', $N,
+                $T, '[', $anchorMnemonic, '].*', $N,
+                'FROM (', $N,
+                $T, 'SELECT DISTINCT', $N,
+                $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' as inspectedTimepoint', $N,
+                $T, 'FROM', $N,
+                $T, $T, $attributeName, $N,
+                $T, 'WHERE', $N,
+                $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N,
+                ') timepoints', $N,
+                'CROSS APPLY', $N,
+                $T, $point-in-timeFunctionName, '(timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:for-each>
         </xsl:for-each>
     </xsl:template>
     <xsl:template name="joinCondition">
