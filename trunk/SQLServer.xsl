@@ -182,15 +182,15 @@
             <xsl:for-each select="attribute[@timeRange]">
                 <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
                 <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
-                <xsl:variable name="differenceFunction" select="concat('d', $attributeName)"/>
+                <xsl:variable name="differenceFunctionName" select="concat('d', $attributeName)"/>
                 <xsl:value-of select="concat(
                 '------------------------------ [Difference Perspective] ------------------------------', $N,
                 '-- ', $anchorName, ' viewed by differences in ', $attributeName, $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunction, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $differenceFunction, '];', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $differenceFunctionName, '];', $N,
                 'GO', $N,
-                'CREATE FUNCTION [', $differenceFunction, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'CREATE FUNCTION [', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
                 'RETURNS TABLE RETURN', $N,
                 'SELECT', $N,
                 $T, 'timepoints.inspectedTimepoint,', $N,
@@ -226,15 +226,15 @@
                         </xsl:if>
                     </xsl:for-each>
                 </xsl:variable>
-                <xsl:variable name="differenceFunction" select="concat('d', $anchorName)"/>
+                <xsl:variable name="differenceFunctionName" select="concat('d', $anchorName)"/>
                 <xsl:value-of select="concat(
                 '------------------------------ [Difference Perspective] ------------------------------', $N,
                 '-- ', $anchorName, ' viewed by differences in every historized attribute', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunction, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $differenceFunction, '];', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $differenceFunctionName, '];', $N,
                 'GO', $N,
-                'CREATE FUNCTION [', $differenceFunction, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'CREATE FUNCTION [', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
                 'RETURNS TABLE RETURN', $N,
                 'SELECT', $N,
                 $T, 'timepoints.inspectedTimepoint,', $N,
@@ -301,10 +301,177 @@
             $primaryKeyColumns,
             $historizationKey,
             $T, ')', $N,
-            ')', $N,
+            ');', $N,
+            'GO', $N, $N
+            )"/>
+            <xsl:variable name="columnReferences">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:choose>
+                        <xsl:when test="local-name(.) = 'anchorRole'">
+                            <xsl:value-of select="concat($T, 'tie.', @type, '_', $identitySuffix, '_', @role)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, 'tie.', @type, '_', $identitySuffix, '_', @role, ',', $N)"/>
+                            <xsl:value-of select="concat($T, '[', @type, '].', @type, '_', key('knotLookup', @type)/@descriptor)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, 'tie.', $tieName, '_', $historizationSuffix)"/>
+                </xsl:if>
+                <xsl:value-of select="$N"/>
+            </xsl:variable>
+            <xsl:variable name="joinConditions">
+                <xsl:for-each select="knotRole">
+                    <xsl:variable name="identity" select="concat(@type, '_', $identitySuffix)"/>
+                    <xsl:value-of select="concat(
+                    $N, 'LEFT JOIN', $N,
+                    $T, @type, '_', key('knotLookup', @type)/@descriptor, ' [', @type, ']', $N,
+                    'ON', $N,
+                    $T, '[', @type, '].', $identity, ' = tie.', $identity, '_', @role
+                    )"/>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="latestWhereCondition">
+                <xsl:if test="@timeRange">
+                    <xsl:call-template name="whereCondition">
+                        <xsl:with-param name="tie" select="."/>
+                        <xsl:with-param name="tieName" select="$tieName"/>
+                        <xsl:with-param name="type" select="'latest'"/>
+                    </xsl:call-template>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="latestViewName" select="concat('l', $tieName)"/>
+            <xsl:value-of select="concat(
+            '--------------------------------- [Latest Perspective] -------------------------------', $N,
+            '-- ', $tieName, ' viewed as is (given by the latest available information)', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestViewName, $Q, ' and type LIKE ', $Q, '%V%', $Q, ')', $N,
+            'DROP VIEW [', $latestViewName, '];', $N,
+            'GO', $N,
+            'CREATE VIEW [', $latestViewName, '] AS', $N,
+            'SELECT', $N,
+            $columnReferences,
+            'FROM', $N,
+            $T, $tieName, ' tie',
+            $joinConditions,
+            $latestWhereCondition, ';', $N,
+            'GO', $N, $N
+            )"/>
+            <xsl:variable name="point-in-timeWhereCondition">
+                <xsl:if test="@timeRange">
+                    <xsl:call-template name="whereCondition">
+                        <xsl:with-param name="tie" select="."/>
+                        <xsl:with-param name="tieName" select="$tieName"/>
+                        <xsl:with-param name="type" select="'point-in-time'"/>
+                    </xsl:call-template>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="point-in-timeFunctionName" select="concat('p', $tieName)"/>
+            <xsl:value-of select="concat(
+            '---------------------------- [Point-in-Time Perspective] -----------------------------', $N,
+            '-- ', $tieName, ' viewed as was (at the given timepoint)', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timeFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $point-in-timeFunctionName, '];', $N,
+            'GO', $N,
+            'CREATE FUNCTION [', $point-in-timeFunctionName, '] (@timepoint datetime)', $N,
+            'RETURNS TABLE RETURN', $N,
+            'SELECT', $N,
+            $columnReferences,
+            'FROM', $N,
+            $T, $tieName, ' tie',
+            $joinConditions,
+            $point-in-timeWhereCondition, ';', $N,
+            'GO', $N, $N
+            )"/>
+            <xsl:variable name="differenceWhereCondition">
+                <xsl:if test="@timeRange">
+                    <xsl:call-template name="whereCondition">
+                        <xsl:with-param name="tie" select="."/>
+                        <xsl:with-param name="tieName" select="$tieName"/>
+                        <xsl:with-param name="type" select="'difference'"/>
+                    </xsl:call-template>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="differenceFunctionName" select="concat('d', $tieName)"/>
+            <xsl:value-of select="concat(
+            '------------------------------ [Difference Perspective] ------------------------------', $N,
+            '-- ', $tieName, ' viewed by differences in the tie', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $differenceFunctionName, '];', $N,
+            'GO', $N,
+            'CREATE FUNCTION [', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+            'RETURNS TABLE RETURN', $N,
+            'SELECT', $N,
+            $columnReferences,
+            'FROM', $N,
+            $T, $tieName, ' tie',
+            $joinConditions,
+            $differenceWhereCondition, ';', $N,
             'GO', $N, $N
             )"/>
         </xsl:for-each>
+    </xsl:template>
+    <xsl:template name="whereCondition">
+        <xsl:param name="tie"/>
+        <xsl:param name="tieName"/>
+        <xsl:param name="type"/>
+        <xsl:variable name="joinConditions">
+            <xsl:for-each select="$tie/*[string(@identifier) = 'true']">
+                <xsl:variable name="identity" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                <xsl:value-of select="concat($T, $T, $T, 'sub.', $identity, ' = tie.', $identity, $N)"/>
+                <xsl:if test="not(position() = last())">
+                    <xsl:value-of select="concat($T, $T, 'AND', $N)"/>
+                </xsl:if>
+            </xsl:for-each>
+        </xsl:variable>
+        <xsl:variable name="restriction">
+            <xsl:choose>
+                <xsl:when test="$type = 'point-in-time'">
+                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, ' &lt;= @timepoint', $N)"/>
+                </xsl:when>
+                <xsl:when test="$type = 'difference'">
+                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N)"/>
+                </xsl:when>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="operator">
+            <xsl:choose>
+                <xsl:when test="$type = 'difference'">
+                    <xsl:text>IN</xsl:text>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:text>=</xsl:text>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="selection">
+            <xsl:choose>
+                <xsl:when test="$type = 'difference'">
+                    <xsl:value-of select="concat($T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, $N)"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="concat($T, $T, $T, 'max(sub.', $tieName, '_', $historizationSuffix, ')', $N)"/>
+                </xsl:otherwise>
+            </xsl:choose>            
+        </xsl:variable>
+        <xsl:value-of select="concat(
+        $N, 'WHERE', $N,
+        $T, 'tie.', $tieName, '_', $historizationSuffix, ' ', $operator, ' (', $N,
+        $T, $T, 'SELECT', $N,
+        $selection,
+        $T, $T, 'FROM', $N,
+        $T, $T, $T, $tieName, ' sub', $N,
+        $T, $T, 'WHERE', $N,
+        $joinConditions,
+        $restriction,
+        $T, ')'
+        )"/>        
     </xsl:template>
     <xsl:template name="joinCondition">
         <xsl:param name="attribute"/>
