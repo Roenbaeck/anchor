@@ -3,7 +3,6 @@
     <xsl:output method="text" indent="no"/>
 
     <!-- lookup hash tables -->
-	<xsl:key name="mnemonicToEntity" match="//*[@mnemonic]" use="@mnemonic"/>
     <xsl:key name="knotLookup" match="//knot[@mnemonic]" use="@mnemonic"/>
     <xsl:key name="anchorLookup" match="//anchor[@mnemonic]" use="@mnemonic"/>
 
