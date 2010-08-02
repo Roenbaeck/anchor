@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript">
+        window.onload = init;
+
+        function DatabaseManager() {
+            var version = ""; // database version, leave empty for best compatibility
+            var size = 65536; // 65kB size
+            this.db = window.openDatabase("AnchorModeler", version, "Storage for the Anchor Modeler", size);
+        }
+        DatabaseManager.prototype = {
+            db: null,
+            init: function() {
+                this.execute("CREATE TABLE IF NOT EXISTS Metadata (_metadata INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, _timestamp TIMESTAMP, _user TEXT)", [], alert, alert);
+                this.execute("INSERT INTO Metadata (_timestamp, _user) values(?, ?)", [ new Date(), 'dummy' ], alert, alert);
+                this.execute("SELECT * FROM Metadata", [], this.showMetadata, alert);
+            },
+            execute: function(sql, params, resultFunction, errorFunction)  {
+                this.db.transaction(function(tx) {
+                    tx.executeSql(
+                        sql,
+                        params,
+                        function(tx, result) {
+                            for(var i = 0; i < result.rows.length; i++) {
+                                resultFunction(result.rows.item(i));
+                            }
+                        },
+                        function(tx, error) {
+                            errorFunction(error.message);
+                        }
+                    );
+                });
+            },
+            showMetadata: function(row) {
+                alert("_metadata: " + row._metadata + "\n_timestamp: " + row._timestamp + "\n_user: " + row._user);
+            }
+        };
+
+        function init() {
+            var dbM = new DatabaseManager();
+            dbM.init();
+        }
+    </script>
+    <title>Test F - Database</title>
+</head>
+<body id="body">
+    <!-- trying to fill dynamically -->
+</body>
+</html>
