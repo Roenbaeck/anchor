@@ -21,11 +21,17 @@
                 this.execute("INSERT INTO AN_Anchor (AN_ID, _metadata) VALUES (?, ?)", [1, 1]);
                 this.execute("CREATE TABLE IF NOT EXISTS AN_FIX_Anchor_Fixed (AN_ID INTEGER NOT NULL REFERENCES AN_Anchor(AN_ID), AN_FIX_Anchor_Fixed BOOLEAN NOT NULL, AN_FIX_ValidFrom TIMESTAMP NOT NULL, _metadata INTEGER NOT NULL, PRIMARY KEY(AN_ID ASC, AN_FIX_Valid_From DESC))", [], this.showResult, this.showError);
                 this.execute("DELETE FROM AN_FIX_Anchor_Fixed");
-                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) VALUES (?, ?, ?, ?)", [1, false, 42, 1]);
-                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) VALUES (?, ?, ?, ?)", [1, true, 43, 2]);
+                // latest view
+                this.execute("CREATE VIEW IF NOT EXISTS lAN_Anchor AS SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID)", [], this.showResult, this.showError);
+                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT AN_ID FROM lAN_Anchor AN WHERE AN.AN_ID = ?1 AND AN.AN_FIX_Anchor_Fixed = ?2)", [1, false, 42, 1]);
+                // if the attribute value has not changed we should not get an insert
+                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT AN_ID FROM lAN_Anchor AN WHERE AN.AN_ID = ?1 AND AN.AN_FIX_Anchor_Fixed = ?2)", [1, false, 43, 1]);
+                // now we change the value, and this should result in an insert
+                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT AN_ID FROM lAN_Anchor AN WHERE AN.AN_ID = ?1 AND AN.AN_FIX_Anchor_Fixed = ?2)", [1, true, 43, 1]);
                 // point-in-time select
                 this.execute("SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID AND sub.AN_FIX_ValidFrom <= ?)", [42], this.showResult, this.showError);
-                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
+                this.execute("SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID AND sub.AN_FIX_ValidFrom <= ?)", [64], this.showResult, this.showError);
+//                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
             },
             execute: function(sql, params, resultFunction, errorFunction)  {
                 this.db.transaction(function(tx) {
