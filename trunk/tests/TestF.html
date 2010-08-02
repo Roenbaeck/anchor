@@ -13,9 +13,19 @@
         DatabaseManager.prototype = {
             db: null,
             init: function() {
-                this.execute("CREATE TABLE IF NOT EXISTS Metadata (_metadata INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, _timestamp TIMESTAMP, _user TEXT)", [], alert, alert);
-                this.execute("INSERT INTO Metadata (_timestamp, _user) values(?, ?)", [ new Date(), 'dummy' ], alert, alert);
-                this.execute("SELECT * FROM Metadata", [], this.showMetadata, alert);
+                this.execute("CREATE TABLE IF NOT EXISTS Metadata (_metadata INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, _timestamp TIMESTAMP, _user TEXT)", [], this.showResult, this.showError);
+                this.execute("DELETE FROM Metadata");
+                this.execute("INSERT INTO Metadata (_timestamp, _user) values(?, ?)", [ new Date(), 'dummy' ], this.showResult, this.showError);
+                this.execute("CREATE TABLE IF NOT EXISTS AN_Anchor (AN_ID INTEGER NOT NULL, _metadata INTEGER NOT NULL, PRIMARY KEY (AN_ID ASC))", [], this.showResult, this.showError);
+                this.execute("DELETE FROM AN_Anchor");
+                this.execute("INSERT INTO AN_Anchor (AN_ID, _metadata) VALUES (?, ?)", [1, 1]);
+                this.execute("CREATE TABLE IF NOT EXISTS AN_FIX_Anchor_Fixed (AN_ID INTEGER NOT NULL REFERENCES AN_Anchor(AN_ID), AN_FIX_Anchor_Fixed BOOLEAN NOT NULL, AN_FIX_ValidFrom TIMESTAMP NOT NULL, _metadata INTEGER NOT NULL, PRIMARY KEY(AN_ID ASC, AN_FIX_Valid_From DESC))", [], this.showResult, this.showError);
+                this.execute("DELETE FROM AN_FIX_Anchor_Fixed");
+                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) VALUES (?, ?, ?, ?)", [1, false, 42, 1]);
+                this.execute("INSERT INTO AN_FIX_Anchor_Fixed (AN_ID, AN_FIX_Anchor_Fixed, AN_FIX_ValidFrom, _metadata) VALUES (?, ?, ?, ?)", [1, true, 43, 2]);
+                // point-in-time select
+                this.execute("SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID AND sub.AN_FIX_ValidFrom <= ?)", [42], this.showResult, this.showError);
+                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
             },
             execute: function(sql, params, resultFunction, errorFunction)  {
                 this.db.transaction(function(tx) {
@@ -23,18 +33,29 @@
                         sql,
                         params,
                         function(tx, result) {
-                            for(var i = 0; i < result.rows.length; i++) {
-                                resultFunction(result.rows.item(i));
-                            }
+                            if(resultFunction)
+                                resultFunction(result);
                         },
                         function(tx, error) {
-                            errorFunction(error.message);
+                            if(errorFunction)
+                                errorFunction(error);
                         }
                     );
                 });
             },
-            showMetadata: function(row) {
-                alert("_metadata: " + row._metadata + "\n_timestamp: " + row._timestamp + "\n_user: " + row._user);
+            showResult: function(result) {
+                var row, member;
+                for(var i = 0; i < result.rows.length; i++) {
+                    var message = "";
+                    row = result.rows.item(i);
+                    for(member in row) {
+                        message += member + ": " + row[member] + "\n";
+                    }
+                    alert(message);
+                }
+            },
+            showError: function(error) {
+                alert(error.message);
             }
         };
 
