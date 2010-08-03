@@ -15,19 +15,20 @@
             init: function() {
                 this.deleteDatabase();
                 this.createDatabase();
-                this.execute("INSERT INTO Metadata (_timestamp, _user) values(?, ?)", [ new Date(), 'dummy' ], this.showResult, this.showError);
-                this.insertAnchor("AN", "Anchor", 1, 1);
-                alert("Inserting a value");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, 42, 1);
-                alert("If the attribute value has not changed we should not get an insert");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, 43, 1);
-                alert("Now we change the value, and this should result in an insert");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, true, 43, 1);
-                alert("We should not be able to insert a duplicate primary key");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, 43, 1);
-                // point-in-time select
-                this.execute("SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID AND sub.AN_FIX_ValidFrom <= ?)", [42], this.showResult, this.showError);
-                this.execute("SELECT AN.AN_ID, AN_FIX.AN_FIX_Anchor_Fixed, AN_FIX.AN_FIX_ValidFrom FROM AN_Anchor AN LEFT JOIN AN_FIX_Anchor_Fixed AN_FIX ON AN_FIX.AN_ID = AN.AN_ID AND AN_FIX.AN_FIX_ValidFrom = (SELECT MAX(sub.AN_FIX_ValidFrom) FROM AN_FIX_Anchor_Fixed sub WHERE sub.AN_ID = AN.AN_ID AND sub.AN_FIX_ValidFrom <= ?)", [64], this.showResult, this.showError);
+                var now = Number(new Date());
+                this.insertAnchor("AN", "Anchor", 1);
+                // alert("Inserting a value");
+                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, now);
+                // alert("If the attribute value has not changed we should not get an insert");
+                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
+                // alert("Now we change the value, and this should result in an insert");
+                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, true, (now + 1));
+                // alert("We should not be able to insert a duplicate primary key");
+                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
+                // alert("Point-in-time select - in the past");
+                this.selectAttribute("AN", "Anchor", "FIX", "Fixed", now);
+                // alert("Point-in-time select - in the future");
+                this.selectAttribute("AN", "Anchor", "FIX", "Fixed", (now + 64));
                 // this explain shows that sqlite does not do table elimination
                 // this.execute("EXPLAIN SELECT AN_FIX_Anchor_Fixed FROM lAN_Anchor", [], this.showResult, this.showError);
                 // used this one for debugging
@@ -38,15 +39,15 @@
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var anchorIdentity = anchorMnemonic + "_ID";
                 var statement = "CREATE TABLE IF NOT EXISTS " + anchorName + " (" +
-                        anchorIdentity + " INTEGER NOT NULL, _metadata INTEGER NOT NULL, PRIMARY KEY (" +
+                        anchorIdentity + " INTEGER NOT NULL, PRIMARY KEY (" +
                         anchorIdentity + " ASC))";
                 this.execute(statement, [], this.showResult, this.showError);
             },
-            insertAnchor: function(anchorMnemonic, anchorDescriptor, identityValue, metadataValue) {
+            insertAnchor: function(anchorMnemonic, anchorDescriptor, identityValue) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var anchorIdentity = anchorMnemonic + "_ID";
-                var statement = "INSERT INTO " + anchorName + " (" + anchorIdentity + ", _metadata) VALUES (?1, ?2)";
-                this.execute(statement, [identityValue, metadataValue], this.showResult, this.showError);
+                var statement = "INSERT INTO " + anchorName + " (" + anchorIdentity + ") VALUES (?1)";
+                this.execute(statement, [identityValue], this.showResult, this.showError);
             },
             deleteAnchor: function(anchorMnemonic, anchorDescriptor) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
@@ -60,19 +61,29 @@
                 var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
                 var statement = "CREATE TABLE IF NOT EXISTS " + attributeName + " (" +
                         anchorIdentity + " INTEGER NOT NULL REFERENCES " + anchorName + "(" + anchorIdentity + "), " +
-                        attributeName + " " + dataRange + " NOT NULL, _metadata INTEGER NOT NULL, " +
+                        attributeName + " " + dataRange + " NOT NULL, " +
                         historizationName + " TIMESTAMP NOT NULL, PRIMARY KEY (" + anchorIdentity + " ASC, " + historizationName + " DESC))";
                 this.execute(statement, [], this.showResult, this.showError);
             },
-            insertAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, identityValue, attributeValue, historizationValue, metadataValue) {
+            insertAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, identityValue, attributeValue, historizationValue) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var anchorIdentity = anchorMnemonic + "_ID";
                 var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
                 var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
-                var statement = "INSERT INTO " + attributeName + " (" + anchorIdentity + ", " + attributeName + ", " + historizationName + ", _metadata)" +
-                        " SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS (SELECT " + anchorIdentity + " FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
+                var statement = "INSERT INTO " + attributeName + " (" + anchorIdentity + ", " + attributeName + ", " + historizationName + ")" +
+                        " SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT " + anchorIdentity + " FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
                         " AND " + historizationName + " = ?2)";
-                this.execute(statement, [identityValue, attributeValue, historizationValue, metadataValue], this.showResult, this.showError);
+                this.execute(statement, [identityValue, attributeValue, historizationValue], this.showResult, this.showError);
+            },
+            selectAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, timepoint) {
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var attributeAlias = anchorMnemonic + "_" + attributeMnemonic;
+                var attributeName =  attributeAlias + "_" + anchorDescriptor + "_" + attributeDescriptor;
+                var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
+                var statement = "SELECT * FROM " + attributeName + " " + attributeAlias + " WHERE " + historizationName +
+                        " = (SELECT MAX(sub." + historizationName + ") FROM " + attributeName + " sub WHERE sub." + anchorIdentity +
+                        " = " + attributeAlias + "." + anchorIdentity + " AND sub." + historizationName + " <= ?)";
+                this.execute(statement, [timepoint], this.showResult, this.showError);
             },
             deleteAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor) {
                 var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
@@ -106,16 +117,11 @@
                 var statement = "DROP VIEW IF EXISTS l" + anchorName;
                 this.execute(statement, [], this.showResult, this.showError);
             },
-            createMetadata: function() {
-                var statement = "CREATE TABLE IF NOT EXISTS Metadata (_metadata INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, _timestamp TIMESTAMP, _user TEXT)";
-                this.execute(statement, [], this.showResult, this.showError);
-            },
-            deleteMetadata: function() {
-                var statement = "DROP TABLE IF EXISTS Metadata";
-                this.execute(statement, [], this.showResult, this.showError);
-            },
             createDatabase: function() {
-                this.createMetadata();
+                this.createAnchor("MO", "Model");
+                this.createAttribute("MO", "Model", "REA", "Reason", "TEXT");
+                this.createAttribute("MO", "Model", "VFR", "ValidFrom", "TIMESTAMP");
+                this.createLatestView("MO", "Model", ["REA", "VFR"], ["Reason", "ValidFrom"]);
                 this.createAnchor("KN", "Knot");
                 this.createAttribute("KN", "Knot", "FIX", "Fixed", "BOOLEAN");
                 this.createAttribute("KN", "Knot", "XPO", "XPosition", "DECIMAL(10,2)");
@@ -153,7 +159,6 @@
                 this.deleteAttribute("KN", "Knot", "DSC", "Descriptor");
                 this.deleteAttribute("KN", "Knot", "DRA", "DataRange");
                 this.deleteAnchor("KN", "Knot");
-                this.deleteMetadata();
             },
             execute: function(sql, params, resultFunction, errorFunction)  {
                 this.db.transaction(function(tx) {
