@@ -290,23 +290,23 @@
                 this.deleteAnchor("MO", "Model");
                 this.deleteKnot("DEL", "Deleted");
             },
-            execute: function(sql, params, resultFunction, errorFunction)  {
+            execute: function(sql, parameters, resultFunction, errorFunction)  {
                 this.db.transaction(function(tx) {
                     tx.executeSql(
                         sql,
-                        params,
+                        parameters,
                         function(tx, result) {
                             if(resultFunction)
-                                resultFunction(result);
+                                resultFunction(result, sql, parameters);
                         },
                         function(tx, error) {
                             if(errorFunction)
-                                errorFunction(error);
+                                errorFunction(error, sql, parameters);
                         }
                     );
                 });
             },
-            showResult: function(result) {
+            showResult: function(result, sql, parameters) {
                 var row, member;
                 for(var i = 0; i < result.rows.length; i++) {
                     var message = "";
@@ -317,8 +317,13 @@
                     alert(message);
                 }
             },
-            showError: function(error) {
-                alert("Error: " + error.message);
+            showError: function(error, sql, parameters) {
+                var parameterString = "";
+                for (var i = 0; i < parameters.length; i++)
+                    parameterString += "\n?" + (i + 1) + ": " + parameters[i];
+                if (parameters.length > 0)
+                    parameterString = "\n\nParameters: " + parameterString;
+                alert("Error:\n" + error.message + "\n\nQuery:\n" + sql + parameterString);
             },
             showNothing: function(something) {
                 // do nothing
