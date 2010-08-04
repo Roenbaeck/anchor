@@ -35,6 +35,25 @@
 //                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
 //                this.execute("SELECT * FROM AN_FIX_Anchor_Fixed", [], this.showResult, this.showError);
             },
+            createKnot: function(knotMnemonic, knotDescriptor, dataRange) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var knotIdentity = knotMnemonic + "_ID";
+                var statement = "CREATE TABLE IF NOT EXISTS " + knotName + " (" +
+                        knotIdentity + " INTEGER NOT NULL, " + knotName + " " + dataRange + " NOT NULL, PRIMARY KEY (" +
+                        knotIdentity + " ASC))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            insertKnot: function(knotMnemonic, knotDescriptor, identityValue, knotValue) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var knotIdentity = knotMnemonic + "_ID";
+                var statement = "INSERT INTO " + knotName + " (" + knotIdentity + ", " + knotName + ") VALUES (?1, ?2)";
+                this.execute(statement, [identityValue, knotValue], this.showResult, this.showError);                
+            },
+            deleteKnot: function(knotMnemonic, knotDescriptor) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var statement = "DROP TABLE IF EXISTS " + knotName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
             createAnchor: function(anchorMnemonic, anchorDescriptor) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var anchorIdentity = anchorMnemonic + "_ID";
@@ -90,7 +109,33 @@
                 var statement = "DROP TABLE IF EXISTS " + attributeName;
                 this.execute(statement, [], this.showResult, this.showError);
             },
-            createLatestView: function(anchorMnemonic, anchorDescriptor, attributeMnemonics, attributeDescriptors) {
+            createTie: function(mnemonics, descriptors, roles) {
+                var i, tieName = "", tieColumns = "", keyColumns = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + " REFERENCES " + mnemonics[i] + "_" + descriptors[i] + "(" + mnemonics[i] + "_ID" + "), ";
+                    if(roles[i][1])
+                        keyColumns += mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    if(i + 1 < mnemonics.length) {
+                        tieName += "_";
+                    }
+                }
+                var statement = "CREATE TABLE IF NOT EXISTS " + tieName + " (" + tieColumns +
+                        tieName + "_ValidFrom TIMESTAMP, PRIMARY KEY(" + keyColumns + tieName + "_ValidFrom))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            deleteTie: function(mnemonics, roles) {
+                var i, tieName = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    if(i + 1 < mnemonics.length) {
+                        tieName += "_";
+                    }
+                }
+                var statement = "DROP TABLE IF EXISTS " + tieName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createAnchorPerspective: function(anchorMnemonic, anchorDescriptor, attributeMnemonics, attributeDescriptors) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var anchorIdentity = anchorMnemonic + "_ID";
                 var statement = "CREATE VIEW IF NOT EXISTS l" + anchorName + " AS SELECT " + anchorMnemonic + "." + anchorIdentity;
@@ -112,16 +157,16 @@
                 }
                 this.execute(statement, [], this.showResult, this.showError);
             },
-            deleteLatestView: function(anchorMnemonic, anchorDescriptor) {
+            deleteAnchorPerspective: function(anchorMnemonic, anchorDescriptor) {
                 var anchorName = anchorMnemonic + "_" + anchorDescriptor;
                 var statement = "DROP VIEW IF EXISTS l" + anchorName;
                 this.execute(statement, [], this.showResult, this.showError);
             },
             createDatabase: function() {
+                this.createKnot("DEL", "Deleted", "BOOLEAN");
                 this.createAnchor("MO", "Model");
                 this.createAttribute("MO", "Model", "REA", "Reason", "TEXT");
-                this.createAttribute("MO", "Model", "VFR", "ValidFrom", "TIMESTAMP");
-                this.createLatestView("MO", "Model", ["REA", "VFR"], ["Reason", "ValidFrom"]);
+                this.createAnchorPerspective("MO", "Model", ["REA"], ["Reason"]);
                 this.createAnchor("KN", "Knot");
                 this.createAttribute("KN", "Knot", "FIX", "Fixed", "BOOLEAN");
                 this.createAttribute("KN", "Knot", "XPO", "XPosition", "DECIMAL(10,2)");
@@ -130,7 +175,7 @@
                 this.createAttribute("KN", "Knot", "MNE", "Mnemonic", "TEXT");
                 this.createAttribute("KN", "Knot", "DSC", "Descriptor", "TEXT");
                 this.createAttribute("KN", "Knot", "DRA", "DataRange", "TEXT");
-                this.createLatestView("KN", "Knot", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC", "DRA"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor", "DataRange"]);
+                this.createAnchorPerspective("KN", "Knot", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC", "DRA"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor", "DataRange"]);
                 this.createAnchor("AN", "Anchor");
                 this.createAttribute("AN", "Anchor", "FIX", "Fixed", "BOOLEAN");
                 this.createAttribute("AN", "Anchor", "XPO", "XPosition", "DECIMAL(10,2)");
@@ -138,11 +183,79 @@
                 this.createAttribute("AN", "Anchor", "IDY", "Identity", "INTEGER");
                 this.createAttribute("AN", "Anchor", "MNE", "Mnemonic", "TEXT");
                 this.createAttribute("AN", "Anchor", "DSC", "Descriptor", "TEXT");
-                this.createLatestView("AN", "Anchor", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor"]);
+                this.createAnchorPerspective("AN", "Anchor", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor"]);
+                this.createAnchor("AB", "Attribute");
+                this.createAttribute("AB", "Attribute", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("AB", "Attribute", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("AB", "Attribute", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("AB", "Attribute", "MNE", "Mnemonic", "TEXT");
+                this.createAttribute("AB", "Attribute", "DSC", "Descriptor", "TEXT");
+                this.createAttribute("AB", "Attribute", "DRA", "DataRange", "TEXT");
+                this.createAttribute("AB", "Attribute", "KRA", "KnotRange", "TEXT");
+                this.createAttribute("AB", "Attribute", "TRA", "TimeRange", "TEXT");
+                this.createAnchorPerspective("AB", "Attribute", ["FIX", "XPO", "YPO", "MNE", "DSC", "DRA", "KRA", "TRA"], ["Fixed", "XPosition", "YPosition", "Mnemonic", "Descriptor", "DataRange", "KnotRange", "TimeRange"]);
+                this.createAnchor("KR", "KnotRole");
+                this.createAttribute("KR", "KnotRole", "ROL", "Role", "TEXT");
+                this.createAttribute("KR", "KnotRole", "TYP", "Type", "TEXT");
+                this.createAttribute("KR", "KnotRole", "IDE", "Identifier", "BOOLEAN");
+                this.createAnchorPerspective("KR", "KnotRole", ["ROL", "TYP", "IDE"], ["Role", "Type", "Identifier"]);
+                this.createAnchor("AR", "AnchorRole");
+                this.createAttribute("AR", "AnchorRole", "ROL", "Role", "TEXT");
+                this.createAttribute("AR", "AnchorRole", "TYP", "Type", "TEXT");
+                this.createAttribute("AR", "AnchorRole", "IDE", "Identifier", "BOOLEAN");
+                this.createAnchorPerspective("AR", "AnchorRole", ["ROL", "TYP", "IDE"], ["Role", "Type", "Identifier"]);
+                this.createAnchor("TI", "Tie");
+                this.createAttribute("TI", "Tie", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("TI", "Tie", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("TI", "Tie", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("TI", "Tie", "TRA", "TimeRange", "TEXT");
+                this.createAnchorPerspective("TI", "Tie", ["FIX", "XPO", "YPO", "TRA"], ["Fixed", "XPosition", "YPosition", "TimeRange"]);
+                this.createTie(["MO", "KN", "DEL"], ["Model", "Knot", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "AN", "DEL"], ["Model", "Anchor", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "AB", "DEL"], ["Model", "Attribute", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "TI", "DEL"], ["Model", "Tie", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["AN", "AB", "DEL"], ["Anchor", "Attribute", "Deleted"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.createTie(["AB", "KN", "DEL"], ["Attribute", "Knot", "Deleted"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.createTie(["TI", "KR", "DEL"], ["Tie", "KnotRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTie(["TI", "AR", "DEL"], ["Tie", "AnchorRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
             },
             deleteDatabase: function() {
                 // reverse order of creation
-                this.deleteLatestView("AN", "Anchor");
+                this.deleteTie(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTie(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTie(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.deleteTie(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.deleteTie(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteAnchorPerspective("TI", "Tie");
+                this.deleteAttribute("TI", "Tie", "FIX", "Fixed");
+                this.deleteAttribute("TI", "Tie", "XPO", "XPosition");
+                this.deleteAttribute("TI", "Tie", "YPO", "YPosition");
+                this.deleteAttribute("TI", "Tie", "TRA", "TimeRange");
+                this.deleteAnchor("TI", "Tie");
+                this.deleteAnchorPerspective("AR", "AnchorRole");
+                this.deleteAttribute("AR", "AnchorRole", "ROL", "Role");
+                this.deleteAttribute("AR", "AnchorRole", "TYP", "Type");
+                this.deleteAttribute("AR", "AnchorRole", "IDE", "Identifier");
+                this.deleteAnchor("KR", "KnotRole");
+                this.deleteAnchorPerspective("KR", "KnotRole");
+                this.deleteAttribute("KR", "KnotRole", "ROL", "Role");
+                this.deleteAttribute("KR", "KnotRole", "TYP", "Type");
+                this.deleteAttribute("KR", "KnotRole", "IDE", "Identifier");
+                this.deleteAnchor("KR", "KnotRole");
+                this.deleteAnchorPerspective("AB", "Attribute");
+                this.deleteAttribute("AB", "Attribute", "FIX", "Fixed");
+                this.deleteAttribute("AB", "Attribute", "XPO", "XPosition");
+                this.deleteAttribute("AB", "Attribute", "YPO", "YPosition");
+                this.deleteAttribute("AB", "Attribute", "MNE", "Mnemonic");
+                this.deleteAttribute("AB", "Attribute", "DSC", "Descriptor");
+                this.deleteAttribute("AB", "Attribute", "DRA", "DataRange");
+                this.deleteAttribute("AB", "Attribute", "KRA", "KnotRange");
+                this.deleteAttribute("AB", "Attribute", "TRA", "TimeRange");
+                this.deleteAnchor("AB", "Attribute");
+                this.deleteAnchorPerspective("AN", "Anchor");
                 this.deleteAttribute("AN", "Anchor", "IDY", "Identity");
                 this.deleteAttribute("AN", "Anchor", "MNE", "Mnemonic");
                 this.deleteAttribute("AN", "Anchor", "DSC", "Descriptor");
@@ -150,7 +263,7 @@
                 this.deleteAttribute("AN", "Anchor", "XPO", "XPosition");
                 this.deleteAttribute("AN", "Anchor", "YPO", "YPosition");
                 this.deleteAnchor("AN", "Anchor");
-                this.deleteLatestView("KN", "Knot");
+                this.deleteAnchorPerspective("KN", "Knot");
                 this.deleteAttribute("KN", "Knot", "FIX", "Fixed");
                 this.deleteAttribute("KN", "Knot", "XPO", "XPosition");
                 this.deleteAttribute("KN", "Knot", "YPO", "YPosition");
@@ -159,6 +272,10 @@
                 this.deleteAttribute("KN", "Knot", "DSC", "Descriptor");
                 this.deleteAttribute("KN", "Knot", "DRA", "DataRange");
                 this.deleteAnchor("KN", "Knot");
+                this.deleteAnchorPerspective("MO", "Model");
+                this.deleteAttribute("MO", "Model", "REA", "Reason");
+                this.deleteAnchor("MO", "Model");
+                this.deleteKnot("DEL", "Deleted");
             },
             execute: function(sql, params, resultFunction, errorFunction)  {
                 this.db.transaction(function(tx) {
@@ -188,11 +305,7 @@
                 }
             },
             showError: function(error) {
-                var member, message = "";
-                for(member in error) {
-                    message += member + ": " + error[member] + "\n";
-                }
-                alert(message);
+                alert("Error: " + error.message);
             },
             showNothing: function(something) {
                 // do nothing
