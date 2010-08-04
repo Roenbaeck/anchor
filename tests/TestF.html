@@ -91,7 +91,7 @@
                 var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
                 var statement = "INSERT INTO " + attributeName + " (" + anchorIdentity + ", " + attributeName + ", " + historizationName + ")" +
                         " SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT " + anchorIdentity + " FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
-                        " AND " + historizationName + " = ?2)";
+                        " AND " + attributeName + " = ?2)";
                 this.execute(statement, [identityValue, attributeValue, historizationValue], this.showResult, this.showError);
             },
             selectAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, timepoint) {
@@ -116,21 +116,34 @@
                     tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + " REFERENCES " + mnemonics[i] + "_" + descriptors[i] + "(" + mnemonics[i] + "_ID" + "), ";
                     if(roles[i][1])
                         keyColumns += mnemonics[i] + "_ID_" + roles[i][0] + ", ";
-                    if(i + 1 < mnemonics.length) {
+                    if(i + 1 < mnemonics.length)
                         tieName += "_";
-                    }
                 }
                 var statement = "CREATE TABLE IF NOT EXISTS " + tieName + " (" + tieColumns +
                         tieName + "_ValidFrom TIMESTAMP, PRIMARY KEY(" + keyColumns + tieName + "_ValidFrom))";
                 this.execute(statement, [], this.showResult, this.showError);
             },
+            insertTie: function(mnemonics, roles, identityValues, historizationValue) {
+                var i, tieName = "", tieColumns = "", parameters = "", arguments = [];
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + " REFERENCES " + mnemonics[i] + "_" + descriptors[i] + "(" + mnemonics[i] + "_ID" + "), ";
+                    parameters += "?" + i + ", ";
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                    arguments[i] = identityValues[i];
+                }
+                var statement = "INSERT INTO " + tieName + " (" + tieColumns + ", " + tieName + "_ValidFrom) VALUES(" + parameters + ", ?" + (i + 1) + ")";
+                alert(statement);
+                arguments[arguments.length] = historizationValue;
+                this.execute(statement, arguments, this.showResult, this.showError);
+            },
             deleteTie: function(mnemonics, roles) {
                 var i, tieName = "";
                 for(i = 0; i < mnemonics.length; i++) {
                     tieName += mnemonics[i] + "_" + roles[i][0];
-                    if(i + 1 < mnemonics.length) {
+                    if(i + 1 < mnemonics.length)
                         tieName += "_";
-                    }
                 }
                 var statement = "DROP TABLE IF EXISTS " + tieName;
                 this.execute(statement, [], this.showResult, this.showError);
