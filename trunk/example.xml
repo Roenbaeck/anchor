@@ -1,50 +1,85 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <schema>
-	<knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)"/>
-	<knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
-	<knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(42)"/>
-	<knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)"/>
-	<anchor mnemonic="AC" descriptor="Actor" identity="int">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)" timeRange="date"/>
-		<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
-		<attribute mnemonic="PLV" descriptor="ProfessionalLevel" knotRange="PLV" timeRange="date"/>
-	</anchor>
-	<anchor mnemonic="PR" descriptor="Program" identity="int">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)"/>
-	</anchor>
-	<anchor mnemonic="ST" descriptor="Stage" identity="int">
-		<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)" timeRange="date"/>
-		<attribute mnemonic="LOC" descriptor="Location" dataRange="varchar(42)"/>
-	</anchor>
-	<anchor mnemonic="PE" descriptor="Performance" identity="int">
-		<attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
-		<attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
-		<attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
-	</anchor>
-    <tie>
-        <anchorRole type="AC" role="parent" identifier="true"/>
-        <anchorRole type="AC" role="child" identifier="true"/>
-        <knotRole type="PAT" role="having" identifier="true"/>
+    <knot id="4" mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
+        <layout x="745.96" y="679.79" fixed="false"/>
+    </knot>
+    <knot id="1" mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)">
+        <layout x="828.38" y="447.73" fixed="false"/>
+    </knot>
+    <knot id="2" mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)">
+        <layout x="581.71" y="507.59" fixed="false"/>
+    </knot>
+    <knot id="3" mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(42)">
+        <layout x="597.00" y="664.06" fixed="false"/>
+    </knot>
+    <anchor id="9" mnemonic="PR" descriptor="Program" identity="int">
+        <attribute id="10" mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
+            <layout x="440.56" y="555.95" fixed="false"/>
+        </attribute>
+        <layout x="489.17" y="506.64" fixed="false"/>
+    </anchor>
+    <anchor id="14" mnemonic="PE" descriptor="Performance" identity="int">
+        <attribute id="15" mnemonic="DAT" descriptor="Date" dataRange="datetime">
+            <layout x="660.26" y="283.88" fixed="false"/>
+        </attribute>
+        <attribute id="16" mnemonic="AUD" descriptor="Audience" dataRange="int">
+            <layout x="691.59" y="344.90" fixed="false"/>
+        </attribute>
+        <attribute id="17" mnemonic="REV" descriptor="Revenue" dataRange="money">
+            <layout x="579.73" y="282.88" fixed="false"/>
+        </attribute>
+        <layout x="612.53" y="359.86" fixed="false"/>
+    </anchor>
+    <anchor id="5" mnemonic="AC" descriptor="Actor" identity="int">
+        <attribute id="6" mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)">
+            <layout x="762.48" y="540.48" fixed="false"/>
+        </attribute>
+        <attribute id="7" mnemonic="GEN" descriptor="Gender" knotRange="GEN">
+            <layout x="765.63" y="464.85" fixed="false"/>
+        </attribute>
+        <attribute id="8" mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="date" knotRange="PLV">
+            <layout x="628.55" y="613.07" fixed="false"/>
+        </attribute>
+        <layout x="680.26" y="531.74" fixed="false"/>
+    </anchor>
+    <anchor id="11" mnemonic="ST" descriptor="Stage" identity="int">
+        <attribute id="12" mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)">
+            <layout x="431.40" y="284.11" fixed="false"/>
+        </attribute>
+        <attribute id="13" mnemonic="LOC" descriptor="Location" dataRange="varchar(42)">
+            <layout x="379.49" y="368.49" fixed="false"/>
+        </attribute>
+        <layout x="459.05" y="360.51" fixed="false"/>
+    </anchor>
+    <tie id="18">
+        <anchorRole role="parent" type="AC" identifier="true"/>
+        <anchorRole role="child" type="AC" identifier="true"/>
+        <knotRole role="having" type="PAT" identifier="true"/>
+        <layout x="727.93" y="610.79" fixed="false"/>
     </tie>
-    <tie>
-        <anchorRole type="PE" role="in" identifier="true"/>
-        <anchorRole type="AC" role="wasCast" identifier="true"/>
+    <tie id="20">
+        <anchorRole role="at" type="PE" identifier="true"/>
+        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
+        <layout x="555.42" y="434.85" fixed="false"/>
     </tie>
-    <tie>
-        <anchorRole type="PE" role="at" identifier="true"/>
-        <anchorRole type="PR" role="wasPlayed"/>
+    <tie id="23" timeRange="date">
+        <anchorRole role="atLocation" type="ST" identifier="true"/>
+        <anchorRole role="isPlaying" type="PR" identifier="true"/>
+        <layout x="435.00" y="445.86" fixed="false"/>
     </tie>
-    <tie>
-        <anchorRole type="PE" role="wasHeld" identifier="true"/>
-        <anchorRole type="ST" role="atLocation"/>
+    <tie id="21">
+        <anchorRole role="wasHeld" type="PE" identifier="true"/>
+        <anchorRole role="atLocation" type="ST" identifier="false"/>
+        <layout x="530.87" y="328.24" fixed="false"/>
     </tie>
-    <tie timeRange="date">
-        <anchorRole type="AC" role="part" identifier="true"/>
-        <anchorRole type="PR" role="in" identifier="true"/>
-        <knotRole type="RAT" role="got"/>
+    <tie id="19">
+        <anchorRole role="in" type="PE" identifier="true"/>
+        <anchorRole role="wasCast" type="AC" identifier="true"/>
+        <layout x="666.56" y="432.83" fixed="false"/>
     </tie>
-    <tie timeRange="date">
-        <anchorRole type="ST" role="atLocation" identifier="true"/>
-        <anchorRole type="PR" role="isPlaying" identifier="true"/>
+    <tie id="22" timeRange="date">
+        <anchorRole role="part" type="AC" identifier="true"/>
+        <anchorRole role="in" type="PR" identifier="true"/>
+        <knotRole role="got" type="RAT" identifier="false"/>
+        <layout x="570.60" y="561.11" fixed="false"/>
     </tie>
 </schema>
