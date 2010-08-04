@@ -634,8 +634,8 @@
                 this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
                 this.miniatureCanvas.width = this.miniScale * this.miniWidth;
                 this.miniatureCanvas.height = this.miniScale * this.miniHeight;
-                this.miniature.style.width = this.miniatureCanvas.width;
-                this.miniature.style.height = this.miniatureCanvas.height;
+                this.miniature.style.width = this.miniatureCanvas.width + 'px';
+                this.miniature.style.height = this.miniatureCanvas.height + 'px';
                 this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - Model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - Model.topmostNode.yPosition));
 
                 // show the viewport on the miniature
@@ -1047,17 +1047,22 @@
             dataRange: null,
             timeRange: null,
             fromXML: function(element) {
-                var x, y, fixed;
-                var layouts = element.getElementsByTagName("layout");
-                if(layouts[0]) {
-                    x = layouts[0].getAttribute("x");
-                    y = layouts[0].getAttribute("y");
-                    fixed = layouts[0].getAttribute("fixed");
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? false : Boolean(fixed);
-                var descriptions = element.getElementsByTagName("description");
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'description')
+                        description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || "YYY";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
                 var timeRange = element.getAttribute("timeRange") || null;
@@ -1075,7 +1080,7 @@
                 attribute.knotted = knotted;
                 attribute.timeRange = timeRange;
                 attribute.dataRange = dataRange;
-                attribute.description = descriptions[0] ? descriptions[0].innerText : null;
+                attribute.description = description ? description.innerText : null;
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 attribute.id = id;
@@ -1162,17 +1167,22 @@
             descriptor: null,
             identity: null,
             fromXML: function(element) {
-                var x, y, fixed;
-                var layouts = element.getElementsByTagName("layout");
-                if(layouts[0]) {
-                    x = layouts[0].getAttribute("x");
-                    y = layouts[0].getAttribute("y");
-                    fixed = layouts[0].getAttribute("fixed");
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? false : Boolean(fixed);
-                var descriptions = element.getElementsByTagName("description");
+                fixed = fixed ? false : fixed == "true";
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'description')
+                        description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "XX";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
@@ -1180,7 +1190,7 @@
                 var name = mnemonic + "_" + descriptor;
                 var anchor = new Anchor(x, y, name);
                 anchor.fixed = fixed;
-                anchor.description = descriptions[0] ? descriptions[0].innerText : null;
+                anchor.description = description ? description.innerText : null;
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
@@ -1233,17 +1243,22 @@
             identity: null,
             dataRange: null,
             fromXML: function(element) {
-                var x, y, fixed;
-                var layouts = element.getElementsByTagName("layout");
-                if(layouts[0]) {
-                    x = layouts[0].getAttribute("x");
-                    y = layouts[0].getAttribute("y");
-                    fixed = layouts[0].getAttribute("fixed");
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? false : Boolean(fixed);
-                var descriptions = element.getElementsByTagName("description");
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'description')
+                        description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "XXX";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
@@ -1252,7 +1267,7 @@
                 var name = mnemonic + "_" + descriptor;
                 var knot = new Knot(x, y, name);
                 knot.fixed = fixed;
-                knot.description = descriptions[0] ? descriptions[0].innerText : null;
+                knot.description = description ? description.innerText : null;
                 knot.mnemonic = mnemonic;
                 knot.descriptor = descriptor;
                 knot.identity = identity;
@@ -1310,17 +1325,22 @@
             historized: false,
             timeRange: null,
             fromXML: function(element) {
-                var x, y, fixed;
-                var layouts = element.getElementsByTagName("layout");
-                if(layouts[0]) {
-                    x = layouts[0].getAttribute("x");
-                    y = layouts[0].getAttribute("y");
-                    fixed = layouts[0].getAttribute("fixed");
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? false : Boolean(fixed);
-                var descriptions = element.getElementsByTagName("description");
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'description')
+                        description = element.childNodes.item(i);
                 var timeRange = element.getAttribute("timeRange") || null;
                 var historized = timeRange ? true : false;
                 var id = element.getAttribute("id");
@@ -1328,7 +1348,7 @@
                 var tie = new Tie(x, y, name, historized);
                 tie.fixed = fixed;
                 tie.timeRange = timeRange;
-                tie.description = descriptions[0] ? descriptions[0].innerText : null;
+                tie.description = description ? description.innerText : null;
                 tie.id = id;
                 var grandparent = element.parentNode.parentNode;
                 var i, j, type, role, identifier, anchorRoles = element.getElementsByTagName("anchorRole");
@@ -1343,7 +1363,7 @@
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") == type) {
                             var anchor = Model.getNodeFromId(Number(anchors[j].getAttribute("id")));
-                            Model.addEdge(new Edge(tie, anchor, role, Boolean(identifier)));
+                            Model.addEdge(new Edge(tie, anchor, role, (identifier == "true")));
                             break; // only one should match
                         }
                     }
@@ -1358,7 +1378,7 @@
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") == type) {
                             var knot = Model.getNodeFromId(Number(knots[j].getAttribute("id")));
-                            Model.addEdge(new Edge(tie, knot, role, Boolean(identifier)));
+                            Model.addEdge(new Edge(tie, knot, role, (identifier == "true")));
                             break; // only one should match
                         }
                     }
@@ -1759,7 +1779,7 @@
         };
 
         function DatabaseManager() {
-            var version = ""; // database version needed, leave empty
+            var version = ""; // database version, leave empty for best compatibility
             var size = 65536; // 65kB size
             this.db = window.openDatabase("AnchorModeler", version, "Storage for the Anchor Modeler", size);
         }
