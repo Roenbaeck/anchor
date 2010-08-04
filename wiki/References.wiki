@@ -1,0 +1,5 @@
+#summary Contains useful JavaScript and HTML 5 references
+
+= Useful References =
+
+* [https://developer.mozilla.org/en/javascript Mozilla JavaScript Reference]
