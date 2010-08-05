@@ -3,3 +3,4 @@
 = Useful References =
 
 * [https://developer.mozilla.org/en/javascript Mozilla JavaScript Reference]
+* [http://icons.mysitemyway.com/ Icons used in the application]
