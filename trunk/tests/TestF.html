@@ -29,6 +29,8 @@
                 this.selectAttribute("AN", "Anchor", "FIX", "Fixed", now);
                 // alert("Point-in-time select - in the future");
                 this.selectAttribute("AN", "Anchor", "FIX", "Fixed", (now + 64));
+                this.insertTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]], [11, 22, 33], now);
+
                 // this explain shows that sqlite does not do table elimination
                 // this.execute("EXPLAIN SELECT AN_FIX_Anchor_Fixed FROM lAN_Anchor", [], this.showResult, this.showError);
                 // used this one for debugging
@@ -90,7 +92,7 @@
                 var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
                 var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
                 var statement = "INSERT INTO " + attributeName + " (" + anchorIdentity + ", " + attributeName + ", " + historizationName + ")" +
-                        " SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT " + anchorIdentity + " FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
+                        " SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT 1 FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
                         " AND " + attributeName + " = ?2)";
                 this.execute(statement, [identityValue, attributeValue, historizationValue], this.showResult, this.showError);
             },
@@ -124,19 +126,22 @@
                 this.execute(statement, [], this.showResult, this.showError);
             },
             insertTie: function(mnemonics, roles, identityValues, historizationValue) {
-                var i, tieName = "", tieColumns = "", parameters = "", arguments = [];
+                var i, tieName = "", tieColumns = "", conditions = "", parameters = "", parameterValues = [];
                 for(i = 0; i < mnemonics.length; i++) {
                     tieName += mnemonics[i] + "_" + roles[i][0];
-                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + " REFERENCES " + mnemonics[i] + "_" + descriptors[i] + "(" + mnemonics[i] + "_ID" + "), ";
-                    parameters += "?" + i + ", ";
-                    if(i + 1 < mnemonics.length)
+                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    parameters += "?" + (i + 1) + ", ";
+                    conditions += mnemonics[i] + "_ID_" + roles[i][0] + " = " + "?" + (i + 1);
+                    if(i + 1 < mnemonics.length) {
                         tieName += "_";
-                    arguments[i] = identityValues[i];
+                        conditions += " AND ";
+                    }
+                    parameterValues[i] = identityValues[i];
                 }
-                var statement = "INSERT INTO " + tieName + " (" + tieColumns + ", " + tieName + "_ValidFrom) VALUES(" + parameters + ", ?" + (i + 1) + ")";
-                alert(statement);
-                arguments[arguments.length] = historizationValue;
-                this.execute(statement, arguments, this.showResult, this.showError);
+                var statement = "INSERT INTO " + tieName + " (" + tieColumns + tieName + "_ValidFrom) SELECT " + parameters + "?" + (i + 1) +
+                        " WHERE NOT EXISTS (SELECT 1 FROM l" + tieName + " WHERE " + conditions + ")";
+                parameterValues.push(historizationValue);
+                this.execute(statement, parameterValues, this.showResult, this.showError);
             },
             deleteTie: function(mnemonics, roles) {
                 var i, tieName = "";
@@ -146,6 +151,35 @@
                         tieName += "_";
                 }
                 var statement = "DROP TABLE IF EXISTS " + tieName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createTiePerspective: function(mnemonics, roles) {
+                var i, tieName = "", tieColumns = "", conditions = [];
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += "t." + mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    if(roles[i][1])
+                        conditions.push("sub." + mnemonics[i] + "_ID_" + roles[i][0] + " = t." + mnemonics[i] + "_ID_" + roles[i][0]);
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var conditionString = "";
+                for(i = 0; i < conditions.length - 1; i++)
+                    conditionString += conditions[i] + " AND ";
+                conditionString += conditions[i];
+                var statement = "CREATE VIEW IF NOT EXISTS l" + tieName + " AS SELECT " + tieColumns + "t." + tieName + "_ValidFrom FROM " +
+                        tieName + " t WHERE t." + tieName + "_ValidFrom = (SELECT MAX(sub." + tieName + "_ValidFrom) FROM " + tieName + " sub " +
+                        " WHERE " + conditionString + ")";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            deleteTiePerspective: function(mnemonics, roles) {
+                var i, tieName = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var statement = "DROP VIEW IF EXISTS l" + tieName;
                 this.execute(statement, [], this.showResult, this.showError);
             },
             createAnchorPerspective: function(anchorMnemonic, anchorDescriptor, attributeMnemonics, attributeDescriptors) {
@@ -224,23 +258,39 @@
                 this.createAttribute("TI", "Tie", "TRA", "TimeRange", "TEXT");
                 this.createAnchorPerspective("TI", "Tie", ["FIX", "XPO", "YPO", "TRA"], ["Fixed", "XPosition", "YPosition", "TimeRange"]);
                 this.createTie(["MO", "KN", "DEL"], ["Model", "Knot", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.createTie(["MO", "AN", "DEL"], ["Model", "Anchor", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.createTie(["MO", "AB", "DEL"], ["Model", "Attribute", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.createTie(["MO", "TI", "DEL"], ["Model", "Tie", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.createTie(["AN", "AB", "DEL"], ["Anchor", "Attribute", "Deleted"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.createTiePerspective(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
                 this.createTie(["AB", "KN", "DEL"], ["Attribute", "Knot", "Deleted"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.createTiePerspective(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
                 this.createTie(["TI", "KR", "DEL"], ["Tie", "KnotRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTiePerspective(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
                 this.createTie(["TI", "AR", "DEL"], ["Tie", "AnchorRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTiePerspective(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
             },
             deleteDatabase: function() {
                 // reverse order of creation
+                this.deleteTiePerspective(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
                 this.deleteTie(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTiePerspective(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
                 this.deleteTie(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTiePerspective(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
                 this.deleteTie(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.deleteTiePerspective(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
                 this.deleteTie(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.deleteTie(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.deleteTie(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.deleteTie(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.deleteTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
                 this.deleteAnchorPerspective("TI", "Tie");
                 this.deleteAttribute("TI", "Tie", "FIX", "Fixed");
