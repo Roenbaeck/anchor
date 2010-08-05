@@ -5,37 +5,13 @@
     <script type="text/javascript">
         window.onload = init;
 
-        function DatabaseManager() {
-            var version = ""; // database version, leave empty for best compatibility
-            var size = 65536; // 65kB size
-            this.db = window.openDatabase("AnchorModeler", version, "Storage for the Anchor Modeler", size);
-        }
-        DatabaseManager.prototype = {
+        var DatabaseManager = {
+            version: "", // database version, leave empty for best compatibility
+            size: 65536, // 65kB size
             db: null,
-            init: function() {
-                this.deleteDatabase();
-                this.createDatabase();
-                var now = Number(new Date());
-                this.insertAnchor("AN", "Anchor", 1);
-                // alert("Inserting a value");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, now);
-                // alert("If the attribute value has not changed we should not get an insert");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
-                // alert("Now we change the value, and this should result in an insert");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, true, (now + 1));
-                // alert("We should not be able to insert a duplicate primary key");
-                this.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
-                // alert("Point-in-time select - in the past");
-                this.selectAttribute("AN", "Anchor", "FIX", "Fixed", now);
-                // alert("Point-in-time select - in the future");
-                this.selectAttribute("AN", "Anchor", "FIX", "Fixed", (now + 64));
-                this.insertTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]], [11, 22, 33], now);
-
-                // this explain shows that sqlite does not do table elimination
-                // this.execute("EXPLAIN SELECT AN_FIX_Anchor_Fixed FROM lAN_Anchor", [], this.showResult, this.showError);
-                // used this one for debugging
-//                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
-//                this.execute("SELECT * FROM AN_FIX_Anchor_Fixed", [], this.showResult, this.showError);
+            DatabaseManager: function() {
+                this.db = window.openDatabase("AnchorModeler", this.version, "Storage for the Anchor Modeler", this.size);
+                return this;
             },
             createKnot: function(knotMnemonic, knotDescriptor, dataRange) {
                 var knotName = knotMnemonic + "_" + knotDescriptor;
@@ -378,11 +354,34 @@
             showNothing: function(something) {
                 // do nothing
             }
-        };
+        }.DatabaseManager(); // call the "constructor" on the singleton
 
         function init() {
-            var dbM = new DatabaseManager();
-            dbM.init();
+            DatabaseManager.deleteDatabase();
+            DatabaseManager.createDatabase();
+
+            var now = Number(new Date());
+            
+            DatabaseManager.insertAnchor("AN", "Anchor", 1);
+            // alert("Inserting a value");
+            DatabaseManager.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, now);
+            // alert("If the attribute value has not changed we should not get an insert");
+            DatabaseManager.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
+            // alert("Now we change the value, and this should result in an insert");
+            DatabaseManager.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, true, (now + 1));
+            // alert("We should not be able to insert a duplicate primary key");
+            DatabaseManager.insertAttribute("AN", "Anchor", "FIX", "Fixed", 1, false, (now + 1));
+            // alert("Point-in-time select - in the past");
+            DatabaseManager.selectAttribute("AN", "Anchor", "FIX", "Fixed", now);
+            // alert("Point-in-time select - in the future");
+            DatabaseManager.selectAttribute("AN", "Anchor", "FIX", "Fixed", (now + 64));
+            DatabaseManager.insertTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]], [11, 22, 33], now);
+
+            // this explain shows that sqlite does not do table elimination
+            // this.execute("EXPLAIN SELECT AN_FIX_Anchor_Fixed FROM lAN_Anchor", [], this.showResult, this.showError);
+            // used this one for debugging
+//                this.execute("SELECT * FROM sqlite_master", [], this.showResult, this.showError);
+//                this.execute("SELECT * FROM AN_FIX_Anchor_Fixed", [], this.showResult, this.showError);
         }
     </script>
     <title>Test F - Database</title>
