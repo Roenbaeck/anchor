@@ -29,6 +29,50 @@
         background-image:   url(deleteButtonPressed.png);
     }
 
+    #controls {
+        position:           relative;
+        display:            block;
+        top:                0px;
+        left:               50%;
+    }
+
+    #controls .controlbutton {
+        position:           absolute;
+        font:               50% Andale Mono, monospace;
+        text-align:         center;
+        display:            block;
+        padding:            0;
+        margin:             10px 0px 0px 0px;
+        width:              64px;
+        height:             64px;
+        z-index:            999;
+    }
+
+    #controls #playpause {
+        background-image:   url(playbutton.png);
+        left:               -120px;
+    }
+    #controls #nudge {
+        background-image:   url(nudgebutton.png);
+        left:               -80px;
+    }
+    #controls #undo {
+        background-image:   url(undobutton.png);
+        left:               -40px;
+    }
+    #controls #redo {
+        background-image:   url(redobutton.png);
+        left:               0px;
+    }
+    #controls #zoomin {
+        background-image:   url(zoominbutton.png);
+        left:               40px;
+    }
+    #controls #zoomout {
+        background-image:   url(zoomoutbutton.png);
+        left:               80px;
+    }
+
     .zoominbutton {
         display:            block;
         background-image:   url(zoominbutton.png); 
@@ -53,16 +97,16 @@
     /* visible canvas - at the bottom of the visible layers */
     #canvas {
         position:           absolute;
-        top:                0;
-        left:               0;
+        top:                0px;
+        left:               0px;
         z-index:            1;
     }
 
     /* invisible canvas - at the very bottom */
     #shadow {
         position:           absolute;
-        top:                0;
-        left:               0;
+        top:                0px;
+        left:               0px;
         display:            none;
         z-index:            0;
     }
@@ -70,8 +114,8 @@
     /* minature canvas - positioned in the southeast corner */
     #miniature {
         position:           absolute;
-        bottom:             30px;
-        right:              38px;
+        bottom:             40px;
+        right:              42px;
         background-color:   rgba(255, 255, 255, 0.8);
         z-index:            2;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
@@ -79,20 +123,35 @@
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
-    /* the leftmost part of the header - on top of the background */
-    #header {
+    #action {
         position:           absolute;
-        top:                0;
-        left:               0;
-        width:              98%; /* have no idea why, but 100% is too wide */
+        display:            block;
         border-bottom:      1px dotted;
+        border-right:       1px dotted;
         background-color:   rgba(255, 255, 255, 0.8);
         color:              black;
         padding:            5px 10px;
         margin:             0;
+        top:                0px;
+        left:               0px;
         text-align:         left;
         z-index:            3;
     }
+
+    #expert {
+        position:           absolute;
+        display:            block;
+        border-bottom:      1px dotted;
+        border-left:        1px dotted;
+        background-color:   rgba(255, 255, 255, 0.8);
+        color:              black;
+        padding:            5px 10px;
+        margin:             0;
+        top:                0px;
+        right:              0px;
+        text-align:         right;
+        z-index:            3;
+    }    
 
     #menu {
         position:           absolute;
@@ -1807,8 +1866,9 @@
     <canvas id="shadow">
         <!-- nothing to see here -->
     </canvas>
-    <div id="header">
-        Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, or Shift + hover to toggle a context menu.
+    <div id="action" title="Actions that can be performed">
+        Action
+        <!--
         <br/>
         <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
         <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
@@ -1820,14 +1880,28 @@
         <input type="button" value="SQL" onclick="new CodePopover(transform(Model.toXML(), 'SQLServer.xsl'), true)"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
         <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
+        -->
+    </div>
+    <div id="expert" title="Expert settings">
+        Expert
+    </div>
+    <div id="controls">
+        <div class="controlbutton" title="Pause" id="playpause"></div>
+        <div class="controlbutton" title="Nudge" id="nudge"></div>
+        <div class="controlbutton" title="Undo" id="undo"></div>
+        <div class="controlbutton" title="Redo" id="redo"></div>
+        <div class="controlbutton" title="Zoom In" id="zoomin"></div>
+        <div class="controlbutton" title="Zoom Out" id="zoomout"></div>
     </div>
     <div id="menu">
         <!-- this will be filled and shown dynamically -->
     </div>
 
-    <canvas id="miniature">
+    <canvas id="miniature" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
+
+    <!-- TODO: these are about to be removed -->
     <div id="miniEnlarge" class="zoominbutton"><!-- changes zoom in the miniature --></div>
     <div id="miniDecrease" class="zoomoutbutton"><!-- changes zoom in the miniature --></div>
 </body>
