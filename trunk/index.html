@@ -1844,13 +1844,15 @@
                 this.undoButton = document.getElementById('undo');
                 this.redoButton = document.getElementById('redo');
                 this.zoomInButton = document.getElementById('zoomin');
-                this.zoomOutButton = document.getElementById('zommout');
+                this.zoomOutButton = document.getElementById('zoomout');
 
                 // voodoo 
                 var self = this;
 
                 this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
                 this.nudgeButton.addEventListener('click', function(event) { return self.invalidateLayout(event) }, false);
+                this.zoomInButton.addEventListener('click', function(event) { return self.zoomIn(event) }, false);
+                this.zoomOutButton.addEventListener('click', function(event) { return self.zoomOut(event) }, false);
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
@@ -1867,6 +1869,20 @@
                     Model.nodes[i].start();
                     DrawingEngine.start();
                 }
+            },
+            doZoom: function (zoom) {
+                DrawingEngine.scale(zoom);
+                xx=window.innerWidth*0.5;
+                yy=window.innerHeight*0.5;
+                DrawingEngine.translate(DrawingEngine.xContext(xx) - DrawingEngine.xContext(xx) * zoom,
+                        DrawingEngine.yContext(yy) - DrawingEngine.yContext(yy) * zoom);
+                DrawingEngine.start();
+            },
+            zoomIn: function (event) {
+                this.doZoom(1.75);
+            },
+            zoomOut: function (event) {
+                this.doZoom(0.75);
             }
         };
 
