@@ -49,7 +49,7 @@
     }
 
     #controls #playpause {
-        background-image:   url(playbutton.png);
+        background-image:   url(pausebutton.png);
         left:               -120px;
     }
     #controls #nudge {
@@ -256,6 +256,10 @@
             attractionConstant: 0.00003703703704,
             // adjusts the size of the influence square by this factor
             influenceConstant: 4,
+            // the stiffness of the edges
+            stiffness: 3,
+            // calculated as stiffness^2
+            stiffnessBound: 9,
             // when the layout has reached equilibrium
             equilibrium: true,
             // the metric in use
@@ -355,9 +359,9 @@
                         node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
                         node.centerPoint.xPosition = node.node.xPosition + (node.otherNode.xPosition - node.node.xPosition) / 2;
                         node.centerPoint.yPosition = node.node.yPosition + (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(3 * this.distance(node.centerPoint, node.controlPoint)/this.distance(node.node, node.otherNode));
+                        curvature = this.square(this.stiffness * this.distance(node.centerPoint, node.controlPoint)/this.distance(node.node, node.otherNode));
                         // safeguard
-                        curvature = curvature > 9 ? 9 : curvature;
+                        curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
                         // flexure force moves the midway point toward the center point
                         node.xVelocity -= curvature * this.xRepelling(node, node.centerPoint);
                         node.yVelocity -= curvature * this.yRepelling(node, node.centerPoint);
@@ -1676,70 +1680,20 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
+            // TODO: These are about to be removed
             var miniEnlarge = document.getElementById("miniEnlarge");
             miniEnlarge.addEventListener('click', MiniatureEventHandler.enlarge, false);
             var miniDecrease = document.getElementById("miniDecrease");
             miniDecrease.addEventListener('click', MiniatureEventHandler.decrease, false);
 
-            loadExample();
+            ActionMenu.loadFromURL('example.xml');
 
+            // the document object is not available until within this (init) function, so init other stuff here
             MenuHandler.init();
+            ControlButtons.init();
+            
             LayoutEngine.metric = LayoutEngine.manhattan;
 //            LayoutEngine.metric = LayoutEngine.euclidean;
-            DrawingEngine.start();
-        }
-
-        function loadExample() {
-            try {
-                var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.open("GET", "example.xml", false);
-                xmlhttp.send(null);
-                Model.fromXML(xmlhttp.responseXML);
-            }
-            catch(exception){
-                alert(exception);
-            }
-        }
-
-        function toggleDebug(button) {
-            DEBUG = !DEBUG;
-            if(DEBUG)
-                button.value = 'NORMAL MODE';
-            else
-                button.value = 'DEBUG MODE';
-            DrawingEngine.start();
-        }
-        function togglePause(button) {
-            if(DrawingEngine.running) {
-                button.value = 'PAUSE';
-                DrawingEngine.stop();
-            }
-            else {
-                button.value = 'PLAY';
-                DrawingEngine.start();                
-            }
-        }
-        function invalidateLayout() {
-            for(var i = 0; i < Model.nodes.length; i++) {
-                Model.nodes[i].start();
-                DrawingEngine.start();
-            }
-        }
-        function randomizeLayout() {
-            for(var i = 0; i < Model.nodes.length; i++) {
-                Model.nodes[i].xPosition = Math.random() * window.innerWidth;
-                Model.nodes[i].yPosition = Math.random() * window.innerHeight;
-                DrawingEngine.start();
-            }
-        }
-        function toggleFixation() {
-            for(var i = 0; i < Model.nodes.length; i++) {
-                Model.nodes[i].fixed = !Model.nodes[i].fixed;
-                DrawingEngine.start();
-            }
-        }
-        function toggleNames() {
-            DrawingEngine.showNames = !DrawingEngine.showNames;
             DrawingEngine.start();
         }
 
@@ -1799,23 +1753,6 @@
             }
         };
 
-
-        function transform(xmlDocument, transformationURL) {
-            var result;
-            try {
-                var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.open("GET", transformationURL, false);
-                xmlhttp.send(null);
-                var processor = new XSLTProcessor();
-                processor.importStylesheet(xmlhttp.responseXML.documentElement);
-                result = processor.transformToFragment(xmlDocument, document);
-            }
-            catch(exception){
-                alert(exception);
-            }
-            return result;
-        }
-
         var FileHandler = {
             reader: null,
             handleFiles: function(files) {
@@ -1837,25 +1774,103 @@
             }
         };
 
-        function DatabaseManager() {
-            var version = ""; // database version, leave empty for best compatibility
-            var size = 65536; // 65kB size
-            this.db = window.openDatabase("AnchorModeler", version, "Storage for the Anchor Modeler", size);
-        }
-        DatabaseManager.prototype = {
-            db: null,
-            init: function() {
-                this.db.transaction(function(tx) {
-                    tx.executeSql("SELECT * FROM Batches", [], function(result) {
-                        loadModel(result);
-                    }, function(tx, error) {
-                        tx.executeSql("CREATE TABLE Batches (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, timestamp TIMESTAMP)", [], function(result) {
-                            loadModel(result);
-                        });
-                    });
-                });
+        var ActionMenu = {
+            transform: function (xmlDocument, transformationURL) {
+                var result;
+                try {
+                    var xmlhttp = new window.XMLHttpRequest();
+                    xmlhttp.open("GET", transformationURL, false);
+                    xmlhttp.send(null);
+                    var processor = new XSLTProcessor();
+                    processor.importStylesheet(xmlhttp.responseXML.documentElement);
+                    result = processor.transformToFragment(xmlDocument, document);
+                }
+                catch(exception){
+                    alert(exception);
+                }
+                return result;
+            },
+            loadFromURL: function (url) {
+                try {
+                    var xmlhttp = new window.XMLHttpRequest();
+                    xmlhttp.open("GET", url, false);
+                    xmlhttp.send(null);
+                    Model.fromXML(xmlhttp.responseXML);
+                }
+                catch(exception){
+                    alert(exception);
+                }
+            },
+            randomizeLayout: function () {
+                for(var i = 0; i < Model.nodes.length; i++) {
+                    Model.nodes[i].xPosition = Math.random() * window.innerWidth;
+                    Model.nodes[i].yPosition = Math.random() * window.innerHeight;
+                    DrawingEngine.start();
+                }
+            },
+            toggleFixation: function () {
+                for(var i = 0; i < Model.nodes.length; i++) {
+                    Model.nodes[i].fixed = !Model.nodes[i].fixed;
+                    DrawingEngine.start();
+                }
+            },
+            toggleNames: function () {
+                DrawingEngine.showNames = !DrawingEngine.showNames;
+                DrawingEngine.start();
             }
         };
+
+        var ExpertMenu = {
+            toggleDebug: function (button) {
+                DEBUG = !DEBUG;
+                if(DEBUG)
+                    button.value = 'NORMAL MODE';
+                else
+                    button.value = 'DEBUG MODE';
+                DrawingEngine.start();
+            }
+        };
+
+        var ControlButtons = {
+            playPauseButton: null,
+            nudgeButton: null,
+            undoButton: null,
+            redoButton: null,
+            zoomInButton: null,
+            zoomOutButton: null,
+            init: function() {
+                this.playPauseButton = document.getElementById('playpause');
+                this.nudgeButton = document.getElementById('nudge');
+                this.undoButton = document.getElementById('undo');
+                this.redoButton = document.getElementById('redo');
+                this.zoomInButton = document.getElementById('zoomin');
+                this.zoomOutButton = document.getElementById('zommout');
+
+                // voodoo 
+                var self = this;
+
+                this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
+                this.nudgeButton.addEventListener('click', function(event) { return self.invalidateLayout(event) }, false);
+            },
+            togglePlayPause: function (event) {
+                if(DrawingEngine.running) {
+                    this.playPauseButton.style.backgroundImage = 'url(playbutton.png)';
+                    DrawingEngine.stop();
+                }
+                else {
+                    this.playPauseButton.style.backgroundImage = 'url(pausebutton.png)';
+                    DrawingEngine.start();
+                }
+            },
+            invalidateLayout: function (event) {
+                for(var i = 0; i < Model.nodes.length; i++) {
+                    Model.nodes[i].start();
+                    DrawingEngine.start();
+                }
+            }
+        };
+
+
         // -->
     </script>
 </head>
