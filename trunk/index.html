@@ -43,22 +43,29 @@
         display:            block;
         padding:            0;
         margin:             10px 0px 0px 0px;
-        width:              64px;
-        height:             64px;
+        width:              42px;
+        height:             43px;
         z-index:            999;
     }
 
     #controls #playpause {
-        background-image:   url(pausebutton.png);
-        left:               -120px;
+        left:               -84px;
     }
-    #controls #nudge {
-        background-image:   url(nudgebutton.png);
-        left:               -80px;
+    .pause {
+        background-image:   url(pausebutton.png);
+    }
+    .pause:hover {
+        background-image:   url(pausebuttonhover.png);
+    }
+    .play {
+        background-image:   url(playbutton.png);
+    }
+    .play:hover {
+        background-image:   url(playbuttonhover.png);
     }
     #controls #undo {
         background-image:   url(undobutton.png);
-        left:               -40px;
+        left:               -42px;
     }
     #controls #redo {
         background-image:   url(redobutton.png);
@@ -66,11 +73,11 @@
     }
     #controls #zoomin {
         background-image:   url(zoominbutton.png);
-        left:               40px;
+        left:               42px;
     }
     #controls #zoomout {
         background-image:   url(zoomoutbutton.png);
-        left:               80px;
+        left:               84px;
     }
 
     .zoominbutton {
@@ -638,12 +645,14 @@
                 if(!this.running) {
                     this.running = true;
                     this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
+                    ControlButtons.setPauseState();
                 }
             },
             stop: function() {
                 if(this.running) {
                     clearInterval(this.drawId);
                     this.running = false;
+                    ControlButtons.setPlayState();
                 }
             },
             invalidateMiniature: function() {
@@ -657,6 +666,7 @@
                     clearInterval(this.drawId);
                     this.running = false;
                     this.invalidateMiniature();
+                    ControlButtons.setPlayState();
                 }
 
                 // clear the visible context
@@ -1617,6 +1627,9 @@
 
         // implementation of our init function
         function init(window) {
+            // assign event handlers to buttons
+            ControlButtons.init();
+
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -1690,8 +1703,7 @@
 
             // the document object is not available until within this (init) function, so init other stuff here
             MenuHandler.init();
-            ControlButtons.init();
-            
+
             LayoutEngine.metric = LayoutEngine.manhattan;
 //            LayoutEngine.metric = LayoutEngine.euclidean;
             DrawingEngine.start();
@@ -1840,7 +1852,6 @@
             zoomOutButton: null,
             init: function() {
                 this.playPauseButton = document.getElementById('playpause');
-                this.nudgeButton = document.getElementById('nudge');
                 this.undoButton = document.getElementById('undo');
                 this.redoButton = document.getElementById('redo');
                 this.zoomInButton = document.getElementById('zoomin');
@@ -1850,21 +1861,29 @@
                 var self = this;
 
                 this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
-                this.nudgeButton.addEventListener('click', function(event) { return self.invalidateLayout(event) }, false);
+                this.undoButton.addEventListener('click', function(event) { return ActionMenu.randomizeLayout(event) }, false);
+                this.redoButton.addEventListener('click', function(event) { return ActionMenu.randomizeLayout(event) }, false);
                 this.zoomInButton.addEventListener('click', function(event) { return self.zoomIn(event) }, false);
                 this.zoomOutButton.addEventListener('click', function(event) { return self.zoomOut(event) }, false);
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
-                    this.playPauseButton.style.backgroundImage = 'url(playbutton.png)';
                     DrawingEngine.stop();
                 }
+                else if (LayoutEngine.equilibrium) {
+                    this.invalidateLayout();
+                }
                 else {
-                    this.playPauseButton.style.backgroundImage = 'url(pausebutton.png)';
                     DrawingEngine.start();
                 }
             },
-            invalidateLayout: function (event) {
+            setPlayState: function() {
+                this.playPauseButton.className = 'controlbutton play';
+            },
+            setPauseState: function() {
+                this.playPauseButton.className = 'controlbutton pause';
+            },
+            invalidateLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     Model.nodes[i].start();
                     DrawingEngine.start();
@@ -1917,7 +1936,7 @@
         Expert
     </div>
     <div id="controls">
-        <div class="controlbutton" title="Pause" id="playpause"></div>
+        <div class="controlbutton pause" title="Pause" id="playpause"></div>
         <div class="controlbutton" title="Nudge" id="nudge"></div>
         <div class="controlbutton" title="Undo" id="undo"></div>
         <div class="controlbutton" title="Redo" id="redo"></div>
