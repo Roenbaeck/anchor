@@ -172,11 +172,11 @@
         z-index:            3;
     }    
 
-    #menu {
+    #contextMenu {
         position:           absolute;
         top:                0;
         left:               0;
-        display:            none;
+        display:            block;
         background-color:   rgba(255, 255, 255, 0.8);
         color:              black;
         padding:            5px 10px;
@@ -749,7 +749,7 @@
 
         var CanvasEventHandler = {
             dragging: false,
-            menu: false,
+            contextMenu: null,
             focusedNode: null,
             xLastKnown: 0,
             yLastKnown: 0,
@@ -809,13 +809,11 @@
             },
             keydown: function(event) {
                 if(event.shiftKey && this.hoveredNode) {
-                    if(this.menu) {
-                        this.menu = false;
-                        MenuHandler.hide();
-                    }
+                    if(this.contextMenu == null)
+                        this.contextMenu = new ContextMenu(this.hoveredNode);
                     else {
-                        MenuHandler.show(this.hoveredNode);
-                        this.menu = true;
+                        this.contextMenu.close();
+                        this.contextMenu = null;
                     }
                 }
             },
@@ -941,32 +939,6 @@
             }
         };
 
-
-        var MenuHandler = {
-            menu: null,
-            init: function () {
-                menu = document.getElementById('menu');
-                this.hide();
-            },
-            show: function(node) {
-                var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
-                var y = DrawingEngine.yScreen(node.yPosition + LayoutEngine.normalDistance/2);
-
-                var action, content;
-                content = "Node: <input type=\"text\" value=\"" + node + "\" autofocus/>";
-                for(var i = 0; action = node.actions[i]; i++)
-                    content += "<br/>" + action;
-
-                menu.innerHTML = content;
-                menu.style.left = x + 'px';
-                menu.style.top = y + 'px';
-                // show the menu
-                menu.style.display = 'block';
-            },
-            hide: function() {
-                menu.style.display = 'none';
-            }
-        };
 
         var UniqueIdentity = {
             lastId: 0,
@@ -1118,11 +1090,47 @@
             }
         };
 
+        function elementCreator(type, attributes) {
+            var element = document.createElement(type);
+            for(var i = 0; i < attributes.length; i++)
+                element.setAttribute(attributes[i][0], attributes[i][1])
+            return element;
+        }
+
         function Attribute(x, y, name, historized) {
             AbstractNode.call(this, x, y, name);
             this.historized = historized;
-            this.actions.push("<input type=\"button\" value=\"toggle knotted\" onclick=\"CanvasEventHandler.toggleKnotted()\"/>");
-            this.actions.push("<input type=\"button\" value=\"toggle historized\" onclick=\"CanvasEventHandler.toggleHistorized()\"/>");
+            var self = this;
+            var descriptorInput = {
+                title: 'Descriptor',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
+                get value() {
+                    return self.descriptor;
+                },
+                set value(value) {
+                    self.descriptor = value;
+                }
+            };
+            var mnemonicInput = {
+                title: 'Mnemonic',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
+                get value() {
+                    return self.mnemonic;
+                },
+                set value(value) {
+                    self.mnemonic = value;
+                }
+            };
+            var toggleKnottedButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted'], ['onclick', 'CanvasEventHandler.toggleKnotted()']])
+            };
+            var toggleHistorizedButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized'], ['onclick', 'CanvasEventHandler.toggleHistorized()']])
+            };
+            this.actions.push(descriptorInput);
+            this.actions.push(mnemonicInput);
+            this.actions.push(toggleKnottedButton);
+            this.actions.push(toggleHistorizedButton);
         }
         Attribute.prototype = {
             historized: false,
@@ -1245,7 +1253,33 @@
 
         function Anchor(x, y, name) {
             AbstractNode.call(this, x, y, name);
-            this.actions.push("<input type=\"button\" value=\"add a new attribute\" onclick=\"CanvasEventHandler.addAttribute()\"/>");
+            var self = this;
+            var descriptorInput = {
+                title: 'Descriptor',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
+                get value() {
+                    return self.descriptor;
+                },
+                set value(value) {
+                    self.descriptor = value;
+                }
+            };
+            var mnemonicInput = {
+                title: 'Mnemonic',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
+                get value() {
+                    return self.mnemonic;
+                },
+                set value(value) {
+                    self.mnemonic = value;
+                }
+            };
+            var addAttributeButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Add Attribute'], ['onclick', 'CanvasEventHandler.addAttribute()']])
+            };
+            this.actions.push(descriptorInput);
+            this.actions.push(mnemonicInput);
+            this.actions.push(addAttributeButton);
         }
         Anchor.prototype = {
             mnemonic: null,
@@ -1320,7 +1354,32 @@
 
         function Knot(x, y, name) {
             AbstractNode.call(this, x, y, name);
-            this.actions.push("<input type=\"button\" value=\"remove this knot\" onclick=\"CanvasEventHandler.removeKnot()\"/>");
+            var descriptorInput = {
+                title: 'Descriptor',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
+                get value() {
+                    return self.descriptor;
+                },
+                set value(value) {
+                    self.descriptor = value;
+                }
+            };
+            var mnemonicInput = {
+                title: 'Mnemonic',
+                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
+                get value() {
+                    return self.mnemonic;
+                },
+                set value(value) {
+                    self.mnemonic = value;
+                }
+            };
+            var removeKnotButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Remove Knot'], ['onclick', 'CanvasEventHandler.removeKnot()']])
+            };
+            this.actions.push(descriptorInput);
+            this.actions.push(mnemonicInput);
+            this.actions.push(removeKnotButton);
         }
         Knot.prototype = {
             mnemonic: null,
@@ -1402,9 +1461,14 @@
         function Tie(x, y, name, historized) {
             AbstractNode.call(this, x, y, name);
             this.historized = historized;
-            this.actions.push("<input type=\"button\" value=\"add a new anchor\" onclick=\"CanvasEventHandler.addAnchor()\"/>");
-            this.actions.push("<input type=\"button\" value=\"toggle knotted\" onclick=\"CanvasEventHandler.toggleKnotted()\"/>");
-            this.actions.push("<input type=\"button\" value=\"toggle historized\" onclick=\"CanvasEventHandler.toggleHistorized()\"/>");
+            var toggleKnottedButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted'], ['onclick', 'CanvasEventHandler.toggleKnotted()']])
+            };
+            var toggleHistorizedButton = {
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized'], ['onclick', 'CanvasEventHandler.toggleHistorized()']])
+            };
+            this.actions.push(toggleKnottedButton);
+            this.actions.push(toggleHistorizedButton);
         }
         Tie.prototype = {
             historized: false,
@@ -1713,9 +1777,6 @@
 
             ActionMenu.loadFromURL('example.xml');
 
-            // the document object is not available until within this (init) function, so init other stuff here
-            MenuHandler.init();
-
             LayoutEngine.metric = LayoutEngine.manhattan;
 //            LayoutEngine.metric = LayoutEngine.euclidean;
             DrawingEngine.start();
@@ -1774,6 +1835,53 @@
                 document.body.removeChild(this.codePopover);
                 this.modalBackground.close();
                 DrawingEngine.start();
+            }
+        };
+
+        function ContextMenu(node) {
+            var contextMenu = document.createElement('div');
+            contextMenu.setAttribute("id", "contextMenu");
+
+            var action, table;
+            table = document.createElement('table');
+            for(var i = 0; action = node.actions[i]; i++) {
+                var tr = document.createElement('tr');
+                if(action.title) {
+                    var td1 = document.createElement('td');
+                    td1.innerText = action.title + ":";
+                    tr.appendChild(td1);
+                    var td2 = document.createElement('td');
+                    td2.appendChild(action.control);
+                    tr.appendChild(td2);
+                }
+                else {
+                    var td = document.createElement('td');
+                    td.setAttribute('colspan', '2');
+                    td.appendChild(action.control);
+                    tr.appendChild(td);
+                }
+                if(action.value)
+                    action.control.setAttribute('value', action.value);
+                table.appendChild(tr);
+            }
+
+            contextMenu.appendChild(table);
+
+            var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
+            var y = DrawingEngine.yScreen(node.yPosition + LayoutEngine.normalDistance/2);
+
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+
+            document.body.appendChild(contextMenu);
+
+            this.contextMenu = contextMenu;
+            return this;
+        }
+        ContextMenu.prototype = {
+            contextMenu: null,
+            close: function() {
+                document.body.removeChild(this.contextMenu);
             }
         };
 
@@ -1954,9 +2062,6 @@
         <div class="controlbutton" title="Redo" id="redo"></div>
         <div class="controlbutton" title="Zoom In" id="zoomin"></div>
         <div class="controlbutton" title="Zoom Out" id="zoomout"></div>
-    </div>
-    <div id="menu">
-        <!-- this will be filled and shown dynamically -->
     </div>
 
     <canvas id="miniature" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
