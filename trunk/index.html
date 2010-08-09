@@ -954,8 +954,7 @@
             }
         };
 
-        function AbstractNode(x, y, name) {
-            this.name = name;
+        function AbstractNode(x, y) {
             this.xPosition = x;
             this.yPosition = y;
             this.xVelocity = 0;
@@ -968,7 +967,6 @@
             this.actions = [];
         }
         AbstractNode.prototype = {
-            name: null,
             description: null,
             xPosition: null,
             yPosition: null,
@@ -991,6 +989,9 @@
                 if (!("_id" in this))
                     this._id = UniqueIdentity.nextId();
                 return this._id;
+            },
+            get name() {
+                return "Unnamed";
             },
             // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
@@ -1097,8 +1098,8 @@
             return element;
         }
 
-        function Attribute(x, y, name, historized) {
-            AbstractNode.call(this, x, y, name);
+        function Attribute(x, y, historized) {
+            AbstractNode.call(this, x, y);
             this.historized = historized;
             var self = this;
             var descriptorInput = {
@@ -1165,10 +1166,7 @@
                 var dataRange = element.getAttribute("dataRange") || null;
                 var id = element.getAttribute("id");
                 var parent = element.parentNode;
-                var anchorMnemonic = parent.getAttribute("mnemonic") || "XX";
-                var anchorDescriptor = parent.getAttribute("descriptor") || "Unnamed";
-                var name = anchorMnemonic + "_" + mnemonic + "_" + anchorDescriptor + "_" + descriptor;
-                var attribute = new Attribute(x, y, name, historized);
+                var attribute = new Attribute(x, y, historized);
                 attribute.fixed = fixed;
                 attribute.knotted = knotted;
                 attribute.timeRange = timeRange;
@@ -1178,22 +1176,29 @@
                 attribute.descriptor = descriptor;
                 attribute.id = id;
                 var anchor = Model.getNodeFromId(Number(parent.getAttribute("id")));
-                Model.addEdge(new Edge(attribute, anchor, "property of", true));
+                Model.addEdge(new Edge(attribute, anchor, true));
                 if(knotted) {
                     var grandparent = parent.parentNode;
-                    var i, knots = grandparent.getElementsByTagName("knot");
+                    var knots = grandparent.getElementsByTagName("knot");
                     for(i = 0; i < knots.length; i++) {
                         if(knots[i].getAttribute("mnemonic") == knotRange) {
                             var knot = Model.getNodeFromId(Number(knots[i].getAttribute("id")));
-                            Model.addEdge(new Edge(attribute, knot, "instantiation of", false));
+                            Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
                         }
                     }                    
                 }
                 return attribute;
             },
+            get name() {
+                var anchor, edge;
+                for(var i = 0; edge = this.edges[i]; i++)
+                    if(edge.otherNode instanceof Anchor)
+                        anchor = edge.otherNode;
+                return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+            },
             addXML: function(element, schema) {
-                // create an anchor element
+                // create an attribute element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
                 attribute.setAttribute("id", this.id);
@@ -1251,8 +1256,8 @@
         // inheritance
         extend(Attribute, AbstractNode);
 
-        function Anchor(x, y, name) {
-            AbstractNode.call(this, x, y, name);
+        function Anchor(x, y) {
+            AbstractNode.call(this, x, y);
             var self = this;
             var descriptorInput = {
                 title: 'Descriptor',
@@ -1285,6 +1290,9 @@
             mnemonic: null,
             descriptor: null,
             identity: null,
+            get name() {
+                return this.mnemonic + "_" + this.descriptor;
+            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -1306,8 +1314,7 @@
                 var mnemonic = element.getAttribute("mnemonic") || "XX";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
                 var identity = element.getAttribute("identity") || "untyped";
-                var name = mnemonic + "_" + descriptor;
-                var anchor = new Anchor(x, y, name);
+                var anchor = new Anchor(x, y);
                 anchor.fixed = fixed;
                 anchor.description = description ? description.innerText : null;
                 anchor.mnemonic = mnemonic;
@@ -1352,8 +1359,9 @@
         // inheritance
         extend(Anchor, AbstractNode);
 
-        function Knot(x, y, name) {
-            AbstractNode.call(this, x, y, name);
+        function Knot(x, y) {
+            AbstractNode.call(this, x, y);
+            var self = this;
             var descriptorInput = {
                 title: 'Descriptor',
                 control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
@@ -1386,6 +1394,9 @@
             descriptor: null,
             identity: null,
             dataRange: null,
+            get name() {
+                return this.mnemonic + "_" + this.descriptor;
+            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -1408,8 +1419,7 @@
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
                 var identity = element.getAttribute("identity") || "untyped";
                 var dataRange = element.getAttribute("dataRange") || "untyped";
-                var name = mnemonic + "_" + descriptor;
-                var knot = new Knot(x, y, name);
+                var knot = new Knot(x, y);
                 knot.fixed = fixed;
                 knot.description = description ? description.innerText : null;
                 knot.mnemonic = mnemonic;
@@ -1458,8 +1468,8 @@
         // inheritance
         extend(Knot, AbstractNode);
 
-        function Tie(x, y, name, historized) {
-            AbstractNode.call(this, x, y, name);
+        function Tie(x, y, historized) {
+            AbstractNode.call(this, x, y);
             this.historized = historized;
             var toggleKnottedButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted'], ['onclick', 'CanvasEventHandler.toggleKnotted()']])
@@ -1493,47 +1503,54 @@
                 var timeRange = element.getAttribute("timeRange") || null;
                 var historized = timeRange ? true : false;
                 var id = element.getAttribute("id");
-                var name = "";
-                var tie = new Tie(x, y, name, historized);
+                var tie = new Tie(x, y, historized);
                 tie.fixed = fixed;
                 tie.timeRange = timeRange;
                 tie.description = description ? description.innerText : null;
                 tie.id = id;
                 var grandparent = element.parentNode.parentNode;
-                var i, j, type, role, identifier, anchorRoles = element.getElementsByTagName("anchorRole");
+                var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "XX";
                     role = anchorRoles[i].getAttribute("role") || "unknownRole";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
-                    if(i > 0)
-                        name += "_";
-                    name += type + "_" + role;
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") == type) {
-                            var anchor = Model.getNodeFromId(Number(anchors[j].getAttribute("id")));
-                            Model.addEdge(new Edge(tie, anchor, role, (identifier == "true")));
+                            anchor = Model.getNodeFromId(Number(anchors[j].getAttribute("id")));
+                            edge = new Edge(tie, anchor, (identifier == "true"));
+                            edge.role = role;
+                            Model.addEdge(edge);
                             break; // only one should match
                         }
                     }
                 }
-                var knotRoles = element.getElementsByTagName("knotRole");
+                var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "XXX";
                     role = knotRoles[i].getAttribute("role") || "unknownRole";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
-                    name += "_" + type + "_" + role;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") == type) {
-                            var knot = Model.getNodeFromId(Number(knots[j].getAttribute("id")));
-                            Model.addEdge(new Edge(tie, knot, role, (identifier == "true")));
+                            knot = Model.getNodeFromId(Number(knots[j].getAttribute("id")));
+                            edge = new Edge(tie, knot, (identifier == "true"));
+                            edge.role = role;
+                            Model.addEdge(edge);
                             break; // only one should match
                         }
                     }
                 }
-                tie.name = name;
                 return tie;
+            },
+            get name() {
+                var i, edge, name="";
+                for(i = 0; edge = this.edges[i]; i++) {
+                    if(i > 0)
+                        name += "_";
+                    name += edge.otherNode.mnemonic + "_" + edge.otherNode.descriptor;
+                }
+                return name;
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
@@ -1547,7 +1564,7 @@
                         role = schema.createElement("anchorRole");
                     else if(this.edges[i].otherNode instanceof Knot)
                         role = schema.createElement("knotRole");
-                    role.setAttribute("role", this.edges[i].name);
+                    role.setAttribute("role", this.edges[i].role);
                     role.setAttribute("type", node.mnemonic);
                     role.setAttribute("identifier", this.edges[i].identifier);
                     tie.appendChild(role);
@@ -1603,7 +1620,7 @@
         // inheritance
         extend(Tie, AbstractNode);
 
-        function Edge(node, otherNode, name, identifier) {
+        function Edge(node, otherNode, identifier) {
             // assume that the control point and midway point coincide with the center point
             this.centerPoint = {
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
@@ -1613,7 +1630,7 @@
                 xPosition: this.centerPoint.xPosition,
                 yPosition: this.centerPoint.yPosition
             };
-            AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition, name);
+            AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -1623,6 +1640,7 @@
             this.edges.push(otherNode);
         }
         Edge.prototype = {
+            role: null,
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
@@ -1841,6 +1859,10 @@
         function ContextMenu(node) {
             var contextMenu = document.createElement('div');
             contextMenu.setAttribute("id", "contextMenu");
+            var submitButton = elementCreator('input', [['type', 'button'], ['value', 'Apply']]);
+            var self = this;
+            submitButton.addEventListener('click', function(event) { self.submit(node)}, false);
+            contextMenu.appendChild(submitButton);
 
             var action, table;
             table = document.createElement('table');
@@ -1864,7 +1886,6 @@
                     action.control.setAttribute('value', action.value);
                 table.appendChild(tr);
             }
-
             contextMenu.appendChild(table);
 
             var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
@@ -1882,6 +1903,13 @@
             contextMenu: null,
             close: function() {
                 document.body.removeChild(this.contextMenu);
+            },
+            submit: function(node) {
+                for(var i = 0; action = node.actions[i]; i++) {
+                    if(action.value) {
+                        action.value = action.control.value;
+                    }
+                }
             }
         };
 
@@ -1982,7 +2010,7 @@
 
                 this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
                 this.undoButton.addEventListener('click', function(event) { return ActionMenu.randomizeLayout(event) }, false);
-                this.redoButton.addEventListener('click', function(event) { return ActionMenu.randomizeLayout(event) }, false);
+                this.redoButton.addEventListener('click', function(event) { return ActionMenu.toggleNames() }, false);
                 this.zoomInButton.addEventListener('click', function(event) { return self.zoomIn(event) }, false);
                 this.zoomOutButton.addEventListener('click', function(event) { return self.zoomOut(event) }, false);
             },
