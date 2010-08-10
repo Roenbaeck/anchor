@@ -1883,7 +1883,7 @@
                     tr.appendChild(td);
                 }
                 if(action.value)
-                    action.control.setAttribute('value', action.value);
+                    action.control.value = action.value;
                 table.appendChild(tr);
             }
             contextMenu.appendChild(table);
@@ -1998,6 +1998,7 @@
             redoButton: null,
             zoomInButton: null,
             zoomOutButton: null,
+            zoomFactor: 1.75,
             init: function() {
                 this.playPauseButton = document.getElementById('playpause');
                 this.undoButton = document.getElementById('undo');
@@ -2039,17 +2040,17 @@
             },
             doZoom: function (zoom) {
                 DrawingEngine.scale(zoom);
-                xx=window.innerWidth*0.5;
-                yy=window.innerHeight*0.5;
+                var xx = window.innerWidth/2;
+                var yy = window.innerHeight/2;
                 DrawingEngine.translate(DrawingEngine.xContext(xx) - DrawingEngine.xContext(xx) * zoom,
                         DrawingEngine.yContext(yy) - DrawingEngine.yContext(yy) * zoom);
                 DrawingEngine.start();
             },
             zoomIn: function (event) {
-                this.doZoom(1.75);
+                this.doZoom(this.zoomFactor);
             },
             zoomOut: function (event) {
-                this.doZoom(0.75);
+                this.doZoom(1/this.zoomFactor);
             }
         };
 
