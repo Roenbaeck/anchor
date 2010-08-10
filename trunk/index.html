@@ -15,6 +15,12 @@
         padding:            0;
     }
 
+    .unselectable {
+        user-select:        none;
+        -moz-user-select:   none;
+        -khtml-user-select: none;
+    }
+
     .closebutton {
         display:            none;
         background-image:   url(deleteButton.png);
@@ -639,6 +645,9 @@
             removeHovered: function(hoveredNode) {
                 this.hoveredNodes.splice(this.hoveredNodes.indexOf(hoveredNode), 1);
             },
+            setCursor: function(cursor) {
+                this.canvas.style.cursor = cursor;
+            },
             getNodeAt: function(x, y) {
                 // clear the shadow context
                 this.shadowContext.fillStyle = '#000000';
@@ -771,6 +780,7 @@
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
+                        DrawingEngine.setCursor('move');
                         DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale, (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
                     }
                     DrawingEngine.start();
@@ -780,6 +790,7 @@
                     if(this.hoveredNode && !this.menu) {
                         if(LayoutEngine.distance(this.hoveredNode, {xPosition: DrawingEngine.xContext(event.xScreen), yPosition: DrawingEngine.yContext(event.yScreen)}) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.removeHovered(this.hoveredNode);
+                            DrawingEngine.setCursor('default');
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
                             DrawingEngine.start();
@@ -799,6 +810,7 @@
                 // mouse pointer over node
                 if(this.hoveredNode) {
                     DrawingEngine.addHovered(this.hoveredNode);
+                    DrawingEngine.setCursor('pointer');
                     DrawingEngine.start();
                     this.keydown(event);
                 }
@@ -837,6 +849,7 @@
                 }
                 if (this.dragging)
                     this.dragging = false;
+                DrawingEngine.setCursor('default');
                 DrawingEngine.start();
             },
             handleEvent: function(event) {
@@ -2059,13 +2072,13 @@
     </script>
 </head>
 <body>
-    <canvas id="canvas">
+    <canvas id="canvas" class="unselectable">
         Your browser does not support HTML5 canvas!
     </canvas>
-    <canvas id="shadow">
+    <canvas id="shadow" class="unselectable">
         <!-- nothing to see here -->
     </canvas>
-    <div id="action" title="Actions that can be performed">
+    <div id="action" class="unselectable" title="Actions that can be performed">
         Action
         <!--
         <br/>
@@ -2081,7 +2094,7 @@
         <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
         -->
     </div>
-    <div id="expert" title="Expert settings">
+    <div id="expert" class="unselectable" title="Expert settings">
         Expert
     </div>
     <div id="controls">
@@ -2093,7 +2106,7 @@
         <div class="controlbutton" title="Zoom Out" id="zoomout"></div>
     </div>
 
-    <canvas id="miniature" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
+    <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
 
