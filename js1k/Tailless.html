@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>JS1k Demo</title>
+		<meta charset="utf-8"/>
+	</head>
+	<body>
+		<canvas id="c"></canvas>
+		<script>
+        window.onload=function(){
+            function A(t){return t<0?-t:t}
+            f=0.9999;
+            N=50;
+            R=Math.random;
+            c=document.body.children[0];
+            c.width=w=innerWidth-42;
+            c.height=h=innerHeight-42;
+            d=(w+h)/10;
+            g=c.getContext('2d');
+            n=[];
+            // first loop over edges, an edge is a triple
+            for(i=N;i;)
+                n[--i]={x:w*R(),y:h*R(),v:0,w:0};
+            setInterval(function(){
+                with(g){
+                    clearRect(0,0,w,h);
+                    strokeRect(0,0,w,h);
+                    fillText('Find the dot without a tail - look closely!', 10, 20);
+                    for(i=0;k=n[i++];){
+                        for(j=0;o=n[j++];)
+                            if(A(k.x-o.x)<d&&A(k.y-o.y)<d&&i!=j){
+                                t=A(k.x-o.x)+A(k.y-o.y);
+                                t*=t;
+                                k.v+=(k.x-o.x)/t;
+                                k.w+=(k.y-o.y)/t;
+                            }
+                        k.x+=k.v*=f;
+                        k.y+=k.w*=f;
+                        if(k.x>w||k.x<0)k.v*=-1;
+                        if(k.y>h||k.y<0)k.w*=-1;
+                        fillRect(k.x-5,k.y-5,10,10)
+                    }
+                }
+            },1);
+        }
+        </script>
+	</body>
+</html>
