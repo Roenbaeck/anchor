@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>JS1k Demo</title>
+		<meta charset="utf-8"/>
+	</head>
+	<body>
+		<canvas id="c"></canvas>
+		<script>
+        window.onload=function(){
+            f=0.98;
+            r=12;
+            with(Math){A=abs;R=random;_=floor}
+            Q=_(3*R()+2);
+            Z=_(3*R()+3);
+            alert("Q:" + Q + " Z:" + Z);
+            c=document.body.children[0];
+            c.width=w=innerWidth-42;
+            c.height=h=innerHeight-42;
+            d=(w+h)/10;
+            g=c.getContext('2d');
+            with(g){
+                g.C=clearRect;
+                g.S=strokeRect;
+                g.B=beginPath;
+                g.Q=quadraticCurveTo;
+                g.M=moveTo;
+                g.T=stroke;
+                g.F=fill;
+                g.R=restore;
+            }
+            n=[];e=[];
+            N=2*Z+1;
+            for(i=0;i<2*Q*Z+Q;i++){
+                n[i]={x:w*R(),y:h*R(),v:0,w:0};
+                if((i+(_(i/N)%2))%2<1&&i%N>1)
+                    e[i]=[i-1,_(i/N)*N];
+            }
+            setInterval(function(){
+                with(g){
+                    C(0,0,w,h);
+                    S(0,0,w,h);
+                    // first loop over edges
+                    for(i=0;k=n[i++];){
+                        for(j=0;o=n[j++];)
+                            if(A(k.x-o.x)<d&&A(k.y-o.y)<d&&i!=j){
+                                t=A(k.x-o.x)+A(k.y-o.y);
+                                t*=t;
+                                k.v+=(k.x-o.x)/t;
+                                k.w+=(k.y-o.y)/t;
+                            }
+                        if(k.x>w||k.x<0)k.v*=-1;
+                        if(k.y>h||k.y<0)k.w*=-1;
+                        k.x+=k.v*=f;
+                        k.y+=k.w*=f;
+                        B();
+                        if(e[i-1]){
+                            l=n[e[i-1][0]];m=n[e[i-1][1]];
+                            M(l.x,l.y);
+                            Q(k.x,k.y,m.x,m.y);
+                            T();
+                        }else{
+                            o=A(k.v)+A(k.w);
+                            save();
+                            globalAlpha=0.2;
+                            fillRect(k.x-4*o-r/2,k.y+6*o-r/2,r,r);
+                            restore();
+                            fillRect(k.x-r/2,k.y-r/2,r,r)
+                        }
+                    }
+                }
+            },1);
+        }
+        </script>
+	</body>
+</html>
