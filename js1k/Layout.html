@@ -22,11 +22,11 @@
         M=[];
         B=2*Q*Z+Q;
         L=B/Q;
-        G.U=-1;
+        I=-1;
         C.E=C.addEventListener;
-        C.E('mousedown',function(e){G.U=G.getImageData(e.clientX,e.clientY,1,1).data[2]});
-        C.E('mousemove',function(e){if(k=N[G.U]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}});
-        C.E('mouseup',function(){G.U=-1});
+        C.E('mousedown',function(e){I=G.getImageData(e.clientX,e.clientY,1,1).data[2]});
+        C.E('mousemove',function(e){if(k=N[I]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}});
+        C.E('mouseup',function(){I=-1});
         for(i=0;i<B;i++){
             N[i]={x:W*R(),y:H*R(),v:0,w:0};
             if((j=i%L)<_(L/2)){
@@ -40,21 +40,21 @@
                 strokeRect(0,0,W,H);
                 for(i=0;k=N[i];i++){
                     with(k){
-                        for(j=0;o=N[j];j++)
-                            if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){
-                                t*=t;
-                                v+=(x-o.x)/t;
-                                w+=(y-o.y)/t
-                            }
-                        if(M[i])
-                            for(j=0;o=N[M[i][j++]];) {
-                                t=A(x-o.x)+A(y-o.y);
-                                v-=r=K*(x-o.x)*t;
-                                w-=s=K*(y-o.y)*t;
-                                o.v+=r;
-                                o.w+=s
-                            }
-                        if(i!=U){
+                        if(i!=I){
+                            for(j=0;o=N[j];j++)
+                                if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){
+                                    t*=t;
+                                    v+=(x-o.x)/t;
+                                    w+=(y-o.y)/t
+                                }
+                            if(M[i])//move other if stuff here
+                                for(j=0;o=N[M[i][j++]];) {
+                                    t=A(x-o.x)+A(y-o.y);
+                                    v-=r=K*(x-o.x)*t;
+                                    w-=s=K*(y-o.y)*t;
+                                    o.v+=r;
+                                    o.w+=s
+                                }
                             x+=v*=x>W||x<0?-F:F;
                             y+=w*=y>H||y<0?-F:F;
                             x=x>W?W:x<0?0:x;
