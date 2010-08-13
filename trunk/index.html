@@ -252,6 +252,91 @@
     .preformatted {
         white-space:        pre;        
     }
+
+
+
+
+/* Navigation menu */
+/* http://www.ie7nomore.com/fun/menu2/ */
+    #nav {
+        font: .9em;
+        background: #e3e3e3;
+        background: -moz-linear-gradient(#f5f5f5, #e3e3e3);
+        background: -webkit-gradient(linear, 0 0, 0 100%, color-stop(0, #f5f5f5), color-stop(0.98, #e3e3e3), color-stop(1, #fff));
+        border-bottom: 1px solid #ccc;
+    }
+
+    #nav > li {
+        position: relative;
+        display: inline-block;
+        vertical-align: top;
+        border-right: 1px solid #eee; /* for IE6/7 */
+        zoom: 1;
+        z-index: 4;
+    }
+
+    #nav a {
+        display: block;
+        padding: 0 5px;
+        color: #000;
+        text-decoration: none;
+    }
+
+    #nav a:hover, #nav a:focus {
+        background: #eee;
+    }
+
+    #nav h2 a {
+        display: block;
+        padding: 8px 10px;
+        border-right: 1px solid #ccc;
+        background: none;
+        text-decoration: none;
+    }
+
+    #nav h2 a:hover, #nav h2 a:focus {
+        text-decoration: underline;
+    }
+
+    .submenu {
+        position: absolute;
+        left: -2px;
+        z-index: 0;
+        opacity: 0;
+        filter: alpha(opacity = 0);
+        white-space: nowrap;
+        background: #fff;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        border-radius: 5px;
+        -moz-border-radius: 0 0 5px 5px;
+        -webkit-border-radius: 0 0 5px 5px;
+        border-radius: 0 0 5px 5px;
+        -webkit-border-bottom-left-radius: 5px; /* for Chrome */
+        -webkit-border-bottom-right-radius: 5px; /* for Chrome */
+        border: 2px solid #eee;
+        border-top: 1px solid #ccc;
+    }
+
+    .submenu li {
+        height: 0;
+        line-height: 25px;
+        background: #fff;
+        list-style-type: none;
+        margin: 0; padding: 0;
+    }
+
+    #nav > li:hover .submenu, #nav > li.focus .submenu {
+        z-index: 10;
+        opacity: 1;
+        filter: alpha(opacity = 100);
+    }
+
+    #nav > li:hover .submenu li, #nav > li.focus .submenu li {
+        height: 25px;
+    }
+
+
     </style>
 
     <script type="text/javascript">
@@ -2076,11 +2161,25 @@
         Your browser does not support HTML5 canvas!
     </canvas>
     <canvas id="shadow" class="unselectable">
-        <!-- nothing to see here -->
     </canvas>
+
+    <nav role="navigation">
+
+    <ul id="nav">
+      <li tabindex="0"><a href="#">Action</a>
+        <ul class="submenu" tabindex="0">
+          <li tabindex="0"><a href="#" onclick="new CodePopover(ActionMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</a></li>
+          <li tabindex="0"><a href="#" onclick="new CodePopover(ActionMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</a></li>
+          <li tabindex="0"><a href="#" onclick="ActionMenu.toggleNames(this)">Toggle names</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    </nav>
+
+    <!--
     <div id="action" class="unselectable" title="Actions that can be performed">
         Action
-        <!--
         <br/>
         <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
         <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
@@ -2092,8 +2191,8 @@
         <input type="button" value="SQL" onclick="new CodePopover(transform(Model.toXML(), 'SQLServer.xsl'), true)"/>
         <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
         <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
-        -->
     </div>
+        -->
     <div id="expert" class="unselectable" title="Expert settings">
         Expert
     </div>
