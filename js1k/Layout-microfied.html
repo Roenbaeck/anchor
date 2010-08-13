@@ -1,13 +1,13 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>JS1k Demo - 1047 bytes</title>
+		<title>JS1k Demo - 1000 bytes</title>
 		<meta charset="utf-8"/>
 	</head>
 	<body>
 		<canvas id="c"></canvas>
 		<script>
-        F=0.96;Q=3;Z=12;with(Math){A=abs;R=random;_=floor;P=2*PI}C=document.body.children[0];C.width=W=600;C.height=H=600;D=(W+H)/30;K=1/D/D/D;S=D/3;G=C.getContext('2d');N=[];M=[];B=2*Q*Z+Q;L=B/Q;G.U=-1;C.E=C.addEventListener;C.E('mousedown',function(e){G.U=G.getImageData(e.clientX,e.clientY,1,1).data[2]});C.E('mousemove',function(e){if(k=N[G.U]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}});C.E('mouseup',function(){G.U=-1});for(i=0;i<B;i++){N[i]={x:W*R(),y:H*R(),v:0,w:0};if((j=i%L)<_(L/2)){k=_(1+i/L)*L-1;M[i]=[k-j-1,k]}}setInterval(function(){with(G){clearRect(0,0,W,H);strokeRect(0,0,W,H);for(i=0;k=N[i];i++){with(k){for(j=0;o=N[j];j++)if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){t*=t;v+=(x-o.x)/t;w+=(y-o.y)/t}if(M[i])for(j=0;o=N[M[i][j++]];){t=A(x-o.x)+A(y-o.y);v-=r=K*(x-o.x)*t;w-=s=K*(y-o.y)*t;o.v+=r;o.w+=s}if(i!=U){x+=v*=x>W||x<0?-F:F;y+=w*=y>H||y<0?-F:F;x=x>W?W:x<0?0:x;y=y>H?H:y<0?0:y}beginPath();if(M[i]){o=N[M[i][0]];p=N[M[i][1]];moveTo(o.x,o.y);quadraticCurveTo(x,y,p.x,p.y)}else{arc(x,y,S,0,P);fillStyle='rgb(255,180,'+i+')';fill()}stroke()}}}},1);
+        F=0.96;Q=3;Z=15;with(Math){A=abs;R=random;_=floor;P=2*PI}C=document.body.children[0];C.width=W=600;C.height=H=600;D=(W+H)/30;K=1/D/D/D;S=D/3;G=C.getContext('2d');N=[];M=[];B=2*Q*Z+Q;L=B/Q;I=-1;C.E=C.addEventListener;C.E('mousedown',function(e){I=G.getImageData(e.clientX,e.clientY,1,1).data[2]});C.E('mousemove',function(e){if(k=N[I]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}});C.E('mouseup',function(){I=-1});for(i=0;i<B;i++){N[i]={x:W*R(),y:H*R(),v:0,w:0};if((j=i%L)<_(L/2)){k=_(1+i/L)*L-1;M[i]=[k-j-1,k]}}setInterval(function(){with(G){clearRect(0,0,W,H);strokeRect(0,0,W,H);for(i=0;k=N[i];i++){with(k){if(i!=I){for(j=0;o=N[j];j++)if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){t*=t;v+=(x-o.x)/t;w+=(y-o.y)/t}if(M[i])for(j=0;o=N[M[i][j++]];){t=A(x-o.x)+A(y-o.y);v-=r=K*(x-o.x)*t;w-=s=K*(y-o.y)*t;o.v+=r;o.w+=s}v*=F;w*=F;x=(x+v+W)%W;y=(y+w+H)%H;}beginPath();if(M[i]){o=N[M[i][0]];p=N[M[i][1]];moveTo(o.x,o.y);quadraticCurveTo(x,y,p.x,p.y)}else{arc(x,y,S,0,P);fillStyle='rgb(0,255,'+i+')';fill()}stroke()}}}},1);
         </script>
 	</body>
 </html>
