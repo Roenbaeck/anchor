@@ -7,70 +7,75 @@
 	<body>
 		<canvas id="c"></canvas>
 		<script>
-        window.onload=function(){
-            f=0.98;
-            r=12;
-            with(Math){A=abs;R=random;_=floor}
-            Q=_(3*R()+2);
-            Z=_(3*R()+3);
-            alert("Q:" + Q + " Z:" + Z);
-            c=document.body.children[0];
-            c.width=w=innerWidth-42;
-            c.height=h=innerHeight-42;
-            d=(w+h)/10;
-            g=c.getContext('2d');
-            with(g){
-                g.C=clearRect;
-                g.S=strokeRect;
-                g.B=beginPath;
-                g.Q=quadraticCurveTo;
-                g.M=moveTo;
-                g.T=stroke;
-                g.F=fill;
-                g.R=restore;
+        F=0.96;
+        Q=3;
+        Z=12;
+        with(Math){A=abs;R=random;_=floor;P=2*PI}
+        C=document.body.children[0];
+        C.width=W=600;
+        C.height=H=600;
+        D=(W+H)/30;
+        K=1/D/D/D;
+        S=D/3;
+        G=C.getContext('2d');
+        N=[];
+        M=[];
+        B=2*Q*Z+Q;
+        L=B/Q;
+        G.U=-1;
+        C.E=C.addEventListener;
+        C.E('mousedown',function(e){G.U=G.getImageData(e.clientX,e.clientY,1,1).data[2]});
+        C.E('mousemove',function(e){if(k=N[G.U]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}});
+        C.E('mouseup',function(){G.U=-1});
+        for(i=0;i<B;i++){
+            N[i]={x:W*R(),y:H*R(),v:0,w:0};
+            if((j=i%L)<_(L/2)){
+                k=_(1+i/L)*L-1;
+                M[i]=[k-j-1,k]
             }
-            n=[];e=[];
-            N=2*Z+1;
-            for(i=0;i<2*Q*Z+Q;i++){
-                n[i]={x:w*R(),y:h*R(),v:0,w:0};
-                if((i+(_(i/N)%2))%2<1&&i%N>1)
-                    e[i]=[i-1,_(i/N)*N];
-            }
-            setInterval(function(){
-                with(g){
-                    C(0,0,w,h);
-                    S(0,0,w,h);
-                    // first loop over edges
-                    for(i=0;k=n[i++];){
-                        for(j=0;o=n[j++];)
-                            if(A(k.x-o.x)<d&&A(k.y-o.y)<d&&i!=j){
-                                t=A(k.x-o.x)+A(k.y-o.y);
+        }
+        setInterval(function(){
+            with(G){
+                clearRect(0,0,W,H);
+                strokeRect(0,0,W,H);
+                for(i=0;k=N[i];i++){
+                    with(k){
+                        for(j=0;o=N[j];j++)
+                            if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){
                                 t*=t;
-                                k.v+=(k.x-o.x)/t;
-                                k.w+=(k.y-o.y)/t;
+                                v+=(x-o.x)/t;
+                                w+=(y-o.y)/t
                             }
-                        if(k.x>w||k.x<0)k.v*=-1;
-                        if(k.y>h||k.y<0)k.w*=-1;
-                        k.x+=k.v*=f;
-                        k.y+=k.w*=f;
-                        B();
-                        if(e[i-1]){
-                            l=n[e[i-1][0]];m=n[e[i-1][1]];
-                            M(l.x,l.y);
-                            Q(k.x,k.y,m.x,m.y);
-                            T();
-                        }else{
-                            o=A(k.v)+A(k.w);
-                            save();
-                            globalAlpha=0.2;
-                            fillRect(k.x-4*o-r/2,k.y+6*o-r/2,r,r);
-                            restore();
-                            fillRect(k.x-r/2,k.y-r/2,r,r)
+                        if(M[i])
+                            for(j=0;o=N[M[i][j++]];) {
+                                t=A(x-o.x)+A(y-o.y);
+                                v-=r=K*(x-o.x)*t;
+                                w-=s=K*(y-o.y)*t;
+                                o.v+=r;
+                                o.w+=s
+                            }
+                        if(i!=U){
+                            x+=v*=x>W||x<0?-F:F;
+                            y+=w*=y>H||y<0?-F:F;
+                            x=x>W?W:x<0?0:x;
+                            y=y>H?H:y<0?0:y
                         }
+                        beginPath();
+                        if(M[i]){
+                            o=N[M[i][0]];
+                            p=N[M[i][1]];
+                            moveTo(o.x,o.y);
+                            quadraticCurveTo(x,y,p.x,p.y)
+                        }else{
+                            arc(x,y,S,0,P);
+                            fillStyle='rgb(255,180,'+i+')';
+                            fill()
+                        }
+                        stroke()
                     }
                 }
-            },1);
-        }
+            }
+        },1);
         </script>
 	</body>
 </html>
