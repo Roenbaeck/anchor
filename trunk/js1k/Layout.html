@@ -9,7 +9,7 @@
 		<script>
         F=0.96;
         Q=3;
-        Z=12;
+        Z=15;
         with(Math){A=abs;R=random;_=floor;P=2*PI}
         C=document.body.children[0];
         C.width=W=600;
@@ -47,7 +47,7 @@
                                     v+=(x-o.x)/t;
                                     w+=(y-o.y)/t
                                 }
-                            if(M[i])//move other if stuff here
+                            if(M[i])
                                 for(j=0;o=N[M[i][j++]];) {
                                     t=A(x-o.x)+A(y-o.y);
                                     v-=r=K*(x-o.x)*t;
@@ -55,10 +55,10 @@
                                     o.v+=r;
                                     o.w+=s
                                 }
-                            x+=v*=x>W||x<0?-F:F;
-                            y+=w*=y>H||y<0?-F:F;
-                            x=x>W?W:x<0?0:x;
-                            y=y>H?H:y<0?0:y
+                            v*=F;
+                            w*=F;
+                            x=(x+v+W)%W;
+                            y=(y+w+H)%H;
                         }
                         beginPath();
                         if(M[i]){
@@ -68,7 +68,7 @@
                             quadraticCurveTo(x,y,p.x,p.y)
                         }else{
                             arc(x,y,S,0,P);
-                            fillStyle='rgb(255,180,'+i+')';
+                            fillStyle='rgb(0,255,'+i+')';
                             fill()
                         }
                         stroke()
