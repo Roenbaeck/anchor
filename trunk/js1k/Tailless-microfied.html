@@ -1,13 +1,14 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>JS1k Demo</title>
+		<title>JS0.5k Demo</title>
 		<meta charset="utf-8"/>
 	</head>
 	<body>
-		<canvas id="c"></canvas>
-		<script>
-        window.onload=function(){function A(t){return t<0?-t:t}f=0.9999;N=50;R=Math.random;c=document.body.children[0];c.width=w=innerWidth-42;c.height=h=innerHeight-42;d=(w+h)/10;g=c.getContext('2d');n=[];for(i=N;i;)n[--i]={x:w*R(),y:h*R(),v:0,w:0};setInterval(function(){with(g){clearRect(0,0,w,h);strokeRect(0,0,w,h);fillText('Find the dot without a tail - look closely!', 10, 20);for(i=0;k=n[i++];){for(j=0;o=n[j++];)if(A(k.x-o.x)<d&&A(k.y-o.y)<d&&i!=j){t=A(k.x-o.x)+A(k.y-o.y);t*=t;k.v+=(k.x-o.x)/t;k.w+=(k.y-o.y)/t;}k.x+=k.v*=f;k.y+=k.w*=f;if(k.x>w||k.x<0)k.v*=-1;if(k.y>h||k.y<0)k.w*=-1;fillRect(k.x-5,k.y-5,10,10)}}},1);}
+        <canvas id="c"></canvas><br/>
+        Find the dot without a tail!
+        <script>
+        window.onload=function(){N=50;A=Math.abs;R=Math.random;C=document.body.children[0];C.width=W=innerWidth-24;C.height=H=innerHeight-42;G=C.getContext('2d');M=[];for(i=N;i;)M[--i]={x:W*R(),y:H*R(),v:0,w:0};setInterval(function(){with(G){clearRect(0,0,W,H);strokeRect(0,0,W,H);for(i=0;n=M[i++];){with(n){for(j=0;k=M[j++];)if((t=A(x-k.x)+A(y-k.y))<(W+H)/10&&i!=j){t*=t;v+=(x-k.x)/t;w+=(y-k.y)/t;}x+=x>W||x<0?v*=-1:v;y+=y>H||y<0?w*=-1:w;fillRect(x-5,y-5,10,10)}}}},10);}
         </script>
 	</body>
 </html>
