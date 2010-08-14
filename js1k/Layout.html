@@ -12,23 +12,20 @@
         Z=10;
         with(Math){A=abs;R=random;_=floor;P=2*PI}
         C=document.body.children[0];
-        C.width=W=600;
-        C.height=H=600;
+        C.width=C.height=W=H=600;
+        I=0;
+        C.E=C.addEventListener;
+        C.E('mousedown',function(e){I=G.getImageData(e.clientX,e.clientY,1,1).data[2]},0);
+        C.E('mousemove',function(e){if(k=N[I-1]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}},0);
+        C.E('mouseup',function(){I=0},0);
+        G=C.getContext('2d');
         D=(W+H)/30;
         K=1/D/D/D;
-        S=D/3;
-        G=C.getContext('2d');
         N=[];
         M=[];
         B=2*Q*Z+Q;
         L=B/Q;
-        I=-1;
-        C.E=C.addEventListener;
-        C.E('mousedown',function(e){I=G.getImageData(e.clientX,e.clientY,1,1).data[2]},0);
-        C.E('mousemove',function(e){if(k=N[I]){k.x=e.clientX;k.y=e.clientY;k.v=0;k.w=0}},0);
-        C.E('mouseup',function(){I=-1},0);
-        for(i=0;i<B;i++){
-            N[i]={x:W*R(),y:H*R(),v:0,w:0};
+        for(i=0;i<B;N[i++]={x:W*R(),y:H*R(),v:0,w:0}){
             if((j=i%L)<_(L/2)){
                 k=_(1+i/L)*L-1;
                 M[i]=[k-j-1,k]
@@ -38,9 +35,9 @@
             with(G){
                 clearRect(0,0,W,H);
                 strokeRect(0,0,W,H);
-                for(i=0;k=N[i];i++){
+                for(i=0;k=N[i];i++)
                     with(k){
-                        if(i!=I){
+                        if(i!=I-1){
                             for(j=0;o=N[j];j++)
                                 if((t=A(x-o.x)+A(y-o.y))<D&&i!=j){
                                     t*=t;
@@ -48,7 +45,7 @@
                                     w+=(y-o.y)/t
                                 }
                             if(M[i])
-                                for(j=0;o=N[M[i][j++]];) {
+                                for(j=0;o=N[M[i][j++]];){
                                     t=A(x-o.x)+A(y-o.y);
                                     v-=r=K*(x-o.x)*t;
                                     w-=s=K*(y-o.y)*t;
@@ -58,7 +55,7 @@
                             v*=F;
                             w*=F;
                             x=(x+v+W)%W;
-                            y=(y+w+H)%H;
+                            y=(y+w+H)%H
                         }
                         beginPath();
                         if(M[i]){
@@ -67,15 +64,14 @@
                             moveTo(o.x,o.y);
                             quadraticCurveTo(x,y,p.x,p.y)
                         }else{
-                            arc(x,y,S,0,P,false);
-                            fillStyle='rgb(0,255,'+i+')';
+                            arc(x,y,D/3,0,P,0);
+                            fillStyle='rgb(0,255,'+(i+1)+')';
                             fill()
                         }
                         stroke()
                     }
-                }
             }
-        },1);
+        },1)
         </script>
 	</body>
 </html>
