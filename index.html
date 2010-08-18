@@ -21,6 +21,13 @@
         -khtml-user-select: none;
     }
 
+    .invisible {
+        opacity:            0;
+        z-index:            1000;
+        position:           absolute;
+        left:               0;
+    }
+
     .closebutton {
         display:            none;
         background-image:   url(deleteButton.png);
@@ -33,90 +40,6 @@
     }
     .closebutton:active {
         background-image:   url(deleteButtonPressed.png);
-    }
-
-    #controls {
-        position:           relative;
-        display:            block;
-        top:                0px;
-        left:               50%;
-    }
-
-    #controls .controlbutton {
-        position:           absolute;
-        font:               50% Andale Mono, monospace;
-        text-align:         center;
-        display:            block;
-        padding:            0;
-        margin:             10px 0px 0px 0px;
-        width:              42px;
-        height:             43px;
-        z-index:            999;
-    }
-
-    #controls #playpause {
-        left:               -84px;
-    }
-    .pause {
-        background-image:   url(pausebutton.png);
-    }
-    .pause:hover {
-        background-image:   url(pausebuttonhover.png);
-    }
-    .play {
-        background-image:   url(playbutton.png);
-    }
-    .play:hover {
-        background-image:   url(playbuttonhover.png);
-    }
-    #controls #undo {
-        background-image:   url(undobutton.png);
-        left:               -42px;
-    }
-    #controls #undo:hover {
-        background-image:   url(undobuttonhover.png);
-    }
-    #controls #redo {
-        background-image:   url(redobutton.png);
-        left:               0px;
-    }
-    #controls #redo:hover {
-        background-image:   url(redobuttonhover.png);
-    }
-    #controls #zoomin {
-        background-image:   url(zoominbutton.png);
-        left:               42px;
-    }
-    #controls #zoomin:hover {
-        background-image:   url(zoominbuttonhover.png);
-    }
-    #controls #zoomout {
-        background-image:   url(zoomoutbutton.png);
-        left:               84px;
-    }
-    #controls #zoomout:hover {
-        background-image:   url(zoomoutbuttonhover.png);
-    }
-
-    .zoominbutton {
-        display:            block;
-        background-image:   url(zoominbutton.png); 
-        position:           absolute;
-        right:              30px;
-        bottom:             48px;
-        width:              16px;
-        height:             16px;
-        z-index:            999;
-    }
-    .zoomoutbutton {
-        display:            block;
-        background-image:   url(zoomoutbutton.png);
-        position:           absolute;
-        right:              30px;
-        bottom:             32px;
-        width:              16px;
-        height:             16px;
-        z-index:            999;
     }
 
     /* visible canvas - at the bottom of the visible layers */
@@ -147,36 +70,6 @@
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
-
-    #action {
-        position:           absolute;
-        display:            block;
-        border-bottom:      1px dotted;
-        border-right:       1px dotted;
-        background-color:   rgba(255, 255, 255, 0.8);
-        color:              black;
-        padding:            5px 10px;
-        margin:             0;
-        top:                0px;
-        left:               0px;
-        text-align:         left;
-        z-index:            3;
-    }
-
-    #expert {
-        position:           absolute;
-        display:            block;
-        border-bottom:      1px dotted;
-        border-left:        1px dotted;
-        background-color:   rgba(255, 255, 255, 0.8);
-        color:              black;
-        padding:            5px 10px;
-        margin:             0;
-        top:                0px;
-        right:              0px;
-        text-align:         right;
-        z-index:            3;
-    }    
 
     #contextMenu {
         position:           absolute;
@@ -254,89 +147,148 @@
     }
 
 
+    /* Menus and control buttons */
+    ul, li {
+		list-style-type:    none;
+		margin:             0;
+        padding:            0;
+	}
 
-
-/* Navigation menu */
-/* http://www.ie7nomore.com/fun/menu2/ */
-    #nav {
-        font: .9em;
-        background: #e3e3e3;
-        background: -moz-linear-gradient(#f5f5f5, #e3e3e3);
-        background: -webkit-gradient(linear, 0 0, 0 100%, color-stop(0, #f5f5f5), color-stop(0.98, #e3e3e3), color-stop(1, #fff));
-        border-bottom: 1px solid #ccc;
+    #header {
+        font:               10pt georgia, sans-serif;
+        position:           relative;
+        margin:             0;
+        padding:            0;
+        top:                0;
+        left:               0;
+        height:             32px;
+        display:            block;
+        background-color:   rgba(212, 212, 212, 0.8);
+        color:              black;
+        border-bottom:      2px solid #fff;
+        box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 0px 10px rgba(0, 0, 0, 0.5);
+        z-index:            998;
     }
 
-    #nav > li {
-        position: relative;
-        display: inline-block;
-        vertical-align: top;
-        border-right: 1px solid #eee; /* for IE6/7 */
-        zoom: 1;
-        z-index: 4;
+    /* http://www.ie7nomore.com/fun/menu2/ */
+    #actions, #settings {
+        position:           absolute;
+        display:            block;
+        top:                0px;
+        z-index:            998;
     }
-
-    #nav a {
-        display: block;
-        padding: 0 5px;
-        color: #000;
-        text-decoration: none;
+    #actions {
+        left:               8px;
+        text-align:         left;
     }
-
-    #nav a:hover, #nav a:focus {
-        background: #eee;
+    #settings {
+        right:              8px;
+        text-align:         right;
     }
-
-    #nav h2 a {
-        display: block;
-        padding: 8px 10px;
-        border-right: 1px solid #ccc;
-        background: none;
-        text-decoration: none;
+    .menu {
+        font:               10pt georgia, sans-serif;
+        margin:             0;
+        cursor:             pointer;
+        list-style:         none;
     }
-
-    #nav h2 a:hover, #nav h2 a:focus {
-        text-decoration: underline;
+    .menu li {
+        line-height:        32px;
     }
-
+    .menu > li {
+        display:            inline-block;
+    }
     .submenu {
-        position: absolute;
-        left: -2px;
-        z-index: 0;
-        opacity: 0;
-        filter: alpha(opacity = 0);
-        white-space: nowrap;
-        background: #fff;
-        -webkit-border-radius: 5px;
-        -moz-border-radius: 5px;
-        border-radius: 5px;
-        -moz-border-radius: 0 0 5px 5px;
-        -webkit-border-radius: 0 0 5px 5px;
-        border-radius: 0 0 5px 5px;
-        -webkit-border-bottom-left-radius: 5px; /* for Chrome */
-        -webkit-border-bottom-right-radius: 5px; /* for Chrome */
-        border: 2px solid #eee;
-        border-top: 1px solid #ccc;
+        opacity:            0;
+        background-color:   rgba(212, 212, 212, 0.8);
+        white-space:        nowrap;
+        border:             2px solid #fff;
+        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+        z-index:            999;
     }
-
     .submenu li {
-        height: 0;
-        line-height: 25px;
-        background: #fff;
-        list-style-type: none;
-        margin: 0; padding: 0;
+        height:             0;
+        line-height:        25px;
+        list-style-type:    none;
+        margin:             0;
+        padding-right:      8px;
+        padding-left:       8px;
+    }
+    .menu > li:hover .submenu, .menu > li.focus .submenu {
+        opacity:            1;
+    }
+    .menu > li:hover .submenu li, .menu > li.focus .submenu li {
+        height:             25px;
+    }
+    .submenu li:hover {
+        color:              white;
+        background-color:   rgba(128, 128, 128, 0.8);
+        text-decoration:    none;
+        text-shadow:        0px 0px 6px #555;
     }
 
-    #nav > li:hover .submenu, #nav > li.focus .submenu {
-        z-index: 10;
-        opacity: 1;
-        filter: alpha(opacity = 100);
+    /* Flexible menu without images - taken from ie7nomore.com and modified */
+    #controls {
+        position:           absolute;
+        top:                0px;
+        left:               50%;
+        margin-left:        -300px; /* half of the actual width */
+        display:            block;
+        z-index:            999;
     }
-
-    #nav > li:hover .submenu li, #nav > li.focus .submenu li {
-        height: 25px;
+    #controls .playing {
+        background-color:   #ffaa55;      
     }
-
-
+    #controls .pausing {
+        /* just go back to normal */
+    }
+    .control {
+        cursor:             pointer;
+        width:              600px;
+        height:             32px;
+        margin:             0;
+        padding:            0;
+        list-style:         none;
+        display:            -moz-box;
+        display:            -webkit-box;
+        display:            box;
+        -moz-box-orient:    horizontal;
+        -webkit-box-orient: horizontal;
+        box-orient:         horizontal;
+    }
+    .control li {
+        -moz-box-flex :     1;
+        -webkit-box-flex :  1;
+        box-flex :          1;
+        min-width:          65px; /* @bugfix : avoid jerky transition ending */
+        padding:            8px 0 8px 20px;
+        margin:             0;
+        border-left:        0;
+        background:         #bb5555;
+        color:              #fff;
+        text-decoration:    none;
+        text-shadow:        0px 0px 6px #777;
+        -moz-border-radius: 10px 0 / 40px 0;
+        -webkit-border-radius: 10px 0 / 40px 0;
+        border-radius:      10px 0 / 40px 0;
+        -webkit-transition: .5s;
+        -moz-transition:    .5s;
+        transition:         .5s;
+    }
+    .control li:hover, .menu li:focus {
+        background:         #ff7777;
+        width:              20%; /* times number of menu items = 100% */
+        -moz-box-flex :     2;
+        -webkit-box-flex :  2;
+        box-flex :          2;
+    }
+    .control li + li {
+        margin-left:        -50px;
+    }
+    
     </style>
 
     <script type="text/javascript">
@@ -675,7 +627,7 @@
             yVisible: 0,
             widthVisible: 0,
             heightVisible: 0,
-            miniScale: 0.3,
+            miniScale: 0.2, // one fifth of the large canvas
             miniPadding: 50,
             miniWidth: 0,
             miniHeight: 0,
@@ -809,10 +761,15 @@
                 }
             },
             drawMiniature: function(model) {
-                this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
-                this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
-                this.miniatureCanvas.width = this.miniScale * this.miniWidth;
-                this.miniatureCanvas.height = this.miniScale * this.miniHeight;
+                // check current size first and adjust scale accordingly
+                do {
+                    this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
+                    this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
+                    this.miniatureCanvas.width = this.miniScale * this.miniWidth;
+                    this.miniatureCanvas.height = this.miniScale * this.miniHeight;
+                }
+                while(this.resizeMiniature());
+
                 this.miniature.style.width = this.miniatureCanvas.width + 'px';
                 this.miniature.style.height = this.miniatureCanvas.height + 'px';
                 this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - Model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - Model.topmostNode.yPosition));
@@ -821,6 +778,17 @@
                 this.miniatureContext.strokeStyle = '#bb5555';
                 this.miniatureContext.lineWidth = 1/this.miniScale;
                 this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
+            },
+            resizeMiniature: function() {
+                if(this.miniatureCanvas.width + this.miniatureCanvas.height < (window.innerWidth + window.innerHeight)/6) {
+                    this.miniScale += 0.03;
+                    return true;
+                }
+                if(this.miniatureCanvas.width + this.miniatureCanvas.height > (window.innerWidth + window.innerHeight)/4) {
+                    this.miniScale -= 0.03;
+                    return true;
+                }
+                return false;
             },
             drawPalette: function(x, y) {
                 this.context.beginPath();
@@ -1020,20 +988,6 @@
 
                 if(this.MiniatureEventHandler[event.type])
                     this.MiniatureEventHandler[event.type](event);
-            },
-            enlarge: function(event) {
-                if(DrawingEngine.miniatureCanvas.width < 0.8 * window.innerWidth && DrawingEngine.miniatureCanvas.height < 0.8 * window.innerHeight) {
-                    DrawingEngine.miniScale += 0.03;
-                    DrawingEngine.invalidateMiniature();
-                    DrawingEngine.start();
-                }
-            },
-            decrease: function(event) {
-                if(DrawingEngine.miniScale >= 0.1) {
-                    DrawingEngine.miniScale -= 0.03;
-                    DrawingEngine.invalidateMiniature();
-                    DrawingEngine.start();                    
-                }
             }
         };
 
@@ -1885,13 +1839,7 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
-            // TODO: These are about to be removed
-            var miniEnlarge = document.getElementById("miniEnlarge");
-            miniEnlarge.addEventListener('click', MiniatureEventHandler.enlarge, false);
-            var miniDecrease = document.getElementById("miniDecrease");
-            miniDecrease.addEventListener('click', MiniatureEventHandler.decrease, false);
-
-            ActionMenu.loadFromURL('example.xml');
+            ActionsMenu.loadFromURL('example.xml');
 
             LayoutEngine.metric = LayoutEngine.manhattan;
 //            LayoutEngine.metric = LayoutEngine.euclidean;
@@ -2032,7 +1980,7 @@
             }
         };
 
-        var ActionMenu = {
+        var ActionsMenu = {
             transform: function (xmlDocument, transformationURL) {
                 var result;
                 try {
@@ -2078,7 +2026,7 @@
             }
         };
 
-        var ExpertMenu = {
+        var SettingsMenu = {
             toggleDebug: function (button) {
                 DEBUG = !DEBUG;
                 if(DEBUG)
@@ -2108,8 +2056,8 @@
                 var self = this;
 
                 this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
-                this.undoButton.addEventListener('click', function(event) { return ActionMenu.randomizeLayout(event) }, false);
-                this.redoButton.addEventListener('click', function(event) { return ActionMenu.toggleNames() }, false);
+                this.undoButton.addEventListener('click', function(event) { return ActionsMenu.randomizeLayout(event) }, false);
+                this.redoButton.addEventListener('click', function(event) { return ActionsMenu.toggleNames() }, false);
                 this.zoomInButton.addEventListener('click', function(event) { return self.zoomIn(event) }, false);
                 this.zoomOutButton.addEventListener('click', function(event) { return self.zoomOut(event) }, false);
             },
@@ -2125,10 +2073,12 @@
                 }
             },
             setPlayState: function() {
-                this.playPauseButton.className = 'controlbutton play';
+                this.playPauseButton.firstChild.nodeValue = 'Play';
+                this.playPauseButton.className = 'pausing';
             },
             setPauseState: function() {
-                this.playPauseButton.className = 'controlbutton pause';
+                this.playPauseButton.firstChild.nodeValue = 'Pause';
+                this.playPauseButton.className = 'playing';
             },
             invalidateLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
@@ -2161,56 +2111,51 @@
         Your browser does not support HTML5 canvas!
     </canvas>
     <canvas id="shadow" class="unselectable">
+        <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
 
-    <nav role="navigation">
+    <div id="header" class="unselectable">
+        <div id="actions">
+            <ul class="menu">
+                <li>Actions
+                    <ul class="submenu">
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
+                        <li onclick="ActionsMenu.toggleNames(this)">Toggle names</li>
+                        <li onclick="ActionsMenu.toggleFixation(this)">Toggle fixation</li>
+                        <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
+                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG Image</li>
+                        <!-- TODO: There is some kind of trick to make the input field invisible but on top and the "Load file" text visible below it -->
+                        <li>Load file <input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files)"/></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
 
-    <ul id="nav">
-      <li tabindex="0"><a href="#">Action</a>
-        <ul class="submenu" tabindex="0">
-          <li tabindex="0"><a href="#" onclick="new CodePopover(ActionMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</a></li>
-          <li tabindex="0"><a href="#" onclick="new CodePopover(ActionMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</a></li>
-          <li tabindex="0"><a href="#" onclick="ActionMenu.toggleNames(this)">Toggle names</a></li>
-        </ul>
-      </li>
-    </ul>
+        <div id="controls">
+            <ul class="control">
+                <li id="playpause">Pause</li>
+                <li id="undo">Undo</li>
+                <li id="redo">Redo</li>
+                <li id="zoomin">Zoom In</li>
+                <li id="zoomout">Zoom Out</li>
+            </ul>
+        </div>
 
-    </nav>
+        <div id="settings" class="unselectable" title="Expert settings">
+            <ul class="menu">
+                <li>Settings
+                    <ul class="submenu">
+                        <li onclick="SettingsMenu.toggleDebug(this)">Toggle debug</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
 
-    <!--
-    <div id="action" class="unselectable" title="Actions that can be performed">
-        Action
-        <br/>
-        <input type="button" value="DEBUG MODE" onclick="toggleDebug(this)"/>
-        <input type="button" value="TOGGLE FIXATION" onclick="toggleFixation()"/>
-        <input type="button" value="INVALIDATE LAYOUT" onclick="invalidateLayout()"/>
-        <input type="button" value="RANDOMIZE" onclick="randomizeLayout()"/>
-        <input type="button" value="PAUSE" onclick="togglePause(this)"/>
-        <input type="button" value="TOGGLE NAMES" onclick="toggleNames(this)"/>
-        <input type="button" value="SCHEMA XML" onclick="new CodePopover(transform(Model.toXML(), 'xml2html.xsl'), false)"/>
-        <input type="button" value="SQL" onclick="new CodePopover(transform(Model.toXML(), 'SQLServer.xsl'), true)"/>
-        <input type="file" onchange="FileHandler.handleFiles(this.files)"/>
-        <input type="button" value="PNG FILE" onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"/>
-    </div>
-        -->
-    <div id="expert" class="unselectable" title="Expert settings">
-        Expert
-    </div>
-    <div id="controls">
-        <div class="controlbutton pause" title="Pause" id="playpause"></div>
-        <div class="controlbutton" title="Nudge" id="nudge"></div>
-        <div class="controlbutton" title="Undo" id="undo"></div>
-        <div class="controlbutton" title="Redo" id="redo"></div>
-        <div class="controlbutton" title="Zoom In" id="zoomin"></div>
-        <div class="controlbutton" title="Zoom Out" id="zoomout"></div>
-    </div>
 
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
-
-    <!-- TODO: these are about to be removed -->
-    <div id="miniEnlarge" class="zoominbutton"><!-- changes zoom in the miniature --></div>
-    <div id="miniDecrease" class="zoomoutbutton"><!-- changes zoom in the miniature --></div>
 </body>
 </html>
