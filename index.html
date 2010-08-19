@@ -111,8 +111,9 @@
         -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
         z-index:            11;
     }
-    #codePopover:hover .closebutton {
-        display:            block;
+    #codePopover .closebutton {
+        display:            inherit;
+        position:           relative;
     }
     
     #content {
@@ -795,6 +796,8 @@
             },
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
+                if(!model.rightmostNode) return;
+                
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
                     this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
@@ -1190,11 +1193,11 @@
             var toggleKnottedButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
             };
-            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) });
+            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) },false);
             var toggleHistorizedButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
             };
-            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) });
+            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) },false);
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(toggleKnottedButton);
@@ -1349,7 +1352,7 @@
             var addAttributeButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Add Attribute']])
             };
-            addAttributeButton.control.addEventListener('click', function(){ Model.addAttribute(self) });
+            addAttributeButton.control.addEventListener('click', function(){ Model.addAttribute(self) },false);
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(addAttributeButton);
@@ -1453,7 +1456,8 @@
             var removeKnotButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Remove Knot']])
             };
-            removeKnotButton.control.addEventListener('click', function(){ Model.removeKnot(self) });
+            //todo: removeknot-function does not exist
+            removeKnotButton.control.addEventListener('click', function(){ Model.removeKnot(self) },false);
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(removeKnotButton);
@@ -1543,11 +1547,11 @@
             var toggleKnottedButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
             };
-            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) });
+            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) },false);
             var toggleHistorizedButton = {
                 control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
             };
-            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) });
+            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) },false);
             this.actions.push(toggleKnottedButton);
             this.actions.push(toggleHistorizedButton);
         }
@@ -1892,6 +1896,11 @@
             var padding = window.innerWidth * 0.1;
             codePopover.style.top = (padding - 16) + 'px';
 
+            var close = document.createElement('div');
+            close.className = 'closebutton';
+            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            codePopover.appendChild(close);
+
             var content = document.createElement('div');
             content.setAttribute("id", "content");
             if(preformatted)
@@ -1900,11 +1909,6 @@
             content.style.height = (window.innerHeight - 2 * padding) + 'px';
             content.appendChild(documentFragment);
             codePopover.appendChild(content);
-
-            var close = document.createElement('div');
-            close.className = 'closebutton';
-            close.addEventListener('click', function(event) { return self.close(event) }, false);
-            codePopover.appendChild(close);
 
             document.body.appendChild(codePopover);
 
