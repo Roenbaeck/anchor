@@ -194,6 +194,8 @@
         list-style:         none;
     }
     .menu li {
+        padding-left:       8px;
+        padding-right:      8px;
         line-height:        32px;
     }
     .menu > li {
@@ -606,12 +608,46 @@
                     for (i = 0; i < ties.length; i++)
                         this.addNode(Tie.prototype.fromXML(ties[i]));
                 }
+            },
+            toggleKnotted: function(node) {
+                var knot, edge;
+                if(node.knotted) {
+                    for(var i = 0; edge = node.edges[i]; i++) {
+                        if(edge.otherNode instanceof Knot) {
+                            this.removeNode(edge.otherNode);
+                            this.removeEdge(edge);
+                        }
+                    }
+                    node.knotted = false;
+                }
+                else {
+                    knot = new Knot(node.xPosition + 2 * LayoutEngine.normalDistance, node.yPosition - 2 * LayoutEngine.normalDistance);
+                    this.addNode(knot);
+                    edge = new Edge(node, knot);
+                    this.addEdge(edge);
+                    node.knotted = true;
+                }
+                DrawingEngine.start();
+            },
+            toggleHistorized: function(node) {
+                if(node) {
+                    node.historized = !node.historized;
+                    DrawingEngine.start();
+                }
+            },
+            addAttribute: function(node) {
+                var attribute = new Attribute(node.xPosition + 2 * LayoutEngine.normalDistance, node.yPosition - 3 * LayoutEngine.normalDistance, false);
+                this.addNode(attribute);
+                var edge = new Edge(attribute, node, true);
+                this.addEdge(edge);
+                DrawingEngine.start();
             }
         };
 
         var DrawingEngine = {
             // holds the "thread" id when the drawing engine is running
             drawId: null,
+            initialized: false,
             canvas: null,
             shadowCanvas: null,
             miniatureCanvas: null,
@@ -619,7 +655,6 @@
             shadowContext: null,
             miniatureContext: null,
             running: false,
-            hoveredNodes: [],
             xyScale: 1,
             xTranslation: 0,
             yTranslation: 0,
@@ -642,27 +677,29 @@
                 this.shadowContext = shadowContext;
                 this.miniatureContext = miniatureContext;
                 this.miniature = document.getElementById('miniature');
-                this.widthVisible = this.canvas.width;
-                this.heightVisible = this.canvas.height;
+                this.initialized = true;
+                this.refreshViewportCoordinates();
             },
             scale: function(scale) {
                 this.xyScale *= scale;
                 this.context.scale(scale, scale);
                 this.shadowContext.scale(scale, scale);
-                this.xVisible = -this.xTranslation/this.xyScale;
-                this.yVisible = -this.yTranslation/this.xyScale;
-                this.widthVisible = this.canvas.width/this.xyScale;
-                this.heightVisible = this.canvas.height/this.xyScale;
+                this.refreshViewportCoordinates();
             },
             translate: function(x, y) {
                 this.xTranslation += x * this.xyScale;
                 this.yTranslation += y * this.xyScale;
                 this.context.translate(x, y);
                 this.shadowContext.translate(x, y);
-                this.xVisible = -this.xTranslation/this.xyScale;
-                this.yVisible = -this.yTranslation/this.xyScale;
-                this.widthVisible = this.canvas.width/this.xyScale;
-                this.heightVisible = this.canvas.height/this.xyScale;
+                this.refreshViewportCoordinates();
+            },
+            refreshViewportCoordinates: function() {
+                if(this.initialized) {
+                    this.xVisible = -this.xTranslation/this.xyScale;
+                    this.yVisible = -this.yTranslation/this.xyScale;
+                    this.widthVisible = this.canvas.width/this.xyScale;
+                    this.heightVisible = this.canvas.height/this.xyScale;                    
+                }
             },
             xContext: function(xScreen) {
                 return Math.round((xScreen - this.xTranslation) / this.xyScale);
@@ -675,12 +712,6 @@
             },
             yScreen: function(yContext) {
                 return Math.round(yContext * this.xyScale + this.yTranslation);
-            },
-            addHovered: function(hoveredNode) {
-                this.hoveredNodes.push(hoveredNode);
-            },
-            removeHovered: function(hoveredNode) {
-                this.hoveredNodes.splice(this.hoveredNodes.indexOf(hoveredNode), 1);
             },
             setCursor: function(cursor) {
                 this.canvas.style.cursor = cursor;
@@ -699,11 +730,13 @@
                 return Model.getNodeFromShadow(UniqueColor.formatColor(data[0], data[1], data[2]));
             },
             start: function() {
-                this.invalidateMiniature();
-                if(!this.running) {
-                    this.running = true;
-                    this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
-                    ControlButtons.setPauseState();
+                if(this.initialized) {
+                    this.invalidateMiniature();
+                    if(!this.running) {
+                        this.running = true;
+                        this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
+                        ControlButtons.setPauseState();
+                    }
                 }
             },
             stop: function() {
@@ -737,8 +770,8 @@
 
                 var i, node;
                 this.context.globalAlpha = 0.8;
-                // draw palette around hovering nodes
-                for(i = 0; node = this.hoveredNodes[i]; i++) {
+                // draw palette around selected nodes
+                for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++) {
                     this.drawPalette(node.xPosition, node.yPosition);
                 }
 
@@ -805,6 +838,7 @@
                 canvas.height = window.innerHeight;
                 // apparently changing the canvas width or height resets the transform
                 context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale, DrawingEngine.xTranslation, DrawingEngine.yTranslation);
+                DrawingEngine.refreshViewportCoordinates();
                 DrawingEngine.start();
             }
         };
@@ -817,9 +851,10 @@
             yLastKnown: 0,
             hoveringPrepared: false,
             hoveringId: null,
-            hoveredNode: null,
+            selectedNodes: [],
             mousedown: function(event) {
-                this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen);
+                if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen))
+                    this.focusedNode.fixed = !this.focusedNode.fixed;
                 this.dragging = true;
             },
             mousemove: function(event) {
@@ -839,12 +874,17 @@
                     DrawingEngine.start();
                 }
                 else {
+                    var node;
                     // we are hovering, but not dragging
-                    if(this.hoveredNode && !this.menu) {
-                        if(LayoutEngine.distance(this.hoveredNode, {xPosition: DrawingEngine.xContext(event.xScreen), yPosition: DrawingEngine.yContext(event.yScreen)}) > 1.5 * LayoutEngine.normalDistance) {
-                            DrawingEngine.removeHovered(this.hoveredNode);
+                    if(node = this.selectedNodes[this.selectedNodes.length - 1]) {
+                        var mouse = {
+                            xPosition: DrawingEngine.xContext(event.xScreen),
+                            yPosition: DrawingEngine.yContext(event.yScreen)
+                        };
+                        if(LayoutEngine.distance(node, mouse) > 1.5 * LayoutEngine.normalDistance) {
+                            this.clearSelection(node);
                             DrawingEngine.setCursor('default');
-                            this.hoveredNode = null;
+                            this.selectedNode = null;
                             this.hoveringPrepared = false;
                             DrawingEngine.start();
                         }
@@ -852,17 +892,17 @@
                     // if we are not hovering, set up a check in half a second
                     else if (!this.hoveringPrepared) {
                         this.hoveringPrepared = true;
-                        this.hoveringId = setTimeout(function(reallyThis) { reallyThis.mousehover(event); }, 500, this);
+                        this.hoveringId = setTimeout(function(self) { self.mousehover(event); }, 500, this);
                     }
                 }
                 this.xLastKnown = event.xScreen;
                 this.yLastKnown = event.yScreen;
             },
             mousehover: function(event) {
-                this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown);
+                 var selectedNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown);
                 // mouse pointer over node
-                if(this.hoveredNode) {
-                    DrawingEngine.addHovered(this.hoveredNode);
+                if(selectedNode) {
+                    this.addNodeToSelection(selectedNode);
                     DrawingEngine.setCursor('pointer');
                     DrawingEngine.start();
                     this.keydown(event);
@@ -873,9 +913,9 @@
                 }
             },
             keydown: function(event) {
-                if(event.shiftKey && this.hoveredNode) {
+                if(event.shiftKey && this.selectedNodes[0]) {
                     if(this.contextMenu == null)
-                        this.contextMenu = new ContextMenu(this.hoveredNode);
+                        this.contextMenu = new ContextMenu(this.selectedNodes[0]);
                     else {
                         this.contextMenu.close();
                         this.contextMenu = null;
@@ -895,11 +935,8 @@
             },
             mouseup: function(event) {
                 // the dragging started over a node
-                if(this.focusedNode) {
-                    if(event.altKey)
-                        this.focusedNode.fixed = !this.focusedNode.fixed;
+                if(this.focusedNode) 
                     this.focusedNode = null;
-                }
                 if (this.dragging)
                     this.dragging = false;
                 DrawingEngine.setCursor('default');
@@ -919,38 +956,14 @@
                 if(this.CanvasEventHandler[event.type])
                     this.CanvasEventHandler[event.type](event);
             },
-            toggleKnotted: function() {
-                var knot, edge;
-                if(this.hoveredNode.knotted) {
-                    for(var i = 0; edge = this.hoveredNode.edges[i]; i++) {
-                        if(edge.otherNode instanceof Knot) {
-                            Model.removeNode(edge.otherNode);
-                            Model.removeEdge(edge);
-                        }
-                    }
-                    this.hoveredNode.knotted = false;
-                }
-                else {
-                    knot = new Knot(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 2 * LayoutEngine.normalDistance, "Unnamed");
-                    Model.addNode(knot);
-                    edge = new Edge(this.hoveredNode, knot, this.hoveredNode + "_Unnamed", true);
-                    Model.addEdge(edge);
-                    this.hoveredNode.knotted = true;
-                }
-                DrawingEngine.start();
+            addNodeToSelection: function(node) {
+                this.selectedNodes.push(node);
             },
-            toggleHistorized: function() {
-                if(this.hoveredNode) {
-                    this.hoveredNode.historized = !this.hoveredNode.historized;
-                    DrawingEngine.start();
-                }
+            removeNodeFromSelection: function(node) {
+                this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
             },
-            addAttribute: function() {
-                var attribute = new Attribute(this.hoveredNode.xPosition + 2 * LayoutEngine.normalDistance, this.hoveredNode.yPosition - 3 * LayoutEngine.normalDistance, "Unnamed", false);
-                Model.addNode(attribute);
-                var edge = new Edge(attribute, this.hoveredNode, this.hoveredNode + "_Unnamed", true);
-                Model.addEdge(edge);
-                DrawingEngine.start();
+            clearSelection: function() {
+                this.selectedNodes.length = 0;
             }
         };
 
@@ -1175,11 +1188,13 @@
                 }
             };
             var toggleKnottedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted'], ['onclick', 'CanvasEventHandler.toggleKnotted()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
             };
+            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) });
             var toggleHistorizedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized'], ['onclick', 'CanvasEventHandler.toggleHistorized()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
             };
+            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) });
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(toggleKnottedButton);
@@ -1332,8 +1347,9 @@
                 }
             };
             var addAttributeButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Add Attribute'], ['onclick', 'CanvasEventHandler.addAttribute()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Add Attribute']])
             };
+            addAttributeButton.control.addEventListener('click', function(){ Model.addAttribute(self) });
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(addAttributeButton);
@@ -1435,8 +1451,9 @@
                 }
             };
             var removeKnotButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Remove Knot'], ['onclick', 'CanvasEventHandler.removeKnot()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Remove Knot']])
             };
+            removeKnotButton.control.addEventListener('click', function(){ Model.removeKnot(self) });
             this.actions.push(descriptorInput);
             this.actions.push(mnemonicInput);
             this.actions.push(removeKnotButton);
@@ -1524,11 +1541,13 @@
             AbstractNode.call(this, x, y);
             this.historized = historized;
             var toggleKnottedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted'], ['onclick', 'CanvasEventHandler.toggleKnotted()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
             };
+            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) });
             var toggleHistorizedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized'], ['onclick', 'CanvasEventHandler.toggleHistorized()']])
+                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
             };
+            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) });
             this.actions.push(toggleKnottedButton);
             this.actions.push(toggleHistorizedButton);
         }
