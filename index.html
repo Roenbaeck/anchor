@@ -71,6 +71,7 @@
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
+    /* context menu that pops up when editing */
     #contextMenu {
         position:           absolute;
         top:                0;
@@ -78,16 +79,34 @@
         display:            block;
         background-color:   rgba(255, 255, 255, 0.8);
         color:              black;
-        padding:            5px 10px;
+        padding:            15px 10px 5px 10px;
         margin:             0;
         text-align:         left;
-        border:             1px dotted;
+        border:             1px dotted black;
         z-index:            4;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
+    .toggler {
+        position:           absolute;
+        left:               -1px;
+        top:                -1px;
+        margin:             0;
+        padding:            0;
+        border:             1px solid black;
+        width:              10px;
+        height:             10px;
+        z-index:            5;
+    }
+    .expanded {
+        background-color:   red;
+    }
+    .collapsed {
+        background-color:   green;    
+    }
 
+    /* is used in the code popover */
     #modalBackground {
         position:           absolute;
         top:                0;
@@ -1926,15 +1945,15 @@
         };
 
         function ContextMenu(node) {
-            var contextMenu = document.createElement('div');
-            contextMenu.setAttribute("id", "contextMenu");
-            var submitButton = elementCreator('input', [['type', 'button'], ['value', 'Apply']]);
             var self = this;
-            submitButton.addEventListener('click', function(event) { self.submit(node)}, false);
-            contextMenu.appendChild(submitButton);
 
-            var action, table;
-            table = document.createElement('table');
+            var contextMenu = elementCreator('div', [['id', 'contextMenu']]);
+            this.toggler = elementCreator('div', [['class', 'toggler collapsed']]);
+            this.toggler.addEventListener('click', function(event) { self.toggle(node) }, false);
+            contextMenu.appendChild(this.toggler);
+
+            var action;
+            this.table = elementCreator('table', [['id', 'items']]);
             for(var i = 0; action = node.actions[i]; i++) {
                 var tr = document.createElement('tr');
                 if(action.title) {
@@ -1953,9 +1972,8 @@
                 }
                 if(action.value)
                     action.control.value = action.value;
-                table.appendChild(tr);
+                this.table.appendChild(tr);
             }
-            contextMenu.appendChild(table);
 
             var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
             var y = DrawingEngine.yScreen(node.yPosition + LayoutEngine.normalDistance/2);
@@ -1970,6 +1988,22 @@
         }
         ContextMenu.prototype = {
             contextMenu: null,
+            table: null,
+            toggler: null,
+            collapsed: true,
+            toggle: function(node) {
+                if(this.collapsed) {
+                    this.toggler.className = 'toggler expanded';
+                    this.collapsed = false;
+                    this.contextMenu.appendChild(this.table);
+                }
+                else {
+                    this.toggler.className = 'toggler collapsed';
+                    this.collapsed = true;
+                    this.contextMenu.removeChild(this.table);
+                    this.submit(node);
+                }
+            },
             close: function() {
                 document.body.removeChild(this.contextMenu);
             },
