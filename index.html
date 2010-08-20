@@ -963,6 +963,7 @@
                 event.wheelDelta = event.detail * 120;
                 this.mousewheel(event);
             },
+            // TODO: We need upper and lower bounds on the zoom            
             mousewheel: function(event) {
                 var zoom = 1 + 10/event.wheelDelta;
                 DrawingEngine.scale(zoom);
