@@ -115,7 +115,7 @@
         position:           absolute;
         top:                0;
         left:               0;
-        background-color:   rgba(16, 0, 0, 0.2);
+        background-color:   rgba(142, 128, 128, 0.5);
         margin:             0;
         padding:            0;
         overflow:           hidden;
@@ -125,7 +125,7 @@
     /* these classes style the xml representation */
     #codePopover {
         position:           relative;
-        border:             2px solid black;
+        border:             3px solid black;
         top:                5%;
         margin:             auto;
         display:            table;
@@ -856,8 +856,10 @@
             drawPalette: function(x, y) {
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.strokeStyle = '#ebe8e8';
+                this.context.fillStyle = '#ffffff';
+                this.context.strokeStyle = '#ebe0e0';
                 this.context.lineWidth = 10;
+                this.context.fill();
                 this.context.stroke();
             }
         };
@@ -894,6 +896,8 @@
                         this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                         this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                         this.focusedNode.fixed = true;
+                        if(this.contextMenu != null && this.contextMenu.collapsed)
+                            this.contextMenu.updatePosition();
                         Model.invalidateNode(this.focusedNode);
                     }
                     // if the dragging started over an empty part of the canvas
@@ -916,6 +920,10 @@
                             DrawingEngine.setCursor('default');
                             this.selectedNode = null;
                             this.hoveringPrepared = false;
+                            if(this.contextMenu != null && this.contextMenu.collapsed) {
+                                this.contextMenu.close();
+                                this.contextMenu = null;                                
+                            }
                             DrawingEngine.start();
                         }
                     }
@@ -931,11 +939,16 @@
             mousehover: function(event) {
                  var selectedNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown);
                 // mouse pointer over node
-                if(selectedNode) {
+                if(selectedNode && this.selectedNodes.indexOf(selectedNode, 0) < 0) {
                     this.addNodeToSelection(selectedNode);
+                    if(this.contextMenu == null)
+                        this.contextMenu = new ContextMenu(this.selectedNodes[this.selectedNodes.length - 1]);
+                    else if (this.contextMenu.collapsed) {
+                        this.contextMenu.close();
+                        this.contextMenu = new ContextMenu(this.selectedNodes[this.selectedNodes.length - 1]);
+                    }
                     DrawingEngine.setCursor('pointer');
                     DrawingEngine.start();
-                    this.keydown(event);
                 }
                 // mouse pointer not over node, trigger a new check
                 else {
@@ -943,14 +956,7 @@
                 }
             },
             keydown: function(event) {
-                if(event.shiftKey && this.selectedNodes[0]) {
-                    if(this.contextMenu == null)
-                        this.contextMenu = new ContextMenu(this.selectedNodes[0]);
-                    else {
-                        this.contextMenu.close();
-                        this.contextMenu = null;
-                    }
-                }
+                // not used at the moment
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
@@ -1882,7 +1888,8 @@
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
 
             // setting a listener on the canvas did not work, so this is a workaround
-            window.onkeydown = CanvasEventHandler.handleEvent;
+            // we are currently not listening to keyboard events
+            // window.onkeydown = CanvasEventHandler.handleEvent;
 
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
             miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
@@ -1953,10 +1960,12 @@
         function ContextMenu(node) {
             var self = this;
 
+            this.node = node;
             var contextMenu = elementCreator('div', [['id', 'contextMenu']]);
             this.toggler = elementCreator('div', [['class', 'toggler collapsed']]);
             this.toggler.addEventListener('click', function(event) { self.toggle(node) }, false);
             contextMenu.appendChild(this.toggler);
+            this.contextMenu = contextMenu;
 
             var action;
             this.table = elementCreator('table', [['class', 'items']]);
@@ -1981,23 +1990,24 @@
                 this.table.appendChild(tr);
             }
 
-            var x = DrawingEngine.xScreen(node.xPosition + LayoutEngine.normalDistance/2);
-            var y = DrawingEngine.yScreen(node.yPosition + LayoutEngine.normalDistance/2);
-
-            contextMenu.style.left = x + 'px';
-            contextMenu.style.top = y + 'px';
-
+            this.updatePosition();
             document.body.appendChild(contextMenu);
-
-            this.contextMenu = contextMenu;
             return this;
         }
         ContextMenu.prototype = {
             contextMenu: null,
+            node: null,
             table: null,
             toggler: null,
             collapsed: true,
             modalBackground: null,
+            updatePosition: function() {
+                var x = DrawingEngine.xScreen(this.node.xPosition + LayoutEngine.normalDistance/2);
+                var y = DrawingEngine.yScreen(this.node.yPosition + LayoutEngine.normalDistance/2);
+
+                this.contextMenu.style.left = x + 'px';
+                this.contextMenu.style.top = y + 'px';
+            },
             toggle: function(node) {
                 if(this.collapsed) {
                     this.toggler.className = 'toggler expanded';
@@ -2015,6 +2025,7 @@
                 }
             },
             close: function() {
+                CanvasEventHandler.contextMenu = null;
                 document.body.removeChild(this.contextMenu);
             },
             submit: function(node) {
