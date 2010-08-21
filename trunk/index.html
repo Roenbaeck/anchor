@@ -94,20 +94,26 @@
 
     .toggler {
         position:           absolute;
-        left:               -1px;
-        top:                -1px;
         margin:             0;
         padding:            0;
-        border:             1px solid black;
-        width:              10px;
-        height:             10px;
+        border:             1px solid #555;
+        width:              16px;
+        height:             16px;
+        -moz-border-radius-bottomright: 50px;
+        border-bottom-right-radius:     50px;
         z-index:            12;
     }
     .expanded {
-        background-color:   red;
+        cursor:             nw-resize;
+        left:               -1px;
+        top:                -1px;
+        background-color:   #ff5555;
     }
     .collapsed {
-        background-color:   green;    
+        cursor:             se-resize;
+        left:               -3px;
+        top:                -3px;
+        background-color:   #fff;
     }
 
     /* is used in the code popover */
@@ -896,8 +902,10 @@
                         this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                         this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                         this.focusedNode.fixed = true;
-                        if(this.contextMenu != null && this.contextMenu.collapsed)
-                            this.contextMenu.updatePosition();
+                        if(this.contextMenu != null && this.contextMenu.collapsed) {
+                            this.contextMenu.close();
+                            this.contextMenu = null;
+                        }
                         Model.invalidateNode(this.focusedNode);
                     }
                     // if the dragging started over an empty part of the canvas
@@ -2022,11 +2030,9 @@
                     this.contextMenu.removeChild(this.table);
                     this.modalBackground.close();
                     this.submit(node);
-                    this.close();
                 }
             },
             close: function() {
-                CanvasEventHandler.contextMenu = null;
                 document.body.removeChild(this.contextMenu);
             },
             submit: function(node) {
