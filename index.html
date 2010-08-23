@@ -664,12 +664,12 @@
                     this.addEdge(edge);
                     node.knotted = true;
                 }
-                DrawingEngine.start();
+                DrawingEngine.start(true);
             },
             toggleHistorized: function(node) {
                 if(node) {
                     node.historized = !node.historized;
-                    DrawingEngine.start();
+                    DrawingEngine.start(false);
                 }
             },
             addAttribute: function(node) {
@@ -677,7 +677,7 @@
                 this.addNode(attribute);
                 var edge = new Edge(attribute, node, true);
                 this.addEdge(edge);
-                DrawingEngine.start();
+                DrawingEngine.start(true);
             }
         };
 
@@ -766,13 +766,14 @@
                 var data = this.shadowContext.getImageData(x, y, 1, 1).data;
                 return Model.getNodeFromShadow(UniqueColor.formatColor(data[0], data[1], data[2]));
             },
-            start: function() {
+            start: function(layoutModel) {
                 if(this.initialized) {
                     this.invalidateMiniature();
                     if(!this.running) {
                         this.running = true;
-                        this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
-                        ControlButtons.setPauseState();
+                        this.drawId = setInterval(function() { DrawingEngine.draw(layoutModel); }, 1000 / FPS);
+                        if(layoutModel)
+                            ControlButtons.setPauseState();
                     }
                 }
             },
@@ -786,9 +787,10 @@
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
-            draw: function() {
+            draw: function(layoutModel) {
                 // layout nodes
-                LayoutEngine.layout(Model);
+                if(layoutModel || !LayoutEngine.equilibrium)
+                    LayoutEngine.layout(Model);
                 // check if all nodes have stopped moving and that we may stop
                 if(LayoutEngine.equilibrium) {
                     clearInterval(this.drawId);
@@ -867,10 +869,12 @@
             drawPalette: function(x, y, multiple) {
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.fillStyle = '#ffffff';
+                if(!multiple) {
+                    this.context.fillStyle = '#ffffff';
+                    this.context.fill();
+                }
                 this.context.strokeStyle = '#ebe0e0';
                 this.context.lineWidth = 10;
-                this.context.fill();
                 this.context.stroke();
                 if(multiple) {
                     this.context.strokeStyle = '#b88';
@@ -887,7 +891,7 @@
                 // apparently changing the canvas width or height resets the transform
                 context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale, DrawingEngine.xTranslation, DrawingEngine.yTranslation);
                 DrawingEngine.refreshViewportCoordinates();
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             }
         };
 
@@ -925,13 +929,14 @@
                             this.contextMenu = null;
                         }
                         Model.invalidateNode(this.focusedNode);
+                        DrawingEngine.start(true);
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
                         DrawingEngine.setCursor('move');
                         DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale, (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
+                        DrawingEngine.start(false);
                     }
-                    DrawingEngine.start();
                 }
                 else {
                     // we are hovering, but not dragging
@@ -948,7 +953,7 @@
                                 this.contextMenu.close();
                                 this.contextMenu = null;                                
                             }
-                            DrawingEngine.start();
+                            DrawingEngine.start(false);
                         }
                     }
                     // if we are not hovering, set up a check in half a second
@@ -970,7 +975,7 @@
                         this.contextMenu = new ContextMenu(this.hoveredNode);
                     }
                     DrawingEngine.setCursor('pointer');
-                    DrawingEngine.start();
+                    DrawingEngine.start(false);
                 }
                 // mouse pointer not over node, trigger a new check
                 else {
@@ -990,7 +995,7 @@
                 var zoom = 1 + 10/event.wheelDelta;
                 DrawingEngine.scale(zoom);
                 DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) - DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) - DrawingEngine.yContext(event.yScreen) * zoom);
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             },
             mouseup: function(event) {
                 // the dragging started over a node
@@ -999,7 +1004,7 @@
                 if (this.dragging)
                     this.dragging = false;
                 DrawingEngine.setCursor('default');
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
@@ -1038,7 +1043,7 @@
             mousemove: function(event) {
                 if (this.dragging) {
                     DrawingEngine.translate((this.xLastKnown - event.xScreen)/DrawingEngine.miniScale, (this.yLastKnown - event.yScreen)/DrawingEngine.miniScale);
-                    DrawingEngine.start();
+                    DrawingEngine.start(false);
                 }
                 this.xLastKnown = event.xScreen;
                 this.yLastKnown = event.yScreen;
@@ -1046,7 +1051,7 @@
             mouseup: function(event) {
                 if (this.dragging)
                     this.dragging = false;
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
@@ -1924,7 +1929,7 @@
 
             LayoutEngine.metric = LayoutEngine.manhattan;
 //            LayoutEngine.metric = LayoutEngine.euclidean;
-            DrawingEngine.start();
+            DrawingEngine.start(true);
         }
 
         function ModalBackground() {
@@ -1977,7 +1982,7 @@
             close: function(event) {
                 document.body.removeChild(this.codePopover);
                 this.modalBackground.close();
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             }
         };
 
@@ -2076,7 +2081,7 @@
                     alert(exception);
                 }
                 Model.fromXML(xml);
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             }
         };
 
@@ -2109,7 +2114,7 @@
             },
             clearSelection: function() {
                 CanvasEventHandler.clearSelection();
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
@@ -2118,17 +2123,17 @@
                         Model.nodes[i].yPosition = Math.random() * window.innerHeight;
                     }
                 }
-                DrawingEngine.start();
+                DrawingEngine.start(true);
             },
             toggleFixation: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     Model.nodes[i].fixed = !Model.nodes[i].fixed;
                 }
-                DrawingEngine.start();
+                DrawingEngine.start(true);
             },
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             }
         };
 
@@ -2139,7 +2144,7 @@
                     button.value = 'NORMAL MODE';
                 else
                     button.value = 'DEBUG MODE';
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             }
         };
 
@@ -2175,7 +2180,7 @@
                     this.invalidateLayout();
                 }
                 else {
-                    DrawingEngine.start();
+                    DrawingEngine.start(false);
                 }
             },
             setPlayState: function() {
@@ -2189,8 +2194,8 @@
             invalidateLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     Model.nodes[i].start();
-                    DrawingEngine.start();
                 }
+                DrawingEngine.start(true);
             },
             doZoom: function (zoom) {
                 DrawingEngine.scale(zoom);
@@ -2198,7 +2203,7 @@
                 var yy = window.innerHeight/2;
                 DrawingEngine.translate(DrawingEngine.xContext(xx) - DrawingEngine.xContext(xx) * zoom,
                         DrawingEngine.yContext(yy) - DrawingEngine.yContext(yy) * zoom);
-                DrawingEngine.start();
+                DrawingEngine.start(false);
             },
             zoomIn: function (event) {
                 this.doZoom(this.zoomFactor);
