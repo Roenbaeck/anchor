@@ -808,11 +808,11 @@
                 var i, node;
                 this.context.globalAlpha = 0.8;
                 // draw palette around selected nodes
+                if(node = CanvasEventHandler.hoveredNode)
+                    this.drawPalette(node.xPosition, node.yPosition, false);
                 for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++) {
                     this.drawPalette(node.xPosition, node.yPosition, true);
                 }
-                if(node = CanvasEventHandler.hoveredNode)
-                    this.drawPalette(node.xPosition, node.yPosition, false);
 
                 // cast all shadows first
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -2107,6 +2107,10 @@
                     alert(exception);
                 }
             },
+            clearSelection: function() {
+                CanvasEventHandler.clearSelection();
+                DrawingEngine.start();
+            },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     if(!Model.nodes[i].fixed) {
@@ -2225,6 +2229,7 @@
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
                         <li onclick="ActionsMenu.toggleNames(this)">Toggle names</li>
                         <li onclick="ActionsMenu.toggleFixation(this)">Toggle fixation</li>
+                        <li onclick="ActionsMenu.clearSelection()">Clear selection</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG Image</li>
                         <!-- TODO: There is some kind of trick to make the input field invisible but on top and the "Load file" text visible below it -->
