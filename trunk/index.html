@@ -115,6 +115,9 @@
         top:                -3px;
         background-color:   #fff;
     }
+    .collapsed:hover {
+        background-color:   #5b5;
+    }
 
     /* is used in the code popover */
     #modalBackground {
@@ -806,8 +809,10 @@
                 this.context.globalAlpha = 0.8;
                 // draw palette around selected nodes
                 for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++) {
-                    this.drawPalette(node.xPosition, node.yPosition);
+                    this.drawPalette(node.xPosition, node.yPosition, true);
                 }
+                if(node = CanvasEventHandler.hoveredNode)
+                    this.drawPalette(node.xPosition, node.yPosition, false);
 
                 // cast all shadows first
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -859,7 +864,7 @@
                 }
                 return false;
             },
-            drawPalette: function(x, y) {
+            drawPalette: function(x, y, multiple) {
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
                 this.context.fillStyle = '#ffffff';
@@ -867,6 +872,11 @@
                 this.context.lineWidth = 10;
                 this.context.fill();
                 this.context.stroke();
+                if(multiple) {
+                    this.context.strokeStyle = '#b88';
+                    this.context.lineWidth = 1;
+                    this.context.stroke();
+                }
             }
         };
 
@@ -889,10 +899,18 @@
             yLastKnown: 0,
             hoveringPrepared: false,
             hoveringId: null,
+            hoveredNode: null,
             selectedNodes: [],
             mousedown: function(event) {
-                if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen))
-                    this.focusedNode.fixed = !this.focusedNode.fixed;
+                if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen)) {
+                    if(event.shiftKey)
+                        if(this.selectedNodes.indexOf(this.focusedNode) >= 0)
+                            this.removeNodeFromSelection(this.focusedNode);
+                        else
+                            this.addNodeToSelection(this.focusedNode);
+                    else
+                        this.focusedNode.fixed = !this.focusedNode.fixed;
+                }
                 this.dragging = true;
             },
             mousemove: function(event) {
@@ -916,17 +934,15 @@
                     DrawingEngine.start();
                 }
                 else {
-                    var node;
                     // we are hovering, but not dragging
-                    if(node = this.selectedNodes[this.selectedNodes.length - 1]) {
+                    if(this.hoveredNode) {
                         var mouse = {
                             xPosition: DrawingEngine.xContext(event.xScreen),
                             yPosition: DrawingEngine.yContext(event.yScreen)
                         };
-                        if(LayoutEngine.distance(node, mouse) > 1.5 * LayoutEngine.normalDistance) {
-                            this.clearSelection(node);
+                        if(LayoutEngine.distance(this.hoveredNode, mouse) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.setCursor('default');
-                            this.selectedNode = null;
+                            this.hoveredNode = null;
                             this.hoveringPrepared = false;
                             if(this.contextMenu != null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
@@ -945,15 +961,13 @@
                 this.yLastKnown = event.yScreen;
             },
             mousehover: function(event) {
-                 var selectedNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown);
                 // mouse pointer over node
-                if(selectedNode && this.selectedNodes.indexOf(selectedNode, 0) < 0) {
-                    this.addNodeToSelection(selectedNode);
+                if(this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown)) {
                     if(this.contextMenu == null)
-                        this.contextMenu = new ContextMenu(this.selectedNodes[this.selectedNodes.length - 1]);
+                        this.contextMenu = new ContextMenu(this.hoveredNode);
                     else if (this.contextMenu.collapsed) {
                         this.contextMenu.close();
-                        this.contextMenu = new ContextMenu(this.selectedNodes[this.selectedNodes.length - 1]);
+                        this.contextMenu = new ContextMenu(this.hoveredNode);
                     }
                     DrawingEngine.setCursor('pointer');
                     DrawingEngine.start();
@@ -1002,7 +1016,8 @@
                     this.CanvasEventHandler[event.type](event);
             },
             addNodeToSelection: function(node) {
-                this.selectedNodes.push(node);
+                if(this.selectedNodes.indexOf(node) < 0)
+                    this.selectedNodes.push(node);
             },
             removeNodeFromSelection: function(node) {
                 this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
@@ -2094,16 +2109,18 @@
             },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
-                    Model.nodes[i].xPosition = Math.random() * window.innerWidth;
-                    Model.nodes[i].yPosition = Math.random() * window.innerHeight;
-                    DrawingEngine.start();
+                    if(!Model.nodes[i].fixed) {
+                        Model.nodes[i].xPosition = Math.random() * window.innerWidth;
+                        Model.nodes[i].yPosition = Math.random() * window.innerHeight;
+                    }
                 }
+                DrawingEngine.start();
             },
             toggleFixation: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     Model.nodes[i].fixed = !Model.nodes[i].fixed;
-                    DrawingEngine.start();
                 }
+                DrawingEngine.start();
             },
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
