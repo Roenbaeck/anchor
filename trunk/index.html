@@ -811,15 +811,15 @@
                     this.drawMiniature(Model);
 
                 var i, node;
-                this.context.globalAlpha = 0.8;
-                // draw palette around selected nodes
+                // draw focus rings around hovered and selected nodes
                 if(node = CanvasEventHandler.hoveredNode)
-                    this.drawPalette(node.xPosition, node.yPosition, false);
+                    this.drawHovered(node.xPosition, node.yPosition);
                 for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++) {
-                    this.drawPalette(node.xPosition, node.yPosition, true);
+                    this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
                 }
 
                 // cast all shadows first
+                this.context.globalAlpha = 0.8;
                 for(i = 0; node = Model.nodes[i]; i++) {
                     node.drawMoving(this.context);
                 }
@@ -869,21 +869,28 @@
                 }
                 return false;
             },
-            drawPalette: function(x, y, multiple) {
+            drawHovered: function(x, y) {
                 this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                if(!multiple) {
-                    this.context.fillStyle = '#ffffff';
+                this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
+                this.context.fillStyle = '#ede5e5';
+                this.context.fill();
+                this.context.beginPath();
+                this.context.arc(x, y, LayoutEngine.normalDistance - 5, 0, 2*Math.PI, false);
+                this.context.fillStyle = '#fff';
+                this.context.fill();
+            },
+            drawSelected: function(x, y, isHovered) {
+                if(!isHovered) {
+                    this.context.beginPath();
+                    this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
+                    this.context.fillStyle = '#ede5e5';
                     this.context.fill();
                 }
-                this.context.strokeStyle = '#ebe0e0';
-                this.context.lineWidth = 10;
+                this.context.beginPath();
+                this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
+                this.context.strokeStyle = '#b88';
+                this.context.lineWidth = 1.0;
                 this.context.stroke();
-                if(multiple) {
-                    this.context.strokeStyle = '#b88';
-                    this.context.lineWidth = 1;
-                    this.context.stroke();
-                }
             }
         };
 
