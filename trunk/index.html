@@ -646,37 +646,40 @@
                         this.addNode(Tie.prototype.fromXML(ties[i]));
                 }
             },
-            toggleKnotted: function(node) {
-                var knot, edge;
-                if(node.knotted) {
-                    for(var i = 0; edge = node.edges[i]; i++) {
-                        if(edge.otherNode instanceof Knot) {
-                            this.removeNode(edge.otherNode);
-                            this.removeEdge(edge);
+            toggleKnotted: function(nodes) {
+                for(var i = 0; i < nodes.length; i++) {
+                    var knot, edge;
+                    if(nodes[i].knotted) {
+                        for(var j = 0; edge = nodes[i].edges[j]; j++) {
+                            if(edge.otherNode instanceof Knot) {
+                                this.removeNode(edge.otherNode);
+                                this.removeEdge(edge);
+                            }
                         }
+                        nodes[i].knotted = false;
                     }
-                    node.knotted = false;
-                }
-                else {
-                    knot = new Knot(node.xPosition + 2 * LayoutEngine.normalDistance, node.yPosition - 2 * LayoutEngine.normalDistance);
-                    this.addNode(knot);
-                    edge = new Edge(node, knot);
-                    this.addEdge(edge);
-                    node.knotted = true;
+                    else {
+                        knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
+                        this.addNode(knot);
+                        edge = new Edge(nodes[i], knot);
+                        this.addEdge(edge);
+                        nodes[i].knotted = true;
+                    }
                 }
                 DrawingEngine.start(true);
             },
-            toggleHistorized: function(node) {
-                if(node) {
-                    node.historized = !node.historized;
-                    DrawingEngine.start(false);
-                }
+            toggleHistorized: function(nodes) {
+                for(var i = 0; i < nodes.length; i++)
+                    nodes[i].historized = !nodes[i].historized;
+                DrawingEngine.start(false);
             },
-            addAttribute: function(node) {
-                var attribute = new Attribute(node.xPosition + 2 * LayoutEngine.normalDistance, node.yPosition - 3 * LayoutEngine.normalDistance, false);
-                this.addNode(attribute);
-                var edge = new Edge(attribute, node, true);
-                this.addEdge(edge);
+            addAttribute: function(nodes) {
+                for(var i = 0; i < nodes.length; i++) {
+                    var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
+                    this.addNode(attribute);
+                    var edge = new Edge(attribute, nodes[i], true);
+                    this.addEdge(edge);                    
+                }
                 DrawingEngine.start(true);
             }
         };
@@ -969,10 +972,10 @@
                 // mouse pointer over node
                 if(this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown)) {
                     if(this.contextMenu == null)
-                        this.contextMenu = new ContextMenu(this.hoveredNode);
+                        this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
                     else if (this.contextMenu.collapsed) {
                         this.contextMenu.close();
-                        this.contextMenu = new ContextMenu(this.hoveredNode);
+                        this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
                     }
                     DrawingEngine.setCursor('pointer');
                     DrawingEngine.start(false);
@@ -1094,7 +1097,8 @@
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.edges = [];
-            this.actions = [];
+            this.editables = [['Description','description','textarea','rows','5','cols','20']];
+            this.operations = ['delete'];
         }
         AbstractNode.prototype = {
             description: null,
@@ -1107,7 +1111,8 @@
             moving: true,
             fixed: false,
             shadowColor: '#ffffff',
-            actions: null,
+            editables: null,
+            operations: null,
             // getters and setters (with hidden _id member)
             set id(id)  {
                 if(id) {
@@ -1221,49 +1226,14 @@
             }
         };
 
-        function elementCreator(type, attributes) {
-            var element = document.createElement(type);
-            for(var i = 0; i < attributes.length; i++)
-                element.setAttribute(attributes[i][0], attributes[i][1])
-            return element;
-        }
-
         function Attribute(x, y, historized) {
             AbstractNode.call(this, x, y);
             this.historized = historized;
-            var self = this;
-            var descriptorInput = {
-                title: 'Descriptor',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
-                get value() {
-                    return self.descriptor;
-                },
-                set value(value) {
-                    self.descriptor = value;
-                }
-            };
-            var mnemonicInput = {
-                title: 'Mnemonic',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
-                get value() {
-                    return self.mnemonic;
-                },
-                set value(value) {
-                    self.mnemonic = value;
-                }
-            };
-            var toggleKnottedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
-            };
-            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) },false);
-            var toggleHistorizedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
-            };
-            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) },false);
-            this.actions.push(descriptorInput);
-            this.actions.push(mnemonicInput);
-            this.actions.push(toggleKnottedButton);
-            this.actions.push(toggleHistorizedButton);
+            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
+            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
+            this.editables.push(['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required']);
+            this.editables.push(['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required']);
+            this.operations.push('toggleKnotted','toggleHistorized');
         }
         Attribute.prototype = {
             historized: false,
@@ -1390,34 +1360,10 @@
 
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
-            var self = this;
-            var descriptorInput = {
-                title: 'Descriptor',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
-                get value() {
-                    return self.descriptor;
-                },
-                set value(value) {
-                    self.descriptor = value;
-                }
-            };
-            var mnemonicInput = {
-                title: 'Mnemonic',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
-                get value() {
-                    return self.mnemonic;
-                },
-                set value(value) {
-                    self.mnemonic = value;
-                }
-            };
-            var addAttributeButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Add Attribute']])
-            };
-            addAttributeButton.control.addEventListener('click', function(){ Model.addAttribute(self) },false);
-            this.actions.push(descriptorInput);
-            this.actions.push(mnemonicInput);
-            this.actions.push(addAttributeButton);
+            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
+            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
+            this.editables.push(['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required']);
+            this.operations.push('addAttribute','addTie');
         }
         Anchor.prototype = {
             mnemonic: null,
@@ -1494,35 +1440,10 @@
 
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
-            var self = this;
-            var descriptorInput = {
-                title: 'Descriptor',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z][a-Z]*'], ['title', 'Attribute Descriptor']]),
-                get value() {
-                    return self.descriptor;
-                },
-                set value(value) {
-                    self.descriptor = value;
-                }
-            };
-            var mnemonicInput = {
-                title: 'Mnemonic',
-                control: elementCreator('input', [['type', 'text'], ['required', 'required'], ['pattern', '[A-Z]{3}'], ['title', 'Attribute Mnemonic']]),
-                get value() {
-                    return self.mnemonic;
-                },
-                set value(value) {
-                    self.mnemonic = value;
-                }
-            };
-            var removeKnotButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Remove Knot']])
-            };
-            //todo: removeknot-function does not exist
-            removeKnotButton.control.addEventListener('click', function(){ Model.removeKnot(self) },false);
-            this.actions.push(descriptorInput);
-            this.actions.push(mnemonicInput);
-            this.actions.push(removeKnotButton);
+            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
+            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
+            this.editables.push(['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required']);
+            this.editables.push(['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required']);
         }
         Knot.prototype = {
             mnemonic: null,
@@ -1606,16 +1527,8 @@
         function Tie(x, y, historized) {
             AbstractNode.call(this, x, y);
             this.historized = historized;
-            var toggleKnottedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Knotted']])
-            };
-            toggleKnottedButton.control.addEventListener('click', function(){ Model.toggleKnotted(self) },false);
-            var toggleHistorizedButton = {
-                control: elementCreator('input', [['type', 'button'], ['value', 'Toggle Historized']])
-            };
-            toggleHistorizedButton.control.addEventListener('click', function(){ Model.toggleHistorized(self) },false);
-            this.actions.push(toggleKnottedButton);
-            this.actions.push(toggleHistorizedButton);
+            this.editables.push(['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required']);
+            this.operations.push('toggleKnotted','toggleHistorized');
         }
         Tie.prototype = {
             historized: false,
@@ -1986,36 +1899,77 @@
             }
         };
 
-        function ContextMenu(node) {
+        function ContextMenu(hoveredNode, selectedNodes) {
             var self = this;
 
-            this.node = node;
-            var contextMenu = elementCreator('div', [['id', 'contextMenu']]);
-            this.toggler = elementCreator('div', [['class', 'toggler collapsed']]);
-            this.toggler.addEventListener('click', function(event) { self.toggle(node) }, false);
+            this.hoveredNode = hoveredNode;
+            this.selectedNodes = selectedNodes;
+            var contextMenu = document.createElement('div');
+            contextMenu.setAttribute('id', 'contextMenu');
+            this.toggler = document.createElement('div');
+            this.toggler.setAttribute('class', 'toggler collapsed');
+            this.toggler.addEventListener('click', function(event) { self.toggle() }, false);
             contextMenu.appendChild(this.toggler);
             this.contextMenu = contextMenu;
 
-            var action;
-            this.table = elementCreator('table', [['class', 'items']]);
-            for(var i = 0; action = node.actions[i]; i++) {
-                var tr = document.createElement('tr');
-                if(action.title) {
+            var editable;
+            this.table = document.createElement('table');
+            this.table.setAttribute('class', 'items');
+
+            var i, j, tr;
+            // if we are operating a single node, show its editable fields
+            if(selectedNodes.length == 0 || (selectedNodes.length == 1 && selectedNodes[0] == hoveredNode)) {
+                for(i = 0; editable = hoveredNode.editables[i]; i++) {
+                    var name = editable[0];
+                    var field = editable[1];
+                    var type = editable[2];
+                    var element = document.createElement(type);
+                    for(j = 3; j < editable.length;) {
+                        var attribute = editable[j++];
+                        var value = editable[j++];
+                        element.setAttribute(attribute, value);
+                    }
+                    element.value = hoveredNode[field];
+                    eval("element.addEventListener('blur', function() { hoveredNode['" + field + "'] = this.value; }, false);");
+                    tr = document.createElement('tr');
+                    tr.setAttribute('valign', 'top');
                     var td1 = document.createElement('td');
-                    td1.innerText = action.title + ":";
+                    td1.appendChild(document.createTextNode(name + ":"));
                     tr.appendChild(td1);
                     var td2 = document.createElement('td');
-                    td2.appendChild(action.control);
+                    td2.appendChild(element);
                     tr.appendChild(td2);
+                    this.table.appendChild(tr);
                 }
-                else {
-                    var td = document.createElement('td');
-                    td.setAttribute('colspan', '2');
-                    td.appendChild(action.control);
-                    tr.appendChild(td);
-                }
-                if(action.value)
-                    action.control.value = action.value;
+            }
+            var allOperations = [
+                ['delete', 'Delete'],
+                ['toggleKnotted', 'Toggle Knotted'],
+                ['toggleHistorized', 'Toggle Historized'],
+                ['addAttribute', 'Add Attribute'],
+                ['addTie', 'Add Tie']
+            ];
+            var supportedOperations = [];
+
+            var allNodes = selectedNodes.slice(0);
+            if(allNodes.indexOf(hoveredNode) < 0)
+                allNodes.push(hoveredNode);
+
+            for(i = 0; i < allOperations.length; i++)
+                if(this.isSupported(allOperations[i][0], allNodes))
+                    supportedOperations.push(allOperations[i]);
+
+            for(i = 0; i < supportedOperations.length; i++) {
+                var button = document.createElement('input');
+                button.setAttribute('type', 'button');
+                button.value = supportedOperations[i][1];
+                var method = supportedOperations[i][0];
+                eval("button.addEventListener('click', function() { Model['" + method + "'](allNodes) }, false);");
+                tr = document.createElement('tr');
+                var td = document.createElement('td');
+                td.setAttribute('colspan', '2');
+                td.appendChild(button);
+                tr.appendChild(td);
                 this.table.appendChild(tr);
             }
 
@@ -2025,14 +1979,21 @@
         }
         ContextMenu.prototype = {
             contextMenu: null,
-            node: null,
+            hoveredNode: null,
+            selectedNodes: null,
             table: null,
             toggler: null,
             collapsed: true,
             modalBackground: null,
+            isSupported: function(operation, nodes) {
+                for(var i = 0; i < nodes.length; i++)
+                    if(nodes[i].operations.indexOf(operation) < 0)
+                        return false;
+                return true;
+            },
             updatePosition: function() {
-                var x = DrawingEngine.xScreen(this.node.xPosition + LayoutEngine.normalDistance/2);
-                var y = DrawingEngine.yScreen(this.node.yPosition + LayoutEngine.normalDistance/2);
+                var x = DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
+                var y = DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
 
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
@@ -2049,18 +2010,10 @@
                     this.collapsed = true;
                     this.contextMenu.removeChild(this.table);
                     this.modalBackground.close();
-                    this.submit(node);
                 }
             },
             close: function() {
                 document.body.removeChild(this.contextMenu);
-            },
-            submit: function(node) {
-                for(var i = 0; action = node.actions[i]; i++) {
-                    if(action.value) {
-                        action.value = action.control.value;
-                    }
-                }
             }
         };
 
@@ -2230,11 +2183,11 @@
             <ul class="menu">
                 <li>Actions
                     <ul class="submenu">
+                        <li onclick="ActionsMenu.clearSelection()">Clear selection</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
                         <li onclick="ActionsMenu.toggleNames(this)">Toggle names</li>
                         <li onclick="ActionsMenu.toggleFixation(this)">Toggle fixation</li>
-                        <li onclick="ActionsMenu.clearSelection()">Clear selection</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG Image</li>
                         <!-- TODO: There is some kind of trick to make the input field invisible but on top and the "Load file" text visible below it -->
