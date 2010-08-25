@@ -726,7 +726,7 @@
                     this.addEdge(new Edge(tie, nodes[i], true));
                     var anchor = new Anchor(nodes[i].xPosition + 4 * LayoutEngine.normalDistance, nodes[i].yPosition - 6 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
-                    this.addEdge(new Edge(anchor, tie, true));
+                    this.addEdge(new Edge(tie, anchor, true));
                 }
                 DrawingEngine.start(true);
             }
@@ -863,15 +863,14 @@
                 // draw focus rings around hovered and selected nodes
                 if(node = CanvasEventHandler.hoveredNode)
                     this.drawHovered(node.xPosition, node.yPosition);
-                for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++) {
+
+                for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++)
                     this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
-                }
 
                 // cast all shadows first
                 this.context.globalAlpha = 0.8;
-                for(i = 0; node = Model.nodes[i]; i++) {
+                for(i = 0; node = Model.nodes[i]; i++)
                     node.drawMoving(this.context);
-                }
 
                 this.context.globalAlpha = 1.0;
                 // draw all nodes and edges on the visible context
@@ -885,6 +884,8 @@
                         if(!(node instanceof Edge))
                             node.drawName(this.context);
                 }
+                else if (node = CanvasEventHandler.hoveredNode)
+                    node.drawName(this.context);
             },
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
@@ -1046,6 +1047,12 @@
                     this.hoveringPrepared = false;
                 }
             },
+            closeContextMenu: function() {
+                if(this.contextMenu) {
+                    this.contextMenu.close();
+                    this.contextMenu = null;                    
+                }
+            },
             keydown: function(event) {
                 // not used at the moment
             },
@@ -1162,6 +1169,7 @@
             // TODO: descriptions have to be handled separately
             //this.editables = [['Description','description','textarea','rows','5','cols','20']];
             this.operations = ['delete'];
+            this.incomplete = true;
         }
         AbstractNode.prototype = {
             description: null,
@@ -1174,6 +1182,7 @@
             moving: true,
             shadowColor: '#ffffff',
             editables: null,
+            incomplete: true,
             operations: null,
             // getters and setters (with hidden _id member)
             set id(id)  {
@@ -1194,11 +1203,21 @@
                 return this._fixed;
             },
             get name() {
-                return "Unnamed";
+                return '';
             },
             // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
                 return this.name.toString();
+            },
+            isEmpty: function(value) {
+                return !value || value == null || value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
+            },
+            isIncomplete: function() {
+                var editable;
+                for(var i = 0; editable = this.editables[i]; i++)
+                    if(this.isEmpty(this[editable[1]]))
+                        return true;
+                return false;
             },
             // subclasses that should appear in the XML need to override this
             toXML: function() {
@@ -1246,14 +1265,18 @@
                 }
                 var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
                 context.save();
+                var nameWidth = context.measureText(this.name).width;
                 if(this.xPosition < xAverage)
-                    context.translate(-context.measureText(this.name).width - this.nameXOffset(), nameYOffset);
+                    context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
                 else
                     context.translate(this.nameXOffset(), nameYOffset);
                 context.textBaseline = 'top';
-//                context.globalAlpha = 0.8;
                 context.fillStyle = '#000';
                 context.fillText(this.name, this.xPosition, this.yPosition);
+                if(this.incomplete) {
+                    context.fillStyle = '#f00';
+                    context.fillText('?', this.xPosition, this.yPosition - 11);
+                }
                 context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -1278,7 +1301,9 @@
                 context.fill();
             },
             // this is used to draw the outline of a node, used in the shadow context
-            drawOutline: function(context) { },
+            drawOutline: function(context) {
+                // subclasses implements this
+            },
             // this is how to draw a graphical representation of the fact that a node is moving
             drawMoving: function(context) {
                 if(this.moving && !this.fixed) {
@@ -1304,20 +1329,45 @@
 
         function Attribute(x, y, historized) {
             AbstractNode.call(this, x, y);
+            this.mnemonic = '???';
+            this.descriptor = 'Unnamed';
+            this.editables.push(this.mnemonicEdit);
+            this.editables.push(this.descriptorEdit);
+            this.knotted = false;
             this.historized = historized;
-            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
-            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
-            this.editables.push(['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required']);
-            this.editables.push(['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required']);
             this.operations.push('toggleKnotted','toggleHistorized');
         }
         Attribute.prototype = {
-            historized: false,
-            knotted: false,
             mnemonic: null,
             descriptor: null,
             dataRange: null,
             timeRange: null,
+            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required'],
+            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required'],
+            dataRangeEdit: ['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required'],
+            timeRangeEdit: ['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required'],
+            set historized(historized) {
+                var index = this.editables.indexOf(this.timeRangeEdit);
+                if(historized && index < 0)
+                    this.editables.push(this.timeRangeEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
+                this._historized = historized;
+            },
+            get historized() {
+                return this._historized;
+            },
+            set knotted(knotted) {
+                var index = this.editables.indexOf(this.dataRangeEdit);
+                if(!knotted && index < 0)
+                    this.editables.push(this.dataRangeEdit);
+                else if (knotted && index >= 0)
+                    this.editables.splice(index, 1);
+                this._knotted = knotted;
+            },
+            get knotted() {
+                return this._knotted;
+            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -1335,8 +1385,8 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var mnemonic = element.getAttribute("mnemonic") || "YYY";
-                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var mnemonic = element.getAttribute("mnemonic") || '???';
+                var descriptor = element.getAttribute("descriptor") || 'Unnamed';
                 var timeRange = element.getAttribute("timeRange") || null;
                 var historized = timeRange ? true : false;
                 var knotRange = element.getAttribute("knotRange") || null;
@@ -1366,6 +1416,7 @@
                         }
                     }                    
                 }
+                attribute.incomplete = attribute.isIncomplete();
                 return attribute;
             },
             get name() {
@@ -1442,15 +1493,20 @@
 
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
-            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
-            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
-            this.editables.push(['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required']);
+            this.mnemonic = '??';
+            this.descriptor = 'Unnamed';
+            this.editables.push(this.descriptorEdit);
+            this.editables.push(this.mnemonicEdit);
+            this.editables.push(this.identityEdit);
             this.operations.push('addAttribute','addTie','addTieAndAnchor');
         }
         Anchor.prototype = {
             mnemonic: null,
             descriptor: null,
             identity: null,
+            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required'],
+            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required'],
+            identityEdit: ['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required'],
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
             },
@@ -1475,9 +1531,9 @@
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
-                var mnemonic = element.getAttribute("mnemonic") || "XX";
+                var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
-                var identity = element.getAttribute("identity") || "untyped";
+                var identity = element.getAttribute("identity") || null;
                 var anchor = new Anchor(x, y);
                 anchor.fixed = fixed;
                 anchor.description = description ? description.innerText : null;
@@ -1485,6 +1541,7 @@
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
                 anchor.id = id;
+                anchor.incomplete = anchor.isIncomplete();
                 return anchor;
             },
             toXML: function(schema) {
@@ -1510,6 +1567,7 @@
                 context.lineTo(this.xPosition + 10, this.yPosition + 10);
                 context.lineTo(this.xPosition - 10, this.yPosition + 10);
                 context.lineTo(this.xPosition - 10, this.yPosition - 10);
+                context.closePath();
             },
             draw: function(context) {
                 this.drawOutline(context);
@@ -1525,16 +1583,22 @@
 
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
-            this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
-            this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
-            this.editables.push(['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required']);
-            this.editables.push(['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required']);
+            this.mnemonic = '???';
+            this.descriptor = 'Unnamed';
+            this.editables.push(this.descriptorEdit);
+            this.editables.push(this.mnemonicEdit);
+            this.editables.push(this.dataRangeEdit);
+            this.editables.push(this.identityEdit);
         }
         Knot.prototype = {
             mnemonic: null,
             descriptor: null,
             identity: null,
             dataRange: null,
+            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required'],
+            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required'],
+            dataRangeEdit: ['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Data Type', 'required', 'required'],
+            identityEdit: ['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required'],
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
             },
@@ -1559,10 +1623,10 @@
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
-                var mnemonic = element.getAttribute("mnemonic") || "XXX";
+                var mnemonic = element.getAttribute("mnemonic") || "???";
                 var descriptor = element.getAttribute("descriptor") || "Unnamed";
-                var identity = element.getAttribute("identity") || "untyped";
-                var dataRange = element.getAttribute("dataRange") || "untyped";
+                var identity = element.getAttribute("identity") || null;
+                var dataRange = element.getAttribute("dataRange") || null;
                 var knot = new Knot(x, y);
                 knot.fixed = fixed;
                 knot.description = description ? description.innerText : null;
@@ -1571,6 +1635,7 @@
                 knot.identity = identity;
                 knot.dataRange = dataRange;
                 knot.id = id;
+                knot.incomplete = knot.isIncomplete();
                 return knot;
             },
             toXML: function(schema) {
@@ -1615,12 +1680,22 @@
         function Tie(x, y, historized) {
             AbstractNode.call(this, x, y);
             this.historized = historized;
-            this.editables.push(['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required']);
             this.operations.push('toggleKnotted','toggleHistorized','addAnchor');
         }
         Tie.prototype = {
-            historized: false,
             timeRange: null,
+            timeRangeEdit: ['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required'],
+            set historized(historized) {
+                var index = this.editables.indexOf(this.timeRangeEdit);
+                if(historized && index < 0)
+                    this.editables.push(this.timeRangeEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
+                this._historized = historized;
+            },
+            get historized() {
+                return this._historized;
+            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -1649,8 +1724,8 @@
                 var grandparent = element.parentNode.parentNode;
                 var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
-                    type = anchorRoles[i].getAttribute("type") || "XX";
-                    role = anchorRoles[i].getAttribute("role") || "unknownRole";
+                    type = anchorRoles[i].getAttribute("type") || "??";
+                    role = anchorRoles[i].getAttribute("role") || "unknown";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
@@ -1665,8 +1740,8 @@
                 }
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
-                    type = knotRoles[i].getAttribute("type") || "XXX";
-                    role = knotRoles[i].getAttribute("role") || "unknownRole";
+                    type = knotRoles[i].getAttribute("type") || "???";
+                    role = knotRoles[i].getAttribute("role") || "unknown";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
@@ -1679,6 +1754,7 @@
                         }
                     }
                 }
+                tie.incomplete = tie.isIncomplete();
                 return tie;
             },
             get name() {
@@ -1775,6 +1851,7 @@
                 yPosition: this.centerPoint.yPosition
             };
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
+            this.role = 'unknown';
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -1782,11 +1859,13 @@
             otherNode.edges.push(this);
             this.edges.push(node);
             this.edges.push(otherNode);
-            this.editables.push(['Role', 'role', 'input', 'type', 'text', 'pattern', '[a-Z]*', 'title', 'Role of the Relationship', 'required', 'required']);
+            this.editables.push(this.roleEdit);
             this.operations.push('toggleIdentifier');
+            this.incomplete = false;
         }
         Edge.prototype = {
             role: null,
+            roleEdit: ['Role', 'role', 'input', 'type', 'text', 'pattern', '[a-Z]*', 'title', 'Role of the Relationship', 'required', 'required'],
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
@@ -1799,6 +1878,9 @@
             // edges never fixate
             set fixed(fixed) {
                 this._fixed = false;
+            },
+            get name() {
+                return this.role;
             },
             drawMoving: function(context) {
                 if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
@@ -2076,7 +2158,7 @@
                 button.setAttribute('type', 'button');
                 button.value = supportedOperations[i][1];
                 var method = supportedOperations[i][0];
-                eval("button.addEventListener('click', function() { Model['" + method + "'](allNodes) }, false);");
+                eval("button.addEventListener('click', function() { Model['" + method + "'](allNodes); CanvasEventHandler.closeContextMenu(); }, false);");
                 tr = document.createElement('tr');
                 var td = document.createElement('td');
                 td.setAttribute('colspan', '2');
@@ -2121,10 +2203,19 @@
                     this.toggler.className = 'toggler collapsed';
                     this.collapsed = true;
                     this.contextMenu.removeChild(this.table);
-                    this.modalBackground.close();
+                    this.unmodal();
+                    DrawingEngine.start(false);
                 }
             },
+            unmodal: function() {
+                if(this.modalBackground) {
+                    this.modalBackground.close();
+                    this.modalBackground = null;
+                }
+                this.hoveredNode.incomplete = this.hoveredNode.isIncomplete();
+            },
             close: function() {
+                this.unmodal();
                 document.body.removeChild(this.contextMenu);
             }
         };
