@@ -661,8 +661,7 @@
                     else {
                         knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
                         this.addNode(knot);
-                        edge = new Edge(nodes[i], knot);
-                        this.addEdge(edge);
+                        this.addEdge(new Edge(nodes[i], knot, true));
                         nodes[i].knotted = true;
                     }
                 }
@@ -673,12 +672,61 @@
                     nodes[i].historized = !nodes[i].historized;
                 DrawingEngine.start(false);
             },
+            toggleIdentifier: function(nodes) {
+                for(var i = 0; i < nodes.length; i++)
+                    nodes[i].identifier = !nodes[i].identifier;
+                DrawingEngine.start(false);
+            },
             addAttribute: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
                     var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(attribute);
-                    var edge = new Edge(attribute, nodes[i], true);
-                    this.addEdge(edge);                    
+                    this.addEdge(new Edge(attribute, nodes[i], true));
+                }
+                DrawingEngine.start(true);
+            },
+            addTie: function(nodes) {
+                var tie;
+                // multiple anchors selected
+                if(nodes.length > 1) {
+                    var i, xAverage = 0, yAverage = 0;
+                    for(i = 0; i < nodes.length; i++) {
+                        xAverage += nodes[i].xPosition;
+                        yAverage += nodes[i].yPosition;
+                    }
+                    xAverage /= nodes.length;
+                    yAverage /= nodes.length;
+                    tie = new Tie(xAverage, yAverage, false);
+                    this.addNode(tie);
+                    for(i = 0; i < nodes.length; i++)
+                        this.addEdge(new Edge(tie, nodes[i], true));
+                }
+                // single anchor selected
+                else {
+                    var anchor = nodes[0];
+                    tie = new Tie(anchor.xPosition + 2 * LayoutEngine.normalDistance, anchor.yPosition - 3 * LayoutEngine.normalDistance, false);
+                    this.addNode(tie);
+                    this.addEdge(new Edge(tie, anchor, true));
+                    this.addEdge(new Edge(tie, anchor, true));
+                }
+                DrawingEngine.start(true);
+            },
+            addAnchor: function(nodes) {
+                for(var i = 0; i < nodes.length; i++) {
+                    var anchor = new Anchor(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance);
+                    this.addNode(anchor);
+                    this.addEdge(new Edge(anchor, nodes[i], true));
+                }
+                DrawingEngine.start(true);                
+            },
+            addTieAndAnchor: function(nodes) {
+                for(var i = 0; i < nodes.length; i++) {
+                    var tie = new Tie(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
+                    this.addNode(tie);
+                    this.addEdge(new Edge(tie, nodes[i], true));
+                    var anchor = new Anchor(nodes[i].xPosition + 4 * LayoutEngine.normalDistance, nodes[i].yPosition - 6 * LayoutEngine.normalDistance);
+                    this.addNode(anchor);
+                    this.addEdge(new Edge(anchor, tie, true));
                 }
                 DrawingEngine.start(true);
             }
@@ -918,13 +966,16 @@
             selectedNodes: [],
             mousedown: function(event) {
                 if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen)) {
-                    if(event.shiftKey)
+                    if(event.shiftKey) {
                         if(this.selectedNodes.indexOf(this.focusedNode) >= 0)
                             this.removeNodeFromSelection(this.focusedNode);
                         else
                             this.addNodeToSelection(this.focusedNode);
-                    else
+                    }
+                    else {
                         this.focusedNode.fixed = !this.focusedNode.fixed;
+                        DrawingEngine.start(true);
+                    }
                 }
                 this.dragging = true;
             },
@@ -932,15 +983,17 @@
                 if (this.dragging) {
                     // if we are dragging a node, we must also be hovering over it
                     if(this.focusedNode) {
-                        this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
-                        this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
-                        this.focusedNode.fixed = true;
-                        if(this.contextMenu != null && this.contextMenu.collapsed) {
-                            this.contextMenu.close();
-                            this.contextMenu = null;
+                        if(!(this.focusedNode instanceof Edge)) {
+                            this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
+                            this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
+                            this.focusedNode.fixed = true;
+                            if(this.contextMenu != null && this.contextMenu.collapsed) {
+                                this.contextMenu.close();
+                                this.contextMenu = null;
+                            }
+                            Model.invalidateNode(this.focusedNode);
+                            DrawingEngine.start(true);
                         }
-                        Model.invalidateNode(this.focusedNode);
-                        DrawingEngine.start(true);
                     }
                     // if the dragging started over an empty part of the canvas
                     else {
@@ -1105,7 +1158,9 @@
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.edges = [];
-            this.editables = [['Description','description','textarea','rows','5','cols','20']];
+            this.editables = [];
+            // TODO: descriptions have to be handled separately
+            //this.editables = [['Description','description','textarea','rows','5','cols','20']];
             this.operations = ['delete'];
         }
         AbstractNode.prototype = {
@@ -1117,7 +1172,6 @@
             velocity: null,
             edges: null,
             moving: true,
-            fixed: false,
             shadowColor: '#ffffff',
             editables: null,
             operations: null,
@@ -1132,6 +1186,12 @@
                 if (!("_id" in this))
                     this._id = UniqueIdentity.nextId();
                 return this._id;
+            },
+            set fixed(fixed) {
+                this._fixed = fixed;
+            },
+            get fixed() {
+                return this._fixed;
             },
             get name() {
                 return "Unnamed";
@@ -1191,7 +1251,7 @@
                 else
                     context.translate(this.nameXOffset(), nameYOffset);
                 context.textBaseline = 'top';
-                context.globalAlpha = 0.8;
+//                context.globalAlpha = 0.8;
                 context.fillStyle = '#000';
                 context.fillText(this.name, this.xPosition, this.yPosition);
                 context.restore();
@@ -1385,7 +1445,7 @@
             this.editables.push(['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Descriptor', 'required', 'required']);
             this.editables.push(['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Attribute Mnemonic', 'required', 'required']);
             this.editables.push(['Identity', 'identity', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Identity Type', 'required', 'required']);
-            this.operations.push('addAttribute','addTie');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor');
         }
         Anchor.prototype = {
             mnemonic: null,
@@ -1556,7 +1616,7 @@
             AbstractNode.call(this, x, y);
             this.historized = historized;
             this.editables.push(['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '[A-Z][a-Z]*', 'title', 'Historization Type', 'required', 'required']);
-            this.operations.push('toggleKnotted','toggleHistorized');
+            this.operations.push('toggleKnotted','toggleHistorized','addAnchor');
         }
         Tie.prototype = {
             historized: false,
@@ -1626,7 +1686,7 @@
                 for(i = 0; edge = this.edges[i]; i++) {
                     if(i > 0)
                         name += "_";
-                    name += edge.otherNode.mnemonic + "_" + edge.otherNode.descriptor;
+                    name += edge.otherNode.mnemonic + "_" + edge.role;
                 }
                 return name;
             },
@@ -1722,6 +1782,8 @@
             otherNode.edges.push(this);
             this.edges.push(node);
             this.edges.push(otherNode);
+            this.editables.push(['Role', 'role', 'input', 'type', 'text', 'pattern', '[a-Z]*', 'title', 'Role of the Relationship', 'required', 'required']);
+            this.operations.push('toggleIdentifier');
         }
         Edge.prototype = {
             role: null,
@@ -1733,6 +1795,10 @@
             // overload to remove propagation of movement
             start: function() {
                 this.moving = true;
+            },
+            // edges never fixate
+            set fixed(fixed) {
+                this._fixed = false;
             },
             drawMoving: function(context) {
                 if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
@@ -1782,12 +1848,20 @@
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
                     context.stroke();
                     if(this.identifier)
-                        context.fillStyle = '#565656';
+                        context.fillStyle = '#766';
                     else
-                        context.fillStyle = '#ffffff';
+                        context.fillStyle = '#fff';
                     context.fill();
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
+            },
+            drawShadow: function(context) {
+                if(this.node instanceof Tie || this.otherNode instanceof Tie) {
+                    context.beginPath();
+                    context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
+                    context.fillStyle = this.shadowColor;
+                    context.fill();
+                }
             }
         };
 
@@ -1976,12 +2050,16 @@
                     this.table.appendChild(tr);
                 }
             }
+            // operations are defines as 'method', 'display name'
             var allOperations = [
                 ['delete', 'Delete'],
                 ['toggleKnotted', 'Toggle Knotted'],
                 ['toggleHistorized', 'Toggle Historized'],
                 ['addAttribute', 'Add Attribute'],
-                ['addTie', 'Add Tie']
+                ['addTie', 'Add Tie'],
+                ['addAnchor', 'Add Anchor'],
+                ['addTieAndAnchor', 'Add tied Anchor'],
+                ['toggleIdentifier', 'Toggle Identifier']
             ];
             var supportedOperations = [];
 
