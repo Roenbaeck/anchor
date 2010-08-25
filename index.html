@@ -717,6 +717,7 @@
                 this.shadowContext = shadowContext;
                 this.miniatureContext = miniatureContext;
                 this.miniature = document.getElementById('miniature');
+                this.context.font = '10px sans-serif';
                 this.initialized = true;
                 this.refreshViewportCoordinates();
             },
@@ -1167,24 +1168,32 @@
                 for(var i = 0; i < this.edges.length; i++)
                     this.edges[i].start();
             },
+            nameXOffset: function() {
+                return 20;
+            },
             drawName: function(context) {
-                var offset;
+                var i, edge, xAverage = 0;
+                for(i = 0; edge = this.edges[i]; i++)
+                    xAverage += edge.xPosition;
+                xAverage /= this.edges.length;
+                var currentDistance, smallestDistance, yClosest;
+                for(i = 0; edge = this.edges[i]; i++) {
+                    currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
+                    if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
+                        smallestDistance = currentDistance;
+                        yClosest = edge.yPosition;
+                    }
+                }
+                var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
                 context.save();
-                if(this.xVelocity < 0) {
-                    context.textAlign = 'end';
-                    offset = -20;
-                }
-                else {
-                    context.textAlign = 'start';
-                    offset = 20;
-                }
-                context.textBaseline = 'middle';
-                context.shadowOffsetX = -1;
-                context.shadowOffsetY = 1;
-                context.shadowBlur    = 3;
-                context.shadowColor   = 'rgba(255, 250, 245, 0.9)';
-                context.fillStyle = '#000000';
-                context.fillText(this.name, this.xPosition + offset, this.yPosition);
+                if(this.xPosition < xAverage)
+                    context.translate(-context.measureText(this.name).width - this.nameXOffset(), nameYOffset);
+                else
+                    context.translate(this.nameXOffset(), nameYOffset);
+                context.textBaseline = 'top';
+                context.globalAlpha = 0.8;
+                context.fillStyle = '#000';
+                context.fillText(this.name, this.xPosition, this.yPosition);
                 context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -1306,6 +1315,12 @@
                         anchor = edge.otherNode;
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
+            nameXOffset: function() {
+                if(this.historized)
+                    return 22;
+                else
+                    return 20;
+            },
             addXML: function(element, schema) {
                 // create an attribute element
                 var attribute = schema.createElement("attribute");
@@ -1378,6 +1393,9 @@
             identity: null,
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
+            },
+            nameXOffset: function() {
+                return 20;
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -1459,6 +1477,9 @@
             dataRange: null,
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
+            },
+            nameXOffset: function() {
+                return 18;
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -1608,6 +1629,12 @@
                     name += edge.otherNode.mnemonic + "_" + edge.otherNode.descriptor;
                 }
                 return name;
+            },
+            nameXOffset: function() {
+                if(this.historized)
+                    return 26;
+                else
+                    return 24;
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
