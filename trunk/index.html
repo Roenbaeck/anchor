@@ -2390,9 +2390,13 @@
                 DrawingEngine.start(true);
             },
             toggleFixation: function () {
-                for(var i = 0; i < Model.nodes.length; i++) {
+                for(var i = 0; i < Model.nodes.length; i++)
                     Model.nodes[i].fixed = !Model.nodes[i].fixed;
-                }
+                DrawingEngine.start(true);
+            },
+            releaseAll: function () {
+                for(var i = 0; i < Model.nodes.length; i++) 
+                    Model.nodes[i].fixed = false;
                 DrawingEngine.start(true);
             },
             toggleNames: function () {
@@ -2496,8 +2500,9 @@
                     <ul class="submenu">
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
-                        <li onclick="ActionsMenu.toggleNames(this)">Toggle names</li>
-                        <li onclick="ActionsMenu.toggleFixation(this)">Toggle fixation</li>
+                        <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
+                        <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
+                        <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG Image</li>
                         <!-- TODO: There is some kind of trick to make the input field invisible but on top and the "Load file" text visible below it -->
