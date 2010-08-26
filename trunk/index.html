@@ -982,6 +982,11 @@
                         DrawingEngine.start(true);
                     }
                 }
+                else {
+                    // we are shift clicking the canvas background
+                    if(event.shiftKey)
+                        this.clearSelection();
+                }
                 this.dragging = true;
             },
             mousemove: function(event) {
@@ -2375,10 +2380,6 @@
                     alert(exception);
                 }
             },
-            clearSelection: function() {
-                CanvasEventHandler.clearSelection();
-                DrawingEngine.start(false);
-            },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
                     if(!Model.nodes[i].fixed) {
@@ -2493,7 +2494,6 @@
             <ul class="menu">
                 <li>Actions
                     <ul class="submenu">
-                        <li onclick="ActionsMenu.clearSelection()">Clear selection</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
                         <li onclick="ActionsMenu.toggleNames(this)">Toggle names</li>
