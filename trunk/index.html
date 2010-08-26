@@ -2049,91 +2049,12 @@
            child.prototype.__proto__ = supertype.prototype;
         }
 
-        // make sure our init function is called when the page is loaded
-        window.onload = function() { try { init(this); } catch(e) { alert(e); } };
-
-        // implementation of our init function
-        function init(window) {
-            // assign event handlers to buttons
-            ControlButtons.init();
-
-            var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
-
-            // get the canvas element
-            canvas = document.getElementById('canvas');
-            if (!canvas || !canvas.getContext) {
-                alert("Cannot find the canvas!");
-                return;
-            }
-            // get the canvas 2d context
-            context = canvas.getContext('2d');
-            if (!context) {
-                alert("The canvas has no 2d context!");
-                return;
-            }
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(canvas, context);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas, context) }, false);
-
-            shadowCanvas = document.getElementById('shadow');
-            if (!shadowCanvas || !shadowCanvas.getContext) {
-                alert("Cannot find the shadow canvas!");
-                return;
-            }
-            // get the shadow canvas 2d context
-            shadowContext = shadowCanvas.getContext('2d');
-            if (!shadowContext) {
-                alert("The shadow canvas has no 2d context!");
-                return;
-            }
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas, shadowContext) }, false);
-
-            miniatureCanvas = document.getElementById('miniature');
-            if (!miniatureCanvas || !miniatureCanvas.getContext) {
-                alert("Cannot find the miniature canvas!");
-                return;
-            }
-            // get the shadow canvas 2d context
-            miniatureContext = miniatureCanvas.getContext('2d');
-            if (!miniatureContext) {
-                alert("The miniature canvas has no 2d context!");
-                return;
-            }
-
-            DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
-
-            canvas.CanvasEventHandler = CanvasEventHandler;
-            // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
-            canvas.addEventListener('mousedown', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mousemove', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
-            canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
-
-            // setting a listener on the canvas did not work, so this is a workaround
-            // we are currently not listening to keyboard events
-            // window.onkeydown = CanvasEventHandler.handleEvent;
-
-            miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
-            miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
-            miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
-            miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
-
-            ActionsMenu.loadFromURL('example.xml');
-
-            LayoutEngine.metric = LayoutEngine.manhattan;
-//            LayoutEngine.metric = LayoutEngine.euclidean;
-            DrawingEngine.start(true);
-        }
-
         function ModalBackground() {
             var modalBackground = document.createElement('div');
             modalBackground.setAttribute("id", "modalBackground");
             modalBackground.style.width = window.innerWidth + 'px';
             modalBackground.style.height = window.innerHeight + 'px';
-            this.modalBackground = modalBackground;            
+            this.modalBackground = modalBackground;
             document.body.appendChild(modalBackground);
             return this;
         }
@@ -2395,7 +2316,7 @@
                 DrawingEngine.start(true);
             },
             releaseAll: function () {
-                for(var i = 0; i < Model.nodes.length; i++) 
+                for(var i = 0; i < Model.nodes.length; i++)
                     Model.nodes[i].fixed = false;
                 DrawingEngine.start(true);
             },
@@ -2431,7 +2352,7 @@
                 this.zoomInButton = document.getElementById('zoomin');
                 this.zoomOutButton = document.getElementById('zoomout');
 
-                // voodoo 
+                // voodoo
                 var self = this;
 
                 this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
@@ -2479,9 +2400,103 @@
             zoomOut: function (event) {
                 this.doZoom(1/this.zoomFactor);
             }
+        };        
+
+        // make sure our init function is called when the page is loaded
+        window.onload = function() { try { init(this); } catch(e) { alert(e); } };
+
+        // implementation of our init function
+        function init(window) {
+            // assign event handlers to buttons
+            ControlButtons.init();
+
+            var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
+
+            // get the canvas element
+            canvas = document.getElementById('canvas');
+            if (!canvas || !canvas.getContext) {
+                alert("Cannot find the canvas!");
+                return;
+            }
+            // get the canvas 2d context
+            context = canvas.getContext('2d');
+            if (!context) {
+                alert("The canvas has no 2d context!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(canvas, context);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas, context) }, false);
+
+            shadowCanvas = document.getElementById('shadow');
+            if (!shadowCanvas || !shadowCanvas.getContext) {
+                alert("Cannot find the shadow canvas!");
+                return;
+            }
+            // get the shadow canvas 2d context
+            shadowContext = shadowCanvas.getContext('2d');
+            if (!shadowContext) {
+                alert("The shadow canvas has no 2d context!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas, shadowContext) }, false);
+
+            miniatureCanvas = document.getElementById('miniature');
+            if (!miniatureCanvas || !miniatureCanvas.getContext) {
+                alert("Cannot find the miniature canvas!");
+                return;
+            }
+            // get the shadow canvas 2d context
+            miniatureContext = miniatureCanvas.getContext('2d');
+            if (!miniatureContext) {
+                alert("The miniature canvas has no 2d context!");
+                return;
+            }
+
+            DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
+
+            canvas.CanvasEventHandler = CanvasEventHandler;
+            // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
+            canvas.addEventListener('mousedown', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mousemove', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
+            canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
+
+            // setting a listener on the canvas did not work, so this is a workaround
+            // we are currently not listening to keyboard events
+            // window.onkeydown = CanvasEventHandler.handleEvent;
+
+            miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
+            miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
+            miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
+            miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
+
+            ActionsMenu.loadFromURL('example.xml');
+
+            LayoutEngine.metric = LayoutEngine.manhattan;
+//            LayoutEngine.metric = LayoutEngine.euclidean;
+            DrawingEngine.start(true);
+        }
+
+        // make sure our exit function is called when the page is unloaded
+        window.onbeforeunload = function() {
+            try {
+                return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
+            }
+            catch(e) {
+                alert(e);
+            }
         };
 
+        window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
 
+        function exit(window) {
+            // drop database items here
+        }
+        
         // -->
     </script>
 </head>
