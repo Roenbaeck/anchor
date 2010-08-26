@@ -2276,6 +2276,11 @@
             },
             edit: function(element, node) {
                 node[element.member] = element.value;
+                if(node.node instanceof Tie)
+                    node.node.incomplete = node.node.isIncomplete();
+                for(var i = 0; node.edges.length; i++)
+                    if(node.edges[i].node instanceof Tie)
+                        node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
                 element.checkValidity();
             },
             invalid: function(element, node) {
