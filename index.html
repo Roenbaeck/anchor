@@ -28,6 +28,10 @@
         left:               0;
     }
 
+    .editable:invalid {
+        background-color:   #fbb;
+    }
+
     .closebutton {
         display:            none;
         background-image:   url(deleteButton.png);
@@ -715,7 +719,7 @@
                 for(var i = 0; i < nodes.length; i++) {
                     var anchor = new Anchor(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
-                    this.addEdge(new Edge(anchor, nodes[i], true));
+                    this.addEdge(new Edge(nodes[i], anchor, true));
                 }
                 DrawingEngine.start(true);                
             },
@@ -1214,9 +1218,12 @@
             },
             isIncomplete: function() {
                 var editable;
-                for(var i = 0; editable = this.editables[i]; i++)
-                    if(this.isEmpty(this[editable[1]]))
+                for(var i = 0; editable = this.editables[i]; i++) {
+                    if(this.isEmpty(this[editable.member]))
                         return true;
+                    if(!this[editable.member].toString().match(new RegExp('^' + editable.pattern + '$')))
+                        return true;
+                }
                 return false;
             },
             // subclasses that should appear in the XML need to override this
@@ -1271,12 +1278,11 @@
                 else
                     context.translate(this.nameXOffset(), nameYOffset);
                 context.textBaseline = 'top';
-                context.fillStyle = '#000';
+                if(this.incomplete)
+                    context.fillStyle = '#e00';
+                else
+                    context.fillStyle = '#000';
                 context.fillText(this.name, this.xPosition, this.yPosition);
-                if(this.incomplete) {
-                    context.fillStyle = '#f00';
-                    context.fillText('?', this.xPosition, this.yPosition - 11);
-                }
                 context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -1330,7 +1336,7 @@
         function Attribute(x, y, historized) {
             AbstractNode.call(this, x, y);
             this.mnemonic = '???';
-            this.descriptor = 'Unnamed';
+            this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
             this.knotted = false;
@@ -1342,10 +1348,34 @@
             descriptor: null,
             dataRange: null,
             timeRange: null,
-            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z]{3}', 'title', 'Attribute Mnemonic', 'required', 'required'],
-            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '([A-Z][a-z]*)+', 'title', 'Attribute Descriptor', 'required', 'required'],
-            dataRangeEdit: ['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Data Type', 'required', 'required'],
-            timeRangeEdit: ['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Historization Type', 'required', 'required'],
+            descriptorEdit: {
+                name: 'Descriptor',
+                member: 'descriptor',
+                type: 'input',
+                pattern: '([A-Z][a-z]*)+',
+                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
+            },
+            mnemonicEdit: {
+                name: 'Mnemonic',
+                member: 'mnemonic',
+                type: 'input',
+                pattern: '[A-Z]{3}',
+                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
+            },
+            dataRangeEdit: {
+                name: 'Data range',
+                member: 'dataRange',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Data Type', 'required', 'required']
+            },
+            timeRangeEdit: {
+                name: 'Time range',
+                member: 'timeRange',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
+            },
             set historized(historized) {
                 var index = this.editables.indexOf(this.timeRangeEdit);
                 if(historized && index < 0)
@@ -1386,7 +1416,7 @@
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
-                var descriptor = element.getAttribute("descriptor") || 'Unnamed';
+                var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
                 var timeRange = element.getAttribute("timeRange") || null;
                 var historized = timeRange ? true : false;
                 var knotRange = element.getAttribute("knotRange") || null;
@@ -1494,7 +1524,7 @@
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
             this.mnemonic = '??';
-            this.descriptor = 'Unnamed';
+            this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
             this.editables.push(this.identityEdit);
@@ -1504,9 +1534,27 @@
             mnemonic: null,
             descriptor: null,
             identity: null,
-            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '([A-Z][a-z]*)+', 'title', 'Attribute Descriptor', 'required', 'required'],
-            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z]{2}', 'title', 'Attribute Mnemonic', 'required', 'required'],
-            identityEdit: ['Identity', 'identity', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Identity Type', 'required', 'required'],
+            descriptorEdit: {
+                name: 'Descriptor',
+                member: 'descriptor',
+                type: 'input',
+                pattern: '([A-Z][a-z]*)+',
+                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
+            },
+            mnemonicEdit: {
+                name: 'Mnemonic',
+                member: 'mnemonic',
+                type: 'input',
+                pattern: '[A-Z]{2}',
+                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
+            },
+            identityEdit: {
+                name: 'Identity',
+                member: 'identity',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Identity Type', 'required', 'required']
+            },
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
             },
@@ -1532,7 +1580,7 @@
                         description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "??";
-                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || null;
                 var anchor = new Anchor(x, y);
                 anchor.fixed = fixed;
@@ -1584,7 +1632,7 @@
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
             this.mnemonic = '???';
-            this.descriptor = 'Unnamed';
+            this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
             this.editables.push(this.dataRangeEdit);
@@ -1595,10 +1643,34 @@
             descriptor: null,
             identity: null,
             dataRange: null,
-            descriptorEdit: ['Descriptor', 'descriptor', 'input', 'type', 'text', 'pattern', '([A-Z][a-z]*)+', 'title', 'Attribute Descriptor', 'required', 'required'],
-            mnemonicEdit: ['Mnemonic', 'mnemonic', 'input', 'type', 'text', 'pattern', '[A-Z]{3}', 'title', 'Attribute Mnemonic', 'required', 'required'],
-            dataRangeEdit: ['Data range', 'dataRange', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Data Type', 'required', 'required'],
-            identityEdit: ['Identity', 'identity', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Identity Type', 'required', 'required'],
+            descriptorEdit: {
+                name: 'Descriptor',
+                member: 'descriptor',
+                type: 'input',
+                pattern: '([A-Z][a-z]*)+',
+                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
+            },
+            mnemonicEdit: {
+                name: 'Mnemonic',
+                member: 'mnemonic',
+                type: 'input',
+                pattern: '[A-Z]{3}',
+                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
+            },
+            identityEdit: {
+                name: 'Identity',
+                member: 'identity',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Identity Type', 'required', 'required']
+            },
+            dataRangeEdit: {
+                name: 'Data range',
+                member: 'dataRange',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Data Type', 'required', 'required']
+            },
             get name() {
                 return this.mnemonic + "_" + this.descriptor;
             },
@@ -1624,7 +1696,7 @@
                         description = element.childNodes.item(i);
                 var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "???";
-                var descriptor = element.getAttribute("descriptor") || "Unnamed";
+                var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || null;
                 var dataRange = element.getAttribute("dataRange") || null;
                 var knot = new Knot(x, y);
@@ -1680,11 +1752,18 @@
         function Tie(x, y, historized) {
             AbstractNode.call(this, x, y);
             this.historized = historized;
+            this.incomplete = this.isIncomplete();
             this.operations.push('toggleKnotted','toggleHistorized','addAnchor');
         }
         Tie.prototype = {
             timeRange: null,
-            timeRangeEdit: ['Time range', 'timeRange', 'input', 'type', 'text', 'pattern', '.*', 'title', 'Historization Type', 'required', 'required'],
+            timeRangeEdit: {
+                name: 'Time range',
+                member: 'timeRange',
+                type: 'input',
+                pattern: '.*',
+                attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
+            },
             set historized(historized) {
                 var index = this.editables.indexOf(this.timeRangeEdit);
                 if(historized && index < 0)
@@ -1695,6 +1774,9 @@
             },
             get historized() {
                 return this._historized;
+            },
+            isIncomplete: function() {
+                return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.name.match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -1725,7 +1807,7 @@
                 var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
-                    role = anchorRoles[i].getAttribute("role") || "unknown";
+                    role = anchorRoles[i].getAttribute("role") || "!unknown!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
@@ -1741,7 +1823,7 @@
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "???";
-                    role = knotRoles[i].getAttribute("role") || "unknown";
+                    role = knotRoles[i].getAttribute("role") || "!unknown!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
@@ -1851,7 +1933,7 @@
                 yPosition: this.centerPoint.yPosition
             };
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
-            this.role = 'unknown';
+            this.role = '!unknown!';
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -1865,7 +1947,13 @@
         }
         Edge.prototype = {
             role: null,
-            roleEdit: ['Role', 'role', 'input', 'type', 'text', 'pattern', '([a-z][A-Z]*)+', 'title', 'Role of the Relationship', 'required', 'required'],
+            roleEdit: {
+                name: 'Role',
+                member: 'role',
+                type: 'input',
+                pattern: '([a-z][A-Z]*)+',
+                attributes: ['type', 'text', 'title', 'Role of the Relationship', 'required', 'required']
+            },
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
@@ -2110,22 +2198,22 @@
             // if we are operating a single node, show its editable fields
             if(selectedNodes.length == 0 || (selectedNodes.length == 1 && selectedNodes[0] == hoveredNode)) {
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
-                    var name = editable[0];
-                    var field = editable[1];
-                    var type = editable[2];
-                    var element = document.createElement(type);
-                    for(j = 3; j < editable.length;) {
-                        var attribute = editable[j++];
-                        var value = editable[j++];
+                    var element = document.createElement(editable.type);
+                    element.className = 'editable';
+                    element.setAttribute('pattern', editable.pattern);
+                    for(j = 0; j < editable.attributes.length;) {
+                        var attribute = editable.attributes[j++];
+                        var value = editable.attributes[j++];
                         element.setAttribute(attribute, value);
                     }
-                    element.value = hoveredNode[field];
-                    eval("element.addEventListener('blur', function() { hoveredNode['" + field + "'] = this.value; this.checkValidity(); }, false);");
-                    eval("element.addEventListener('invalid', function() { alert('Invalid: ' + this.value); }, false);");
+                    element.value = hoveredNode[editable.member];
+                    element.member = editable.member;
+                    element.addEventListener('blur', function() { self.edit(this, hoveredNode); }, false);
+                    element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
                     tr.setAttribute('valign', 'top');
                     var td1 = document.createElement('td');
-                    td1.appendChild(document.createTextNode(name + ":"));
+                    td1.appendChild(document.createTextNode(editable.name + ":"));
                     tr.appendChild(td1);
                     var td2 = document.createElement('td');
                     td2.appendChild(element);
@@ -2158,8 +2246,8 @@
                 var button = document.createElement('input');
                 button.setAttribute('type', 'button');
                 button.value = supportedOperations[i][1];
-                var method = supportedOperations[i][0];
-                eval("button.addEventListener('click', function() { Model['" + method + "'](allNodes); CanvasEventHandler.closeContextMenu(); }, false);");
+                button.method = supportedOperations[i][0];
+                button.addEventListener('click', function() { self.operate(this, allNodes); }, false);
                 tr = document.createElement('tr');
                 var td = document.createElement('td');
                 td.setAttribute('colspan', '2');
@@ -2180,6 +2268,19 @@
             toggler: null,
             collapsed: true,
             modalBackground: null,
+            operate: function(button, nodes) {
+                Model[button.method](nodes);
+                for(var i = 0; i < nodes.length; i++)
+                    nodes[i].incomplete = nodes[i].isIncomplete();
+                CanvasEventHandler.closeContextMenu();
+            },
+            edit: function(element, node) {
+                node[element.member] = element.value;
+                element.checkValidity();
+            },
+            invalid: function(element, node) {
+                node.incomplete = true;
+            },
             isSupported: function(operation, nodes) {
                 for(var i = 0; i < nodes.length; i++)
                     if(nodes[i].operations.indexOf(operation) < 0)
