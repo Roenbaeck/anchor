@@ -97,30 +97,32 @@
     }
 
     .toggler {
+        font:               16px sans-serif;
         position:           absolute;
         margin:             0;
         padding:            0;
         border:             1px solid #555;
         width:              16px;
         height:             16px;
-        -moz-border-radius-bottomright: 50px;
-        border-bottom-right-radius:     50px;
         z-index:            12;
     }
     .expanded {
         cursor:             nw-resize;
         left:               -1px;
         top:                -1px;
-        background-color:   #ff5555;
+        background-color:   #f55;
     }
     .collapsed {
         cursor:             se-resize;
         left:               -3px;
         top:                -3px;
         background-color:   #fff;
+        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
     .collapsed:hover {
-        background-color:   #5b5;
+        background-color:   #fa5;
     }
 
     /* is used in the code popover */
@@ -545,7 +547,15 @@
                 this.topmostNode = null;
                 this.rightmostNode = null;
                 this.bottommostNode = null;
-                this.leftmostNode = null;                
+                this.leftmostNode = null;
+            },
+            setupMinimal: function() {
+                if(confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!")) {
+                    this.empty();
+                    DrawingEngine.reset();
+                    this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
+                    DrawingEngine.start(true);
+                }
             },
             sort: function() {
                 this.nodes.sort(function(a, b) {
@@ -736,6 +746,357 @@
             }
         };
 
+        var DatabaseManager = {
+            version: "", // database version, leave empty for best compatibility
+            size: 65536, // 65kB size
+            db: null,
+            DatabaseManager: function() {
+                this.db = window.openDatabase("AnchorModeler", this.version, "Storage for the Anchor Modeler", this.size);
+                return this;
+            },
+            createKnot: function(knotMnemonic, knotDescriptor, dataRange) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var knotIdentity = knotMnemonic + "_ID";
+                var statement = "CREATE TABLE IF NOT EXISTS " + knotName + " (" +
+                        knotIdentity + " INTEGER NOT NULL, " + knotName + " " + dataRange + " NOT NULL, PRIMARY KEY (" +
+                        knotIdentity + " ASC))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            insertKnot: function(knotMnemonic, knotDescriptor, identityValue, knotValue) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var knotIdentity = knotMnemonic + "_ID";
+                var statement = "INSERT INTO " + knotName + " (" + knotIdentity + ", " + knotName + ") VALUES (?1, ?2)";
+                this.execute(statement, [identityValue, knotValue], this.showResult, this.showError);
+            },
+            deleteKnot: function(knotMnemonic, knotDescriptor) {
+                var knotName = knotMnemonic + "_" + knotDescriptor;
+                var statement = "DROP TABLE IF EXISTS " + knotName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createAnchor: function(anchorMnemonic, anchorDescriptor) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var statement = "CREATE TABLE IF NOT EXISTS " + anchorName + " (" +
+                        anchorIdentity + " INTEGER NOT NULL, PRIMARY KEY (" +
+                        anchorIdentity + " ASC))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            insertAnchor: function(anchorMnemonic, anchorDescriptor, identityValue) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var statement = "INSERT INTO " + anchorName + " (" + anchorIdentity + ") VALUES (?1)";
+                this.execute(statement, [identityValue], this.showResult, this.showError);
+            },
+            deleteAnchor: function(anchorMnemonic, anchorDescriptor) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var statement = "DROP TABLE IF EXISTS " + anchorName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, dataRange) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
+                var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
+                var statement = "CREATE TABLE IF NOT EXISTS " + attributeName + " (" +
+                        anchorIdentity + " INTEGER NOT NULL REFERENCES " + anchorName + "(" + anchorIdentity + "), " +
+                        attributeName + " " + dataRange + " NOT NULL, " +
+                        historizationName + " TIMESTAMP NOT NULL, PRIMARY KEY (" + anchorIdentity + " ASC, " + historizationName + " DESC))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            insertAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, identityValue, attributeValue, historizationValue) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
+                var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
+                var statement = "INSERT INTO " + attributeName + " (" + anchorIdentity + ", " + attributeName + ", " + historizationName + ")" +
+                        " SELECT ?1, ?2, ?3 WHERE NOT EXISTS (SELECT 1 FROM l" + anchorName + " WHERE " + anchorIdentity + " = ?1" +
+                        " AND " + attributeName + " = ?2)";
+                this.execute(statement, [identityValue, attributeValue, historizationValue], this.showResult, this.showError);
+            },
+            selectAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor, timepoint) {
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var attributeAlias = anchorMnemonic + "_" + attributeMnemonic;
+                var attributeName =  attributeAlias + "_" + anchorDescriptor + "_" + attributeDescriptor;
+                var historizationName = anchorMnemonic + "_" + attributeMnemonic + "_ValidFrom";
+                var statement = "SELECT * FROM " + attributeName + " " + attributeAlias + " WHERE " + historizationName +
+                        " = (SELECT MAX(sub." + historizationName + ") FROM " + attributeName + " sub WHERE sub." + anchorIdentity +
+                        " = " + attributeAlias + "." + anchorIdentity + " AND sub." + historizationName + " <= ?)";
+                this.execute(statement, [timepoint], this.showResult, this.showError);
+            },
+            deleteAttribute: function(anchorMnemonic, anchorDescriptor, attributeMnemonic, attributeDescriptor) {
+                var attributeName = anchorMnemonic + "_" + attributeMnemonic + "_" + anchorDescriptor + "_" + attributeDescriptor;
+                var statement = "DROP TABLE IF EXISTS " + attributeName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createTie: function(mnemonics, descriptors, roles) {
+                var i, tieName = "", tieColumns = "", keyColumns = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + " REFERENCES " + mnemonics[i] + "_" + descriptors[i] + "(" + mnemonics[i] + "_ID" + "), ";
+                    if(roles[i][1])
+                        keyColumns += mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var statement = "CREATE TABLE IF NOT EXISTS " + tieName + " (" + tieColumns +
+                        tieName + "_ValidFrom TIMESTAMP, PRIMARY KEY(" + keyColumns + tieName + "_ValidFrom))";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            insertTie: function(mnemonics, roles, identityValues, historizationValue) {
+                var i, tieName = "", tieColumns = "", conditions = "", parameters = "", parameterValues = [];
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    parameters += "?" + (i + 1) + ", ";
+                    conditions += mnemonics[i] + "_ID_" + roles[i][0] + " = " + "?" + (i + 1);
+                    if(i + 1 < mnemonics.length) {
+                        tieName += "_";
+                        conditions += " AND ";
+                    }
+                    parameterValues[i] = identityValues[i];
+                }
+                var statement = "INSERT INTO " + tieName + " (" + tieColumns + tieName + "_ValidFrom) SELECT " + parameters + "?" + (i + 1) +
+                        " WHERE NOT EXISTS (SELECT 1 FROM l" + tieName + " WHERE " + conditions + ")";
+                parameterValues.push(historizationValue);
+                this.execute(statement, parameterValues, this.showResult, this.showError);
+            },
+            deleteTie: function(mnemonics, roles) {
+                var i, tieName = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var statement = "DROP TABLE IF EXISTS " + tieName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createTiePerspective: function(mnemonics, roles) {
+                var i, tieName = "", tieColumns = "", conditions = [];
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    tieColumns += "t." + mnemonics[i] + "_ID_" + roles[i][0] + ", ";
+                    if(roles[i][1])
+                        conditions.push("sub." + mnemonics[i] + "_ID_" + roles[i][0] + " = t." + mnemonics[i] + "_ID_" + roles[i][0]);
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var conditionString = "";
+                for(i = 0; i < conditions.length - 1; i++)
+                    conditionString += conditions[i] + " AND ";
+                conditionString += conditions[i];
+                var statement = "CREATE VIEW IF NOT EXISTS l" + tieName + " AS SELECT " + tieColumns + "t." + tieName + "_ValidFrom FROM " +
+                        tieName + " t WHERE t." + tieName + "_ValidFrom = (SELECT MAX(sub." + tieName + "_ValidFrom) FROM " + tieName + " sub " +
+                        " WHERE " + conditionString + ")";
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            deleteTiePerspective: function(mnemonics, roles) {
+                var i, tieName = "";
+                for(i = 0; i < mnemonics.length; i++) {
+                    tieName += mnemonics[i] + "_" + roles[i][0];
+                    if(i + 1 < mnemonics.length)
+                        tieName += "_";
+                }
+                var statement = "DROP VIEW IF EXISTS l" + tieName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createAnchorPerspective: function(anchorMnemonic, anchorDescriptor, attributeMnemonics, attributeDescriptors) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var anchorIdentity = anchorMnemonic + "_ID";
+                var statement = "CREATE VIEW IF NOT EXISTS l" + anchorName + " AS SELECT " + anchorMnemonic + "." + anchorIdentity;
+                var i, attributeNames = [], attributeAliases = [], historizationNames = [];
+                for(i = 0; i < attributeMnemonics.length; i++) {
+                    attributeNames[i] = anchorMnemonic + "_" + attributeMnemonics[i] + "_" + anchorDescriptor + "_" + attributeDescriptors[i];
+                    attributeAliases[i] = anchorMnemonic + "_" + attributeMnemonics[i];
+                    historizationNames[i] = attributeAliases[i] + "_ValidFrom";
+                    statement += ", " + attributeAliases[i] + "." + attributeNames[i];
+                    statement += ", " + attributeAliases[i] + "." + historizationNames[i];
+                }
+                statement += " FROM " + anchorName + " " + anchorMnemonic;
+                for(i = 0; i < attributeMnemonics.length; i++) {
+                    statement += " LEFT JOIN " + attributeNames[i] + " " + attributeAliases[i] +
+                            " ON " + attributeAliases[i] + "." + anchorIdentity + " = " + anchorMnemonic + "." + anchorIdentity +
+                            " AND " + attributeAliases[i] + "." + historizationNames[i] + " = (" +
+                            " SELECT MAX(sub." + historizationNames[i] + ") FROM " + attributeNames[i] + " sub" +
+                            " WHERE sub." + anchorIdentity + " = " + anchorMnemonic + "." + anchorIdentity + ")";
+                }
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            deleteAnchorPerspective: function(anchorMnemonic, anchorDescriptor) {
+                var anchorName = anchorMnemonic + "_" + anchorDescriptor;
+                var statement = "DROP VIEW IF EXISTS l" + anchorName;
+                this.execute(statement, [], this.showResult, this.showError);
+            },
+            createDatabase: function() {
+                this.createKnot("DEL", "Deleted", "BOOLEAN");
+                this.createAnchor("MO", "Model");
+                this.createAttribute("MO", "Model", "REA", "Reason", "TEXT");
+                this.createAnchorPerspective("MO", "Model", ["REA"], ["Reason"]);
+                this.createAnchor("KN", "Knot");
+                this.createAttribute("KN", "Knot", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("KN", "Knot", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("KN", "Knot", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("KN", "Knot", "IDY", "Identity", "INTEGER");
+                this.createAttribute("KN", "Knot", "MNE", "Mnemonic", "TEXT");
+                this.createAttribute("KN", "Knot", "DSC", "Descriptor", "TEXT");
+                this.createAttribute("KN", "Knot", "DRA", "DataRange", "TEXT");
+                this.createAnchorPerspective("KN", "Knot", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC", "DRA"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor", "DataRange"]);
+                this.createAnchor("AN", "Anchor");
+                this.createAttribute("AN", "Anchor", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("AN", "Anchor", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("AN", "Anchor", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("AN", "Anchor", "IDY", "Identity", "INTEGER");
+                this.createAttribute("AN", "Anchor", "MNE", "Mnemonic", "TEXT");
+                this.createAttribute("AN", "Anchor", "DSC", "Descriptor", "TEXT");
+                this.createAnchorPerspective("AN", "Anchor", ["FIX", "XPO", "YPO", "IDY", "MNE", "DSC"], ["Fixed", "XPosition", "YPosition", "Identity", "Mnemonic", "Descriptor"]);
+                this.createAnchor("AB", "Attribute");
+                this.createAttribute("AB", "Attribute", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("AB", "Attribute", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("AB", "Attribute", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("AB", "Attribute", "MNE", "Mnemonic", "TEXT");
+                this.createAttribute("AB", "Attribute", "DSC", "Descriptor", "TEXT");
+                this.createAttribute("AB", "Attribute", "DRA", "DataRange", "TEXT");
+                this.createAttribute("AB", "Attribute", "KRA", "KnotRange", "TEXT");
+                this.createAttribute("AB", "Attribute", "TRA", "TimeRange", "TEXT");
+                this.createAnchorPerspective("AB", "Attribute", ["FIX", "XPO", "YPO", "MNE", "DSC", "DRA", "KRA", "TRA"], ["Fixed", "XPosition", "YPosition", "Mnemonic", "Descriptor", "DataRange", "KnotRange", "TimeRange"]);
+                this.createAnchor("KR", "KnotRole");
+                this.createAttribute("KR", "KnotRole", "ROL", "Role", "TEXT");
+                this.createAttribute("KR", "KnotRole", "TYP", "Type", "TEXT");
+                this.createAttribute("KR", "KnotRole", "IDE", "Identifier", "BOOLEAN");
+                this.createAnchorPerspective("KR", "KnotRole", ["ROL", "TYP", "IDE"], ["Role", "Type", "Identifier"]);
+                this.createAnchor("AR", "AnchorRole");
+                this.createAttribute("AR", "AnchorRole", "ROL", "Role", "TEXT");
+                this.createAttribute("AR", "AnchorRole", "TYP", "Type", "TEXT");
+                this.createAttribute("AR", "AnchorRole", "IDE", "Identifier", "BOOLEAN");
+                this.createAnchorPerspective("AR", "AnchorRole", ["ROL", "TYP", "IDE"], ["Role", "Type", "Identifier"]);
+                this.createAnchor("TI", "Tie");
+                this.createAttribute("TI", "Tie", "FIX", "Fixed", "BOOLEAN");
+                this.createAttribute("TI", "Tie", "XPO", "XPosition", "DECIMAL(10,2)");
+                this.createAttribute("TI", "Tie", "YPO", "YPosition", "DECIMAL(10,2)");
+                this.createAttribute("TI", "Tie", "TRA", "TimeRange", "TEXT");
+                this.createAnchorPerspective("TI", "Tie", ["FIX", "XPO", "YPO", "TRA"], ["Fixed", "XPosition", "YPosition", "TimeRange"]);
+                this.createTie(["MO", "KN", "DEL"], ["Model", "Knot", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "AN", "DEL"], ["Model", "Anchor", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "AB", "DEL"], ["Model", "Attribute", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["MO", "TI", "DEL"], ["Model", "Tie", "Deleted"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTiePerspective(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.createTie(["AN", "AB", "DEL"], ["Anchor", "Attribute", "Deleted"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.createTiePerspective(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.createTie(["AB", "KN", "DEL"], ["Attribute", "Knot", "Deleted"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.createTiePerspective(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.createTie(["TI", "KR", "DEL"], ["Tie", "KnotRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTiePerspective(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTie(["TI", "AR", "DEL"], ["Tie", "AnchorRole", "Deleted"], [["has", true], ["relates", true], ["state", false]]);
+                this.createTiePerspective(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+            },
+            deleteDatabase: function() {
+                // reverse order of creation
+                this.deleteTiePerspective(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTie(["TI", "AR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTiePerspective(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTie(["TI", "KR", "DEL"], [["has", true], ["relates", true], ["state", false]]);
+                this.deleteTiePerspective(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.deleteTie(["AB", "KN", "DEL"], [["has", true], ["generalizes", true], ["state", false]]);
+                this.deleteTiePerspective(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.deleteTie(["AN", "AB", "DEL"], [["has", true], ["differentiates", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "TI", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "AN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "AB", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTiePerspective(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteTie(["MO", "KN", "DEL"], [["includes", true], ["belongs", true], ["state", false]]);
+                this.deleteAnchorPerspective("TI", "Tie");
+                this.deleteAttribute("TI", "Tie", "FIX", "Fixed");
+                this.deleteAttribute("TI", "Tie", "XPO", "XPosition");
+                this.deleteAttribute("TI", "Tie", "YPO", "YPosition");
+                this.deleteAttribute("TI", "Tie", "TRA", "TimeRange");
+                this.deleteAnchor("TI", "Tie");
+                this.deleteAnchorPerspective("AR", "AnchorRole");
+                this.deleteAttribute("AR", "AnchorRole", "ROL", "Role");
+                this.deleteAttribute("AR", "AnchorRole", "TYP", "Type");
+                this.deleteAttribute("AR", "AnchorRole", "IDE", "Identifier");
+                this.deleteAnchor("KR", "KnotRole");
+                this.deleteAnchorPerspective("KR", "KnotRole");
+                this.deleteAttribute("KR", "KnotRole", "ROL", "Role");
+                this.deleteAttribute("KR", "KnotRole", "TYP", "Type");
+                this.deleteAttribute("KR", "KnotRole", "IDE", "Identifier");
+                this.deleteAnchor("KR", "KnotRole");
+                this.deleteAnchorPerspective("AB", "Attribute");
+                this.deleteAttribute("AB", "Attribute", "FIX", "Fixed");
+                this.deleteAttribute("AB", "Attribute", "XPO", "XPosition");
+                this.deleteAttribute("AB", "Attribute", "YPO", "YPosition");
+                this.deleteAttribute("AB", "Attribute", "MNE", "Mnemonic");
+                this.deleteAttribute("AB", "Attribute", "DSC", "Descriptor");
+                this.deleteAttribute("AB", "Attribute", "DRA", "DataRange");
+                this.deleteAttribute("AB", "Attribute", "KRA", "KnotRange");
+                this.deleteAttribute("AB", "Attribute", "TRA", "TimeRange");
+                this.deleteAnchor("AB", "Attribute");
+                this.deleteAnchorPerspective("AN", "Anchor");
+                this.deleteAttribute("AN", "Anchor", "IDY", "Identity");
+                this.deleteAttribute("AN", "Anchor", "MNE", "Mnemonic");
+                this.deleteAttribute("AN", "Anchor", "DSC", "Descriptor");
+                this.deleteAttribute("AN", "Anchor", "FIX", "Fixed");
+                this.deleteAttribute("AN", "Anchor", "XPO", "XPosition");
+                this.deleteAttribute("AN", "Anchor", "YPO", "YPosition");
+                this.deleteAnchor("AN", "Anchor");
+                this.deleteAnchorPerspective("KN", "Knot");
+                this.deleteAttribute("KN", "Knot", "FIX", "Fixed");
+                this.deleteAttribute("KN", "Knot", "XPO", "XPosition");
+                this.deleteAttribute("KN", "Knot", "YPO", "YPosition");
+                this.deleteAttribute("KN", "Knot", "IDY", "Identity");
+                this.deleteAttribute("KN", "Knot", "MNE", "Mnemonic");
+                this.deleteAttribute("KN", "Knot", "DSC", "Descriptor");
+                this.deleteAttribute("KN", "Knot", "DRA", "DataRange");
+                this.deleteAnchor("KN", "Knot");
+                this.deleteAnchorPerspective("MO", "Model");
+                this.deleteAttribute("MO", "Model", "REA", "Reason");
+                this.deleteAnchor("MO", "Model");
+                this.deleteKnot("DEL", "Deleted");
+            },
+            execute: function(sql, parameters, resultFunction, errorFunction)  {
+                this.db.transaction(function(tx) {
+                    tx.executeSql(
+                        sql,
+                        parameters,
+                        function(tx, result) {
+                            if(resultFunction)
+                                resultFunction(result, sql, parameters);
+                        },
+                        function(tx, error) {
+                            if(errorFunction)
+                                errorFunction(error, sql, parameters);
+                        }
+                    );
+                });
+            },
+            showResult: function(result, sql, parameters) {
+                var row, member;
+                for(var i = 0; i < result.rows.length; i++) {
+                    var message = "";
+                    row = result.rows.item(i);
+                    for(member in row) {
+                        message += member + ": " + row[member] + "\n";
+                    }
+                    alert(message);
+                }
+            },
+            showError: function(error, sql, parameters) {
+                var parameterString = "";
+                for (var i = 0; i < parameters.length; i++)
+                    parameterString += "\n?" + (i + 1) + ": " + parameters[i];
+                if (parameters.length > 0)
+                    parameterString = "\n\nParameters: " + parameterString;
+                alert("Error:\n" + error.message + "\n\nQuery:\n" + sql + parameterString);
+            },
+            showNothing: function(something) {
+                // do nothing
+            }
+        }.DatabaseManager(); // call the "constructor" on the singleton
+        
         var DrawingEngine = {
             // holds the "thread" id when the drawing engine is running
             drawId: null,
@@ -771,6 +1132,16 @@
                 this.miniature = document.getElementById('miniature');
                 this.context.font = '10px sans-serif';
                 this.initialized = true;
+                this.refreshViewportCoordinates();
+            },
+            reset: function() {
+                this.xyScale = 1;
+                this.xTranslation = 0;
+                this.yTranslation = 0;
+                this.miniScale = 0.2;
+                ResizeHandler.resizeCanvas(this.canvas, this.context);
+                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
+                this.invalidateMiniature();
                 this.refreshViewportCoordinates();
             },
             scale: function(scale) {
@@ -1434,7 +1805,7 @@
                 attribute.knotted = knotted;
                 attribute.timeRange = timeRange;
                 attribute.dataRange = dataRange;
-                attribute.description = description ? description.innerText : null;
+                attribute.description = description ? description.firstChild.nodeValue : null;
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 attribute.id = id;
@@ -1589,7 +1960,7 @@
                 var identity = element.getAttribute("identity") || null;
                 var anchor = new Anchor(x, y);
                 anchor.fixed = fixed;
-                anchor.description = description ? description.innerText : null;
+                anchor.description = description ? description.firstChild.nodeValue : null;
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
@@ -1706,7 +2077,7 @@
                 var dataRange = element.getAttribute("dataRange") || null;
                 var knot = new Knot(x, y);
                 knot.fixed = fixed;
-                knot.description = description ? description.innerText : null;
+                knot.description = description ? description.firstChild.nodeValue : null;
                 knot.mnemonic = mnemonic;
                 knot.descriptor = descriptor;
                 knot.identity = identity;
@@ -1806,7 +2177,7 @@
                 var tie = new Tie(x, y, historized);
                 tie.fixed = fixed;
                 tie.timeRange = timeRange;
-                tie.description = description ? description.innerText : null;
+                tie.description = description ? description.firstChild.nodeValue : null;
                 tie.id = id;
                 var grandparent = element.parentNode.parentNode;
                 var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
@@ -2261,6 +2632,13 @@
                 this.reader.onload = function() { FileHandler.fileLoaded() };
                 this.reader.readAsText(files[0]);
             },
+            replaceInput: function(parent, input) {
+                var newInput = document.createElement('input');
+                newInput.className = 'invisible';
+                newInput.setAttribute('type', 'file');
+                newInput.addEventListener('change', function() { FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this); }, false);
+                parent.replaceChild(newInput, input)
+            },
             fileLoaded: function() {
                 try {
                     var parser = new DOMParser();
@@ -2269,6 +2647,7 @@
                 catch(exception) {
                     alert(exception);
                 }
+                DrawingEngine.reset();
                 Model.fromXML(xml);
                 DrawingEngine.start(false);
             }
@@ -2410,6 +2789,10 @@
             // assign event handlers to buttons
             ControlButtons.init();
 
+            // create the database
+            // TODO: check if the database is already created
+            DatabaseManager.createDatabase();
+
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -2494,7 +2877,8 @@
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
 
         function exit(window) {
-            // drop database items here
+            // TODO: drop rows rather than the whole db here
+            DatabaseManager.deleteDatabase();
         }
         
         // -->
@@ -2513,15 +2897,15 @@
             <ul class="menu">
                 <li>Actions
                     <ul class="submenu">
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Schema XML</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">SQL</li>
+                        <li onclick="Model.setupMinimal()">Empty model...</li>
+                        <li>Load XML file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
-                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG Image</li>
-                        <!-- TODO: There is some kind of trick to make the input field invisible but on top and the "Load file" text visible below it -->
-                        <li>Load file <input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files)"/></li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Generate XML representation</li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">Generate SQL code</li>
+                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG image</li>
                     </ul>
                 </li>
             </ul>
