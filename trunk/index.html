@@ -829,6 +829,8 @@
                 this.yTranslation = storage.getItem("yTranslation") || 0;
                 ResizeHandler.resizeCanvas(this.canvas, this.context);
                 ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
+                this.invalidateMiniature();
+                this.refreshViewportCoordinates();
             },
             reset: function() {
                 this.xyScale = 1;
