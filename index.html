@@ -259,6 +259,7 @@
         margin:             0;
         padding-right:      8px;
         padding-left:       8px;
+        text-align:         left;
     }
     .menu > li:hover .submenu, .menu > li.focus .submenu {
         opacity:            1;
@@ -816,6 +817,18 @@
                 this.context.font = '10px sans-serif';
                 this.initialized = true;
                 this.refreshViewportCoordinates();
+            },
+            storeSettings: function(storage) {
+                storage.setItem("xyScale", this.xyScale);
+                storage.setItem("xTranslation", this.xTranslation);
+                storage.setItem("yTranslation", this.yTranslation);
+            },
+            loadSettings: function(storage) {
+                this.xyScale = storage.getItem("xyScale") || 1;
+                this.xTranslation = storage.getItem("xTranslation") || 0;
+                this.yTranslation = storage.getItem("yTranslation") || 0;
+                ResizeHandler.resizeCanvas(this.canvas, this.context);
+                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
             },
             reset: function() {
                 this.xyScale = 1;
@@ -2397,6 +2410,74 @@
         };
 
         var SettingsMenu = {
+            init: function() {
+                document.getElementById('friction').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
+                document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
+                document.getElementById('stoppingVelocity').value = LayoutEngine.stoppingVelocity.toFixed(1);
+                document.getElementById('minimumStartingVelocity').value = LayoutEngine.minimumStartingVelocity.toFixed(1);
+                document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
+                document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
+                document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
+                document.getElementById('metric').value = 'manhattan';
+            },
+            resetSettings: function() {
+                this.setFriction(4);
+                this.setNormalDistance(30);
+                this.setStoppingVelocity(0.1);
+                this.setMinimumStartingVelocity(1);
+                this.setMaximumStartingVelocity(5);
+                this.setInfluenceConstant(4);
+                this.setStiffness(3);
+                this.setMetric('manhattan');
+                this.init();
+            },
+            storeSettings: function(storage) {
+                storage.setItem("friction", LayoutEngine.friction);
+                storage.setItem("normalDistance", LayoutEngine.normalDistance);
+                storage.setItem("stoppingVelocity", LayoutEngine.stoppingVelocity);
+                storage.setItem("minimumStartingVelocity", LayoutEngine.minimumStartingVelocity);
+                storage.setItem("maximumStartingVelocity", LayoutEngine.maximumStartingVelocity);
+                storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
+                storage.setItem("stiffness", LayoutEngine.stiffness);
+                storage.setItem("metric", document.getElementById('metric').value);
+            },
+            loadSettings: function(storage) {
+                this.setFriction(storage.getItem('friction') || 4);
+                this.setNormalDistance(storage.getItem('normalDistance') || 30);
+                this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
+                this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
+                this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
+                this.setInfluenceConstant(storage.getItem('influenceConstant') || 4);
+                this.setStiffness(storage.getItem('stiffness') || 3);
+                this.setMetric(storage.getItem('metric') || 'manhattan');
+                this.init();
+            },
+            setFriction: function(value) {
+                LayoutEngine.friction = (100 - value)/100;
+            },
+            setNormalDistance: function(value) {
+                LayoutEngine.normalDistance = 1.0 * value;
+                LayoutEngine.attractionConstant = 1/value/value/value;
+            },
+            setStoppingVelocity: function(value) {
+                LayoutEngine.stoppingVelocity = 1.0 * value;
+            },
+            setMinimumStartingVelocity: function(value) {
+                LayoutEngine.minimumStartingVelocity = 1.0 * value;
+            },
+            setMaximumStartingVelocity: function(value) {
+                LayoutEngine.maximumStartingVelocity = 1.0 * value;
+            },
+            setInfluenceConstant: function(value) {
+                LayoutEngine.influenceConstant = 1.0 * value;
+            },
+            setStiffness: function(value) {
+                LayoutEngine.stiffness = 1.0 * value;
+                LayoutEngine.stiffnessBound = value * value;
+            },
+            setMetric: function(value) {
+                LayoutEngine.metric = LayoutEngine[value];
+            },
             toggleDebug: function () {
                 DEBUG = !DEBUG;
                 DrawingEngine.start(false);
@@ -2484,6 +2565,9 @@
             // assign event handlers to buttons
             ControlButtons.init();
 
+            // set values in the settings input fields
+            SettingsMenu.init();
+
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -2554,8 +2638,8 @@
             else
                 ActionsMenu.loadFromURL('example.xml');
 
-            LayoutEngine.metric = LayoutEngine.manhattan;
-//            LayoutEngine.metric = LayoutEngine.euclidean;
+            SettingsMenu.loadSettings(window.localStorage);
+            DrawingEngine.loadSettings(window.localStorage);
             DrawingEngine.start(true);
         }
 
@@ -2564,9 +2648,13 @@
             return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
         };
 
-        window.onunload = function() {
+        window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
+        
+        function exit(window) {
             window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
-        };
+            SettingsMenu.storeSettings(window.localStorage);
+            DrawingEngine.storeSettings(window.localStorage);
+        }
         
         // -->
     </script>
@@ -2613,6 +2701,15 @@
             <ul class="menu">
                 <li>Settings
                     <ul class="submenu">
+                        <li><input id="friction" type="number" min="0" max="99" step="1" size="4" onblur="SettingsMenu.setFriction(this.value)"/> % Friction</li>
+                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" size="4" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
+                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
+                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
+                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
+                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" size="4" onblur="SettingsMenu.setInfluenceConstant(this.value)"/> Node influence factor</li>
+                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" size="4" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
+                        <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> Metric</li>
+                        <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
                         <li onclick="SettingsMenu.toggleDebug()">Toggle debug</li>
                     </ul>
                 </li>
