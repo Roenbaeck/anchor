@@ -824,9 +824,9 @@
                 storage.setItem("yTranslation", this.yTranslation);
             },
             loadSettings: function(storage) {
-                this.xyScale = storage.getItem("xyScale") || 1;
-                this.xTranslation = storage.getItem("xTranslation") || 0;
-                this.yTranslation = storage.getItem("yTranslation") || 0;
+                this.xyScale = 1 * storage.getItem("xyScale") || 1;
+                this.xTranslation = 1 * storage.getItem("xTranslation") || 0;
+                this.yTranslation = 1 * storage.getItem("yTranslation") || 0;
                 ResizeHandler.resizeCanvas(this.canvas, this.context);
                 ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
                 this.invalidateMiniature();
