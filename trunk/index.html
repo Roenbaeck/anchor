@@ -2413,7 +2413,7 @@
 
         var SettingsMenu = {
             init: function() {
-                document.getElementById('friction').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
+                document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
                 document.getElementById('stoppingVelocity').value = LayoutEngine.stoppingVelocity.toFixed(1);
                 document.getElementById('minimumStartingVelocity').value = LayoutEngine.minimumStartingVelocity.toFixed(1);
@@ -2423,7 +2423,7 @@
                 document.getElementById('metric').value = 'manhattan';
             },
             resetSettings: function() {
-                this.setFriction(4);
+                this.setDamping(4);
                 this.setNormalDistance(30);
                 this.setStoppingVelocity(0.1);
                 this.setMinimumStartingVelocity(1);
@@ -2434,7 +2434,7 @@
                 this.init();
             },
             storeSettings: function(storage) {
-                storage.setItem("friction", LayoutEngine.friction);
+                storage.setItem("damping", (1 - LayoutEngine.damping) * 100);
                 storage.setItem("normalDistance", LayoutEngine.normalDistance);
                 storage.setItem("stoppingVelocity", LayoutEngine.stoppingVelocity);
                 storage.setItem("minimumStartingVelocity", LayoutEngine.minimumStartingVelocity);
@@ -2444,7 +2444,7 @@
                 storage.setItem("metric", document.getElementById('metric').value);
             },
             loadSettings: function(storage) {
-                this.setFriction(storage.getItem('friction') || 4);
+                this.setDamping(storage.getItem('damping') || 4);
                 this.setNormalDistance(storage.getItem('normalDistance') || 30);
                 this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
                 this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
@@ -2454,8 +2454,8 @@
                 this.setMetric(storage.getItem('metric') || 'manhattan');
                 this.init();
             },
-            setFriction: function(value) {
-                LayoutEngine.friction = (100 - value)/100;
+            setDamping: function(value) {
+                LayoutEngine.damping = (100 - value)/100;
             },
             setNormalDistance: function(value) {
                 LayoutEngine.normalDistance = 1.0 * value;
@@ -2699,11 +2699,12 @@
             </ul>
         </div>
 
+        <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
         <div id="settings" class="unselectable" title="Expert settings">
             <ul class="menu">
                 <li>Settings
                     <ul class="submenu">
-                        <li><input id="friction" type="number" min="0" max="99" step="1" size="4" onblur="SettingsMenu.setFriction(this.value)"/> % Friction</li>
+                        <li><input id="damping" type="number" min="0" max="99" step="1" size="4" onblur="SettingsMenu.setDamping(this.value)"/> % Damping</li>
                         <li><input id="normalDistance" type="number" min="10" max="90" step="5" size="4" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
                         <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
                         <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
