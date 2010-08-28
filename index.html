@@ -683,9 +683,11 @@
                         this.addNode(Tie.prototype.fromXML(ties[i]));
                 }
             },
-            walkFromNode: function(node, affectedNodes) {
-                var i, j, k, edge, otherNode, otherEdge, anotherNode, otherNodeShouldAlsoBeErased;
-                for(j = 0; edge = node.edges[j]; j++) {
+            walkFromNode: function(node, affectedNodes, affectedEdges) {
+                var i, k, edge, otherNode, otherEdge, anotherNode, otherNodeShouldAlsoBeErased;
+                for(i = 0; edge = node.edges[i]; i++) {
+                    if(affectedEdges.indexOf(edge) < 0)
+                        affectedEdges.push(edge);
                     otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
                     otherNodeShouldAlsoBeErased = true;
                     for(k = 0; otherEdge = otherNode.edges[k]; k++) {
@@ -694,15 +696,18 @@
                     }
                     if(otherNodeShouldAlsoBeErased && affectedNodes.indexOf(otherNode) < 0) {
                         affectedNodes.push(otherNode);
-                        this.walkFromNode(otherNode, affectedNodes);
+                        this.walkFromNode(otherNode, affectedNodes, affectedEdges);
                     }
                 }
             },
-            walkFromEdge: function(edge, affectedNodes) {
-                var j, k, otherEdge, anotherNode, potentialNode, potentialNodeShouldAlsoBeErased;
+            walkFromEdge: function(edge, affectedNodes, affectedEdges) {
+                var i, k, otherEdge, potentialNode, potentialNodeShouldAlsoBeErased;
                 var potentialNodes = [edge.node, edge.otherNode];
-                for(j = 0; potentialNode = potentialNodes[j]; j++) {
-                    if(potentialNode.edges.length == 1)
+                for(i = 0; potentialNode = potentialNodes[i]; i++) {
+                    potentialNodeShouldAlsoBeErased = true;
+                    for(k = 0; otherEdge = potentialNode.edges[k]; k++)
+                        potentialNodeShouldAlsoBeErased &= affectedEdges.indexOf(otherEdge) >= 0;
+                    if(potentialNodeShouldAlsoBeErased && affectedNodes.indexOf(potentialNode) < 0)
                         affectedNodes.push(potentialNode);
                 }
             },
@@ -715,9 +720,9 @@
                         affectedNodes.push(node);
                 }
                 for(i = 0; node = affectedNodes[i]; i++)
-                    this.walkFromNode(node, affectedNodes);
+                    this.walkFromNode(node, affectedNodes, affectedEdges);
                 for(i = 0; edge = affectedEdges[i]; i++)
-                    this.walkFromEdge(edge, affectedNodes);
+                    this.walkFromEdge(edge, affectedNodes, affectedEdges);
                 for(i = 0; node = affectedNodes[i]; i++)
                     for(j = 0; edge = node.edges[j]; j++)
                         if(affectedEdges.indexOf(edge) < 0)
