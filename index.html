@@ -2444,12 +2444,11 @@
                     alert(exception);
                 }
             },
-            // TODO: I have no idea why 2.5 works (found it by trial and error) and therefore this is likely to break
             centerModel: function() {
-                var xCenter = (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
-                var yCenter = (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
-                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - 2.5 * xCenter;
-                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - 2.5 * yCenter;
+                var xCenter = Model.leftmostNode.xPosition + (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
+                var yCenter = Model.topmostNode.yPosition + (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
+                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - xCenter;
+                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - yCenter;
                 DrawingEngine.translate(xAdjust, yAdjust);
                 DrawingEngine.start(false);
             },
