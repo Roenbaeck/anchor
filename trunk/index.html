@@ -343,7 +343,7 @@
         var DEBUG = false;
 
         // frames per second - set low when debugging
-        var FPS = 1000;
+        var FPS = 100;
 
         // draw the miniature every minirate frames
         var MINIRATE = 50;
@@ -557,14 +557,20 @@
                 this.version++;
                 this.versions[this.version] = this.toXML();
                 this.versions.length = this.version + 1;
+                ControlButtons.setUndoLevels(this.version);
+                ControlButtons.setRedoLevels(0);
             },
             undoState: function() {
                 this.version -= (this.version == 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                ControlButtons.setUndoLevels(this.version);
+                ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
             redoState: function() {
                 this.version += (this.version == this.versions.length - 1 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                ControlButtons.setUndoLevels(this.version);
+                ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
             setupMinimal: function() {
                 if(confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!")) {
@@ -620,10 +626,10 @@
                 }
             },
             removeEdge: function(edge) {
-                this.removeNode(edge);
                 this.deleteElementFromArray(this.edges, edge);
                 this.deleteElementFromArray(edge.node.edges, edge);
                 this.deleteElementFromArray(edge.otherNode.edges, edge);
+                this.removeNode(edge);
             },
             getNodeFromShadow: function(shadow) {
                 return this.shadowToNode[shadow];
@@ -632,8 +638,7 @@
                 return this.idToNode[id];
             },
             deleteElementFromArray: function(array, element) {
-                for(var i = 0; element != array[i]; i++);
-                array.splice(i, 1);
+                array.splice(array.indexOf(element), 1);
             },
             invalidateNode: function(node) {
                 var square = LayoutEngine.createSquare(node, LayoutEngine.normalDistance);
@@ -676,6 +681,57 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addNode(Tie.prototype.fromXML(ties[i]));
+                }
+            },
+            walkFromNode: function(node, affectedNodes) {
+                var i, j, k, edge, otherNode, otherEdge, anotherNode, otherNodeShouldAlsoBeErased;
+                for(j = 0; edge = node.edges[j]; j++) {
+                    otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                    otherNodeShouldAlsoBeErased = true;
+                    for(k = 0; otherEdge = otherNode.edges[k]; k++) {
+                        anotherNode = (otherNode == otherEdge.otherNode ? otherEdge.node : otherEdge.otherNode);
+                        otherNodeShouldAlsoBeErased &= affectedNodes.indexOf(anotherNode) >= 0;
+                    }
+                    if(otherNodeShouldAlsoBeErased && affectedNodes.indexOf(otherNode) < 0) {
+                        affectedNodes.push(otherNode);
+                        this.walkFromNode(otherNode, affectedNodes);
+                    }
+                }
+            },
+            walkFromEdge: function(edge, affectedNodes) {
+                var j, k, otherEdge, anotherNode, potentialNode, potentialNodeShouldAlsoBeErased;
+                var potentialNodes = [edge.node, edge.otherNode];
+                for(j = 0; potentialNode = potentialNodes[j]; j++) {
+                    if(potentialNode.edges.length == 1)
+                        affectedNodes.push(potentialNode);
+                }
+            },
+            erase: function(nodes) {
+                var i, j, node, edge, affectedNodes = [], affectedEdges = [];
+                for(i = 0; node = nodes[i]; i++) {
+                    if(node instanceof Edge)
+                        affectedEdges.push(node);
+                    else
+                        affectedNodes.push(node);
+                }
+                for(i = 0; node = affectedNodes[i]; i++)
+                    this.walkFromNode(node, affectedNodes);
+                for(i = 0; edge = affectedEdges[i]; i++)
+                    this.walkFromEdge(edge, affectedNodes);
+                for(i = 0; node = affectedNodes[i]; i++)
+                    for(j = 0; edge = node.edges[j]; j++)
+                        if(affectedEdges.indexOf(edge) < 0)
+                            affectedEdges.push(edge);
+                if(confirm("Are you sure you want to delete the following?\n--" +
+                        affectedNodes.length + " nodes and " +
+                        affectedEdges.length + " edges --\n" + affectedNodes.join('\n'))) {
+                    for(i = 0; node = affectedNodes[i]; i++)
+                        this.removeNode(node);
+                    for(i = 0; edge = affectedEdges[i]; i++)
+                        this.removeEdge(edge);
+                    this.recordState();
+                    CanvasEventHandler.clearSelection();
+                    DrawingEngine.start(true);
                 }
             },
             toggleKnotted: function(nodes) {
@@ -1252,7 +1308,7 @@
             this.editables = [];
             // TODO: descriptions have to be handled separately
             //this.editables = [['Description','description','textarea','rows','5','cols','20']];
-            this.operations = ['delete'];
+            this.operations = ['erase'];
             this.incomplete = true;
         }
         AbstractNode.prototype = {
@@ -1289,7 +1345,6 @@
             get name() {
                 return '';
             },
-            // override toString in order to provide a unique identifier to be used when emulating hash maps
             toString: function() {
                 return this.name.toString();
             },
@@ -1415,7 +1470,7 @@
 
         function Attribute(x, y, historized) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = ('??' + this.id).slice(-3);
+            this.mnemonic = '?' + this.id;
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -1603,7 +1658,7 @@
 
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = ('?' + this.id).slice(-2);
+            this.mnemonic = '?' + this.id;
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -1711,7 +1766,7 @@
 
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = ('??' + this.id).slice(-3);
+            this.mnemonic = '?' + this.id;
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -2224,7 +2279,7 @@
             }
             // operations are defines as 'method', 'display name'
             var allOperations = [
-                ['delete', 'Delete'],
+                ['erase', 'Delete'],
                 ['toggleKnotted', 'Toggle Knotted'],
                 ['toggleHistorized', 'Toggle Historized'],
                 ['addAttribute', 'Add Attribute'],
@@ -2421,6 +2476,8 @@
                 document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
                 document.getElementById('metric').value = 'manhattan';
+                document.getElementById('FPS').value = FPS;
+                document.getElementById('MINIRATE').value = MINIRATE;
             },
             resetSettings: function() {
                 this.setDamping(4);
@@ -2431,6 +2488,8 @@
                 this.setInfluenceConstant(4);
                 this.setStiffness(3);
                 this.setMetric('manhattan');
+                this.setFPS(100);
+                this.setMiniRate(50);
                 this.init();
             },
             storeSettings: function(storage) {
@@ -2442,6 +2501,8 @@
                 storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
                 storage.setItem("metric", document.getElementById('metric').value);
+                storage.setItem("FPS", FPS);
+                storage.setItem("MINIRATE", MINIRATE);
             },
             loadSettings: function(storage) {
                 this.setDamping(storage.getItem('damping') || 4);
@@ -2452,33 +2513,41 @@
                 this.setInfluenceConstant(storage.getItem('influenceConstant') || 4);
                 this.setStiffness(storage.getItem('stiffness') || 3);
                 this.setMetric(storage.getItem('metric') || 'manhattan');
+                this.setFPS(storage.getItem('FPS') || 100);
+                this.setMiniRate(storage.getItem('MINIRATE') || 50);
                 this.init();
             },
             setDamping: function(value) {
                 LayoutEngine.damping = (100 - value)/100;
             },
             setNormalDistance: function(value) {
-                LayoutEngine.normalDistance = 1.0 * value;
+                LayoutEngine.normalDistance = 1 * value;
                 LayoutEngine.attractionConstant = 1/value/value/value;
             },
             setStoppingVelocity: function(value) {
-                LayoutEngine.stoppingVelocity = 1.0 * value;
+                LayoutEngine.stoppingVelocity = 1 * value;
             },
             setMinimumStartingVelocity: function(value) {
-                LayoutEngine.minimumStartingVelocity = 1.0 * value;
+                LayoutEngine.minimumStartingVelocity = 1 * value;
             },
             setMaximumStartingVelocity: function(value) {
-                LayoutEngine.maximumStartingVelocity = 1.0 * value;
+                LayoutEngine.maximumStartingVelocity = 1 * value;
             },
             setInfluenceConstant: function(value) {
-                LayoutEngine.influenceConstant = 1.0 * value;
+                LayoutEngine.influenceConstant = 1 * value;
             },
             setStiffness: function(value) {
-                LayoutEngine.stiffness = 1.0 * value;
+                LayoutEngine.stiffness = 1 * value;
                 LayoutEngine.stiffnessBound = value * value;
             },
             setMetric: function(value) {
                 LayoutEngine.metric = LayoutEngine[value];
+            },
+            setFPS: function(value) {
+                FPS = 1 * value;
+            },
+            setMiniRate: function(value) {
+                MINIRATE = 1 * value;
             },
             toggleDebug: function () {
                 DEBUG = !DEBUG;
@@ -2520,6 +2589,18 @@
                 else {
                     DrawingEngine.start(false);
                 }
+            },
+            setUndoLevels: function(numberOfLevels) {
+                var undos = '';
+                if(numberOfLevels)
+                    undos = ' (' + numberOfLevels + ')';
+                this.undoButton.firstChild.nodeValue = 'Undo' + undos;
+            },
+            setRedoLevels: function(numberOfLevels) {
+                var redos = '';
+                if(numberOfLevels)
+                    redos = ' (' + numberOfLevels + ')';
+                this.redoButton.firstChild.nodeValue = 'Redo' + redos;
             },
             undo: function() {
                 Model.undoState();
@@ -2712,6 +2793,8 @@
                         <li><input id="influenceConstant" type="number" min="0" max="10" step="1" size="4" onblur="SettingsMenu.setInfluenceConstant(this.value)"/> Node influence factor</li>
                         <li><input id="stiffness" type="number" min="1" max="9" step="0.5" size="4" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
                         <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> Metric</li>
+                        <li><input id="FPS" type="number" min="10" max="1000" step="10" size="4" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
+                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" size="4" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
                         <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
                         <li onclick="SettingsMenu.toggleDebug()">Toggle debug</li>
                     </ul>
