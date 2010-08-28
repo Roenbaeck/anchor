@@ -861,7 +861,7 @@
             miniCounter: 0,
             miniature: null,
             showNames: false,
-            newState: false,
+            newState: true,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
@@ -1545,7 +1545,7 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? false : Boolean(fixed);
+                fixed = fixed ? fixed == 'true' : false;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -1824,7 +1824,7 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? false : Boolean(fixed);
+                fixed = fixed ? fixed == 'true' : false;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -1925,7 +1925,7 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? false : Boolean(fixed);
+                fixed = fixed ? fixed == 'true' : false;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2436,10 +2436,22 @@
                     xmlhttp.open("GET", url, false);
                     xmlhttp.send(null);
                     Model.fromXML(xmlhttp.responseXML);
+                    Model.recordState();
+                    DrawingEngine.reset();
+                    DrawingEngine.start(false);
                 }
                 catch(exception){
                     alert(exception);
                 }
+            },
+            // TODO: I have no idea why 2.5 works (found it by trial and error) and therefore this is likely to break
+            centerModel: function() {
+                var xCenter = (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
+                var yCenter = (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
+                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - 2.5 * xCenter;
+                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - 2.5 * yCenter;
+                DrawingEngine.translate(xAdjust, yAdjust);
+                DrawingEngine.start(false);
             },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
@@ -2760,8 +2772,9 @@
                         <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
+                        <li onclick="ActionsMenu.centerModel()">Center model</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
-                        <li onclick="ActionsMenu.loadFromURL('example.xml'); DrawingEngine.start(true);">Load example model</li>
+                        <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Generate XML representation</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">Generate SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG image</li>
