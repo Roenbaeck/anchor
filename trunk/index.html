@@ -2444,6 +2444,10 @@
                     alert(exception);
                 }
             },
+            resetZoom: function() {
+                ControlButtons.doZoom(1/DrawingEngine.xyScale);
+                DrawingEngine.start(false);
+            },
             centerModel: function() {
                 var xCenter = Model.leftmostNode.xPosition + (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
                 var yCenter = Model.topmostNode.yPosition + (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
@@ -2772,6 +2776,7 @@
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
                         <li onclick="ActionsMenu.centerModel()">Center model</li>
+                        <li onclick="ActionsMenu.resetZoom()">Reset zoom</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Generate XML representation</li>
