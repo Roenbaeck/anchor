@@ -968,16 +968,16 @@
                 }
             },
             xContext: function(xScreen) {
-                return Math.round((xScreen - this.xTranslation) / this.xyScale);
+                return (xScreen - this.xTranslation) / this.xyScale;
             },
             yContext: function(yScreen) {
-                return Math.round((yScreen - this.yTranslation) / this.xyScale);
+                return (yScreen - this.yTranslation) / this.xyScale;
             },
             xScreen: function(xContext) {
-                return Math.round(xContext * this.xyScale + this.xTranslation);
+                return xContext * this.xyScale + this.xTranslation;
             },
             yScreen: function(yContext) {
-                return Math.round(yContext * this.xyScale + this.yTranslation);
+                return yContext * this.xyScale + this.yTranslation;
             },
             setCursor: function(cursor) {
                 this.canvas.style.cursor = cursor;
@@ -1296,12 +1296,27 @@
             xLastKnown: 0,
             yLastKnown: 0,
             mousedown: function(event) {
-                // TODO: Position the viewport under mousepointer on click
+                var xCenter = DrawingEngine.xVisible + DrawingEngine.widthVisible/2;
+                var yCenter = DrawingEngine.yVisible + DrawingEngine.heightVisible/2;
+                // scale down
+                xCenter = xCenter * DrawingEngine.miniScale + DrawingEngine.miniScale * (DrawingEngine.miniPadding - Model.leftmostNode.xPosition);
+                yCenter = yCenter * DrawingEngine.miniScale + DrawingEngine.miniScale * (DrawingEngine.miniPadding - Model.topmostNode.yPosition);
+
+                var xTranslate = xCenter - event.xScreen;
+                var yTranslate = yCenter - event.yScreen;
+                // scale up
+                xTranslate /= DrawingEngine.miniScale;
+                yTranslate /= DrawingEngine.miniScale;
+
+                DrawingEngine.translate(xTranslate, yTranslate);
                 this.dragging = true;
             },
             mousemove: function(event) {
                 if (this.dragging) {
-                    DrawingEngine.translate((this.xLastKnown - event.xScreen)/DrawingEngine.miniScale, (this.yLastKnown - event.yScreen)/DrawingEngine.miniScale);
+                    DrawingEngine.translate(
+                            (this.xLastKnown - event.xScreen)/DrawingEngine.miniScale,
+                            (this.yLastKnown - event.yScreen)/DrawingEngine.miniScale
+                    );
                     DrawingEngine.start(false);
                 }
                 this.xLastKnown = event.xScreen;
