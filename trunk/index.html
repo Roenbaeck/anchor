@@ -81,23 +81,35 @@
         top:                0;
         left:               0;
         display:            block;
-        background-color:   rgba(255, 255, 255, 0.8);
+        background-color:   rgba(212, 212, 212, 0.8);
         color:              black;
         padding:            0;
         margin:             0;
         text-align:         left;
-        border:             1px dotted black;
+        border:             2px solid #fff;
         z-index:            11;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
     #contextMenu .items {
-        margin:             15px 10px 5px 10px;
+        margin:             10px 10px 5px 10px;
+    }
+    #contextMenu .topper {
+        font:               10px sans-serif;
+        color:              #333;
+        height:             15px;
+        padding-top:        2px;
+        padding-left:       24px;
+        border-bottom:      1px solid #888;
+        background-color:   rgba(255, 255, 255, 0.8);
+    }
+    #contextMenu .divider {
+        border-top:         1px dotted #888;
+        height:             2px;
     }
 
     .toggler {
-        font:               16px sans-serif;
         position:           absolute;
         margin:             0;
         padding:            0;
@@ -108,8 +120,6 @@
     }
     .expanded {
         cursor:             nw-resize;
-        left:               -1px;
-        top:                -1px;
         background-color:   #f55;
     }
     .collapsed {
@@ -124,6 +134,33 @@
     .collapsed:hover {
         background-color:   #fa5;
     }
+    
+    .operators {
+        position:           relative;
+        margin:             0px 5px 5px 5px;
+        padding:            5px 0px 0px 0px;
+        top:                0;
+        left:               0;
+    }
+
+    .operator {
+        margin:             0;
+        line-height:        25px;
+        text-align:         left;
+        cursor:             pointer;
+        white-space:        nowrap;
+        padding-right:      10px;
+        padding-left:       10px;
+        z-index:            8;
+    }
+
+    .operator:hover {
+        color:              white;
+        background-color:   rgba(128, 128, 128, 0.8);
+        text-decoration:    none;
+        text-shadow:        0px 0px 6px #555;
+    }
+
 
     /* is used in the code popover */
     #modalBackground {
@@ -189,11 +226,17 @@
 
 
     /* Menus and control buttons */
-    ul, li {
+    ul, li, table, tr, td {
 		list-style-type:    none;
 		margin:             0;
         padding:            0;
+        border:             0;
+        border-collapse:    collapse;
 	}
+
+    td {
+        padding:            0px 5px 2px 5px;
+    }
 
     #header {
         font:               10pt georgia, sans-serif;
@@ -1329,6 +1372,7 @@
             editables: null,
             incomplete: true,
             operations: null,
+            type: 'Node',
             // getters and setters (with hidden _id member)
             set id(id)  {
                 if(id) {
@@ -1482,6 +1526,7 @@
             this.knotted = false;
             this.historized = historized;
             this.operations.push('toggleKnotted','toggleHistorized');
+            this.type = 'Attribute';
         }
         Attribute.prototype = {
             mnemonic: null,
@@ -1669,6 +1714,7 @@
             this.editables.push(this.mnemonicEdit);
             this.editables.push(this.identityEdit);
             this.operations.push('addAttribute','addTie','addTieAndAnchor');
+            this.type = 'Anchor';
         }
         Anchor.prototype = {
             mnemonic: null,
@@ -1777,6 +1823,7 @@
             this.editables.push(this.mnemonicEdit);
             this.editables.push(this.dataRangeEdit);
             this.editables.push(this.identityEdit);
+            this.type = 'Knot';            
         }
         Knot.prototype = {
             mnemonic: null,
@@ -1894,6 +1941,7 @@
             this.historized = historized;
             this.incomplete = this.isIncomplete();
             this.operations.push('toggleHistorized','addKnot','addAnchor');
+            this.type = 'Tie';
         }
         Tie.prototype = {
             timeRange: null,
@@ -2084,6 +2132,7 @@
             this.editables.push(this.roleEdit);
             this.operations.push('toggleIdentifier');
             this.incomplete = false;
+            this.type = 'Edge';
         }
         Edge.prototype = {
             role: null,
@@ -2251,13 +2300,21 @@
             contextMenu.appendChild(this.toggler);
             this.contextMenu = contextMenu;
 
+            this.topper = document.createElement('div');
+            this.topper.setAttribute('class', 'topper');
+            this.divider = document.createElement('div');
+            this.divider.setAttribute('class', 'divider');
+            
             var editable;
-            this.table = document.createElement('table');
-            this.table.setAttribute('class', 'items');
+            this.editsHaveBeenMade = false;
+            this.editables = document.createElement('table');
+            this.editables.setAttribute('class', 'items');
 
             var i, j, tr;
             // if we are operating a single node, show its editable fields
             if(selectedNodes.length == 0 || (selectedNodes.length == 1 && selectedNodes[0] == hoveredNode)) {
+                this.topper.appendChild(document.createTextNode("Edit " + hoveredNode.type));
+                this.isMultipleSelect = false;
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
                     var element = document.createElement(editable.type);
                     element.className = 'editable';
@@ -2271,6 +2328,7 @@
                     element.member = editable.member;
                     element.addEventListener('blur', function() { self.edit(this, hoveredNode); }, false);
                     element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
+                    element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
                     tr = document.createElement('tr');
                     tr.setAttribute('valign', 'top');
                     var td1 = document.createElement('td');
@@ -2279,12 +2337,16 @@
                     var td2 = document.createElement('td');
                     td2.appendChild(element);
                     tr.appendChild(td2);
-                    this.table.appendChild(tr);
+                    this.editables.appendChild(tr);
                 }
+            }
+            else {
+                this.topper.appendChild(document.createTextNode("Edit selection"));
+                this.isMultipleSelect = true;
             }
             // operations are defines as 'method', 'display name'
             var allOperations = [
-                ['erase', 'Delete'],
+                ['erase', 'Delete...'],
                 ['toggleKnotted', 'Toggle Knotted'],
                 ['toggleHistorized', 'Toggle Historized'],
                 ['addAttribute', 'Add Attribute'],
@@ -2304,18 +2366,15 @@
                 if(this.isSupported(allOperations[i][0], allNodes))
                     supportedOperations.push(allOperations[i]);
 
+            this.operators = document.createElement('div');
+            this.operators.setAttribute('class', 'operators');
             for(i = 0; i < supportedOperations.length; i++) {
-                var button = document.createElement('input');
-                button.setAttribute('type', 'button');
-                button.value = supportedOperations[i][1];
-                button.method = supportedOperations[i][0];
-                button.addEventListener('click', function() { self.operate(this, allNodes); }, false);
-                tr = document.createElement('tr');
-                var td = document.createElement('td');
-                td.setAttribute('colspan', '2');
-                td.appendChild(button);
-                tr.appendChild(td);
-                this.table.appendChild(tr);
+                var operator = document.createElement('div');
+                operator.setAttribute('class', 'operator');
+                operator.appendChild(document.createTextNode(supportedOperations[i][1]));
+                operator.method = supportedOperations[i][0];
+                operator.addEventListener('click', function() { self.operate(this, allNodes); }, false);
+                this.operators.appendChild(operator);
             }
 
             this.updatePosition();
@@ -2326,10 +2385,15 @@
             contextMenu: null,
             hoveredNode: null,
             selectedNodes: null,
-            table: null,
+            isMultipleSelect: false,
+            editables: null,
+            operators: null,
+            divider: null,
+            topper: null,
             toggler: null,
             collapsed: true,
             modalBackground: null,
+            editsHaveBeenMade: false,
             operate: function(button, nodes) {
                 Model[button.method](nodes);
                 for(var i = 0; i < nodes.length; i++)
@@ -2366,12 +2430,22 @@
                     this.toggler.className = 'toggler expanded';
                     this.collapsed = false;
                     this.modalBackground = new ModalBackground();
-                    this.contextMenu.appendChild(this.table);
+                    this.contextMenu.appendChild(this.topper);
+                    if(!this.isMultipleSelect) {
+                        this.contextMenu.appendChild(this.editables);
+                        this.contextMenu.appendChild(this.divider);
+                    }
+                    this.contextMenu.appendChild(this.operators);
                 }
                 else {
                     this.toggler.className = 'toggler collapsed';
                     this.collapsed = true;
-                    this.contextMenu.removeChild(this.table);
+                    this.contextMenu.removeChild(this.operators);
+                    if(!this.isMultipleSelect) {
+                        this.contextMenu.removeChild(this.divider);
+                        this.contextMenu.removeChild(this.editables);
+                    }
+                    this.contextMenu.removeChild(this.topper);
                     this.unmodal();
                     DrawingEngine.start(false);
                 }
@@ -2385,6 +2459,8 @@
             },
             close: function() {
                 this.unmodal();
+                if(this.editsHaveBeenMade)
+                    Model.recordState();
                 document.body.removeChild(this.contextMenu);
             }
         };
