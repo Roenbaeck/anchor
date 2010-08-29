@@ -2309,13 +2309,14 @@
             this.editsHaveBeenMade = false;
             this.editables = document.createElement('table');
             this.editables.setAttribute('class', 'items');
+            this.showEditables = false;
 
             var i, j, tr;
             // if we are operating a single node, show its editable fields
             if(selectedNodes.length == 0 || (selectedNodes.length == 1 && selectedNodes[0] == hoveredNode)) {
                 this.topper.appendChild(document.createTextNode("Edit " + hoveredNode.type));
-                this.isMultipleSelect = false;
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
+                    this.showEditables = true;
                     var element = document.createElement(editable.type);
                     element.className = 'editable';
                     element.setAttribute('pattern', editable.pattern);
@@ -2342,11 +2343,10 @@
             }
             else {
                 this.topper.appendChild(document.createTextNode("Edit selection"));
-                this.isMultipleSelect = true;
             }
             // operations are defines as 'method', 'display name'
             var allOperations = [
-                ['erase', 'Delete...'],
+                ['erase', 'Delete selected...'],
                 ['toggleKnotted', 'Toggle Knotted'],
                 ['toggleHistorized', 'Toggle Historized'],
                 ['addAttribute', 'Add Attribute'],
@@ -2385,7 +2385,7 @@
             contextMenu: null,
             hoveredNode: null,
             selectedNodes: null,
-            isMultipleSelect: false,
+            showEditables: false,
             editables: null,
             operators: null,
             divider: null,
@@ -2431,7 +2431,7 @@
                     this.collapsed = false;
                     this.modalBackground = new ModalBackground();
                     this.contextMenu.appendChild(this.topper);
-                    if(!this.isMultipleSelect) {
+                    if(this.showEditables) {
                         this.contextMenu.appendChild(this.editables);
                         this.contextMenu.appendChild(this.divider);
                     }
@@ -2441,7 +2441,7 @@
                     this.toggler.className = 'toggler collapsed';
                     this.collapsed = true;
                     this.contextMenu.removeChild(this.operators);
-                    if(!this.isMultipleSelect) {
+                    if(this.showEditables) {
                         this.contextMenu.removeChild(this.divider);
                         this.contextMenu.removeChild(this.editables);
                     }
