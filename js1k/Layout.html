@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>JS1k Demo - 1024 bytes</title>
+		<title>JS1k Demo - 1016 bytes minified</title>
 		<meta charset="utf-8"/>
 	</head>
 	<body>
@@ -62,7 +62,7 @@
                             // calculate the repelling forces from nearby nodes
                             for(j=n;o=N[j];j--)
                                 if((t=A(x-o.x)+A(y-o.y))<2*D&&i!=j){
-                                    t*=t;
+                                    t=t?t*t:1;
                                     v+=(x-o.x)/t;
                                     w+=(y-o.y)/t
                                 }
@@ -97,7 +97,7 @@
                         stroke()
                     }
             }
-        },1);
+        },1)
         </script>
         <br/>
         Hover over the canvas and press any key to add a node.
