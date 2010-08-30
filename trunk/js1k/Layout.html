@@ -1,66 +1,66 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>JS1k Demo - with comments</title>
+		<title>JS1k Demo - 999 bytes</title>
 		<meta charset="utf-8"/>
 	</head>
 	<body>
 		<canvas id="c"></canvas>
 		<script>
-        F=.95;    // 5% friction
-        Q=3;      // no of hubs
-        Z=10;     // no of spokes
-        T=240;    // max color value
-        B=63;     // derived as 2*Q*Z+Q
-        L=21;     // derived as B/Q
-        S=3;      // derived as floor(T/B)
-        D=40;     // derived as (W+H)/30
-        K=.00002; // derived as 1/D/D/D
-        with(Math){A=abs;R=random;_=floor;P=2*PI}
+        F=.95;      // 5% friction
+        D=40;       // derived as (W+H)/30
+        K=2e-5;     // derived as 1/D/D/D
+        T=255;      // max color value
+        N=[0];      // nodes, zeroth position is a dummy
+        M=[0];      // edges, zeroth position is a dummy
+        n=I=0;      // n=last node index, I=index of selected node
+        A=Math.abs;
+        P=2*Math.PI;
         C=document.body.children[0];
-        C.width=C.height=W=H=600;
-        N=[];     // nodes (including edges)
-        M=[];     // edges
-        I=-1;     // index of selected node
-        C.onmousedown=function(e){
-            // the blue part of the pixel encodes the node index
-            I=(G.getImageData(e.clientX,e.clientY,1,1).data[2]-1)/S;
-            // toggle moving/fixed state
-            if(k=N[I])
-                k.m=!k.m
-        };
-        C.onmousemove=function(e){
-            // if we are dragging a node, update its coordinates
-            if(k=N[I])
-                with(k){
-                    x=e.clientX;
-                    y=e.clientY;
-                    v=0;
-                    w=0;
-                    m=0
+        C.width=C.height=W=H=X=Y=600;
+        onkeydown=function(e){
+            // add a node
+            N[i=++n]={x:X,y:Y,v:0,w:0,m:1};
+            // add edges to selected nodes
+            for(j=n;k=N[j];j--)
+                if(!k.m&&!M[j]){
+                    N[++n]={x:(X-k.x)/2,y:(Y-k.y)/2,v:0,w:0,m:1};
+                    M[n]=[i,j]
                 }
         };
+        C.onmousedown=function(e){
+            // the blue part of the pixel encodes the node index
+            I=G.getImageData(X,Y,1,1).data[2];
+            // toggle moving/fixed state
+            if(k=N[I]){
+                k.m=!k.m;
+                k.v=k.w=0
+            }
+        };
+        C.onmousemove=function(e){
+            X=e.clientX;
+            Y=e.clientY;
+            // if we are dragging a node, update its coordinates
+            if(k=N[I]){
+                    k.x=X;
+                    k.y=Y;
+                    k.m=0
+            }
+        };
         C.onmouseup=function(){
-            I=-1
+            I=0
         };
         G=C.getContext('2d');
-        // this sets up the node and edge structure
-        for(i=0;i<B;N[i++]={x:W*R(),y:H*R(),v:0,w:0,m:1}){
-            if((j=i%L)<_(L/2)){
-                k=_(1+i/L)*L-1;
-                M[i]=[k-j-1,k]
-            }
-        }
         setInterval(function(){
             with(G){
                 clearRect(0,0,W,H);
                 strokeRect(0,0,W,H);
                 // loop over all nodes
-                for(i=0;k=N[i];i++)
+                for(i=n;k=N[i];i--)
                     with(k){
                         if(m&&i!=I){
                             // calculate the repelling forces from nearby nodes
-                            for(j=0;o=N[j];j++)
+                            for(j=n;o=N[j];j--)
                                 if((t=A(x-o.x)+A(y-o.y))<2*D&&i!=j){
                                     t*=t;
                                     v+=(x-o.x)/t;
@@ -72,8 +72,8 @@
                                     t=A(x-o.x)+A(y-o.y);
                                     v-=r=K*(x-o.x)*t;
                                     w-=s=K*(y-o.y)*t;
-                                    o.v+=j?r/Z:r;
-                                    o.w+=j?s/Z:s
+                                    o.v+=r;
+                                    o.w+=s
                                 }
                             // apply friction
                             v*=F;
@@ -91,7 +91,7 @@
                             quadraticCurveTo(x,y,p.x,p.y)
                         }else{
                             arc(x,y,D/3,0,P,0);
-                            fillStyle='rgb('+!m*T+','+m*T+','+(S*i+1)+')';
+                            fillStyle='rgb('+!m*T+','+m*T+','+i+')';
                             fill()
                         }
                         stroke()
@@ -99,5 +99,13 @@
             }
         },1)
         </script>
+        <br/>
+        Hover over the canvas and press any key to add a node.
+        <br/>
+        Click to select/fixate a node.
+        <br/>
+        Click again to unselect/release a node.
+        <br/>
+        Selected nodes will be connected to the added node.
 	</body>
 </html>
