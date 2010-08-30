@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>JS1k Demo - 999 bytes</title>
+		<title>JS1k Demo - 1024 bytes</title>
 		<meta charset="utf-8"/>
 	</head>
 	<body>
@@ -32,7 +32,7 @@
             // the blue part of the pixel encodes the node index
             I=G.getImageData(X,Y,1,1).data[2];
             // toggle moving/fixed state
-            if(k=N[I]){
+            if(k=N[I=M[I]?0:I]){
                 k.m=!k.m;
                 k.v=k.w=0
             }
@@ -75,12 +75,12 @@
                                     o.v+=r;
                                     o.w+=s
                                 }
-                            // apply friction
-                            v*=F;
-                            w*=F;
-                            // update coordinates and warp borders of the canvas
-                            x=(x+v+W)%W;
-                            y=(y+w+H)%H
+                            // apply friction and update coordinates
+                            x+=v*=F;
+                            y+=w*=F;
+                            // do not cross borders of the canvas
+                            x=x>W?W:x<0?0:x;
+                            y=y>H?H:y<0?0:y;
                         }
                         // draw the edge or node on the canvas
                         beginPath();
@@ -97,7 +97,7 @@
                         stroke()
                     }
             }
-        },1)
+        },1);
         </script>
         <br/>
         Hover over the canvas and press any key to add a node.
