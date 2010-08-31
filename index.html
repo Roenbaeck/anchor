@@ -2577,7 +2577,7 @@
         };
 
         var ActionsMenu = {
-            transform: function (xmlDocument, transformationURL) {
+            transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
                 try {
                     var xmlhttp = new window.XMLHttpRequest();
@@ -2585,7 +2585,7 @@
                     xmlhttp.send(null);
                     var processor = new XSLTProcessor();
                     processor.importStylesheet(xmlhttp.responseXML.documentElement);
-                    result = processor.transformToFragment(xmlDocument, document);
+                    result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
                     alert(exception);
@@ -2640,6 +2640,12 @@
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
                 DrawingEngine.start(false);
+            },
+            generateHTML: function() {
+                var html = window.open('', '_newtab').document;
+                var fragment = this.transform(Model.toXML(), 'legendHTML.xsl', html);
+                // alert(new XMLSerializer().serializeToString(fragment));
+                html.replaceChild(fragment, html.documentElement);
             }
         };
 
@@ -2948,8 +2954,9 @@
                         <li onclick="ActionsMenu.resetZoom()">Reset zoom</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Generate XML representation</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), DATABASE_TRANSFORM), true)">Generate SQL code</li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl', document), false)">Generate XML representation</li>
+                        <li onclick="ActionsMenu.generateHTML()">Generate HTML documentation</li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), DATABASE_TRANSFORM, document), true)">Generate SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG image</li>
                     </ul>
                 </li>
