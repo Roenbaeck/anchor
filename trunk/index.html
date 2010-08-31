@@ -316,6 +316,12 @@
         text-decoration:    none;
         text-shadow:        0px 0px 6px #555;
     }
+    .submenu select {
+        width:              130px;
+    }
+    .submenu input {
+        width:              45px;
+    }
 
     /* Flexible menu without images - taken from ie7nomore.com and modified */
     #controls {
@@ -390,6 +396,9 @@
 
         // draw the miniature every minirate frames
         var MINIRATE = 50;
+
+        // which transform to use when generating SQL code
+        var DATABASE_TRANSFORM = 'SQLServer.xsl';
 
         // create a singleton
         var LayoutEngine = {
@@ -2587,6 +2596,7 @@
                 document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
                 document.getElementById('metric').value = 'manhattan';
+                document.getElementById('database').value = 'SQLServer.xsl';
                 document.getElementById('FPS').value = FPS;
                 document.getElementById('MINIRATE').value = MINIRATE;
             },
@@ -2599,6 +2609,7 @@
                 this.setInfluenceConstant(4);
                 this.setStiffness(3);
                 this.setMetric('manhattan');
+                this.setDatabase('SQLServer.xsl');
                 this.setFPS(100);
                 this.setMiniRate(50);
                 this.init();
@@ -2612,6 +2623,7 @@
                 storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
                 storage.setItem("metric", document.getElementById('metric').value);
+                storage.setItem("database", document.getElementById('database').value);
                 storage.setItem("FPS", FPS);
                 storage.setItem("MINIRATE", MINIRATE);
             },
@@ -2624,6 +2636,7 @@
                 this.setInfluenceConstant(storage.getItem('influenceConstant') || 4);
                 this.setStiffness(storage.getItem('stiffness') || 3);
                 this.setMetric(storage.getItem('metric') || 'manhattan');
+                this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setFPS(storage.getItem('FPS') || 100);
                 this.setMiniRate(storage.getItem('MINIRATE') || 50);
                 this.init();
@@ -2653,6 +2666,9 @@
             },
             setMetric: function(value) {
                 LayoutEngine.metric = LayoutEngine[value];
+            },
+            setDatabase: function(value) {
+                DATABASE_TRANSFORM = value;
             },
             setFPS: function(value) {
                 FPS = 1 * value;
@@ -2876,7 +2892,7 @@
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl'), false)">Generate XML representation</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'SQLServer.xsl'), true)">Generate SQL code</li>
+                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), DATABASE_TRANSFORM), true)">Generate SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG image</li>
                     </ul>
                 </li>
@@ -2898,16 +2914,17 @@
             <ul class="menu">
                 <li>Settings
                     <ul class="submenu">
-                        <li><input id="damping" type="number" min="0" max="99" step="1" size="4" onblur="SettingsMenu.setDamping(this.value)"/> % Damping</li>
-                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" size="4" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
-                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
-                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
-                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" size="4" onblur="SettingsMenu.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" size="4" onblur="SettingsMenu.setInfluenceConstant(this.value)"/> Node influence factor</li>
-                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" size="4" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
-                        <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> Metric</li>
-                        <li><input id="FPS" type="number" min="10" max="1000" step="10" size="4" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
-                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" size="4" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                        <li><input id="damping" type="number" min="0" max="99" step="1" onblur="SettingsMenu.setDamping(this.value)"/> % Damping</li>
+                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
+                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
+                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
+                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
+                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="SettingsMenu.setInfluenceConstant(this.value)"/> Node influence factor</li>
+                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
+                        <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
+                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                        <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> &nbsp;Metric</li>
+                        <li><select id="database" onchange="SettingsMenu.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
                         <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
                         <li onclick="SettingsMenu.toggleDebug()">Toggle debug</li>
                     </ul>
