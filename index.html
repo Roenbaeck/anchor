@@ -791,17 +791,48 @@
                     DrawingEngine.start(true);
                 }
             },
+            connect: function(nodes) {
+                var anchor, attribute, tie, knot;
+                for(var i = 0; i < nodes.length; i++) {
+                    if(nodes[i] instanceof Anchor)
+                        anchor = nodes[i];
+                    else if(nodes[i] instanceof Attribute)
+                        attribute = nodes[i];
+                    else if(nodes[i] instanceof Tie)
+                        tie = nodes[i];
+                    else if(nodes[i] instanceof Knot)
+                        knot = nodes[i];
+                }
+                if(anchor && tie) {
+                    this.addEdge(new Edge(tie, anchor, false));                    
+                }
+                else if (attribute && knot) {
+                    attribute.knotted = true;
+                    this.addEdge(new Edge(attribute, knot, false));
+                }
+                else if (tie && knot) {
+                    tie.knotted = true;
+                    this.addEdge(new Edge(tie, knot, false));
+                }
+                this.recordState();
+                DrawingEngine.start(true);
+            },
             toggleKnotted: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
                     var knot, edge;
                     if(nodes[i].knotted) {
                         for(var j = 0; edge = nodes[i].edges[j]; j++) {
                             if(edge.otherNode instanceof Knot) {
+                                if(edge.otherNode.edges.length == 1) {
+                                    if(!confirm("This will also delete the knot: " + edge.otherNode +
+                                            ".\nDo you still want to un-knot the attribute?"))
+                                        break;
+                                }
                                 this.removeNode(edge.otherNode);
                                 this.removeEdge(edge);
+                                nodes[i].knotted = false;
                             }
                         }
-                        nodes[i].knotted = false;
                     }
                     else {
                         knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
@@ -1380,7 +1411,7 @@
             this.editables = [];
             // TODO: descriptions have to be handled separately
             //this.editables = [['Description','description','textarea','rows','5','cols','20']];
-            this.operations = ['erase'];
+            this.operations = ['erase', 'connect'];
             this.incomplete = true;
         }
         AbstractNode.prototype = {
@@ -2368,17 +2399,35 @@
             else {
                 this.topper.appendChild(document.createTextNode("Edit selection"));
             }
-            // operations are defines as 'method', 'display name'
+            // operations are defined as 'method', 'display name', 'optional rule'
             var allOperations = [
                 ['erase', 'Delete selected...'],
-                ['toggleKnotted', 'Toggle Knotted'],
+                ['toggleKnotted', 'Toggle Knotted'], // TODO: only remove knot if it is the last attribute
                 ['toggleHistorized', 'Toggle Historized'],
                 ['addAttribute', 'Add Attribute'],
                 ['addTie', 'Add Tie'],
                 ['addAnchor', 'Add Anchor'],
                 ['addKnot', 'Add Knot'],    
                 ['addTieAndAnchor', 'Add tied Anchor'],
-                ['toggleIdentifier', 'Toggle Identifier']
+                ['toggleIdentifier', 'Toggle Identifier'],
+                ['connect', 'Connect', function(allNodes) {
+                    if(allNodes.length != 2)
+                        return false;
+                    var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                    for(var i = 0; node = allNodes[i]; i++) {
+                        if(node instanceof Anchor)
+                            anchors++;
+                        else if(node instanceof Tie)
+                            ties++;
+                        else if(node instanceof Knot)
+                            knots++;
+                        else if(node instanceof Attribute) {
+                            attributes++;
+                            knotted = node.knotted;
+                        }
+                    }
+                    return anchors && ties || knots && ties || attributes && knots && !knotted;
+                }]
             ];
             var supportedOperations = [];
 
@@ -2386,9 +2435,17 @@
             if(allNodes.indexOf(hoveredNode) < 0)
                 allNodes.push(hoveredNode);
 
-            for(i = 0; i < allOperations.length; i++)
-                if(this.isSupported(allOperations[i][0], allNodes))
-                    supportedOperations.push(allOperations[i]);
+            var validator;
+            for(i = 0; i < allOperations.length; i++) {
+                if(this.isSupported(allOperations[i][0], allNodes)) {
+                    if(validator = allOperations[i][2]) {
+                        if(validator(allNodes))
+                            supportedOperations.push(allOperations[i]);
+                    }
+                    else
+                        supportedOperations.push(allOperations[i]);
+                }
+            }
 
             this.operators = document.createElement('div');
             this.operators.setAttribute('class', 'operators');
