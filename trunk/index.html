@@ -1286,7 +1286,7 @@
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
-                event.wheelDelta = event.detail * 120;
+                event.wheelDelta = event.detail * -120;
                 this.mousewheel(event);
             },
             // TODO: We need upper and lower bounds on the zoom            
