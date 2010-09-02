@@ -586,7 +586,6 @@
         var Model = {
             nodes: [],
             edges: [],
-            idToNode: [],
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -597,7 +596,6 @@
             empty: function() {
                 this.nodes = [];
                 this.edges = [];
-                this.idToNode = [];
                 this.shadowToNode = {};
                 this.topmostNode = null;
                 this.rightmostNode = null;
@@ -651,7 +649,6 @@
                 if(node) {
                     this.nodes[this.nodes.length] = node;
                     this.sort();
-                    this.idToNode[node.id] = node;
                     this.shadowToNode[node.shadowColor] = node;
                     if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
                         this.topmostNode = node;
@@ -667,7 +664,6 @@
             removeNode: function(node) {
                 UniqueColor.releaseUniqueColor(node.shadowColor);
                 delete this.shadowToNode[node.shadowColor];
-                delete this.idToNode[node.id];
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
@@ -685,9 +681,6 @@
             },
             getNodeFromShadow: function(shadow) {
                 return this.shadowToNode[shadow];
-            },
-            getNodeFromId: function(id) {
-                return this.idToNode[id];
             },
             deleteElementFromArray: function(array, element) {
                 array.splice(array.indexOf(element), 1);
@@ -711,15 +704,7 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    // add an id to elements that are missing that attribute and take the ids that are specified
-                    var i, id, elements = xml.getElementsByTagName('*');
-                    for (i = 0; i < elements.length; i++) {
-                        if(elements[i].tagName in {knot:null, anchor:null, attribute:null, tie:null}) {
-                            id = elements[i].getAttribute("id");
-                            id = id ? UniqueIdentity.takeId(Number(id)) : UniqueIdentity.nextId();
-                            elements[i].setAttribute("id", id);                            
-                        }
-                    }
+                    var i;
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
                     for (i = 0; i < knots.length; i++)
@@ -1425,6 +1410,7 @@
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
+            this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.editables = [];
             // TODO: descriptions have to be handled separately
@@ -1446,6 +1432,7 @@
             incomplete: true,
             operations: null,
             type: 'Node',
+            id: null,
             // getters and setters (with hidden _id member)
             set id(id)  {
                 if(id) {
@@ -1680,7 +1667,6 @@
                 var knotRange = element.getAttribute("knotRange") || null;
                 var knotted = knotRange ? true : false;
                 var dataRange = element.getAttribute("dataRange") || null;
-                var id = element.getAttribute("id");
                 var parent = element.parentNode;
                 var attribute = new Attribute(x, y, historized);
                 attribute.fixed = fixed;
@@ -1690,15 +1676,22 @@
                 attribute.description = description ? description.firstChild.nodeValue : null;
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
-                attribute.id = id;
-                var anchor = Model.getNodeFromId(Number(parent.getAttribute("id")));
+                var anchorLookup = {};
+                for(i = 0; i < Model.nodes.length; i++)
+                    if(Model.nodes[i] instanceof Anchor)
+                        anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
+                var knotLookup = {};
+                for(i = 0; i < Model.nodes.length; i++)
+                    if(Model.nodes[i] instanceof Knot)
+                        knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
+                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 Model.addEdge(new Edge(attribute, anchor, true));
                 if(knotted) {
                     var grandparent = parent.parentNode;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(i = 0; i < knots.length; i++) {
                         if(knots[i].getAttribute("mnemonic") == knotRange) {
-                            var knot = Model.getNodeFromId(Number(knots[i].getAttribute("id")));
+                            var knot = knotLookup[knots[i].getAttribute("mnemonic")];
                             Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
                         }
@@ -1724,7 +1717,6 @@
                 // create an attribute element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
-                attribute.setAttribute("id", this.id);
                 attribute.setAttribute("mnemonic", this.mnemonic);
                 attribute.setAttribute("descriptor", this.descriptor);
                 if(this.historized)
@@ -1837,7 +1829,6 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || null;
@@ -1847,7 +1838,6 @@
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
-                anchor.id = id;
                 anchor.incomplete = anchor.isIncomplete();
                 return anchor;
             },
@@ -1855,7 +1845,6 @@
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
                 // set attributes on the element
-                anchor.setAttribute("id", this.id);
                 anchor.setAttribute("mnemonic", this.mnemonic);
                 anchor.setAttribute("descriptor", this.descriptor);
                 anchor.setAttribute("identity", this.identity);
@@ -1954,7 +1943,6 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var id = element.getAttribute("id");
                 var mnemonic = element.getAttribute("mnemonic") || "???";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || null;
@@ -1966,7 +1954,6 @@
                 knot.descriptor = descriptor;
                 knot.identity = identity;
                 knot.dataRange = dataRange;
-                knot.id = id;
                 knot.incomplete = knot.isIncomplete();
                 return knot;
             },
@@ -1974,7 +1961,6 @@
                 // create an anchor element
                 var knot = schema.createElement("knot");
                 // set attributes on the element
-                knot.setAttribute("id", this.id);
                 knot.setAttribute("mnemonic", this.mnemonic);
                 knot.setAttribute("descriptor", this.descriptor);
                 knot.setAttribute("identity", this.identity);
@@ -2058,12 +2044,18 @@
                         description = element.childNodes.item(i);
                 var timeRange = element.getAttribute("timeRange") || null;
                 var historized = timeRange ? true : false;
-                var id = element.getAttribute("id");
                 var tie = new Tie(x, y, historized);
                 tie.fixed = fixed;
                 tie.timeRange = timeRange;
                 tie.description = description ? description.firstChild.nodeValue : null;
-                tie.id = id;
+                var anchorLookup = {};
+                for(i = 0; i < Model.nodes.length; i++)
+                    if(Model.nodes[i] instanceof Anchor)
+                        anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
+                var knotLookup = {};
+                for(i = 0; i < Model.nodes.length; i++)
+                    if(Model.nodes[i] instanceof Knot)
+                        knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var grandparent = element.parentNode.parentNode;
                 var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
@@ -2073,7 +2065,7 @@
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") == type) {
-                            anchor = Model.getNodeFromId(Number(anchors[j].getAttribute("id")));
+                            anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, anchor, (identifier == "true"));
                             edge.role = role;
                             Model.addEdge(edge);
@@ -2089,7 +2081,7 @@
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") == type) {
-                            knot = Model.getNodeFromId(Number(knots[j].getAttribute("id")));
+                            knot = knotLookup[knots[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, knot, (identifier == "true"));
                             edge.role = role;
                             Model.addEdge(edge);
@@ -2117,7 +2109,6 @@
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
-                tie.setAttribute("id", this.id);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.timeRange);
                 for(var i = 0; i < this.edges.length; i++) {
