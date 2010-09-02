@@ -775,6 +775,24 @@
                     this.walkFromNode(node, affectedNodes, affectedEdges);
                 for(i = 0; edge = affectedEdges[i]; i++)
                     this.walkFromEdge(edge, affectedNodes, affectedEdges);
+                // check for ties in violation
+                var otherNode;
+                for(i = 0; node = this.nodes[i]; i++) {
+                    if(node instanceof Tie) {
+                        var anchors = 0;
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            if(affectedNodes.indexOf(otherNode) < 0 && affectedEdges.indexOf(edge) < 0)
+                                if(otherNode instanceof Anchor)
+                                    anchors++;
+                        }
+                        if(anchors < 2 && affectedNodes.indexOf(node) < 0) {
+                            affectedNodes.push(node);
+                            this.walkFromNode(node, affectedNodes, affectedEdges);
+                        }
+                    }
+                }
+                // add any dangling edges
                 for(i = 0; node = affectedNodes[i]; i++)
                     for(j = 0; edge = node.edges[j]; j++)
                         if(affectedEdges.indexOf(edge) < 0)
@@ -1814,7 +1832,7 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? false : fixed == "true";
+                fixed = fixed ? fixed == 'true' : false;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2600,7 +2618,7 @@
                     Model.fromXML(xmlhttp.responseXML);
                     Model.recordState();
                     DrawingEngine.reset();
-                    DrawingEngine.start(false);
+                    DrawingEngine.start(true);
                 }
                 catch(exception){
                     alert(exception);
@@ -2950,8 +2968,7 @@
                         <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
-                        <li onclick="ActionsMenu.centerModel()">Center model</li>
-                        <li onclick="ActionsMenu.resetZoom()">Reset zoom</li>
+                        <li onclick="ActionsMenu.resetZoom();ActionsMenu.centerModel()">Reset view</li>
                         <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl', document), false)">Generate XML representation</li>
