@@ -2652,7 +2652,7 @@
             },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
-                var fragment = this.transform(Model.toXML(), 'legendHTML.xsl', html);
+                var fragment = this.transform(Model.toXML(), 'xml2documentation.xsl', html);
                 // alert(new XMLSerializer().serializeToString(fragment));
                 html.replaceChild(fragment, html.documentElement);
             }

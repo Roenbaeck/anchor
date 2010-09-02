@@ -68,7 +68,7 @@
 				</style>
 			</head>
 			<body>
-                This is automatically generated documentation.
+                Automatically generated documentation not implemented yet.
                 <!--
 				<table width="1262" cellspacing="0" cellpadding="0">
 					<tr>
