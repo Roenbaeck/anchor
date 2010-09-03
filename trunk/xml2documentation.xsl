@@ -2,296 +2,197 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="html" indent="no"/>
 
-	<xsl:key name="mnemonicToEntity" match="//*[@mnemonic]" use="@mnemonic"/>
-	<xsl:variable name="historization" select="'H'"/>
-	<xsl:template match="/schema">
-		<html>
-			<head>
-				<title>Anchor Model</title>
-				<style type="text/css">
-					body {
-					font-family: monospace;
-					color: black;
-					background: white;
-					}
-					table {
-					border-collapse: collapse;
-					border-spacing: 0 0;
-					table-layout: fixed;
-					}
-					th {
-					font-family: sans-serif;
-					font-size: small;
-					text-align: left;
-					color: white;
-					background: black;
-					padding-left: 2px;
-					}
-					.header {
-					font-family: sans-serif;
-					font-size: small;
-					text-align: center;
-					color: white;
-					background: black;
-					font-weight: bold;
-					}
-					.knot {
-					border: 1px solid #ff6666;
-					padding-left: 2px;
-					}
-					.anchor {
-					border: 1px solid #ff6666;
-					background: #ff6666;
-					padding-left: 2px;
-					}
-					.attribute {
-					border: 1px solid #ff6666;
-					padding-left: 2px;
-					}
-					.tie {
-					border: 1px solid #c0c0c0;
-					background: #c0c0c0;
-					padding-left: 2px;
-					}
-					.anchorlight {
-					background: #ffcccc;
-					padding-left: 2px;
-					}
-					.even {
-					background: #f0f0f0;
-					padding-left: 2px;
-					}
-					.odd {
-					background: white;
-					padding-left: 2px;
-					}
-				</style>
-			</head>
-			<body>
-                Automatically generated documentation not implemented yet.
-                <!--
-				<table width="1262" cellspacing="0" cellpadding="0">
-					<tr>
-						<td class="header" align="center" colspan="4">
-							<xsl:value-of select="$model"/>
-						</td>
-					</tr>
-					<tr>
-						<td class="knot" align="center">
-							<xsl:text>knot</xsl:text>
-						</td>
-						<td class="anchor" align="center">
-							<xsl:text>anchor</xsl:text>
-						</td>
-						<td class="attribute" align="center">
-							<xsl:text>attribute</xsl:text>
-						</td>
-						<td class="tie" align="center">
-							<xsl:text>tie</xsl:text>
-						</td>
-					</tr>
-				</table>
-				<table width="1262" cellspacing="0" cellpadding="0">
-					<tr>
-						<th width="100">knots</th>
-						<th width="70"/>
-						<th width="530">name</th>
-						<th width="170">value</th>
-						<th width="170">identifier</th>
-						<th width="210" colspan="6">relation</th>
-					</tr>
-					<xsl:for-each select="am:knot">
-						<xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
-						<xsl:variable name="n" select="position()"/>
-						<xsl:variable name="style">
-							<xsl:choose>
-								<xsl:when test="$n mod 2 = 0">
-									<xsl:text>even</xsl:text>
-								</xsl:when>
-								<xsl:otherwise>
-									<xsl:text>odd</xsl:text>
-								</xsl:otherwise>
-							</xsl:choose>
-						</xsl:variable>
-						<xsl:comment>
-							<xsl:value-of select="$n"/>
-						</xsl:comment>
-						<tr>
-							<td class="knot">
-								<xsl:value-of select="@mnemonic"/>
-							</td>
-							<td class="{$style}"/>
-							<td class="{$style}">
-								<xsl:value-of select="@mnemonic"/>
-								<xsl:text>_</xsl:text>
-								<b>
-									<xsl:value-of select="@name"/>
-								</b>
-							</td>
-							<td class="{$style}">
-								<xsl:value-of select="@valueType"/>
-							</td>
-							<td class="{$style}">
-								<xsl:value-of select="@idType"/>
-							</td>
-							<td/>
-						</tr>
-					</xsl:for-each>
-					<tr>
-						<th width="100">anchors/attrs.</th>
-						<th width="70">historized</th>
-						<th width="530">name</th>
-						<th width="170">value</th>
-						<th width="170">identifier</th>
-						<th width="210" colspan="6">relation</th>
-					</tr>
-					<xsl:for-each select="am:anchor">
-						<xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
-						<tr>
-							<td class="anchor">
-								<xsl:value-of select="@mnemonic"/>
-							</td>
-							<td class="anchorlight"/>
-							<td class="anchorlight">
-								<xsl:value-of select="@mnemonic"/>
-								<xsl:text>_</xsl:text>
-								<b>
-									<xsl:value-of select="@name"/>
-								</b>
-							</td>
-							<td class="anchorlight"/>
-							<td class="anchorlight">
-								<xsl:value-of select="@idType"/>
-							</td>
-							<td/>
-						</tr>
-						<xsl:for-each select="am:attribute">
-							<xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
-							<xsl:variable name="n" select="position()"/>
-							<xsl:variable name="style">
-								<xsl:choose>
-									<xsl:when test="$n mod 2 = 0">
-										<xsl:text>even</xsl:text>
-									</xsl:when>
-									<xsl:otherwise>
-										<xsl:text>odd</xsl:text>
-									</xsl:otherwise>
-								</xsl:choose>
-							</xsl:variable>
-							<xsl:comment>
-								<xsl:value-of select="$n"/>
-							</xsl:comment>
-							<tr>
-								<td class="attribute">
-									<xsl:value-of select="@mnemonic"/>
-								</td>
-								<td class="{$style}" align="center">
-									<xsl:choose>
-										<xsl:when test="@historized = 'true'">
-											<xsl:value-of select="$historization"/>
-										</xsl:when>
-										<xsl:otherwise>
-										</xsl:otherwise>
-									</xsl:choose>
-								</td>
-								<td class="{$style}">
-									<xsl:value-of select="@mnemonic"/>
-									<xsl:text>_</xsl:text>
-									<b>
-										<xsl:value-of select="@name"/>
-									</b>
-								</td>
-								<td class="{$style}">
-									<xsl:choose>
-										<xsl:when test="am:relation">
-											<i>
-												<xsl:value-of select="key('mnemonicToEntity', am:relation/@reference)/@valueType"/>
-											</i>
-										</xsl:when>
-										<xsl:otherwise>
-											<xsl:value-of select="@valueType"/>
-										</xsl:otherwise>
-									</xsl:choose>
-								</td>
-								<td class="{$style}"/>
-								<td class="anchor">
-									<xsl:value-of select="ancestor::am:anchor/@mnemonic"/>
-								</td>
-								<xsl:if test="am:relation">
-									<td class="knot">
-										<xsl:value-of select="am:relation/@reference"/>
-									</td>
-								</xsl:if>
-							</tr>
-						</xsl:for-each>
-					</xsl:for-each>
-					<tr>
-						<th width="100">ties</th>
-						<th width="70">historized</th>
-						<th width="870" colspan="3">name</th>
-						<th width="210" colspan="6">relation</th>
-					</tr>
-					<xsl:for-each select="am:tie">
-						<xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
-						<xsl:variable name="n" select="position()"/>
-						<xsl:variable name="style">
-							<xsl:choose>
-								<xsl:when test="$n mod 2 = 0">
-									<xsl:text>even</xsl:text>
-								</xsl:when>
-								<xsl:otherwise>
-									<xsl:text>odd</xsl:text>
-								</xsl:otherwise>
-							</xsl:choose>
-						</xsl:variable>
-						<xsl:comment>
-							<xsl:value-of select="$n"/>
-						</xsl:comment>
-						<tr>
-							<td class="tie">
-								<xsl:value-of select="@mnemonic"/>
-							</td>
-							<td class="{$style}" align="center">
-								<xsl:choose>
-									<xsl:when test="@historized = 'true'">
-										<xsl:value-of select="$historization"/>
-									</xsl:when>
-									<xsl:otherwise>
-									</xsl:otherwise>
-								</xsl:choose>
-							</td>
-							<td class="{$style}" colspan="3">
-								<xsl:value-of select="@mnemonic"/>
-								<xsl:text>_</xsl:text>
-								<b>
-									<xsl:value-of select="@name"/>
-								</b>
-							</td>
-							<xsl:for-each select="am:relation">
-								<xsl:variable name="entity" select="key('mnemonicToEntity', @reference)"/>
-								<xsl:choose>
-									<xsl:when test="$entity[local-name() = 'knot']">
-										<td class="knot">
-											<xsl:value-of select="$entity/@mnemonic"/>
-										</td>
-									</xsl:when>
-									<xsl:when test="$entity[local-name() = 'anchor']">
-										<td class="anchor">
-											<xsl:value-of select="$entity/@mnemonic"/>
-										</td>
-									</xsl:when>
-									<xsl:otherwise>
-										<td class="none">
-											<xsl:value-of select="$entity/@mnemonic"/>
-										</td>
-									</xsl:otherwise>
-								</xsl:choose>
-							</xsl:for-each>
-						</tr>
-					</xsl:for-each>
-				</table>
-				-->
-			</body>
-		</html>
-	</xsl:template>
+    <!-- lookup hash tables -->
+    <xsl:key name="knotLookup" match="//knot[@mnemonic]" use="@mnemonic"/>
+    <xsl:key name="anchorLookup" match="//anchor[@mnemonic]" use="@mnemonic"/>
+    <xsl:variable name="historization" select="'H'"/>
+    <xsl:template match="/schema">
+        <table class="legend">
+            <tr>
+                <td class="knot">
+                    <xsl:text>knot</xsl:text>
+                </td>
+                <td class="anchor">
+                    <xsl:text>anchor</xsl:text>
+                </td>
+                <td class="attribute">
+                    <xsl:text>attribute</xsl:text>
+                </td>
+                <td class="tie">
+                    <xsl:text>tie</xsl:text>
+                </td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <th class="mnemonic">mnemonic</th>
+                <th class="descriptor">descriptor</th>
+                <th class="identity">identity</th>
+                <th class="dataRange">dataRange</th>
+                <th class="timeRange"/>
+                <th class="knotRange"/>
+            </tr>
+            <xsl:for-each select="knot">
+                <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
+                <xsl:variable name="n" select="position()"/>
+                <xsl:variable name="style">
+                    <xsl:choose>
+                        <xsl:when test="$n mod 2 = 0">
+                            <xsl:text>even</xsl:text>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:text>odd</xsl:text>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:comment>
+                    <xsl:value-of select="$n"/>
+                </xsl:comment>
+                <tr>
+                    <td class="knot">
+                        <a name="{@mnemonic}">
+                            <xsl:value-of select="@mnemonic"/>
+                        </a>
+                    </td>
+                    <td class="{$style}">
+                        <b>
+                            <xsl:value-of select="@descriptor"/>
+                        </b>
+                    </td>
+                    <td class="{$style}">
+                        <xsl:value-of select="@identity"/>
+                    </td>
+                    <td class="{$style}" colspan="3">
+                        <xsl:value-of select="@dataRange"/>
+                    </td>
+                </tr>
+            </xsl:for-each>
+            <tr>
+                <th class="mnemonic">mnemonic</th>
+                <th class="descriptor">descriptor</th>
+                <th class="identity">identity</th>
+                <th class="dataRange">dataRange</th>
+                <th class="timeRange">timeRange</th>
+                <th class="knotRange">knotRange</th>
+            </tr>
+            <xsl:for-each select="anchor">
+                <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
+                <xsl:variable name="identity" select="@identity"/>
+                <tr>
+                    <td class="anchor">
+                        <a name="{@mnemonic}">
+                            <xsl:value-of select="@mnemonic"/>
+                        </a>
+                    </td>
+                    <td class="anchorlight">
+                        <b>
+                            <xsl:value-of select="@descriptor"/>
+                        </b>
+                    </td>
+                    <td class="anchorlight" colspan="4">
+                        <xsl:value-of select="$identity"/>
+                    </td>
+                </tr>
+                <xsl:for-each select="attribute">
+                    <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
+                    <xsl:variable name="n" select="position()"/>
+                    <xsl:variable name="style">
+                        <xsl:choose>
+                            <xsl:when test="$n mod 2 = 0">
+                                <xsl:text>even</xsl:text>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:text>odd</xsl:text>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:comment>
+                        <xsl:value-of select="$n"/>
+                    </xsl:comment>
+                    <tr>
+                        <td class="attribute">
+                            <xsl:value-of select="@mnemonic"/>
+                        </td>
+                        <td class="{$style}">
+                            <b>
+                                <xsl:value-of select="@descriptor"/>
+                            </b>
+                        </td>
+                        <td class="{$style}"/>
+                        <xsl:choose>
+                            <xsl:when test="@knotRange">
+                                <td class="derived {$style}">
+                                    <xsl:value-of select="key('knotLookup', @knotRange)/@dataRange"/>
+                                </td>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <td class="{$style}">
+                                    <xsl:value-of select="@dataRange"/>
+                                </td>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <td class="{$style}">
+                            <xsl:value-of select="@timeRange"/>
+                        </td>
+                        <td class="{$style}">
+                            <a href="#{@knotRange}">
+                                <xsl:value-of select="@knotRange"/>
+                            </a>
+                        </td>
+                    </tr>
+                </xsl:for-each>
+            </xsl:for-each>
+        </table>
+        <table>
+            <tr>
+                <th class="role">tie/role</th>
+                <th class="type">type</th>
+                <th class="identifier">identifier</th>
+            </tr>
+            <xsl:for-each select="tie">
+                <xsl:variable name="tieName">
+                    <xsl:for-each select="anchorRole|knotRole">
+                        <xsl:value-of select="concat(@type, '_', @role)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:text>_</xsl:text>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:variable>
+                <tr>
+                    <td class="tie" colspan="3">
+                        <b><xsl:value-of select="$tieName"/></b>
+                    </td>
+                </tr>
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:variable name="n" select="position()"/>
+                    <xsl:variable name="style">
+                        <xsl:choose>
+                            <xsl:when test="$n mod 2 = 0">
+                                <xsl:text>even</xsl:text>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:text>odd</xsl:text>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:comment>
+                        <xsl:value-of select="$n"/>
+                    </xsl:comment>
+                    <tr>
+                        <td class="{$style}">
+                            <xsl:value-of select="@role"/>
+                        </td>
+                        <td class="{$style}">
+                            <a href="#{@type}">
+                                <xsl:value-of select="@type"/>
+                            </a>
+                        </td>
+                        <td class="{$style}">
+                            <xsl:value-of select="@identifier"/>
+                        </td>
+                    </tr>
+                </xsl:for-each>
+            </xsl:for-each>
+        </table>
+    </xsl:template>
 </xsl:stylesheet>
