@@ -2652,9 +2652,19 @@
             },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
+                html.open();
+                html.write(
+                    '<!DOCTYPE HTML>'+
+                    '<html><head>'+
+                    '  <title>Anchor Model</title>' +
+                    '  <link rel="stylesheet" type="text/css" href="documentation.css">'+
+                    '</head><body>'+
+                    '</body></html>'
+                );
+                html.close();
                 var fragment = this.transform(Model.toXML(), 'xml2documentation.xsl', html);
                 // alert(new XMLSerializer().serializeToString(fragment));
-                html.replaceChild(fragment, html.documentElement);
+                html.body.appendChild(fragment);
             }
         };
 
