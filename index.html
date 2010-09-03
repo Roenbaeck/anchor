@@ -1419,7 +1419,7 @@
             this.incomplete = true;
         }
         AbstractNode.prototype = {
-            description: null,
+            description: '',
             xPosition: null,
             yPosition: null,
             xVelocity: null,
@@ -1478,7 +1478,7 @@
                 return;
             },
             addLayoutXML: function(element, schema) {
-                if(this.description != null) {
+                if(!this.isEmpty(this.description)) {
                     var description = schema.createElement("description");
                     description.innerHTML = this.description;
                     element.appendChild(description);
@@ -1589,10 +1589,10 @@
             this.type = 'Attribute';
         }
         Attribute.prototype = {
-            mnemonic: null,
-            descriptor: null,
-            dataRange: null,
-            timeRange: null,
+            mnemonic: '',
+            descriptor: '',
+            dataRange: '',
+            timeRange: '',
             descriptorEdit: {
                 name: 'Descriptor',
                 member: 'descriptor',
@@ -1662,18 +1662,18 @@
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
-                var timeRange = element.getAttribute("timeRange") || null;
+                var timeRange = element.getAttribute("timeRange") || '';
                 var historized = timeRange ? true : false;
-                var knotRange = element.getAttribute("knotRange") || null;
+                var knotRange = element.getAttribute("knotRange") || '';
                 var knotted = knotRange ? true : false;
-                var dataRange = element.getAttribute("dataRange") || null;
+                var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
                 var attribute = new Attribute(x, y, historized);
                 attribute.fixed = fixed;
                 attribute.knotted = knotted;
                 attribute.timeRange = timeRange;
                 attribute.dataRange = dataRange;
-                attribute.description = description ? description.firstChild.nodeValue : null;
+                attribute.description = description ? description.firstChild.nodeValue : '';
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 var anchorLookup = {};
@@ -1782,9 +1782,9 @@
             this.type = 'Anchor';
         }
         Anchor.prototype = {
-            mnemonic: null,
-            descriptor: null,
-            identity: null,
+            mnemonic: '',
+            descriptor: '',
+            identity: '',
             descriptorEdit: {
                 name: 'Descriptor',
                 member: 'descriptor',
@@ -1831,10 +1831,10 @@
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
-                var identity = element.getAttribute("identity") || null;
+                var identity = element.getAttribute("identity") || '';
                 var anchor = new Anchor(x, y);
                 anchor.fixed = fixed;
-                anchor.description = description ? description.firstChild.nodeValue : null;
+                anchor.description = description ? description.firstChild.nodeValue : '';
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
@@ -1888,10 +1888,10 @@
             this.type = 'Knot';            
         }
         Knot.prototype = {
-            mnemonic: null,
-            descriptor: null,
-            identity: null,
-            dataRange: null,
+            mnemonic: '',
+            descriptor: '',
+            identity: '',
+            dataRange: '',
             descriptorEdit: {
                 name: 'Descriptor',
                 member: 'descriptor',
@@ -1945,11 +1945,11 @@
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || "???";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
-                var identity = element.getAttribute("identity") || null;
-                var dataRange = element.getAttribute("dataRange") || null;
+                var identity = element.getAttribute("identity") || '';
+                var dataRange = element.getAttribute("dataRange") || '';
                 var knot = new Knot(x, y);
                 knot.fixed = fixed;
-                knot.description = description ? description.firstChild.nodeValue : null;
+                knot.description = description ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
                 knot.descriptor = descriptor;
                 knot.identity = identity;
@@ -2003,7 +2003,7 @@
             this.type = 'Tie';
         }
         Tie.prototype = {
-            timeRange: null,
+            timeRange: '',
             timeRangeEdit: {
                 name: 'Time range',
                 member: 'timeRange',
@@ -2042,12 +2042,12 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var timeRange = element.getAttribute("timeRange") || null;
+                var timeRange = element.getAttribute("timeRange") || '';
                 var historized = timeRange ? true : false;
                 var tie = new Tie(x, y, historized);
                 tie.fixed = fixed;
                 tie.timeRange = timeRange;
-                tie.description = description ? description.firstChild.nodeValue : null;
+                tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -2199,7 +2199,7 @@
             this.type = 'Edge';
         }
         Edge.prototype = {
-            role: null,
+            role: '',
             roleEdit: {
                 name: 'Role',
                 member: 'role',
