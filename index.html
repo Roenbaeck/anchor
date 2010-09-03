@@ -2698,6 +2698,7 @@
         };
 
         var SettingsMenu = {
+            metric: 'manhattan',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
@@ -2706,8 +2707,8 @@
                 document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
                 document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
-                document.getElementById('metric').value = 'manhattan';
-                document.getElementById('database').value = 'SQLServer.xsl';
+                document.getElementById('metric').value = this.metric;
+                document.getElementById('database').value = DATABASE_TRANSFORM;
                 document.getElementById('FPS').value = FPS;
                 document.getElementById('MINIRATE').value = MINIRATE;
             },
@@ -2776,6 +2777,7 @@
                 LayoutEngine.stiffnessBound = value * value;
             },
             setMetric: function(value) {
+                this.metric = value;
                 LayoutEngine.metric = LayoutEngine[value];
             },
             setDatabase: function(value) {
@@ -2886,9 +2888,6 @@
             // assign event handlers to buttons
             ControlButtons.init();
 
-            // set values in the settings input fields
-            SettingsMenu.init();
-
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -2953,13 +2952,17 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
+            // load previous model, if any
             var model;
             if(model = window.localStorage.getItem("model"))
                 Model.fromXML(new DOMParser().parseFromString(model, 'text/xml'));
             else
                 ActionsMenu.loadFromURL('example.xml');
 
+            // set values in the settings input fields
             SettingsMenu.loadSettings(window.localStorage);
+
+            // load previous scale and transform
             DrawingEngine.loadSettings(window.localStorage);
             DrawingEngine.start(true);
         }
@@ -2982,7 +2985,11 @@
 </head>
 <body>
     <canvas id="canvas" class="unselectable">
-        Your browser does not support HTML5 canvas!
+        <h1>Your browser does not support HTML5 canvas!</h1>
+        In order to use this application get one of our supported browsers:<br/>
+        Chrome (v5+) <br/>
+        Firefox (v3.6+) <br/>
+        Safari (v5+) <br/>
     </canvas>
     <canvas id="shadow" class="unselectable">
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
