@@ -586,6 +586,7 @@
         var Model = {
             nodes: [],
             edges: [],
+            filtered: [],
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -630,6 +631,19 @@
                     this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
                     DrawingEngine.start(true);
                 }
+            },
+            applyFilter: function(filter) {
+                var i, node, j, edge;
+                for(i = 0; node = this.nodes[i]; i++) {
+                    if(filter(node)) {
+                        this.filtered[i] = true;
+                        for(j = 0; edge = node.edges[j]; j++)
+                            this.filtered[this.nodes.indexOf(edge)] = true;
+                    }
+                }
+            },
+            removeFilter: function() {
+                this.filtered.length = 0;
             },
             sort: function() {
                 this.nodes.sort(function(a, b) {
@@ -1096,18 +1110,21 @@
                 // cast all shadows first
                 this.context.globalAlpha = 0.8;
                 for(i = 0; node = Model.nodes[i]; i++)
-                    node.drawMoving(this.context);
+                    if(!Model.filtered[i])
+                        node.drawMoving(this.context);
 
                 this.context.globalAlpha = 1.0;
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    node.draw(this.context);
-                    if(this.miniCounter == 1)
-                        node.draw(this.miniatureContext);
+                    if(!Model.filtered[i]) {
+                        node.draw(this.context);
+                        if(this.miniCounter == 1)
+                            node.draw(this.miniatureContext);                        
+                    }
                 }
                 if(this.showNames) {
                     for(i = 0; node = Model.nodes[i]; i++)
-                        if(!(node instanceof Edge))
+                        if(!(node instanceof Edge) && !Model.filtered[i])
                             node.drawName(this.context);
                 }
                 else if (node = CanvasEventHandler.hoveredNode)
@@ -2586,6 +2603,10 @@
         };
 
         var ActionsMenu = {
+            isFiltering: false,
+            filter: function(node) {
+                return node instanceof Attribute || node instanceof Knot;
+            },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
                 try {
@@ -2648,6 +2669,14 @@
             },
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
+                DrawingEngine.start(false);
+            },
+            changeDetailLevel: function() {
+                if(this.isFiltering)
+                    Model.removeFilter();
+                else
+                    Model.applyFilter(this.filter);
+                this.isFiltering = !this.isFiltering;
                 DrawingEngine.start(false);
             },
             generateHTML: function() {
@@ -2967,6 +2996,7 @@
                         <li onclick="Model.setupMinimal()">Empty model...</li>
                         <li>Load XML file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
+                        <li onclick="ActionsMenu.changeDetailLevel()">Change detail level</li>
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
                         <li onclick="ActionsMenu.resetZoom();ActionsMenu.centerModel()">Reset view</li>
