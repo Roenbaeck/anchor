@@ -1108,18 +1108,19 @@
                     this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
 
                 // cast all shadows first
-                this.context.globalAlpha = 0.8;
                 for(i = 0; node = Model.nodes[i]; i++)
                     if(!Model.filtered[i])
                         node.drawMoving(this.context);
 
-                this.context.globalAlpha = 1.0;
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(!Model.filtered[i]) {
+                    if(!Model.filtered[i])
                         node.draw(this.context);
-                        if(this.miniCounter == 1)
-                            node.draw(this.miniatureContext);                        
+                    if(this.miniCounter == 1) {
+                        if(Model.filtered[i])
+                            this.miniatureContext.globalAlpha = 0.25;
+                        node.draw(this.miniatureContext);
+                        this.miniatureContext.globalAlpha = 1.0;
                     }
                 }
                 if(this.showNames) {
