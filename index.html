@@ -54,8 +54,16 @@
         z-index:            1;
     }
 
-    /* invisible canvas - at the very bottom */
+    /* invisible canvas - at the very z-bottom */
     #shadow {
+        position:           absolute;
+        top:                0px;
+        left:               0px;
+        display:            none;
+        z-index:            0;
+    }
+
+    #maxiature {
         position:           absolute;
         top:                0px;
         left:               0px;
@@ -508,7 +516,7 @@
                             }
                         }
                         // the first iteration we count the number of stopped nodes
-                        if(j == 0 && (!otherNode.moving || otherNode.fixed)) {
+                        if(j == 0 && (!otherNode.moving || otherNode.getFixed())) {
                             numberOfStoppedNodes++;
                         }
                     }
@@ -542,7 +550,7 @@
                     if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                         node.start();
                     // if the node is moving and not fixed then calculate the new position
-                    if(node.moving && !node.fixed) {
+                    if(node.moving && !node.getFixed()) {
                         this.equilibrium = false;
                         node.xPosition += node.xVelocity;
                         node.yPosition += node.yVelocity;
@@ -631,6 +639,12 @@
                     this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
                     DrawingEngine.start(true);
                 }
+            },
+            validate: function(filter) {
+                var i, node, isValid = true;
+                for(i = 0; node = Model.nodes[i]; i++)
+                    isValid &= node.validate();
+                return isValid;
             },
             applyFilter: function(filter) {
                 var i, node, j, edge;
@@ -824,11 +838,11 @@
                     this.addEdge(new Edge(tie, anchor, false));                    
                 }
                 else if (attribute && knot) {
-                    attribute.knotted = true;
+                    attribute.setKnotted(true);
                     this.addEdge(new Edge(attribute, knot, false));
                 }
                 else if (tie && knot) {
-                    tie.knotted = true;
+                    tie.setKnotted(true);
                     this.addEdge(new Edge(tie, knot, false));
                 }
                 this.recordState();
@@ -837,7 +851,7 @@
             toggleKnotted: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
                     var knot, edge;
-                    if(nodes[i].knotted) {
+                    if(nodes[i].getKnotted()) {
                         for(var j = 0; edge = nodes[i].edges[j]; j++) {
                             if(edge.otherNode instanceof Knot) {
                                 if(edge.otherNode.edges.length == 1) {
@@ -847,7 +861,7 @@
                                 }
                                 this.removeNode(edge.otherNode);
                                 this.removeEdge(edge);
-                                nodes[i].knotted = false;
+                                nodes[i].setKnotted(false);
                             }
                         }
                     }
@@ -855,7 +869,7 @@
                         knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
                         this.addNode(knot);
                         this.addEdge(new Edge(nodes[i], knot, true));
-                        nodes[i].knotted = true;
+                        nodes[i].setKnotted(true);
                     }
                 }
                 this.recordState();
@@ -863,7 +877,7 @@
             },
             toggleHistorized: function(nodes) {
                 for(var i = 0; i < nodes.length; i++)
-                    nodes[i].historized = !nodes[i].historized;
+                    nodes[i].setHistorized(!nodes[i].getHistorized());
                 this.recordState();
                 DrawingEngine.start(false);
             },
@@ -974,7 +988,6 @@
                 this.context = context;
                 this.shadowContext = shadowContext;
                 this.miniatureContext = miniatureContext;
-                this.miniature = document.getElementById('miniature');
                 this.context.font = '10px sans-serif';
                 this.initialized = true;
                 this.refreshViewportCoordinates();
@@ -1143,9 +1156,9 @@
                 }
                 while(this.resizeMiniature());
 
-                this.miniature.style.width = this.miniatureCanvas.width + 'px';
-                this.miniature.style.height = this.miniatureCanvas.height + 'px';
-                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - Model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - Model.topmostNode.yPosition));
+                this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
+                this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
+                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - model.topmostNode.yPosition));
 
                 // show the viewport on the miniature
                 this.miniatureContext.strokeStyle = '#bb5555';
@@ -1218,7 +1231,7 @@
                             this.addNodeToSelection(this.focusedNode);
                     }
                     else {
-                        this.focusedNode.fixed = !this.focusedNode.fixed;
+                        this.focusedNode.setFixed(!this.focusedNode.getFixed());
                         DrawingEngine.start(true);
                     }
                 }
@@ -1236,7 +1249,7 @@
                         if(!(this.focusedNode instanceof Edge)) {
                             this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                             this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
-                            this.focusedNode.fixed = true;
+                            this.focusedNode.setFixed(true);
                             if(this.contextMenu != null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
                                 this.contextMenu = null;
@@ -1451,29 +1464,30 @@
             operations: null,
             type: 'Node',
             id: null,
+            fixed: false,
             // getters and setters (with hidden _id member)
-            set id(id)  {
+            setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
-                    this._id = id;
+                    this.id = id;
                 }
             },
-            get id() {
-                if (!("_id" in this))
-                    this._id = UniqueIdentity.nextId();
-                return this._id;
+            getId: function() {
+                if (!this.id)
+                    this.id = UniqueIdentity.nextId();
+                return this.id;
             },
-            set fixed(fixed) {
-                this._fixed = fixed;
+            setFixed: function(fixed) {
+                this.fixed = fixed;
             },
-            get fixed() {
-                return this._fixed;
+            getFixed: function() {
+                return this.fixed;
             },
-            get name() {
+            getName: function() {
                 return '';
             },
             toString: function() {
-                return this.name.toString();
+                return this.getName().toString();
             },
             isEmpty: function(value) {
                 return !value || value == null || value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
@@ -1487,6 +1501,10 @@
                         return true;
                 }
                 return false;
+            },
+            // override in order to check conditions under which the node breaks the model
+            validate: function() {
+                return true;
             },
             // subclasses that should appear in the XML need to override this
             toXML: function() {
@@ -1504,7 +1522,7 @@
                 var layout = schema.createElement("layout");
                 layout.setAttribute("x", this.xPosition.toFixed(2));
                 layout.setAttribute("y", this.yPosition.toFixed(2));
-                layout.setAttribute("fixed", this.fixed);
+                layout.setAttribute("fixed", this.getFixed());
                 element.appendChild(layout);
             },
             stop: function() {
@@ -1534,7 +1552,7 @@
                 }
                 var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
                 context.save();
-                var nameWidth = context.measureText(this.name).width;
+                var nameWidth = context.measureText(this.getName()).width;
                 if(this.xPosition < xAverage)
                     context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
                 else
@@ -1544,7 +1562,7 @@
                     context.fillStyle = '#e00';
                 else
                     context.fillStyle = '#000';
-                context.fillText(this.name, this.xPosition, this.yPosition);
+                context.fillText(this.getName(), this.xPosition, this.yPosition);
                 context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -1574,7 +1592,7 @@
             },
             // this is how to draw a graphical representation of the fact that a node is moving
             drawMoving: function(context) {
-                if(this.moving && !this.fixed) {
+                if(this.moving && !this.getFixed()) {
                     var shadowOffsetX = 4 * ((this.velocity > 2) ? 2 : this.velocity);
                     var shadowOffsetY = 4 * ((this.velocity > 3) ? 3 : this.velocity);
                     context.save();
@@ -1588,7 +1606,7 @@
                 }
             },
             drawFixed: function(context) {
-                if(this.fixed) {
+                if(this.getFixed()) {
                     context.fillStyle = '#000000';
                     context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
                 }
@@ -1597,7 +1615,7 @@
 
         function Attribute(x, y, historized) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = '?' + this.id;
+            this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -1611,6 +1629,8 @@
             descriptor: '',
             dataRange: '',
             timeRange: '',
+            historized: false,
+            knotted: false,
             descriptorEdit: {
                 name: 'Descriptor',
                 member: 'descriptor',
@@ -1639,27 +1659,39 @@
                 pattern: '.*',
                 attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
             },
-            set historized(historized) {
+            validate: function() {
+                var i, edge, anchor, knot, otherNode;
+                for(i = 0; edge = this.edges[i]; i++) {
+                    otherNode = (edge.node == this ? edge.otherNode : edge.node);
+                    if(otherNode instanceof Anchor)
+                        anchor = otherNode;
+                    else if (otherNode instanceof Knot)
+                        knot = otherNode;
+                }
+                // there must be an anchor and if there is a knot the attribute must be knotted
+                return !this.isIncomplete() && anchor && (knot ? this.getKnotted() : true);
+            },
+            setHistorized: function(historized) {
                 var index = this.editables.indexOf(this.timeRangeEdit);
                 if(historized && index < 0)
                     this.editables.push(this.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
-                this._historized = historized;
+                this.historized = historized;
             },
-            get historized() {
-                return this._historized;
+            getHistorized: function() {
+                return this.historized;
             },
-            set knotted(knotted) {
+            setKnotted: function(knotted) {
                 var index = this.editables.indexOf(this.dataRangeEdit);
                 if(!knotted && index < 0)
                     this.editables.push(this.dataRangeEdit);
                 else if (knotted && index >= 0)
                     this.editables.splice(index, 1);
-                this._knotted = knotted;
+                this.knotted = knotted;
             },
-            get knotted() {
-                return this._knotted;
+            getKnotted: function() {
+                return this.knotted;
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -1687,8 +1719,8 @@
                 var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
                 var attribute = new Attribute(x, y, historized);
-                attribute.fixed = fixed;
-                attribute.knotted = knotted;
+                attribute.setFixed(fixed);
+                attribute.setKnotted(knotted);
                 attribute.timeRange = timeRange;
                 attribute.dataRange = dataRange;
                 attribute.description = description ? description.firstChild.nodeValue : '';
@@ -1718,7 +1750,7 @@
                 attribute.incomplete = attribute.isIncomplete();
                 return attribute;
             },
-            get name() {
+            getName: function() {
                 var anchor, edge;
                 for(var i = 0; edge = this.edges[i]; i++)
                     if(edge.otherNode instanceof Anchor)
@@ -1791,7 +1823,7 @@
 
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = '?' + this.id;
+            this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -1824,11 +1856,28 @@
                 pattern: '.*',
                 attributes: ['type', 'text', 'title', 'Identity Type', 'required', 'required']
             },
-            get name() {
+            getName: function() {
                 return this.mnemonic + "_" + this.descriptor;
             },
             nameXOffset: function() {
                 return 20;
+            },
+            validate: function() {
+                var i, edge, otherNode, ties = 0, mnemonics = {};
+                for(i = 0; edge = this.edges[i]; i++) {
+                    otherNode = (edge.node == this ? edge.otherNode : edge.node);
+                    if(otherNode instanceof Attribute) {
+                        if(mnemonics[otherNode.mnemonic]) {
+                            Model.tag(otherNode, 'The mnemonic ' + otherNode.mnemonic + ' is not unique among the other attributes on the same anchor');
+                        }
+                        mnemonics[otherNode.mnemonic] = otherNode;
+                    }
+                    else if (otherNode instanceof Tie)
+                        ties++;
+                }
+                if(!ties)
+                    Model.tag(this, 'This anchor has no ties');
+                return true;
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -1851,7 +1900,7 @@
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
                 var anchor = new Anchor(x, y);
-                anchor.fixed = fixed;
+                anchor.setFixed(fixed);
                 anchor.description = description ? description.firstChild.nodeValue : '';
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
@@ -1897,7 +1946,7 @@
 
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
-            this.mnemonic = '?' + this.id;
+            this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
             this.editables.push(this.descriptorEdit);
             this.editables.push(this.mnemonicEdit);
@@ -1938,7 +1987,7 @@
                 pattern: '.*',
                 attributes: ['type', 'text', 'title', 'Data Type', 'required', 'required']
             },
-            get name() {
+            getName: function() {
                 return this.mnemonic + "_" + this.descriptor;
             },
             nameXOffset: function() {
@@ -1966,7 +2015,7 @@
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
                 var knot = new Knot(x, y);
-                knot.fixed = fixed;
+                knot.setFixed(fixed);
                 knot.description = description ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
                 knot.descriptor = descriptor;
@@ -2022,6 +2071,7 @@
         }
         Tie.prototype = {
             timeRange: '',
+            historized: false,
             timeRangeEdit: {
                 name: 'Time range',
                 member: 'timeRange',
@@ -2029,19 +2079,19 @@
                 pattern: '.*',
                 attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
             },
-            set historized(historized) {
+            setHistorized: function(historized) {
                 var index = this.editables.indexOf(this.timeRangeEdit);
                 if(historized && index < 0)
                     this.editables.push(this.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
-                this._historized = historized;
+                this.historized = historized;
             },
-            get historized() {
-                return this._historized;
+            getHistorized: function() {
+                return this.historized;
             },
             isIncomplete: function() {
-                return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.name.match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
+                return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.getName().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
@@ -2063,7 +2113,7 @@
                 var timeRange = element.getAttribute("timeRange") || '';
                 var historized = timeRange ? true : false;
                 var tie = new Tie(x, y, historized);
-                tie.fixed = fixed;
+                tie.setFixed(fixed);
                 tie.timeRange = timeRange;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
@@ -2110,7 +2160,7 @@
                 tie.incomplete = tie.isIncomplete();
                 return tie;
             },
-            get name() {
+            getName: function() {
                 var i, edge, name="";
                 for(i = 0; edge = this.edges[i]; i++) {
                     if(i > 0)
@@ -2235,23 +2285,23 @@
                 this.moving = true;
             },
             // edges never fixate
-            set fixed(fixed) {
-                this._fixed = false;
+            setFixed: function(fixed) {
+                this.fixed = false;
             },
-            get name() {
+            getName: function() {
                 return this.role;
             },
             drawMoving: function(context) {
-                if((this.node.moving && !this.node.fixed) || (this.otherNode.moving && !this.otherNode.fixed)) {
+                if((this.node.moving && !this.node.getFixed()) || (this.otherNode.moving && !this.otherNode.getFixed())) {
                     var nodeShadowOffsetX = 0;
                     var nodeShadowOffsetY = 0;
-                    if(this.node.moving && !this.node.fixed) {
+                    if(this.node.moving && !this.node.getFixed()) {
                         nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
                         nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
                     }
                     var otherNodeShadowOffsetX = 0;
                     var otherNodeShadowOffsetY = 0;
-                    if(this.otherNode.moving && !this.otherNode.fixed) {
+                    if(this.otherNode.moving && !this.otherNode.getFixed()) {
                         otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
                         otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
                     }
@@ -2450,7 +2500,7 @@
                             knots++;
                         else if(node instanceof Attribute) {
                             attributes++;
-                            knotted = node.knotted;
+                            knotted = node.getKnotted();
                         }
                     }
                     return anchors && ties || knots && ties || attributes && knots && !knotted;
@@ -2509,13 +2559,15 @@
                 CanvasEventHandler.closeContextMenu();
             },
             edit: function(element, node) {
-                node[element.member] = element.value;
-                if(node.node instanceof Tie)
-                    node.node.incomplete = node.node.isIncomplete();
-                for(var i = 0; node.edges.length; i++)
-                    if(node.edges[i].node instanceof Tie)
-                        node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
-                element.checkValidity();
+                if(element && node) {
+                    node[element.member] = element.value;
+                    if(node.node instanceof Tie)
+                        node.node.incomplete = node.node.isIncomplete();
+                    for(var i = 0; node.edges.length; i++)
+                        if(node.edges[i].node instanceof Tie)
+                            node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
+                    element.checkValidity();                    
+                }
             },
             invalid: function(element, node) {
                 node.incomplete = true;
@@ -2651,7 +2703,7 @@
             },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.nodes.length; i++) {
-                    if(!Model.nodes[i].fixed) {
+                    if(!Model.nodes[i].getFixed()) {
                         Model.nodes[i].xPosition = Math.random() * window.innerWidth;
                         Model.nodes[i].yPosition = Math.random() * window.innerHeight;
                     }
@@ -2660,12 +2712,12 @@
             },
             toggleFixation: function () {
                 for(var i = 0; i < Model.nodes.length; i++)
-                    Model.nodes[i].fixed = !Model.nodes[i].fixed;
+                    Model.nodes[i].setFixed(!Model.nodes[i].getFixed());
                 DrawingEngine.start(true);
             },
             releaseAll: function () {
                 for(var i = 0; i < Model.nodes.length; i++)
-                    Model.nodes[i].fixed = false;
+                    Model.nodes[i].setFixed(false);
                 DrawingEngine.start(true);
             },
             toggleNames: function () {
@@ -2679,6 +2731,35 @@
                     Model.applyFilter(this.filter);
                 this.isFiltering = !this.isFiltering;
                 DrawingEngine.start(false);
+            },
+            generatePNG: function() {
+                var scale = 5;
+                var padding = 50;
+                var maxiatureCanvas = document.getElementById('maxiature');
+                var maxiatureContext = maxiatureCanvas.getContext('2d');
+                var padding = DrawingEngine.showNames ? scale * padding : padding;
+                var maxiWidth = Model.rightmostNode.xPosition - Model.leftmostNode.xPosition + 2 * padding;
+                var maxiHeight = Model.bottommostNode.yPosition - Model.topmostNode.yPosition + 2 * padding;
+
+                maxiatureCanvas.width = scale * maxiWidth;
+                maxiatureCanvas.height = scale * maxiHeight;
+                maxiatureCanvas.style.width = maxiatureCanvas.width + 'px';
+                maxiatureCanvas.style.height = maxiatureCanvas.height + 'px';
+
+                maxiatureContext.setTransform(scale, 0, 0, scale, scale * (padding - Model.leftmostNode.xPosition), scale * (padding - Model.topmostNode.yPosition));
+
+                var i, node;
+                for(i = 0; node = Model.nodes[i]; i++) {
+                    if(!Model.filtered[i])
+                        node.draw(maxiatureContext);
+                }
+                if(DrawingEngine.showNames) {
+                    for(i = 0; node = Model.nodes[i]; i++)
+                        if(!(node instanceof Edge) && !Model.filtered[i])
+                            node.drawName(maxiatureContext);
+                }
+                
+                window.open(maxiatureCanvas.toDataURL('image/png'), '_newtab');
             },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
@@ -3013,7 +3094,8 @@
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl', document), false)">Generate XML representation</li>
                         <li onclick="ActionsMenu.generateHTML()">Generate HTML documentation</li>
                         <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), DATABASE_TRANSFORM, document), true)">Generate SQL code</li>
-                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG image</li>
+                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">Generate PNG screenshot</li>
+                        <li onclick="ActionsMenu.generatePNG()">Generate PNG hi-res model</li>
                     </ul>
                 </li>
             </ul>
@@ -3054,6 +3136,9 @@
     </div>
 
 
+    <canvas id="maxiature" class="unselectable">
+        <!-- we use this when generating high resolution images -->
+    </canvas>
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
