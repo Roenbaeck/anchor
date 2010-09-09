@@ -67,6 +67,8 @@
         position:           absolute;
         top:                0px;
         left:               0px;
+        width:              0px;
+        height:             0px;
         display:            none;
         z-index:            0;
     }
@@ -2760,6 +2762,11 @@
                 }
                 
                 window.open(maxiatureCanvas.toDataURL('image/png'), '_newtab');
+                // release memory
+                maxiatureCanvas.width = 0;
+                maxiatureCanvas.height = 0;
+                maxiatureCanvas.style.width = maxiatureCanvas.width + 'px';
+                maxiatureCanvas.style.height = maxiatureCanvas.height + 'px';
             },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
