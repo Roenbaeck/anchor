@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript">
+        window.onload = init;
+
+/*http://code.google.com/p/googleappengine/issues/detail?id=2994*/
+        function init() {
+
+            var xmlhttp = new window.XMLHttpRequest();
+
+
+            var formData = new FormData();
+
+            formData.append("action", "LIST");
+/*
+list
+  scope "public","private","public/private"
+  filterBy "keyword"
+  filterValue "lkslejg"
+  maxItemsReturned 20
+
+  returnerar i xmlformat
+    modelId, modelName, icon, domain, keyword, authorName
+
+save
+  scope "public","private"
+  modelName
+  modelId  (om nytt dokument så slopar man detta, annars overwrite model med detta id)
+  keywords
+  icon     (textencoded png-image)
+  modelXml
+
+  returnerar ok/error
+
+load
+  modelId
+
+  returnerar modelXml
+
+obs anropare måste testa på eventuell redirect till google login account
+
+todo:
+  delete
+
+ */
+
+
+            /* Open single model */
+            formData.append("action", "LOAD");
+            formData.append("modelId", modelId);
+
+            xmlhttp.open("POST", "http://cloud", false);
+            xmlhttp.send(formData);
+
+            var modelXML = xmlhttp.responseXML; // xml code from server response
+
+            alert(response);
+        }
+    </script>
+    <title>Test H - Remote access</title>
+</head>
+<body id="body">
+    <!-- trying to fill dynamically -->
+</body>
+</html>
