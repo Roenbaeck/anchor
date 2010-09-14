@@ -27,6 +27,29 @@
             </span>
         </xsl:for-each>
         <xsl:choose>
+            <xsl:when test="normalize-space(text())">
+                <span class="brackets">
+                    <xsl:text>&gt;</xsl:text><br/>
+                </span>
+                <span class="tabs">
+                    <xsl:value-of select="concat($indent, 'TAB')"/>
+                </span>
+                <span class="texts">
+                    <xsl:value-of select="text()"/><br/>
+                </span>        
+                <span class="tabs">
+                    <xsl:value-of select="$indent"/>
+                </span>
+                <span class="brackets">
+                    <xsl:text>&lt;/</xsl:text>
+                </span>
+                <span class="elements">
+                    <xsl:value-of select="local-name(.)"/>
+                </span>
+                <span class="brackets">
+                    <xsl:text>/&gt;</xsl:text><br/>
+                </span>
+            </xsl:when>
             <xsl:when test="node()">
                 <span class="brackets">
                     <xsl:text>&gt;</xsl:text><br/>
