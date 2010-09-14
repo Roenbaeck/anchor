@@ -26,6 +26,21 @@
                 <xsl:text>"</xsl:text>
             </span>
         </xsl:for-each>
+        <xsl:if test=".. and not(parent::*) and namespace-uri()">
+            <xsl:text> </xsl:text>
+            <span class="attributes">
+                <xsl:text>xmlns</xsl:text>
+            </span>
+            <span class="brackets">
+                <xsl:text>="</xsl:text>
+            </span>
+            <span class="values">
+                <xsl:value-of select="namespace-uri()"/>
+            </span> 
+            <span class="brackets">
+                 <xsl:text>"</xsl:text>
+             </span>
+         </xsl:if>
         <xsl:choose>
             <xsl:when test="normalize-space(text())">
                 <span class="brackets">
@@ -47,7 +62,7 @@
                     <xsl:value-of select="local-name(.)"/>
                 </span>
                 <span class="brackets">
-                    <xsl:text>/&gt;</xsl:text><br/>
+                    <xsl:text>&gt;</xsl:text><br/>
                 </span>
             </xsl:when>
             <xsl:when test="node()">

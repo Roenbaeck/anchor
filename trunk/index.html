@@ -216,6 +216,10 @@
     #content .tabs {
         visibility:         hidden;
     }
+    #content .texts {
+        color:              #f55;
+        font-weight:        bold;
+    }
     #content .brackets {
         color:              white;
     }
@@ -3266,8 +3270,8 @@
                 <li>File
                     <ul class="submenu">
                         <li onclick="Model.setupMinimal()">Empty model...</li>
-                        <li>Load model from cloud...</li>
-                        <li>Save model to cloud...</li>
+                        <li onclick="alert('Coming soon')">Load model from cloud...</li>
+                        <li onclick="alert('Coming soon')">Save model to cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                     </ul>
