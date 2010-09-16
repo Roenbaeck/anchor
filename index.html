@@ -23,6 +23,7 @@
 
     .invisible {
         opacity:            0;
+        filter:             alpha(opacity=0);
         z-index:            1000;
         position:           absolute;
         left:               0;
@@ -346,44 +347,31 @@
         width:              45px;
     }
 
-    /* Flexible menu without images - taken from ie7nomore.com and modified */
     #controls {
         position:           absolute;
         top:                0px;
         left:               50%;
-        margin-left:        -300px; /* half of the actual width */
+        margin-left:        -325px; /* half of the actual width */
+        height:             32px;
         display:            block;
         z-index:            9;
     }
     #controls .playing {
-        background-color:   #ffaa55;      
+        background-color:   #fa5;      
     }
     #controls .pausing {
         /* just go back to normal */
     }
-    .control {
+    #controls div {
         cursor:             pointer;
-        width:              600px;
-        height:             32px;
-        margin:             0;
-        padding:            0;
-        list-style:         none;
-        display:            -moz-box;
-        display:            -webkit-box;
-        display:            box;
-        -moz-box-orient:    horizontal;
-        -webkit-box-orient: horizontal;
-        box-orient:         horizontal;
-    }
-    .control li {
-        -moz-box-flex :     1;
-        -webkit-box-flex :  1;
-        box-flex :          1;
-        min-width:          65px; /* @bugfix : avoid jerky transition ending */
+        position:           relative;
+        top:                0;
+        display:            inline-block;
+        width:              150px; 
         padding:            8px 0 8px 20px;
         margin:             0;
         border-left:        0;
-        background:         #bb5555;
+        background:         #b55;
         color:              #fff;
         text-decoration:    none;
         text-shadow:        0px 0px 6px #777;
@@ -394,16 +382,10 @@
         -moz-transition:    .5s;
         transition:         .5s;
     }
-    .control li:hover, .menu li:focus {
-        background:         #ff7777;
-        width:              20%; /* times number of menu items = 100% */
-/*      This is buggy right now so removed until FF does smooth flexing
-        -moz-box-flex :     2;
-*/
-        -webkit-box-flex :  2;
-        box-flex :          2;
+    #controls div:hover {
+        background:         #f77;
     }
-    .control li + li {
+    #controls div + div {
         margin-left:        -50px;
     }
     
@@ -2544,7 +2526,14 @@
 
         // global function providing inheritance
         function extend(child, supertype){
-           child.prototype.__proto__ = supertype.prototype;
+            child.prototype.supertype = {};
+            for(var member in supertype.prototype)
+                if(!child.prototype[member])
+                    child.prototype[member] = supertype.prototype[member];
+                else
+                    child.prototype.supertype[member] = supertype.prototype[member];
+            /* moving away from this type of inheritance, as it has worse performance, and not supported in IE9 */
+            //child.prototype.__proto__ = supertype.prototype;
         }
 
         function ModalBackground() {
@@ -3311,13 +3300,11 @@
         </div>
 
         <div id="controls">
-            <ul class="control">
-                <li id="playpause">Pause</li>
-                <li id="undo">Undo</li>
-                <li id="redo">Redo</li>
-                <li id="zoomin">Zoom In</li>
-                <li id="zoomout">Zoom Out</li>
-            </ul>
+            <div id="playpause">Pause</div>
+            <div id="undo">Undo</div>
+            <div id="redo">Redo</div>
+            <div id="zoomin">Zoom In</div>
+            <div id="zoomout">Zoom Out</div>
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
