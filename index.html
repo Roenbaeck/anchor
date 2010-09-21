@@ -613,11 +613,14 @@
             },
             // TODO: We probably should have a maximum number of versions
             recordState: function() {
-                this.version++;
-                this.versions[this.version] = this.toXML();
-                this.versions.length = this.version + 1;
-                ControlButtons.setUndoLevels(this.version);
-                ControlButtons.setRedoLevels(0);
+                // only record if there is something to record
+                if(this.nodes.length) {
+                    this.version++;
+                    this.versions[this.version] = this.toXML();
+                    this.versions.length = this.version + 1;
+                    ControlButtons.setUndoLevels(this.version);
+                    ControlButtons.setRedoLevels(0);
+                }
             },
             undoState: function() {
                 this.version -= (this.version == 0 ? 0 : 1);
