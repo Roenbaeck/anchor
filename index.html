@@ -1241,6 +1241,7 @@
 
         var CanvasEventHandler = {
             dragging: false,
+            hasMoved: false,
             contextMenu: null,
             focusedNode: null,
             xLastKnown: 0,
@@ -1257,10 +1258,6 @@
                         else
                             this.addNodeToSelection(this.focusedNode);
                     }
-                    else {
-                        this.focusedNode.setFixed(!this.focusedNode.getFixed());
-                        DrawingEngine.start(true);
-                    }
                 }
                 else {
                     // we are shift clicking the canvas background
@@ -1271,6 +1268,7 @@
             },
             mousemove: function(event) {
                 if (this.dragging) {
+                    this.hasMoved = true;
                     // if we are dragging a node, we must also be hovering over it
                     if(this.focusedNode) {
                         if(!(this.focusedNode instanceof Edge)) {
@@ -1358,13 +1356,19 @@
                 DrawingEngine.start(false);
             },
             mouseup: function(event) {
+                var layout = false;
                 // the dragging started over a node
-                if(this.focusedNode) 
-                    this.focusedNode = null;
-                if (this.dragging)
-                    this.dragging = false;
+                if(this.focusedNode) {
+                    if(!this.hasMoved) {
+                        this.focusedNode.setFixed(!this.focusedNode.getFixed());
+                        layout = true;
+                    }
+                }
+                this.focusedNode = null;
+                this.dragging = false;
+                this.hasMoved = false;
                 DrawingEngine.setCursor('default');
-                DrawingEngine.start(false);
+                DrawingEngine.start(layout);
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
