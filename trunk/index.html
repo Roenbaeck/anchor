@@ -413,6 +413,8 @@
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
 
+        var CALCS = 'simple';
+        
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
@@ -437,6 +439,19 @@
             equilibrium: true,
             // the metric in use
             metric: null,
+            xRepelling: null,
+            yRepelling: null,
+            xAttracting: null,
+            yAttracting: null,
+            init: function() {
+                this.metric = this.euclidean;
+                this.xRepelling = this.xSimpleRepelling;
+                this.yRepelling = this.ySimpleRepelling;
+                this.xAttracting = this.xSimpleAttracting;
+                this.yAttracting = this.ySimpleAttracting;
+                this.attractionConstant = 1/this.normalDistance/this.normalDistance/this.normalDistance;
+                this.stiffnessBound = this.stiffness * this.stiffness;
+            },
             // for some reason Math.abs is slower than this
             absolute: function(value) {
                 return value < 0 ? -value : value;
@@ -464,23 +479,42 @@
                 return Math.sqrt(this.square(x2 - x1) + this.square(y2 - y1));
             },
             // x component of the repelling force formula
-            xRepelling: function(node, otherNode) {
+            xSimpleRepelling: function(node, otherNode) {
                 return (node.xPosition - otherNode.xPosition)/this.square(this.distance(node, otherNode));
             },
 
             // y component of the repelling force formula
-            yRepelling: function(node, otherNode) {
+            ySimpleRepelling: function(node, otherNode) {
                 return (node.yPosition - otherNode.yPosition)/this.square(this.distance(node, otherNode));
             },
 
             // x component of the attracting force formula
-            xAttracting: function (node, otherNode) {
+            xSimpleAttracting: function (node, otherNode) {
                 return this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
             },
 
             // y component of the attracting force formula
-            yAttracting: function (node, otherNode) {
+            ySimpleAttracting: function (node, otherNode) {
                 return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
+            },
+            // x component of the repelling force formula
+            xComplexRepelling: function(node, otherNode) {
+                return node.charge * (node.xPosition - otherNode.xPosition)/this.square(this.distance(node, otherNode));
+            },
+
+            // y component of the repelling force formula
+            yComplexRepelling: function(node, otherNode) {
+                return node.charge * (node.yPosition - otherNode.yPosition)/this.square(this.distance(node, otherNode));
+            },
+
+            // x component of the attracting force formula
+            xComplexAttracting: function (node, otherNode) {
+                return node.mass * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
+            },
+
+            // y component of the attracting force formula
+            yComplexAttracting: function (node, otherNode) {
+                return node.mass * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
             },
             // create the square of influence
             createSquare: function(node, offset) {
@@ -1469,6 +1503,8 @@
             this.xVelocity = 0;
             this.yVelocity = 0;
             this.velocity = 0;
+            this.mass = 1;
+            this.charge = 1;
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
@@ -1486,6 +1522,8 @@
             yPosition: null,
             xVelocity: null,
             yVelocity: null,
+            mass: null,
+            charge: null,
             velocity: null,
             edges: null,
             moving: true,
@@ -3009,6 +3047,7 @@
                 document.getElementById('database').value = DATABASE_TRANSFORM;
                 document.getElementById('FPS').value = FPS;
                 document.getElementById('MINIRATE').value = MINIRATE;
+                document.getElementById('CALCS').value = CALCS;
             },
             resetSettings: function() {
                 this.setDamping(4);
@@ -3022,6 +3061,7 @@
                 this.setDatabase('SQLServer.xsl');
                 this.setFPS(100);
                 this.setMiniRate(50);
+                this.setCalculations('simple');
                 this.init();
             },
             storeSettings: function(storage) {
@@ -3036,6 +3076,7 @@
                 storage.setItem("database", document.getElementById('database').value);
                 storage.setItem("FPS", FPS);
                 storage.setItem("MINIRATE", MINIRATE);
+                storage.setItem("CALCS", CALCS);
             },
             loadSettings: function(storage) {
                 this.setDamping(storage.getItem('damping') || 4);
@@ -3049,6 +3090,7 @@
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setFPS(storage.getItem('FPS') || 100);
                 this.setMiniRate(storage.getItem('MINIRATE') || 50);
+                this.setCalculations(storage.getItem('CALCS') || 'simple');
                 this.init();
             },
             setDamping: function(value) {
@@ -3090,6 +3132,70 @@
             toggleDebug: function () {
                 DEBUG = !DEBUG;
                 DrawingEngine.start(false);
+            },
+            knotMass: null,
+            knotCharge: null,
+            anchorMass: null,
+            anchorCharge: null,
+            attributeMass: null,
+            attributeCharge: null,
+            tieMass: null,
+            tieCharge: null,
+            setCalculations: function(value) {
+                var listOfSettings = document.getElementById('listOfSettings');
+                var calcsItem = document.getElementById('calcsItem');
+                if(value == 'simple') {
+                    LayoutEngine.xAttracting = LayoutEngine.xSimpleAttracting;
+                    LayoutEngine.yAttracting = LayoutEngine.ySimpleAttracting;
+                    LayoutEngine.xRepelling = LayoutEngine.xSimpleRepelling;
+                    LayoutEngine.yRepelling = LayoutEngine.ySimpleRepelling;
+                    if(this.knotMass) listOfSettings.removeChild(this.knotMass);
+                    if(this.knotCharge) listOfSettings.removeChild(this.knotCharge);
+                    if(this.anchorMass) listOfSettings.removeChild(this.anchorMass);
+                    if(this.anchorCharge) listOfSettings.removeChild(this.anchorCharge);
+                    if(this.attributeMass) listOfSettings.removeChild(this.attributeMass);
+                    if(this.attributeCharge) listOfSettings.removeChild(this.attributeCharge);
+                    if(this.tieMass) listOfSettings.removeChild(this.tieMass);
+                    if(this.tieCharge) listOfSettings.removeChild(this.tieCharge);
+                    this.knotMass = null;
+                    this.knotCharge = null;
+                    this.anchorMass = null;
+                    this.anchorCharge = null;
+                    this.attributeMass = null;
+                    this.attributeCharge = null;
+                    this.tieMass = null;
+                    this.tieCharge = null;
+                }
+                else if (value == 'complex') {
+                    LayoutEngine.xAttracting = LayoutEngine.xComplexAttracting;
+                    LayoutEngine.yAttracting = LayoutEngine.yComplexAttracting;
+                    LayoutEngine.xRepelling = LayoutEngine.xComplexRepelling;
+                    LayoutEngine.yRepelling = LayoutEngine.yComplexRepelling;
+                    this.knotMass = document.createElement('li');
+                    this.knotCharge = document.createElement('li');
+                    this.anchorMass = document.createElement('li');
+                    this.anchorCharge = document.createElement('li');
+                    this.attributeMass = document.createElement('li');
+                    this.attributeCharge = document.createElement('li');
+                    this.tieMass = document.createElement('li');
+                    this.tieCharge = document.createElement('li');
+                    this.knotMass.appendChild(document.createTextNode('Knot mass'));
+                    this.knotCharge.appendChild(document.createTextNode('Knot charge'));
+                    this.anchorMass.appendChild(document.createTextNode('Anchor mass'));
+                    this.anchorCharge.appendChild(document.createTextNode('Anchor charge'));
+                    this.attributeMass.appendChild(document.createTextNode('Attribute mass'));
+                    this.attributeCharge.appendChild(document.createTextNode('Attribute charge'));
+                    this.tieMass.appendChild(document.createTextNode('Tie mass'));
+                    this.tieCharge.appendChild(document.createTextNode('Tie charge'));
+                    listOfSettings.insertBefore(this.tieCharge, calcsItem);
+                    listOfSettings.insertBefore(this.tieMass, calcsItem);
+                    listOfSettings.insertBefore(this.attributeCharge, calcsItem);
+                    listOfSettings.insertBefore(this.attributeMass, calcsItem);
+                    listOfSettings.insertBefore(this.anchorCharge, calcsItem);
+                    listOfSettings.insertBefore(this.anchorMass, calcsItem);
+                    listOfSettings.insertBefore(this.knotCharge, calcsItem);
+                    listOfSettings.insertBefore(this.knotMass, calcsItem);
+                }
             }
         };
 
@@ -3185,6 +3291,7 @@
         function init(window) {
             // assign event handlers to buttons
             ControlButtons.init();
+            LayoutEngine.init();
 
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
@@ -3357,7 +3464,7 @@
         <div id="settings" class="unselectable" title="Expert settings">
             <ul class="menu">
                 <li>Settings
-                    <ul class="submenu">
+                    <ul id="listOfSettings" class="submenu">
                         <li><input id="damping" type="number" min="0" max="99" step="1" onblur="SettingsMenu.setDamping(this.value)"/> % Damping</li>
                         <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
                         <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
@@ -3367,6 +3474,7 @@
                         <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
                         <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
                         <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                        <li id="calcsItem"><select id="CALCS" onchange="SettingsMenu.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Natural</option></select> &nbsp;Calculations</li>
                         <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> &nbsp;Metric</li>
                         <li><select id="database" onchange="SettingsMenu.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
                         <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
