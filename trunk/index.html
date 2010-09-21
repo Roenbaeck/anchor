@@ -108,6 +108,7 @@
     }
     #contextMenu .topper {
         font:               10px sans-serif;
+        cursor:             move;
         color:              #333;
         height:             15px;
         padding-top:        2px;
@@ -2612,7 +2613,8 @@
             this.contextMenu = contextMenu;
 
             this.topper = document.createElement('div');
-            this.topper.setAttribute('class', 'topper');
+            this.topper.setAttribute('class', 'topper unselectable');
+            this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
             this.divider = document.createElement('div');
             this.divider.setAttribute('class', 'divider');
             
@@ -2731,6 +2733,7 @@
             collapsed: true,
             modalBackground: null,
             editsHaveBeenMade: false,
+            dragging: false,
             operate: function(button, nodes) {
                 Model[button.method](nodes);
                 for(var i = 0; i < nodes.length; i++)
@@ -2757,9 +2760,34 @@
                         return false;
                 return true;
             },
-            updatePosition: function() {
-                var x = DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
-                var y = DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
+            mousedown: function(event) {
+                var self = this;
+                window.addEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
+                window.addEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
+                this.dragging = true;
+            },
+            mousemove: function(self, event) {
+                if(self.dragging) {
+                    var xScreen, yScreen;
+                    xScreen = event.clientX
+                            + document.body.scrollLeft
+                            + document.documentElement.scrollLeft
+                            - self.contextMenu.offsetWidth / 2;
+                    yScreen = event.clientY
+                            + document.body.scrollTop
+                            + document.documentElement.scrollTop
+                            - self.topper.offsetHeight / 2;
+                    this.updatePosition(xScreen, yScreen);
+                }
+            },
+            mouseup: function(self, event) {
+                this.dragging = false;
+                window.removeEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
+                window.removeEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
+            },
+            updatePosition: function(x, y) {
+                x = x ? x : DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
+                y = y ? y : DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
 
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
