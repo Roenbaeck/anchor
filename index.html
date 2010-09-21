@@ -262,7 +262,7 @@
         left:               0;
         height:             32px;
         display:            block;
-        background-color:   rgba(212, 212, 212, 0.8);
+        background-color:   rgba(212, 212, 212, 0.9);
         color:              black;
         border-bottom:      2px solid #fff;
         box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
@@ -273,7 +273,7 @@
 
     /* http://www.ie7nomore.com/fun/menu2/ */
     /* TODO: position using relative instead */
-    #actions, #settings, #file, #generate {
+    #actions, #settings, #file, #generate, #about {
         position:           absolute;
         display:            block;
         top:                0px;
@@ -289,6 +289,10 @@
     }
     #generate {
         left:               110px;
+        text-align:         left;
+    }
+    #about {
+        left:               180px;
         text-align:         left;
     }
     #settings {
@@ -311,7 +315,7 @@
     }
     .submenu {
         opacity:            0;
-        background-color:   rgba(212, 212, 212, 0.8);
+        background-color:   rgba(212, 212, 212, 0.9);
         white-space:        nowrap;
         border:             2px solid #fff;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
@@ -370,7 +374,7 @@
         width:              150px; 
         padding:            8px 0 8px 20px;
         margin:             0;
-        border-left:        0;
+        border:             0;
         background:         #b55;
         color:              #fff;
         text-decoration:    none;
@@ -3309,6 +3313,12 @@
             <div id="redo">Redo</div>
             <div id="zoomin">Zoom In</div>
             <div id="zoomout">Zoom Out</div>
+        </div>
+
+        <div id="about">
+            <ul class="menu">
+                <li onclick="alert('The Anchor Modeler is an Open Source tool')">About</li>
+            </ul>
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
