@@ -11,9 +11,6 @@
             var xmlhttp = new window.XMLHttpRequest();
 
 
-            var formData = new FormData();
-
-            formData.append("action", "LIST");
 /*
 server: anchormodeler
 
@@ -49,16 +46,23 @@ todo:
  */
 
 
-            /* Open single model */
-            formData.append("action", "LOAD");
-            formData.append("modelId", modelId);
+			var url = "http://anchormodeler.appspot.com/anchormodeler";
+			/*var url = "http://localhost:8888/anchormodeler";*/
+			var params = "action=save&modelName=test2&modelXml=myxml2";
+			xmlhttp.open("POST", url, true);
 
-            xmlhttp.open("POST", "http://cloud", false);
-            xmlhttp.send(formData);
+			//Send the proper header information along with the request
+			xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+			xmlhttp.setRequestHeader("Content-length", params.length);
+			xmlhttp.setRequestHeader("Connection", "close");
 
-            var modelXML = xmlhttp.responseXML; // xml code from server response
+			xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+				if(xmlhttp.readyState == 4) {
+					alert(xmlhttp.responseText);
+				}
+			}
+			xmlhttp.send(params);
 
-            alert(response);
         }
     </script>
     <title>Test H - Remote access</title>
