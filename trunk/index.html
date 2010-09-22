@@ -1293,10 +1293,9 @@
                             this.addNodeToSelection(this.focusedNode);
                     }
                 }
-                else {
+                else if(event.shiftKey) {
                     // we are shift clicking the canvas background
-                    if(event.shiftKey)
-                        this.clearSelection();
+                    this.clearSelection();
                 }
                 this.dragging = true;
             },
@@ -1392,11 +1391,9 @@
             mouseup: function(event) {
                 var layout = false;
                 // the dragging started over a node
-                if(this.focusedNode) {
-                    if(!this.hasMoved) {
-                        this.focusedNode.setFixed(!this.focusedNode.getFixed());
-                        layout = true;
-                    }
+                if(this.focusedNode && !this.hasMoved && !event.shiftKey) {
+                    this.focusedNode.setFixed(!this.focusedNode.getFixed());
+                    layout = true;
                 }
                 this.focusedNode = null;
                 this.dragging = false;
@@ -2246,6 +2243,12 @@
             },
             getHistorized: function() {
                 return this.historized;
+            },
+            setKnotted: function(knotted) {
+                this.knotted = knotted;
+            },
+            getKnotted: function() {
+                return this.knotted;
             },
             isIncomplete: function() {
                 return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.getName().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
