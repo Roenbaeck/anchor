@@ -480,12 +480,12 @@
             },
             // x component of the repelling force formula
             xSimpleRepelling: function(node, otherNode) {
-                return (node.xPosition - otherNode.xPosition)/this.square(this.distance(node, otherNode));
+                return (node.xPosition - otherNode.xPosition) / this.square(this.distance(node, otherNode));
             },
 
             // y component of the repelling force formula
             ySimpleRepelling: function(node, otherNode) {
-                return (node.yPosition - otherNode.yPosition)/this.square(this.distance(node, otherNode));
+                return (node.yPosition - otherNode.yPosition) / this.square(this.distance(node, otherNode));
             },
 
             // x component of the attracting force formula
@@ -499,22 +499,22 @@
             },
             // x component of the repelling force formula
             xComplexRepelling: function(node, otherNode) {
-                return node.charge * (node.xPosition - otherNode.xPosition)/this.square(this.distance(node, otherNode));
+                return (node.charge + otherNode.charge)/2 * (node.xPosition - otherNode.xPosition) / this.square(this.distance(node, otherNode));
             },
 
             // y component of the repelling force formula
             yComplexRepelling: function(node, otherNode) {
-                return node.charge * (node.yPosition - otherNode.yPosition)/this.square(this.distance(node, otherNode));
+                return (node.charge + otherNode.charge)/2 * (node.yPosition - otherNode.yPosition) / this.square(this.distance(node, otherNode));
             },
 
             // x component of the attracting force formula
             xComplexAttracting: function (node, otherNode) {
-                return node.mass * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
+                return (node.mass + otherNode.mass)/2 * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
             },
 
             // y component of the attracting force formula
             yComplexAttracting: function (node, otherNode) {
-                return node.mass * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
+                return (node.mass + otherNode.mass)/2 * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
             },
             // create the square of influence
             createSquare: function(node, offset) {
@@ -2437,10 +2437,14 @@
         function Edge(node, otherNode, identifier) {
             // assume that the control point and midway point coincide with the center point
             this.centerPoint = {
+                mass: 1,
+                charge: 1,
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
                 yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2
             };
             this.controlPoint = {
+                mass: 1,
+                charge: 1,
                 xPosition: this.centerPoint.xPosition,
                 yPosition: this.centerPoint.yPosition
             };
@@ -3474,7 +3478,7 @@
                         <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
                         <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
                         <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
-                        <li id="calcsItem"><select id="CALCS" onchange="SettingsMenu.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Natural</option></select> &nbsp;Calculations</li>
+                        <li id="calcsItem"><select id="CALCS" onchange="SettingsMenu.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Adjustable</option></select> &nbsp;Calculations</li>
                         <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> &nbsp;Metric</li>
                         <li><select id="database" onchange="SettingsMenu.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
                         <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
