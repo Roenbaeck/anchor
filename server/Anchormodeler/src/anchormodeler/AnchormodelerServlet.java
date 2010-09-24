@@ -1,10 +1,18 @@
 package anchormodeler;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 import javax.jdo.PersistenceManager;
 import javax.servlet.ServletException;
 import javax.servlet.http.*;
+
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+
 
 @SuppressWarnings("serial")
 public class AnchormodelerServlet extends HttpServlet {
@@ -18,15 +26,35 @@ public class AnchormodelerServlet extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
 			throws ServletException, IOException {
-
 		resp.setContentType("text/plain");
 
-		String action = req.getParameter("action");
+		ServletFileUpload upload = new ServletFileUpload();
+		AnchorRequest areq = new AnchorRequest();
+		try {
+			FileItemIterator iterator = upload.getItemIterator(req);
+			while (iterator.hasNext()) {
+				FileItemStream item = iterator.next();
+				if(item.isFormField()) {
+					BufferedReader reader = new BufferedReader(new InputStreamReader(item.openStream()));
+					String value = reader.readLine();
+					areq.stringParams.put(item.getFieldName(), value);
+				} else {	
+					areq.fileParams.put(item.getFieldName(),item);
+				}
+			}
+
+		} catch (FileUploadException e) {
+			resp.getWriter().println("ERROR");
+			resp.getWriter().println( e.toString() );
+			return;
+		}
+		
+		String action = areq.stringParams.get("action");
 		action=(action == null) ? "" : action;
 		action=action.toLowerCase();
 		
 		if (action.equals("save")) {
-			actionSave(req, resp);
+			actionSave(areq, resp);
 		} else {
 			resp.getWriter().println("ERROR: unknown action");
 		}
@@ -47,7 +75,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		resp.setHeader("Access-Control-Max-Age", "86400");
 	}
 
-	private void actionSave(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	private void actionSave(AnchorRequest areq, HttpServletResponse resp) throws ServletException, IOException {
 		/*
 		 * scope "public","private" modelName modelId (om nytt dokument så
 		 * slopar man detta, annars overwrite model med detta id) keywords icon
@@ -55,8 +83,8 @@ public class AnchormodelerServlet extends HttpServlet {
 		 * 
 		 * returnerar ok/error
 		 */
-		String modelName = req.getParameter("modelName");
-		String modelXml = req.getParameter("modelXml");
+		String modelName = areq.stringParams.get("modelName");
+		String modelXml = areq.stringParams.get("modelXml");
 
 		Model m = new Model();
 		m.setModelName(modelName);
