@@ -83,7 +83,7 @@
                 '---------------------------------- [Anchor Table] ------------------------------------', $N,
                 '-- ', $anchorName, ' surrogate key generation stored procedure', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF  EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorKeyGenerator, $Q, ' AND type in (', $Q, 'P', $Q, ',', $Q, 'PC', $Q, '))', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorKeyGenerator, $Q, ' AND type in (', $Q, 'P', $Q, ',', $Q, 'PC', $Q, '))', $N,
                 'DROP PROCEDURE ', $anchorKeyGenerator, $N,
                 'GO', $N,
                 'CREATE PROCEDURE ', $anchorKeyGenerator, ' (', $N,
@@ -208,7 +208,7 @@
             '--------------------------------- [Insert Trigger] -----------------------------------', $N,
             '-- ', $anchorName, ' insert trigger on the latest perspective', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF  EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
+            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
             'DROP TRIGGER ', $insertTriggerName, $N,
             'GO', $N,
             'CREATE TRIGGER ', $insertTriggerName, ' ON ', $latestViewName, $N,
@@ -609,8 +609,40 @@
         <xsl:param name="attribute"/>
         <xsl:variable name="anchor" select="$attribute/parent::anchor"/>
         <xsl:variable name="anchorMnemonic" select="$anchor/@mnemonic"/>
+        <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', $attribute/@mnemonic)"/>
         <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
+        <xsl:variable name="attributeHistorization">
+            <xsl:if test="$attribute/@timeRange">
+                <xsl:value-of select="concat(', ', $attributeMnemonic, '_', $historizationSuffix)"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="attributeHistorizationCondition">
+            <xsl:if test="$attribute/@timeRange">
+                <xsl:value-of select="concat(' AND ', $attributeMnemonic, '_', $historizationSuffix, ' is not null')"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:choose>
+            <xsl:when test="$attribute/@knotRange">
+                <xsl:variable name="knot" select="key('knotLookup', $attribute/@knotRange)"/>
+                <xsl:variable name="knotMnemonic" select="$knot/@mnemonic"/>
+                <xsl:variable name="knotName" select="concat($knotMnemonic, '_', $knot/@descriptor)"/>
+                <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
+                <xsl:value-of select="concat(
+                $T, 'INSERT INTO ', $attributeName, '(', $anchorIdentity, ', ', $knotIdentity, ', ', $attributeMetadata, $attributeHistorization, ')', $N,
+                $T, 'SELECT @', $anchorIdentity, ', k.', $knotIdentity, ', ', $attributeMetadata, $attributeHistorization, ' FROM inserted i', $N,
+                $T, 'JOIN ', $knotName, ' k ON k.', $knotName, ' = i.', $knotName, $N,
+                $T, 'WHERE i.', $knotName, ' is not null AND ', $attributeMetadata, ' is not null', $attributeHistorizationCondition, ';', $N
+                )"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="concat(
+                $T, 'INSERT INTO ', $attributeName, '(', $anchorIdentity, ', ', $attributeName, ', ', $attributeMetadata, $attributeHistorization, ')', $N,
+                $T, 'SELECT @', $anchorIdentity, ', ', $attributeName, ', ', $attributeMetadata, $attributeHistorization, ' FROM inserted', $N,
+                $T, 'WHERE ', $attributeName, ' is not null AND ', $attributeMetadata, ' is not null', $attributeHistorizationCondition, ';', $N
+                )"/>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 </xsl:stylesheet>
