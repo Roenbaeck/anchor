@@ -79,24 +79,30 @@ todo:
 
 			var url = "http://anchormodeler.appspot.com/anchormodeler";
 			//var url = "http://localhost:8888/anchormodeler";
-			//var params = "action=save&modelName=test2&modelXml=myxml2";
 
 			var params = new Array();
-            params.action='save';
-            params.modelName='testmultipart';
-            params.modelXml='<xml>testar med xml</xml>';
 
+			//LIST
+            //params.action='list';
+
+			//LOAD
+            params.action='load';
+            params.modelId='ag1hbmNob3Jtb2RlbGVycgwLEgVNb2RlbBjZNgw';
+
+			//SAVE
+            //params.action='save';
+            //params.modelName='testmultipart';
+            //params.modelXml='<xml>testar med xml</xml>';
 
 			xmlhttp.open("POST", url, true);
-
-			//Send the proper header information along with the request
-			//xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-			//xmlhttp.setRequestHeader("Content-length", params.length);
-			//xmlhttp.setRequestHeader("Connection", "close");
 
 			xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
 				if(xmlhttp.readyState == 4) {
 					alert(xmlhttp.responseText);
+                    document.getElementById("response").innerHTML = xmlhttp.responseText;
+
+					//alert(xmlhttp.getAllResponseHeaders());
+					//alert(xmlhttp.statusText);
 				}
 			}
 			//xmlhttp.send(params);
@@ -108,5 +114,8 @@ todo:
 </head>
 <body id="body">
     <!-- trying to fill dynamically -->
+
+  <table border=1><div id="response">response will go here</div></table>
+
 </body>
 </html>
