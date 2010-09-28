@@ -2044,6 +2044,10 @@
                 anchor.setAttribute("descriptor", this.descriptor);
                 anchor.setAttribute("identity", this.identity);
 
+                var identity = schema.createElement("identity");
+                identity.setAttribute("generator", "true");
+                anchor.appendChild(identity);
+
                 var edge;
                 for(var i = 0; edge = this.edges[i]; i++)
                     if(edge.node instanceof Attribute)
