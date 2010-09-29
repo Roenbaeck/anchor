@@ -2949,6 +2949,47 @@
                     alert(exception);
                 }
             },
+            saveModelToCloud: function() {
+                var xmlhttp = new window.XMLHttpRequest();
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        alert(xmlhttp.responseText);
+                    }
+                };
+
+                if(window.FormData) {
+                    var formData = new FormData();
+                    formData.append("action", "save");
+                    formData.append("modelName", "LarsModel");
+                    formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
+                    xmlhttp.send(formData);
+                }
+                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                    var params = {};
+                    params.action = 'save';
+                    params.modelName = 'LarsModel';
+                    params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
+                    this.sendMultiPart(xmlhttp, params);
+                }
+                else {
+                    alert("cloud connection not supported");
+                }
+
+            },
+            sendMultiPart: function(xmlhttp, params) {
+              var BOUNDARY = "---------------------------1966284435497298061834782736";
+              var rn = "\r\n";
+              var req = "--" + BOUNDARY;
+              for (var i in params) {
+                req += rn + "Content-Disposition: form-data; name=\"" + i + "\"";
+                req += rn + rn + params[i] + rn + "--" + BOUNDARY;
+              }
+              req += "--";
+              xmlhttp.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+              xmlhttp.sendAsBinary(req);
+            },
             resetZoom: function() {
                 ControlButtons.doZoom(1/DrawingEngine.xyScale);
                 DrawingEngine.start(false);
@@ -3418,7 +3459,7 @@
                     <ul class="submenu">
                         <li onclick="Model.setupMinimal()">Empty model...</li>
                         <li onclick="alert('Coming soon')">Load model from cloud...</li>
-                        <li onclick="alert('Coming soon')">Save model to cloud...</li>
+                        <li onclick="ActionsMenu.saveModelToCloud()">Save model to cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
                     </ul>
