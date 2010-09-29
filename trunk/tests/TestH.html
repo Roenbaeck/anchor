@@ -37,9 +37,6 @@
         window.onload = init;
 
 //http://code.google.com/p/googleappengine/issues/detail?id=2994
-        function init() {
-
-            var xmlhttp = new window.XMLHttpRequest();
 
 
 /*
@@ -75,38 +72,52 @@ todo:
   delete
 
  */
+function init() {
 
-
-			var url = "http://anchormodeler.appspot.com/anchormodeler";
-			//var url = "http://localhost:8888/anchormodeler";
-
-			var params = new Array();
-
-			//LIST
-            //params.action='list';
-
-			//LOAD
-            params.action='load';
-            params.modelId='ag1hbmNob3Jtb2RlbGVycgwLEgVNb2RlbBjZNgw';
-
-			//SAVE
-            //params.action='save';
-            //params.modelName='testmultipart';
-            //params.modelXml='<xml>testar med xml</xml>';
-
-			xmlhttp.open("POST", url, true);
-
-			xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
-				if(xmlhttp.readyState == 4) {
-					alert(xmlhttp.responseText);
+            var xmlhttp = new window.XMLHttpRequest();
+            var url = "http://anchormodeler.appspot.com/anchormodeler";
+            xmlhttp.open("POST", url, true);
+            xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                if(xmlhttp.readyState == 4) {
+                    alert(xmlhttp.responseText);
                     document.getElementById("response").innerHTML = xmlhttp.responseText;
 
-					//alert(xmlhttp.getAllResponseHeaders());
-					//alert(xmlhttp.statusText);
-				}
-			}
-			//xmlhttp.send(params);
-			xmlhttp.sendMultiPart(params);
+                    //alert(xmlhttp.getAllResponseHeaders());
+                    //alert(xmlhttp.statusText);
+                }
+            };
+
+            if(window.FormData) {
+                var formData = new FormData();
+
+                formData.append("action", "list");
+
+                xmlhttp.send(formData);            }
+            else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                //var url = "http://localhost:8888/anchormodeler";
+
+                var params = new Array();
+
+                //LIST
+                params.action='list';
+
+                //LOAD
+                //params.action='load';
+                //params.modelId='ag1hbmNob3Jtb2RlbGVycgwLEgVNb2RlbBjZNgw';
+
+                //SAVE
+                //params.action='save';
+                //params.modelName='testmultipart';
+                //params.modelXml='<xml>testar med xml</xml>';
+
+
+                //xmlhttp.send(params);
+                xmlhttp.sendMultiPart(params);
+
+            }
+            else {
+                alert("cloud connection not supported");
+            }
 
         }
     </script>
