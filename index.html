@@ -2622,7 +2622,8 @@
 
             var codePopover = document.createElement('div');
             codePopover.setAttribute("id", "codePopover");
-            var padding = window.innerWidth * 0.1;
+            var wPadding = window.innerWidth * 0.1;
+            var hPadding = window.innerHeight * 0.1;
             var close = document.createElement('div');
             close.className = 'closebutton';
             close.addEventListener('click', function(event) { return self.close(event) }, false);
@@ -2632,8 +2633,8 @@
             content.setAttribute("id", "content");
             if(preformatted)
                 content.setAttribute("class", "preformatted");
-            content.style.width = (window.innerWidth - 2 * padding) + 'px';
-            content.style.height = (window.innerHeight - 2 * padding) + 'px';
+            content.style.width = (window.innerWidth - 2 * wPadding) + 'px';
+            content.style.height = (window.innerHeight - 2 * hPadding) + 'px';
             content.appendChild(documentFragment);
             codePopover.appendChild(content);
 
@@ -2950,6 +2951,8 @@
                 }
             },
             saveModelToCloud: function() {
+                // TODO: remove when done testing
+                return;
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
