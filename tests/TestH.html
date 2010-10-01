@@ -75,6 +75,7 @@ todo:
 function init() {
 
             var xmlhttp = new window.XMLHttpRequest();
+			//var url = "http://localhost:8888/anchormodeler";
             var url = "http://anchormodeler.appspot.com/anchormodeler";
             xmlhttp.open("POST", url, true);
             xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
@@ -94,8 +95,6 @@ function init() {
 
                 xmlhttp.send(formData);            }
             else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                //var url = "http://localhost:8888/anchormodeler";
-
                 var params = new Array();
 
                 //LIST
@@ -106,9 +105,12 @@ function init() {
                 //params.modelId='ag1hbmNob3Jtb2RlbGVycgwLEgVNb2RlbBjZNgw';
 
                 //SAVE
-                //params.action='save';
-                //params.modelName='testmultipart';
-                //params.modelXml='<xml>testar med xml</xml>';
+                params.action='save';
+                params.modelName='testmultipart';
+                params.modelXml='<xml>testar med xml</xml>';
+                params.icon='icon';
+                params.scope='public';
+                params.keywords='test';
 
 
                 //xmlhttp.send(params);
