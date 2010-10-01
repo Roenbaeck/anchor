@@ -437,18 +437,10 @@
             stiffnessBound: 9,
             // when the layout has reached equilibrium
             equilibrium: true,
-            // the metric in use
-            metric: null,
-            xRepelling: null,
-            yRepelling: null,
-            xAttracting: null,
-            yAttracting: null,
+            // which layout function to use
+            layout: null,
             init: function() {
-                this.metric = this.euclidean;
-                this.xRepelling = this.xSimpleRepelling;
-                this.yRepelling = this.ySimpleRepelling;
-                this.xAttracting = this.xSimpleAttracting;
-                this.yAttracting = this.ySimpleAttracting;
+                this.layout = this.simpleLayout;
                 this.attractionConstant = 1/this.normalDistance/this.normalDistance/this.normalDistance;
                 this.stiffnessBound = this.stiffness * this.stiffness;
             },
@@ -462,59 +454,59 @@
                 return value * value;
             },
             // measures distance between two nodes
-            distance: function(node, otherNode) {
-                var d = this.metric(node.xPosition, node.yPosition, otherNode.xPosition, otherNode.yPosition);
+            manhattanDistance: function(node, otherNode) {
+                var d = this.absolute(otherNode.xPosition - node.xPosition) + this.absolute(otherNode.yPosition - node.yPosition);
                 if(d > 0)
                     return d;
                 // move one node a pixel to the right if both nodes overlap
                 node.xPosition +=1;
                 return 1;
             },
-            // use the taxi cab metric for measuring distances
-            manhattan: function(x1, y1, x2, y2) {
-                return this.absolute(x2 - x1) + this.absolute(y2 - y1);
-            },
-            // use the euclidean metric for measuring distances
-            euclidean: function(x1, y1, x2, y2) {
-                return Math.sqrt(this.square(x2 - x1) + this.square(y2 - y1));
+            euclideanDistance: function(node, otherNode) {
+                var d = Math.sqrt(this.square(otherNode.xPosition - node.xPosition) + this.square(otherNode.yPosition - node.yPosition));
+                if(d > 0)
+                    return d;
+                // move one node a pixel to the right if both nodes overlap
+                node.xPosition +=1;
+                return 1;
             },
             // x component of the repelling force formula
             xSimpleRepelling: function(node, otherNode) {
-                return (node.xPosition - otherNode.xPosition) / this.square(this.distance(node, otherNode));
+                return (node.xPosition - otherNode.xPosition) / this.square(this.manhattanDistance(node, otherNode));
             },
 
             // y component of the repelling force formula
             ySimpleRepelling: function(node, otherNode) {
-                return (node.yPosition - otherNode.yPosition) / this.square(this.distance(node, otherNode));
+                return (node.yPosition - otherNode.yPosition) / this.square(this.manhattanDistance(node, otherNode));
             },
 
             // x component of the attracting force formula
             xSimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
+                return this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.manhattanDistance(node, otherNode);
             },
 
             // y component of the attracting force formula
             ySimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
+                return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.manhattanDistance(node, otherNode);
             },
             // x component of the repelling force formula
             xComplexRepelling: function(node, otherNode) {
-                return (node.charge + otherNode.charge)/2 * (node.xPosition - otherNode.xPosition) / this.square(this.distance(node, otherNode));
+                return (node.getCharge() + otherNode.getCharge())/2 * (node.xPosition - otherNode.xPosition) / this.square(this.euclideanDistance(node, otherNode));
             },
 
             // y component of the repelling force formula
             yComplexRepelling: function(node, otherNode) {
-                return (node.charge + otherNode.charge)/2 * (node.yPosition - otherNode.yPosition) / this.square(this.distance(node, otherNode));
+                return (node.getCharge() + otherNode.getCharge())/2 * (node.yPosition - otherNode.yPosition) / this.square(this.euclideanDistance(node, otherNode));
             },
 
             // x component of the attracting force formula
             xComplexAttracting: function (node, otherNode) {
-                return (node.mass + otherNode.mass)/2 * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.distance(node, otherNode);
+                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.euclideanDistance(node, otherNode);
             },
 
             // y component of the attracting force formula
             yComplexAttracting: function (node, otherNode) {
-                return (node.mass + otherNode.mass)/2 * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.distance(node, otherNode);
+                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.euclideanDistance(node, otherNode);
             },
             // create the square of influence
             createSquare: function(node, offset) {
@@ -534,7 +526,7 @@
             },
 
             // calculate all forces and change the velocity and position of the node
-            layout: function(model) {
+            simpleLayout: function(model) {
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
@@ -550,8 +542,8 @@
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
                             if(this.withinSquare(otherNode, square)) {
-                                node.xVelocity += this.xRepelling(node, otherNode);
-                                node.yVelocity += this.yRepelling(node, otherNode);
+                                node.xVelocity += this.xSimpleRepelling(node, otherNode);
+                                node.yVelocity += this.ySimpleRepelling(node, otherNode);
                             }
                         }
                         // the first iteration we count the number of stopped nodes
@@ -566,17 +558,88 @@
                         node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
                         node.centerPoint.xPosition = node.node.xPosition + (node.otherNode.xPosition - node.node.xPosition) / 2;
                         node.centerPoint.yPosition = node.node.yPosition + (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(this.stiffness * this.distance(node.centerPoint, node.controlPoint)/this.distance(node.node, node.otherNode));
+                        curvature = this.square(this.stiffness * this.manhattanDistance(node.centerPoint, node.controlPoint)/this.manhattanDistance(node.node, node.otherNode));
                         // safeguard
                         curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
                         // flexure force moves the midway point toward the center point
-                        node.xVelocity -= curvature * this.xRepelling(node, node.centerPoint);
-                        node.yVelocity -= curvature * this.yRepelling(node, node.centerPoint);
+                        node.xVelocity -= curvature * this.xSimpleRepelling(node, node.centerPoint);
+                        node.yVelocity -= curvature * this.ySimpleRepelling(node, node.centerPoint);
                     }
                     // for all edges, add the attracting velocity
                     for(j = 0; edge = node.edges[j]; j++) {
-                        node.xVelocity += this.xAttracting(node, edge)/node.edges.length;
-                        node.yVelocity += this.yAttracting(node, edge)/node.edges.length;
+                        node.xVelocity += this.xSimpleAttracting(node, edge)/node.edges.length;
+                        node.yVelocity += this.ySimpleAttracting(node, edge)/node.edges.length;
+                    }
+                    // apply damping
+                    node.xVelocity *= this.damping;
+                    node.yVelocity *= this.damping;
+                    node.velocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
+                    // check to see if the node has stopped moving
+                    if(node.velocity <= this.stoppingVelocity)
+                        node.stop();
+                    // the more nodes that have stopped, the larger the starting velocity must be
+                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                        node.start();
+                    // if the node is moving and not fixed then calculate the new position
+                    if(node.moving && !node.getFixed()) {
+                        this.equilibrium = false;
+                        node.xPosition += node.xVelocity;
+                        node.yPosition += node.yVelocity;
+                    }
+                    if(node.yPosition < model.topmostNode.yPosition)
+                        model.topmostNode = node;
+                    if(node.xPosition > model.rightmostNode.xPosition)
+                        model.rightmostNode = node;
+                    if(node.yPosition > model.bottommostNode.yPosition)
+                        model.bottommostNode = node;
+                    if(node.xPosition < model.leftmostNode.xPosition)
+                        model.leftmostNode = node;
+                }
+            },
+            // calculate all forces and change the velocity and position of the node
+            complexLayout: function(model) {
+                // assume equilibrium - set to false below if a node moves
+                this.equilibrium = true;
+
+                var i, j, node, otherNode, edge, curvature, square;
+                var numberOfNodes = model.nodes.length;
+                var numberOfStoppedNodes = 0;
+                var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
+
+                for(i = 0; node = model.nodes[i]; i++) {
+                    square = this.createSquare(node, this.influenceConstant * this.normalDistance);
+                    for(j = 0; otherNode = model.nodes[j]; j++) {
+                        // not the same node
+                        if(i != j) {
+                            // for nodes within range, add the repelling velocity
+                            if(this.withinSquare(otherNode, square)) {
+                                node.xVelocity += this.xComplexRepelling(node, otherNode);
+                                node.yVelocity += this.yComplexRepelling(node, otherNode);
+                            }
+                        }
+                        // the first iteration we count the number of stopped nodes
+                        if(j == 0 && (!otherNode.moving || otherNode.getFixed())) {
+                            numberOfStoppedNodes++;
+                        }
+                    }
+                    // bending force (straightens out edges)
+                    if(node instanceof Edge) {
+                        // update the control and center points
+                        node.controlPoint.xPosition = 2 * node.xPosition - node.node.xPosition / 2 - node.otherNode.xPosition / 2;
+                        node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
+                        node.centerPoint.xPosition = node.node.xPosition + (node.otherNode.xPosition - node.node.xPosition) / 2;
+                        node.centerPoint.yPosition = node.node.yPosition + (node.otherNode.yPosition - node.node.yPosition) / 2;
+                        curvature = this.square(this.stiffness * this.euclideanDistance(node.centerPoint, node.controlPoint)/this.euclideanDistance(node.node, node.otherNode));
+                        // safeguard
+                        curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
+                        // flexure force moves the midway point toward the center point
+                        node.xVelocity -= curvature * this.xSimpleRepelling(node, node.centerPoint);
+                        node.yVelocity -= curvature * this.ySimpleRepelling(node, node.centerPoint);
+                    }
+                    // for all edges, add the attracting velocity
+                    for(j = 0; edge = node.edges[j]; j++) {
+                        node.xVelocity += this.xComplexAttracting(node, edge)/node.edges.length;
+                        node.yVelocity += this.yComplexAttracting(node, edge)/node.edges.length;
                     }
                     // apply damping
                     node.xVelocity *= this.damping;
@@ -1330,7 +1393,7 @@
                             xPosition: DrawingEngine.xContext(event.xScreen),
                             yPosition: DrawingEngine.yContext(event.yScreen)
                         };
-                        if(LayoutEngine.distance(this.hoveredNode, mouse) > 1.5 * LayoutEngine.normalDistance) {
+                        if(LayoutEngine.manhattanDistance(this.hoveredNode, mouse) > 1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.setCursor('default');
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
@@ -1494,14 +1557,102 @@
             }
         };
 
+        var Editables = {
+            descriptorEdit: {
+                name: 'Descriptor',
+                setMember: function (element, node) { node.descriptor = element.value; },
+                getMember: function (node) { return node.descriptor },
+                setElement: function (element, node) { element.value = node.descriptor },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '([A-Z][a-z]*)+',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Descriptive name', 'required', 'required']
+            },
+            twoMnemonicEdit: {
+                name: 'Mnemonic',
+                setMember: function (element, node) { node.mnemonic = element.value; },
+                getMember: function (node) { return node.mnemonic },
+                setElement: function (element, node) { element.value = node.mnemonic },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '[A-Z]{2}',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Two letter mnemonic (unique)', 'required', 'required']
+            },
+            threeMnemonicEdit: {
+                name: 'Mnemonic',
+                setMember: function (element, node) { node.mnemonic = element.value; },
+                getMember: function (node) { return node.mnemonic },
+                setElement: function (element, node) { element.value = node.mnemonic },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '[A-Z]{3}',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Three letter mnemonic (unique)', 'required', 'required']
+            },
+            dataRangeEdit: {
+                name: 'Data range',
+                setMember: function (element, node) { node.dataRange = element.value; },
+                getMember: function (node) { return node.dataRange },
+                setElement: function (element, node) { element.value = node.dataRange },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '.*',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Data type of stored value', 'required', 'required']
+            },
+            timeRangeEdit: {
+                name: 'Time range',
+                setMember: function (element, node) { node.timeRange = element.value; },
+                getMember: function (node) { return node.timeRange },
+                setElement: function (element, node) { element.value = node.timeRange },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '.*',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Historization time type (expected update frequency)', 'required', 'required']
+            },
+            identityEdit: {
+                name: 'Identity',
+                setMember: function (element, node) { node.identity = element.value; },
+                getMember: function (node) { return node.identity },
+                setElement: function (element, node) { element.value = node.identity },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '.*',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Identity data type', 'required', 'required']
+            },
+            generatorEdit: {
+                name: 'Generator',
+                setMember: function (element, node) { node.generator = element.checked; },
+                getMember: function (node) { return node.generator },
+                setElement: function (element, node) { element.checked = node.generator },
+                getElement: function (element) { return element.checked },
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox', 'title', 'Identity generator (auto incremented sequence)']
+            },
+            roleEdit: {
+                name: 'Role',
+                setMember: function (element, node) { node.role = element.value; },
+                getMember: function (node) { return node.role },
+                setElement: function (element, node) { element.value = node.role },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '([a-z][A-Z]*)+',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'Role of the connected entity in the relationship', 'required', 'required']
+            }
+        };
+
         function AbstractNode(x, y) {
             this.xPosition = x;
             this.yPosition = y;
             this.xVelocity = 0;
             this.yVelocity = 0;
             this.velocity = 0;
-            this.mass = 1;
-            this.charge = 1;
             this.moving = true;
             this.fixed = false;
             this.shadowColor = UniqueColor.reserveUniqueColor();
@@ -1519,8 +1670,6 @@
             yPosition: null,
             xVelocity: null,
             yVelocity: null,
-            mass: null,
-            charge: null,
             velocity: null,
             edges: null,
             moving: true,
@@ -1531,7 +1680,6 @@
             type: 'Node',
             id: null,
             fixed: false,
-            // getters and setters (with hidden _id member)
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -1552,6 +1700,13 @@
             getName: function() {
                 return '';
             },
+            // subclasses must override these
+            getMass: function() {
+                return null;
+            },
+            getCharge: function() {
+                return null;
+            },
             toString: function() {
                 return this.getName().toString();
             },
@@ -1561,10 +1716,13 @@
             isIncomplete: function() {
                 var editable;
                 for(var i = 0; editable = this.editables[i]; i++) {
-                    if(this.isEmpty(this[editable.member]))
-                        return true;
-                    if(!this[editable.member].toString().match(new RegExp('^' + editable.pattern + '$')))
-                        return true;
+                    // only those that are supposed to contain text (i.e. not checkboxes, select lists, ...)
+                    if(editable.pattern) {
+                        if(this.isEmpty(editable.getMember(this)))
+                            return true;
+                        if(!editable.getMember(this).toString().match(new RegExp('^' + editable.pattern + '$')))
+                            return true;
+                    }
                 }
                 return false;
             },
@@ -1716,12 +1874,17 @@
         };
 
         function Attribute(x, y, historized) {
+            // call the parent constructor
             AbstractNode.call(this, x, y);
+            // set static variables
+            Attribute.mass = 1;
+            Attribute.charge = 1;
+            // set members
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
-            this.editables.push(this.descriptorEdit);
-            this.editables.push(this.mnemonicEdit);
-            this.editables.push(this.dataRangeEdit);
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.threeMnemonicEdit);
+            this.editables.push(Editables.dataRangeEdit);
             this.knotted = false;
             this.historized = historized;
             this.operations.push('toggleKnotted','toggleHistorized');
@@ -1734,34 +1897,6 @@
             timeRange: '',
             historized: false,
             knotted: false,
-            descriptorEdit: {
-                name: 'Descriptor',
-                member: 'descriptor',
-                type: 'input',
-                pattern: '([A-Z][a-z]*)+',
-                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
-            },
-            mnemonicEdit: {
-                name: 'Mnemonic',
-                member: 'mnemonic',
-                type: 'input',
-                pattern: '[A-Z]{3}',
-                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
-            },
-            dataRangeEdit: {
-                name: 'Data range',
-                member: 'dataRange',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Data Type', 'required', 'required']
-            },
-            timeRangeEdit: {
-                name: 'Time range',
-                member: 'timeRange',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
-            },
             validate: function() {
                 var i, edge, anchor, knot, otherNode;
                 for(i = 0; edge = this.edges[i]; i++) {
@@ -1774,10 +1909,16 @@
                 // there must be an anchor and if there is a knot the attribute must be knotted
                 return !this.isIncomplete() && anchor && (knot ? this.getKnotted() : true);
             },
+            getMass: function() {
+                return Attribute.mass;
+            },
+            getCharge: function() {
+                return Attribute.charge;
+            },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(this.timeRangeEdit);
+                var index = this.editables.indexOf(Editables.timeRangeEdit);
                 if(historized && index < 0)
-                    this.editables.push(this.timeRangeEdit);
+                    this.editables.push(Editables.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 this.historized = historized;
@@ -1786,9 +1927,9 @@
                 return this.historized;
             },
             setKnotted: function(knotted) {
-                var index = this.editables.indexOf(this.dataRangeEdit);
+                var index = this.editables.indexOf(Editables.dataRangeEdit);
                 if(!knotted && index < 0)
-                    this.editables.push(this.dataRangeEdit);
+                    this.editables.push(Editables.dataRangeEdit);
                 else if (knotted && index >= 0)
                     this.editables.splice(index, 1);
                 this.knotted = knotted;
@@ -1951,11 +2092,14 @@
 
         function Anchor(x, y) {
             AbstractNode.call(this, x, y);
+            Anchor.mass = 1;
+            Anchor.charge = 1;
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
-            this.editables.push(this.descriptorEdit);
-            this.editables.push(this.mnemonicEdit);
-            this.editables.push(this.identityEdit);
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.identityEdit);
+            this.editables.push(Editables.generatorEdit);
             this.operations.push('addAttribute','addTie','addTieAndAnchor');
             this.type = 'Anchor';
         }
@@ -1963,26 +2107,12 @@
             mnemonic: '',
             descriptor: '',
             identity: '',
-            descriptorEdit: {
-                name: 'Descriptor',
-                member: 'descriptor',
-                type: 'input',
-                pattern: '([A-Z][a-z]*)+',
-                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
+            generator: true,
+            getMass: function() {
+                return Anchor.mass;
             },
-            mnemonicEdit: {
-                name: 'Mnemonic',
-                member: 'mnemonic',
-                type: 'input',
-                pattern: '[A-Z]{2}',
-                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
-            },
-            identityEdit: {
-                name: 'Identity',
-                member: 'identity',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Identity Type', 'required', 'required']
+            getCharge: function() {
+                return Anchor.charge;
             },
             getName: function() {
                 return this.mnemonic + "_" + this.descriptor;
@@ -2027,12 +2157,16 @@
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
+                var idElement, generator = true;
+                if(idElement = element.getElementsByTagName('identity').item(0))
+                    generator = idElement.getAttribute("generator") == 'true';
                 var anchor = new Anchor(x, y);
                 anchor.setFixed(fixed);
                 anchor.description = description ? description.firstChild.nodeValue : '';
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
+                anchor.generator = generator;
                 anchor.incomplete = anchor.isIncomplete();
                 return anchor;
             },
@@ -2045,7 +2179,7 @@
                 anchor.setAttribute("identity", this.identity);
 
                 var identity = schema.createElement("identity");
-                identity.setAttribute("generator", "true");
+                identity.setAttribute("generator", this.generator);
                 anchor.appendChild(identity);
 
                 var edge;
@@ -2089,12 +2223,15 @@
 
         function Knot(x, y) {
             AbstractNode.call(this, x, y);
+            Knot.mass = 1;
+            Knot.charge = 1;
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
-            this.editables.push(this.descriptorEdit);
-            this.editables.push(this.mnemonicEdit);
-            this.editables.push(this.dataRangeEdit);
-            this.editables.push(this.identityEdit);
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.threeMnemonicEdit);
+            this.editables.push(Editables.dataRangeEdit);
+            this.editables.push(Editables.identityEdit);
+            this.editables.push(Editables.generatorEdit);
             this.type = 'Knot';            
         }
         Knot.prototype = {
@@ -2102,33 +2239,12 @@
             descriptor: '',
             identity: '',
             dataRange: '',
-            descriptorEdit: {
-                name: 'Descriptor',
-                member: 'descriptor',
-                type: 'input',
-                pattern: '([A-Z][a-z]*)+',
-                attributes: ['type', 'text', 'title', 'Attribute Descriptor', 'required', 'required']
+            generator: false,
+            getMass: function() {
+                return Knot.mass;
             },
-            mnemonicEdit: {
-                name: 'Mnemonic',
-                member: 'mnemonic',
-                type: 'input',
-                pattern: '[A-Z]{3}',
-                attributes: ['type', 'text', 'title', 'Attribute Mnemonic', 'required', 'required']
-            },
-            identityEdit: {
-                name: 'Identity',
-                member: 'identity',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Identity Type', 'required', 'required']
-            },
-            dataRangeEdit: {
-                name: 'Data range',
-                member: 'dataRange',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Data Type', 'required', 'required']
+            getCharge: function() {
+                return Knot.charge;
             },
             getName: function() {
                 return this.mnemonic + "_" + this.descriptor;
@@ -2157,6 +2273,9 @@
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
+                var idElement, generator = false;
+                if(idElement = element.getElementsByTagName('identity').item(0))
+                    generator = idElement.getAttribute("generator") == 'true';
                 var knot = new Knot(x, y);
                 knot.setFixed(fixed);
                 knot.description = description ? description.firstChild.nodeValue : '';
@@ -2164,6 +2283,7 @@
                 knot.descriptor = descriptor;
                 knot.identity = identity;
                 knot.dataRange = dataRange;
+                knot.generator = generator;
                 knot.incomplete = knot.isIncomplete();
                 return knot;
             },
@@ -2175,6 +2295,11 @@
                 knot.setAttribute("descriptor", this.descriptor);
                 knot.setAttribute("identity", this.identity);
                 knot.setAttribute("dataRange", this.dataRange);
+
+                var identity = schema.createElement("identity");
+                identity.setAttribute("generator", this.generator);
+                knot.appendChild(identity);                
+
                 this.addLayoutXML(knot, schema);
                 return knot;
             },
@@ -2222,6 +2347,8 @@
 
         function Tie(x, y, historized) {
             AbstractNode.call(this, x, y);
+            Tie.mass = 1;
+            Tie.charge = 1;
             this.historized = historized;
             this.incomplete = this.isIncomplete();
             this.operations.push('toggleHistorized','addKnot','addAnchor');
@@ -2230,17 +2357,16 @@
         Tie.prototype = {
             timeRange: '',
             historized: false,
-            timeRangeEdit: {
-                name: 'Time range',
-                member: 'timeRange',
-                type: 'input',
-                pattern: '.*',
-                attributes: ['type', 'text', 'title', 'Historization Type', 'required', 'required']
+            getMass: function() {
+                return Tie.mass;
+            },
+            getCharge: function() {
+                return Tie.charge;
             },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(this.timeRangeEdit);
+                var index = this.editables.indexOf(Editables.timeRangeEdit);
                 if(historized && index < 0)
-                    this.editables.push(this.timeRangeEdit);
+                    this.editables.push(Editables.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 this.historized = historized;
@@ -2444,18 +2570,16 @@
         function Edge(node, otherNode, identifier) {
             // assume that the control point and midway point coincide with the center point
             this.centerPoint = {
-                mass: 1,
-                charge: 1,
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
                 yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2
             };
             this.controlPoint = {
-                mass: 1,
-                charge: 1,
                 xPosition: this.centerPoint.xPosition,
                 yPosition: this.centerPoint.yPosition
             };
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
+            Edge.mass = 1;
+            Edge.charge = 1;
             this.role = '!unknown!';
             this.node = node;
             this.otherNode = otherNode;
@@ -2464,25 +2588,24 @@
             otherNode.edges.push(this);
             this.edges.push(node);
             this.edges.push(otherNode);
-            this.editables.push(this.roleEdit);
+            this.editables.push(Editables.roleEdit);
             this.operations.push('toggleIdentifier');
             this.incomplete = false;
             this.type = 'Edge';
         }
         Edge.prototype = {
             role: '',
-            roleEdit: {
-                name: 'Role',
-                member: 'role',
-                type: 'input',
-                pattern: '([a-z][A-Z]*)+',
-                attributes: ['type', 'text', 'title', 'Role of the Relationship', 'required', 'required']
-            },
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
+            getMass: function() {
+                return Edge.mass;
+            },
+            getCharge: function() {
+                return Edge.charge;
+            },
             // overload to remove propagation of movement
             start: function() {
                 this.moving = true;
@@ -2686,17 +2809,19 @@
                     this.showEditables = true;
                     var element = document.createElement(editable.type);
                     element.className = 'editable';
-                    element.setAttribute('pattern', editable.pattern);
+                    if(editable.pattern)
+                        element.setAttribute('pattern', editable.pattern);
                     for(j = 0; j < editable.attributes.length;) {
                         var attribute = editable.attributes[j++];
                         var value = editable.attributes[j++];
                         element.setAttribute(attribute, value);
                     }
-                    element.value = hoveredNode[editable.member];
-                    element.member = editable.member;
-                    element.addEventListener('blur', function() { self.edit(this, hoveredNode); }, false);
-                    element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
+                    editable.setElement(element, hoveredNode);
+                    element.editable = editable;
+                    element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
                     element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
+                    if(editable.pattern)
+                        element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
                     tr.setAttribute('valign', 'top');
                     var td1 = document.createElement('td');
@@ -2796,7 +2921,7 @@
             },
             edit: function(element, node) {
                 if(element && node) {
-                    node[element.member] = element.value;
+                    element.editable.setMember(element, node);
                     if(node.node instanceof Tie)
                         node.node.incomplete = node.node.isIncomplete();
                     for(var i = 0; node.edges.length; i++)
@@ -2951,7 +3076,8 @@
                 }
             },
             saveModelToCloud: function() {
-                // TODO: remove when done testing
+                // TODO: remove this when done!
+                alert("Not yet implemented");
                 return;
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
@@ -2967,6 +3093,7 @@
                     formData.append("action", "save");
                     formData.append("modelName", "LarsModel");
                     formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
+                    formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
@@ -2974,12 +3101,12 @@
                     params.action = 'save';
                     params.modelName = 'LarsModel';
                     params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
+                    params.icon = DrawingEngine.miniatureCanvas.toDataURL();
                     this.sendMultiPart(xmlhttp, params);
                 }
                 else {
                     alert("cloud connection not supported");
                 }
-
             },
             sendMultiPart: function(xmlhttp, params) {
               var BOUNDARY = "---------------------------1966284435497298061834782736";
@@ -3089,7 +3216,6 @@
         };
 
         var SettingsMenu = {
-            metric: 'manhattan',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
@@ -3098,7 +3224,6 @@
                 document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
                 document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
-                document.getElementById('metric').value = this.metric;
                 document.getElementById('database').value = DATABASE_TRANSFORM;
                 document.getElementById('FPS').value = FPS;
                 document.getElementById('MINIRATE').value = MINIRATE;
@@ -3112,11 +3237,20 @@
                 this.setMaximumStartingVelocity(5);
                 this.setInfluenceConstant(4);
                 this.setStiffness(3);
-                this.setMetric('manhattan');
                 this.setDatabase('SQLServer.xsl');
                 this.setFPS(100);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
+                Knot.mass = 1;
+                Knot.charge = 1;
+                Anchor.mass = 1;
+                Anchor.charge = 1;
+                Attribute.mass = 1;
+                Attribute.charge = 1;
+                Tie.mass = 1;
+                Tie.charge = 1;
+                Edge.mass = 1;
+                Edge.charge = 1;
                 this.init();
             },
             storeSettings: function(storage) {
@@ -3127,11 +3261,20 @@
                 storage.setItem("maximumStartingVelocity", LayoutEngine.maximumStartingVelocity);
                 storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
-                storage.setItem("metric", document.getElementById('metric').value);
-                storage.setItem("database", document.getElementById('database').value);
+                storage.setItem("database", DATABASE_TRANSFORM);
                 storage.setItem("FPS", FPS);
                 storage.setItem("MINIRATE", MINIRATE);
                 storage.setItem("CALCS", CALCS);
+                storage.setItem("knotMass", Knot.mass);
+                storage.setItem("knotCharge", Knot.charge);
+                storage.setItem("anchorMass", Anchor.mass);
+                storage.setItem("anchorCharge", Anchor.charge);
+                storage.setItem("attributeMass", Attribute.mass);
+                storage.setItem("attributeCharge", Attribute.charge);
+                storage.setItem("tieMass", Tie.mass);
+                storage.setItem("tieCharge", Tie.charge);
+                storage.setItem("edgeMass", Edge.mass);
+                storage.setItem("edgeCharge", Edge.charge);
             },
             loadSettings: function(storage) {
                 this.setDamping(storage.getItem('damping') || 4);
@@ -3141,11 +3284,20 @@
                 this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
                 this.setInfluenceConstant(storage.getItem('influenceConstant') || 4);
                 this.setStiffness(storage.getItem('stiffness') || 3);
-                this.setMetric(storage.getItem('metric') || 'manhattan');
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setFPS(storage.getItem('FPS') || 100);
                 this.setMiniRate(storage.getItem('MINIRATE') || 50);
                 this.setCalculations(storage.getItem('CALCS') || 'simple');
+                Knot.mass = 1 * storage.getItem('knotMass') || 1;
+                Knot.charge = 1 * storage.getItem('knotCharge') || 1;
+                Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
+                Anchor.charge = 1 * storage.getItem('anchorCharge') || 1;
+                Attribute.mass = 1 * storage.getItem('attributeMass') || 1;
+                Attribute.charge = 1 * storage.getItem('attributeCharge') || 1;
+                Tie.mass = 1 * storage.getItem('tieMass') || 1;
+                Tie.charge = 1 * storage.getItem('tieCharge') || 1;
+                Edge.mass = 1 * storage.getItem('edgeMass') || 1;
+                Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
                 this.init();
             },
             setDamping: function(value) {
@@ -3171,10 +3323,6 @@
                 LayoutEngine.stiffness = 1 * value;
                 LayoutEngine.stiffnessBound = value * value;
             },
-            setMetric: function(value) {
-                this.metric = value;
-                LayoutEngine.metric = LayoutEngine[value];
-            },
             setDatabase: function(value) {
                 DATABASE_TRANSFORM = value;
             },
@@ -3196,14 +3344,13 @@
             attributeCharge: null,
             tieMass: null,
             tieCharge: null,
+            edgeMass: null,
+            edgeCharge: null,
             setCalculations: function(value) {
                 var listOfSettings = document.getElementById('listOfSettings');
                 var calcsItem = document.getElementById('calcsItem');
                 if(value == 'simple') {
-                    LayoutEngine.xAttracting = LayoutEngine.xSimpleAttracting;
-                    LayoutEngine.yAttracting = LayoutEngine.ySimpleAttracting;
-                    LayoutEngine.xRepelling = LayoutEngine.xSimpleRepelling;
-                    LayoutEngine.yRepelling = LayoutEngine.ySimpleRepelling;
+                    LayoutEngine.layout = LayoutEngine.simpleLayout;
                     if(this.knotMass) listOfSettings.removeChild(this.knotMass);
                     if(this.knotCharge) listOfSettings.removeChild(this.knotCharge);
                     if(this.anchorMass) listOfSettings.removeChild(this.anchorMass);
@@ -3212,6 +3359,8 @@
                     if(this.attributeCharge) listOfSettings.removeChild(this.attributeCharge);
                     if(this.tieMass) listOfSettings.removeChild(this.tieMass);
                     if(this.tieCharge) listOfSettings.removeChild(this.tieCharge);
+                    if(this.edgeMass) listOfSettings.removeChild(this.edgeMass);
+                    if(this.edgeCharge) listOfSettings.removeChild(this.edgeCharge);
                     this.knotMass = null;
                     this.knotCharge = null;
                     this.anchorMass = null;
@@ -3220,12 +3369,11 @@
                     this.attributeCharge = null;
                     this.tieMass = null;
                     this.tieCharge = null;
+                    this.edgeMass = null;
+                    this.edgeCharge = null;
                 }
                 else if (value == 'complex') {
-                    LayoutEngine.xAttracting = LayoutEngine.xComplexAttracting;
-                    LayoutEngine.yAttracting = LayoutEngine.yComplexAttracting;
-                    LayoutEngine.xRepelling = LayoutEngine.xComplexRepelling;
-                    LayoutEngine.yRepelling = LayoutEngine.yComplexRepelling;
+                    LayoutEngine.layout = LayoutEngine.complexLayout;
                     this.knotMass = document.createElement('li');
                     this.knotCharge = document.createElement('li');
                     this.anchorMass = document.createElement('li');
@@ -3234,14 +3382,80 @@
                     this.attributeCharge = document.createElement('li');
                     this.tieMass = document.createElement('li');
                     this.tieCharge = document.createElement('li');
-                    this.knotMass.appendChild(document.createTextNode('Knot mass'));
-                    this.knotCharge.appendChild(document.createTextNode('Knot charge'));
-                    this.anchorMass.appendChild(document.createTextNode('Anchor mass'));
-                    this.anchorCharge.appendChild(document.createTextNode('Anchor charge'));
-                    this.attributeMass.appendChild(document.createTextNode('Attribute mass'));
-                    this.attributeCharge.appendChild(document.createTextNode('Attribute charge'));
-                    this.tieMass.appendChild(document.createTextNode('Tie mass'));
-                    this.tieCharge.appendChild(document.createTextNode('Tie charge'));
+                    this.edgeMass = document.createElement('li');
+                    this.edgeCharge = document.createElement('li');
+                    var knotMassInput = document.createElement('input');
+                    var knotChargeInput = document.createElement('input');
+                    var anchorMassInput = document.createElement('input');
+                    var anchorChargeInput = document.createElement('input');
+                    var attributeMassInput = document.createElement('input');
+                    var attributeChargeInput = document.createElement('input');
+                    var tieMassInput = document.createElement('input');
+                    var tieChargeInput = document.createElement('input');
+                    var edgeMassInput = document.createElement('input');
+                    var edgeChargeInput = document.createElement('input');
+                    knotMassInput.setAttribute('type', 'number');
+                    knotChargeInput.setAttribute('type', 'number');
+                    anchorMassInput.setAttribute('type', 'number');
+                    anchorChargeInput.setAttribute('type', 'number');
+                    attributeMassInput.setAttribute('type', 'number');
+                    attributeChargeInput.setAttribute('type', 'number');
+                    tieMassInput.setAttribute('type', 'number');
+                    tieChargeInput.setAttribute('type', 'number');
+                    edgeMassInput.setAttribute('type', 'number');
+                    edgeChargeInput.setAttribute('type', 'number');
+                    knotMassInput.setAttribute('step', '0.1');
+                    knotChargeInput.setAttribute('step', '0.1');
+                    anchorMassInput.setAttribute('step', '0.1');
+                    anchorChargeInput.setAttribute('step', '0.1');
+                    attributeMassInput.setAttribute('step', '0.1');
+                    attributeChargeInput.setAttribute('step', '0.1');
+                    tieMassInput.setAttribute('step', '0.1');
+                    tieChargeInput.setAttribute('step', '0.1');
+                    edgeMassInput.setAttribute('step', '0.1');
+                    edgeChargeInput.setAttribute('step', '0.1');
+                    knotMassInput.value = Knot.mass;
+                    knotChargeInput.value = Knot.charge;
+                    anchorMassInput.value = Anchor.mass;
+                    anchorChargeInput.value = Anchor.charge;
+                    attributeMassInput.value = Attribute.mass;
+                    attributeChargeInput.value = Attribute.charge;
+                    tieMassInput.value = Tie.mass;
+                    tieChargeInput.value = Tie.charge;
+                    edgeMassInput.value = Edge.mass;
+                    edgeChargeInput.value = Edge.charge;
+                    knotMassInput.addEventListener('blur', function() { Knot.mass = 1 * this.value; }, false);
+                    knotChargeInput.addEventListener('blur', function() { Knot.charge = 1 * this.value; }, false);
+                    anchorMassInput.addEventListener('blur', function() { Anchor.mass = 1 * this.value; }, false);
+                    anchorChargeInput.addEventListener('blur', function() { Anchor.charge = 1 * this.value; }, false);
+                    attributeMassInput.addEventListener('blur', function() { Attribute.mass = 1 * this.value; }, false);
+                    attributeChargeInput.addEventListener('blur', function() { Attribute.charge = 1 * this.value; }, false);
+                    tieMassInput.addEventListener('blur', function() { Tie.mass = 1 * this.value; }, false);
+                    tieChargeInput.addEventListener('blur', function() { Tie.charge = 1 * this.value; }, false);
+                    edgeMassInput.addEventListener('blur', function() { Edge.mass = 1 * this.value; }, false);
+                    edgeChargeInput.addEventListener('blur', function() { Edge.charge = 1 * this.value; }, false);
+                    this.knotMass.appendChild(knotMassInput);
+                    this.knotCharge.appendChild(knotChargeInput);
+                    this.anchorMass.appendChild(anchorMassInput);
+                    this.anchorCharge.appendChild(anchorChargeInput);
+                    this.attributeMass.appendChild(attributeMassInput);
+                    this.attributeCharge.appendChild(attributeChargeInput);
+                    this.tieMass.appendChild(tieMassInput);
+                    this.tieCharge.appendChild(tieChargeInput);
+                    this.edgeMass.appendChild(edgeMassInput);
+                    this.edgeCharge.appendChild(edgeChargeInput);
+                    this.knotMass.appendChild(document.createTextNode(' Knot mass'));
+                    this.knotCharge.appendChild(document.createTextNode(' Knot charge'));
+                    this.anchorMass.appendChild(document.createTextNode(' Anchor mass'));
+                    this.anchorCharge.appendChild(document.createTextNode(' Anchor charge'));
+                    this.attributeMass.appendChild(document.createTextNode(' Attribute mass'));
+                    this.attributeCharge.appendChild(document.createTextNode(' Attribute charge'));
+                    this.tieMass.appendChild(document.createTextNode(' Tie mass'));
+                    this.tieCharge.appendChild(document.createTextNode(' Tie charge'));
+                    this.edgeMass.appendChild(document.createTextNode(' Edge mass'));
+                    this.edgeCharge.appendChild(document.createTextNode(' Edge charge'));
+                    listOfSettings.insertBefore(this.edgeCharge, calcsItem);
+                    listOfSettings.insertBefore(this.edgeMass, calcsItem);
                     listOfSettings.insertBefore(this.tieCharge, calcsItem);
                     listOfSettings.insertBefore(this.tieMass, calcsItem);
                     listOfSettings.insertBefore(this.attributeCharge, calcsItem);
@@ -3530,7 +3744,6 @@
                         <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
                         <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
                         <li id="calcsItem"><select id="CALCS" onchange="SettingsMenu.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Adjustable</option></select> &nbsp;Calculations</li>
-                        <li><select id="metric" onchange="SettingsMenu.setMetric(this.value)"><option value="manhattan" selected="selected">Manhattan</option><option value="euclidean">Euclidean</option></select> &nbsp;Metric</li>
                         <li><select id="database" onchange="SettingsMenu.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
                         <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
                         <li onclick="SettingsMenu.toggleDebug()">Toggle debug</li>
