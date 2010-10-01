@@ -26,6 +26,9 @@ import org.w3c.dom.Element;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.datastore.Text;
+import com.google.appengine.api.users.UserService;
+import com.google.appengine.api.users.UserServiceFactory;
 
 
 @SuppressWarnings("serial")
@@ -45,7 +48,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		//This is needed in combination with doOptions to allow cross-site-scripting
 		//http://hacks.mozilla.org/2009/07/cross-site-xmlhttprequest-with-cors/
 		resp.setHeader("Access-Control-Allow-Origin", "*");
-
+		
 		ServletFileUpload upload = new ServletFileUpload();
 		AnchorRequest areq = new AnchorRequest();
 		try {
@@ -60,6 +63,15 @@ public class AnchormodelerServlet extends HttpServlet {
 					areq.fileParams.put(item.getFieldName(),item);
 				}
 			}
+
+			UserService userService = UserServiceFactory.getUserService();
+	        if (req.getUserPrincipal()!=null) {
+	           areq.user = userService.getCurrentUser();
+	        } else {
+	        	//if a google account is required then return LOGIN:loginurl
+	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(req.getRequestURI());
+	        }
+
 		
 			String action = areq.stringParams.get("action");
 			action=(action == null) ? "" : action;
@@ -111,21 +123,37 @@ public class AnchormodelerServlet extends HttpServlet {
 
 	private void actionSave(AnchorRequest areq, HttpServletResponse resp) throws ServletException, IOException {
 		/*
-		 * scope "public","private" modelName modelId (om nytt dokument sŒ
-		 * slopar man detta, annars overwrite model med detta id) 
+		 * scope "public","private" 
+		 * modelName 
+		 * modelId (om nytt dokument så slopar man detta, annars overwrite model med detta id) 
 		 * keywords 
 		 * icon (textencoded png-image)
 		 * modelXml
 		 * 
 		 * returnerar ok/error
 		 */
+		
+		/*if(areq.user==null) {
+            resp.getWriter().println(areq.requireLoginMessage);
+			return;
+		}*/
+		
 		//TODO: more data to save
 		String modelName = areq.stringParams.get("modelName");
 		String modelXml = areq.stringParams.get("modelXml");
+		String icon = areq.stringParams.get("icon");
+		String keywords = areq.stringParams.get("keywords");
+		String scope = areq.stringParams.get("scope");
+		//String userId = areq.user.getUserId();
 
 		Model m = new Model();
 		m.setModelName(modelName);
-		m.setModelXml(modelXml);
+		m.setModelXml(new Text(modelXml));
+		m.setIcon(new Text(icon));
+		//m.setUserId(userId);
+		m.setKeywords(keywords);
+		m.setPublic( (scope!=null) && (scope.equalsIgnoreCase("public")) );
+		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		try {
 			pm.makePersistent(m);
@@ -134,14 +162,14 @@ public class AnchormodelerServlet extends HttpServlet {
 		}
 		resp.getWriter().println("OK");
 	}
-
+	
 	private void actionLoad(AnchorRequest areq, HttpServletResponse resp) throws IOException {
 		String modelId = areq.stringParams.get("modelId");
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		try {
 			Key key = KeyFactory.stringToKey(modelId);
 			Model m = (Model)pm.getObjectById(Model.class, key);
-			resp.getWriter().println( m.getModelXml() );
+			resp.getWriter().println( m.getModelXml().getValue() );
 		} finally {
 			pm.close();
 		}
@@ -182,6 +210,7 @@ public class AnchormodelerServlet extends HttpServlet {
             	Element child = doc.createElement("Model");
             	child.setAttribute("modelName", m.getModelName());
             	child.setAttribute("modelId", KeyFactory.keyToString(m.getKey()) );
+            	child.setAttribute("icon", m.getIcon().getValue() );
             	root.appendChild(child);
             }
             
