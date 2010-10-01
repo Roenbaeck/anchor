@@ -1,6 +1,7 @@
 package anchormodeler;
 
 import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.Text;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.PersistenceCapable;
@@ -17,7 +18,19 @@ public class Model {
     private String modelName;
 
     @Persistent
-    private String modelXml;
+    private Text modelXml;
+
+    @Persistent
+    private Text icon;
+
+    @Persistent
+    private String userId;
+
+    @Persistent
+    private boolean isPublic;
+
+    @Persistent
+    private String keywords;
 
     public Key getKey() {
         return key;
@@ -31,11 +44,44 @@ public class Model {
 		return modelName;
 	}
 
-	public void setModelXml(String modelXml) {
+	public void setModelXml(Text modelXml) {
 		this.modelXml = modelXml;
 	}
 
-	public String getModelXml() {
+	public Text getModelXml() {
 		return modelXml;
 	}
+
+	public void setIcon(Text icon) {
+		this.icon = icon;
+	}
+
+	public Text getIcon() {
+		return icon;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setKeywords(String keywords) {
+		this.keywords = keywords;
+	}
+
+	public String getKeywords() {
+		return keywords;
+	}
+
+	public void setPublic(boolean isPublic) {
+		this.isPublic = isPublic;
+	}
+
+	public boolean isPublic() {
+		return isPublic;
+	}
+
 }
