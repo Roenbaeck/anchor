@@ -2743,14 +2743,14 @@
 
             this.modalBackground = new ModalBackground();
 
-            var codePopover = document.createElement('div');
-            codePopover.setAttribute("id", "codePopover");
+            var popover = document.createElement('div');
+            popover.setAttribute("id", "codePopover");
             var wPadding = window.innerWidth * 0.1;
             var hPadding = window.innerHeight * 0.1;
             var close = document.createElement('div');
             close.className = 'closebutton';
             close.addEventListener('click', function(event) { return self.close(event) }, false);
-            codePopover.appendChild(close);
+            popover.appendChild(close);
 
             var content = document.createElement('div');
             content.setAttribute("id", "content");
@@ -2759,18 +2759,69 @@
             content.style.width = (window.innerWidth - 2 * wPadding) + 'px';
             content.style.height = (window.innerHeight - 2 * hPadding) + 'px';
             content.appendChild(documentFragment);
-            codePopover.appendChild(content);
+            popover.appendChild(content);
 
-            document.body.appendChild(codePopover);
+            document.body.appendChild(popover);
 
-            this.codePopover = codePopover;
+            this.popover = popover;
             return this;
         }
         CodePopover.prototype = {
-            codePopover: null,
+            popover: null,
             modalBackground: null,
             close: function(event) {
-                document.body.removeChild(this.codePopover);
+                document.body.removeChild(this.popover);
+                this.modalBackground.close();
+                DrawingEngine.start(false);
+            }
+        };
+
+        function CloudBrowserPopover(modelList) {
+            DrawingEngine.stop();
+            var self = this;
+
+            this.modalBackground = new ModalBackground();
+
+            var popover = document.createElement('div');
+            popover.setAttribute("id", "cloudBrowserPopover");
+            var wPadding = window.innerWidth * 0.1;
+            var hPadding = window.innerHeight * 0.1;
+            var close = document.createElement('div');
+            close.className = 'closebutton';
+            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            popover.appendChild(close);
+
+            var content = document.createElement('div');
+            content.setAttribute("id", "content");
+            content.style.width = (window.innerWidth - 2 * wPadding) + 'px';
+            content.style.height = (window.innerHeight - 2 * hPadding) + 'px';
+
+            var models = modelList.getElementsByTagName('Model');
+            var model, modelContainer;
+            for(var i = 0; i < models.length; i++) {
+                model = models.item(i);
+                modelContainer = document.createElement('div');
+                modelContainer.modelId = model.getAttribute("modelId");
+                modelContainer.addEventListener('click', function(e) { ActionsMenu.loadModelFromCloud(this.modelId); self.close(e); }, false);
+                var icon = document.createElement('img');
+                icon.setAttribute("src", model.getAttribute("icon"));
+                modelContainer.appendChild(icon);
+                modelContainer.appendChild(document.createTextNode(model.getAttribute("modelName")));
+                content.appendChild(modelContainer);
+            }
+
+            popover.appendChild(content);
+
+            document.body.appendChild(popover);
+
+            this.popover = popover;
+            return this;
+        }
+        CloudBrowserPopover.prototype = {
+            popover: null,
+            modalBackground: null,
+            close: function(event) {
+                document.body.removeChild(this.popover);
                 this.modalBackground.close();
                 DrawingEngine.start(false);
             }
@@ -3075,10 +3126,73 @@
                     alert(exception);
                 }
             },
+            listModelsInCloud: function() {
+                window.status = "Contacting Cloud...";
+                document.body.style.cursor = "wait";
+                var xmlhttp = new window.XMLHttpRequest();
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+                
+                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        window.status = "";
+                        document.body.style.cursor = "default";
+                        alert(xmlhttp.responseText);
+                        var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                        new CloudBrowserPopover(modelList);
+                    }
+                };
+
+                if(window.FormData) {
+                    var formData = new FormData();
+                    formData.append("action", "list");
+                    xmlhttp.send(formData);
+                }
+                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                    var params = {};
+                    params.action = 'list';
+                    this.sendMultiPart(xmlhttp, params);
+                }
+                else {
+                    alert("Cloud connection not supported by your browser");
+                }
+            },
+            loadModelFromCloud: function(modelId) {
+                window.status = "Contacting Cloud...";
+                document.body.style.cursor = "wait";
+                var xmlhttp = new window.XMLHttpRequest();
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+
+                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        window.status = "";
+                        document.body.style.cursor = "default";
+                        alert(xmlhttp.responseText);
+                        var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                        Model.fromXML(model);
+                        Model.recordState();
+                        DrawingEngine.start();
+                    }
+                };
+
+                if(window.FormData) {
+                    var formData = new FormData();
+                    formData.append("action", "load");
+                    formData.append("modelId", modelId);
+                    xmlhttp.send(formData);
+                }
+                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                    var params = {};
+                    params.action = 'load';
+                    params.modelId = modelId;
+                    this.sendMultiPart(xmlhttp, params);
+                }
+                else {
+                    alert("Cloud connection not supported by your browser");
+                }
+            },
             saveModelToCloud: function() {
-                // TODO: remove this when done!
-                alert("Not yet implemented");
-                return;
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
@@ -3094,6 +3208,8 @@
                     formData.append("modelName", "LarsModel");
                     formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
                     formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
+                    formData.append("scope", "public");
+                    formData.append("keywords", "test");
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
@@ -3102,10 +3218,12 @@
                     params.modelName = 'LarsModel';
                     params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
                     params.icon = DrawingEngine.miniatureCanvas.toDataURL();
+                    params.scope = 'public';
+                    params.keywords = 'test';
                     this.sendMultiPart(xmlhttp, params);
                 }
                 else {
-                    alert("cloud connection not supported");
+                    alert("Cloud connection not supported by your browser");
                 }
             },
             sendMultiPart: function(xmlhttp, params) {
@@ -3675,7 +3793,7 @@
                 <li>File
                     <ul class="submenu">
                         <li onclick="Model.setupMinimal()">Empty model...</li>
-                        <li onclick="alert('Coming soon')">Load model from cloud...</li>
+                        <li onclick="ActionsMenu.listModelsInCloud()">Load model from cloud...</li>
                         <li onclick="ActionsMenu.saveModelToCloud()">Save model to cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
