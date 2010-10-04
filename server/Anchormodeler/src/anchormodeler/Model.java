@@ -4,6 +4,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
+import javax.jdo.annotations.NullValue;
 import javax.jdo.annotations.PersistenceCapable;
 import javax.jdo.annotations.Persistent;
 import javax.jdo.annotations.PrimaryKey;
@@ -20,16 +21,16 @@ public class Model {
     @Persistent
     private Text modelXml;
 
-    @Persistent
+    @Persistent(nullValue=NullValue.NONE)
     private Text icon;
 
     @Persistent
     private String userId;
 
-    @Persistent
+    @Persistent(nullValue=NullValue.NONE)
     private boolean isPublic;
 
-    @Persistent
+    @Persistent(nullValue=NullValue.NONE)
     private String keywords;
 
     public Key getKey() {
