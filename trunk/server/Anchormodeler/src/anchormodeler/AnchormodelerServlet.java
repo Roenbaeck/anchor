@@ -69,7 +69,10 @@ public class AnchormodelerServlet extends HttpServlet {
 	           areq.user = userService.getCurrentUser();
 	        } else {
 	        	//if a google account is required then return LOGIN:loginurl
-	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(req.getRequestURI());
+	        	String url = req.getHeader("Referer");
+	        	if(url==null)
+	        		url="null";
+	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(url); //req.getRequestURI());
 	        }
 
 		
@@ -133,24 +136,23 @@ public class AnchormodelerServlet extends HttpServlet {
 		 * returnerar ok/error
 		 */
 		
-		/*if(areq.user==null) {
+		if(areq.user==null) {
             resp.getWriter().println(areq.requireLoginMessage);
 			return;
-		}*/
+		}
 		
-		//TODO: more data to save
 		String modelName = areq.stringParams.get("modelName");
 		String modelXml = areq.stringParams.get("modelXml");
 		String icon = areq.stringParams.get("icon");
 		String keywords = areq.stringParams.get("keywords");
 		String scope = areq.stringParams.get("scope");
-		//String userId = areq.user.getUserId();
+		String userId = areq.user.getUserId();
 
 		Model m = new Model();
 		m.setModelName(modelName);
 		m.setModelXml(new Text(modelXml));
 		m.setIcon(new Text(icon));
-		//m.setUserId(userId);
+		m.setUserId(userId);
 		m.setKeywords(keywords);
 		m.setPublic( (scope!=null) && (scope.equalsIgnoreCase("public")) );
 		
@@ -188,6 +190,9 @@ public class AnchormodelerServlet extends HttpServlet {
 		*/
 
 		//TODO: more parameters
+		String scope = areq.stringParams.get("scope");
+		boolean isPublic = (scope!=null) && (scope.contains("public"));
+		boolean isPrivate = (scope!=null) && (scope.contains("private"));
 		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		Query query=null;
@@ -196,6 +201,12 @@ public class AnchormodelerServlet extends HttpServlet {
 		    //query.setFilter("lastName == lastNameParam");
 		    //query.setOrdering("hireDate desc");
 		    //query.declareParameters("String lastNameParam");
+		    if(isPublic && isPrivate)
+		    	;
+		    else if(isPublic)
+		    	query.setFilter("isPublic == true");
+		    else if(isPrivate)
+		    	query.setFilter("isPublic == false");
 		    
 			//Format as xml http://www.roseindia.net/servlets/xm-servlet.shtml
 		    DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
