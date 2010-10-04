@@ -1104,6 +1104,7 @@
             miniCounter: 0,
             miniature: null,
             showNames: false,
+            drawShadows: false,
             newState: true,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
@@ -1245,9 +1246,10 @@
                     this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
 
                 // cast all shadows first
-                for(i = 0; node = Model.nodes[i]; i++)
-                    if(!Model.filtered[i])
-                        node.drawMoving(this.context);
+                if(this.drawShadows)
+                    for(i = 0; node = Model.nodes[i]; i++)
+                        if(!Model.filtered[i])
+                            node.drawMoving(this.context);
 
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -3273,6 +3275,9 @@
                 DrawingEngine.showNames = !DrawingEngine.showNames;
                 DrawingEngine.start(false);
             },
+            toggleShadows: function() {
+                DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
+            },
             changeDetailLevel: function() {
                 if(this.isFiltering)
                     Model.removeFilter();
@@ -3807,6 +3812,7 @@
                 <li>Layout
                     <ul class="submenu">
                         <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
+                        <li onclick="ActionsMenu.toggleShadows()">Toggle shadows</li>
                         <li onclick="ActionsMenu.changeDetailLevel()">Change detail level</li>
                         <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
                         <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
