@@ -189,7 +189,7 @@
 
     #cloudBrowserPopover {
         position:           relative;
-        border:             2px solid black;
+        border:             2px solid white;
         top:                5%;
         margin:             auto;
         display:            table;
@@ -203,14 +203,23 @@
         display:            inherit;
         position:           relative;
     }
+    #cloudBrowserPopover #content {
+        margin:             -10px 10px 20px 10px;
+        padding:            0;
+    }
     #cloudBrowserPopover #content div {
         display:            inline-block;
         text-align:         center;
         color:              black;
+        border-width:       medium;
+        border-style:       inset;
+        margin:             0px 5px 10px 5px;
+        padding:            8px;
+        cursor:             pointer;
     }
     #cloudBrowserPopover #content img {
         background:         #fff;
-        border:             1px solid black;
+        border:             1px solid black; 
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -410,6 +419,7 @@
         top:                0;
         display:            inline-block;
         width:              150px; 
+        height:             16px;
         padding:            8px 0 8px 20px;
         margin:             0;
         border:             0;
@@ -3179,7 +3189,7 @@
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
                 
-                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
