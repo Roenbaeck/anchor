@@ -186,6 +186,43 @@
         z-index:            10;
     }
 
+
+    #cloudBrowserPopover {
+        position:           relative;
+        border:             2px solid black;
+        top:                5%;
+        margin:             auto;
+        display:            table;
+        background-color:   rgba(249, 248, 247, 0.95);
+        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
+        z-index:            11;
+    }
+    #cloudBrowserPopover .closebutton {
+        display:            inherit;
+        position:           relative;
+    }
+    #cloudBrowserPopover #content div {
+        display:            inline-block;
+        text-align:         center;
+        color:              black;
+    }
+    #cloudBrowserPopover #content img {
+        background:         #fff;
+        border:             1px solid black;
+        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    }
+    .modelName {
+        font:               100% georgia, sans-serif;
+    }
+    .modelKeywords {
+        font:               75% georgia, sans-serif;        
+    }
+
+
     /* these classes style the xml representation */
     #codePopover {
         position:           relative;
@@ -2807,8 +2844,15 @@
                 modelContainer.addEventListener('click', function(e) { ActionsMenu.loadModelFromCloud(this.modelId); self.close(e); }, false);
                 var icon = document.createElement('img');
                 icon.setAttribute("src", model.getAttribute("icon"));
+                var name = document.createElement("p");
+                name.appendChild(document.createTextNode(model.getAttribute("modelName")));
+                name.className = 'modelName';
+                var keywords = document.createElement("p");
+                keywords.className = 'modelKeywords';
+                keywords.appendChild(document.createTextNode("keyword1, keyword2, keyword3"));
                 modelContainer.appendChild(icon);
-                modelContainer.appendChild(document.createTextNode(model.getAttribute("modelName")));
+                modelContainer.appendChild(name);
+                modelContainer.appendChild(keywords);
                 content.appendChild(modelContainer);
             }
 
