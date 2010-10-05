@@ -211,9 +211,9 @@
     #cloudBrowserPopover #content img {
         background:         #fff;
         border:             1px solid black;
-        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+        box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
     }
     .modelName {
         font:               100% georgia, sans-serif;
@@ -226,7 +226,7 @@
     /* these classes style the xml representation */
     #codePopover {
         position:           relative;
-        border:             3px solid black;
+        border:             2px solid black;
         top:                5%;
         margin:             auto;
         display:            table;
@@ -3217,8 +3217,10 @@
                         alert(xmlhttp.responseText);
                         var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         Model.fromXML(model);
+                        ActionsMenu.resetZoom();
+                        ActionsMenu.centerModel();
                         Model.recordState();
-                        DrawingEngine.start();
+                        DrawingEngine.start(false);
                     }
                 };
 
