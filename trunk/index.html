@@ -86,6 +86,20 @@
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
+    /* shows login status to the cloud (google app engine) */
+    #cloud {
+        font:               75% sans-serif;
+        position:           absolute;
+        color:              black;
+        text-align:         right;
+        bottom:             16px;
+        padding-right:      8px;
+        right:              42px;
+        cursor:             pointer;
+        display:            block;
+        z-index:            10;
+    }
+
     /* context menu that pops up when editing */
     #contextMenu {
         position:           absolute;
@@ -461,6 +475,8 @@
         var SVGNS = "http://www.w3.org/2000/svg";
 
         var CALCS = 'simple';
+
+        var ASKBEFOREUNLOAD = true;
         
         // create a singleton
         var LayoutEngine = {
@@ -741,6 +757,13 @@
         };
 
         var Model = {
+            // TODO: save these in local storage
+            // these are used in the cloud
+            name: null,
+            scope: null,
+            keywords: null,
+            id: null,
+            // other members
             nodes: [],
             edges: [],
             filtered: [],
@@ -3182,6 +3205,44 @@
                     alert(exception);
                 }
             },
+            checkCloudConnectionStatus: function(redirect) {
+                window.status = "Contacting Cloud...";
+                document.body.style.cursor = "wait";
+                var xmlhttp = new window.XMLHttpRequest();
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+
+                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        window.status = "";
+                        document.body.style.cursor = "default";
+                        var response = xmlhttp.responseText;
+                        var statusElement = document.getElementById("cloud");
+                        if(response.match(/^OK:/))
+                            statusElement.appendChild(document.createTextNode(response.replace(/^OK:/, '')));
+                        else if(response.match(/^LOGIN:/) && redirect) {
+                            ASKBEFOREUNLOAD = false;
+                            window.location = response.replace(/^LOGIN:/, '');
+                        }
+                        else
+                            statusElement.appendChild(document.createTextNode("Not logged in"));
+                    }
+                };
+
+                if(window.FormData) {
+                    var formData = new FormData();
+                    formData.append("action", "status");
+                    xmlhttp.send(formData);
+                }
+                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                    var params = {};
+                    params.action = 'status';
+                    this.sendMultiPart(xmlhttp, params);
+                }
+                else {
+                    alert("Cloud connection not supported by your browser");
+                }
+            },
             listModelsInCloud: function() {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
@@ -3227,6 +3288,7 @@
                         alert(xmlhttp.responseText);
                         var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         Model.fromXML(model);
+                        Model.id = modelId;
                         ActionsMenu.resetZoom();
                         ActionsMenu.centerModel();
                         Model.recordState();
@@ -3256,28 +3318,42 @@
                 xmlhttp.open("POST", url, true);
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
-                        alert(xmlhttp.responseText);
+                        var response = xmlhttp.responseText;
+                        alert(response);
+                        if(response.match(/^LOGIN:/)) {
+                            ASKBEFOREUNLOAD = false;
+                            window.location = response.replace(/^LOGIN:/, '');
+                        }
                     }
                 };
+
+                // TODO: CloudSaverPopup here instead
+                Model.name = prompt("What is the name of the model?", Model.name ? Model.name : "");
+                Model.scope = prompt("What is the scope of the model?", Model.scope ? Model.scope : "public");
+                Model.keywords = prompt("What are the keywords for this model?", Model.keywords ? Model.keywords : "");
 
                 if(window.FormData) {
                     var formData = new FormData();
                     formData.append("action", "save");
-                    formData.append("modelName", "LarsModel");
+                    formData.append("modelName", Model.name);
                     formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
                     formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
-                    formData.append("scope", "public");
-                    formData.append("keywords", "test");
+                    formData.append("scope", Model.scope);
+                    formData.append("keywords", Model.keywords);
+                    if(Model.id)
+                        formData.append("modelId", Model.id);
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
                     var params = {};
                     params.action = 'save';
-                    params.modelName = 'LarsModel';
+                    params.modelName = Model.name;
                     params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
                     params.icon = DrawingEngine.miniatureCanvas.toDataURL();
-                    params.scope = 'public';
-                    params.keywords = 'test';
+                    params.scope = Model.scope;
+                    params.keywords = Model.keywords;
+                    if(Model.id)
+                        params.modelId = Model.id;
                     this.sendMultiPart(xmlhttp, params);
                 }
                 else {
@@ -3812,6 +3888,8 @@
             else
                 ActionsMenu.loadFromURL('example.xml');
 
+            ActionsMenu.checkCloudConnectionStatus(false);
+
             // set values in the settings input fields
             SettingsMenu.loadSettings(window.localStorage);
 
@@ -3822,7 +3900,10 @@
 
         // make sure our exit function is called when the page is unloaded
         window.onbeforeunload = function() {
-            return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
+            if(ASKBEFOREUNLOAD)
+                return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
+            else
+                ASKBEFOREUNLOAD = true;
         };
 
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
@@ -3940,5 +4021,9 @@
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
+
+    <div id="cloud" class="unselectable" onclick="ActionsMenu.checkCloudConnectionStatus(true)">
+        <!-- filled dynamically -->
+    </div>
 </body>
 </html>
