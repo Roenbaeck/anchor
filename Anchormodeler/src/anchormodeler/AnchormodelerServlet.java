@@ -69,9 +69,10 @@ public class AnchormodelerServlet extends HttpServlet {
 	           areq.user = userService.getCurrentUser();
 	        } else {
 	        	//if a google account is required then return LOGIN:loginurl
-	        	String url = req.getHeader("Referer");
-	        	if(url==null)
-	        		url="null";
+	        	//String url = req.getHeader("Referer");
+	        	//if(url==null)
+	        	//	url="null";
+	        	String url = req.getRequestURI();
 	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(url); //req.getRequestURI());
 	        }
 
@@ -86,6 +87,8 @@ public class AnchormodelerServlet extends HttpServlet {
 				actionLoad(areq, resp);
 			} else if (action.equals("list")) {
 				actionList(areq, resp);
+			} else if (action.equals("status")) {
+				actionStatus(areq, resp);
 			} else {
 				resp.getWriter().println("ERROR: unknown action");
 			}
@@ -124,6 +127,14 @@ public class AnchormodelerServlet extends HttpServlet {
 		resp.setHeader("Access-Control-Max-Age", "86400");
 	}
 
+	private void actionStatus(AnchorRequest areq, HttpServletResponse resp) throws IOException {
+		if(areq.user==null) {
+            resp.getWriter().println(areq.requireLoginMessage);
+		} else {
+            resp.getWriter().println("OK: You are logged in as " + areq.user.getEmail());
+		}
+	}
+
 	private void actionSave(AnchorRequest areq, HttpServletResponse resp) throws ServletException, IOException {
 		/*
 		 * scope "public","private" 
@@ -147,8 +158,18 @@ public class AnchormodelerServlet extends HttpServlet {
 		String keywords = areq.stringParams.get("keywords");
 		String scope = areq.stringParams.get("scope");
 		String userId = areq.user.getUserId();
+		String modelId = areq.stringParams.get("modelId");
 
-		Model m = new Model();
+		PersistenceManager pm = PMF.get().getPersistenceManager();
+
+		Model m;
+		if(modelId!=null) {
+			m = (Model)pm.getObjectById(Model.class, KeyFactory.stringToKey(modelId));
+			if(m==null)
+				throw new ServletException("Tried to update nonexisting model with id: " + modelId);
+		} else
+			m = new Model();
+		
 		m.setModelName(modelName);
 		m.setModelXml(new Text(modelXml));
 		m.setIcon(new Text(icon));
@@ -156,7 +177,6 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setKeywords(keywords);
 		m.setPublic( (scope!=null) && (scope.equalsIgnoreCase("public")) );
 		
-		PersistenceManager pm = PMF.get().getPersistenceManager();
 		try {
 			pm.makePersistent(m);
 		} finally {
@@ -222,6 +242,7 @@ public class AnchormodelerServlet extends HttpServlet {
             	child.setAttribute("modelName", m.getModelName());
             	child.setAttribute("modelId", KeyFactory.keyToString(m.getKey()) );
             	child.setAttribute("icon", m.getIcon().getValue() );
+            	child.setAttribute("keywords", m.getKeywords() );
             	root.appendChild(child);
             }
             
