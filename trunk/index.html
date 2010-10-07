@@ -107,7 +107,6 @@
         text-align:         left;
         bottom:             26px;
         left:               12px;
-        cursor:             pointer;
         display:            block;
         z-index:            10;
     }
@@ -3386,11 +3385,12 @@
                 var status = "Local editing mode";
                 if(Model.name && Model.id)
                     status = "Cloud mode, editing " + Model.scope + " model: " + Model.name;
-                if(this.modelStatusText)
-                    statusElement.removeChild(this.modelStatusText);
-                this.modelStatusText = document.createTextNode(status);
-                statusElement.appendChild(this.modelStatusText);
+                if(Actions.modelStatusText)
+                    statusElement.removeChild(Actions.modelStatusText);
+                Actions.modelStatusText = document.createTextNode(status);
+                statusElement.appendChild(Actions.modelStatusText);
             },
+            cloudStatusText: null,
             checkCloudConnectionStatus: function(redirect) {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
@@ -3403,16 +3403,24 @@
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
+                        if(Actions.cloudStatusText)
+                            statusElement.removeChild(Actions.cloudStatusText);
                         var response = xmlhttp.responseText;
                         var statusElement = document.getElementById("cloud");
-                        if(response.match(/^OK:/))
-                            statusElement.appendChild(document.createTextNode(response.replace(/^OK:/, '')));
+                        if(response.match(/^OK:/)) {
+                            Actions.cloudStatusText = document.createTextNode(response.replace(/^OK:/, ''));
+                            statusElement.appendChild(Actions.cloudStatusText);
+                        }
                         else if(response.match(/^LOGIN:/) && redirect) {
+                            Actions.cloudStatusText = document.createTextNode("Logging in...");
+                            statusElement.appendChild(Actions.cloudStatusText);
                             ASKBEFOREUNLOAD = false;
                             window.location = response.replace(/^LOGIN:/, '');
                         }
-                        else
-                            statusElement.appendChild(document.createTextNode("Not logged in"));
+                        else {
+                            Actions.cloudStatusText = document.createTextNode("Not logged in");
+                            statusElement.appendChild(Actions.cloudStatusText);
+                        }
                         Actions.setModelStatus();
                     }
                 };
