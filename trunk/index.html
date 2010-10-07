@@ -808,10 +808,9 @@
         };
 
         var Model = {
-            // TODO: save these in local storage
             // these are used in the cloud
             name: null,
-            scope: 'public',
+            scope: 'private',
             keywords: null,
             id: null,
             // other members
@@ -825,11 +824,13 @@
             leftmostNode: null,
             version: -1,
             versions: [],
-            empty: function() {
+            uncloud: function() {
                 this.name = null;
-                this.scope = 'public';
+                this.scope = 'private';
                 this.keywords = null;
                 this.id = null;
+            },
+            empty: function() {
                 this.nodes = [];
                 this.edges = [];
                 this.shadowToNode = {};
@@ -863,6 +864,7 @@
             },
             setupMinimal: function() {
                 if(confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!")) {
+                    this.uncloud();
                     this.empty();
                     Actions.setModelStatus();
                     CanvasEventHandler.clearSelection();
@@ -3004,14 +3006,14 @@
             table.appendChild(tr);
 
             var modelScope = document.createElement('select');
-            var publicOption = document.createElement('option');
-            publicOption.setAttribute('value', 'public');
-            publicOption.appendChild(document.createTextNode('Public'));
-            modelScope.appendChild(publicOption);
             var privateOption = document.createElement('option');
             privateOption.setAttribute('value', 'private');
             privateOption.appendChild(document.createTextNode('Private'));
             modelScope.appendChild(privateOption);
+            var publicOption = document.createElement('option');
+            publicOption.setAttribute('value', 'public');
+            publicOption.appendChild(document.createTextNode('Public'));
+            modelScope.appendChild(publicOption);
             if(Model.scope && Model.scope != null)
                 modelScope.value = Model.scope;
             modelScope.addEventListener('change', function() { Model.scope = this.value; }, false);
@@ -3369,6 +3371,7 @@
                     var xmlhttp = new window.XMLHttpRequest();
                     xmlhttp.open("GET", url, false);
                     xmlhttp.send(null);
+                    Model.uncloud();
                     Model.fromXML(xmlhttp.responseXML);
                     Actions.setModelStatus();
                     Model.recordState();
@@ -3403,19 +3406,28 @@
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
+                        var statusElement = document.getElementById("cloud");
                         if(Actions.cloudStatusText)
                             statusElement.removeChild(Actions.cloudStatusText);
-                        var response = xmlhttp.responseText;
-                        var statusElement = document.getElementById("cloud");
-                        if(response.match(/^OK:/)) {
-                            Actions.cloudStatusText = document.createTextNode(response.replace(/^OK:/, ''));
+                        var lines, response = xmlhttp.responseText;
+                        if(response.match(/^OK:/) && !redirect) {
+                            lines = response.split(/[\r\n]/);
+                            var login = lines[0].replace(/^OK:/, '').replace(/^[^\S]+/,'');
+                            Actions.cloudStatusText = document.createTextNode(login);
                             statusElement.appendChild(Actions.cloudStatusText);
                         }
                         else if(response.match(/^LOGIN:/) && redirect) {
                             Actions.cloudStatusText = document.createTextNode("Logging in...");
                             statusElement.appendChild(Actions.cloudStatusText);
                             ASKBEFOREUNLOAD = false;
-                            window.location = response.replace(/^LOGIN:/, '');
+                            window.location = response.replace(/^LOGIN:/, '').replace(/^[^\S]+/,'');
+                        }
+                        else if(response.match(/^OK:/) && redirect) {
+                            Actions.cloudStatusText = document.createTextNode("Logging out...");
+                            statusElement.appendChild(Actions.cloudStatusText);
+                            ASKBEFOREUNLOAD = false;
+                            lines = response.split(/[\r\n]/);
+                            window.location = lines[1];
                         }
                         else {
                             Actions.cloudStatusText = document.createTextNode("Not logged in");
@@ -3486,6 +3498,7 @@
                         window.status = "";
                         document.body.style.cursor = "default";
                         var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                        Model.uncloud();
                         Model.fromXML(model);
                         Model.id = modelId;
                         Model.name = modelName;
@@ -3552,7 +3565,7 @@
                         formData.append("modelName", Model.name);
                         formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
                         formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
-                        formData.append("scope", Model.scope || "public");
+                        formData.append("scope", Model.scope || "private");
                         formData.append("keywords", Model.keywords);
                         if(Model.id)
                             formData.append("modelId", Model.id);
@@ -3564,7 +3577,7 @@
                         params.modelName = Model.name;
                         params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
                         params.icon = DrawingEngine.miniatureCanvas.toDataURL();
-                        params.scope = Model.scope || "public";
+                        params.scope = Model.scope || "private";
                         params.keywords = Model.keywords;
                         if(Model.id)
                             params.modelId = Model.id;
