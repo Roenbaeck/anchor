@@ -91,10 +91,9 @@
         font:               75% sans-serif;
         position:           absolute;
         color:              black;
-        text-align:         right;
-        bottom:             16px;
-        padding-right:      8px;
-        right:              42px;
+        text-align:         left;
+        bottom:             12px;
+        left:               12px;
         cursor:             pointer;
         display:            block;
         z-index:            10;
@@ -160,7 +159,7 @@
     .collapsed:hover {
         background-color:   #fa5;
     }
-
+    
     .operators {
         position:           relative;
         margin:             0px 5px 5px 5px;
@@ -233,7 +232,7 @@
     }
     #cloudBrowserPopover #content img {
         background:         #fff;
-        border:             1px solid black;
+        border:             1px solid black; 
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -242,7 +241,47 @@
         font:               100% georgia, sans-serif;
     }
     .modelKeywords {
-        font:               75% georgia, sans-serif;
+        font:               75% georgia, sans-serif;        
+    }
+
+
+    #cloudSaverPopover {
+        position:           relative;
+        border:             2px solid white;
+        top:                5%;
+        margin:             auto;
+        display:            table;
+        background-color:   rgba(249, 248, 247, 0.95);
+        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
+        z-index:            11;
+    }
+    #cloudSaverPopover .closebutton {
+        display:            inherit;
+        position:           relative;
+    }
+    #cloudSaverPopover #content {
+        margin:             -10px 10px 10px 10px;
+        padding:            0;
+        text-align:         center;
+    }
+    #cloudSaverPopover #content table {
+        margin-top:         20px;
+        margin-bottom:      20px;
+    }
+    #cloudSaverPopover #content td {
+        font:               100% georgia, sans-serif;
+        color:              black;
+        padding-top:        5px;
+        text-align:         left;
+    }
+    #cloudSaverPopover #content img {
+        background:         #fff;
+        border:             1px solid black;
+        box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
+        -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
     }
 
 
@@ -263,7 +302,7 @@
         display:            inherit;
         position:           relative;
     }
-
+    
     #content {
         position:           relative;
         margin-top:         -30px;
@@ -297,7 +336,7 @@
         font-style:         italic;
     }
     .preformatted {
-        white-space:        pre;
+        white-space:        pre;        
     }
 
 
@@ -422,7 +461,7 @@
         z-index:            9;
     }
     #controls .playing {
-        background-color:   #fa5;
+        background-color:   #fa5;      
     }
     #controls .pausing {
         /* just go back to normal */
@@ -432,7 +471,7 @@
         position:           relative;
         top:                0;
         display:            inline-block;
-        width:              150px;
+        width:              150px; 
         height:             16px;
         padding:            8px 0 8px 20px;
         margin:             0;
@@ -454,7 +493,7 @@
     #controls div + div {
         margin-left:        -50px;
     }
-
+    
     </style>
 
     <script type="text/javascript">
@@ -477,7 +516,7 @@
         var CALCS = 'simple';
 
         var ASKBEFOREUNLOAD = true;
-
+        
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
@@ -873,7 +912,7 @@
                 // the edge is also a node
                 if(edge) {
                     this.addNode(edge);
-                    this.edges[this.edges.length] = edge;
+                    this.edges[this.edges.length] = edge;                    
                 }
             },
             removeEdge: function(edge) {
@@ -1029,7 +1068,7 @@
                         knot = nodes[i];
                 }
                 if(anchor && tie) {
-                    this.addEdge(new Edge(tie, anchor, false));
+                    this.addEdge(new Edge(tie, anchor, false));                    
                 }
                 else if (attribute && knot) {
                     attribute.setKnotted(true);
@@ -1229,7 +1268,7 @@
                     this.xVisible = -this.xTranslation/this.xyScale;
                     this.yVisible = -this.yTranslation/this.xyScale;
                     this.widthVisible = this.canvas.width/this.xyScale;
-                    this.heightVisible = this.canvas.height/this.xyScale;
+                    this.heightVisible = this.canvas.height/this.xyScale;                    
                 }
             },
             xContext: function(xScreen) {
@@ -1343,7 +1382,7 @@
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
-
+                
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
                     this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
@@ -1471,7 +1510,7 @@
                             this.hoveringPrepared = false;
                             if(this.contextMenu != null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
-                                this.contextMenu = null;
+                                this.contextMenu = null;                                
                             }
                             DrawingEngine.start(false);
                         }
@@ -1505,7 +1544,7 @@
             closeContextMenu: function() {
                 if(this.contextMenu) {
                     this.contextMenu.close();
-                    this.contextMenu = null;
+                    this.contextMenu = null;                    
                 }
             },
             keydown: function(event) {
@@ -1516,7 +1555,7 @@
                 event.wheelDelta = event.detail * -120;
                 this.mousewheel(event);
             },
-            // TODO: We need upper and lower bounds on the zoom
+            // TODO: We need upper and lower bounds on the zoom            
             mousewheel: function(event) {
                 var zoom = 1 + 10/event.wheelDelta;
                 DrawingEngine.scale(zoom);
@@ -2061,7 +2100,7 @@
                             Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
                         }
-                    }
+                    }                    
                 }
                 attribute.incomplete = attribute.isIncomplete();
                 return attribute;
@@ -2304,7 +2343,7 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
-            this.type = 'Knot';
+            this.type = 'Knot';            
         }
         Knot.prototype = {
             mnemonic: '',
@@ -2370,7 +2409,7 @@
 
                 var identity = schema.createElement("identity");
                 identity.setAttribute("generator", this.generator);
-                knot.appendChild(identity);
+                knot.appendChild(identity);                
 
                 this.addLayoutXML(knot, schema);
                 return knot;
@@ -2874,7 +2913,13 @@
                 model = models.item(i);
                 modelContainer = document.createElement('div');
                 modelContainer.modelId = model.getAttribute("modelId");
-                modelContainer.addEventListener('click', function(e) { ActionsMenu.loadModelFromCloud(this.modelId); self.close(e); }, false);
+                modelContainer.modelName = model.getAttribute("modelName");
+                modelContainer.modelScope = model.getAttribute("scope");
+                modelContainer.modelKeywords = model.getAttribute("keywords");
+                modelContainer.addEventListener('click', function(e) {
+                    Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
+                    self.close(e); 
+                }, false);
                 var icon = document.createElement('img');
                 icon.setAttribute("src", model.getAttribute("icon"));
                 var name = document.createElement("p");
@@ -2882,7 +2927,7 @@
                 name.className = 'modelName';
                 var keywords = document.createElement("p");
                 keywords.className = 'modelKeywords';
-                keywords.appendChild(document.createTextNode("keyword1, keyword2, keyword3"));
+                keywords.appendChild(document.createTextNode(model.getAttribute("keywords")));
                 modelContainer.appendChild(icon);
                 modelContainer.appendChild(name);
                 modelContainer.appendChild(keywords);
@@ -2906,6 +2951,105 @@
             }
         };
 
+        function CloudSaverPopover() {
+            DrawingEngine.stop();
+            var self = this;
+
+            this.modalBackground = new ModalBackground();
+
+            var popover = document.createElement('div');
+            popover.setAttribute("id", "cloudSaverPopover");
+            var close = document.createElement('div');
+            close.className = 'closebutton';
+            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            popover.appendChild(close);
+
+            var content = document.createElement('div');
+            content.setAttribute("id", "content");
+
+            var icon = document.createElement('img');
+            icon.setAttribute('src', DrawingEngine.miniatureCanvas.toDataURL());
+            content.appendChild(icon);
+
+            var table = document.createElement('table');
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.appendChild(document.createTextNode('Model name: '));
+            tr.appendChild(td);
+            td = document.createElement('td');
+            var modelName = document.createElement('input');
+            modelName.setAttribute('type', 'text');
+            if(Model.name && Model.name != null)
+                modelName.value = Model.name;
+            modelName.addEventListener('change', function() { Model.name = this.value; }, false);
+            td.appendChild(modelName);
+            tr.appendChild(td);
+            table.appendChild(tr);
+
+            var modelScope = document.createElement('select');
+            var publicOption = document.createElement('option');
+            publicOption.setAttribute('value', 'public');
+            publicOption.appendChild(document.createTextNode('Public'));
+            modelScope.appendChild(publicOption);
+            var privateOption = document.createElement('option');
+            privateOption.setAttribute('value', 'private');
+            privateOption.appendChild(document.createTextNode('Private'));
+            modelScope.appendChild(privateOption);
+            if(Model.scope && Model.scope != null)
+                modelScope.value = Model.scope;
+            modelScope.addEventListener('change', function() { Model.scope = this.value; }, false);
+            tr = document.createElement('tr');
+            td = document.createElement('td');
+            td.appendChild(document.createTextNode('Scope: '));
+            tr.appendChild(td);
+            td = document.createElement('td');
+            td.appendChild(modelScope);
+            tr.appendChild(td);
+            table.appendChild(tr);
+
+            var modelKeywords = document.createElement('input');
+            modelKeywords.setAttribute('type', 'text');
+            modelKeywords.setAttribute('placeholder', 'comma separated list');
+            if(Model.keywords && Model.keywords != null)
+                modelKeywords.value = Model.keywords;
+            modelKeywords.addEventListener('change', function() { Model.keywords = this.value; }, false);
+            tr = document.createElement('tr');
+            td = document.createElement('td');
+            td.appendChild(document.createTextNode('Keywords: '));
+            tr.appendChild(td);
+            td = document.createElement('td');
+            td.appendChild(modelKeywords);
+            tr.appendChild(td);
+            table.appendChild(tr);
+            content.appendChild(table);
+
+            var saveButton = document.createElement('input');
+            saveButton.setAttribute('type', 'button');
+            saveButton.className = 'saveButton';
+            saveButton.value = 'Save Model in Cloud';
+            saveButton.addEventListener('click', function(e) {
+                Actions.saveModelInCloud(false);
+                self.close(e);
+            }, false);
+            content.appendChild(saveButton);
+
+            popover.appendChild(content);
+
+            document.body.appendChild(popover);
+
+            this.popover = popover;
+            return this;
+        }
+        CloudSaverPopover.prototype = {
+            popover: null,
+            modalBackground: null,
+            close: function(event) {
+                document.body.removeChild(this.popover);
+                this.modalBackground.close();
+                DrawingEngine.start(false);
+            }
+        };        
+
         function ContextMenu(hoveredNode, selectedNodes) {
             var self = this;
 
@@ -2924,7 +3068,7 @@
             this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
             this.divider = document.createElement('div');
             this.divider.setAttribute('class', 'divider');
-
+            
             var editable;
             this.editsHaveBeenMade = false;
             this.editables = document.createElement('table');
@@ -2974,7 +3118,7 @@
                 ['addAttribute', 'Add Attribute'],
                 ['addTie', 'Add Tie'],
                 ['addAnchor', 'Add Anchor'],
-                ['addKnot', 'Add Knot'],
+                ['addKnot', 'Add Knot'],    
                 ['addTieAndAnchor', 'Add tied Anchor'],
                 ['toggleIdentifier', 'Toggle Identifier'],
                 ['connect', 'Connect', function(allNodes) {
@@ -3057,7 +3201,7 @@
                     for(var i = 0; node.edges.length; i++)
                         if(node.edges[i].node instanceof Tie)
                             node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
-                    element.checkValidity();
+                    element.checkValidity();                    
                 }
             },
             invalid: function(element, node) {
@@ -3171,7 +3315,7 @@
             }
         };
 
-        var ActionsMenu = {
+        var Actions = {
             isFiltering: false,
             filter: function(node) {
                 return node instanceof Attribute || node instanceof Knot;
@@ -3211,9 +3355,9 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
-                xmlhttp.withCredentials = true;
+                xmlhttp.withCredentials = 'true';
 
-                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
@@ -3250,12 +3394,12 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
-
+                xmlhttp.withCredentials = 'true';
+                
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
-                        alert(xmlhttp.responseText);
                         var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         new CloudBrowserPopover(modelList);
                     }
@@ -3275,23 +3419,27 @@
                     alert("Cloud connection not supported by your browser");
                 }
             },
-            loadModelFromCloud: function(modelId) {
+            loadModelFromCloud: function(modelId, modelName, modelScope, modelKeywords) {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
+                // this is needed in order for cookies to be sent with the request
+                xmlhttp.withCredentials = 'true';
 
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
-                        alert(xmlhttp.responseText);
                         var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         Model.fromXML(model);
                         Model.id = modelId;
-                        ActionsMenu.resetZoom();
-                        ActionsMenu.centerModel();
+                        Model.name = modelName;
+                        Model.scope = modelScope;
+                        Model.keywords = modelKeywords;
+                        Actions.resetZoom();
+                        Actions.centerModel();
                         Model.recordState();
                         DrawingEngine.start(false);
                     }
@@ -3313,53 +3461,57 @@
                     alert("Cloud connection not supported by your browser");
                 }
             },
-            saveModelToCloud: function() {
-                var xmlhttp = new window.XMLHttpRequest();
-                var url = "http://anchormodeler.appspot.com/anchormodeler";
-                xmlhttp.open("POST", url, true);
-                xmlhttp.withCredentials = true;
-                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
-                        var response = xmlhttp.responseText;
-                        alert(response);
-                        if(response.match(/^LOGIN:/)) {
-                            ASKBEFOREUNLOAD = false;
-                            window.location = response.replace(/^LOGIN:/, '');
-                        }
-                    }
-                };
-
-                // TODO: CloudSaverPopup here instead
-                Model.name = prompt("What is the name of the model?", Model.name ? Model.name : "");
-                Model.scope = prompt("What is the scope of the model?", Model.scope ? Model.scope : "public");
-                Model.keywords = prompt("What are the keywords for this model?", Model.keywords ? Model.keywords : "");
-
-                if(window.FormData) {
-                    var formData = new FormData();
-                    formData.append("action", "save");
-                    formData.append("modelName", Model.name);
-                    formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
-                    formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
-                    formData.append("scope", Model.scope);
-                    formData.append("keywords", Model.keywords);
-                    if(Model.id)
-                        formData.append("modelId", Model.id);
-                    xmlhttp.send(formData);
-                }
-                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                    var params = {};
-                    params.action = 'save';
-                    params.modelName = Model.name;
-                    params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
-                    params.icon = DrawingEngine.miniatureCanvas.toDataURL();
-                    params.scope = Model.scope;
-                    params.keywords = Model.keywords;
-                    if(Model.id)
-                        params.modelId = Model.id;
-                    this.sendMultiPart(xmlhttp, params);
+            saveModelInCloud: function(popover) {
+                if(popover) {
+                    new CloudSaverPopover();
                 }
                 else {
-                    alert("Cloud connection not supported by your browser");
+                    var xmlhttp = new window.XMLHttpRequest();
+                    var url = "http://anchormodeler.appspot.com/anchormodeler";
+                    xmlhttp.open("POST", url, true);
+                    xmlhttp.withCredentials = 'true';
+
+                    xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
+                        if(xmlhttp.readyState == 4) {
+                            var response = xmlhttp.responseText;
+                            if(response.match(/^LOGIN:/)) {
+                                alert("You need to log in before saving. Try to save again after loggin in!");
+                                ASKBEFOREUNLOAD = false;
+                                window.location = response.replace(/^LOGIN:/, '');
+                            }
+                            else if(response.match(/^OK/)) {
+                                alert("Model saved to cloud");
+                            }
+                        }
+                    };
+
+                    if(window.FormData) {
+                        var formData = new FormData();
+                        formData.append("action", "save");
+                        formData.append("modelName", Model.name);
+                        formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
+                        formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
+                        formData.append("scope", Model.scope);
+                        formData.append("keywords", Model.keywords);
+                        if(Model.id)
+                            formData.append("modelId", Model.id);
+                        xmlhttp.send(formData);
+                    }
+                    else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                        var params = {};
+                        params.action = 'save';
+                        params.modelName = Model.name;
+                        params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
+                        params.icon = DrawingEngine.miniatureCanvas.toDataURL();
+                        params.scope = Model.scope;
+                        params.keywords = Model.keywords;
+                        if(Model.id)
+                            params.modelId = Model.id;
+                        this.sendMultiPart(xmlhttp, params);
+                    }
+                    else {
+                        alert("Cloud connection not supported by your browser");
+                    }                    
                 }
             },
             sendMultiPart: function(xmlhttp, params) {
@@ -3446,7 +3598,7 @@
                         if(!(node instanceof Edge) && !Model.filtered[i])
                             node.drawName(maxiatureContext);
                 }
-
+                
                 window.open(maxiatureCanvas.toDataURL('image/png'), '_newtab');
                 // release memory
                 maxiatureCanvas.width = 0;
@@ -3472,7 +3624,7 @@
             }
         };
 
-        var SettingsMenu = {
+        var Settings = {
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
@@ -3808,7 +3960,7 @@
             zoomOut: function (event) {
                 this.doZoom(1/this.zoomFactor);
             }
-        };
+        };        
 
         // make sure our init function is called when the page is loaded
         window.onload = function() { try { init(this); } catch(e) { alert(e); } };
@@ -3885,15 +4037,20 @@
 
             // load previous model, if any
             var model;
-            if(model = window.localStorage.getItem("model"))
+            if(model = window.localStorage.getItem("model")) {
                 Model.fromXML(new DOMParser().parseFromString(model, 'text/xml'));
+                Model.id = window.localStorage.getItem("modelId");
+                Model.name = window.localStorage.getItem("modelName");
+                Model.scope = window.localStorage.getItem("modelScope");
+                Model.keywords = window.localStorage.getItem("modelKeywords");
+            }
             else
-                ActionsMenu.loadFromURL('example.xml');
+                Actions.loadFromURL('example.xml');
 
-            ActionsMenu.checkCloudConnectionStatus(false);
+            Actions.checkCloudConnectionStatus(false);
 
             // set values in the settings input fields
-            SettingsMenu.loadSettings(window.localStorage);
+            Settings.loadSettings(window.localStorage);
 
             // load previous scale and transform
             DrawingEngine.loadSettings(window.localStorage);
@@ -3909,13 +4066,17 @@
         };
 
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
-
+        
         function exit(window) {
             window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
-            SettingsMenu.storeSettings(window.localStorage);
+            window.localStorage.setItem("modelId", Model.id);
+            window.localStorage.setItem("modelName", Model.name);
+            window.localStorage.setItem("modelScope", Model.scope);
+            window.localStorage.setItem("modelKeywords", Model.keywords);
+            Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
         }
-
+        
         // -->
     </script>
 </head>
@@ -3937,10 +4098,10 @@
                 <li>File
                     <ul class="submenu">
                         <li onclick="Model.setupMinimal()">Empty model...</li>
-                        <li onclick="ActionsMenu.listModelsInCloud()">Load model from cloud...</li>
-                        <li onclick="ActionsMenu.saveModelToCloud()">Save model to cloud...</li>
+                        <li onclick="Actions.listModelsInCloud()">Load model from cloud...</li>
+                        <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
-                        <li onclick="ActionsMenu.loadFromURL('example.xml')">Load example model</li>
+                        <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
                     </ul>
                 </li>
             </ul>
@@ -3950,13 +4111,13 @@
             <ul class="menu">
                 <li>Layout
                     <ul class="submenu">
-                        <li onclick="ActionsMenu.toggleNames()">Toggle names</li>
-                        <li onclick="ActionsMenu.toggleShadows()">Toggle shadows</li>
-                        <li onclick="ActionsMenu.changeDetailLevel()">Change detail level</li>
-                        <li onclick="ActionsMenu.toggleFixation()">Toggle fixation</li>
-                        <li onclick="ActionsMenu.releaseAll()">Release all fixed</li>
-                        <li onclick="ActionsMenu.resetZoom();ActionsMenu.centerModel()">Reset view</li>
-                        <li onclick="ActionsMenu.randomizeLayout()">Randomize layout</li>
+                        <li onclick="Actions.toggleNames()">Toggle names</li>
+                        <li onclick="Actions.toggleShadows()">Toggle shadows</li>
+                        <li onclick="Actions.changeDetailLevel()">Change detail level</li>
+                        <li onclick="Actions.toggleFixation()">Toggle fixation</li>
+                        <li onclick="Actions.releaseAll()">Release all fixed</li>
+                        <li onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
+                        <li onclick="Actions.randomizeLayout()">Randomize layout</li>
                     </ul>
                 </li>
             </ul>
@@ -3966,13 +4127,13 @@
             <ul class="menu">
                 <li>Generate
                     <ul class="submenu">
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), 'xml2html.xsl', document), false)">XML code</li>
-                        <li onclick="ActionsMenu.generateHTML()">HTML documentation</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toXML(), DATABASE_TRANSFORM, document), true)">SQL code</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toXML(), 'xml2html.xsl', document), false)">XML code</li>
+                        <li onclick="Actions.generateHTML()">HTML documentation</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toXML(), DATABASE_TRANSFORM, document), true)">SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                        <li onclick="ActionsMenu.generatePNG()">PNG hi-res model</li>
+                        <li onclick="Actions.generatePNG()">PNG hi-res model</li>
                         <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                        <li onclick="new CodePopover(ActionsMenu.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
                     </ul>
                 </li>
             </ul>
@@ -3997,19 +4158,19 @@
             <ul class="menu">
                 <li>Settings
                     <ul id="listOfSettings" class="submenu">
-                        <li><input id="damping" type="number" min="0" max="99" step="1" onblur="SettingsMenu.setDamping(this.value)"/> % Damping</li>
-                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="SettingsMenu.setNormalDistance(this.value)"/> px Normal distance</li>
-                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
-                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
-                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="SettingsMenu.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="SettingsMenu.setInfluenceConstant(this.value)"/> Node influence factor</li>
-                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="SettingsMenu.setStiffness(this.value)"/> Edge stiffness factor</li>
-                        <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="SettingsMenu.setFPS(this.value)"/> fps Target frame rate</li>
-                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="SettingsMenu.setMiniRate(this.value)"/> Miniature refresh interval</li>
-                        <li id="calcsItem"><select id="CALCS" onchange="SettingsMenu.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Adjustable</option></select> &nbsp;Calculations</li>
-                        <li><select id="database" onchange="SettingsMenu.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
-                        <li onclick="SettingsMenu.resetSettings()">Reset settings to default values</li>
-                        <li onclick="SettingsMenu.toggleDebug()">Toggle debug</li>
+                        <li><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
+                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
+                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
+                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
+                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
+                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
+                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
+                        <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
+                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                        <li id="calcsItem"><select id="CALCS" onchange="Settings.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Adjustable</option></select> &nbsp;Calculations</li>
+                        <li><select id="database" onchange="Settings.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
+                        <li onclick="Settings.resetSettings()">Reset settings to default values</li>
+                        <li onclick="Settings.toggleDebug()">Toggle debug</li>
                     </ul>
                 </li>
             </ul>
@@ -4024,7 +4185,7 @@
         <!-- shows a navigatable miniature of the model -->
     </canvas>
 
-    <div id="cloud" class="unselectable" onclick="ActionsMenu.checkCloudConnectionStatus(true)">
+    <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
     </div>
 </body>
