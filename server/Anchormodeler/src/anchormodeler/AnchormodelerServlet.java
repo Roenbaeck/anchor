@@ -69,18 +69,17 @@ public class AnchormodelerServlet extends HttpServlet {
 				}
 			}
 
+        	String url = req.getHeader("Referer");
+        	if(url==null)
+        		url="null";
 			UserService userService = UserServiceFactory.getUserService();
 	        if (req.getUserPrincipal()!=null) {
 	           areq.user = userService.getCurrentUser();
+	           areq.logoutUrl = userService.createLogoutURL(url);
 	        } else {
 	        	//if a google account is required then return LOGIN:loginurl
-	        	String url = req.getHeader("Referer");
-	        	if(url==null)
-	        		url="null";
-	        	//String url = req.getRequestURI();
 	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(url); //req.getRequestURI());
 	        }
-
 		
 			String action = areq.stringParams.get("action");
 			action=(action == null) ? "" : action;
@@ -138,6 +137,7 @@ public class AnchormodelerServlet extends HttpServlet {
             resp.getWriter().println(areq.requireLoginMessage);
 		} else {
             resp.getWriter().println("OK: You are logged in as " + areq.user.getEmail());
+            resp.getWriter().println(areq.logoutUrl);
 		}
 	}
 
@@ -193,7 +193,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		} finally {
 			pm.close();
 		}
-		resp.getWriter().println("OK");
+		resp.getWriter().println("OK: " + KeyFactory.keyToString(m.getKey()));
 	}
 	
 	private void actionLoad(AnchorRequest areq, HttpServletResponse resp) throws IOException {
