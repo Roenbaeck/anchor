@@ -3484,6 +3484,10 @@
                             else if(response.match(/^OK/)) {
                                 alert("Model saved to cloud");
                             }
+                            else {
+                                // this is probably an error msg from the server
+                                alert(response);
+                            }
                         }
                     };
 
