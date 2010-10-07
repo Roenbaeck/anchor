@@ -47,7 +47,6 @@ public class AnchormodelerServlet extends HttpServlet {
 
 		//This is needed in combination with doOptions to allow cross-site-scripting
 		//http://hacks.mozilla.org/2009/07/cross-site-xmlhttprequest-with-cors/
-		//resp.setHeader("Access-Control-Allow-Origin", "*");
 		resp.setHeader("Access-Control-Allow-Credentials", "true");
 		String s = req.getHeader("Origin");
 		if(s!=null)
@@ -164,9 +163,12 @@ public class AnchormodelerServlet extends HttpServlet {
 		String icon = areq.stringParams.get("icon");
 		String keywords = areq.stringParams.get("keywords");
 		String scope = areq.stringParams.get("scope");
+		boolean isPublic = (scope!=null) && (scope.equalsIgnoreCase("public"));
 		String userId = areq.user.getUserId();
 		String modelId = areq.stringParams.get("modelId");
 
+		//TODO: keywords should be stored as a list in order to be queried?
+		
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
 		Model m;
@@ -174,6 +176,8 @@ public class AnchormodelerServlet extends HttpServlet {
 			m = (Model)pm.getObjectById(Model.class, KeyFactory.stringToKey(modelId));
 			if(m==null)
 				throw new ServletException("Tried to update nonexisting model with id: " + modelId);
+			if(!m.getUserId().equals(userId))
+				throw new ServletException("A public model can only be updated by the person who created it");
 		} else
 			m = new Model();
 		
@@ -182,7 +186,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setIcon(new Text(icon));
 		m.setUserId(userId);
 		m.setKeywords(keywords);
-		m.setPublic( (scope!=null) && (scope.equalsIgnoreCase("public")) );
+		m.setPublic( isPublic );
 		
 		try {
 			pm.makePersistent(m);
@@ -221,19 +225,43 @@ public class AnchormodelerServlet extends HttpServlet {
 		boolean isPublic = (scope!=null) && (scope.contains("public"));
 		boolean isPrivate = (scope!=null) && (scope.contains("private"));
 		
+		String filterBy = areq.stringParams.get("filterBy");
+		String filterValue = areq.stringParams.get("filterValue");
+		String filterString=null;
+	    if( (filterBy!=null) && (filterValue!=null) ) {
+	    	filterString=filterBy + ".contains('" + filterValue + "')";
+	    	//filterString.contains("hello");
+	    }
+	    
+	    String maxItemsReturned = areq.stringParams.get("maxItemsReturned");
+	    
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		Query query=null;
 	    try {
-		    query = pm.newQuery(Model.class);
-		    //query.setFilter("lastName == lastNameParam");
-		    //query.setOrdering("hireDate desc");
-		    //query.declareParameters("String lastNameParam");
+    		query = pm.newQuery(Model.class);
+		    
+		    int maxHits=20;
+		    if(maxItemsReturned!=null) {
+		    	maxHits=Integer.parseInt(maxItemsReturned);
+		    	if(maxHits>100)
+		    		throw new ServletException("Max 100 hits allowed");
+		    }
+		    query.setRange(0, maxHits);
+		    
+	    	String s=null;
 		    if(isPublic && isPrivate)
 		    	;
 		    else if(isPublic)
-		    	query.setFilter("isPublic == true");
+		    	s="isPublic == true";
 		    else if(isPrivate)
-		    	query.setFilter("isPublic == false");
+		    	s="isPublic == false";
+		    if(s!=null) {
+		    	filterString = ((filterString==null) ? "" : filterString + " && ") + s;
+		    }
+
+		    if(filterString!=null)
+		    	query.setFilter(filterString);
+	        List<Model> results = (List<Model>) query.execute();
 		    
 			//Format as xml http://www.roseindia.net/servlets/xm-servlet.shtml
 		    DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
@@ -243,13 +271,13 @@ public class AnchormodelerServlet extends HttpServlet {
 	        Element root = doc.createElement("Models");
 	        doc.appendChild(root);
 		    
-	        List<Model> results = (List<Model>) query.execute();
             for (Model m : results) {
             	Element child = doc.createElement("Model");
             	child.setAttribute("modelName", m.getModelName());
             	child.setAttribute("modelId", KeyFactory.keyToString(m.getKey()) );
             	child.setAttribute("icon", m.getIcon().getValue() );
             	child.setAttribute("keywords", m.getKeywords() );
+            	child.setAttribute("scope", m.isPublic() ? "public" : "private" );
             	root.appendChild(child);
             }
             
