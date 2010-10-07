@@ -3383,7 +3383,7 @@
             modelStatusText: null,
             setModelStatus: function() {
                 var statusElement = document.getElementById("model");
-                var status = "Local mode";
+                var status = "Local editing mode";
                 if(Model.name && Model.id)
                     status = "Cloud mode, editing " + Model.scope + " model: " + Model.name;
                 if(this.modelStatusText)
