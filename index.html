@@ -88,11 +88,24 @@
 
     /* shows login status to the cloud (google app engine) */
     #cloud {
-        font:               75% sans-serif;
+        font:               8pt sans-serif;
         position:           absolute;
         color:              black;
         text-align:         left;
         bottom:             12px;
+        left:               12px;
+        cursor:             pointer;
+        display:            block;
+        z-index:            10;
+    }
+
+    /* shows model name if cloud based or local */
+    #model {
+        font:               8pt sans-serif;
+        position:           absolute;
+        color:              black;
+        text-align:         left;
+        bottom:             26px;
         left:               12px;
         cursor:             pointer;
         display:            block;
@@ -799,7 +812,7 @@
             // TODO: save these in local storage
             // these are used in the cloud
             name: null,
-            scope: null,
+            scope: 'public',
             keywords: null,
             id: null,
             // other members
@@ -814,6 +827,10 @@
             version: -1,
             versions: [],
             empty: function() {
+                this.name = null;
+                this.scope = 'public';
+                this.keywords = null;
+                this.id = null;
                 this.nodes = [];
                 this.edges = [];
                 this.shadowToNode = {};
@@ -848,6 +865,7 @@
             setupMinimal: function() {
                 if(confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!")) {
                     this.empty();
+                    Actions.setModelStatus();
                     CanvasEventHandler.clearSelection();
                     DrawingEngine.reset();
                     this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
@@ -3023,11 +3041,23 @@
             table.appendChild(tr);
             content.appendChild(table);
 
+            if(Model.id) {
+                var overwriteButton = document.createElement('input');
+                overwriteButton.setAttribute('type', 'button');
+                overwriteButton.className = 'overwriteButton';
+                overwriteButton.value = 'Overwrite';
+                overwriteButton.addEventListener('click', function(e) {
+                    Actions.saveModelInCloud(false);
+                    self.close(e);
+                }, false);
+                content.appendChild(overwriteButton);
+            }
             var saveButton = document.createElement('input');
             saveButton.setAttribute('type', 'button');
             saveButton.className = 'saveButton';
-            saveButton.value = 'Save Model in Cloud';
+            saveButton.value = 'Save New';
             saveButton.addEventListener('click', function(e) {
+                Model.id = null;
                 Actions.saveModelInCloud(false);
                 self.close(e);
             }, false);
@@ -3341,6 +3371,7 @@
                     xmlhttp.open("GET", url, false);
                     xmlhttp.send(null);
                     Model.fromXML(xmlhttp.responseXML);
+                    Actions.setModelStatus();
                     Model.recordState();
                     DrawingEngine.reset();
                     DrawingEngine.start(true);
@@ -3348,6 +3379,17 @@
                 catch(exception){
                     alert(exception);
                 }
+            },
+            modelStatusText: null,
+            setModelStatus: function() {
+                var statusElement = document.getElementById("model");
+                var status = "Local mode";
+                if(Model.name && Model.id)
+                    status = "Cloud mode, editing " + Model.scope + " model: " + Model.name;
+                if(this.modelStatusText)
+                    statusElement.removeChild(this.modelStatusText);
+                this.modelStatusText = document.createTextNode(status);
+                statusElement.appendChild(this.modelStatusText);
             },
             checkCloudConnectionStatus: function(redirect) {
                 window.status = "Contacting Cloud...";
@@ -3371,6 +3413,7 @@
                         }
                         else
                             statusElement.appendChild(document.createTextNode("Not logged in"));
+                        Actions.setModelStatus();
                     }
                 };
 
@@ -3440,6 +3483,7 @@
                         Model.name = modelName;
                         Model.scope = modelScope;
                         Model.keywords = modelKeywords;
+                        Actions.setModelStatus();
                         Actions.resetZoom();
                         Actions.centerModel();
                         Model.recordState();
@@ -3481,8 +3525,11 @@
                                 ASKBEFOREUNLOAD = false;
                                 window.location = response.replace(/^LOGIN:/, '');
                             }
-                            else if(response.match(/^OK/)) {
-                                alert("Model saved to cloud");
+                            else if(response.match(/^OK:/)) {
+                                var modelId = response.replace(/^OK:/, '').replace(/^[^\S]+/,'').replace(/[^\S]+$/,'');
+                                Model.id = modelId;
+                                Actions.setModelStatus();
+                                alert("Model saved in cloud as: " + Model.name);
                             }
                             else {
                                 // this is probably an error msg from the server
@@ -3497,7 +3544,7 @@
                         formData.append("modelName", Model.name);
                         formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
                         formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
-                        formData.append("scope", Model.scope);
+                        formData.append("scope", Model.scope || "public");
                         formData.append("keywords", Model.keywords);
                         if(Model.id)
                             formData.append("modelId", Model.id);
@@ -3509,7 +3556,7 @@
                         params.modelName = Model.name;
                         params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
                         params.icon = DrawingEngine.miniatureCanvas.toDataURL();
-                        params.scope = Model.scope;
+                        params.scope = Model.scope || "public";
                         params.keywords = Model.keywords;
                         if(Model.id)
                             params.modelId = Model.id;
@@ -4103,7 +4150,7 @@
             <ul class="menu">
                 <li>File
                     <ul class="submenu">
-                        <li onclick="Model.setupMinimal()">Empty model...</li>
+                        <li onclick="Model.setupMinimal()">New model...</li>
                         <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                         <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                         <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
@@ -4193,6 +4240,9 @@
     </canvas>
 
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
+        <!-- filled dynamically -->
+    </div>
+    <div id="model" class="unselectable">
         <!-- filled dynamically -->
     </div>
 </body>
