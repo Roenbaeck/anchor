@@ -13,5 +13,6 @@ public class AnchorRequest {
 
 	public User user;
 	public String requireLoginMessage;
+	public String logoutUrl;
 	
 }
