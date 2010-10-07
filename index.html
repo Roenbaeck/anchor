@@ -4121,11 +4121,17 @@
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
         
         function exit(window) {
-            window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
-            window.localStorage.setItem("modelId", Model.id);
-            window.localStorage.setItem("modelName", Model.name);
-            window.localStorage.setItem("modelScope", Model.scope);
-            window.localStorage.setItem("modelKeywords", Model.keywords);
+            window.localStorage.clear();
+            if(Model.nodes.length)
+                window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
+            if(Model.id)
+                window.localStorage.setItem("modelId", Model.id);
+            if(Model.name)
+                window.localStorage.setItem("modelName", Model.name);
+            if(Model.scope)
+                window.localStorage.setItem("modelScope", Model.scope);
+            if(Model.keywords)
+                window.localStorage.setItem("modelKeywords", Model.keywords);
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
         }
