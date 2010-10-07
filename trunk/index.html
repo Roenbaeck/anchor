@@ -271,7 +271,7 @@
         margin-bottom:      20px;
     }
     #cloudSaverPopover #content td {
-        font:               100% georgia, sans-serif;
+        font:               84% georgia, sans-serif;
         color:              black;
         padding-top:        5px;
         text-align:         left;
@@ -2914,7 +2914,7 @@
                 modelContainer = document.createElement('div');
                 modelContainer.modelId = model.getAttribute("modelId");
                 modelContainer.modelName = model.getAttribute("modelName");
-                modelContainer.modelScope = model.getAttribute("scope");
+                modelContainer.modelScope = model.getAttribute("scope") || "private";
                 modelContainer.modelKeywords = model.getAttribute("keywords");
                 modelContainer.addEventListener('click', function(e) {
                     Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
@@ -3388,7 +3388,7 @@
                     alert("Cloud connection not supported by your browser");
                 }
             },
-            listModelsInCloud: function() {
+            listModelsInCloud: function(scope) {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
@@ -3408,11 +3408,13 @@
                 if(window.FormData) {
                     var formData = new FormData();
                     formData.append("action", "list");
+                    formData.append("scope", scope);
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
                     var params = {};
                     params.action = 'list';
+                    params.scope = scope;
                     this.sendMultiPart(xmlhttp, params);
                 }
                 else {
@@ -4098,7 +4100,8 @@
                 <li>File
                     <ul class="submenu">
                         <li onclick="Model.setupMinimal()">Empty model...</li>
-                        <li onclick="Actions.listModelsInCloud()">Load model from cloud...</li>
+                        <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
+                        <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                         <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
