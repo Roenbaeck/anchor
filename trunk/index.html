@@ -160,7 +160,7 @@
     .collapsed:hover {
         background-color:   #fa5;
     }
-    
+
     .operators {
         position:           relative;
         margin:             0px 5px 5px 5px;
@@ -233,7 +233,7 @@
     }
     #cloudBrowserPopover #content img {
         background:         #fff;
-        border:             1px solid black; 
+        border:             1px solid black;
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -242,7 +242,7 @@
         font:               100% georgia, sans-serif;
     }
     .modelKeywords {
-        font:               75% georgia, sans-serif;        
+        font:               75% georgia, sans-serif;
     }
 
 
@@ -263,7 +263,7 @@
         display:            inherit;
         position:           relative;
     }
-    
+
     #content {
         position:           relative;
         margin-top:         -30px;
@@ -297,7 +297,7 @@
         font-style:         italic;
     }
     .preformatted {
-        white-space:        pre;        
+        white-space:        pre;
     }
 
 
@@ -422,7 +422,7 @@
         z-index:            9;
     }
     #controls .playing {
-        background-color:   #fa5;      
+        background-color:   #fa5;
     }
     #controls .pausing {
         /* just go back to normal */
@@ -432,7 +432,7 @@
         position:           relative;
         top:                0;
         display:            inline-block;
-        width:              150px; 
+        width:              150px;
         height:             16px;
         padding:            8px 0 8px 20px;
         margin:             0;
@@ -454,7 +454,7 @@
     #controls div + div {
         margin-left:        -50px;
     }
-    
+
     </style>
 
     <script type="text/javascript">
@@ -477,7 +477,7 @@
         var CALCS = 'simple';
 
         var ASKBEFOREUNLOAD = true;
-        
+
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
@@ -873,7 +873,7 @@
                 // the edge is also a node
                 if(edge) {
                     this.addNode(edge);
-                    this.edges[this.edges.length] = edge;                    
+                    this.edges[this.edges.length] = edge;
                 }
             },
             removeEdge: function(edge) {
@@ -1029,7 +1029,7 @@
                         knot = nodes[i];
                 }
                 if(anchor && tie) {
-                    this.addEdge(new Edge(tie, anchor, false));                    
+                    this.addEdge(new Edge(tie, anchor, false));
                 }
                 else if (attribute && knot) {
                     attribute.setKnotted(true);
@@ -1229,7 +1229,7 @@
                     this.xVisible = -this.xTranslation/this.xyScale;
                     this.yVisible = -this.yTranslation/this.xyScale;
                     this.widthVisible = this.canvas.width/this.xyScale;
-                    this.heightVisible = this.canvas.height/this.xyScale;                    
+                    this.heightVisible = this.canvas.height/this.xyScale;
                 }
             },
             xContext: function(xScreen) {
@@ -1343,7 +1343,7 @@
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
-                
+
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
                     this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
@@ -1471,7 +1471,7 @@
                             this.hoveringPrepared = false;
                             if(this.contextMenu != null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
-                                this.contextMenu = null;                                
+                                this.contextMenu = null;
                             }
                             DrawingEngine.start(false);
                         }
@@ -1505,7 +1505,7 @@
             closeContextMenu: function() {
                 if(this.contextMenu) {
                     this.contextMenu.close();
-                    this.contextMenu = null;                    
+                    this.contextMenu = null;
                 }
             },
             keydown: function(event) {
@@ -1516,7 +1516,7 @@
                 event.wheelDelta = event.detail * -120;
                 this.mousewheel(event);
             },
-            // TODO: We need upper and lower bounds on the zoom            
+            // TODO: We need upper and lower bounds on the zoom
             mousewheel: function(event) {
                 var zoom = 1 + 10/event.wheelDelta;
                 DrawingEngine.scale(zoom);
@@ -2061,7 +2061,7 @@
                             Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
                         }
-                    }                    
+                    }
                 }
                 attribute.incomplete = attribute.isIncomplete();
                 return attribute;
@@ -2304,7 +2304,7 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
-            this.type = 'Knot';            
+            this.type = 'Knot';
         }
         Knot.prototype = {
             mnemonic: '',
@@ -2370,7 +2370,7 @@
 
                 var identity = schema.createElement("identity");
                 identity.setAttribute("generator", this.generator);
-                knot.appendChild(identity);                
+                knot.appendChild(identity);
 
                 this.addLayoutXML(knot, schema);
                 return knot;
@@ -2924,7 +2924,7 @@
             this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
             this.divider = document.createElement('div');
             this.divider.setAttribute('class', 'divider');
-            
+
             var editable;
             this.editsHaveBeenMade = false;
             this.editables = document.createElement('table');
@@ -2974,7 +2974,7 @@
                 ['addAttribute', 'Add Attribute'],
                 ['addTie', 'Add Tie'],
                 ['addAnchor', 'Add Anchor'],
-                ['addKnot', 'Add Knot'],    
+                ['addKnot', 'Add Knot'],
                 ['addTieAndAnchor', 'Add tied Anchor'],
                 ['toggleIdentifier', 'Toggle Identifier'],
                 ['connect', 'Connect', function(allNodes) {
@@ -3057,7 +3057,7 @@
                     for(var i = 0; node.edges.length; i++)
                         if(node.edges[i].node instanceof Tie)
                             node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
-                    element.checkValidity();                    
+                    element.checkValidity();
                 }
             },
             invalid: function(element, node) {
@@ -3211,6 +3211,7 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
+                xmlhttp.withCredentials = true;
 
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
@@ -3249,7 +3250,7 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
-                
+
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
@@ -3316,6 +3317,7 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
+                xmlhttp.withCredentials = true;
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         var response = xmlhttp.responseText;
@@ -3444,7 +3446,7 @@
                         if(!(node instanceof Edge) && !Model.filtered[i])
                             node.drawName(maxiatureContext);
                 }
-                
+
                 window.open(maxiatureCanvas.toDataURL('image/png'), '_newtab');
                 // release memory
                 maxiatureCanvas.width = 0;
@@ -3806,7 +3808,7 @@
             zoomOut: function (event) {
                 this.doZoom(1/this.zoomFactor);
             }
-        };        
+        };
 
         // make sure our init function is called when the page is loaded
         window.onload = function() { try { init(this); } catch(e) { alert(e); } };
@@ -3907,13 +3909,13 @@
         };
 
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
-        
+
         function exit(window) {
             window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
             SettingsMenu.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
         }
-        
+
         // -->
     </script>
 </head>
