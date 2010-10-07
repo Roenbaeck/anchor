@@ -47,7 +47,13 @@ public class AnchormodelerServlet extends HttpServlet {
 
 		//This is needed in combination with doOptions to allow cross-site-scripting
 		//http://hacks.mozilla.org/2009/07/cross-site-xmlhttprequest-with-cors/
-		resp.setHeader("Access-Control-Allow-Origin", "*");
+		//resp.setHeader("Access-Control-Allow-Origin", "*");
+		resp.setHeader("Access-Control-Allow-Credentials", "true");
+		String s = req.getHeader("Origin");
+		if(s!=null)
+			resp.setHeader("Access-Control-Allow-Origin", s);
+		else
+			resp.setHeader("Access-Control-Allow-Origin", "*");
 		
 		ServletFileUpload upload = new ServletFileUpload();
 		AnchorRequest areq = new AnchorRequest();
@@ -69,10 +75,10 @@ public class AnchormodelerServlet extends HttpServlet {
 	           areq.user = userService.getCurrentUser();
 	        } else {
 	        	//if a google account is required then return LOGIN:loginurl
-	        	//String url = req.getHeader("Referer");
-	        	//if(url==null)
-	        	//	url="null";
-	        	String url = req.getRequestURI();
+	        	String url = req.getHeader("Referer");
+	        	if(url==null)
+	        		url="null";
+	        	//String url = req.getRequestURI();
 	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(url); //req.getRequestURI());
 	        }
 
@@ -107,17 +113,18 @@ public class AnchormodelerServlet extends HttpServlet {
 		// implements
 		// UMP at this time. So, we reply to the OPTIONS request to trick
 		// browsers into effectively implementing UMP.
+		//super.doOptions(req, resp);
 		String s;
 		
-		s = req.getParameter("Origin");
+		s = req.getHeader("Origin");
 		if(s!=null)
 			resp.setHeader("Access-Control-Allow-Origin", s);
 		else
 			resp.setHeader("Access-Control-Allow-Origin", "*");
 
-		resp.setHeader("Access-Control-Allow-Methods", "POST");
+		resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 
-		s = req.getParameter("Access-Control-Request-Headers");
+		s = req.getHeader("Access-Control-Request-Headers");
 		if(s!=null)
 			resp.setHeader("Access-Control-Allow-Headers", s);
 		else
