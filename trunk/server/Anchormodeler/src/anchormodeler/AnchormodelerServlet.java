@@ -224,6 +224,11 @@ public class AnchormodelerServlet extends HttpServlet {
 		String scope = areq.stringParams.get("scope");
 		boolean isPublic = (scope!=null) && (scope.contains("public"));
 		boolean isPrivate = (scope!=null) && (scope.contains("private"));
+
+		if(isPrivate && (areq.user==null)) {
+            resp.getWriter().println(areq.requireLoginMessage);
+			return;
+		}
 		
 		String filterBy = areq.stringParams.get("filterBy");
 		String filterValue = areq.stringParams.get("filterValue");
@@ -253,8 +258,10 @@ public class AnchormodelerServlet extends HttpServlet {
 		    	;
 		    else if(isPublic)
 		    	s="isPublic == true";
-		    else if(isPrivate)
-		    	s="isPublic == false";
+		    else if(isPrivate) {
+				String userId = areq.user.getUserId();
+		    	s="(isPublic == false) && (userId == '" + userId + "')";
+		    }
 		    if(s!=null) {
 		    	filterString = ((filterString==null) ? "" : filterString + " && ") + s;
 		    }
