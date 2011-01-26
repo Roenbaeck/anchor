@@ -570,6 +570,8 @@
         var CALCS = 'simple';
 
         var ASKBEFOREUNLOAD = true;
+
+        var LOGGED_IN = false;
         
         // create a singleton
         var LayoutEngine = {
@@ -1358,7 +1360,7 @@
             getNodeAt: function(x, y) {
                 // clear the shadow context
                 this.shadowContext.fillStyle = '#000000';
-                this.shadowContext.fillRect(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+                this.shadowContext.fillRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 var i, node;
                 // draw all nodes on the shadow context
@@ -3510,12 +3512,14 @@
                             var login = lines[0].replace(/^OK:/, '').replace(/^[^\S]+/,'');
                             Actions.cloudStatusText = document.createTextNode(login);
                             statusElement.appendChild(Actions.cloudStatusText);
+                            LOGGED_IN = true;
                         }
                         else if(response.match(/^LOGIN:/) && redirect) {
                             Actions.cloudStatusText = document.createTextNode("Logging in...");
                             statusElement.appendChild(Actions.cloudStatusText);
                             ASKBEFOREUNLOAD = false;
                             window.location = response.replace(/^LOGIN:/, '').replace(/^[^\S]+/,'');
+                            LOGGED_IN = true;
                         }
                         else if(response.match(/^OK:/) && redirect) {
                             Actions.cloudStatusText = document.createTextNode("Logging out...");
@@ -3523,10 +3527,12 @@
                             ASKBEFOREUNLOAD = false;
                             lines = response.split(/[\r\n]/);
                             window.location = lines[1];
+                            LOGGED_IN = false;
                         }
                         else {
                             Actions.cloudStatusText = document.createTextNode("Not logged in");
                             statusElement.appendChild(Actions.cloudStatusText);
+                            LOGGED_IN = false;
                         }
                         Actions.setModelStatus();
                     }
@@ -3549,6 +3555,12 @@
             listModelsInCloud: function(scope) {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
+
+                if(scope == 'private' && !LOGGED_IN) {
+                    alert("You need to log in to reach your private models. Try again after logging in!");
+                    this.checkCloudConnectionStatus(true);
+                }
+                
                 var xmlhttp = new window.XMLHttpRequest();
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
                 xmlhttp.open("POST", url, true);
@@ -3639,7 +3651,7 @@
                         if(xmlhttp.readyState == 4) {
                             var response = xmlhttp.responseText;
                             if(response.match(/^LOGIN:/)) {
-                                alert("You need to log in before saving. Try to save again after loggin in!");
+                                alert("You need to log in before saving. Try to save again after logging in!");
                                 ASKBEFOREUNLOAD = false;
                                 window.location = response.replace(/^LOGIN:/, '');
                             }
@@ -4321,8 +4333,18 @@
                         <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
                         <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
                         <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
-                        <li id="calcsItem"><select id="CALCS" onchange="Settings.setCalculations(this.value)"><option value="simple" selected="selected">Simplified</option><option value="complex">Adjustable</option></select> &nbsp;Calculations</li>
-                        <li><select id="database" onchange="Settings.setDatabase(this.value)"><option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option></select> &nbsp;Target database</li>
+                        <li id="calcsItem">
+                            <select id="CALCS" onchange="Settings.setCalculations(this.value)">
+                                <option value="simple" selected="selected">Simplified</option>
+                                <option value="complex">Adjustable</option>
+                            </select> &nbsp;Calculations
+                        </li>
+                        <li>
+                            <select id="database" onchange="Settings.setDatabase(this.value)">
+                                <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
+                                <option value="Oracle.xsl">Oracle</option>
+                            </select> &nbsp;Target database
+                        </li>
                         <li onclick="Settings.resetSettings()">Reset settings to default values</li>
                         <li onclick="Settings.toggleDebug()">Toggle debug</li>
                     </ul>
