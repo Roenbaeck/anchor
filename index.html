@@ -2154,6 +2154,7 @@
                 var attribute = new Attribute(x, y, historized);
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
+                attribute.setHistorized(historized);
                 attribute.timeRange = timeRange;
                 attribute.dataRange = dataRange;
                 attribute.description = description ? description.firstChild.nodeValue : '';
@@ -2641,6 +2642,7 @@
                 var historized = timeRange ? true : false;
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
+                tie.setHistorized(historized);
                 tie.timeRange = timeRange;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
