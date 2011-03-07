@@ -34,10 +34,15 @@ import com.google.appengine.api.users.UserServiceFactory;
 @SuppressWarnings("serial")
 public class AnchormodelerServlet extends HttpServlet {
 
-	public void doGet(HttpServletRequest req, HttpServletResponse resp)
-			throws IOException {
-		resp.setContentType("text/plain");
-		resp.getWriter().println("Anchormodeler server");
+	public void doGet(HttpServletRequest req, HttpServletResponse resp)	throws IOException {
+		String url = req.getParameter("redirect");
+		if((url!=null) && (url.length()>0)) {
+			//Redirect to specified page
+			resp.sendRedirect(url);
+		} else {
+			resp.setContentType("text/plain");
+			resp.getWriter().println("Anchormodeler server");
+		}
 	}
 
 	@Override
@@ -78,6 +83,9 @@ public class AnchormodelerServlet extends HttpServlet {
 	           areq.logoutUrl = userService.createLogoutURL(url);
 	        } else {
 	        	//if a google account is required then return LOGIN:loginurl
+	        	//createLoginUrl requires that the continue-url is on the same server so we redirect to the referrer page instead as a workaround
+	        	//TODO: avoid using hardcoded serveraddress here
+	        	url="http://anchormodeler.appspot.com/anchormodeler?redirect=" + url;	        	
 	        	areq.requireLoginMessage="LOGIN: " + userService.createLoginURL(url); //req.getRequestURI());
 	        }
 		
@@ -115,7 +123,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		String s;
 		
 		s = req.getHeader("Origin");
-		if(s!=null)
+		if((s!=null) && (!s.equals("null")))
 			resp.setHeader("Access-Control-Allow-Origin", s);
 		else
 			resp.setHeader("Access-Control-Allow-Origin", "*");
