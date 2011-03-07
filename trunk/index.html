@@ -1619,8 +1619,30 @@
                     this.contextMenu = null;                    
                 }
             },
-            keydown: function(event) {
-                // not used at the moment
+            // TODO: we need some way to disable when we expect regular input
+            keypress: function(event) {
+                if(this.hoveredNode || this.selectedNodes.length > 0) {
+                    var allNodes = this.selectedNodes.slice(0);
+                    if(this.hoveredNode && allNodes.indexOf(this.hoveredNode) < 0)
+                        allNodes.push(this.hoveredNode);
+                    switch(String.fromCharCode(event.which)) {
+                        case "e":
+                            if(!this.contextMenu)
+                                this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
+                            this.contextMenu.toggle();
+                            break;
+                        case "a":
+                            if(this.isSupported("addAttribute", allNodes))
+                                Model.addAttribute(allNodes);
+                            break;
+                    }
+                }
+            },
+            isSupported: function(operation, nodes) {
+                for(var i = 0; i < nodes.length; i++)
+                    if(nodes[i].operations.indexOf(operation) < 0)
+                        return false;
+                return true;
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
@@ -4241,8 +4263,8 @@
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
 
             // setting a listener on the canvas did not work, so this is a workaround
-            // we are currently not listening to keyboard events
-            // window.onkeydown = CanvasEventHandler.handleEvent;
+            // not used now
+            // window.onkeypress = CanvasEventHandler.handleEvent;
 
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
             miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
