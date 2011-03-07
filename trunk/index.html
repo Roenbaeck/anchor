@@ -1530,6 +1530,13 @@
             hoveringId: null,
             hoveredNode: null,
             selectedNodes: [],
+            keyboardShortcuts: true,
+            disableKeyboardShortcuts: function() {
+                this.keyboardShortcuts = false;
+            },
+            enableKeyboardShortcuts: function() {
+                this.keyboardShortcuts = true;
+            },
             mousedown: function(event) {
                 if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen)) {
                     if(event.shiftKey) {
@@ -1619,22 +1626,49 @@
                     this.contextMenu = null;                    
                 }
             },
-            // TODO: we need some way to disable when we expect regular input
             keypress: function(event) {
-                if(this.hoveredNode || this.selectedNodes.length > 0) {
-                    var allNodes = this.selectedNodes.slice(0);
-                    if(this.hoveredNode && allNodes.indexOf(this.hoveredNode) < 0)
-                        allNodes.push(this.hoveredNode);
-                    switch(String.fromCharCode(event.which)) {
-                        case "e":
-                            if(!this.contextMenu)
-                                this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
-                            this.contextMenu.toggle();
-                            break;
-                        case "a":
-                            if(this.isSupported("addAttribute", allNodes))
-                                Model.addAttribute(allNodes);
-                            break;
+                if(this.keyboardShortcuts) {
+                    if(this.hoveredNode || this.selectedNodes.length > 0) {
+                        var allNodes = this.selectedNodes.slice(0);
+                        if(this.hoveredNode && allNodes.indexOf(this.hoveredNode) < 0)
+                            allNodes.push(this.hoveredNode);
+                        switch(String.fromCharCode(event.which)) {
+                            case "e":
+                                if(!this.contextMenu)
+                                    this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
+                                this.contextMenu.toggle();
+                                break;
+                            case "a":
+                                if(this.isSupported("addAttribute", allNodes))
+                                    Model.addAttribute(allNodes);
+                                else if(this.isSupported("addAnchor", allNodes))
+                                    Model.addAnchor(allNodes);
+                                break;
+                            case "t":
+                                if(this.isSupported("addTieAndAnchor", allNodes))
+                                    Model.addTieAndAnchor(allNodes);
+                                else if(this.isSupported("addTie", allNodes))
+                                    Model.addTie(allNodes);
+                                break;
+                            case "c":
+                                if(this.isSupported("connect", allNodes))
+                                    Model.connect(allNodes);
+                                break;
+                            case "h":
+                                if(this.isSupported("toggleHistorized", allNodes))
+                                    Model.toggleHistorized(allNodes);
+                                break;
+                            case "k":
+                                if(this.isSupported("toggleKnotted", allNodes))
+                                    Model.toggleKnotted(allNodes);
+                                else if(this.isSupported("addKnot", allNodes))
+                                    Model.addKnot(allNodes);
+                                break;
+                            case "i":
+                                if(this.isSupported("toggleIdentifier", allNodes))
+                                    Model.toggleIdentifier(allNodes);
+                                break;
+                        }
                     }
                 }
             },
@@ -2983,6 +3017,7 @@
         }
 
         function ModalBackground() {
+            CanvasEventHandler.disableKeyboardShortcuts();
             var modalBackground = document.createElement('div');
             modalBackground.setAttribute("id", "modalBackground");
             modalBackground.style.width = window.innerWidth + 'px';
@@ -2995,6 +3030,7 @@
             modalBackground: null,
             close: function(event) {
                 document.body.removeChild(this.modalBackground);
+                CanvasEventHandler.enableKeyboardShortcuts();
             }
         };
 
@@ -3317,7 +3353,7 @@
                 ['addAttribute', 'Add Attribute'],
                 ['addTie', 'Add Tie'],
                 ['addAnchor', 'Add Anchor'],
-                ['addKnot', 'Add Knot'],    
+                ['addKnot', 'Add Knot'],
                 ['addTieAndAnchor', 'Add tied Anchor'],
                 ['toggleIdentifier', 'Toggle Identifier'],
                 ['connect', 'Connect', function(allNodes) {
@@ -4264,7 +4300,7 @@
 
             // setting a listener on the canvas did not work, so this is a workaround
             // not used now
-            // window.onkeypress = CanvasEventHandler.handleEvent;
+            window.onkeypress = CanvasEventHandler.handleEvent;
 
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
             miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
