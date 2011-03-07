@@ -2077,6 +2077,12 @@
             timeRange: '',
             historized: false,
             knotted: false,
+            getMass: function() {
+                return Attribute.mass;
+            },
+            getCharge: function() {
+                return Attribute.charge;
+            },
             isConforming: function() {
                 var i, edge, anchor, otherNode;
                 // first find the anchor
@@ -2097,12 +2103,6 @@
                     }
                 }
                 return true;
-            },
-            getMass: function() {
-                return Attribute.mass;
-            },
-            getCharge: function() {
-                return Attribute.charge;
             },
             setHistorized: function(historized) {
                 var index = this.editables.indexOf(Editables.timeRangeEdit);
@@ -2442,6 +2442,24 @@
             nameXOffset: function() {
                 return 18;
             },
+            isConforming: function() {
+                var i, node, knot, knots = [];
+                // first find the knots
+                for(i = 0; node = Model.nodes[i]; i++) {
+                    if(node instanceof Knot) {
+                        knots.push(node);
+                    }
+                }
+                // then check mnemonic uniqueness
+                for(i = 0; knot = knots[i]; i++) {
+                    if(knot != this && knot.mnemonic == this.mnemonic) {
+                        alert("The mnemonic '" + this.mnemonic + "' is not unique among other knots in the model. " +
+                                "Please change to a different mnemonic in order to continue.");
+                        return false;
+                    }
+                }
+                return true;
+            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -2552,6 +2570,35 @@
             },
             getCharge: function() {
                 return Tie.charge;
+            },
+            toString: function() {
+                var i, edge, name="";
+                for(i = 0; edge = this.edges[i]; i++) {
+                    if(i > 0)
+                        name += "_";
+                    name += edge.otherNode.mnemonic + "_" + edge.role;
+                }
+                return name;
+            },
+            isConforming: function() {
+                var i, j, edge, node, roles = {}, identical;
+                // first find the anchors and knots connected to this tie
+                for(i = 0; edge = this.edges[i]; i++)
+                    roles[edge.role + "_" + (edge.node == this ? edge.otherNode : edge.node)] = true;
+                // then find all other ties of the same cardinality
+                for(i = 0; node = Model.nodes[i]; i++) {
+                    if(node instanceof Tie && node != this && node.edges.length == this.edges.length) {
+                        identical = true;
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            identical &= roles[edge.role + "_" + (edge.node == node ? edge.otherNode : edge.node)];
+                        }
+                        if(identical) {
+                            alert("This tie will become identical to the already existing tie named " + node + ". Please rename the role.");
+                            return false;
+                        }
+                    }
+                }
+                return true;
             },
             setHistorized: function(historized) {
                 var index = this.editables.indexOf(Editables.timeRangeEdit);
@@ -3326,10 +3373,7 @@
                     element.editable.setMember(element, node);
                     if(node.node instanceof Tie)
                         node.node.incomplete = node.node.isIncomplete();
-                    for(var i = 0; node.edges.length; i++)
-                        if(node.edges[i].node instanceof Tie)
-                            node.edges[i].node.incomplete = node.edges[i].node.isIncomplete();
-                    element.checkValidity();                    
+                    element.checkValidity();
                 }
             },
             invalid: function(element, node) {
