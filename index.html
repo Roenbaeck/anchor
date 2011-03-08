@@ -1639,44 +1639,44 @@
                                 this.contextMenu.toggle();
                                 break;
                             case "a":
-                                if(this.isSupported("addAttribute", allNodes))
+                                if(Operations.isSupported("addAttribute", allNodes))
                                     Model.addAttribute(allNodes);
-                                else if(this.isSupported("addAnchor", allNodes))
+                                else if(Operations.isSupported("addAnchor", allNodes))
                                     Model.addAnchor(allNodes);
                                 break;
                             case "t":
-                                if(this.isSupported("addTieAndAnchor", allNodes))
-                                    Model.addTieAndAnchor(allNodes);
-                                else if(this.isSupported("addTie", allNodes))
+                                if(Operations.isSupported("addTie", allNodes) && this.selectedNodes.length > 0)
                                     Model.addTie(allNodes);
+                                else if(Operations.isSupported("addTieAndAnchor", allNodes))
+                                    Model.addTieAndAnchor(allNodes);
                                 break;
                             case "c":
-                                if(this.isSupported("connect", allNodes))
-                                    Model.connect(allNodes);
+                                if(Operations.isSupported("connect", allNodes)) {
+                                    var i, operation, validator;
+                                    for(i = 0; operation = Operations.list[i]; i++)
+                                        if(operation[0] == "connect")
+                                            validator = operation[2];
+                                    if(validator(allNodes))
+                                        Model.connect(allNodes);
+                                }
                                 break;
                             case "h":
-                                if(this.isSupported("toggleHistorized", allNodes))
+                                if(Operations.isSupported("toggleHistorized", allNodes))
                                     Model.toggleHistorized(allNodes);
                                 break;
                             case "k":
-                                if(this.isSupported("toggleKnotted", allNodes))
+                                if(Operations.isSupported("toggleKnotted", allNodes))
                                     Model.toggleKnotted(allNodes);
-                                else if(this.isSupported("addKnot", allNodes))
+                                else if(Operations.isSupported("addKnot", allNodes))
                                     Model.addKnot(allNodes);
                                 break;
                             case "i":
-                                if(this.isSupported("toggleIdentifier", allNodes))
+                                if(Operations.isSupported("toggleIdentifier", allNodes))
                                     Model.toggleIdentifier(allNodes);
                                 break;
                         }
                     }
                 }
-            },
-            isSupported: function(operation, nodes) {
-                for(var i = 0; i < nodes.length; i++)
-                    if(nodes[i].operations.indexOf(operation) < 0)
-                        return false;
-                return true;
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
@@ -3283,7 +3283,46 @@
                 this.modalBackground.close();
                 DrawingEngine.start(false);
             }
-        };        
+        };
+
+        var Operations = {
+            // operations are defined as 'method', 'display name', 'optional rule'
+            list: [
+                ['erase', 'Delete selected...'],
+                ['toggleKnotted', 'Toggle Knotted'], // TODO: only remove knot if it is the last attribute
+                ['toggleHistorized', 'Toggle Historized'],
+                ['addAttribute', 'Add Attribute'],
+                ['addTie', 'Add Tie'],
+                ['addAnchor', 'Add Anchor'],
+                ['addKnot', 'Add Knot'],
+                ['addTieAndAnchor', 'Add tied Anchor'],
+                ['toggleIdentifier', 'Toggle Identifier'],
+                ['connect', 'Connect', function(allNodes) {
+                    if(allNodes.length != 2)
+                        return false;
+                    var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                    for(var i = 0; node = allNodes[i]; i++) {
+                        if(node instanceof Anchor)
+                            anchors++;
+                        else if(node instanceof Tie)
+                            ties++;
+                        else if(node instanceof Knot)
+                            knots++;
+                        else if(node instanceof Attribute) {
+                            attributes++;
+                            knotted = node.getKnotted();
+                        }
+                    }
+                    return anchors && ties || knots && ties || attributes && knots && !knotted;
+                }]
+            ],
+            isSupported: function(operation, nodes) {
+                for(var i = 0; i < nodes.length; i++)
+                    if(nodes[i].operations.indexOf(operation) < 0)
+                        return false;
+                return true;
+            }
+        };
 
         function ContextMenu(hoveredNode, selectedNodes) {
             var self = this;
@@ -3345,36 +3384,7 @@
             else {
                 this.topper.appendChild(document.createTextNode("Edit selection"));
             }
-            // operations are defined as 'method', 'display name', 'optional rule'
-            var allOperations = [
-                ['erase', 'Delete selected...'],
-                ['toggleKnotted', 'Toggle Knotted'], // TODO: only remove knot if it is the last attribute
-                ['toggleHistorized', 'Toggle Historized'],
-                ['addAttribute', 'Add Attribute'],
-                ['addTie', 'Add Tie'],
-                ['addAnchor', 'Add Anchor'],
-                ['addKnot', 'Add Knot'],
-                ['addTieAndAnchor', 'Add tied Anchor'],
-                ['toggleIdentifier', 'Toggle Identifier'],
-                ['connect', 'Connect', function(allNodes) {
-                    if(allNodes.length != 2)
-                        return false;
-                    var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
-                    for(var i = 0; node = allNodes[i]; i++) {
-                        if(node instanceof Anchor)
-                            anchors++;
-                        else if(node instanceof Tie)
-                            ties++;
-                        else if(node instanceof Knot)
-                            knots++;
-                        else if(node instanceof Attribute) {
-                            attributes++;
-                            knotted = node.getKnotted();
-                        }
-                    }
-                    return anchors && ties || knots && ties || attributes && knots && !knotted;
-                }]
-            ];
+            
             var supportedOperations = [];
 
             var allNodes = selectedNodes.slice(0);
@@ -3382,14 +3392,14 @@
                 allNodes.push(hoveredNode);
 
             var validator;
-            for(i = 0; i < allOperations.length; i++) {
-                if(this.isSupported(allOperations[i][0], allNodes)) {
-                    if(validator = allOperations[i][2]) {
+            for(i = 0; i < Operations.list.length; i++) {
+                if(Operations.isSupported(Operations.list[i][0], allNodes)) {
+                    if(validator = Operations.list[i][2]) {
                         if(validator(allNodes))
-                            supportedOperations.push(allOperations[i]);
+                            supportedOperations.push(Operations.list[i]);
                     }
                     else
-                        supportedOperations.push(allOperations[i]);
+                        supportedOperations.push(Operations.list[i]);
                 }
             }
 
@@ -3438,12 +3448,6 @@
             },
             invalid: function(element, node) {
                 node.incomplete = true;
-            },
-            isSupported: function(operation, nodes) {
-                for(var i = 0; i < nodes.length; i++)
-                    if(nodes[i].operations.indexOf(operation) < 0)
-                        return false;
-                return true;
             },
             mousedown: function(event) {
                 var self = this;
