@@ -888,7 +888,7 @@
                 // only record if there is something to record
                 if(this.nodes.length) {
                     this.version++;
-                    this.versions[this.version] = this.toXML();
+                    this.versions[this.version] = this.toXML(false);
                     this.versions.length = this.version + 1;
                     ControlButtons.setUndoLevels(this.version);
                     ControlButtons.setRedoLevels(0);
@@ -1005,13 +1005,18 @@
                     if(LayoutEngine.withinSquare(this.nodes[i], square))
                         this.nodes[i].start();
             },
-            toXML: function() {
+            toXML: function(serialize) {
                 // create the xml document (not using a namespace simplifies the transformations)
                 var schema = document.implementation.createDocument("", "schema", null);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
                     if(node != null)
                         schema.documentElement.appendChild(node);
+                }
+                if(serialize) {
+                    var serialization = schema.createElement('serialization');
+                    serialization.textContent = new XMLSerializer().serializeToString(schema);
+                    schema.documentElement.appendChild(serialization);
                 }
                 return schema;
             },
@@ -3790,7 +3795,7 @@
                         var formData = new FormData();
                         formData.append("action", "save");
                         formData.append("modelName", Model.name);
-                        formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML()));
+                        formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML(false)));
                         formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
                         formData.append("scope", Model.scope || "private");
                         formData.append("keywords", Model.keywords);
@@ -3802,7 +3807,7 @@
                         var params = {};
                         params.action = 'save';
                         params.modelName = Model.name;
-                        params.modelXml = new XMLSerializer().serializeToString(Model.toXML());
+                        params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
                         params.icon = DrawingEngine.miniatureCanvas.toDataURL();
                         params.scope = Model.scope || "private";
                         params.keywords = Model.keywords;
@@ -3919,7 +3924,7 @@
                     '</body></html>'
                 );
                 html.close();
-                var fragment = this.transform(Model.toXML(), 'xml2documentation.xsl', html);
+                var fragment = this.transform(Model.toXML(false), 'xml2documentation.xsl', html);
                 // alert(new XMLSerializer().serializeToString(fragment));
                 html.body.appendChild(fragment);
             }
@@ -4346,7 +4351,7 @@
         function exit(window) {
             window.localStorage.clear();
             if(Model.nodes.length)
-                window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML()));
+                window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML(false)));
             if(Model.id)
                 window.localStorage.setItem("modelId", Model.id);
             if(Model.name)
@@ -4406,9 +4411,9 @@
             <ul class="menu">
                 <li>Generate
                     <ul class="submenu">
-                        <li onclick="new CodePopover(Actions.transform(Model.toXML(), 'xml2html.xsl', document), false)">XML code</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
                         <li onclick="Actions.generateHTML()">HTML documentation</li>
-                        <li onclick="new CodePopover(Actions.transform(Model.toXML(), DATABASE_TRANSFORM, document), true)">SQL code</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toXML(true), DATABASE_TRANSFORM, document), true)">SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
                         <li onclick="Actions.generatePNG()">PNG hi-res model</li>
                         <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
