@@ -21,7 +21,7 @@
     </xsl:param>
 
     <!-- "global" variables -->
-    <xsl:variable name="N"><xsl:text>&#10;</xsl:text></xsl:variable>
+    <xsl:variable name="N"><xsl:text>&#13;&#10;</xsl:text></xsl:variable>
     <xsl:variable name="T"><xsl:text>&#32;&#32;&#32;</xsl:text></xsl:variable>
     <xsl:variable name="Q"><xsl:text>'</xsl:text></xsl:variable>
     <xsl:variable name="D"><xsl:text>"</xsl:text></xsl:variable>
@@ -36,13 +36,18 @@
             <xsl:variable name="knotIdentity" select="concat(@mnemonic, '_', $identitySuffix)"/>
             <xsl:variable name="knotIdentityType" select="@identity"/>
             <xsl:variable name="knotDataType" select="@dataRange"/>
+            <xsl:variable name="knotIdentityGenerator">
+                <xsl:if test="string(identity/@generator) = 'true'">
+                    <xsl:text> identity(1, 1)</xsl:text>
+                </xsl:if>
+            </xsl:variable>
             <xsl:value-of select="concat(
             '----------------------------------- [Knot Table] -------------------------------------', $N,
             '-- ', $knotName, ' table', $N,
             '--------------------------------------------------------------------------------------', $N,
             'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $knotName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
             'CREATE TABLE [', $knotName, '] (', $N,
-            $T, $knotIdentity, ' ', $knotIdentityType, ' not null,', $N,
+            $T, $knotIdentity, ' ', $knotIdentityType, $knotIdentityGenerator, ' not null,', $N,
             $T, $knotName, ' ', $knotDataType, ' not null unique,', $N,
             $T, $knotMetadata, ' ', $metadataType, ' not null,', $N,
             $T, 'primary key (', $N,
