@@ -1192,8 +1192,18 @@
                 DrawingEngine.start(false);
             },
             toggleIdentifier: function(nodes) {
-                for(var i = 0; i < nodes.length; i++)
-                    nodes[i].identifier = !nodes[i].identifier;
+                var ties = [];
+                for(var i = 0; i < nodes.length; i++) {
+                    if(nodes[i] instanceof Edge) {
+                        nodes[i].identifier = !nodes[i].identifier;
+                        if(nodes[i].node instanceof Tie && ties.indexOf(nodes[i].node) < 0)
+                            ties.push(nodes[i].node);
+                        if(nodes[i].otherNode instanceof Tie && ties.indexOf(nodes[i].otherNode) < 0)
+                            ties.push(nodes[i].otherNode);
+                    }
+                }
+                for(i = 0; i < ties.length; i++)
+                    ties[i].ensureIdentifiability();
                 this.recordState();
                 DrawingEngine.start(false);
             },
@@ -2641,6 +2651,20 @@
                     name += edge.otherNode.mnemonic + "_" + edge.role;
                 }
                 return name;
+            },
+            ensureIdentifiability: function() {
+                var otherNode, isIdentifiable = false;
+                for(var i = 0; i < this.edges.length; i++) {
+                    otherNode = this.edges[i].otherNode == this ? this.edges[i].node : this.edges[i].otherNode;
+                    if(this.edges[i].identifier && otherNode instanceof Anchor) {
+                        isIdentifiable = true;
+                    }
+                }
+                if(!isIdentifiable) {
+                    alert("The tie " + this + " has no anchor role set as identifier and will be assigned one");
+                    for(i = 0; this.edges[i].otherNode instanceof Knot; i++);
+                    this.edges[i].identifier = true;
+                }
             },
             isConforming: function() {
                 var i, j, edge, node, roles = {}, identical;
