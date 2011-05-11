@@ -1207,6 +1207,18 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            makeFirstRole: function(nodes) {
+                var tie;
+                for(var i = 0; i < nodes.length; i++) {
+                    if(nodes[i] instanceof Edge) {
+                        if(tie = nodes[i].node instanceof Tie ? nodes[i].node : nodes[i].otherNode instanceof Tie ? nodes[i].otherNode : null) {
+                            tie.setFirstRole(nodes[i]);
+                        }
+                    }
+                }
+                this.recordState();
+                DrawingEngine.start(false);
+            },
             addAttribute: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
                     var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
@@ -1688,6 +1700,10 @@
                             case "i":
                                 if(Operations.isSupported("toggleIdentifier", allNodes))
                                     Model.toggleIdentifier(allNodes);
+                                break;
+                            case "f":
+                                if(Operations.isSupported("makeFirstRole", allNodes))
+                                    Model.makeFirstRole(allNodes);
                                 break;
                         }
                     }
@@ -2652,6 +2668,10 @@
                 }
                 return name;
             },
+            setFirstRole: function(edge) {
+                this.edges.splice(this.edges.indexOf(edge), 1);
+                this.edges.splice(0, 0, edge);
+            },
             ensureIdentifiability: function() {
                 var otherNode, isIdentifiable = false;
                 for(var i = 0; i < this.edges.length; i++) {
@@ -2913,7 +2933,7 @@
             this.edges.push(node);
             this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit);
-            this.operations.push('toggleIdentifier');
+            this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.incomplete = false;
             this.type = 'Edge';
         }
@@ -3318,14 +3338,15 @@
             // operations are defined as 'method', 'display name', 'optional rule'
             list: [
                 ['erase', 'Delete selected...'],
-                ['toggleKnotted', 'Toggle Knotted'], // TODO: only remove knot if it is the last attribute
-                ['toggleHistorized', 'Toggle Historized'],
-                ['addAttribute', 'Add Attribute'],
-                ['addTie', 'Add Tie'],
-                ['addAnchor', 'Add Anchor'],
-                ['addKnot', 'Add Knot'],
-                ['addTieAndAnchor', 'Add tied Anchor'],
-                ['toggleIdentifier', 'Toggle Identifier'],
+                ['toggleKnotted', 'Toggle knotted'], // TODO: only remove knot if it is the last attribute
+                ['toggleHistorized', 'Toggle historized'],
+                ['addAttribute', 'Add attribute'],
+                ['addTie', 'Add tie'],
+                ['addAnchor', 'Add anchor'],
+                ['addKnot', 'Add knot'],
+                ['addTieAndAnchor', 'Add tied anchor'],
+                ['toggleIdentifier', 'Toggle identifier'],
+                ['makeFirstRole', 'Make first role'],
                 ['connect', 'Connect', function(allNodes) {
                     if(allNodes.length != 2)
                         return false;
