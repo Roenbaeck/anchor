@@ -24,6 +24,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import com.google.appengine.api.datastore.Email;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Text;
@@ -146,6 +147,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		} else {
             resp.getWriter().println("OK: You are logged in as " + areq.user.getEmail());
             resp.getWriter().println(areq.logoutUrl);
+            resp.getWriter().println(areq.user.getUserId());
 		}
 	}
 
@@ -173,6 +175,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		String scope = areq.stringParams.get("scope");
 		boolean isPublic = (scope!=null) && (scope.equalsIgnoreCase("public"));
 		String userId = areq.user.getUserId();
+		String email = areq.user.getEmail();
 		String modelId = areq.stringParams.get("modelId");
 
 		//TODO: keywords should be stored as a list in order to be queried?
@@ -195,6 +198,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setUserId(userId);
 		m.setKeywords(keywords);
 		m.setPublic( isPublic );
+		m.setEmail( new Email(email) );
 		
 		try {
 			pm.makePersistent(m);
