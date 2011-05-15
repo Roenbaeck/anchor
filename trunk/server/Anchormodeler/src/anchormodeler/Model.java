@@ -2,6 +2,7 @@ package anchormodeler;
 
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
+import com.google.appengine.api.datastore.Email;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
@@ -32,6 +33,9 @@ public class Model {
 
     @Persistent(nullValue=NullValue.NONE)
     private String keywords;
+    
+    @Persistent(nullValue=NullValue.NONE)
+    private Email email;
 
     public Key getKey() {
         return key;
@@ -84,5 +88,14 @@ public class Model {
 	public boolean isPublic() {
 		return isPublic;
 	}
+
+	public void setEmail(Email email) {
+		this.email = email;
+	}
+
+	public Email getEmail() {
+		return email;
+	}
+
 
 }
