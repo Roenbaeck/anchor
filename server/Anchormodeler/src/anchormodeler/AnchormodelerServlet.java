@@ -198,7 +198,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setUserId(userId);
 		m.setKeywords(keywords);
 		m.setPublic( isPublic );
-		m.setEmail( new Email(email) );
+		m.setEmail( email );
 		
 		try {
 			pm.makePersistent(m);

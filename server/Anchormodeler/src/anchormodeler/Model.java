@@ -35,7 +35,7 @@ public class Model {
     private String keywords;
     
     @Persistent(nullValue=NullValue.NONE)
-    private Email email;
+    private String email;
 
     public Key getKey() {
         return key;
@@ -89,11 +89,11 @@ public class Model {
 		return isPublic;
 	}
 
-	public void setEmail(Email email) {
+	public void setEmail(String email) {
 		this.email = email;
 	}
 
-	public Email getEmail() {
+	public String getEmail() {
 		return email;
 	}
 
