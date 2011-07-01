@@ -976,6 +976,12 @@
                 }
             },
             removeNode: function(node) {
+                if(node instanceof Knot) {
+                    var edge = node.edges[0];
+                    var otherNode = edge.node == this ? edge.otherNode : edge.node;
+                    if(otherNode instanceof Attribute)
+                        otherNode.setKnotted(false);
+                }
                 UniqueColor.releaseUniqueColor(node.shadowColor);
                 delete this.shadowToNode[node.shadowColor];
                 this.deleteElementFromArray(this.nodes, node);
