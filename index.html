@@ -572,6 +572,8 @@
         var ASKBEFOREUNLOAD = true;
 
         var LOGGED_IN = false;
+
+        var MNEMONICS = true;
         
         // create a singleton
         var LayoutEngine = {
@@ -1255,8 +1257,12 @@
                     var anchor = nodes[0];
                     tie = new Tie(anchor.xPosition + 2 * LayoutEngine.normalDistance, anchor.yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
-                    this.addEdge(new Edge(tie, anchor, true));
-                    this.addEdge(new Edge(tie, anchor, true));
+                    var edge = new Edge(tie, anchor, true);
+                    edge.role = '!unknown';
+                    this.addEdge(edge);
+                    edge = new Edge(tie, anchor, true);
+                    edge.role = '!unknown';
+                    this.addEdge(edge);
                 }
                 this.recordState();
                 DrawingEngine.start(true);
@@ -1274,10 +1280,14 @@
                 for(var i = 0; i < nodes.length; i++) {
                     var tie = new Tie(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
-                    this.addEdge(new Edge(tie, nodes[i], true));
+                    var edge = new Edge(tie, nodes[i], true);
+                    edge.role = '!unknown!';
+                    this.addEdge(edge);
                     var anchor = new Anchor(nodes[i].xPosition + 4 * LayoutEngine.normalDistance, nodes[i].yPosition - 6 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
-                    this.addEdge(new Edge(tie, anchor, true));
+                    edge = new Edge(tie, anchor, true);
+                    edge.role = '!unknown!';
+                    this.addEdge(edge);
                 }
                 this.recordState();
                 DrawingEngine.start(true);
@@ -1478,8 +1488,14 @@
                 }
                 if(this.showNames) {
                     for(i = 0; node = Model.nodes[i]; i++)
-                        if(!(node instanceof Edge) && !Model.filtered[i])
-                            node.drawName(this.context);
+                        if(MNEMONICS) {
+                            if(!(node instanceof Edge) && !Model.filtered[i])
+                                node.drawName(this.context);
+                        }
+                        else {
+                            if(!(node instanceof Tie) && !Model.filtered[i])
+                                node.drawName(this.context);
+                        }
                 }
                 else if (node = CanvasEventHandler.hoveredNode)
                     node.drawName(this.context);
@@ -2071,32 +2087,34 @@
                 g.appendChild(text);
             },
             drawName: function(context) {
-                var i, edge, xAverage = 0;
-                for(i = 0; edge = this.edges[i]; i++)
-                    xAverage += edge.xPosition;
-                xAverage /= this.edges.length;
-                var currentDistance, smallestDistance, yClosest;
-                for(i = 0; edge = this.edges[i]; i++) {
-                    currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
-                    if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
-                        smallestDistance = currentDistance;
-                        yClosest = edge.yPosition;
+                if(this.toString()) {
+                    var i, edge, xAverage = 0;
+                    for(i = 0; edge = this.edges[i]; i++)
+                        xAverage += edge.xPosition;
+                    xAverage /= this.edges.length;
+                    var currentDistance, smallestDistance, yClosest;
+                    for(i = 0; edge = this.edges[i]; i++) {
+                        currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
+                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
+                            smallestDistance = currentDistance;
+                            yClosest = edge.yPosition;
+                        }
                     }
+                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
+                    context.save();
+                    var nameWidth = context.measureText(this.toString()).width;
+                    if(this.xPosition < xAverage)
+                        context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
+                    else
+                        context.translate(this.nameXOffset(), nameYOffset);
+                    context.textBaseline = 'top';
+                    if(this.incomplete)
+                        context.fillStyle = '#e00';
+                    else
+                        context.fillStyle = '#000';
+                    context.fillText(this.toString(), this.xPosition, this.yPosition);
+                    context.restore();
                 }
-                var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                context.save();
-                var nameWidth = context.measureText(this.toString()).width;
-                if(this.xPosition < xAverage)
-                    context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
-                else
-                    context.translate(this.nameXOffset(), nameYOffset);
-                context.textBaseline = 'top';
-                if(this.incomplete)
-                    context.fillStyle = '#e00';
-                else
-                    context.fillStyle = '#000';
-                context.fillText(this.toString(), this.xPosition, this.yPosition);
-                context.restore();
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(context) {
@@ -2282,7 +2300,12 @@
                 for(var i = 0; edge = this.edges[i]; i++)
                     if(edge.otherNode instanceof Anchor)
                         anchor = edge.otherNode;
-                return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+                var name;
+                if(MNEMONICS)
+                    name = anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+                else
+                    name = this.descriptor;
+                return name;
             },
             nameXOffset: function() {
                 if(this.historized)
@@ -2398,7 +2421,12 @@
                 return Anchor.charge;
             },
             toString: function() {
-                return this.mnemonic + "_" + this.descriptor;
+                var name;
+                if(MNEMONICS)
+                    name = this.mnemonic + "_" + this.descriptor;
+                else
+                    name = this.descriptor;
+                return name;
             },
             nameXOffset: function() {
                 return 20;
@@ -2531,7 +2559,12 @@
                 return Knot.charge;
             },
             toString: function() {
-                return this.mnemonic + "_" + this.descriptor;
+                var name;
+                if(MNEMONICS)
+                    name = this.mnemonic + "_" + this.descriptor;
+                else
+                    name = this.descriptor;
+                return name;
             },
             nameXOffset: function() {
                 return 18;
@@ -2664,15 +2697,6 @@
             },
             getCharge: function() {
                 return Tie.charge;
-            },
-            toString: function() {
-                var i, edge, name="";
-                for(i = 0; edge = this.edges[i]; i++) {
-                    if(i > 0)
-                        name += "_";
-                    name += edge.otherNode.mnemonic + "_" + edge.role;
-                }
-                return name;
             },
             setFirstRole: function(edge) {
                 this.edges.splice(this.edges.indexOf(edge), 1);
@@ -2930,7 +2954,7 @@
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
             Edge.mass = 1;
             Edge.charge = 1;
-            this.role = '!unknown!';
+            this.role = null;
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -3918,6 +3942,10 @@
                 DrawingEngine.showNames = !DrawingEngine.showNames;
                 DrawingEngine.start(false);
             },
+            toggleMnemonics: function () {
+                MNEMONICS = !MNEMONICS;
+                DrawingEngine.start(false);
+            },
             toggleShadows: function() {
                 DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
             },
@@ -4447,6 +4475,7 @@
                 <li>Layout
                     <ul class="submenu">
                         <li onclick="Actions.toggleNames()">Toggle names</li>
+                        <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                         <li onclick="Actions.toggleShadows()">Toggle shadows</li>
                         <li onclick="Actions.changeDetailLevel()">Change detail level</li>
                         <li onclick="Actions.toggleFixation()">Toggle fixation</li>
