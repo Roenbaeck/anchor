@@ -1021,6 +1021,9 @@
             toXML: function(serialize) {
                 // create the xml document (not using a namespace simplifies the transformations)
                 var schema = document.implementation.createDocument("", "schema", null);
+                var metadata = schema.createElement('metadata');
+                metadata.setAttribute('format', '0.92');
+                schema.documentElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
                     if(node != null)
