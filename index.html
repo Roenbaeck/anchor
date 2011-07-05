@@ -483,6 +483,9 @@
     .submenu input {
         width:              45px;
     }
+    .submenu .inputDefaults {
+        width:              125px;
+    }
 
     #controls {
         position:           absolute;
@@ -574,6 +577,8 @@
         var LOGGED_IN = false;
 
         var MNEMONICS = true;
+
+        var CARDINALITIES = false;
         
         // create a singleton
         var LayoutEngine = {
@@ -1210,8 +1215,10 @@
                             ties.push(nodes[i].otherNode);
                     }
                 }
+                /* This messed up 1-1 relationships
                 for(i = 0; i < ties.length; i++)
                     ties[i].ensureIdentifiability();
+                */
                 this.recordState();
                 DrawingEngine.start(false);
             },
@@ -1849,6 +1856,12 @@
             }
         };
 
+        var Defaults = {
+            timeRange: 'datetime',
+            encapsulation: 'dbo',
+            identity: 'int'
+        };
+
         var Editables = {
             descriptorEdit: {
                 name: 'Descriptor',
@@ -1936,6 +1949,17 @@
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
                 attributes: ['type', 'text', 'title', 'Role of the connected entity in the relationship', 'required', 'required']
+            },
+            encapsulationEdit: {
+                name: 'Capsule',
+                setMember: function (element, node) { node.encapsulation = element.value; },
+                getMember: function (node) { return node.encapsulation },
+                setElement: function (element, node) { element.value = node.encapsulation },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '([a-z][A-Z]*)+',
+                event: 'blur',
+                attributes: ['type', 'text', 'title', 'In order to achieve separation of concerns', 'required', 'required']
             }
         };
 
@@ -2175,6 +2199,7 @@
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.dataRangeEdit);
             this.knotted = false;
             this.historized = historized;
@@ -2188,6 +2213,7 @@
             timeRange: '',
             historized: false,
             knotted: false,
+            encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Attribute.mass;
             },
@@ -2221,6 +2247,8 @@
                     this.editables.push(Editables.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
+                if(this.timeRange == '')
+                    this.timeRange = Defaults.timeRange;
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -2250,6 +2278,13 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                var metadata, capsule = Defaults.encapsulation;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2271,6 +2306,7 @@
                 attribute.description = description ? description.firstChild.nodeValue : '';
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
+                attribute.encapsulation = capsule;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -2331,6 +2367,9 @@
                 else {
                     attribute.setAttribute("dataRange", this.dataRange);
                 }
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.encapsulation);
+                attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
             },
@@ -2404,6 +2443,7 @@
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
             this.operations.push('addAttribute','addTie','addTieAndAnchor');
@@ -2412,8 +2452,9 @@
         Anchor.prototype = {
             mnemonic: '',
             descriptor: '',
-            identity: '',
+            identity: Defaults.identity,
             generator: true,
+            encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Anchor.mass;
             },
@@ -2462,6 +2503,19 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                var metadata, capsule = Defaults.encapsulation, generator = false;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                    generator = metadata.getAttribute("generator") == 'true';
+                }
+                // Begin - handling obsolete XML spec
+                var idElement;
+                if(idElement = element.getElementsByTagName('identity').item(0))
+                    generator = idElement.getAttribute("generator") == 'true';
+                // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2469,9 +2523,6 @@
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
-                var idElement, generator = true;
-                if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = idElement.getAttribute("generator") == 'true';
                 var anchor = new Anchor(x, y);
                 anchor.setFixed(fixed);
                 anchor.description = description ? description.firstChild.nodeValue : '';
@@ -2479,6 +2530,7 @@
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
                 anchor.generator = generator;
+                anchor.encapsulation = capsule;
                 anchor.incomplete = anchor.isIncomplete();
                 return anchor;
             },
@@ -2490,9 +2542,10 @@
                 anchor.setAttribute("descriptor", this.descriptor);
                 anchor.setAttribute("identity", this.identity);
 
-                var identity = schema.createElement("identity");
-                identity.setAttribute("generator", this.generator);
-                anchor.appendChild(identity);
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.encapsulation);
+                metadata.setAttribute("generator", this.generator);
+                anchor.appendChild(metadata);
 
                 var edge;
                 for(var i = 0; edge = this.edges[i]; i++)
@@ -2541,10 +2594,11 @@
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
-            this.type = 'Knot';            
+            this.type = 'Knot';
         }
         Knot.prototype = {
             mnemonic: '',
@@ -2552,6 +2606,7 @@
             identity: '',
             dataRange: '',
             generator: false,
+            encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Knot.mass;
             },
@@ -2600,6 +2655,19 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                var metadata, capsule = Defaults.encapsulation, generator = false;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                    generator = metadata.getAttribute("generator") == 'true';
+                }
+                // Begin - handling obsolete XML spec
+                var idElement;
+                if(idElement = element.getElementsByTagName('identity').item(0))
+                    generator = idElement.getAttribute("generator") == 'true';
+                // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2608,9 +2676,6 @@
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
-                var idElement, generator = false;
-                if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = idElement.getAttribute("generator") == 'true';
                 var knot = new Knot(x, y);
                 knot.setFixed(fixed);
                 knot.description = description ? description.firstChild.nodeValue : '';
@@ -2619,6 +2684,7 @@
                 knot.identity = identity;
                 knot.dataRange = dataRange;
                 knot.generator = generator;
+                knot.encapsulation = capsule;
                 knot.incomplete = knot.isIncomplete();
                 return knot;
             },
@@ -2631,9 +2697,10 @@
                 knot.setAttribute("identity", this.identity);
                 knot.setAttribute("dataRange", this.dataRange);
 
-                var identity = schema.createElement("identity");
-                identity.setAttribute("generator", this.generator);
-                knot.appendChild(identity);                
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.encapsulation);
+                metadata.setAttribute("generator", this.generator);
+                knot.appendChild(metadata);
 
                 this.addLayoutXML(knot, schema);
                 return knot;
@@ -2686,12 +2753,14 @@
             Tie.charge = 1;
             this.historized = historized;
             this.incomplete = this.isIncomplete();
+            this.editables.push(Editables.encapsulationEdit);
             this.operations.push('toggleHistorized','addKnot','addAnchor');
             this.type = 'Tie';
         }
         Tie.prototype = {
-            timeRange: '',
+            timeRange: Defaults.timeRange,
             historized: false,
+            encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Tie.mass;
             },
@@ -2702,6 +2771,7 @@
                 this.edges.splice(this.edges.indexOf(edge), 1);
                 this.edges.splice(0, 0, edge);
             },
+            /* This messed up 1-1 relationships
             ensureIdentifiability: function() {
                 var otherNode, isIdentifiable = false;
                 for(var i = 0; i < this.edges.length; i++) {
@@ -2716,6 +2786,7 @@
                     this.edges[i].identifier = true;
                 }
             },
+            */
             isConforming: function() {
                 var i, j, edge, node, roles = {}, identical;
                 // first find the anchors and knots connected to this tie
@@ -2742,6 +2813,8 @@
                     this.editables.push(Editables.timeRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
+                if(this.timeRange == '')
+                    this.timeRange = Defaults.timeRange;
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -2769,6 +2842,12 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                var metadata, capsule = Defaults.encapsulation;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName == 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata)
+                    capsule = metadata.getAttribute("capsule") || capsule;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -2779,6 +2858,7 @@
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.timeRange = timeRange;
+                tie.encapsulation = capsule;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
@@ -2855,6 +2935,11 @@
                     role.setAttribute("identifier", this.edges[i].identifier);
                     tie.appendChild(role);
                 }
+
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.encapsulation);
+                tie.appendChild(metadata);
+
                 this.addLayoutXML(tie, schema);
                 return tie;
             },
@@ -3066,6 +3151,23 @@
                     else
                         context.fillStyle = '#fff';
                     context.fill();
+                    if(CARDINALITIES) {
+                        context.save();
+                        var cardinality = '?';
+                        if(this.identifier) {
+                            context.fillStyle = '#fff';
+                            cardinality = 'm'
+                        }
+                        else {
+                            context.fillStyle = '#544';
+                            cardinality = '1'
+                        }
+                        context.textBaseline = 'middle';
+                        context.textAlign = 'center';
+                        context.font = 'bold 6pt sans-serif';
+                        context.fillText(cardinality, this.xPosition, this.yPosition);
+                        context.restore();
+                    }
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
             },
@@ -3946,6 +4048,10 @@
                 MNEMONICS = !MNEMONICS;
                 DrawingEngine.start(false);
             },
+            toggleCardinalities: function () {
+                CARDINALITIES = !CARDINALITIES;
+                DrawingEngine.start(false);
+            },
             toggleShadows: function() {
                 DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
             },
@@ -4022,6 +4128,9 @@
                 document.getElementById('FPS').value = FPS;
                 document.getElementById('MINIRATE').value = MINIRATE;
                 document.getElementById('CALCS').value = CALCS;
+                document.getElementById('defaultCapsule').value = Defaults.encapsulation;
+                document.getElementById('defaultIdentity').value = Defaults.identity;
+                document.getElementById('defaultTimeRange').value = Defaults.timeRange;
             },
             resetSettings: function() {
                 this.setDamping(4);
@@ -4035,6 +4144,9 @@
                 this.setFPS(100);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
+                this.setDefaultCapsule(Defaults.encapsulation);
+                this.setDefaultIdentity(Defaults.identity);
+                this.setDefaultTimeRange(Defaults.timeRange);
                 Knot.mass = 1;
                 Knot.charge = 1;
                 Anchor.mass = 1;
@@ -4059,6 +4171,9 @@
                 storage.setItem("FPS", FPS);
                 storage.setItem("MINIRATE", MINIRATE);
                 storage.setItem("CALCS", CALCS);
+                storage.setItem("defaultCapsule", Defaults.encapsulation);
+                storage.setItem("defaultIdentity", Defaults.identity);
+                storage.setItem("defaultTimeRange", Defaults.timeRange);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -4082,6 +4197,9 @@
                 this.setFPS(storage.getItem('FPS') || 100);
                 this.setMiniRate(storage.getItem('MINIRATE') || 50);
                 this.setCalculations(storage.getItem('CALCS') || 'simple');
+                this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
+                this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
+                this.setDefaultTimeRange(storage.getItem('defaultTimeRange') || Defaults.timeRange);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -4093,6 +4211,15 @@
                 Edge.mass = 1 * storage.getItem('edgeMass') || 1;
                 Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
                 this.init();
+            },
+            setDefaultCapsule: function(value) {
+                Defaults.encapsulation = value;
+            },
+            setDefaultIdentity: function(value) {
+                Defaults.identity = value;
+            },
+            setDefaultTimeRange: function(value) {
+                Defaults.timeRange = value;
             },
             setDamping: function(value) {
                 LayoutEngine.damping = (100 - value)/100;
@@ -4476,6 +4603,7 @@
                     <ul class="submenu">
                         <li onclick="Actions.toggleNames()">Toggle names</li>
                         <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
+                        <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
                         <li onclick="Actions.toggleShadows()">Toggle shadows</li>
                         <li onclick="Actions.changeDetailLevel()">Change detail level</li>
                         <li onclick="Actions.toggleFixation()">Toggle fixation</li>
@@ -4548,6 +4676,9 @@
                                 <option value="Oracle.xsl">Oracle</option>
                             </select> &nbsp;Target database
                         </li>
+                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Default capsule</li>
+                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Default identity</li>
+                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> Default time range</li>
                         <li onclick="Settings.resetSettings()">Reset settings to default values</li>
                         <li onclick="Settings.toggleDebug()">Toggle debug</li>
                     </ul>
