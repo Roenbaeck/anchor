@@ -1873,7 +1873,7 @@
                 setElement: function (element, node) { element.value = node.descriptor },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '([A-Z][a-z]*)+',
+                pattern: '([A-Z][a-z0-9]*)+',
                 event: 'blur',
                 attributes: ['type', 'text', 'title', 'Descriptive name', 'required', 'required']
             },
@@ -3763,6 +3763,29 @@
                 }
                 return result;
             },
+            saveToDisk: function (str) {
+                with (document) {
+                    var iframe = createElement('iframe');
+                    iframe.id = 'saveToDisk';
+                    iframe.location = 'about:blank';
+                    iframe.style.display = 'none';
+                    body.appendChild(iframe);
+                    with (getElementById('saveToDisk').contentWindow.document) {
+                        open();
+                        write(str);
+                        close();
+                        if (document.compatMode && document.all) {
+                            execCommand('SaveAs', false, '.xml');
+                        } else {
+                            location = 'data:application/octet-stream;base64,' + btoa(str);
+                        }
+                    }
+
+                    setTimeout(function() {
+                        body.removeChild(iframe);
+                    }, 1000);
+                }
+            },
             loadFromURL: function (url) {
                 try {
                     var xmlhttp = new window.XMLHttpRequest();
@@ -4594,6 +4617,7 @@
                         <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                         <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                         <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                        <li onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
                         <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
                     </ul>
                 </li>
