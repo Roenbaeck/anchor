@@ -578,7 +578,7 @@
 
         var MNEMONICS = true;
 
-        var CARDINALITIES = false;
+        var CARDINALITIES = true;
         
         // create a singleton
         var LayoutEngine = {
@@ -1488,11 +1488,11 @@
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.nodes[i]; i++) {
                     if(!Model.filtered[i])
-                        node.draw(this.context);
+                        node.draw(this.context, 0);
                     if(this.miniCounter == 1) {
                         if(Model.filtered[i])
                             this.miniatureContext.globalAlpha = 0.25;
-                        node.draw(this.miniatureContext);
+                        node.draw(this.miniatureContext, 1);
                         this.miniatureContext.globalAlpha = 1.0;
                     }
                 }
@@ -2144,7 +2144,7 @@
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 if(DEBUG) {
                     context.beginPath();
                     context.moveTo(this.xPosition, this.yPosition);
@@ -2409,7 +2409,7 @@
                 }
                 g.appendChild(group);
             },
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 this.drawOutline(context);
                 if(this.historized) {
                     // then we get back to drawing the actual symbol
@@ -2577,7 +2577,7 @@
                 group.appendChild(rect);
                 g.appendChild(group);
             },
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 this.drawOutline(context);
                 context.fillStyle = '#bb5555';
                 context.fill();
@@ -2735,7 +2735,7 @@
                 group.appendChild(rect);
                 g.appendChild(group);
             },
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 this.drawOutline(context);
                 context.fillStyle = '#ffffff';
                 context.fill();
@@ -3001,7 +3001,7 @@
                 }
                 g.appendChild(group);
             },
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 this.drawOutline(context);
                 if(this.historized) {
                     context.fillStyle = '#ffffff';
@@ -3130,11 +3130,11 @@
                     context.stroke();
                 }
             },
-            draw: function(context) {
+            draw: function(context, detailLevel) {
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
                 context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
-                context.strokeStyle = '#000000';
+                context.strokeStyle = '#544';
                 context.lineWidth = 1.0;
                 context.stroke();
                 if(DEBUG) {
@@ -3144,27 +3144,29 @@
                     context.fill();
                     context.stroke();
                 }
-                // show if edges on ties are identifiers or not by drawing a filled or empty circle
-                if(this.node instanceof Tie || this.otherNode instanceof Tie) {
+                // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
+                if(detailLevel == 0 && (this.node instanceof Tie || this.otherNode instanceof Tie)) {
+                    var cardinality, strokeStyle = '#000', fillStyle = '#766';
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
+                    if(this.identifier) {
+                        fillStyle = '#766';
+                        cardinality = 'm';
+                    }
+                    else {
+                        fillStyle = '#fff';
+                        cardinality = '1';
+                    }
+                    if(CARDINALITIES) {
+                        strokeStyle = fillStyle = '#f9f8f7';
+                    }
+                    context.strokeStyle = strokeStyle;
+                    context.fillStyle = fillStyle;
                     context.stroke();
-                    if(this.identifier)
-                        context.fillStyle = '#766';
-                    else
-                        context.fillStyle = '#fff';
                     context.fill();
                     if(CARDINALITIES) {
                         context.save();
-                        var cardinality = '?';
-                        if(this.identifier) {
-                            context.fillStyle = '#fff';
-                            cardinality = 'm'
-                        }
-                        else {
-                            context.fillStyle = '#544';
-                            cardinality = '1'
-                        }
+                        context.fillStyle = '#544';
                         context.textBaseline = 'middle';
                         context.textAlign = 'center';
                         context.font = 'bold 6pt sans-serif';
@@ -4108,7 +4110,7 @@
                 var i, node;
                 for(i = 0; node = Model.nodes[i]; i++) {
                     if(!Model.filtered[i])
-                        node.draw(maxiatureContext);
+                        node.draw(maxiatureContext, 0);
                 }
                 if(DrawingEngine.showNames) {
                     for(i = 0; node = Model.nodes[i]; i++)
