@@ -86,6 +86,25 @@
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
 
+    #search {
+        position:           absolute;
+        top:                42px;
+        left:               50%;
+        margin-left:        -150px; /* half of the actual width */
+        display:            block;
+        z-index:            9;
+    }
+    #search input {
+        width:              150px;
+        text-align:         left;
+        background-color:   rgba(255, 255, 255, 0.9);
+    }
+    #search select {
+        width:              150px;
+        text-align:         left;
+        background-color:   rgba(255, 255, 255, 0.9);
+    }
+
     /* shows login status to the cloud (google app engine) */
     #cloud {
         font:               8pt sans-serif;
@@ -2010,6 +2029,13 @@
                     this.id = UniqueIdentity.nextId();
                 return this.id;
             },
+            // override to change behavior
+            isInteractive: function() {
+                return false;
+            },
+            hasFullName: function() {
+                return false;
+            },
             setFixed: function(fixed) {
                 this.fixed = fixed;
             },
@@ -2222,6 +2248,12 @@
             },
             getCharge: function() {
                 return Attribute.charge;
+            },
+            isInteractive: function() {
+                return true;
+            },
+            hasFullName: function() {
+                return true;
             },
             isConforming: function() {
                 var i, edge, anchor, otherNode;
@@ -2464,6 +2496,12 @@
             getCharge: function() {
                 return Anchor.charge;
             },
+            isInteractive: function() {
+                return true;
+            },
+            hasFullName: function() {
+                return true;
+            },
             toString: function() {
                 var name;
                 if(MNEMONICS)
@@ -2615,6 +2653,12 @@
             },
             getCharge: function() {
                 return Knot.charge;
+            },
+            isInteractive: function() {
+                return true;
+            },
+            hasFullName: function() {
+                return true;
             },
             toString: function() {
                 var name;
@@ -2769,6 +2813,12 @@
             },
             getCharge: function() {
                 return Tie.charge;
+            },
+            isInteractive: function() {
+                return true;
+            },
+            hasFullName: function() {
+                return true;
             },
             setFirstRole: function(edge) {
                 this.edges.splice(this.edges.indexOf(edge), 1);
@@ -3067,6 +3117,12 @@
             },
             getCharge: function() {
                 return Edge.charge;
+            },
+            isInteractive: function() {
+                return this.node instanceof Tie || this.otherNode instanceof Tie;
+            },
+            hasFullName: function() {
+                return false;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -3750,6 +3806,55 @@
             filter: function(node) {
                 return node instanceof Attribute || node instanceof Knot;
             },
+            populateSelector: function(selector, searchString) {
+                this.startKeyboardEvents();
+                var node;
+                var selected = selector.value;
+                selector.options.length = 0;
+                selector.options.add(new Option("None", "none"));
+                var nodes = Model.nodes.slice();
+                nodes.sort(
+                    function(a, b) {
+                        var nameA = a.encapsulation + '.' + a.toString();
+                        var nameB = b.encapsulation + '.' + b.toString();
+                        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+                    }
+                );
+                for(var i = 0; node = nodes[i]; i++) {
+                    if(node.hasFullName()) {
+                        var fullName = node.encapsulation + '.' + node.toString();
+                        if(node.isIncomplete())
+                            fullName = "* " + fullName;
+                        var option = new Option(fullName, node.shadowColor);
+                        if(searchString && searchString.trim() != '') {
+                            if(fullName.indexOf(searchString) >= 0)
+                                selector.options.add(option);
+                        }
+                        else {
+                            selector.options.add(option);
+                        }
+                    }
+                }
+                selector.value = selected;
+            },
+            stopKeyboardEvents: function() {
+                window.onkeypress = null;
+            },
+            startKeyboardEvents: function() {
+                window.onkeypress = CanvasEventHandler.handleEvent;
+            },
+            selectNode: function(shadowColor) {
+                if(shadowColor != 'none') {
+                    var node = Model.getNodeFromShadow(shadowColor);
+                    CanvasEventHandler.clearSelection();
+                    CanvasEventHandler.addNodeToSelection(node);
+                    Actions.centerModelOn(node);
+                }
+                else {
+                    CanvasEventHandler.clearSelection();
+                    DrawingEngine.start(false);
+                }
+            },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
                 try {
@@ -4044,8 +4149,14 @@
             centerModel: function() {
                 var xCenter = Model.leftmostNode.xPosition + (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
                 var yCenter = Model.topmostNode.yPosition + (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
-                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - xCenter;
-                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - yCenter;
+                this.centerModelAt(xCenter, yCenter);
+            },
+            centerModelOn: function(node) {
+                this.centerModelAt(node.xPosition, node.yPosition);
+            },
+            centerModelAt: function(x, y) {
+                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - x;
+                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - y;
                 DrawingEngine.translate(xAdjust, yAdjust);
                 DrawingEngine.start(false);
             },
@@ -4542,7 +4653,6 @@
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
 
             // setting a listener on the canvas did not work, so this is a workaround
-            // not used now
             window.onkeypress = CanvasEventHandler.handleEvent;
 
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
@@ -4666,6 +4776,13 @@
             <div id="zoomout">Zoom-</div>
             <div id="redo">Redo</div>
             <div id="undo">Undo</div>
+        </div>
+        
+        <div id="search">
+            <input id="searchFilter" type="text" placeholder=" search filter " title="Search the model for the given (sub)string." onfocus="Actions.stopKeyboardEvents()" onblur="Actions.populateSelector(document.getElementById('nodeSelector'), this.value)"/>
+            <select id="nodeSelector" title="Focus model on the selected node." onmouseover="Actions.populateSelector(this, document.getElementById('searchFilter').value)" onchange="Actions.selectNode(this.value)">
+                <option value="none" selected="selected">None</option>
+            </select>
         </div>
 
         <div id="about">
