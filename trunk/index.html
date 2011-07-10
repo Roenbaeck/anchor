@@ -3871,6 +3871,8 @@
                 selector.options.length = 0;
                 selector.options.add(new Option("None selected", "none"));
                 var nodes = Model.nodes.slice();
+                var mnemonics = MNEMONICS;
+                MNEMONICS = true;
                 nodes.sort(
                     function(a, b) {
                         var nameA = a.encapsulation + '.' + a.toString();
@@ -3894,6 +3896,7 @@
                     }
                 }
                 selector.value = selected;
+                MNEMONICS = mnemonics;
             },
             stopKeyboardEvents: function() {
                 window.onkeypress = null;
