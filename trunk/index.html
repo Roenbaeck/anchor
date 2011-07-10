@@ -64,6 +64,7 @@
         z-index:            0;
     }
 
+    /* Removed due to memory issues
     #maxiature {
         position:           absolute;
         top:                0px;
@@ -73,6 +74,7 @@
         display:            none;
         z-index:            0;
     }
+    */
 
     /* minature canvas - positioned in the southeast corner */
     #miniature {
@@ -857,6 +859,7 @@
             normal: {
                 canvasBackground: '#f9f8f7',
                 shadowBackground: '#000',
+                svgBackground: '#fff',
                 viewport: '#b55',
                 outerHovered: '#ede5e5',
                 innerHovered: '#fff',
@@ -1553,14 +1556,8 @@
                 }
                 if(this.showNames) {
                     for(i = 0; node = Model.nodes[i]; i++)
-                        if(MNEMONICS) {
-                            if(!(node instanceof Edge) && !Model.filtered[i])
-                                node.drawName(this.context);
-                        }
-                        else {
-                            if(!(node instanceof Tie) && !Model.filtered[i])
-                                node.drawName(this.context);
-                        }
+                        if(node.hasFullName() && !Model.filtered[i])
+                            node.drawName(this.context);
                 }
                 else if (node = CanvasEventHandler.hoveredNode)
                     node.drawName(this.context);
@@ -2143,37 +2140,40 @@
                 return 20;
             },
             toSVGName: function(svg, g) {
-                var text = svg.createElementNS(SVGNS, 'text');
-                text.setAttributeNS(null, 'font-size', 10);
-                text.setAttributeNS(null, 'font-family', 'sans-serif');
-                text.appendChild(svg.createTextNode(this.toString()));
-                var i, edge, xAverage = 0;
-                for(i = 0; edge = this.edges[i]; i++)
-                    xAverage += edge.xPosition;
-                xAverage /= this.edges.length;
-                var currentDistance, smallestDistance, yClosest;
-                for(i = 0; edge = this.edges[i]; i++) {
-                    currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
-                    if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
-                        smallestDistance = currentDistance;
-                        yClosest = edge.yPosition;
+                if(this.toString()) {
+                    var text = svg.createElementNS(SVGNS, 'text');
+                    text.setAttributeNS(null, 'font-size', 10);
+                    text.setAttributeNS(null, 'font-family', 'sans-serif');
+                    text.appendChild(svg.createTextNode(this.toString()));
+                    var i, edge, xAverage = 0;
+                    for(i = 0; edge = this.edges[i]; i++)
+                        xAverage += edge.xPosition;
+                    xAverage /= this.edges.length;
+                    var currentDistance, smallestDistance, yClosest;
+                    for(i = 0; edge = this.edges[i]; i++) {
+                        currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
+                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
+                            smallestDistance = currentDistance;
+                            yClosest = edge.yPosition;
+                        }
                     }
+                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
+                    if(this.xPosition < xAverage) {
+                        text.setAttributeNS(null, 'x', (this.xPosition - this.nameXOffset()).toFixed(2));
+                        text.setAttributeNS(null, 'text-anchor', 'end');
+                    }
+                    else {
+                        text.setAttributeNS(null, 'text-anchor', 'start');
+                        text.setAttributeNS(null, 'x', (this.xPosition + this.nameXOffset()).toFixed(2));
+                    }
+                    text.setAttributeNS(null, 'y', (this.yPosition - nameYOffset).toFixed(2));
+                    text.setAttributeNS(null, 'alignment-baseline', 'middle');
+                    if(this.incomplete)
+                        text.setAttributeNS(null, 'fill', Color.scheme.textIncomplete);
+                    else
+                        text.setAttributeNS(null, 'fill', Color.scheme.textComplete);
+                    g.appendChild(text);
                 }
-                var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                if(this.xPosition < xAverage) {
-                    text.setAttributeNS(null, 'x', (this.xPosition - this.nameXOffset()).toFixed(2));
-                    text.setAttributeNS(null, 'text-anchor', 'end');
-                }
-                else {
-                    text.setAttributeNS(null, 'text-anchor', 'start');
-                    text.setAttributeNS(null, 'x', (this.xPosition + this.nameXOffset()).toFixed(2));
-                }
-                text.setAttributeNS(null, 'y', (this.yPosition - nameYOffset).toFixed(2));
-                if(this.incomplete)
-                    text.setAttributeNS(null, 'fill', Color.scheme.textIncomplete);
-                else
-                    text.setAttributeNS(null, 'fill', Color.scheme.textComplete);
-                g.appendChild(text);
             },
             drawName: function(context) {
                 if(this.toString()) {
@@ -2196,7 +2196,7 @@
                         context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
                     else
                         context.translate(this.nameXOffset(), nameYOffset);
-                    context.textBaseline = 'top';
+                    context.textBaseline = 'middle';
                     if(this.incomplete)
                         context.fillStyle = Color.scheme.textIncomplete;
                     else
@@ -2854,7 +2854,7 @@
                 return true;
             },
             hasFullName: function() {
-                return true;
+                return MNEMONICS;
             },
             setFirstRole: function(edge) {
                 this.edges.splice(this.edges.indexOf(edge), 1);
@@ -3158,7 +3158,7 @@
                 return this.node instanceof Tie || this.otherNode instanceof Tie;
             },
             hasFullName: function() {
-                return false;
+                return !MNEMONICS;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -3181,46 +3181,40 @@
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
                 group.appendChild(path);
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
+                    var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
                     var circle = svg.createElementNS(SVGNS, 'circle');
-                    if(this.identifier)
-                        circle.setAttributeNS(null, 'fill', Color.scheme.identifierSelectedFill);
-                    else
-                        circle.setAttributeNS(null, 'fill', Color.scheme.identifierUnselectedFill);
-                    circle.setAttributeNS(null, 'stroke', Color.scheme.identifierOutline);
+                    if(this.identifier) {
+                        fillStyle = Color.scheme.identifierSelectedFill;
+                        cardinality = 'm';
+                    }
+                    else {
+                        fillStyle = Color.scheme.identifierUnselectedFill;
+                        cardinality = '1';
+                    }
+                    if(CARDINALITIES) {
+                        strokeStyle = fillStyle = Color.scheme.svgBackground;
+                    }
+                    circle.setAttributeNS(null, 'fill', fillStyle);
+                    circle.setAttributeNS(null, 'stroke', strokeStyle);
                     circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
                     circle.setAttributeNS(null, 'r', 6);
                     group.appendChild(circle);
+                    if(CARDINALITIES) {
+                        var text = svg.createElementNS(SVGNS, 'text');
+                        text.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
+                        text.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
+                        text.setAttributeNS(null, 'font-size', 8);
+                        text.setAttributeNS(null, 'font-family', 'sans-serif');
+                        text.setAttributeNS(null, 'font-weight', 'bold');
+                        text.setAttributeNS(null, 'text-anchor', 'middle');
+                        text.setAttributeNS(null, 'alignment-baseline', 'middle');
+                        text.setAttributeNS(null, 'fill', Color.scheme.cardinality);
+                        text.appendChild(svg.createTextNode(cardinality));
+                        group.appendChild(text);
+                    }
                 }
                 g.appendChild(group);
-            },
-            drawMoving: function(context) {
-                if((this.node.moving && !this.node.getFixed()) || (this.otherNode.moving && !this.otherNode.getFixed())) {
-                    var nodeShadowOffsetX = 0;
-                    var nodeShadowOffsetY = 0;
-                    if(this.node.moving && !this.node.getFixed()) {
-                        nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
-                        nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
-                    }
-                    var otherNodeShadowOffsetX = 0;
-                    var otherNodeShadowOffsetY = 0;
-                    if(this.otherNode.moving && !this.otherNode.getFixed()) {
-                        otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
-                        otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
-                    }
-                    var averageVelocity = (this.node.velocity + this.otherNode.velocity)/2;
-                    var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
-                    var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
-                    context.beginPath();
-                    context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
-                    context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
-                            this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
-                    // shift the color slightly towards red
-                    context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
-                    context.lineWidth = 1.0;
-                    context.stroke();
-                }
             },
             draw: function(context, detailLevel) {
                 context.beginPath();
@@ -3267,6 +3261,34 @@
                     }
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
+            },
+            drawMoving: function(context) {
+                if((this.node.moving && !this.node.getFixed()) || (this.otherNode.moving && !this.otherNode.getFixed())) {
+                    var nodeShadowOffsetX = 0;
+                    var nodeShadowOffsetY = 0;
+                    if(this.node.moving && !this.node.getFixed()) {
+                        nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
+                        nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
+                    }
+                    var otherNodeShadowOffsetX = 0;
+                    var otherNodeShadowOffsetY = 0;
+                    if(this.otherNode.moving && !this.otherNode.getFixed()) {
+                        otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
+                        otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
+                    }
+                    var averageVelocity = (this.node.velocity + this.otherNode.velocity)/2;
+                    var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
+                    var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
+                    context.beginPath();
+                    context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
+                    context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
+                            this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
+                    var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
+                    // shift the color slightly towards red
+                    context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
+                    context.lineWidth = 1.0;
+                    context.stroke();
+                }
             },
             drawShadow: function(context) {
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
@@ -4238,6 +4260,7 @@
                 this.isFiltering = !this.isFiltering;
                 DrawingEngine.start(false);
             },
+            /* Removed due to memory issues
             generatePNG: function() {
                 var scale = 5;
                 var padding = 50;
@@ -4272,6 +4295,7 @@
                 maxiatureCanvas.style.width = maxiatureCanvas.width + 'px';
                 maxiatureCanvas.style.height = maxiatureCanvas.height + 'px';
             },
+            */
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
                 html.open();
@@ -4798,7 +4822,9 @@
                         <li onclick="Actions.generateHTML()">HTML documentation</li>
                         <li onclick="new CodePopover(Actions.transform(Model.toXML(true), DATABASE_TRANSFORM, document), true)">SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
+                        <!-- Removed due to memory issues
                         <li onclick="Actions.generatePNG()">PNG hi-res model</li>
+                        -->
                         <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
                         <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
                     </ul>
@@ -4869,10 +4895,10 @@
         </div>
     </div>
 
-
+    <!-- Removed due to memory issues
     <canvas id="maxiature" class="unselectable">
-        <!-- we use this when generating high resolution images -->
     </canvas>
+    -->
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
