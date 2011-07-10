@@ -217,7 +217,7 @@
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
-            <xsl:variable name="insertTriggerName" select="concat('t', $anchorName)"/>
+            <xsl:variable name="insertTriggerName" select="concat('it', $anchorName)"/>
             <xsl:value-of select="concat(
             '--------------------------------- [Insert Trigger] -----------------------------------', $N,
             '-- ', $anchorName, ' insert trigger on the latest perspective', $N,
@@ -248,6 +248,47 @@
 		    $T, $T, 'SELECT @', $anchorIdentity, ' = SCOPE_IDENTITY();', $N,
 	        $T, 'END', $N,
 	        $insertStatements,
+	        'END', $N,
+	        'GO', $N, $N
+            )"/>
+            <xsl:variable name="updateStatements">
+                <xsl:for-each select="attribute">
+                    <xsl:call-template name="updateStatement">
+                        <xsl:with-param name="attribute" select="."/>
+                    </xsl:call-template>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="updateTriggerName" select="concat('ut', $anchorName)"/>
+            <xsl:value-of select="concat(
+            '--------------------------------- [Update Trigger] -----------------------------------', $N,
+            '-- ', $anchorName, ' update trigger on the latest perspective', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $updateTriggerName, $Q, ')', $N,
+            'DROP TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, ']', $N,
+            'GO', $N,
+            'CREATE TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, '] ON ', $latestViewName, $N,
+            'INSTEAD OF UPDATE', $N,
+            'AS', $N,
+            'BEGIN', $N,
+            $T, 'DECLARE @', $anchorMetadata, ' ', $metadataType, ';', $N,
+	        $T, 'SELECT', $N,
+	        $T, $T, '@', $anchorMetadata, ' = ', $anchorMetadata, $N,
+	        $T, 'FROM', $N,
+	        $T, $T, 'inserted;', $N,
+            $T, 'DECLARE @', $anchorIdentity, ' ', @identity, ';', $N,
+	        $T, 'SELECT', $N,
+	        $T, $T, '@', $anchorIdentity, ' = ', $anchorIdentity, $N,
+	        $T, 'FROM', $N,
+	        $T, $T, 'inserted;', $N,
+	        $T, 'IF(@', $anchorIdentity, ' is null)', $N,
+	        $T, 'BEGIN', $N,
+	        $T, $T, 'INSERT INTO [', $anchorCapsule, '].[', $anchorName, '](', $N,
+	        $T, $T, $T, $anchorMetadata, $N,
+	        $T, $T, ')', $N,
+	        $T, $T, 'VALUES (@', $anchorMetadata, ');', $N,
+		    $T, $T, 'SELECT @', $anchorIdentity, ' = SCOPE_IDENTITY();', $N,
+	        $T, 'END', $N,
+	        $updateStatements,
 	        'END', $N,
 	        'GO', $N, $N
             )"/>
@@ -878,12 +919,12 @@
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
         <xsl:variable name="attributeHistorization">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix, $N)"/>
+                <xsl:value-of select="concat(', ', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix)"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeHistorizationCondition">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat($N, 'AND', $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' is not null')"/>
+                <xsl:value-of select="concat($N, $T, 'AND', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' is not null')"/>
             </xsl:if>
         </xsl:variable>
         <xsl:choose>
@@ -938,6 +979,107 @@
                 $T, 'AND', $N,
                 $T, $T, 'COALESCE(', $attributeMetadata, ', @', $anchorMetadata, ') is not null',
                 $attributeHistorizationCondition, ';', $N
+                )"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+    <xsl:template name="updateStatement">
+        <xsl:param name="attribute"/>
+        <xsl:variable name="anchor" select="$attribute/parent::anchor"/>
+        <xsl:variable name="anchorMnemonic" select="$anchor/@mnemonic"/>
+        <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
+        <xsl:variable name="anchorMetadata" select="concat($metadataPrefix, '_', $anchorMnemonic)"/>
+        <xsl:variable name="anchorCapsule" select="$anchor/metadata/@capsule"/>
+        <xsl:variable name="anchorName" select="concat($anchorMnemonic, '_', $anchor/@descriptor)"/>
+        <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', $attribute/@mnemonic)"/>
+        <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
+        <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
+        <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
+        <xsl:variable name="attributeHistorization">
+            <xsl:if test="$attribute/@timeRange">
+                <xsl:value-of select="concat(', ', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix)"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="attributeHistorizationAliased">
+            <xsl:if test="$attribute/@timeRange">
+                <xsl:value-of select="concat(', ', $N, $T, $T, 'COALESCE(i.', $attributeMnemonic, '_', $historizationSuffix, ', getdate())')"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:choose>
+            <xsl:when test="$attribute/@knotRange">
+                <xsl:variable name="knot" select="key('knotLookup', $attribute/@knotRange)"/>
+                <xsl:variable name="knotMnemonic" select="$knot/@mnemonic"/>
+                <xsl:variable name="knotName" select="concat($knotMnemonic, '_', $knot/@descriptor)"/>
+                <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
+                <xsl:variable name="insertCondition">
+                    <xsl:choose>
+                        <xsl:when test="$attribute/@timeRange">
+                            <xsl:value-of select="concat($T, $T, 'l.', $knotName, ' != i.', $knotName, $N)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, $T, 'l.', $knotName, ' is null', $N)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                $T, 'IF(UPDATE(', $knotName, '))', $N,
+                $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
+                $T, $T, $anchorIdentity, ', ', $N,
+                $T, $T, $knotIdentity, ', ', $N,
+                $T, $T, $attributeMetadata,
+                $attributeHistorization, $N,
+                $T, ')', $N,
+                $T, 'SELECT', $N,
+                $T, $T, '@', $anchorIdentity, ',', $N,
+                $T, $T, 'COALESCE(l.', $knotIdentity, ', i.', $knotIdentity, '),', $N,
+                $T, $T, 'COALESCE(i.', $attributeMetadata, ', @', $anchorMetadata, ')',
+                $attributeHistorizationAliased, $N,
+                $T, 'FROM', $N,
+                $T, $T, 'inserted i', $N,
+                $T, 'JOIN', $N,
+                $T, $T, '[', $anchorCapsule, '].[l', $anchorName, '] l', $N,
+                $T, 'ON', $N,
+                $T, $T, 'l.', $anchorIdentity, ' = @', $anchorIdentity, $N,
+                $T, 'WHERE', $N,
+                $insertCondition,
+                $T, 'AND', $N,
+                $T, $T, 'COALESCE(i.', $attributeMetadata, ', @', $anchorMetadata, ') is not null;', $N
+                )"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="insertCondition">
+                    <xsl:choose>
+                        <xsl:when test="$attribute/@timeRange">
+                            <xsl:value-of select="concat($T, $T, 'l.', $attributeName, ' != i.', $attributeName, $N)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, $T, 'l.', $attributeName, ' is null', $N)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                $T, 'IF(UPDATE(', $attributeName, '))', $N,
+                $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
+                $T, $T, $anchorIdentity, ', ', $N,
+                $T, $T, $attributeName, ', ', $N,
+                $T, $T, $attributeMetadata,
+                $attributeHistorization, $N,
+                $T, ')', $N,
+                $T, 'SELECT', $N,
+                $T, $T, '@', $anchorIdentity, ', ', $N,
+                $T, $T, 'i.', $attributeName, ',', $N,
+                $T, $T, 'COALESCE(i.', $attributeMetadata, ', @', $anchorMetadata, ')',
+                $attributeHistorizationAliased, $N,
+                $T, 'FROM', $N,
+                $T, $T, 'inserted i', $N,
+                $T, 'JOIN', $N,
+                $T, $T, '[', $anchorCapsule, '].[l', $anchorName, '] l', $N,
+                $T, 'ON', $N,
+                $T, $T, 'l.', $anchorIdentity, ' = @', $anchorIdentity, $N,
+                $T, 'WHERE', $N,
+                $insertCondition,
+                $T, 'AND', $N,
+                $T, $T, 'COALESCE(i.', $attributeMetadata, ', @', $anchorMetadata, ') is not null;', $N
                 )"/>
             </xsl:otherwise>
         </xsl:choose>
