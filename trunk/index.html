@@ -1260,8 +1260,11 @@
                 DrawingEngine.start(true);
             },
             toggleHistorized: function(nodes) {
-                for(var i = 0; i < nodes.length; i++)
+                for(var i = 0; i < nodes.length; i++) {
                     nodes[i].setHistorized(!nodes[i].getHistorized());
+                    if(nodes[i] instanceof Tie)
+                        nodes[i].checkIdentifiers();
+                }
                 this.recordState();
                 DrawingEngine.start(false);
             },
@@ -1276,10 +1279,8 @@
                             ties.push(nodes[i].otherNode);
                     }
                 }
-                /* This messed up 1-1 relationships
                 for(i = 0; i < ties.length; i++)
-                    ties[i].ensureIdentifiability();
-                */
+                    ties[i].checkIdentifiers();
                 this.recordState();
                 DrawingEngine.start(false);
             },
@@ -2860,22 +2861,19 @@
                 this.edges.splice(this.edges.indexOf(edge), 1);
                 this.edges.splice(0, 0, edge);
             },
-            /* This messed up 1-1 relationships
-            ensureIdentifiability: function() {
-                var otherNode, isIdentifiable = false;
-                for(var i = 0; i < this.edges.length; i++) {
-                    otherNode = this.edges[i].otherNode == this ? this.edges[i].node : this.edges[i].otherNode;
-                    if(this.edges[i].identifier && otherNode instanceof Anchor) {
-                        isIdentifiable = true;
-                    }
-                }
-                if(!isIdentifiable) {
-                    alert("The tie " + this + " has no anchor role set as identifier and will be assigned one");
-                    for(i = 0; this.edges[i].otherNode instanceof Knot; i++);
-                    this.edges[i].identifier = true;
+            checkIdentifiers: function() {
+                if(this.historized) {
+                    var otherNode, outside = 0;
+                    for(var i = 0; i < this.edges.length; i++)
+                        outside += this.edges[i].identifier ? 0 : 1;
+                    if(outside > 1)
+                        alert("The tie " + this + " has " + outside + " roles outside the identifier, which is not recommended for a historized tie. "
+                            + "In order to determine what changes over time leaving exactly one role outside the identifier is recommended.");
+                    else if (outside == 0)
+                        alert("The tie " + this + " has no role outside the identifier, which is not recommended for a historized tie. "
+                            + "If you want a many-to-many relationship then gaps in the timeline needs to be modeled explicitly using a knotted tie.");
                 }
             },
-            */
             isConforming: function() {
                 var i, j, edge, node, roles = {}, identical;
                 // first find the anchors and knots connected to this tie
