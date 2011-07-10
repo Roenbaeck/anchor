@@ -853,6 +853,42 @@
             }
         };
 
+        var Color = {
+            normal: {
+                canvasBackground: '#f9f8f7',
+                shadowBackground: '#000',
+                viewport: '#b55',
+                outerHovered: '#ede5e5',
+                innerHovered: '#fff',
+                outerSelected: '#ede5e5',
+                innerSelected: '#b88',
+                defaultShadowColor: '#fff',
+                textIncomplete: '#e00',
+                textComplete: '#000',
+                forceVector: '#080',
+                forceEndpoint: '#fff',
+                attributeFill: '#fff',
+                attributeOutline: '#f88',
+                anchorFill: '#b55',
+                knotFill: '#fff',
+                knotOutline: '#f88',
+                tieFill: '#a8a8a8',
+                tieOutline: '#fff',
+                edge: '#544',
+                cardinality: '#544',
+                identifierOutline: '#544',
+                identifierSelectedFill: '#766',
+                identifierUnselectedFill: '#fff',
+                fixed: '#000'
+            },
+            scheme: null,
+            useScheme: function(scheme) {
+                this.scheme = scheme;
+            }
+        };
+
+        Color.useScheme(Color.normal);
+
         var UniqueColor = {
             // note that #000000 is reserved for the background and never assigned
             takenColors: {},
@@ -1065,7 +1101,7 @@
                 var node;
                 if(DrawingEngine.showNames) {
                     for(i = 0; node = this.nodes[i]; i++)
-                        if(!(node instanceof Edge) && !this.filtered[i])
+                        if(node.hasFullName() && !this.filtered[i])
                             node.toSVGName(svg, g);
                 }
                 svg.documentElement.appendChild(g);
@@ -1432,7 +1468,7 @@
             },
             getNodeAt: function(x, y) {
                 // clear the shadow context
-                this.shadowContext.fillStyle = '#000000';
+                this.shadowContext.fillStyle = Color.scheme.shadowBackground;
                 this.shadowContext.fillRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 var i, node;
@@ -1546,7 +1582,7 @@
                 this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - model.topmostNode.yPosition));
 
                 // show the viewport on the miniature
-                this.miniatureContext.strokeStyle = '#bb5555';
+                this.miniatureContext.strokeStyle = Color.scheme.viewport;
                 this.miniatureContext.lineWidth = 1/this.miniScale;
                 this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
             },
@@ -1564,23 +1600,23 @@
             drawHovered: function(x, y) {
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = '#ede5e5';
+                this.context.fillStyle = Color.scheme.outerHovered;
                 this.context.fill();
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance - 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = '#fff';
+                this.context.fillStyle = Color.scheme.innerHovered;
                 this.context.fill();
             },
             drawSelected: function(x, y, isHovered) {
                 if(!isHovered) {
                     this.context.beginPath();
                     this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                    this.context.fillStyle = '#ede5e5';
+                    this.context.fillStyle = Color.scheme.outerSelected;
                     this.context.fill();
                 }
                 this.context.beginPath();
                 this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.strokeStyle = '#b88';
+                this.context.strokeStyle = Color.scheme.innerSelected;
                 this.context.lineWidth = 1.0;
                 this.context.stroke();
             }
@@ -1635,7 +1671,7 @@
                     this.hasMoved = true;
                     // if we are dragging a node, we must also be hovering over it
                     if(this.focusedNode) {
-                        if(!(this.focusedNode instanceof Edge)) {
+                        if(this.focusedNode.isInteractive()) {
                             this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                             this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                             this.focusedNode.setFixed(true);
@@ -2011,7 +2047,7 @@
             velocity: null,
             edges: null,
             moving: true,
-            shadowColor: '#ffffff',
+            shadowColor: Color.scheme.defaultShadowColor,
             editables: null,
             incomplete: true,
             operations: null,
@@ -2134,9 +2170,9 @@
                 }
                 text.setAttributeNS(null, 'y', (this.yPosition - nameYOffset).toFixed(2));
                 if(this.incomplete)
-                    text.setAttributeNS(null, 'fill', '#e00');
+                    text.setAttributeNS(null, 'fill', Color.scheme.textIncomplete);
                 else
-                    text.setAttributeNS(null, 'fill', '#000');
+                    text.setAttributeNS(null, 'fill', Color.scheme.textComplete);
                 g.appendChild(text);
             },
             drawName: function(context) {
@@ -2162,9 +2198,9 @@
                         context.translate(this.nameXOffset(), nameYOffset);
                     context.textBaseline = 'top';
                     if(this.incomplete)
-                        context.fillStyle = '#e00';
+                        context.fillStyle = Color.scheme.textIncomplete;
                     else
-                        context.fillStyle = '#000';
+                        context.fillStyle = Color.scheme.textComplete;
                     context.fillText(this.toString(), this.xPosition, this.yPosition);
                     context.restore();
                 }
@@ -2176,10 +2212,10 @@
                     context.moveTo(this.xPosition, this.yPosition);
                     // draw an exaggerated velocity vector
                     context.lineTo(this.xPosition + LayoutEngine.normalDistance * this.xVelocity, this.yPosition + LayoutEngine.normalDistance * this.yVelocity);
-                    context.strokeStyle = '#008800';
+                    context.strokeStyle = Color.scheme.forceVector;
                     context.lineWidth = 0.5;
                     context.stroke();
-                    context.fillStyle = '#ffffff';
+                    context.fillStyle = Color.scheme.forceEndpoint;
                     context.fillRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
                     context.strokeRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
                 }
@@ -2211,7 +2247,7 @@
             },
             drawFixed: function(context) {
                 if(this.getFixed()) {
-                    context.fillStyle = '#000000';
+                    context.fillStyle = Color.scheme.fixed;
                     context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
                 }
             }
@@ -2419,8 +2455,8 @@
             toSVG: function(svg, g) {
                 var group = svg.createElementNS(SVGNS, 'g');
                 var circle = svg.createElementNS(SVGNS, 'circle');
-                circle.setAttributeNS(null, 'fill', '#fff');
-                circle.setAttributeNS(null, 'stroke', '#f88');
+                circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
+                circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
                 circle.setAttributeNS(null, 'stroke-width', 1.5);
                 circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                 circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
@@ -2431,8 +2467,8 @@
                 group.appendChild(circle);
                 if(this.historized) {
                     circle = svg.createElementNS(SVGNS, 'circle');
-                    circle.setAttributeNS(null, 'fill', '#fff');
-                    circle.setAttributeNS(null, 'stroke', '#f88');
+                    circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
+                    circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
                     circle.setAttributeNS(null, 'stroke-width', 1.5);
                     circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
@@ -2445,9 +2481,9 @@
                 this.drawOutline(context);
                 if(this.historized) {
                     // then we get back to drawing the actual symbol
-                    context.fillStyle = '#ffffff';
+                    context.fillStyle = Color.scheme.attributeFill;
                     context.fill();
-                    context.strokeStyle = '#ff8888';
+                    context.strokeStyle = Color.scheme.attributeOutline;
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
@@ -2456,9 +2492,9 @@
                     context.stroke();
                 }
                 else {
-                    context.fillStyle = '#ffffff';
+                    context.fillStyle = Color.scheme.attributeFill;
                     context.fill();
-                    context.strokeStyle = '#ff8888';
+                    context.strokeStyle = Color.scheme.attributeOutline;
                     context.lineWidth = 1.5;
                     context.stroke();
                 }
@@ -2607,7 +2643,7 @@
             toSVG: function(svg, g) {
                 var group = svg.createElementNS(SVGNS, 'g');
                 var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', '#b55');
+                rect.setAttributeNS(null, 'fill', Color.scheme.anchorFill);
                 rect.setAttributeNS(null, 'x', (this.xPosition - 10).toFixed(2));
                 rect.setAttributeNS(null, 'y', (this.yPosition - 10).toFixed(2));
                 rect.setAttributeNS(null, 'width', 20);
@@ -2617,7 +2653,7 @@
             },
             draw: function(context, detailLevel) {
                 this.drawOutline(context);
-                context.fillStyle = '#bb5555';
+                context.fillStyle = Color.scheme.anchorFill;
                 context.fill();
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
@@ -2767,8 +2803,8 @@
             toSVG: function(svg, g) {
                 var group = svg.createElementNS(SVGNS, 'g');
                 var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', '#fff');
-                rect.setAttributeNS(null, 'stroke', '#f88');
+                rect.setAttributeNS(null, 'fill', Color.scheme.knotFill);
+                rect.setAttributeNS(null, 'stroke', Color.scheme.knotOutline);
                 rect.setAttributeNS(null, 'stroke-width', 1.5);
                 rect.setAttributeNS(null, 'x', (this.xPosition - 9).toFixed(2));
                 rect.setAttributeNS(null, 'y', (this.yPosition - 9).toFixed(2));
@@ -2781,9 +2817,9 @@
             },
             draw: function(context, detailLevel) {
                 this.drawOutline(context);
-                context.fillStyle = '#ffffff';
+                context.fillStyle = Color.scheme.knotFill;
                 context.fill();
-                context.strokeStyle = '#ff8888';
+                context.strokeStyle = Color.scheme.knotOutline;
                 context.lineWidth = 1.5;
                 context.stroke();
                 AbstractNode.prototype.draw.apply(this, arguments);
@@ -3021,8 +3057,8 @@
                 var path;
                 if(this.historized) {
                     path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', '#fff');
-                    path.setAttributeNS(null, 'stroke', '#a8a8a8');
+                    path.setAttributeNS(null, 'fill', Color.scheme.tieOutline);
+                    path.setAttributeNS(null, 'stroke', Color.scheme.tieFill);
                     path.setAttributeNS(null, 'stroke-width', 1.5);
                     path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - 18).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + 17).toFixed(2) +
@@ -3031,7 +3067,7 @@
                             ' ' + (this.xPosition - 18).toFixed(2) + ',' + this.yPosition.toFixed(2));
                     group.appendChild(path);
                     path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', '#a8a8a8');
+                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
                     path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - 12).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + 11).toFixed(2) +
                             ' ' + (this.xPosition + 12).toFixed(2) + ',' + this.yPosition.toFixed(2) +
@@ -3041,7 +3077,7 @@
                 }
                 else {
                     path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', '#a8a8a8');
+                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
                     path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - 15).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + 14).toFixed(2) +
                             ' ' + (this.xPosition + 15).toFixed(2) + ',' + this.yPosition.toFixed(2) +
@@ -3054,9 +3090,9 @@
             draw: function(context, detailLevel) {
                 this.drawOutline(context);
                 if(this.historized) {
-                    context.fillStyle = '#ffffff';
+                    context.fillStyle = Color.scheme.tieOutline;
                     context.fill();
-                    context.strokeStyle = '#a8a8a8';
+                    context.strokeStyle = Color.scheme.tieFill;
                     context.lineWidth = 1.5;
                     context.stroke();
                     context.beginPath();
@@ -3064,11 +3100,11 @@
                     context.lineTo(this.xPosition, this.yPosition + 11);
                     context.lineTo(this.xPosition + 12, this.yPosition);
                     context.lineTo(this.xPosition, this.yPosition - 11);
-                    context.fillStyle = '#a8a8a8';
+                    context.fillStyle = Color.scheme.tieFill;
                     context.fill();
                 }
                 else {
-                    context.fillStyle = '#a8a8a8';
+                    context.fillStyle = Color.scheme.tieFill;
                     context.fill();
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
@@ -3139,7 +3175,7 @@
                 var group = svg.createElementNS(SVGNS, 'g');
                 var path = svg.createElementNS(SVGNS, 'path');
                 path.setAttributeNS(null, 'fill', 'none');
-                path.setAttributeNS(null, 'stroke', '#000');
+                path.setAttributeNS(null, 'stroke', Color.scheme.edge);
                 path.setAttributeNS(null, 'd', 'M ' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                         ' Q ' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
@@ -3147,10 +3183,10 @@
                 if(this.node instanceof Tie || this.otherNode instanceof Tie) {
                     var circle = svg.createElementNS(SVGNS, 'circle');
                     if(this.identifier)
-                        circle.setAttributeNS(null, 'fill', '#766');
+                        circle.setAttributeNS(null, 'fill', Color.scheme.identifierSelectedFill);
                     else
-                        circle.setAttributeNS(null, 'fill', '#fff');
-                    circle.setAttributeNS(null, 'stroke', '#000');
+                        circle.setAttributeNS(null, 'fill', Color.scheme.identifierUnselectedFill);
+                    circle.setAttributeNS(null, 'stroke', Color.scheme.identifierOutline);
                     circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
                     circle.setAttributeNS(null, 'r', 6);
@@ -3190,31 +3226,31 @@
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
                 context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
-                context.strokeStyle = '#544';
+                context.strokeStyle = Color.scheme.edge;
                 context.lineWidth = 1.0;
                 context.stroke();
                 if(DEBUG) {
                     context.beginPath();
                     context.arc(this.controlPoint.xPosition, this.controlPoint.yPosition, 4, 0, 2*Math.PI, false);
-                    context.fillStyle = '#00bb00';
+                    context.fillStyle = Color.scheme.forceVector;
                     context.fill();
                     context.stroke();
                 }
                 // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
                 if(detailLevel == 0 && (this.node instanceof Tie || this.otherNode instanceof Tie)) {
-                    var cardinality, strokeStyle = '#000', fillStyle = '#766';
+                    var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
                     if(this.identifier) {
-                        fillStyle = '#766';
+                        fillStyle = Color.scheme.identifierSelectedFill;
                         cardinality = 'm';
                     }
                     else {
-                        fillStyle = '#fff';
+                        fillStyle = Color.scheme.identifierUnselectedFill;
                         cardinality = '1';
                     }
                     if(CARDINALITIES) {
-                        strokeStyle = fillStyle = '#f9f8f7';
+                        strokeStyle = fillStyle = Color.scheme.canvasBackground;
                     }
                     context.strokeStyle = strokeStyle;
                     context.fillStyle = fillStyle;
@@ -3222,7 +3258,7 @@
                     context.fill();
                     if(CARDINALITIES) {
                         context.save();
-                        context.fillStyle = '#544';
+                        context.fillStyle = Color.scheme.cardinality;
                         context.textBaseline = 'middle';
                         context.textAlign = 'center';
                         context.font = 'bold 6pt sans-serif';
@@ -3811,7 +3847,7 @@
                 var node;
                 var selected = selector.value;
                 selector.options.length = 0;
-                selector.options.add(new Option("None", "none"));
+                selector.options.add(new Option("None selected", "none"));
                 var nodes = Model.nodes.slice();
                 nodes.sort(
                     function(a, b) {
@@ -4225,7 +4261,7 @@
                 }
                 if(DrawingEngine.showNames) {
                     for(i = 0; node = Model.nodes[i]; i++)
-                        if(!(node instanceof Edge) && !Model.filtered[i])
+                        if(node.hasFullName() && !Model.filtered[i])
                             node.drawName(maxiatureContext);
                 }
                 
@@ -4781,7 +4817,7 @@
         <div id="search">
             <input id="searchFilter" type="text" placeholder=" search filter " title="Search the model for the given (sub)string." onfocus="Actions.stopKeyboardEvents()" onblur="Actions.populateSelector(document.getElementById('nodeSelector'), this.value)"/>
             <select id="nodeSelector" title="Focus model on the selected node." onmouseover="Actions.populateSelector(this, document.getElementById('searchFilter').value)" onchange="Actions.selectNode(this.value)">
-                <option value="none" selected="selected">None</option>
+                <option value="none" selected="selected">None selected</option>
             </select>
         </div>
 
