@@ -427,31 +427,41 @@
 
     /* http://www.ie7nomore.com/fun/menu2/ */
     /* TODO: position using relative instead */
-    #actions, #settings, #file, #generate, #about {
+    #actions, #settings, #file, #generate, #about, #defaults {
         position:           absolute;
         display:            block;
         top:                0px;
-        z-index:            8;
+        z-index:            42;
     }
     #file {
         left:               8px;
         text-align:         left;
+        z-index:            43;
     }
     #actions {
         left:               50px;
         text-align:         left;
+        z-index:            44;
     }
     #generate {
         left:               110px;
         text-align:         left;
+        z-index:            45;
+    }
+    #defaults {
+        right:              130px;
+        text-align:         right;
+        z-index:            45;
     }
     #settings {
         right:              60px;
         text-align:         right;
+        z-index:            44;
     }
     #about {
         right:              8px;
         text-align:         right;
+        z-index:            43;
     }
     .menu {
         font:               10pt georgia, sans-serif;
@@ -505,7 +515,7 @@
         width:              45px;
     }
     .submenu .inputDefaults {
-        width:              125px;
+        width:              80px;
     }
 
     #controls {
@@ -515,7 +525,7 @@
         margin-left:        -200px; /* half of the actual width */
         height:             32px;
         display:            block;
-        z-index:            9;
+        z-index:            555;
     }
     #controls .playing {
         background-color:   #fa5;      
@@ -1915,7 +1925,11 @@
         var Defaults = {
             timeRange: 'datetime',
             encapsulation: 'dbo',
-            identity: 'int'
+            identity: 'int',
+            metadataPrefix: 'Metadata',
+            metadataType: 'int',
+            historizationSuffix: 'ChangedAt',
+            identitySuffix: 'ID'
         };
 
         var Editables = {
@@ -3922,6 +3936,10 @@
                     xmlhttp.send(null);
                     var processor = new XSLTProcessor();
                     processor.importStylesheet(xmlhttp.responseXML.documentElement);
+                    processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
+                    processor.setParameter(null, 'metadataType', Defaults.metadataType);
+                    processor.setParameter(null, 'historizationSuffix', Defaults.historizationSuffix);
+                    processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
@@ -4331,6 +4349,20 @@
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
                 document.getElementById('defaultIdentity').value = Defaults.identity;
                 document.getElementById('defaultTimeRange').value = Defaults.timeRange;
+                document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
+                document.getElementById('metadataType').value = Defaults.metadataType;
+                document.getElementById('historizationSuffix').value = Defaults.historizationSuffix;
+                document.getElementById('identitySuffix').value = Defaults.identitySuffix;
+            },
+            resetDefaults: function() {
+                this.setDefaultCapsule('dbo');
+                this.setDefaultIdentity('int');
+                this.setDefaultTimeRange('datetime');
+                this.setMetadataPrefix('Metadata');
+                this.setMetadataType('int');
+                this.setHistorizationSuffix('ChangedAt');
+                this.setIdentitySuffix('ID');
+                this.init();
             },
             resetSettings: function() {
                 this.setDamping(4);
@@ -4344,9 +4376,6 @@
                 this.setFPS(100);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
-                this.setDefaultCapsule(Defaults.encapsulation);
-                this.setDefaultIdentity(Defaults.identity);
-                this.setDefaultTimeRange(Defaults.timeRange);
                 Knot.mass = 1;
                 Knot.charge = 1;
                 Anchor.mass = 1;
@@ -4374,6 +4403,10 @@
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
                 storage.setItem("defaultIdentity", Defaults.identity);
                 storage.setItem("defaultTimeRange", Defaults.timeRange);
+                storage.setItem("metadataPrefix", Defaults.metadataPrefix);
+                storage.setItem("metadataType", Defaults.metadataType);
+                storage.setItem("historizationSuffix", Defaults.historizationSuffix);
+                storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -4400,6 +4433,10 @@
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
                 this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
                 this.setDefaultTimeRange(storage.getItem('defaultTimeRange') || Defaults.timeRange);
+                this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
+                this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                this.setHistorizationSuffix(storage.getItem('historizationSuffix') || Defaults.historizationSuffix);
+                this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -4411,6 +4448,18 @@
                 Edge.mass = 1 * storage.getItem('edgeMass') || 1;
                 Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
                 this.init();
+            },
+            setMetadataPrefix: function(value) {
+                Defaults.metadataPrefix = value;
+            },
+            setMetadataType: function(value) {
+                Defaults.metadataType = value;
+            },
+            setHistorizationSuffix: function(value) {
+                Defaults.historizationSuffix = value;
+            },
+            setIdentitySuffix: function(value) {
+                Defaults.identitySuffix = value;
             },
             setDefaultCapsule: function(value) {
                 Defaults.encapsulation = value;
@@ -4859,8 +4908,25 @@
             </ul>
         </div>
 
+        <div id="defaults">
+            <ul class="menu">
+                <li>Defaults
+                    <ul id="listOfDefaults" class="submenu">
+                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
+                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
+                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> Time range</li>
+                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                        <li><input id="historizationSuffix" class="inputDefaults" type="text" onblur="Settings.setHistorizationSuffix(this.value)"/> Historization suffix</li>
+                        <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
+                        <li onclick="Settings.resetDefaults()">Reset to default values</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
-        <div id="settings" class="unselectable" title="Expert settings">
+        <div id="settings" title="Expert settings">
             <ul class="menu">
                 <li>Settings
                     <ul id="listOfSettings" class="submenu">
@@ -4885,9 +4951,6 @@
                                 <option value="Oracle.xsl">Oracle</option>
                             </select> &nbsp;Target database
                         </li>
-                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Default capsule</li>
-                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Default identity</li>
-                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> Default time range</li>
                         <li onclick="Settings.resetSettings()">Reset settings to default values</li>
                         <li onclick="Settings.toggleDebug()">Toggle debug</li>
                     </ul>
