@@ -14,7 +14,7 @@
         <xsl:text>int</xsl:text>
     </xsl:param>
     <xsl:param name="historizationSuffix">
-        <xsl:text>ValidFrom</xsl:text>
+        <xsl:text>ChangedAt</xsl:text>
     </xsl:param>
     <xsl:param name="identitySuffix">
         <xsl:text>ID</xsl:text>
