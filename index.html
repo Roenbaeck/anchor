@@ -589,30 +589,13 @@
         // set to true to show debugging information
         var DEBUG = false;
 
-        // frames per second - set low when debugging
-        var FPS = 100;
-
-        // draw the miniature every minirate frames
-        var MINIRATE = 50;
-
-        // which transform to use when generating SQL code
-        var DATABASE_TRANSFORM = 'SQLServer.xsl';
-
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
 
-        var CALCS = 'simple';
-
+        // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
-
         var LOGGED_IN = false;
 
-        var MNEMONICS = true;
-
-        var CARDINALITIES = true;
-
-        var TEMPORALIZATION = 'mono';
-        
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
@@ -1258,12 +1241,16 @@
                                 }
                                 this.removeNode(edge.otherNode);
                                 this.removeEdge(edge);
+                                if(edge.otherNode.dataRange)
+                                    nodes[i].dataRange = edge.otherNode.dataRange;
                                 nodes[i].setKnotted(false);
                             }
                         }
                     }
                     else {
                         knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
+                        if(nodes[i].dataRange)
+                            knot.dataRange = nodes[i].dataRange;
                         this.addNode(knot);
                         this.addEdge(new Edge(nodes[i], knot, true));
                         nodes[i].setKnotted(true);
@@ -1412,6 +1399,8 @@
             showNames: false,
             drawShadows: false,
             newState: true,
+            FPS: 100,
+            miniatureFramesBetweenRefresh: 50,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
@@ -1501,7 +1490,7 @@
                     this.invalidateMiniature();
                     if(!this.running) {
                         this.running = true;
-                        this.drawId = setInterval(function() { DrawingEngine.draw(layoutModel); }, 1000 / FPS);
+                        this.drawId = setInterval(function() { DrawingEngine.draw(layoutModel); }, 1000 / this.FPS);
                         if(layoutModel)
                             ControlButtons.setPauseState();
                     }
@@ -1539,7 +1528,7 @@
                 this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 // draw the miniature every minirate frames
-                this.miniCounter = (this.miniCounter + 1) % MINIRATE;
+                this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 if(this.miniCounter == 1)
                     this.drawMiniature(Model);
 
@@ -1931,6 +1920,7 @@
             identity: 'int',
             metadataPrefix: 'Metadata',
             metadataType: 'int',
+            metadataUsage: true,
             historizationSuffix: 'ChangedAt',
             identitySuffix: 'ID'
         };
@@ -2426,7 +2416,7 @@
                     if(edge.otherNode instanceof Anchor)
                         anchor = edge.otherNode;
                 var name;
-                if(MNEMONICS)
+                if(Settings.showMnemonics)
                     name = anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
                 else
                     name = this.descriptor;
@@ -2558,7 +2548,7 @@
             },
             toString: function() {
                 var name;
-                if(MNEMONICS)
+                if(Settings.showMnemonics)
                     name = this.mnemonic + "_" + this.descriptor;
                 else
                     name = this.descriptor;
@@ -2716,7 +2706,7 @@
             },
             toString: function() {
                 var name;
-                if(MNEMONICS)
+                if(Settings.showMnemonics)
                     name = this.mnemonic + "_" + this.descriptor;
                 else
                     name = this.descriptor;
@@ -2872,7 +2862,7 @@
                 return true;
             },
             hasFullName: function() {
-                return MNEMONICS;
+                return Settings.showMnemonics;
             },
             setFirstRole: function(edge) {
                 this.edges.splice(this.edges.indexOf(edge), 1);
@@ -3173,7 +3163,7 @@
                 return this.node instanceof Tie || this.otherNode instanceof Tie;
             },
             hasFullName: function() {
-                return !MNEMONICS;
+                return !Settings.showMnemonics;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -3206,7 +3196,7 @@
                         fillStyle = Color.scheme.identifierUnselectedFill;
                         cardinality = '1';
                     }
-                    if(CARDINALITIES) {
+                    if(Settings.showCardinalities) {
                         strokeStyle = fillStyle = Color.scheme.svgBackground;
                     }
                     circle.setAttributeNS(null, 'fill', fillStyle);
@@ -3215,7 +3205,7 @@
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
                     circle.setAttributeNS(null, 'r', 6);
                     group.appendChild(circle);
-                    if(CARDINALITIES) {
+                    if(Settings.showCardinalities) {
                         var text = svg.createElementNS(SVGNS, 'text');
                         text.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
                         text.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
@@ -3258,14 +3248,14 @@
                         fillStyle = Color.scheme.identifierUnselectedFill;
                         cardinality = '1';
                     }
-                    if(CARDINALITIES) {
+                    if(Settings.showCardinalities) {
                         strokeStyle = fillStyle = Color.scheme.canvasBackground;
                     }
                     context.strokeStyle = strokeStyle;
                     context.fillStyle = fillStyle;
                     context.stroke();
                     context.fill();
-                    if(CARDINALITIES) {
+                    if(Settings.showCardinalities) {
                         context.save();
                         context.fillStyle = Color.scheme.cardinality;
                         context.textBaseline = 'middle';
@@ -3886,8 +3876,8 @@
                 selector.options.length = 0;
                 selector.options.add(new Option("None selected", "none"));
                 var nodes = Model.nodes.slice();
-                var mnemonics = MNEMONICS;
-                MNEMONICS = true;
+                var mnemonics = Settings.showMnemonics;
+                Settings.showMnemonics = true;
                 nodes.sort(
                     function(a, b) {
                         var nameA = a.encapsulation + '.' + a.toString();
@@ -3911,7 +3901,7 @@
                     }
                 }
                 selector.value = selected;
-                MNEMONICS = mnemonics;
+                Settings.showMnemonics = mnemonics;
             },
             stopKeyboardEvents: function() {
                 window.onkeypress = null;
@@ -3941,6 +3931,7 @@
                     processor.importStylesheet(xmlhttp.responseXML.documentElement);
                     processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
                     processor.setParameter(null, 'metadataType', Defaults.metadataType);
+                    processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage ? 'true' : 'false');
                     processor.setParameter(null, 'historizationSuffix', Defaults.historizationSuffix);
                     processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
@@ -4264,11 +4255,11 @@
                 DrawingEngine.start(false);
             },
             toggleMnemonics: function () {
-                MNEMONICS = !MNEMONICS;
+                Settings.showMnemonics = !Settings.showMnemonics;
                 DrawingEngine.start(false);
             },
             toggleCardinalities: function () {
-                CARDINALITIES = !CARDINALITIES;
+                Settings.showCardinalities = !Settings.showCardinalities;
                 DrawingEngine.start(false);
             },
             toggleShadows: function() {
@@ -4337,6 +4328,12 @@
         };
 
         var Settings = {
+            // default values for some 'global' settings
+            databaseTransform: 'SQLServer.xsl',
+            calculations: 'simple',
+            showMnemonics: true,
+            showCardinalities: true,
+            temporalization: 'mono',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
@@ -4345,16 +4342,17 @@
                 document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
                 document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
-                document.getElementById('temporalization').value = TEMPORALIZATION;
-                document.getElementById('database').value = DATABASE_TRANSFORM;
-                document.getElementById('FPS').value = FPS;
-                document.getElementById('MINIRATE').value = MINIRATE;
-                document.getElementById('CALCS').value = CALCS;
+                document.getElementById('temporalization').value = this.temporalization;
+                document.getElementById('database').value = this.databaseTransform;
+                document.getElementById('FPS').value = DrawingEngine.FPS;
+                document.getElementById('miniatureFramesBetweenRefresh').value = DrawingEngine.miniatureFramesBetweenRefresh;
+                document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
                 document.getElementById('defaultIdentity').value = Defaults.identity;
                 document.getElementById('defaultTimeRange').value = Defaults.timeRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
+                document.getElementById('metadataUsage').checked = Defaults.metadataUsage;
                 document.getElementById('historizationSuffix').value = Defaults.historizationSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
             },
@@ -4364,6 +4362,7 @@
                 this.setDefaultTimeRange('datetime');
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
+                this.setMetadataUsage(true);
                 this.setHistorizationSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
                 this.setTemporalization('mono');
@@ -4401,16 +4400,17 @@
                 storage.setItem("maximumStartingVelocity", LayoutEngine.maximumStartingVelocity);
                 storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
-                storage.setItem("temporalization", TEMPORALIZATION);
-                storage.setItem("database", DATABASE_TRANSFORM);
-                storage.setItem("FPS", FPS);
-                storage.setItem("MINIRATE", MINIRATE);
-                storage.setItem("CALCS", CALCS);
+                storage.setItem("temporalization", this.temporalization);
+                storage.setItem("database", this.databaseTransform);
+                storage.setItem("FPS", DrawingEngine.FPS);
+                storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
+                storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
                 storage.setItem("defaultIdentity", Defaults.identity);
                 storage.setItem("defaultTimeRange", Defaults.timeRange);
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
+                storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("historizationSuffix", Defaults.historizationSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("knotMass", Knot.mass);
@@ -4435,13 +4435,14 @@
                 this.setTemporalization(storage.getItem('temporalization') || 'mono');
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setFPS(storage.getItem('FPS') || 100);
-                this.setMiniRate(storage.getItem('MINIRATE') || 50);
-                this.setCalculations(storage.getItem('CALCS') || 'simple');
+                this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
+                this.setCalculations(storage.getItem('calculations') || 'simple');
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
                 this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
                 this.setDefaultTimeRange(storage.getItem('defaultTimeRange') || Defaults.timeRange);
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                 this.setHistorizationSuffix(storage.getItem('historizationSuffix') || Defaults.historizationSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
@@ -4457,13 +4458,16 @@
                 this.init();
             },
             setTemporalization: function(value) {
-                TEMPORALIZATION = value;
+                this.temporalization = value;
             },
             setMetadataPrefix: function(value) {
                 Defaults.metadataPrefix = value;
             },
             setMetadataType: function(value) {
                 Defaults.metadataType = value;
+            },
+            setMetadataUsage: function(value) {
+                Defaults.metadataUsage = value;
             },
             setHistorizationSuffix: function(value) {
                 Defaults.historizationSuffix = value;
@@ -4504,13 +4508,13 @@
                 LayoutEngine.stiffnessBound = value * value;
             },
             setDatabase: function(value) {
-                DATABASE_TRANSFORM = value;
+                this.databaseTransform = value;
             },
             setFPS: function(value) {
-                FPS = 1 * value;
+                DrawingEngine.FPS = 1 * value;
             },
             setMiniRate: function(value) {
-                MINIRATE = 1 * value;
+                DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
             },
             toggleDebug: function () {
                 DEBUG = !DEBUG;
@@ -4880,7 +4884,7 @@
                     <ul class="submenu">
                         <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
                         <li onclick="Actions.generateHTML()">HTML documentation</li>
-                        <li onclick="new CodePopover(Actions.transform(Model.toXML(true), DATABASE_TRANSFORM, document), true)">SQL code</li>
+                        <li onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
                         <!-- Removed due to memory issues
                         <li onclick="Actions.generatePNG()">PNG hi-res model</li>
@@ -4925,10 +4929,11 @@
                         <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> &nbsp;Capsule</li>
                         <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> &nbsp;Identity</li>
                         <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> &nbsp;Time range</li>
-                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> &nbsp;Metadata prefix</li>
-                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> &nbsp;Metadata type</li>
                         <li><input id="historizationSuffix" class="inputDefaults" type="text" onblur="Settings.setHistorizationSuffix(this.value)"/> &nbsp;Historization suffix</li>
                         <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> &nbsp;Identity suffix</li>
+                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> &nbsp;Metadata prefix</li>
+                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> &nbsp;Metadata type</li>
+                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onblur="Settings.setMetadataUsage(this.value)"/> &nbsp;Use metadata</li>
                         <li>
                             <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                                 <option value="mono" selected="selected">Mono-temporal</option>
@@ -4960,9 +4965,9 @@
                         <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
                         <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
                         <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
-                        <li><input id="MINIRATE" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                        <li><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
                         <li id="calcsItem">
-                            <select id="CALCS" onchange="Settings.setCalculations(this.value)">
+                            <select id="calculations" onchange="Settings.setCalculations(this.value)">
                                 <option value="simple" selected="selected">Simplified</option>
                                 <option value="complex">Adjustable</option>
                             </select> &nbsp;Calculations
