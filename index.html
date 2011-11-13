@@ -2313,9 +2313,8 @@
                 for(i = 0; edge = anchor.edges[i]; i++) {
                     otherNode = (edge.node == anchor ? edge.otherNode : edge.node);
                     if(otherNode instanceof Attribute && otherNode != this && otherNode.mnemonic == this.mnemonic) {
-                        alert("The mnemonic '" + this.mnemonic + "' is not unique among other attributes on the '"
+                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other attributes on the '"
                                 + anchor + "' anchor. Please change to a different mnemonic in order to continue.");
-                        return false;
                     }
                 }
                 return true;
@@ -2568,9 +2567,8 @@
                 // then check mnemonic uniqueness
                 for(i = 0; anchor = anchors[i]; i++) {
                     if(anchor != this && anchor.mnemonic == this.mnemonic) {
-                        alert("The mnemonic '" + this.mnemonic + "' is not unique among other anchors in the model. " +
+                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other anchors in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
-                        return false;
                     }
                 }
                 return true;
@@ -2726,9 +2724,8 @@
                 // then check mnemonic uniqueness
                 for(i = 0; knot = knots[i]; i++) {
                     if(knot != this && knot.mnemonic == this.mnemonic) {
-                        alert("The mnemonic '" + this.mnemonic + "' is not unique among other knots in the model. " +
+                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other knots in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
-                        return false;
                     }
                 }
                 return true;
@@ -2894,8 +2891,7 @@
                             identical &= roles[edge.role + "_" + (edge.node == node ? edge.otherNode : edge.node)];
                         }
                         if(identical) {
-                            alert("This tie will become identical to the already existing tie named " + node + ". Please rename the role.");
-                            return false;
+                            return !confirm("This tie will become identical to the already existing tie named " + node + ". Please rename the role.");
                         }
                     }
                 }
@@ -3787,7 +3783,15 @@
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
             },
-            toggle: function(node) {
+            keypress: function(self, event) {
+                if(event.keyCode == 13) {
+                    event.srcElement.blur();
+                    if(Model.isConforming())
+                        CanvasEventHandler.closeContextMenu();
+                }
+            },
+            toggle: function() {
+                var self = this;
                 if(this.collapsed) {
                     this.toggler.className = 'toggler expanded';
                     this.collapsed = false;
@@ -3798,6 +3802,7 @@
                         this.contextMenu.appendChild(this.divider);
                     }
                     this.contextMenu.appendChild(this.operators);
+                    this.editables.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
                 }
                 else {
                     if(this.editsHaveBeenMade && !Model.isConforming())
@@ -3823,6 +3828,7 @@
             },
             close: function() {
                 this.unmodal();
+                this.editables.removeEventListener('keypress', function(event) { self.keypress(self, event); }, false);
                 if(this.editsHaveBeenMade)
                     Model.recordState();
                 document.body.removeChild(this.contextMenu);
