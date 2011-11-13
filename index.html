@@ -1920,7 +1920,7 @@
             identity: 'int',
             metadataPrefix: 'Metadata',
             metadataType: 'int',
-            metadataUsage: true,
+            metadataUsage: 'true',
             historizationSuffix: 'ChangedAt',
             identitySuffix: 'ID'
         };
@@ -3931,7 +3931,7 @@
                     processor.importStylesheet(xmlhttp.responseXML.documentElement);
                     processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
                     processor.setParameter(null, 'metadataType', Defaults.metadataType);
-                    processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage ? 'true' : 'false');
+                    processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage);
                     processor.setParameter(null, 'historizationSuffix', Defaults.historizationSuffix);
                     processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
@@ -4352,7 +4352,7 @@
                 document.getElementById('defaultTimeRange').value = Defaults.timeRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
-                document.getElementById('metadataUsage').checked = Defaults.metadataUsage;
+                document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
                 document.getElementById('historizationSuffix').value = Defaults.historizationSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
             },
@@ -4933,7 +4933,7 @@
                         <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> &nbsp;Identity suffix</li>
                         <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> &nbsp;Metadata prefix</li>
                         <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> &nbsp;Metadata type</li>
-                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onblur="Settings.setMetadataUsage(this.value)"/> &nbsp;Use metadata</li>
+                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked)"/> &nbsp;Use metadata</li>
                         <li>
                             <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                                 <option value="mono" selected="selected">Mono-temporal</option>
