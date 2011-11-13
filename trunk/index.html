@@ -3670,6 +3670,7 @@
                     element.editable = editable;
                     element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
                     element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
+                    element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
                     if(editable.pattern)
                         element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
@@ -3800,9 +3801,11 @@
                     if(this.showEditables) {
                         this.contextMenu.appendChild(this.editables);
                         this.contextMenu.appendChild(this.divider);
+                        var editables = this.editables.getElementsByClassName('editable');
+                        if(editables.length > 0)
+                            editables[0].focus();
                     }
                     this.contextMenu.appendChild(this.operators);
-                    this.editables.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
                 }
                 else {
                     if(this.editsHaveBeenMade && !Model.isConforming())
@@ -3828,7 +3831,6 @@
             },
             close: function() {
                 this.unmodal();
-                this.editables.removeEventListener('keypress', function(event) { self.keypress(self, event); }, false);
                 if(this.editsHaveBeenMade)
                     Model.recordState();
                 document.body.removeChild(this.contextMenu);
