@@ -712,13 +712,13 @@
                 this.equilibrium = true;
 
                 var i, j, node, otherNode, edge, curvature, square;
-                var numberOfNodes = model.nodes.length;
+                var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
                 var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
-                for(i = 0; node = model.nodes[i]; i++) {
+                for(i = 0; node = model.visibleNodes[i]; i++) {
                     square = this.createSquare(node, this.influenceConstant * this.normalDistance);
-                    for(j = 0; otherNode = model.nodes[j]; j++) {
+                    for(j = 0; otherNode = model.visibleNodes[j]; j++) {
                         // not the same node
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
@@ -733,7 +733,7 @@
                         }
                     }
                     // bending force (straightens out edges)
-                    if(node instanceof Edge) {
+                    if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
                         // update the control and center points
                         node.controlPoint.xPosition = 2 * node.xPosition - node.node.xPosition / 2 - node.otherNode.xPosition / 2;
                         node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
@@ -748,8 +748,10 @@
                     }
                     // for all edges, add the attracting velocity
                     for(j = 0; edge = node.edges[j]; j++) {
-                        node.xVelocity += this.xSimpleAttracting(node, edge)/node.edges.length;
-                        node.yVelocity += this.ySimpleAttracting(node, edge)/node.edges.length;
+                        if(edge.visible) {
+                            node.xVelocity += this.xSimpleAttracting(node, edge)/node.edges.length;
+                            node.yVelocity += this.ySimpleAttracting(node, edge)/node.edges.length;
+                        }
                     }
                     // apply damping
                     node.xVelocity *= this.damping;
@@ -783,13 +785,13 @@
                 this.equilibrium = true;
 
                 var i, j, node, otherNode, edge, curvature, square;
-                var numberOfNodes = model.nodes.length;
+                var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
                 var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
-                for(i = 0; node = model.nodes[i]; i++) {
+                for(i = 0; node = model.visibleNodes[i]; i++) {
                     square = this.createSquare(node, this.influenceConstant * this.normalDistance);
-                    for(j = 0; otherNode = model.nodes[j]; j++) {
+                    for(j = 0; otherNode = model.visibleNodes[j]; j++) {
                         // not the same node
                         if(i != j) {
                             // for nodes within range, add the repelling velocity
@@ -919,7 +921,7 @@
             id: null,
             // other members
             nodes: [],
-            edges: [],
+            visibleNodes: [],
             filtered: [],
             shadowToNode: {},
             topmostNode: null,
@@ -936,7 +938,6 @@
             },
             empty: function() {
                 this.nodes = [];
-                this.edges = [];
                 this.shadowToNode = {};
                 this.topmostNode = null;
                 this.rightmostNode = null;
@@ -945,6 +946,13 @@
             },
             // TODO: We probably should have a maximum number of versions
             recordState: function() {
+                // copy visible nodes
+                this.visibleNodes.length = 0;
+                var node;
+                for(var i = 0; node = this.nodes[i]; i++) {
+                    if(node.visible)
+                        this.visibleNodes.push(node);
+                }
                 // only record if there is something to record
                 if(this.nodes.length) {
                     this.version++;
@@ -1048,13 +1056,10 @@
             },
             addEdge: function(edge) {
                 // the edge is also a node
-                if(edge) {
+                if(edge)
                     this.addNode(edge);
-                    this.edges[this.edges.length] = edge;                    
-                }
             },
             removeEdge: function(edge) {
-                this.deleteElementFromArray(this.edges, edge);
                 this.deleteElementFromArray(edge.node.edges, edge);
                 this.deleteElementFromArray(edge.otherNode.edges, edge);
                 this.removeNode(edge);
@@ -1128,46 +1133,29 @@
                         this.addNode(Tie.prototype.fromXML(ties[i]));
                 }
             },
-            walkFromNode: function(node, affectedNodes, affectedEdges) {
-                var i, k, edge, otherNode, otherEdge, anotherNode, otherNodeShouldAlsoBeErased;
-                for(i = 0; edge = node.edges[i]; i++) {
-                    if(affectedEdges.indexOf(edge) < 0)
-                        affectedEdges.push(edge);
-                    otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
-                    otherNodeShouldAlsoBeErased = true;
-                    for(k = 0; otherEdge = otherNode.edges[k]; k++) {
-                        anotherNode = (otherNode == otherEdge.otherNode ? otherEdge.node : otherEdge.otherNode);
-                        otherNodeShouldAlsoBeErased &= affectedNodes.indexOf(anotherNode) >= 0;
-                    }
-                    if(otherNodeShouldAlsoBeErased && affectedNodes.indexOf(otherNode) < 0) {
-                        affectedNodes.push(otherNode);
-                        this.walkFromNode(otherNode, affectedNodes, affectedEdges);
-                    }
-                }
-            },
-            walkFromEdge: function(edge, affectedNodes, affectedEdges) {
-                var i, k, otherEdge, potentialNode, potentialNodeShouldAlsoBeErased;
-                var potentialNodes = [edge.node, edge.otherNode];
-                for(i = 0; potentialNode = potentialNodes[i]; i++) {
-                    potentialNodeShouldAlsoBeErased = true;
-                    for(k = 0; otherEdge = potentialNode.edges[k]; k++)
-                        potentialNodeShouldAlsoBeErased &= affectedEdges.indexOf(otherEdge) >= 0;
-                    if(potentialNodeShouldAlsoBeErased && affectedNodes.indexOf(potentialNode) < 0)
-                        affectedNodes.push(potentialNode);
-                }
-            },
             erase: function(nodes) {
                 var i, j, node, edge, affectedNodes = [], affectedEdges = [];
                 for(i = 0; node = nodes[i]; i++) {
-                    if(node instanceof Edge)
+                    if(node instanceof Edge && affectedEdges.indexOf(node) < 0)
                         affectedEdges.push(node);
-                    else
+                    else if (node instanceof Anchor && affectedNodes.indexOf(node) < 0) {
                         affectedNodes.push(node);
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            if(affectedEdges.indexOf(edge) < 0)
+                                affectedEdges.push(edge);
+                            var otherNode = node == edge.otherNode ? edge.node : edge.otherNode;
+                            if(otherNode instanceof Attribute && affectedNodes.indexOf(otherNode) < 0)
+                                affectedNodes.push(otherNode);
+                        }
+                    }
+                    else if ((node instanceof Tie || node instanceof Attribute) && affectedNodes.indexOf(node) < 0) {
+                        affectedNodes.push(node);
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            if(affectedEdges.indexOf(edge) < 0)
+                                affectedEdges.push(edge);
+                        }
+                    }
                 }
-                for(i = 0; node = affectedNodes[i]; i++)
-                    this.walkFromNode(node, affectedNodes, affectedEdges);
-                for(i = 0; edge = affectedEdges[i]; i++)
-                    this.walkFromEdge(edge, affectedNodes, affectedEdges);
                 // check for ties in violation
                 var otherNode;
                 for(i = 0; node = this.nodes[i]; i++) {
@@ -1181,15 +1169,30 @@
                         }
                         if(anchors < 2 && affectedNodes.indexOf(node) < 0) {
                             affectedNodes.push(node);
-                            this.walkFromNode(node, affectedNodes, affectedEdges);
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                if(affectedEdges.indexOf(edge) < 0)
+                                    affectedEdges.push(edge);
+                            }
                         }
                     }
                 }
-                // add any dangling edges
-                for(i = 0; node = affectedNodes[i]; i++)
-                    for(j = 0; edge = node.edges[j]; j++)
-                        if(affectedEdges.indexOf(edge) < 0)
-                            affectedEdges.push(edge);
+                // check for dangling knots
+                for(i = 0; node = this.nodes[i]; i++) {
+                    if(node instanceof Knot) {
+                        var dangling = true;
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            dangling &= affectedNodes.indexOf(otherNode) > 0;
+                        }
+                        if(dangling) {
+                            affectedNodes.push(node);
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                if(affectedEdges.indexOf(edge) < 0)
+                                    affectedEdges.push(edge);
+                            }
+                        }
+                    }
+                }
                 if(confirm("Are you sure you want to delete the following?\n-- " +
                         affectedNodes.length + " nodes (listed below) and " +
                         affectedEdges.length + " edges --\n" + affectedNodes.join('\n'))) {
@@ -1369,6 +1372,60 @@
                 }
                 this.recordState();
                 DrawingEngine.start(true);
+            },
+            explode: function(nodes) {
+                var node, i, j;
+                for(i = 0; node = nodes[i]; i++) {
+                    if(node instanceof Anchor) {
+                        var edge, otherNode, knot, knotEdge;
+                        if(node.imploded) {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                if(otherNode instanceof Attribute) {
+                                    if(otherNode.knotted) {
+                                        for(var k = 0; knotEdge = otherNode.edges[i]; i++) {
+                                            knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
+                                            if(knot instanceof Knot)
+                                                break;
+                                        }
+                                        knot.visible = true;
+                                        otherNode.xPosition = node.xPosition + i + 1;
+                                        otherNode.yPosition = node.yPosition + i + 1;
+                                        knotEdge.visible = true;
+                                    }
+                                    otherNode.visible = true;
+                                    otherNode.xPosition = node.xPosition + i + 2;
+                                    otherNode.yPosition = node.yPosition + i + 2;
+                                    edge.visible = true;
+                                }
+                            }
+                        }
+                        else {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                if(otherNode instanceof Attribute) {
+                                    if(otherNode.knotted) {
+                                        for(var k = 0; knotEdge = otherNode.edges[i]; i++) {
+                                            knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
+                                            if(knot instanceof Knot)
+                                                break;
+                                        }
+                                        knot.visible = false;
+                                        knotEdge.visible = false;
+                                    }
+                                    otherNode.visible = false;
+                                    edge.visible = false;
+                                }
+                            }
+                        }
+                        node.imploded = !node.imploded;
+                    }
+                    else if(node instanceof Tie) {
+
+                    }
+                }
+                this.recordState();
+                DrawingEngine.start(true);
             }
         };
 
@@ -1478,8 +1535,8 @@
                 this.shadowContext.fillRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 var i, node;
-                // draw all nodes on the shadow context
-                for(i = 0; node = Model.nodes[i]; i++)
+                // draw all visible nodes on the shadow context
+                for(i = 0; node = Model.visibleNodes[i]; i++)
                     node.drawShadow(this.shadowContext);
 
                 var data = this.shadowContext.getImageData(x, y, 1, 1).data;
@@ -1542,12 +1599,12 @@
 
                 // cast all shadows first
                 if(this.drawShadows)
-                    for(i = 0; node = Model.nodes[i]; i++)
+                    for(i = 0; node = Model.visibleNodes[i]; i++)
                         if(!Model.filtered[i])
                             node.drawMoving(this.context);
 
                 // draw all nodes and edges on the visible context
-                for(i = 0; node = Model.nodes[i]; i++) {
+                for(i = 0; node = Model.visibleNodes[i]; i++) {
                     if(!Model.filtered[i])
                         node.draw(this.context, 0);
                     if(this.miniCounter == 1) {
@@ -1558,7 +1615,7 @@
                     }
                 }
                 if(this.showNames) {
-                    for(i = 0; node = Model.nodes[i]; i++)
+                    for(i = 0; node = Model.visibleNodes[i]; i++)
                         if(node.hasFullName() && !Model.filtered[i])
                             node.drawName(this.context);
                 }
@@ -1791,6 +1848,10 @@
                             case "f":
                                 if(Operations.isSupported("makeFirstRole", allNodes))
                                     Model.makeFirstRole(allNodes);
+                                break;
+                            case "x":
+                                if(Operations.isSupported("explode", allNodes))
+                                    Model.explode(allNodes);
                                 break;
                         }
                     }
@@ -2034,6 +2095,7 @@
             this.velocity = 0;
             this.moving = true;
             this.fixed = false;
+            this.visible = true;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.id = UniqueIdentity.nextId();
             this.edges = [];
@@ -2524,7 +2586,7 @@
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
-            this.operations.push('addAttribute','addTie','addTieAndAnchor');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
         }
         Anchor.prototype = {
@@ -2533,6 +2595,7 @@
             identity: Defaults.identity,
             generator: true,
             encapsulation: Defaults.encapsulation,
+            imploded: false,
             getMass: function() {
                 return Anchor.mass;
             },
@@ -2842,13 +2905,14 @@
             this.historized = historized;
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
-            this.operations.push('toggleHistorized','addKnot','addAnchor');
+            this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.type = 'Tie';
         }
         Tie.prototype = {
             timeRange: Defaults.timeRange,
             historized: false,
             encapsulation: Defaults.encapsulation,
+            imploded: false,
             getMass: function() {
                 return Tie.mass;
             },
@@ -3616,7 +3680,8 @@
                         }
                     }
                     return anchors && ties || knots && ties || attributes && knots && !knotted;
-                }]
+                }],
+                ['explode', 'Explode/Implode']
             ],
             isSupported: function(operation, nodes) {
                 for(var i = 0; i < nodes.length; i++)
