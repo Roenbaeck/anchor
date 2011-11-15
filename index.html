@@ -881,13 +881,30 @@
                 identifierUnselectedFill: '#fff',
                 fixed: '#000'
             },
+            imploded: {
+                anchorFill: '#633',
+                tieFill: '#e8e5e5',
+                tieOutline: '#fff',
+                fixed: '#fff'
+            },
+            schemes: ['imploded'],
             scheme: null,
             useScheme: function(scheme) {
                 this.scheme = scheme;
+            },
+            init: function() {
+                this.useScheme(this.normal);
+                var scheme;
+                for(var i = 0; scheme = this.schemes[i]; i++) {
+                    for(var color in this.normal) {
+                        if(!this[scheme][color])
+                            this[scheme][color] = this.normal[color];
+                    }
+                }
             }
         };
 
-        Color.useScheme(Color.normal);
+        Color.init();
 
         var UniqueColor = {
             // note that #000000 is reserved for the background and never assigned
@@ -922,7 +939,8 @@
             // other members
             nodes: [],
             visibleNodes: [],
-            filtered: [],
+            // TODO: explode implode must to be added to XML metadata
+            // TODO: imploded nodes should be drawn differently (perhaps also with another Color scheme)
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -944,8 +962,7 @@
                 this.bottommostNode = null;
                 this.leftmostNode = null;
             },
-            // TODO: We probably should have a maximum number of versions
-            recordState: function() {
+            refresh: function() {
                 // copy visible nodes
                 this.visibleNodes.length = 0;
                 var node;
@@ -953,6 +970,10 @@
                     if(node.visible)
                         this.visibleNodes.push(node);
                 }
+            },
+            // TODO: We probably should have a maximum number of versions
+            recordState: function() {
+                this.refresh();
                 // only record if there is something to record
                 if(this.nodes.length) {
                     this.version++;
@@ -985,6 +1006,7 @@
                     this.uncloud();
                     this.empty();
                     this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
+                    this.refresh();
                     CanvasEventHandler.clearSelection();
                     Actions.setModelStatus();
                     DrawingEngine.reset();
@@ -999,19 +1021,6 @@
                     if(!node.isConforming())
                         return false;
                 return true;
-            },
-            applyFilter: function(filter) {
-                var i, node, j, edge;
-                for(i = 0; node = this.nodes[i]; i++) {
-                    if(filter(node)) {
-                        this.filtered[i] = true;
-                        for(j = 0; edge = node.edges[j]; j++)
-                            this.filtered[this.nodes.indexOf(edge)] = true;
-                    }
-                }
-            },
-            removeFilter: function() {
-                this.filtered.length = 0;
             },
             sort: function() {
                 this.nodes.sort(function(a, b) {
@@ -1099,13 +1108,12 @@
                 var type = document.implementation.createDocumentType("svg", "-//W3C//DTD SVG 1.0//EN", "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd");
                 var svg = document.implementation.createDocument(SVGNS, "svg", type);
                 var g = svg.createElementNS(SVGNS, 'g');
-                for(var i = 0; i < this.nodes.length; i++)
-                    if(!this.filtered[i])
-                        this.nodes[i].toSVG(svg, g);
+                for(var i = 0; i < this.visibleNodes.length; i++)
+                    this.visibleNodes[i].toSVG(svg, g);
                 var node;
                 if(DrawingEngine.showNames) {
                     for(i = 0; node = this.nodes[i]; i++)
-                        if(node.hasFullName() && !this.filtered[i])
+                        if(node.hasFullName())
                             node.toSVGName(svg, g);
                 }
                 svg.documentElement.appendChild(g);
@@ -1131,6 +1139,7 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addNode(Tie.prototype.fromXML(ties[i]));
+                    this.refresh();
                 }
             },
             erase: function(nodes) {
@@ -1374,28 +1383,34 @@
                 DrawingEngine.start(true);
             },
             explode: function(nodes) {
-                var node, i, j;
+                var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
                     if(node instanceof Anchor) {
-                        var edge, otherNode, knot, knotEdge;
                         if(node.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node == node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Attribute) {
                                     if(otherNode.knotted) {
-                                        for(var k = 0; knotEdge = otherNode.edges[i]; i++) {
+                                        for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
-                                            if(knot instanceof Knot)
+                                            if(knot instanceof Knot) {
                                                 break;
+                                            }
                                         }
-                                        knot.visible = true;
-                                        otherNode.xPosition = node.xPosition + i + 1;
-                                        otherNode.yPosition = node.yPosition + i + 1;
+                                        if(!knot.visible) {
+                                            knot.xPosition = node.xPosition + j + 1;
+                                            knot.yPosition = node.yPosition + j + 1;
+                                            knot.start();
+                                            knot.visible = true;
+                                        }
+                                        knotEdge.start();
                                         knotEdge.visible = true;
                                     }
+                                    otherNode.xPosition = node.xPosition + j + 2;
+                                    otherNode.yPosition = node.yPosition + j + 2;
+                                    otherNode.start();
                                     otherNode.visible = true;
-                                    otherNode.xPosition = node.xPosition + i + 2;
-                                    otherNode.yPosition = node.yPosition + i + 2;
+                                    edge.start();
                                     edge.visible = true;
                                 }
                             }
@@ -1405,23 +1420,58 @@
                                 otherNode = edge.node == node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Attribute) {
                                     if(otherNode.knotted) {
-                                        for(var k = 0; knotEdge = otherNode.edges[i]; i++) {
+                                        for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
-                                            if(knot instanceof Knot)
+                                            if(knot instanceof Knot) {
                                                 break;
+                                            }
                                         }
-                                        knot.visible = false;
                                         knotEdge.visible = false;
+                                        visibleEdges = 0;
+                                        for(k = 0; knotEdge = knot.edges[k]; k++)
+                                            if(knotEdge.visible)
+                                                visibleEdges++;
+                                        if(visibleEdges == 0)
+                                            knot.visible = false;
                                     }
                                     otherNode.visible = false;
                                     edge.visible = false;
                                 }
                             }
                         }
-                        node.imploded = !node.imploded;
+                        node.setImploded(!node.imploded);
                     }
                     else if(node instanceof Tie) {
-
+                        if(node.imploded) {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                if(otherNode instanceof Knot) {
+                                    if(!otherNode.visible) {
+                                        otherNode.xPosition = node.xPosition + j + 1;
+                                        otherNode.yPosition = node.yPosition + j + 1;
+                                        otherNode.start();
+                                        otherNode.visible = true;
+                                    }
+                                    edge.start();
+                                    edge.visible = true;
+                                }
+                            }
+                        }
+                        else {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                if(otherNode instanceof Knot) {
+                                    edge.visible = false;
+                                    visibleEdges = 0;
+                                    for(k = 0; knotEdge = otherNode.edges[k]; k++)
+                                        if(knotEdge.visible)
+                                            visibleEdges++;
+                                    if(visibleEdges == 0)
+                                        otherNode.visible = false;
+                                }
+                            }
+                        }
+                        node.setImploded(!node.imploded);
                     }
                 }
                 this.recordState();
@@ -1600,23 +1650,24 @@
                 // cast all shadows first
                 if(this.drawShadows)
                     for(i = 0; node = Model.visibleNodes[i]; i++)
-                        if(!Model.filtered[i])
-                            node.drawMoving(this.context);
+                        node.drawMoving(this.context);
 
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.visibleNodes[i]; i++) {
-                    if(!Model.filtered[i])
-                        node.draw(this.context, 0);
-                    if(this.miniCounter == 1) {
-                        if(Model.filtered[i])
-                            this.miniatureContext.globalAlpha = 0.25;
-                        node.draw(this.miniatureContext, 1);
-                        this.miniatureContext.globalAlpha = 1.0;
+                    if(node.imploded) {
+                        Color.useScheme(Color.imploded);
+                        node.draw(this.context, 2);
                     }
+                    else {
+                        Color.useScheme(Color.normal);
+                        node.draw(this.context, 0);
+                    }
+                    if(this.miniCounter == 1)
+                        node.draw(this.miniatureContext, 1);
                 }
                 if(this.showNames) {
                     for(i = 0; node = Model.visibleNodes[i]; i++)
-                        if(node.hasFullName() && !Model.filtered[i])
+                        if(node.hasFullName())
                             node.drawName(this.context);
                 }
                 else if (node = CanvasEventHandler.hoveredNode)
@@ -1854,20 +1905,25 @@
                                     Model.explode(allNodes);
                                 break;
                         }
+                        if(event.stopPropagation)
+                            event.stopPropagation();
+                        if(event.preventDefault)
+                            event.preventDefault();
                     }
                 }
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
-                event.wheelDelta = event.detail * -120;
                 this.mousewheel(event);
             },
-            // TODO: We need upper and lower bounds on the zoom            
             mousewheel: function(event) {
-                var zoom = 1 + 10/event.wheelDelta;
-                DrawingEngine.scale(zoom);
-                DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) - DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) - DrawingEngine.yContext(event.yScreen) * zoom);
-                DrawingEngine.start(false);
+                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * 0.01;
+                var scale = DrawingEngine.xyScale * zoom;
+                if(scale > 0.1 && scale < 10) {
+                    DrawingEngine.scale(zoom);
+                    DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) - DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) - DrawingEngine.yContext(event.yScreen) * zoom);
+                    DrawingEngine.start(false);
+                }
             },
             mouseup: function(event) {
                 var layout = false;
@@ -2596,6 +2652,13 @@
             generator: true,
             encapsulation: Defaults.encapsulation,
             imploded: false,
+            setImploded: function(imploded) {
+                this.imploded = imploded;
+                if(imploded)
+                    this.operations.splice(this.operations.indexOf('addAttribute'), 1);
+                else
+                    this.operations.push('addAttribute');
+            },
             getMass: function() {
                 return Anchor.mass;
             },
@@ -2913,6 +2976,13 @@
             historized: false,
             encapsulation: Defaults.encapsulation,
             imploded: false,
+            setImploded: function(imploded) {
+                this.imploded = imploded;
+                if(imploded)
+                    this.operations.splice(this.operations.indexOf('addKnot'), 1);
+                else
+                    this.operations.push('addKnot');
+            },
             getMass: function() {
                 return Tie.mass;
             },
@@ -3296,7 +3366,12 @@
                     context.stroke();
                 }
                 // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
-                if(detailLevel == 0 && (this.node instanceof Tie || this.otherNode instanceof Tie)) {
+                var tie;
+                if(this.node instanceof Tie)
+                    tie = this.node;
+                else if(this.otherNode instanceof Tie)
+                    tie = this.otherNode;
+                if(detailLevel == 0 && tie && !tie.imploded) {
                     var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
@@ -3938,10 +4013,6 @@
         };
 
         var Actions = {
-            isFiltering: false,
-            filter: function(node) {
-                return node instanceof Attribute || node instanceof Knot;
-            },
             populateSelector: function(selector, searchString) {
                 this.startKeyboardEvents();
                 var node;
@@ -4305,10 +4376,10 @@
                 DrawingEngine.start(false);
             },
             randomizeLayout: function () {
-                for(var i = 0; i < Model.nodes.length; i++) {
-                    if(!Model.nodes[i].getFixed()) {
-                        Model.nodes[i].xPosition = Math.random() * window.innerWidth;
-                        Model.nodes[i].yPosition = Math.random() * window.innerHeight;
+                for(var i = 0; i < Model.visibleNodes.length; i++) {
+                    if(!Model.visibleNodes[i].getFixed()) {
+                        Model.visibleNodes[i].xPosition = Math.random() * window.innerWidth;
+                        Model.visibleNodes[i].yPosition = Math.random() * window.innerHeight;
                     }
                 }
                 DrawingEngine.start(true);
@@ -4338,50 +4409,22 @@
             toggleShadows: function() {
                 DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
             },
-            changeDetailLevel: function() {
-                if(this.isFiltering)
-                    Model.removeFilter();
-                else
-                    Model.applyFilter(this.filter);
-                this.isFiltering = !this.isFiltering;
-                DrawingEngine.start(false);
-            },
-            /* Removed due to memory issues
-            generatePNG: function() {
-                var scale = 5;
-                var padding = 50;
-                var maxiatureCanvas = document.getElementById('maxiature');
-                var maxiatureContext = maxiatureCanvas.getContext('2d');
-                var padding = DrawingEngine.showNames ? scale * padding : padding;
-                var maxiWidth = Model.rightmostNode.xPosition - Model.leftmostNode.xPosition + 2 * padding;
-                var maxiHeight = Model.bottommostNode.yPosition - Model.topmostNode.yPosition + 2 * padding;
-
-                maxiatureCanvas.width = scale * maxiWidth;
-                maxiatureCanvas.height = scale * maxiHeight;
-                maxiatureCanvas.style.width = maxiatureCanvas.width + 'px';
-                maxiatureCanvas.style.height = maxiatureCanvas.height + 'px';
-
-                maxiatureContext.setTransform(scale, 0, 0, scale, scale * (padding - Model.leftmostNode.xPosition), scale * (padding - Model.topmostNode.yPosition));
-
-                var i, node;
+            implodeAll: function() {
+                var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(!Model.filtered[i])
-                        node.draw(maxiatureContext, 0);
+                    if((node instanceof Anchor || node instanceof Tie) && !node.imploded)
+                        allNodes.push(node);
                 }
-                if(DrawingEngine.showNames) {
-                    for(i = 0; node = Model.nodes[i]; i++)
-                        if(node.hasFullName() && !Model.filtered[i])
-                            node.drawName(maxiatureContext);
-                }
-                
-                window.open(maxiatureCanvas.toDataURL('image/png'), '_newtab');
-                // release memory
-                maxiatureCanvas.width = 0;
-                maxiatureCanvas.height = 0;
-                maxiatureCanvas.style.width = maxiatureCanvas.width + 'px';
-                maxiatureCanvas.style.height = maxiatureCanvas.height + 'px';
+                Model.explode(allNodes);
             },
-            */
+            explodeAll: function() {
+                var i, node, allNodes = [];
+                for(i = 0; node = Model.nodes[i]; i++) {
+                    if((node instanceof Anchor || node instanceof Tie) && node.imploded)
+                        allNodes.push(node);
+                }
+                Model.explode(allNodes);
+            },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
                 html.open();
@@ -4789,8 +4832,8 @@
                 this.playPauseButton.className = 'playing';
             },
             invalidateLayout: function () {
-                for(var i = 0; i < Model.nodes.length; i++) {
-                    Model.nodes[i].start();
+                for(var i = 0; i < Model.visibleNodes.length; i++) {
+                    Model.visibleNodes[i].start();
                 }
                 DrawingEngine.start(true);
             },
@@ -4941,9 +4984,10 @@
                         <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                         <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
                         <li onclick="Actions.toggleShadows()">Toggle shadows</li>
-                        <li onclick="Actions.changeDetailLevel()">Change detail level</li>
                         <li onclick="Actions.toggleFixation()">Toggle fixation</li>
                         <li onclick="Actions.releaseAll()">Release all fixed</li>
+                        <li onclick="Actions.implodeAll()">Implode all</li>
+                        <li onclick="Actions.explodeAll()">Explode all</li>
                         <li onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
                         <li onclick="Actions.randomizeLayout()">Randomize layout</li>
                     </ul>
