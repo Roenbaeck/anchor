@@ -1391,6 +1391,16 @@
                 this.recordState();
                 DrawingEngine.start(true);
             },
+            switchEdgeNodes: function(oldNode, newNode) {
+                if(oldNode == Model.topmostNode)
+                    Model.topmostNode = newNode;
+                if(oldNode == Model.bottommostNode)
+                    Model.bottommostNode = newNode;
+                if(oldNode == Model.leftmostNode)
+                    Model.leftmostNode = newNode;
+                if(oldNode == Model.rightmostNode)
+                    Model.rightmostNode = newNode;
+            },
             explode: function(nodes, startEngine) {
                 var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
@@ -1442,9 +1452,12 @@
                                         for(k = 0; knotEdge = knot.edges[k]; k++)
                                             if(knotEdge.visible)
                                                 visibleEdges++;
-                                        if(visibleEdges == 0)
+                                        if(visibleEdges == 0) {
+                                            this.switchEdgeNodes(knot, node);
                                             knot.visible = false;
+                                        }
                                     }
+                                    this.switchEdgeNodes(otherNode, node);
                                     otherNode.visible = false;
                                     edge.visible = false;
                                 }
@@ -1478,8 +1491,10 @@
                                     for(k = 0; knotEdge = otherNode.edges[k]; k++)
                                         if(knotEdge.visible)
                                             visibleEdges++;
-                                    if(visibleEdges == 0)
+                                    if(visibleEdges == 0) {
+                                        this.switchEdgeNodes(otherNode, node);
                                         otherNode.visible = false;
+                                    }
                                 }
                             }
                         }
