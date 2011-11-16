@@ -939,8 +939,6 @@
             // other members
             nodes: [],
             visibleNodes: [],
-            // TODO: explode implode must to be added to XML metadata
-            // TODO: imploded nodes should be drawn differently (perhaps also with another Color scheme)
             shadowToNode: {},
             topmostNode: null,
             rightmostNode: null,
@@ -992,12 +990,14 @@
             undoState: function() {
                 this.version -= (this.version == 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                DrawingEngine.stop();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
             redoState: function() {
                 this.version += (this.version == this.versions.length - 1 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                DrawingEngine.stop();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
@@ -1139,6 +1139,15 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addNode(Tie.prototype.fromXML(ties[i]));
+                    // implode nodes
+                    var node, allNodes = [];
+                    for(i = 0; node = this.nodes[i]; i++) {
+                        if(node.imploded) {
+                            node.imploded = false;
+                            allNodes.push(node);
+                        }
+                    }
+                    this.explode(allNodes, false);
                     this.refresh();
                 }
             },
@@ -1382,7 +1391,7 @@
                 this.recordState();
                 DrawingEngine.start(true);
             },
-            explode: function(nodes) {
+            explode: function(nodes, startEngine) {
                 var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
                     if(node instanceof Anchor) {
@@ -1477,8 +1486,9 @@
                         node.setImploded(!node.imploded);
                     }
                 }
-                this.recordState();
-                DrawingEngine.start(true);
+                this.refresh();
+                if(startEngine == null || startEngine)
+                    DrawingEngine.start(true);
             }
         };
 
@@ -2179,6 +2189,7 @@
             type: 'Node',
             id: null,
             fixed: false,
+            visible: true,
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -2255,6 +2266,8 @@
                 layout.setAttribute("x", this.xPosition.toFixed(2));
                 layout.setAttribute("y", this.yPosition.toFixed(2));
                 layout.setAttribute("fixed", this.getFixed());
+                if(this.imploded)
+                    layout.setAttribute("imploded", this.imploded);
                 element.appendChild(layout);
             },
             stop: function() {
@@ -2271,7 +2284,7 @@
             },
             toSVGName: function(svg, g) {
                 var name = this.contextualName();
-                if(name) {
+                if(name && this.visible) {
                     var text = svg.createElementNS(SVGNS, 'text');
                     text.setAttributeNS(null, 'font-size', 10);
                     text.setAttributeNS(null, 'font-family', 'sans-serif');
@@ -2662,7 +2675,8 @@
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
-                    this.operations.splice(this.operations.indexOf('addAttribute'), 1);
+                    if(this.operations.indexOf('addAttribute') >= 0)
+                        this.operations.splice(this.operations.indexOf('addAttribute'), 1);
                     this.size = 9;
                 }
                 else {
@@ -2713,7 +2727,7 @@
                 return true;
             },
             fromXML: function(element) {
-                var x, y, fixed, i, layout;
+                var x, y, fixed, i, layout, imploded;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'layout')
                         layout = element.childNodes.item(i);
@@ -2721,10 +2735,12 @@
                     x = layout.getAttribute("x");
                     y = layout.getAttribute("y");
                     fixed = layout.getAttribute("fixed");
+                    imploded = layout.getAttribute("imploded");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                imploded = imploded ? imploded == 'true' : false;
                 var metadata, capsule = Defaults.encapsulation, generator = false;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
@@ -2747,6 +2763,7 @@
                 var identity = element.getAttribute("identity") || '';
                 var anchor = new Anchor(x, y);
                 anchor.setFixed(fixed);
+                anchor.setImploded(imploded);
                 anchor.description = description ? description.firstChild.nodeValue : '';
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
@@ -2993,7 +3010,8 @@
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
-                    this.operations.splice(this.operations.indexOf('addKnot'), 1);
+                    if(this.operations.indexOf('addKnot') >= 0)
+                        this.operations.splice(this.operations.indexOf('addKnot'), 1);
                     this.size = 12;
                 }
                 else {
@@ -3069,7 +3087,7 @@
                 return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.toString().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
             },
             fromXML: function(element) {
-                var x, y, fixed, i, layout;
+                var x, y, fixed, i, layout, imploded;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'layout')
                         layout = element.childNodes.item(i);
@@ -3077,10 +3095,12 @@
                     x = layout.getAttribute("x");
                     y = layout.getAttribute("y");
                     fixed = layout.getAttribute("fixed");
+                    imploded = layout.getAttribute("imploded");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
+                imploded = imploded ? imploded == 'true' : false;
                 var metadata, capsule = Defaults.encapsulation;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
@@ -3096,6 +3116,7 @@
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
+                tie.setImploded(imploded);
                 tie.timeRange = timeRange;
                 tie.encapsulation = capsule;
                 tie.description = description ? description.firstChild.nodeValue : '';
@@ -3364,7 +3385,12 @@
                         ' Q ' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
                 group.appendChild(path);
-                if(this.node instanceof Tie || this.otherNode instanceof Tie) {
+                var tie;
+                if(this.node instanceof Tie)
+                    tie = this.node;
+                else if(this.otherNode instanceof Tie)
+                    tie = this.otherNode;
+                if(tie && !tie.imploded) {
                     var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
                     var circle = svg.createElementNS(SVGNS, 'circle');
                     if(this.identifier) {
