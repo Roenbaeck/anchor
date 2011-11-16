@@ -509,13 +509,13 @@
         text-shadow:        0px 0px 6px #555;
     }
     .submenu select {
-        width:              130px;
+        width:              108px;
     }
     .submenu input {
         width:              45px;
     }
     .submenu .inputDefaults {
-        width:              125px;
+        width:              104px;
     }
 
     #controls {
@@ -586,6 +586,8 @@
 
     <script type="text/javascript">
         <!--
+        var VERSION = 0.94;
+
         // set to true to show debugging information
         var DEBUG = false;
 
@@ -595,6 +597,19 @@
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
         var LOGGED_IN = false;
+
+        var Defaults = {
+            timeRange: 'datetime',
+            encapsulation: 'dbo',
+            identity: 'int',
+            metadataPrefix: 'Metadata',
+            metadataType: 'int',
+            metadataUsage: 'true',
+            changingSuffix: 'ChangedAt',
+            identitySuffix: 'ID',
+            reliabilityType: 'bit',
+            recordingSuffix: 'RecordedAt'
+        };
 
         // create a singleton
         var LayoutEngine = {
@@ -1089,8 +1104,8 @@
                 // create the xml document (not using a namespace simplifies the transformations)
                 var schema = document.implementation.createDocument("", "schema", null);
                 var metadata = schema.createElement('metadata');
-                metadata.setAttribute('format', '0.92');
-                metadata.setAttribute('temporalization', 'mono');
+                metadata.setAttribute('format', VERSION);
+                metadata.setAttribute('temporalization', Settings.temporalization);
                 schema.documentElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
@@ -1125,6 +1140,16 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
+                    var metadata, temporalization = 'mono';
+                    for(i = 0; i < xml.childNodes.length; i++) {
+                        if(xml.childNodes.item(i).nodeName == 'metadata') {
+                            metadata = xml.childNodes.item(i);
+                            break;
+                        }
+                    }
+                    if(metadata)
+                        temporalization = metadata.getAttribute('temporalization') || 'mono';
+                    Settings.setTemporalization(temporalization);
                     var i;
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
@@ -2056,17 +2081,6 @@
                 this.usedIds[id] = true;
                 return id;
             }
-        };
-
-        var Defaults = {
-            timeRange: 'datetime',
-            encapsulation: 'dbo',
-            identity: 'int',
-            metadataPrefix: 'Metadata',
-            metadataType: 'int',
-            metadataUsage: 'true',
-            historizationSuffix: 'ChangedAt',
-            identitySuffix: 'ID'
         };
 
         var Editables = {
@@ -4189,8 +4203,11 @@
                     processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
                     processor.setParameter(null, 'metadataType', Defaults.metadataType);
                     processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage);
-                    processor.setParameter(null, 'historizationSuffix', Defaults.historizationSuffix);
+                    processor.setParameter(null, 'changingSuffix', Defaults.changingSuffix);
                     processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
+                    processor.setParameter(null, 'temporalization', Settings.temporalization);
+                    processor.setParameter(null, 'reliabilityType', Defaults.reliabilityType);
+                    processor.setParameter(null, 'recordingSuffix', Defaults.recordingSuffix);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
@@ -4583,7 +4600,7 @@
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
-                document.getElementById('historizationSuffix').value = Defaults.historizationSuffix;
+                document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
             },
             resetDefaults: function() {
@@ -4593,8 +4610,9 @@
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
                 this.setMetadataUsage(true);
-                this.setHistorizationSuffix('ChangedAt');
+                this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
+                this.setReliabilityType('bit');
                 this.setTemporalization('mono');
                 this.setDatabase('SQLServer.xsl');
                 this.init();
@@ -4641,8 +4659,9 @@
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
-                storage.setItem("historizationSuffix", Defaults.historizationSuffix);
+                storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
+                storage.setItem("reliabilityType", Defaults.reliabilityType);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -4673,8 +4692,9 @@
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
                 this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
-                this.setHistorizationSuffix(storage.getItem('historizationSuffix') || Defaults.historizationSuffix);
+                this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
+                this.setReliabilityType(storage.getItem('reliabilityType') || Defaults.reliabilityType);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -4687,7 +4707,40 @@
                 Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
                 this.init();
             },
+            setReliabilityType: function(value) {
+                Defaults.reliabilityType = value;
+            },
+            reliabilityType: null,
+            recordingSuffix: null,
             setTemporalization: function(value) {
+                var listOfDefaults = document.getElementById('listOfDefaults');
+                var tempoItem = document.getElementById('tempoItem');
+                if(value == 'bi') {
+                    this.reliabilityType = document.createElement('li');
+                    var reliabilityTypeInput = document.createElement('input');
+                    reliabilityTypeInput.setAttribute('type', 'text');
+                    reliabilityTypeInput.setAttribute('class', 'inputDefaults');
+                    reliabilityTypeInput.value = Defaults.reliabilityType;
+                    reliabilityTypeInput.addEventListener('blur', function() { Settings.setReliabilityType(this.value); }, false);
+                    this.reliabilityType.appendChild(reliabilityTypeInput);
+                    this.reliabilityType.appendChild(document.createTextNode(' Reliability type'));
+                    listOfDefaults.insertBefore(this.reliabilityType, tempoItem);
+                    this.recordingSuffix = document.createElement('li');
+                    var recordingSuffixInput = document.createElement('input');
+                    recordingSuffixInput.setAttribute('type', 'text');
+                    recordingSuffixInput.setAttribute('class', 'inputDefaults');
+                    recordingSuffixInput.value = Defaults.recordingSuffix;
+                    recordingSuffixInput.addEventListener('blur', function() { Settings.setReliabilityType(this.value); }, false);
+                    this.recordingSuffix.appendChild(recordingSuffixInput);
+                    this.recordingSuffix.appendChild(document.createTextNode('  Recording suffix'));
+                    listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
+                }
+                else {
+                    if(this.reliabilityType) listOfDefaults.removeChild(this.reliabilityType);
+                    this.reliabilityType = null;
+                    if(this.recordingSuffix) listOfDefaults.removeChild(this.recordingSuffix);
+                    this.recordingSuffix = null;
+                }
                 this.temporalization = value;
             },
             setMetadataPrefix: function(value) {
@@ -4699,8 +4752,8 @@
             setMetadataUsage: function(value) {
                 Defaults.metadataUsage = value;
             },
-            setHistorizationSuffix: function(value) {
-                Defaults.historizationSuffix = value;
+            setChangingSuffix: function(value) {
+                Defaults.changingSuffix = value;
             },
             setIdentitySuffix: function(value) {
                 Defaults.identitySuffix = value;
@@ -5157,26 +5210,26 @@
             <ul class="menu">
                 <li>Defaults
                     <ul id="listOfDefaults" class="submenu">
-                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> &nbsp;Capsule</li>
-                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> &nbsp;Identity</li>
-                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> &nbsp;Time range</li>
-                        <li><input id="historizationSuffix" class="inputDefaults" type="text" onblur="Settings.setHistorizationSuffix(this.value)"/> &nbsp;Historization suffix</li>
-                        <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> &nbsp;Identity suffix</li>
-                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> &nbsp;Metadata prefix</li>
-                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> &nbsp;Metadata type</li>
-                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked)"/> &nbsp;Use metadata</li>
-                        <li>
-                            <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
-                                <option value="mono" selected="selected">Mono-temporal</option>
-                                <option value="bi">Bi-temporal</option>
-                            </select> &nbsp;Temporalization
-                        </li>
                         <li>
                             <select id="database" onchange="Settings.setDatabase(this.value)">
                                 <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
                                 <option value="Oracle.xsl">Oracle</option>
-                            </select> &nbsp;Target database
+                            </select> Target database
                         </li>
+                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> Time range</li>
+                        <li><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
+                        <li id="tempoItem">
+                            <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
+                                <option value="mono" selected="selected">Monotemporal</option>
+                                <option value="bi">Bitemporal</option>
+                            </select> Temporalization
+                        </li>
+                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked)"/> Use metadata</li>
+                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
+                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
+                        <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
                         <li onclick="Settings.resetDefaults()">Reset to default values</li>
                     </ul>
                 </li>

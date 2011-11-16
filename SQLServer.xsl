@@ -16,11 +16,20 @@
     <xsl:param name="metadataUsage">
         <xsl:text>true</xsl:text>
     </xsl:param>
-    <xsl:param name="historizationSuffix">
+    <xsl:param name="changingSuffix">
         <xsl:text>ChangedAt</xsl:text>
     </xsl:param>
     <xsl:param name="identitySuffix">
         <xsl:text>ID</xsl:text>
+    </xsl:param>
+    <xsl:param name="temporalization">
+        <xsl:text>mono</xsl:text>
+    </xsl:param>
+    <xsl:param name="recordingSuffix">
+        <xsl:text>RecordedAt</xsl:text>
+    </xsl:param>
+    <xsl:param name="reliabilityType">
+        <xsl:text>bit</xsl:text>
     </xsl:param>
 
     <!-- "global" variables -->
@@ -187,15 +196,15 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
-                <xsl:variable name="historizationDefinition">
+                <xsl:variable name="changingDefinition">
                     <xsl:if test="@timeRange">
-                        <xsl:value-of select="concat($T, $attributeMnemonic, '_', $historizationSuffix, ' ', @timeRange, ' not null,', $N)"/>
+                        <xsl:value-of select="concat($T, $attributeMnemonic, '_', $changingSuffix, ' ', @timeRange, ' not null,', $N)"/>
                     </xsl:if>
                 </xsl:variable>
-                <xsl:variable name="historizationKey">
+                <xsl:variable name="changingKey">
                     <xsl:choose>
                         <xsl:when test="@timeRange">
-                            <xsl:value-of select="concat(',', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' desc', $N)"/>
+                            <xsl:value-of select="concat(',', $N, $T, $T, $attributeMnemonic, '_', $changingSuffix, ' desc', $N)"/>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="$N"/>
@@ -210,11 +219,11 @@
                 'CREATE TABLE [', $attributeCapsule, '].[', $attributeName, '] (', $N,
                 $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null foreign key references [', $anchorCapsule, '].[', $anchorName, '](', $anchorIdentity, '),', $N,
                 $knotOrDataDefinition,
-                $historizationDefinition,
+                $changingDefinition,
                 $attributeMetadataDefinition,
                 $T, 'primary key (', $N,
                 $T, $T, $anchorIdentity, ' asc',
-                $historizationKey,
+                $changingKey,
                 $T, ')', $N,
                 ');', $N,
                 'GO', $N, $N
@@ -390,11 +399,11 @@
                 $T, '[', $anchorMnemonic, '].*', $N,
                 'FROM (', $N,
                 $T, 'SELECT DISTINCT', $N,
-                $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' AS inspectedTimepoint', $N,
+                $T, $T, $attributeMnemonic, '_', $changingSuffix, ' AS inspectedTimepoint', $N,
                 $T, 'FROM', $N,
                 $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                 $T, 'WHERE', $N,
-                $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N,
+                $T, $T, $attributeMnemonic, '_', $changingSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N,
                 ') timepoints', $N,
                 'CROSS APPLY', $N,
                 $T, $point-in-timeFunctionName, '(timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
@@ -409,11 +418,11 @@
                         <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
                         <xsl:value-of select="concat(
                         $T, 'SELECT DISTINCT', $N,
-                        $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' AS inspectedTimepoint', $N,
+                        $T, $T, $attributeMnemonic, '_', $changingSuffix, ' AS inspectedTimepoint', $N,
                         $T, 'FROM', $N,
                         $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                         $T, 'WHERE', $N,
-                        $T, $T, $attributeMnemonic, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N
+                        $T, $T, $attributeMnemonic, '_', $changingSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N
                         )"/>
                         <xsl:if test="not(position() = last())">
                             <xsl:value-of select="concat($T, 'UNION', $N)"/>
@@ -478,15 +487,15 @@
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:variable>
-            <xsl:variable name="historizationDefinition">
+            <xsl:variable name="changingDefinition">
                 <xsl:if test="@timeRange">
-                    <xsl:value-of select="concat($T, $tieName, '_', $historizationSuffix, ' ', @timeRange, ' not null,', $N)"/>
+                    <xsl:value-of select="concat($T, $tieName, '_', $changingSuffix, ' ', @timeRange, ' not null,', $N)"/>
                 </xsl:if>
             </xsl:variable>
-            <xsl:variable name="historizationKey">
+            <xsl:variable name="changingKey">
                 <xsl:choose>
                     <xsl:when test="@timeRange">
-                        <xsl:value-of select="concat(',', $N, $T, $T, $tieName, '_', $historizationSuffix, ' desc', $N)"/>
+                        <xsl:value-of select="concat(',', $N, $T, $T, $tieName, '_', $changingSuffix, ' desc', $N)"/>
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:value-of select="$N"/>
@@ -496,7 +505,7 @@
             <xsl:variable name="uniqueConstraints">
                 <xsl:if test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) = 0">
                     <xsl:for-each select="anchorRole[position() > 1]">
-                        <xsl:value-of select="concat(',', $N, $T, 'unique (', $N, $T, $T, @type, '_', $identitySuffix, '_', @role, ' asc', $historizationKey, $T, ')')"/>
+                        <xsl:value-of select="concat(',', $N, $T, 'unique (', $N, $T, $T, @type, '_', $identitySuffix, '_', @role, ' asc', $changingKey, $T, ')')"/>
                         <xsl:if test="not(position() = last())">
                             <xsl:value-of select="concat(',', $N)"/>
                         </xsl:if>
@@ -516,11 +525,11 @@
             'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $tieName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
             'CREATE TABLE [', $tieCapsule, '].[', $tieName, '] (', $N,
             $columnDefinitions,
-            $historizationDefinition,
+            $changingDefinition,
             $tieMetadataDefinition,
             $T, 'primary key (', $N,
             $primaryKeyColumns,
-            $historizationKey,
+            $changingKey,
             $T, ')',
             $uniqueConstraints, $N,
             ');', $N,
@@ -542,7 +551,7 @@
                     </xsl:if>
                 </xsl:for-each>
                 <xsl:if test="@timeRange">
-                    <xsl:value-of select="concat(',', $N, $T, 'tie.', $tieName, '_', $historizationSuffix)"/>
+                    <xsl:value-of select="concat(',', $N, $T, 'tie.', $tieName, '_', $changingSuffix)"/>
                 </xsl:if>
                 <xsl:value-of select="$N"/>
             </xsl:variable>
@@ -874,10 +883,10 @@
         <xsl:variable name="restriction">
             <xsl:choose>
                 <xsl:when test="$type = 'point-in-time'">
-                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, ' &lt;= @timepoint', $N)"/>
+                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, ' &lt;= @timepoint', $N)"/>
                 </xsl:when>
                 <xsl:when test="$type = 'difference'">
-                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N)"/>
+                    <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N)"/>
                 </xsl:when>
             </xsl:choose>
         </xsl:variable>
@@ -894,16 +903,16 @@
         <xsl:variable name="selection">
             <xsl:choose>
                 <xsl:when test="$type = 'difference'">
-                    <xsl:value-of select="concat($T, $T, $T, 'sub.', $tieName, '_', $historizationSuffix, $N)"/>
+                    <xsl:value-of select="concat($T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, $N)"/>
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:value-of select="concat($T, $T, $T, 'max(sub.', $tieName, '_', $historizationSuffix, ')', $N)"/>
+                    <xsl:value-of select="concat($T, $T, $T, 'max(sub.', $tieName, '_', $changingSuffix, ')', $N)"/>
                 </xsl:otherwise>
             </xsl:choose>            
         </xsl:variable>
         <xsl:value-of select="concat(
         $N, 'WHERE', $N,
-        $T, 'tie.', $tieName, '_', $historizationSuffix, ' ', $operator, ' (', $N,
+        $T, 'tie.', $tieName, '_', $changingSuffix, ' ', $operator, ' (', $N,
         $T, $T, 'SELECT', $N,
         $selection,
         $T, $T, 'FROM', $N,
@@ -926,12 +935,12 @@
         <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, '[', $attributeCapsule, '].[', $attributeName, '] [',  $attributeMnemonic, ']')"/>
         <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '].', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
         <xsl:if test="$attribute/@timeRange">
-            <xsl:value-of select="concat($N, 'AND', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $historizationSuffix, ' = (')"/>
-            <xsl:value-of select="concat($N, $T, $T, 'SELECT', $N, $T, $T, $T, 'max(sub.', $attributeMnemonic, '_', $historizationSuffix, ')')"/>
+            <xsl:value-of select="concat($N, 'AND', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $changingSuffix, ' = (')"/>
+            <xsl:value-of select="concat($N, $T, $T, 'SELECT', $N, $T, $T, $T, 'max(sub.', $attributeMnemonic, '_', $changingSuffix, ')')"/>
             <xsl:value-of select="concat($N, $T, $T, 'FROM', $N, $T, $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] sub')"/>
             <xsl:value-of select="concat($N, $T, $T, 'WHERE', $N, $T, $T, $T, 'sub.', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
             <xsl:if test="normalize-space($timepoint)">
-                <xsl:value-of select="concat($N, $T, $T, 'AND', $N, $T, $T, $T, 'sub.', $attributeMnemonic, '_', $historizationSuffix, ' &lt;= ', $timepoint)"/>
+                <xsl:value-of select="concat($N, $T, $T, 'AND', $N, $T, $T, $T, 'sub.', $attributeMnemonic, '_', $changingSuffix, ' &lt;= ', $timepoint)"/>
             </xsl:if>
             <xsl:value-of select="concat($N, $T, ')')"/>
         </xsl:if>
@@ -968,7 +977,7 @@
             </xsl:otherwise>
         </xsl:choose>
         <xsl:if test="@timeRange">
-            <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $historizationSuffix)"/>
+            <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $changingSuffix)"/>
         </xsl:if>
         <xsl:if test="$metadataUsage = 'true'">
             <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '].', $attributeMetadata)"/>
@@ -986,12 +995,12 @@
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
         <xsl:variable name="attributeHistorizationColumn">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, $attributeMnemonic, '_', $historizationSuffix)"/>
+                <xsl:value-of select="concat(', ', $N, $T, $T, $attributeMnemonic, '_', $changingSuffix)"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeHistorizationValue">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, 'COALESCE(i.', $attributeMnemonic, '_', $historizationSuffix, ', getdate())')"/>
+                <xsl:value-of select="concat(', ', $N, $T, $T, 'COALESCE(i.', $attributeMnemonic, '_', $changingSuffix, ', getdate())')"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeMetadataColumn">
@@ -1081,15 +1090,15 @@
         <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
-        <xsl:variable name="historizationColumn" select="concat($attributeMnemonic, '_', $historizationSuffix)"/>
+        <xsl:variable name="changingColumn" select="concat($attributeMnemonic, '_', $changingSuffix)"/>
         <xsl:variable name="attributeHistorization">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, $historizationColumn)"/>
+                <xsl:value-of select="concat(', ', $N, $T, $T, $changingColumn)"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeHistorizationAliased">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $historizationColumn, ') THEN i.', $historizationColumn, ' ELSE getdate() END')"/>
+                <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $changingColumn, ') THEN i.', $changingColumn, ' ELSE getdate() END')"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeMetadataColumn">
