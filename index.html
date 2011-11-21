@@ -599,7 +599,7 @@
         var LOGGED_IN = false;
 
         var Defaults = {
-            timeRange: 'datetime',
+            changingRange: 'datetime',
             encapsulation: 'dbo',
             identity: 'int',
             metadataPrefix: 'Metadata',
@@ -607,8 +607,9 @@
             metadataUsage: 'true',
             changingSuffix: 'ChangedAt',
             identitySuffix: 'ID',
-            reliabilityType: 'bit',
-            recordingSuffix: 'RecordedAt'
+            recordingRange: 'datetime',
+            recordingSuffix: 'RecordedAt',
+            partitioning: 'false'
         };
 
         // create a singleton
@@ -2128,11 +2129,11 @@
                 event: 'blur',
                 attributes: ['type', 'text', 'title', 'Data type of stored value', 'required', 'required']
             },
-            timeRangeEdit: {
+            changingRangeEdit: {
                 name: 'Time range',
-                setMember: function (element, node) { node.timeRange = element.value; },
-                getMember: function (node) { return node.timeRange },
-                setElement: function (element, node) { element.value = node.timeRange },
+                setMember: function (element, node) { node.changingRange = element.value; },
+                getMember: function (node) { return node.changingRange },
+                setElement: function (element, node) { element.value = node.changingRange },
                 getElement: function (element) { return element.value },
                 type: 'input',
                 pattern: '.*',
@@ -2449,7 +2450,7 @@
             mnemonic: '',
             descriptor: '',
             dataRange: '',
-            timeRange: '',
+            changingRange: '',
             historized: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
@@ -2483,13 +2484,13 @@
                 return true;
             },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(Editables.timeRangeEdit);
+                var index = this.editables.indexOf(Editables.changingRangeEdit);
                 if(historized && index < 0)
-                    this.editables.push(Editables.timeRangeEdit);
+                    this.editables.push(Editables.changingRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
-                if(this.timeRange == '')
-                    this.timeRange = Defaults.timeRange;
+                if(this.changingRange == '')
+                    this.changingRange = Defaults.changingRange;
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -2532,8 +2533,8 @@
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
-                var timeRange = element.getAttribute("timeRange") || '';
-                var historized = timeRange ? true : false;
+                var changingRange = element.getAttribute("changingRange") || '';
+                var historized = changingRange ? true : false;
                 var knotRange = element.getAttribute("knotRange") || '';
                 var knotted = knotRange ? true : false;
                 var dataRange = element.getAttribute("dataRange") || '';
@@ -2542,7 +2543,7 @@
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
                 attribute.setHistorized(historized);
-                attribute.timeRange = timeRange;
+                attribute.changingRange = changingRange;
                 attribute.dataRange = dataRange;
                 attribute.description = description ? description.firstChild.nodeValue : '';
                 attribute.mnemonic = mnemonic;
@@ -2600,7 +2601,7 @@
                 attribute.setAttribute("mnemonic", this.mnemonic);
                 attribute.setAttribute("descriptor", this.descriptor);
                 if(this.historized)
-                    attribute.setAttribute("timeRange", this.timeRange);
+                    attribute.setAttribute("changingRange", this.changingRange);
                 if(this.knotted) {
                     var knot, edge;
                     for(var i = 0; edge = this.edges[i]; i++)
@@ -3031,7 +3032,7 @@
             this.type = 'Tie';
         }
         Tie.prototype = {
-            timeRange: Defaults.timeRange,
+            changingRange: Defaults.changingRange,
             historized: false,
             encapsulation: Defaults.encapsulation,
             imploded: false,
@@ -3094,13 +3095,13 @@
                 return true;
             },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(Editables.timeRangeEdit);
+                var index = this.editables.indexOf(Editables.changingRangeEdit);
                 if(historized && index < 0)
-                    this.editables.push(Editables.timeRangeEdit);
+                    this.editables.push(Editables.changingRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
-                if(this.timeRange == '')
-                    this.timeRange = Defaults.timeRange;
+                if(this.changingRange == '')
+                    this.changingRange = Defaults.changingRange;
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -3140,13 +3141,13 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var timeRange = element.getAttribute("timeRange") || '';
-                var historized = timeRange ? true : false;
+                var changingRange = element.getAttribute("changingRange") || '';
+                var historized = changingRange ? true : false;
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.setImploded(imploded);
-                tie.timeRange = timeRange;
+                tie.changingRange = changingRange;
                 tie.encapsulation = capsule;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
@@ -3233,7 +3234,7 @@
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
                 if(this.historized)
-                    tie.setAttribute("timeRange", this.timeRange);
+                    tie.setAttribute("changingRange", this.changingRange);
                 for(var i = 0; i < this.edges.length; i++) {
                     var role;
                     var node = this.edges[i].otherNode;
@@ -4206,8 +4207,9 @@
                     processor.setParameter(null, 'changingSuffix', Defaults.changingSuffix);
                     processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
                     processor.setParameter(null, 'temporalization', Settings.temporalization);
-                    processor.setParameter(null, 'reliabilityType', Defaults.reliabilityType);
+                    processor.setParameter(null, 'recordingRange', Defaults.recordingRange);
                     processor.setParameter(null, 'recordingSuffix', Defaults.recordingSuffix);
+                    processor.setParameter(null, 'partitioning', Defaults.partitioning);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
@@ -4596,7 +4598,7 @@
                 document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
                 document.getElementById('defaultIdentity').value = Defaults.identity;
-                document.getElementById('defaultTimeRange').value = Defaults.timeRange;
+                document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
@@ -4606,13 +4608,15 @@
             resetDefaults: function() {
                 this.setDefaultCapsule('dbo');
                 this.setDefaultIdentity('int');
-                this.setDefaultTimeRange('datetime');
+                this.setDefaultChangingRange('datetime');
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
-                this.setMetadataUsage(true);
+                this.setMetadataUsage('true');
                 this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
-                this.setReliabilityType('bit');
+                this.setRecordingRange('datetime');
+                this.setRecordingSuffix('RecordedAt');
+                this.setPartitioning('false');
                 this.setTemporalization('mono');
                 this.setDatabase('SQLServer.xsl');
                 this.init();
@@ -4655,13 +4659,15 @@
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
                 storage.setItem("defaultIdentity", Defaults.identity);
-                storage.setItem("defaultTimeRange", Defaults.timeRange);
+                storage.setItem("defaultChangingRange", Defaults.changingRange);
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
-                storage.setItem("reliabilityType", Defaults.reliabilityType);
+                storage.setItem("recordingRange", Defaults.recordingRange);
+                storage.setItem("recordingSuffix", Defaults.recordingSuffix);
+                storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -4688,13 +4694,15 @@
                 this.setCalculations(storage.getItem('calculations') || 'simple');
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
                 this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
-                this.setDefaultTimeRange(storage.getItem('defaultTimeRange') || Defaults.timeRange);
+                this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
                 this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
-                this.setReliabilityType(storage.getItem('reliabilityType') || Defaults.reliabilityType);
+                this.setRecordingRange(storage.getItem('recordingRange') || Defaults.recordingRange);
+                this.setRecordingSuffix(storage.getItem('recordingSuffix') || Defaults.recordingSuffix);
+                this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -4707,39 +4715,57 @@
                 Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
                 this.init();
             },
-            setReliabilityType: function(value) {
-                Defaults.reliabilityType = value;
+            setRecordingRange: function(value) {
+                Defaults.recordingRange = value;
             },
-            reliabilityType: null,
+            setRecordingSuffix: function(value) {
+                Defaults.recordingSuffix = value;
+            },
+            setPartitioning: function(value) {
+                Defaults.partitioning = value;
+            },
+            recordingRange: null,
             recordingSuffix: null,
+            partitioning: null,
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
                 if(value == 'bi') {
-                    this.reliabilityType = document.createElement('li');
-                    var reliabilityTypeInput = document.createElement('input');
-                    reliabilityTypeInput.setAttribute('type', 'text');
-                    reliabilityTypeInput.setAttribute('class', 'inputDefaults');
-                    reliabilityTypeInput.value = Defaults.reliabilityType;
-                    reliabilityTypeInput.addEventListener('blur', function() { Settings.setReliabilityType(this.value); }, false);
-                    this.reliabilityType.appendChild(reliabilityTypeInput);
-                    this.reliabilityType.appendChild(document.createTextNode(' Reliability type'));
-                    listOfDefaults.insertBefore(this.reliabilityType, tempoItem);
+                    this.recordingRange = document.createElement('li');
+                    var recordingRangeInput = document.createElement('input');
+                    recordingRangeInput.setAttribute('type', 'text');
+                    recordingRangeInput.setAttribute('class', 'inputDefaults');
+                    recordingRangeInput.value = Defaults.recordingRange;
+                    recordingRangeInput.addEventListener('blur', function() { Settings.setRecordingRange(this.value); }, false);
+                    this.recordingRange.appendChild(recordingRangeInput);
+                    this.recordingRange.appendChild(document.createTextNode(' Recording time range'));
+                    listOfDefaults.insertBefore(this.recordingRange, tempoItem);
                     this.recordingSuffix = document.createElement('li');
                     var recordingSuffixInput = document.createElement('input');
                     recordingSuffixInput.setAttribute('type', 'text');
                     recordingSuffixInput.setAttribute('class', 'inputDefaults');
                     recordingSuffixInput.value = Defaults.recordingSuffix;
-                    recordingSuffixInput.addEventListener('blur', function() { Settings.setReliabilityType(this.value); }, false);
+                    recordingSuffixInput.addEventListener('blur', function() { Settings.setRecordingSuffix(this.value); }, false);
                     this.recordingSuffix.appendChild(recordingSuffixInput);
-                    this.recordingSuffix.appendChild(document.createTextNode('  Recording suffix'));
+                    this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
                     listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
+                    this.partitioning = document.createElement('li');
+                    var partitioningInput = document.createElement('input');
+                    partitioningInput.setAttribute('type', 'checkbox');
+                    partitioningInput.setAttribute('class', 'inputDefaults');
+                    partitioningInput.checked = Defaults.partitioning == 'true';
+                    partitioningInput.addEventListener('change', function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }, false);
+                    this.partitioning.appendChild(partitioningInput);
+                    this.partitioning.appendChild(document.createTextNode(' Use partitioning'));
+                    listOfDefaults.insertBefore(this.partitioning, tempoItem);
                 }
                 else {
-                    if(this.reliabilityType) listOfDefaults.removeChild(this.reliabilityType);
-                    this.reliabilityType = null;
+                    if(this.recordingRange) listOfDefaults.removeChild(this.recordingRange);
+                    this.recordingRange = null;
                     if(this.recordingSuffix) listOfDefaults.removeChild(this.recordingSuffix);
                     this.recordingSuffix = null;
+                    if(this.partitioning) listOfDefaults.removeChild(this.partitioning);
+                    this.partitioning = null;
                 }
                 this.temporalization = value;
             },
@@ -4764,8 +4790,8 @@
             setDefaultIdentity: function(value) {
                 Defaults.identity = value;
             },
-            setDefaultTimeRange: function(value) {
-                Defaults.timeRange = value;
+            setDefaultChangingRange: function(value) {
+                Defaults.changingRange = value;
             },
             setDamping: function(value) {
                 LayoutEngine.damping = (100 - value)/100;
@@ -5216,7 +5242,7 @@
                                 <option value="Oracle.xsl">Oracle</option>
                             </select> Target database
                         </li>
-                        <li><input id="defaultTimeRange" class="inputDefaults" type="text" onblur="Settings.setDefaultTimeRange(this.value)"/> Time range</li>
+                        <li><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
                         <li><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
                         <li id="tempoItem">
                             <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
@@ -5224,7 +5250,7 @@
                                 <option value="bi">Bitemporal</option>
                             </select> Temporalization
                         </li>
-                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked)"/> Use metadata</li>
+                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                         <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
                         <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
                         <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
