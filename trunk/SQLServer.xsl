@@ -125,8 +125,42 @@
             ') ON ', $knotPartition, ';', $N,
             'GO', $N, $N
             )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:variable name="knotMetadataColumn">
+                    <xsl:if test="$metadataUsage = 'true'">
+                        <xsl:value-of select="concat(', ', $N, $T, $knotMetadata)"/>
+                    </xsl:if>
+                    <xsl:value-of select="$N"/>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                '------------------------ [Point-in-recording-time perspective] -----------------------', $N,
+                '-- p', $knotName, ' function', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'CREATE FUNCTION [', $knotCapsule, '].[p', $knotName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
+                'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                'SELECT', $N,
+                $T, $knotIdentity, ', ', $N,
+                $T, $knotName, ', ', $N,
+                $T, @mnemonic, '_RecordedAt, ', $N,
+                $T, @mnemonic, '_ErasedAt, ', $N,
+                $T, @mnemonic, '_Erased',
+                $knotMetadataColumn,
+                'FROM', $N,
+                $T, '[', $knotCapsule, '].[', $knotName, ']', $N,
+                'WHERE (', $N,
+                $T, @mnemonic, '_Erased = 0', $N,
+                'OR (', $N,
+                $T, $T, @mnemonic, '_Erased = 1', $N,
+                $T, 'AND', $N,
+                $T, $T, @mnemonic, '_ErasedAt &gt; @recordingTimepoint', $N,
+                $T, ')', $N,
+                ')', $N,
+                'AND', $N,
+                $T, @mnemonic, '_RecordedAt &lt;= @recordingTimepoint;', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
 		</xsl:for-each>
-
         <!-- process all anchors -->
         <xsl:for-each select="anchor">
             <xsl:variable name="anchorMnemonic" select="@mnemonic"/>
