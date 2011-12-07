@@ -28,6 +28,9 @@
     <xsl:param name="recordingSuffix">
         <xsl:text>RecordedAt</xsl:text>
     </xsl:param>
+    <xsl:param name="erasingSuffix">
+        <xsl:text>ErasedAt</xsl:text>
+    </xsl:param>
     <xsl:param name="recordingRange">
         <xsl:text>datetime</xsl:text>
     </xsl:param>
@@ -49,11 +52,11 @@
             <xsl:value-of select="concat(
             '----------------------------------- [Partitioning] -------------------------------------', $N,
             '-- change the scheme according to your own configured filegroups', $N,
-            '-- partition 0 is for currently recorded information', $N,
-            '-- partition 1 is for previously recorded (erased) information', $N,
-            '--------------------------------------------------------------------------------------', $N,            
-            'CREATE PARTITION FUNCTION RecordingPartition (bit)', $N,
-            'AS RANGE LEFT FOR VALUES(0, 1);', $N,
+            '-- note that non-erased information, corresponding to passing a null value to the ', $N,
+            '-- partition function, ends up in the overflow partition', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'CREATE PARTITION FUNCTION RecordingPartition (datetime)', $N,
+            'AS RANGE LEFT FOR VALUES(', $Q, '99991231', $Q, ');', $N,
             'GO', $N, $N,
             'CREATE PARTITION SCHEME RecordingScheme', $N,
             'AS PARTITION RecordingPartition', $N,
@@ -83,17 +86,16 @@
             <xsl:variable name="knotRecordingDefinition">
                 <xsl:if test="$temporalization = 'bi'">
                     <xsl:value-of select="concat(
-                    $T, @mnemonic, '_RecordedAt ', $recordingRange, ' not null,', $N,
-                    $T, @mnemonic, '_ErasedAt ', $recordingRange, ' not null,', $N,
-                    $T, @mnemonic, '_Erased bit not null,', $N
+                    $T, @mnemonic, '_', $recordingSuffix, ' ', $recordingRange, ' not null,', $N,
+                    $T, @mnemonic, '_', $erasingSuffix, ' ', $recordingRange, ' not null,', $N
                     )"/>
                 </xsl:if>
             </xsl:variable> 
             <xsl:variable name="knotRecordingKey">
                 <xsl:if test="$temporalization = 'bi'">
                     <xsl:value-of select="concat(
-                    ', ', $N, $T, $T, @mnemonic, '_RecordedAt desc,', $N,
-                    $T, $T, @mnemonic, '_Erased asc'
+                    ', ', $N, $T, $T, @mnemonic, '_', $recordingSuffix, ' desc, ', $N,
+                    $T, $T, @mnemonic, '_', $erasingSuffix, ' desc'
                     )"/>
                 </xsl:if>
                 <xsl:value-of select="$N"/>
@@ -101,7 +103,7 @@
             <xsl:variable name="knotPartition">
                 <xsl:choose>
                     <xsl:when test="$temporalization = 'bi' and $partitioning = 'true'">
-                        <xsl:value-of select="concat('RecordingScheme(', @mnemonic, '_Erased)')"/>
+                        <xsl:value-of select="concat('RecordingScheme(', @mnemonic, '_', $erasingSuffix, ')')"/>
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:value-of select="'[PRIMARY]'"/>
@@ -132,31 +134,98 @@
                     </xsl:if>
                     <xsl:value-of select="$N"/>
                 </xsl:variable>
+                <xsl:variable name="knotMetadataColumnTwo">
+                    <xsl:if test="$metadataUsage = 'true'">
+                        <xsl:value-of select="concat(', ', $N, $T, $T, $knotMetadata)"/>
+                    </xsl:if>
+                    <xsl:value-of select="$N"/>
+                </xsl:variable>
                 <xsl:value-of select="concat(
-                '------------------------ [Point-in-recording-time perspective] -----------------------', $N,
-                '-- p', $knotName, ' function', $N,
+                '-------------------- [All changing currently recorded perspective] -------------------', $N,
+                '-- ac', $knotName, ' view', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'CREATE FUNCTION [', $knotCapsule, '].[p', $knotName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ac', $knotName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+                'DROP VIEW [', $knotCapsule, '].[ac', $knotName, '];', $N,
+                'GO', $N,
+                'CREATE VIEW [', $knotCapsule, '].[ac', $knotName, '] WITH SCHEMABINDING AS', $N,
+                'SELECT', $N,
+                $T, $knotIdentity, ', ', $N,
+                $T, $knotName, ', ', $N,
+                $T, @mnemonic, '_', $recordingSuffix, ', ', $N,
+                $T, @mnemonic, '_', $erasingSuffix,
+                $knotMetadataColumn,
+                'FROM', $N,
+                $T, '[', $knotCapsule, '].[', $knotName, ']', $N,
+                'WHERE', $N,
+                $T, @mnemonic, '_', $erasingSuffix, ' is null;', $N,
+                'GO', $N, $N
+                )"/>
+                <xsl:value-of select="concat(
+                '--------------------- [All changing rewind recording perspective] --------------------', $N,
+                '-- ar', $knotName, ' function', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ar', $knotName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $knotCapsule, '].[ar', $knotName, '];', $N,
+                'GO', $N,
+                'CREATE FUNCTION [', $knotCapsule, '].[ar', $knotName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
                 'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                 'SELECT', $N,
                 $T, $knotIdentity, ', ', $N,
                 $T, $knotName, ', ', $N,
-                $T, @mnemonic, '_RecordedAt, ', $N,
-                $T, @mnemonic, '_ErasedAt, ', $N,
-                $T, @mnemonic, '_Erased',
+                $T, @mnemonic, '_', $recordingSuffix, ', ', $N,
+                $T, @mnemonic, '_', $erasingSuffix,
                 $knotMetadataColumn,
                 'FROM', $N,
                 $T, '[', $knotCapsule, '].[', $knotName, ']', $N,
-                'WHERE (', $N,
-                $T, @mnemonic, '_Erased = 0', $N,
-                'OR (', $N,
-                $T, $T, @mnemonic, '_Erased = 1', $N,
-                $T, 'AND', $N,
-                $T, $T, @mnemonic, '_ErasedAt &gt; @recordingTimepoint', $N,
-                $T, ')', $N,
-                ')', $N,
+                'WHERE', $N,
+                $T, '(', @mnemonic, '_', $erasingSuffix, ' is null OR ', @mnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
                 'AND', $N,
-                $T, @mnemonic, '_RecordedAt &lt;= @recordingTimepoint;', $N,
+                $T, @mnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
+                'GO', $N, $N
+                )"/>
+                <xsl:value-of select="concat(
+                '--------------------------------- [Insert Trigger] -----------------------------------', $N,
+                '-- it', $knotName, ' insert trigger for logical deletes', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, 'it', $knotName, $Q, ')', $N,
+                'DROP TRIGGER [', $knotCapsule, '].[it', $knotName, ']', $N,
+                'GO', $N,
+                'CREATE TRIGGER [', $knotCapsule, '].[it', $knotName, '] ON [', $knotCapsule, '].[', $knotName, ']', $N,
+                'INSTEAD OF INSERT', $N,
+                'AS', $N,
+                'BEGIN', $N,
+                $T, 'SET NOCOUNT ON;', $N,
+                $T, 'UPDATE [', @mnemonic, ']', $N,
+                $T, 'SET', $N,
+                $T, $T, '[', @mnemonic, '].', @mnemonic, '_', $erasingSuffix, ' = i.', @mnemonic, '_', $erasingSuffix, $N,
+                $T, 'FROM', $N,
+                $T, $T, '[', $knotCapsule, '].[', $knotName, '] [', @mnemonic, ']', $N,
+                $T, 'JOIN', $N,
+                $T, $T, 'inserted i', $N,
+                $T, 'ON', $N,
+                $T, $T, 'i.', $knotIdentity, ' = [', @mnemonic, '].', $knotIdentity, $N,
+                $T, 'WHERE', $N,
+                $T, $T, 'i.', @mnemonic, '_', $erasingSuffix, ' is not null', $N,
+                $T, 'AND', $N,
+                $T, $T, '[', @mnemonic, '].', $erasingSuffix, ' is null;', $N, $N,
+                $T, 'INSERT INTO [', $knotCapsule, '].[', $knotName, '] (', $N,
+                $T, $T, $knotIdentity, ', ', $N,
+                $T, $T, $knotName, ', ', $N,
+                $T, $T, @mnemonic, '_', $recordingSuffix, ', ', $N,
+                $T, $T, @mnemonic, '_', $erasingSuffix,
+                $knotMetadataColumnTwo,
+                $T, ')', $N,
+                $T, 'SELECT', $N,
+                $T, $T, $knotIdentity, ', ', $N,
+                $T, $T, $knotName, ', ', $N,
+                $T, $T, 'ISNULL(', @mnemonic, '_', $recordingSuffix, ', getdate()),' , $N,
+                $T, $T, 'null', 
+                $knotMetadataColumnTwo,
+                $T, 'FROM', $N,
+                $T, $T, 'inserted', $N,
+                $T, 'WHERE', $N,
+                $T, $T, @mnemonic, '_', $erasingSuffix, ' is null;', $N,
+                'END', $N,
                 'GO', $N, $N
                 )"/>
             </xsl:if>
@@ -222,6 +291,7 @@
                 <xsl:variable name="anchorKeyGenerator" select="concat('k', $anchorName)"/>
                 <xsl:value-of select="concat(
                 '----------------------- [Key Generation Stored Procedure] ----------------------------', $N,
+                '-- !!!!!!! THIS METHOD HAS BEEN DEPRECATED - USE THE INSERT TRIGGER INSTEAD !!!!!!! --', $N,
                 '-- ', $anchorName, ' surrogate key generation stored procedure', $N,
                 '--------------------------------------------------------------------------------------', $N,
                 'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorKeyGenerator, $Q, ' AND type in (', $Q, 'P', $Q, ',', $Q, 'PC', $Q, '))', $N,
@@ -294,17 +364,16 @@
                 <xsl:variable name="attributeRecordingDefinition">
                     <xsl:if test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(
-                        $T, $attributeMnemonic, '_RecordedAt ', $recordingRange, ' not null,', $N,
-                        $T, $attributeMnemonic, '_ErasedAt ', $recordingRange, ' not null,', $N,
-                        $T, $attributeMnemonic, '_Erased bit not null,', $N
+                        $T, $attributeMnemonic, '_', $recordingSuffix, ' ', $recordingRange, ' not null,', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix, ' ', $recordingRange, ' not null,', $N
                         )"/>
                     </xsl:if>
                 </xsl:variable> 
                 <xsl:variable name="attributeRecordingKey">
                     <xsl:if test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(
-                        ', ', $N, $T, $T, $attributeMnemonic, '_RecordedAt desc,', $N,
-                        $T, $T, $attributeMnemonic, '_Erased asc'
+                        ', ', $N, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ' desc, ', $N,
+                        $T, $T, $attributeMnemonic, '_', $erasingSuffix, ' desc'
                         )"/>
                     </xsl:if>
                     <xsl:value-of select="$N"/>
@@ -312,7 +381,7 @@
                 <xsl:variable name="attributePartition">
                     <xsl:choose>
                         <xsl:when test="$temporalization = 'bi' and $partitioning = 'true'">
-                            <xsl:value-of select="concat('RecordingScheme(', $attributeMnemonic, '_Erased)')"/>
+                            <xsl:value-of select="concat('RecordingScheme(', $attributeMnemonic, '_', $erasingSuffix, ')')"/>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="'[PRIMARY]'"/>
@@ -338,6 +407,119 @@
                 ') ON ', $attributePartition, ';', $N,
                 'GO', $N, $N
                 )"/>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:variable name="attributeMetadataColumn">
+                        <xsl:if test="$metadataUsage = 'true'">
+                            <xsl:value-of select="concat(', ', $N, $T, $attributeMetadata)"/>
+                        </xsl:if>
+                        <xsl:value-of select="$N"/>
+                    </xsl:variable>
+                    <xsl:variable name="attributeChangingColumn">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat($T, $attributeMnemonic, '_', $changingSuffix, ',', $N)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:value-of select="concat(
+                    '-------------------- [All changing currently recorded perspective] -------------------', $N,
+                    '-- ac', $attributeName, ' function', $N,
+                    '--------------------------------------------------------------------------------------', $N,
+                    'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ac', $attributeName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+                    'DROP VIEW [', $attributeCapsule, '].[ac', $attributeName, '];', $N,
+                    'GO', $N,
+                    'CREATE VIEW [', $attributeCapsule, '].[ac', $attributeName, '] WITH SCHEMABINDING AS', $N,
+                    'SELECT', $N,
+                    $T, $anchorIdentity, ', ', $N,
+                    $T, $attributeName, ', ', $N,
+                    $attributeChangingColumn,
+                    $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                    $T, $attributeMnemonic, '_', $erasingSuffix,
+                    $attributeMetadataColumn,
+                    'FROM', $N,
+                    $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                    'WHERE', $N,
+                    $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
+                    'GO', $N, $N
+                    )"/>
+                    <xsl:value-of select="concat(
+                    '--------------------- [All changing rewind recording perspective] --------------------', $N,
+                    '-- ar', $attributeName, ' function', $N,
+                    '--------------------------------------------------------------------------------------', $N,
+                    'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ar', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                    'DROP FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '];', $N,
+                    'GO', $N,
+                    'CREATE FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
+                    'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                    'SELECT', $N,
+                    $T, $anchorIdentity, ', ', $N,
+                    $T, $attributeName, ', ', $N,
+                    $attributeChangingColumn,
+                    $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                    $T, $attributeMnemonic, '_', $erasingSuffix,
+                    $attributeMetadataColumn,
+                    'FROM', $N,
+                    $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                    'WHERE', $N,
+                    $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                    'AND', $N,
+                    $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
+                    'GO', $N, $N
+                    )"/>
+                    <xsl:if test="@timeRange">
+                        <xsl:value-of select="concat(
+                        '------------------ [Rewind changing currently recorded perspective] ------------------', $N,
+                        '-- rc', $attributeName, ' function', $N,
+                        '--------------------------------------------------------------------------------------', $N,
+                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rc', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                        'DROP FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '];', $N,
+                        'GO', $N,
+                        'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
+                        'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                        'SELECT', $N,
+                        $T, $anchorIdentity, ', ', $N,
+                        $T, $attributeName, ', ', $N,
+                        $attributeChangingColumn,
+                        $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix,
+                        $attributeMetadataColumn,
+                        'FROM', $N,
+                        $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                        'WHERE', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
+                        'AND', $N,
+                        $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint;', $N,
+                        'GO', $N, $N
+                        )"/>
+                        <xsl:value-of select="concat(
+                        '------------------- [Rewind changing rewind recording perspective] -------------------', $N,
+                        '-- rr', $attributeName, ' function', $N,
+                        '--------------------------------------------------------------------------------------', $N,
+                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rr', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                        'DROP FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '];', $N,
+                        'GO', $N,
+                        'CREATE FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '] (', $N,
+                        $T, '@changingTimepoint, ', @timeRange, $N,
+                        $T, '@recordingTimepoint ', $recordingRange, $N,
+                        ')', $N,
+                        'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                        'SELECT', $N,
+                        $T, $anchorIdentity, ', ', $N,
+                        $T, $attributeName, ', ', $N,
+                        $attributeChangingColumn,
+                        $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix,
+                        $attributeMetadataColumn,
+                        'FROM', $N,
+                        $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                        'WHERE', $N,
+                        $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                        'AND', $N,
+                        $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint', $N,
+                        'AND', $N,
+                        $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
+                        'GO', $N, $N
+                        )"/>
+                    </xsl:if>
+                </xsl:if>
             </xsl:for-each>
             <!-- create the time perspectives -->
             <xsl:variable name="columnReferences">
@@ -610,17 +792,16 @@
             <xsl:variable name="tieRecordingDefinition">
                 <xsl:if test="$temporalization = 'bi'">
                     <xsl:value-of select="concat(
-                    $T, $tieName, '_RecordedAt ', $recordingRange, ' not null,', $N,
-                    $T, $tieName, '_ErasedAt ', $recordingRange, ' not null,', $N,
-                    $T, $tieName, '_Erased bit not null,', $N
+                    $T, $tieName, '_', $recordingSuffix, ' ', $recordingRange, ' not null,', $N,
+                    $T, $tieName, '_', $erasingSuffix, ' ', $recordingRange, ' not null,', $N
                     )"/>
                 </xsl:if>
             </xsl:variable> 
             <xsl:variable name="tieRecordingKey">
                 <xsl:if test="$temporalization = 'bi'">
                     <xsl:value-of select="concat(
-                    ', ', $N, $T, $T, $tieName, '_RecordedAt desc,', $N,
-                    $T, $T, $tieName, '_Erased asc'
+                    ', ', $N, $T, $T, $tieName, '_', $recordingSuffix, ' desc, ', $N,
+                    $T, $T, $tieName, '_', $erasingSuffix, ' desc'
                     )"/>
                 </xsl:if>
                 <xsl:value-of select="$N"/>
@@ -628,7 +809,7 @@
             <xsl:variable name="tiePartition">
                 <xsl:choose>
                     <xsl:when test="$temporalization = 'bi' and $partitioning = 'true'">
-                        <xsl:value-of select="concat('RecordingScheme(', $tieName, '_Erased)')"/>
+                        <xsl:value-of select="concat('RecordingScheme(', $tieName, '_', $erasingSuffix, ')')"/>
                     </xsl:when>
                     <xsl:otherwise>
                         <xsl:value-of select="'[PRIMARY]'"/>

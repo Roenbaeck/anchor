@@ -609,6 +609,7 @@
             identitySuffix: 'ID',
             recordingRange: 'datetime',
             recordingSuffix: 'RecordedAt',
+            erasingSuffix: 'ErasedAt',
             partitioning: 'false'
         };
 
@@ -2533,7 +2534,7 @@
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
-                var changingRange = element.getAttribute("changingRange") || '';
+                var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
                 var knotRange = element.getAttribute("knotRange") || '';
                 var knotted = knotRange ? true : false;
@@ -2601,7 +2602,7 @@
                 attribute.setAttribute("mnemonic", this.mnemonic);
                 attribute.setAttribute("descriptor", this.descriptor);
                 if(this.historized)
-                    attribute.setAttribute("changingRange", this.changingRange);
+                    attribute.setAttribute("timeRange", this.changingRange);
                 if(this.knotted) {
                     var knot, edge;
                     for(var i = 0; edge = this.edges[i]; i++)
@@ -3141,7 +3142,7 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
                         description = element.childNodes.item(i);
-                var changingRange = element.getAttribute("changingRange") || '';
+                var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
@@ -3234,7 +3235,7 @@
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
                 if(this.historized)
-                    tie.setAttribute("changingRange", this.changingRange);
+                    tie.setAttribute("timeRange", this.changingRange);
                 for(var i = 0; i < this.edges.length; i++) {
                     var role;
                     var node = this.edges[i].otherNode;
@@ -4209,6 +4210,7 @@
                     processor.setParameter(null, 'temporalization', Settings.temporalization);
                     processor.setParameter(null, 'recordingRange', Defaults.recordingRange);
                     processor.setParameter(null, 'recordingSuffix', Defaults.recordingSuffix);
+                    processor.setParameter(null, 'erasingSuffix', Defaults.erasingSuffix);
                     processor.setParameter(null, 'partitioning', Defaults.partitioning);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
@@ -4616,6 +4618,7 @@
                 this.setIdentitySuffix('ID');
                 this.setRecordingRange('datetime');
                 this.setRecordingSuffix('RecordedAt');
+                this.setErasingSuffix('ErasedAt');
                 this.setPartitioning('false');
                 this.setTemporalization('mono');
                 this.setDatabase('SQLServer.xsl');
@@ -4667,6 +4670,7 @@
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("recordingRange", Defaults.recordingRange);
                 storage.setItem("recordingSuffix", Defaults.recordingSuffix);
+                storage.setItem("erasingSuffix", Defaults.erasingSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
@@ -4702,6 +4706,7 @@
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                 this.setRecordingRange(storage.getItem('recordingRange') || Defaults.recordingRange);
                 this.setRecordingSuffix(storage.getItem('recordingSuffix') || Defaults.recordingSuffix);
+                this.setErasingSuffix(storage.getItem('erasingSuffix') || Defaults.erasingSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
@@ -4721,11 +4726,15 @@
             setRecordingSuffix: function(value) {
                 Defaults.recordingSuffix = value;
             },
+            setErasingSuffix: function(value) {
+                Defaults.erasingSuffix = value;
+            },
             setPartitioning: function(value) {
                 Defaults.partitioning = value;
             },
             recordingRange: null,
             recordingSuffix: null,
+            erasingSuffix: null,
             partitioning: null,
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
@@ -4749,6 +4758,15 @@
                     this.recordingSuffix.appendChild(recordingSuffixInput);
                     this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
                     listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
+                    this.erasingSuffix = document.createElement('li');
+                    var erasingSuffixInput = document.createElement('input');
+                    erasingSuffixInput.setAttribute('type', 'text');
+                    erasingSuffixInput.setAttribute('class', 'inputDefaults');
+                    erasingSuffixInput.value = Defaults.erasingSuffix;
+                    erasingSuffixInput.addEventListener('blur', function() { Settings.setErasingSuffix(this.value); }, false);
+                    this.erasingSuffix.appendChild(erasingSuffixInput);
+                    this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
+                    listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
                     this.partitioning = document.createElement('li');
                     var partitioningInput = document.createElement('input');
                     partitioningInput.setAttribute('type', 'checkbox');
@@ -4764,6 +4782,8 @@
                     this.recordingRange = null;
                     if(this.recordingSuffix) listOfDefaults.removeChild(this.recordingSuffix);
                     this.recordingSuffix = null;
+                    if(this.erasingSuffix) listOfDefaults.removeChild(this.erasingSuffix);
+                    this.erasingSuffix = null;
                     if(this.partitioning) listOfDefaults.removeChild(this.partitioning);
                     this.partitioning = null;
                 }
