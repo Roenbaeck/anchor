@@ -407,73 +407,51 @@
                 ') ON ', $attributePartition, ';', $N,
                 'GO', $N, $N
                 )"/>
-                <xsl:if test="$temporalization = 'bi'">
-                    <xsl:variable name="attributeMetadataColumn">
-                        <xsl:if test="$metadataUsage = 'true'">
-                            <xsl:value-of select="concat(', ', $N, $T, $attributeMetadata)"/>
-                        </xsl:if>
-                        <xsl:value-of select="$N"/>
-                    </xsl:variable>
-                    <xsl:variable name="attributeChangingColumn">
-                        <xsl:if test="@timeRange">
-                            <xsl:value-of select="concat($T, $attributeMnemonic, '_', $changingSuffix, ',', $N)"/>
-                        </xsl:if>
-                    </xsl:variable>
-                    <xsl:value-of select="concat(
-                    '-------------------- [All changing currently recorded perspective] -------------------', $N,
-                    '-- ac', $attributeName, ' function', $N,
-                    '--------------------------------------------------------------------------------------', $N,
-                    'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ac', $attributeName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
-                    'DROP VIEW [', $attributeCapsule, '].[ac', $attributeName, '];', $N,
-                    'GO', $N,
-                    'CREATE VIEW [', $attributeCapsule, '].[ac', $attributeName, '] WITH SCHEMABINDING AS', $N,
-                    'SELECT', $N,
-                    $T, $anchorIdentity, ', ', $N,
-                    $T, $attributeName, ', ', $N,
-                    $attributeChangingColumn,
-                    $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
-                    $T, $attributeMnemonic, '_', $erasingSuffix,
-                    $attributeMetadataColumn,
-                    'FROM', $N,
-                    $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
-                    'WHERE', $N,
-                    $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
-                    'GO', $N, $N
-                    )"/>
-                    <xsl:value-of select="concat(
-                    '--------------------- [All changing rewind recording perspective] --------------------', $N,
-                    '-- ar', $attributeName, ' function', $N,
-                    '--------------------------------------------------------------------------------------', $N,
-                    'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ar', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-                    'DROP FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '];', $N,
-                    'GO', $N,
-                    'CREATE FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
-                    'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
-                    'SELECT', $N,
-                    $T, $anchorIdentity, ', ', $N,
-                    $T, $attributeName, ', ', $N,
-                    $attributeChangingColumn,
-                    $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
-                    $T, $attributeMnemonic, '_', $erasingSuffix,
-                    $attributeMetadataColumn,
-                    'FROM', $N,
-                    $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
-                    'WHERE', $N,
-                    $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
-                    'AND', $N,
-                    $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
-                    'GO', $N, $N
-                    )"/>
+                <xsl:variable name="attributeMetadataColumn">
+                    <xsl:if test="$metadataUsage = 'true'">
+                        <xsl:value-of select="concat(', ', $N, $T, $attributeMetadata)"/>
+                    </xsl:if>
+                    <xsl:value-of select="$N"/>
+                </xsl:variable>
+                <xsl:variable name="attributeChangingColumn">
                     <xsl:if test="@timeRange">
+                        <xsl:value-of select="concat($T, $attributeMnemonic, '_', $changingSuffix, ',', $N)"/>
+                    </xsl:if>
+                </xsl:variable>
+                <xsl:choose>
+                    <xsl:when test="$temporalization = 'mono'">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat(
+                            '--------------------------- [Rewind changing perspective] ----------------------------', $N,
+                            '-- r', $attributeName, ' function', $N,
+                            '--------------------------------------------------------------------------------------', $N,
+                            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'r', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                            'DROP FUNCTION [', $attributeCapsule, '].[r', $attributeName, '];', $N,
+                            'GO', $N,
+                            'CREATE FUNCTION [', $attributeCapsule, '].[r', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
+                            'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                            'SELECT', $N,
+                            $T, $anchorIdentity, ', ', $N,
+                            $T, $attributeName, ', ', $N,
+                            $attributeChangingColumn,
+                            $attributeMetadataColumn,
+                            'FROM', $N,
+                            $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                            'WHERE', $N,
+                            $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint;', $N,
+                            'GO', $N, $N
+                            )"/>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:when test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(
-                        '------------------ [Rewind changing currently recorded perspective] ------------------', $N,
-                        '-- rc', $attributeName, ' function', $N,
+                        '-------------------- [All changing currently recorded perspective] -------------------', $N,
+                        '-- ac', $attributeName, ' function', $N,
                         '--------------------------------------------------------------------------------------', $N,
-                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rc', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-                        'DROP FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '];', $N,
+                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ac', $attributeName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+                        'DROP VIEW [', $attributeCapsule, '].[ac', $attributeName, '];', $N,
                         'GO', $N,
-                        'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
-                        'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                        'CREATE VIEW [', $attributeCapsule, '].[ac', $attributeName, '] WITH SCHEMABINDING AS', $N,
                         'SELECT', $N,
                         $T, $anchorIdentity, ', ', $N,
                         $T, $attributeName, ', ', $N,
@@ -485,21 +463,16 @@
                         $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                         'WHERE', $N,
                         $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
-                        'AND', $N,
-                        $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint;', $N,
                         'GO', $N, $N
                         )"/>
                         <xsl:value-of select="concat(
-                        '------------------- [Rewind changing rewind recording perspective] -------------------', $N,
-                        '-- rr', $attributeName, ' function', $N,
+                        '--------------------- [All changing rewind recording perspective] --------------------', $N,
+                        '-- ar', $attributeName, ' function', $N,
                         '--------------------------------------------------------------------------------------', $N,
-                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rr', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-                        'DROP FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '];', $N,
+                        'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ar', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                        'DROP FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '];', $N,
                         'GO', $N,
-                        'CREATE FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '] (', $N,
-                        $T, '@changingTimepoint, ', @timeRange, $N,
-                        $T, '@recordingTimepoint ', $recordingRange, $N,
-                        ')', $N,
+                        'CREATE FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
                         'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                         'SELECT', $N,
                         $T, $anchorIdentity, ', ', $N,
@@ -513,13 +486,66 @@
                         'WHERE', $N,
                         $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
                         'AND', $N,
-                        $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint', $N,
-                        'AND', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
                         'GO', $N, $N
                         )"/>
-                    </xsl:if>
-                </xsl:if>
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat(
+                            '------------------ [Rewind changing currently recorded perspective] ------------------', $N,
+                            '-- rc', $attributeName, ' function', $N,
+                            '--------------------------------------------------------------------------------------', $N,
+                            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rc', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                            'DROP FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '];', $N,
+                            'GO', $N,
+                            'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
+                            'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                            'SELECT', $N,
+                            $T, $anchorIdentity, ', ', $N,
+                            $T, $attributeName, ', ', $N,
+                            $attributeChangingColumn,
+                            $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                            $T, $attributeMnemonic, '_', $erasingSuffix,
+                            $attributeMetadataColumn,
+                            'FROM', $N,
+                            $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                            'WHERE', $N,
+                            $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
+                            'AND', $N,
+                            $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint;', $N,
+                            'GO', $N, $N
+                            )"/>
+                            <xsl:value-of select="concat(
+                            '------------------- [Rewind changing rewind recording perspective] -------------------', $N,
+                            '-- rr', $attributeName, ' function', $N,
+                            '--------------------------------------------------------------------------------------', $N,
+                            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rr', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                            'DROP FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '];', $N,
+                            'GO', $N,
+                            'CREATE FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '] (', $N,
+                            $T, '@changingTimepoint, ', @timeRange, $N,
+                            $T, '@recordingTimepoint ', $recordingRange, $N,
+                            ')', $N,
+                            'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                            'SELECT', $N,
+                            $T, $anchorIdentity, ', ', $N,
+                            $T, $attributeName, ', ', $N,
+                            $attributeChangingColumn,
+                            $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+                            $T, $attributeMnemonic, '_', $erasingSuffix,
+                            $attributeMetadataColumn,
+                            'FROM', $N,
+                            $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                            'WHERE', $N,
+                            $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                            'AND', $N,
+                            $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint', $N,
+                            'AND', $N,
+                            $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
+                            'GO', $N, $N
+                            )"/>
+                        </xsl:if>
+                    </xsl:when>
+                </xsl:choose>
             </xsl:for-each>
             <!-- create the time perspectives -->
             <xsl:variable name="columnReferences">
@@ -1248,16 +1274,23 @@
         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
         <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
-        <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, '[', $attributeCapsule, '].[', $attributeName, '] [',  $attributeMnemonic, ']')"/>
+        <xsl:variable name="attributeSource">
+            <xsl:choose>
+                <xsl:when test="$attribute/@timeRange and normalize-space($timepoint)">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[r', $attributeName, '] (', $timepoint, ')')"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[', $attributeName, ']')"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, $attributeSource, ' [',  $attributeMnemonic, ']')"/>
         <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '].', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
         <xsl:if test="$attribute/@timeRange">
             <xsl:value-of select="concat($N, 'AND', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $changingSuffix, ' = (')"/>
             <xsl:value-of select="concat($N, $T, $T, 'SELECT', $N, $T, $T, $T, 'max(sub.', $attributeMnemonic, '_', $changingSuffix, ')')"/>
-            <xsl:value-of select="concat($N, $T, $T, 'FROM', $N, $T, $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] sub')"/>
+            <xsl:value-of select="concat($N, $T, $T, 'FROM', $N, $T, $T, $T, $attributeSource, ' sub')"/>
             <xsl:value-of select="concat($N, $T, $T, 'WHERE', $N, $T, $T, $T, 'sub.', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
-            <xsl:if test="normalize-space($timepoint)">
-                <xsl:value-of select="concat($N, $T, $T, 'AND', $N, $T, $T, $T, 'sub.', $attributeMnemonic, '_', $changingSuffix, ' &lt;= ', $timepoint)"/>
-            </xsl:if>
             <xsl:value-of select="concat($N, $T, ')')"/>
         </xsl:if>
         <xsl:if test="key('knotLookup', $attribute/@knotRange)">
