@@ -291,7 +291,6 @@
                 <xsl:variable name="anchorKeyGenerator" select="concat('k', $anchorName)"/>
                 <xsl:value-of select="concat(
                 '----------------------- [Key Generation Stored Procedure] ----------------------------', $N,
-                '-- !!!!!!! THIS METHOD HAS BEEN DEPRECATED - USE THE INSERT TRIGGER INSTEAD !!!!!!! --', $N,
                 '-- ', $anchorName, ' surrogate key generation stored procedure', $N,
                 '--------------------------------------------------------------------------------------', $N,
                 'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $anchorKeyGenerator, $Q, ' AND type in (', $Q, 'P', $Q, ',', $Q, 'PC', $Q, '))', $N,
