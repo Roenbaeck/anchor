@@ -50,17 +50,20 @@
         <!-- check if partitioning should be used and set it up here -->
         <xsl:if test="$temporalization = 'bi' and $partitioning = 'true'">
             <xsl:value-of select="concat(
-            '----------------------------------- [Partitioning] -------------------------------------', $N,
-            '-- change the scheme according to your own configured filegroups', $N,
-            '-- note that non-erased information, corresponding to passing a null value to the ', $N,
-            '-- partition function, ends up in the overflow partition', $N,
+            '------------------------------- [Partition function] ---------------------------------', $N,
+            '-- sends erased information (non-null datetimes) into the overflow partition', $N,
             '--------------------------------------------------------------------------------------', $N,
             'CREATE PARTITION FUNCTION RecordingPartition (datetime)', $N,
-            'AS RANGE LEFT FOR VALUES(', $Q, '99991231', $Q, ');', $N,
+            'AS RANGE LEFT FOR VALUES(null);', $N,
             'GO', $N, $N,
+            '-------------------------------- [Partition scheme] ----------------------------------', $N,
+            '-- data will be split up onto two filegroups (change if desired) by the function:', $N,
+            '-- 1st filegroup ($partition 1) - currently recorded information', $N,
+            '-- 2nd filegroup ($partition 2) - previously recorded information', $N,
+            '--------------------------------------------------------------------------------------', $N,
             'CREATE PARTITION SCHEME RecordingScheme', $N,
             'AS PARTITION RecordingPartition', $N,
-            'ALL TO ([PRIMARY]);', $N,
+            'TO ([PRIMARY], [PRIMARY]);', $N,
             'GO', $N, $N
             )"/>
         </xsl:if>
