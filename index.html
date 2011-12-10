@@ -4360,12 +4360,14 @@
                 if(window.FormData) {
                     var formData = new FormData();
                     formData.append("action", "list");
+                    formData.append("maxItemsReturned", "100");
                     formData.append("scope", scope);
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
                     var params = {};
                     params.action = 'list';
+                    params.maxItemsReturned = '100';
                     params.scope = scope;
                     this.sendMultiPart(xmlhttp, params);
                 }
