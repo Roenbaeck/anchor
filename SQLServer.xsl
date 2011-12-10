@@ -44,6 +44,17 @@
     <xsl:variable name="Q"><xsl:text>'</xsl:text></xsl:variable>
     <xsl:variable name="D"><xsl:text>"</xsl:text></xsl:variable>
 
+    <xsl:variable name="infinity">
+        <xsl:choose>
+            <xsl:when test="$recordingRange = 'smalldatetime'">
+                <xsl:text>'2079-06-06'</xsl:text>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:text>'9999-12-31'</xsl:text>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:variable>
+
     <!-- match the schema (root element) and process the different elements using for-each loops -->
 	<xsl:template match="/schema">
 
@@ -51,15 +62,16 @@
         <xsl:if test="$temporalization = 'bi' and $partitioning = 'true'">
             <xsl:value-of select="concat(
             '------------------------------- [Partition function] ---------------------------------', $N,
-            '-- sends erased information (non-null datetimes) into the overflow partition', $N,
+            '-- sends current information into the overflow partition, where passed values', $N,
+            '-- less than ', $infinity, ' (assumed infinity) are considered erased', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'CREATE PARTITION FUNCTION RecordingPartition (datetime)', $N,
-            'AS RANGE LEFT FOR VALUES(null);', $N,
+            'CREATE PARTITION FUNCTION RecordingPartition (', $recordingRange, ')', $N,
+            'AS RANGE RIGHT FOR VALUES(', $infinity, ');', $N,
             'GO', $N, $N,
             '-------------------------------- [Partition scheme] ----------------------------------', $N,
-            '-- data will be split up onto two filegroups (change if desired) by the function:', $N,
-            '-- 1st filegroup ($partition 1) - currently recorded information', $N,
-            '-- 2nd filegroup ($partition 2) - previously recorded information', $N,
+            '-- data will be split up onto two filegroups (change from [PRIMARY] if desired):', $N,
+            '-- 1st filegroup ($partition 1) - previously recorded (erased) information', $N,
+            '-- 2nd filegroup ($partition 2) - currently recorded information', $N,
             '--------------------------------------------------------------------------------------', $N,
             'CREATE PARTITION SCHEME RecordingScheme', $N,
             'AS PARTITION RecordingPartition', $N,
@@ -160,7 +172,7 @@
                 'FROM', $N,
                 $T, '[', $knotCapsule, '].[', $knotName, ']', $N,
                 'WHERE', $N,
-                $T, @mnemonic, '_', $erasingSuffix, ' is null;', $N,
+                $T, @mnemonic, '_', $erasingSuffix, ' &gt;= ', $infinity, ';', $N,
                 'GO', $N, $N
                 )"/>
                 <xsl:value-of select="concat(
@@ -181,7 +193,7 @@
                 'FROM', $N,
                 $T, '[', $knotCapsule, '].[', $knotName, ']', $N,
                 'WHERE', $N,
-                $T, '(', @mnemonic, '_', $erasingSuffix, ' is null OR ', @mnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                $T, @mnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
                 'AND', $N,
                 $T, @mnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
                 'GO', $N, $N
@@ -208,9 +220,9 @@
                 $T, 'ON', $N,
                 $T, $T, 'i.', $knotIdentity, ' = [', @mnemonic, '].', $knotIdentity, $N,
                 $T, 'WHERE', $N,
-                $T, $T, 'i.', @mnemonic, '_', $erasingSuffix, ' is not null', $N,
+                $T, $T, 'i.', @mnemonic, '_', $erasingSuffix, ' &lt; ', $infinity, $N,
                 $T, 'AND', $N,
-                $T, $T, '[', @mnemonic, '].', $erasingSuffix, ' is null;', $N, $N,
+                $T, $T, '[', @mnemonic, '].', $erasingSuffix, ' &gt;= ', $infinity, ';', $N, $N,
                 $T, 'INSERT INTO [', $knotCapsule, '].[', $knotName, '] (', $N,
                 $T, $T, $knotIdentity, ', ', $N,
                 $T, $T, $knotName, ', ', $N,
@@ -222,12 +234,14 @@
                 $T, $T, $knotIdentity, ', ', $N,
                 $T, $T, $knotName, ', ', $N,
                 $T, $T, 'ISNULL(', @mnemonic, '_', $recordingSuffix, ', getdate()),' , $N,
-                $T, $T, 'null', 
+                $T, $T, 'ISNULL(', @mnemonic, '_', $erasingSuffix, ', ', $infinity, ')', 
                 $knotMetadataColumnTwo,
                 $T, 'FROM', $N,
                 $T, $T, 'inserted', $N,
                 $T, 'WHERE', $N,
-                $T, $T, @mnemonic, '_', $erasingSuffix, ' is null;', $N,
+                $T, $T, @mnemonic, '_', $erasingSuffix, ' is null', $N,
+                $T, 'OR', $N,
+                $T, $T, @mnemonic, '_', $erasingSuffix, ' &gt;= ', $infinity, ';', $N,
                 'END', $N,
                 'GO', $N, $N
                 )"/>
