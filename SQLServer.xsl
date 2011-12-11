@@ -222,7 +222,7 @@
                 $T, 'WHERE', $N,
                 $T, $T, 'i.', @mnemonic, '_', $erasingSuffix, ' &lt; ', $infinity, $N,
                 $T, 'AND', $N,
-                $T, $T, '[', @mnemonic, '].', $erasingSuffix, ' &gt;= ', $infinity, ';', $N, $N,
+                $T, $T, '[', @mnemonic, '].', @mnemonic, '_', $erasingSuffix, ' &gt;= ', $infinity, ';', $N, $N,
                 $T, 'INSERT INTO [', $knotCapsule, '].[', $knotName, '] (', $N,
                 $T, $T, $knotIdentity, ', ', $N,
                 $T, $T, $knotName, ', ', $N,
@@ -282,6 +282,23 @@
             $T, $T, $anchorIdentity, ' asc', $N,
             $T, ')', $N,
             ');', $N,
+            'GO', $N, $N
+            )"/>
+            <xsl:variable name="latestPerspective" select="concat('l', $anchorName)"/>
+            <xsl:variable name="point-in-timePerspective" select="concat('p', $anchorName)"/>
+            <xsl:variable name="differencePerspective" select="concat('d', $anchorName)"/>
+            <xsl:value-of select="concat(
+            '-------------------------------- [Drop Perspectives] ---------------------------------', $N,
+            '-- perspectives are recreated every time the script is run', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $anchorCapsule, '].[', $differencePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+            'DROP VIEW [', $anchorCapsule, '].[', $latestPerspective, '];', $N,
             'GO', $N, $N
             )"/>
             <xsl:variable name="insertIntoStatement">
@@ -360,7 +377,7 @@
                     <xsl:choose>
                         <xsl:when test="key('knotLookup', @knotRange)">
                             <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                            <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,'),', $N)"/>
+                            <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,') on delete cascade,', $N)"/>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="concat($T, $attributeName, ' ', @dataRange, ' not null,', $N)"/>
@@ -410,7 +427,7 @@
                 '--------------------------------------------------------------------------------------', $N,
                 'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $attributeName, $Q, ' AND type LIKE ', $Q, '%U%', $Q, ')', $N,
                 'CREATE TABLE [', $attributeCapsule, '].[', $attributeName, '] (', $N,
-                $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null foreign key references [', $anchorCapsule, '].[', $anchorName, '](', $anchorIdentity, '),', $N,
+                $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null foreign key references [', $anchorCapsule, '].[', $anchorName, '](', $anchorIdentity, ') on delete cascade,', $N,
                 $knotOrDataDefinition,
                 $attributeChangingDefinition,
                 $attributeRecordingDefinition,
@@ -431,8 +448,18 @@
                 </xsl:variable>
                 <xsl:variable name="attributeChangingColumn">
                     <xsl:if test="@timeRange">
-                        <xsl:value-of select="concat($T, $attributeMnemonic, '_', $changingSuffix, ',', $N)"/>
+                        <xsl:value-of select="concat(', ',$N, $T, $attributeMnemonic, '_', $changingSuffix)"/>
                     </xsl:if>
+                </xsl:variable>
+                <xsl:variable name="knotOrDataColumn">
+                    <xsl:choose>
+                        <xsl:when test="key('knotLookup', @knotRange)">
+                            <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, $attributeName)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:variable>
                 <xsl:choose>
                     <xsl:when test="$temporalization = 'mono'">
@@ -444,11 +471,11 @@
                             'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'r', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
                             'DROP FUNCTION [', $attributeCapsule, '].[r', $attributeName, '];', $N,
                             'GO', $N,
-                            'CREATE FUNCTION [', $attributeCapsule, '].[r', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
+                            'CREATE FUNCTION [', $attributeCapsule, '].[r', $attributeName, '] (@changingTimepoint ', @timeRange, ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
                             $T, $anchorIdentity, ', ', $N,
-                            $T, $attributeName, ', ', $N,
+                            $knotOrDataColumn,
                             $attributeChangingColumn,
                             $attributeMetadataColumn,
                             'FROM', $N,
@@ -470,15 +497,15 @@
                         'CREATE VIEW [', $attributeCapsule, '].[ac', $attributeName, '] WITH SCHEMABINDING AS', $N,
                         'SELECT', $N,
                         $T, $anchorIdentity, ', ', $N,
-                        $T, $attributeName, ', ', $N,
-                        $attributeChangingColumn,
+                        $knotOrDataColumn,
+                        $attributeChangingColumn, ', ', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
                         $T, $attributeMnemonic, '_', $erasingSuffix,
                         $attributeMetadataColumn,
                         'FROM', $N,
                         $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                         'WHERE', $N,
-                        $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix, ' &gt;= ', $infinity, ';', $N,
                         'GO', $N, $N
                         )"/>
                         <xsl:value-of select="concat(
@@ -492,15 +519,15 @@
                         'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                         'SELECT', $N,
                         $T, $anchorIdentity, ', ', $N,
-                        $T, $attributeName, ', ', $N,
-                        $attributeChangingColumn,
+                        $knotOrDataColumn,
+                        $attributeChangingColumn, ', ', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
                         $T, $attributeMnemonic, '_', $erasingSuffix,
                         $attributeMetadataColumn,
                         'FROM', $N,
                         $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                         'WHERE', $N,
-                        $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                        $T, $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
                         'AND', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
                         'GO', $N, $N
@@ -513,19 +540,19 @@
                             'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'rc', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
                             'DROP FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '];', $N,
                             'GO', $N,
-                            'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint, ', @timeRange, ')', $N,
+                            'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint ', @timeRange, ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
                             $T, $anchorIdentity, ', ', $N,
-                            $T, $attributeName, ', ', $N,
-                            $attributeChangingColumn,
+                            $knotOrDataColumn,
+                            $attributeChangingColumn, ', ', $N,
                             $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
                             $T, $attributeMnemonic, '_', $erasingSuffix,
                             $attributeMetadataColumn,
                             'FROM', $N,
                             $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                             'WHERE', $N,
-                            $T, $attributeMnemonic, '_', $erasingSuffix, ' is null;', $N,
+                            $T, $attributeMnemonic, '_', $erasingSuffix, ' &gt;= ', $infinity, $N,
                             'AND', $N,
                             $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint;', $N,
                             'GO', $N, $N
@@ -538,21 +565,21 @@
                             'DROP FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '];', $N,
                             'GO', $N,
                             'CREATE FUNCTION [', $attributeCapsule, '].[rr', $attributeName, '] (', $N,
-                            $T, '@changingTimepoint, ', @timeRange, $N,
+                            $T, '@changingTimepoint ', @timeRange, ', ', $N,
                             $T, '@recordingTimepoint ', $recordingRange, $N,
                             ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
                             $T, $anchorIdentity, ', ', $N,
-                            $T, $attributeName, ', ', $N,
-                            $attributeChangingColumn,
+                            $knotOrDataColumn,
+                            $attributeChangingColumn, ', ', $N,
                             $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
                             $T, $attributeMnemonic, '_', $erasingSuffix,
                             $attributeMetadataColumn,
                             'FROM', $N,
                             $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                             'WHERE', $N,
-                            $T, '(', $attributeMnemonic, '_', $erasingSuffix, ' is null OR ', $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint)', $N,
+                            $T, $attributeMnemonic, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
                             'AND', $N,
                             $T, $attributeMnemonic, '_', $changingSuffix, ' &lt;= @changingTimepoint', $N,
                             'AND', $N,
@@ -579,7 +606,6 @@
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
-            <xsl:variable name="latestViewName" select="concat('l', $anchorName)"/>
             <xsl:variable name="anchorMetadataColumnReference">
             	<xsl:if test="$metadataUsage = 'true'">
             		<xsl:value-of select="concat(', ', $N, $T, '[', $anchorMnemonic, '].', $anchorMetadata)"/>
@@ -589,10 +615,7 @@
             '------------------------------- [Latest Perspective] ---------------------------------', $N,
             '-- ', $anchorName, ' viewed as is (given by the latest available information)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestViewName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
-            'DROP VIEW [', $anchorCapsule, '].[', $latestViewName, '];', $N,
-            'GO', $N,
-            'CREATE VIEW [', $anchorCapsule, '].[', $latestViewName, '] WITH SCHEMABINDING AS', $N,
+            'CREATE VIEW [', $anchorCapsule, '].[', $latestPerspective, '] WITH SCHEMABINDING AS', $N,
             'SELECT', $N,
             $T, '[', $anchorMnemonic, '].', $anchorIdentity,
             $anchorMetadataColumnReference,
@@ -637,7 +660,7 @@
             'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
             'DROP TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, ']', $N,
             'GO', $N,
-            'CREATE TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, '] ON ', $latestViewName, $N,
+            'CREATE TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, '] ON ', $latestPerspective, $N,
             'INSTEAD OF INSERT', $N,
             'AS', $N,
             'BEGIN', $N,
@@ -678,12 +701,35 @@
             'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $updateTriggerName, $Q, ')', $N,
             'DROP TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, ']', $N,
             'GO', $N,
-            'CREATE TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, '] ON ', $latestViewName, $N,
+            'CREATE TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, '] ON ', $latestPerspective, $N,
             'INSTEAD OF UPDATE', $N,
             'AS', $N,
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
 	        $updateStatements,
+	        'END', $N,
+	        'GO', $N, $N
+            )"/>
+            <xsl:variable name="deleteTriggerName" select="concat('dt', $anchorName)"/>
+            <xsl:value-of select="concat(
+            '--------------------------------- [Delete Trigger] -----------------------------------', $N,
+            '-- ', $anchorName, ' delete trigger on the latest perspective', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $deleteTriggerName, $Q, ')', $N,
+            'DROP TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, ']', $N,
+            'GO', $N,
+            'CREATE TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, '] ON ', $latestPerspective, $N,
+            'INSTEAD OF DELETE', $N,
+            'AS', $N,
+            'BEGIN', $N,
+	        $T, 'SET NOCOUNT ON;', $N,
+	        $T, 'DELETE [', $anchorMnemonic, ']', $N,
+	        $T, 'FROM', $N,
+	        $T, $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']', $N,
+	        $T, 'JOIN', $N,
+	        $T, $T, 'deleted d', $N,
+	        $T, 'ON', $N,
+	        $T, $T, 'd.', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity, ';', $N,
 	        'END', $N,
 	        'GO', $N, $N
             )"/>
@@ -695,15 +741,11 @@
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
-            <xsl:variable name="point-in-timeFunctionName" select="concat('p', $anchorName)"/>
             <xsl:value-of select="concat(
             '---------------------------- [Point-in-Time Perspective] -----------------------------', $N,
             '-- ', $anchorName, ' viewed as was (at the given timepoint)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timeFunctionName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $anchorCapsule, '].[', $point-in-timeFunctionName, '];', $N,
-            'GO', $N,
-            'CREATE FUNCTION [', $anchorCapsule, '].[', $point-in-timeFunctionName, '] (@timepoint datetime)', $N,
+            'CREATE FUNCTION [', $anchorCapsule, '].[', $point-in-timePerspective, '] (@timepoint datetime)', $N,
             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
             'SELECT', $N,
             $T, '[', $anchorMnemonic, '].', $anchorIdentity,
@@ -718,15 +760,15 @@
                 <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
                 <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
                 <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
-                <xsl:variable name="differenceFunctionName" select="concat('d', $attributeName)"/>
+                <xsl:variable name="attributeDifferencePerspective" select="concat('d', $attributeName)"/>
                 <xsl:value-of select="concat(
                 '------------------------------ [Difference Perspective] ------------------------------', $N,
                 '-- ', $anchorName, ' viewed by differences in ', $attributeName, $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $anchorCapsule, '].[', $differenceFunctionName, '];', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $attributeDifferencePerspective, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $anchorCapsule, '].[', $attributeDifferencePerspective, '];', $N,
                 'GO', $N,
-                'CREATE FUNCTION [', $anchorCapsule, '].[', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'CREATE FUNCTION [', $anchorCapsule, '].[', $attributeDifferencePerspective, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
                 'RETURNS TABLE AS RETURN', $N,
                 'SELECT', $N,
                 $T, 'timepoints.inspectedTimepoint,', $N,
@@ -740,7 +782,7 @@
                 $T, $T, $attributeMnemonic, '_', $changingSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N,
                 ') timepoints', $N,
                 'CROSS APPLY', $N,
-                $T, $point-in-timeFunctionName, '(timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
+                $T, $point-in-timePerspective, '(timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
                 'GO', $N, $N
                 )"/>
             </xsl:for-each>
@@ -763,15 +805,11 @@
                         </xsl:if>
                     </xsl:for-each>
                 </xsl:variable>
-                <xsl:variable name="differenceFunctionName" select="concat('d', $anchorName)"/>
                 <xsl:value-of select="concat(
                 '------------------------------ [Difference Perspective] ------------------------------', $N,
                 '-- ', $anchorName, ' viewed by differences in every historized attribute', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $anchorCapsule, '].[', $differenceFunctionName, '];', $N,
-                'GO', $N,
-                'CREATE FUNCTION [', $anchorCapsule, '].[', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+                'CREATE FUNCTION [', $anchorCapsule, '].[', $differencePerspective, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
                 'RETURNS TABLE AS RETURN', $N,
                 'SELECT', $N,
                 $T, 'timepoints.inspectedTimepoint,', $N,
@@ -780,7 +818,7 @@
                 $unionOfTimepoints,
                 ') timepoints', $N,
                 'CROSS APPLY', $N,
-                $T, '[', $anchorCapsule, '].[', $point-in-timeFunctionName, '](timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
+                $T, '[', $anchorCapsule, '].[', $point-in-timePerspective, '](timepoints.inspectedTimepoint) [', $anchorMnemonic, '];', $N,
                 'GO', $N, $N
                 )"/>                
             </xsl:if>
@@ -940,15 +978,15 @@
 					<xsl:value-of select="concat($T, 'tie.', $tieMetadata, ',', $N)"/>
 				</xsl:if>
 			</xsl:variable>
-            <xsl:variable name="latestViewName" select="concat('l', $tieName)"/>
+            <xsl:variable name="latestPerspective" select="concat('l', $tieName)"/>
             <xsl:value-of select="concat(
             '--------------------------------- [Latest Perspective] -------------------------------', $N,
             '-- ', $tieName, ' viewed as is (given by the latest available information)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestViewName, $Q, ' and type LIKE ', $Q, '%V%', $Q, ')', $N,
-            'DROP VIEW [', $tieCapsule, '].[', $latestViewName, '];', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' and type LIKE ', $Q, '%V%', $Q, ')', $N,
+            'DROP VIEW [', $tieCapsule, '].[', $latestPerspective, '];', $N,
             'GO', $N,
-            'CREATE VIEW [', $tieCapsule, '].[', $latestViewName, '] WITH SCHEMABINDING AS', $N,
+            'CREATE VIEW [', $tieCapsule, '].[', $latestPerspective, '] WITH SCHEMABINDING AS', $N,
             'SELECT', $N,
             $tieMetadataReference,
             $columnReferences,
@@ -967,15 +1005,15 @@
                     </xsl:call-template>
                 </xsl:if>
             </xsl:variable>
-            <xsl:variable name="point-in-timeFunctionName" select="concat('p', $tieName)"/>
+            <xsl:variable name="point-in-timePerspective" select="concat('p', $tieName)"/>
             <xsl:value-of select="concat(
             '---------------------------- [Point-in-Time Perspective] -----------------------------', $N,
             '-- ', $tieName, ' viewed as was (at the given timepoint)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timeFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $tieCapsule, '].[', $point-in-timeFunctionName, '];', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $tieCapsule, '].[', $point-in-timePerspective, '];', $N,
             'GO', $N,
-            'CREATE FUNCTION [', $tieCapsule, '].[', $point-in-timeFunctionName, '] (@timepoint datetime)', $N,
+            'CREATE FUNCTION [', $tieCapsule, '].[', $point-in-timePerspective, '] (@timepoint datetime)', $N,
             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
             'SELECT', $N,
             $tieMetadataReference,
@@ -995,15 +1033,15 @@
                     </xsl:call-template>
                 </xsl:if>
             </xsl:variable>
-            <xsl:variable name="differenceFunctionName" select="concat('d', $tieName)"/>
+            <xsl:variable name="differencePerspective" select="concat('d', $tieName)"/>
             <xsl:value-of select="concat(
             '------------------------------ [Difference Perspective] ------------------------------', $N,
             '-- ', $tieName, ' viewed by differences in the tie', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differenceFunctionName, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $tieCapsule, '].[', $differenceFunctionName, '];', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $tieCapsule, '].[', $differencePerspective, '];', $N,
             'GO', $N,
-            'CREATE FUNCTION [', $tieCapsule, '].[', $differenceFunctionName, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
+            'CREATE FUNCTION [', $tieCapsule, '].[', $differencePerspective, '] (@intervalStart datetime, @intervalEnd datetime)', $N,
             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
             'SELECT', $N,
             $tieMetadataReference,
