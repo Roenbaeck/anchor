@@ -64,18 +64,6 @@
         z-index:            0;
     }
 
-    /* Removed due to memory issues
-    #maxiature {
-        position:           absolute;
-        top:                0px;
-        left:               0px;
-        width:              0px;
-        height:             0px;
-        display:            none;
-        z-index:            0;
-    }
-    */
-
     /* minature canvas - positioned in the southeast corner */
     #miniature {
         position:           absolute;
@@ -227,9 +215,15 @@
         left:               0;
         background-color:   rgba(142, 128, 128, 0.5);
         margin:             0;
-        padding:            0;
+        padding-top:        25%;
         overflow:           hidden;
         z-index:            10;
+        text-align:         center;
+        color:              white;
+        font-family:        sans-serif;
+        font-size:          25pt;
+        font-weight:        bold;
+        text-shadow:        0px 3px 5px rgba(0, 0, 0, 0.5);
     }
 
     #urlPopover {
@@ -297,7 +291,6 @@
     .modelKeywords {
         font:               75% georgia, sans-serif;        
     }
-
 
     #cloudSaverPopover {
         position:           relative;
@@ -579,7 +572,7 @@
             window.init = null;
             window.onbeforeunload = null;
             window.onunload = null;
-            window.location = "http://www.anchormodeling.com/modeler/unsupported.html";
+            window.location = "unsupported.html";
         }
         // -->
     </script>
@@ -597,6 +590,7 @@
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
         var LOGGED_IN = false;
+        var PARAMETERS = {};
 
         var Defaults = {
             changingRange: 'datetime',
@@ -969,6 +963,9 @@
                 this.keywords = null;
                 this.id = null;
             },
+            isEmpty: function() {
+                return this.nodes.length == 0;
+            },
             empty: function() {
                 this.nodes = [];
                 this.shadowToNode = {};
@@ -1018,8 +1015,9 @@
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
-            setupMinimal: function() {
-                if(confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!")) {
+            setupMinimal: function(ask) {
+                var go = ask ? confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!") : true;
+                if(go) {
                     this.uncloud();
                     this.empty();
                     this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
@@ -3562,13 +3560,17 @@
             //child.prototype.__proto__ = supertype.prototype;
         }
 
-        function ModalBackground() {
+        function ModalBackground(message) {
             CanvasEventHandler.disableKeyboardShortcuts();
             var modalBackground = document.createElement('div');
             modalBackground.setAttribute("id", "modalBackground");
             modalBackground.style.width = window.innerWidth + 'px';
             modalBackground.style.height = window.innerHeight + 'px';
             this.modalBackground = modalBackground;
+            if(message) {
+                var text = document.createTextNode(message);
+                modalBackground.appendChild(text);
+            }
             document.body.appendChild(modalBackground);
             return this;
         }
@@ -4376,6 +4378,7 @@
                 }
             },
             loadModelFromCloud: function(modelId, modelName, modelScope, modelKeywords) {
+                var modalBackground = new ModalBackground('Loading model, please wait...');
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
@@ -4388,20 +4391,29 @@
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
-                        var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
-                        CanvasEventHandler.clearSelection();
-                        Model.uncloud();
-                        Model.clearStates();
-                        Model.fromXML(model);
-                        Model.id = modelId;
-                        Model.name = modelName;
-                        Model.scope = modelScope;
-                        Model.keywords = modelKeywords;
-                        Actions.setModelStatus();
-                        DrawingEngine.reset();
-                        Actions.resetZoom();
-                        Actions.centerModel();
-                        DrawingEngine.start(false);
+                        var response = xmlhttp.responseText;
+                        if(!response || response.length <= 5 || response.match(/ERROR.*/)) {
+                            alert("The selected model could not be loaded from the cloud service!");
+                            if(Model.isEmpty())
+                                Model.setupMinimal(false);
+                        }
+                        else {
+                            var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                            CanvasEventHandler.clearSelection();
+                            Model.uncloud();
+                            Model.clearStates();
+                            Model.fromXML(model);
+                            Model.id = modelId;
+                            Model.name = modelName;
+                            Model.scope = modelScope;
+                            Model.keywords = modelKeywords;
+                            Actions.setModelStatus();
+                            DrawingEngine.reset();
+                            Actions.resetZoom();
+                            Actions.centerModel();
+                            DrawingEngine.start(false);
+                        }
+                        modalBackground.close();
                     }
                 };
 
@@ -4561,6 +4573,16 @@
                         allNodes.push(node);
                 }
                 Model.explode(allNodes);
+            },
+            generateURL: function() {
+                if(Model.id && Model.scope == 'public') {
+                    var url = window.location.protocol + '//' + window.location.hostname + window.location.pathname;
+                    url += "?id=" + Model.id;
+                    prompt("Sharable and social media friendly URL:", url);
+                }
+                else {
+                    alert("Sharing a model requires it to be a public model saved in the cloud.");
+                }
             },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
@@ -5074,6 +5096,14 @@
 
         // implementation of our init function
         function init(window) {
+            // find any parameters passed in the url
+            var gets = window.location.search.substring(1);
+            var pair, pairs = gets.split('&');
+            for(var i = 0; pair = pairs[i]; i++) {
+              pair = pairs[i].split('=');
+              PARAMETERS[pair[0]] = pair[1];
+            }
+
             // assign event handlers to buttons
             ControlButtons.init();
             LayoutEngine.init();
@@ -5116,9 +5146,12 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
-            // load previous model, if any
+            // load url or previous model, if any
             var model;
-            if(model = window.localStorage.getItem("model")) {
+            if(PARAMETERS.id) {
+                Actions.loadModelFromCloud(PARAMETERS.id, null, 'public', null);
+            }
+            else if(model = window.localStorage.getItem("model")) {
                 Model.fromXML(new DOMParser().parseFromString(model, 'text/xml'));
                 Model.id = window.localStorage.getItem("modelId");
                 Model.name = window.localStorage.getItem("modelName");
@@ -5180,7 +5213,7 @@
             <ul class="menu">
                 <li>File
                     <ul class="submenu">
-                        <li onclick="Model.setupMinimal()">New model...</li>
+                        <li onclick="Model.setupMinimal(true)">New model...</li>
                         <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                         <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                         <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
@@ -5216,12 +5249,10 @@
                 <li>Generate
                     <ul class="submenu">
                         <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                        <li onclick="Actions.generateHTML()">HTML documentation</li>
                         <li onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
+                        <li onclick="Actions.generateURL()">URL for sharing</li>
+                        <li onclick="Actions.generateHTML()">HTML documentation</li>
                         <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                        <!-- Removed due to memory issues
-                        <li onclick="Actions.generatePNG()">PNG hi-res model</li>
-                        -->
                         <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
                         <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
                     </ul>
