@@ -489,7 +489,7 @@
                     <xsl:when test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(
                         '-------------------- [All changing currently recorded perspective] -------------------', $N,
-                        '-- ac', $attributeName, ' function', $N,
+                        '-- ac', $attributeName, ' view', $N,
                         '--------------------------------------------------------------------------------------', $N,
                         'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'ac', $attributeName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
                         'DROP VIEW [', $attributeCapsule, '].[ac', $attributeName, '];', $N,
@@ -602,7 +602,6 @@
                 <xsl:for-each select="attribute">
                     <xsl:call-template name="joinCondition">
                         <xsl:with-param name="attribute" select="."/>
-                        <xsl:with-param name="timepoint"/>
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
@@ -737,7 +736,7 @@
                 <xsl:for-each select="attribute">
                     <xsl:call-template name="joinCondition">
                         <xsl:with-param name="attribute" select="."/>
-                        <xsl:with-param name="timepoint" select="'@timepoint'"/>
+                        <xsl:with-param name="changingTimepoint" select="'@timepoint'"/>
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
@@ -1321,7 +1320,8 @@
     </xsl:template>
     <xsl:template name="joinCondition">
         <xsl:param name="attribute"/>
-        <xsl:param name="timepoint"/>
+        <xsl:param name="changingTimepoint" select="'?'"/>
+        <xsl:param name="recordingTimepoint" select="'?'"/>
         <xsl:variable name="anchor" select="$attribute/parent::anchor"/>
         <xsl:variable name="anchorMnemonic" select="$anchor/@mnemonic"/>
         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', $attribute/@mnemonic)"/>
@@ -1330,11 +1330,40 @@
         <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
         <xsl:variable name="attributeSource">
             <xsl:choose>
-                <xsl:when test="$attribute/@timeRange and normalize-space($timepoint)">
-                    <xsl:value-of select="concat('[', $attributeCapsule, '].[r', $attributeName, '] (', $timepoint, ')')"/>
+                <xsl:when test="$temporalization = 'mono' and not($attribute/@timeRange)">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[', $attributeName, ']')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'mono' and $attribute/@timeRange and $changingTimepoint = '?'">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[', $attributeName, ']')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'mono' and $attribute/@timeRange and not($changingTimepoint = '?')">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[r', $attributeName, '] (', $changingTimepoint, ')')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and not($attribute/@timeRange) and $recordingTimepoint = '?'">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[ac', $attributeName, ']')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and not($attribute/@timeRange) and not($recordingTimepoint = '?')">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[ar', $attributeName, '] (', $recordingTimepoint, ')')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and $attribute/@timeRange and $changingTimepoint = '?' and $recordingTimepoint = '?'">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[ac', $attributeName, ']')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and $attribute/@timeRange and $changingTimepoint = '?' and not($recordingTimepoint = '?')">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[ar', $attributeName, '] (', $recordingTimepoint, ')')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and $attribute/@timeRange and not($changingTimepoint = '?') and $recordingTimepoint = '?'">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[rc', $attributeName, '] (', $changingTimepoint, ')')"/>
+                </xsl:when>
+                <xsl:when test="$temporalization = 'bi' and $attribute/@timeRange and not($changingTimepoint = '?') and not($recordingTimepoint = '?')">
+                    <xsl:value-of select="concat('[', $attributeCapsule, '].[rr', $attributeName, '] (', $changingTimepoint, ', ', $recordingTimepoint, ')')"/>
                 </xsl:when>
                 <xsl:otherwise>
-                    <xsl:value-of select="concat('[', $attributeCapsule, '].[', $attributeName, ']')"/>
+                    <xsl:value-of select="concat(
+                        'changingTimepoint = ', $Q, $changingTimepoint, $Q,
+                        ' recordingTimepoint = ', $Q, $recordingTimepoint, $Q,
+                        ' timeRange = ', $Q, $attribute/@timeRange, $Q,
+                        ' temporalization = ', $Q, $temporalization, $Q
+                        )"/>
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
