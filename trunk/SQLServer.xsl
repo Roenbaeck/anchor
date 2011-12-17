@@ -287,6 +287,10 @@
             <xsl:variable name="latestPerspective" select="concat('l', $anchorName)"/>
             <xsl:variable name="point-in-timePerspective" select="concat('p', $anchorName)"/>
             <xsl:variable name="differencePerspective" select="concat('d', $anchorName)"/>
+            <xsl:variable name="llPerspective" select="concat('ll', $anchorName)"/>
+            <xsl:variable name="lpPerspective" select="concat('lp', $anchorName)"/>
+            <xsl:variable name="plPerspective" select="concat('pl', $anchorName)"/>
+            <xsl:variable name="ppPerspective" select="concat('pp', $anchorName)"/>
             <xsl:value-of select="concat(
             '-------------------------------- [Drop Perspectives] ---------------------------------', $N,
             '-- perspectives are recreated every time the script is run', $N,
@@ -299,8 +303,25 @@
             'GO', $N,
             'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
             'DROP VIEW [', $anchorCapsule, '].[', $latestPerspective, '];', $N,
-            'GO', $N, $N
+            'GO', $N
             )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $llPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $anchorCapsule, '].[', $llPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $lpPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $anchorCapsule, '].[', $lpPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $plPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $anchorCapsule, '].[', $plPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $ppPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $anchorCapsule, '].[', $ppPerspective, '];', $N,
+                'GO', $N
+                )"/>
+            </xsl:if>
+            <xsl:value-of select="$N"/>
             <xsl:variable name="insertIntoStatement">
                 <xsl:choose>
                     <xsl:when test="$metadataUsage = 'true'">
@@ -624,6 +645,34 @@
             $latestJoinConditions, ';', $N,
             'GO', $N, $N
             )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                'CREATE SYNONYM [', $anchorCapsule, '].[', $llPerspective, '] FOR [', $anchorCapsule, '].[', $latestPerspective, '];', $N, $N
+                )"/>
+                <xsl:variable name="lpJoinConditions">
+                    <xsl:for-each select="attribute">
+                        <xsl:call-template name="joinCondition">
+                            <xsl:with-param name="attribute" select="."/>
+                            <xsl:with-param name="recordingTimepoint" select="'@timepoint'"/>
+                        </xsl:call-template>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                '----------------- [Latest changing point-in-recording Perspective] -------------------', $N,
+                '-- ', $anchorName, ' viewed as is (given by the latest available information)', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'CREATE FUNCTION [', $anchorCapsule, '].[', $lpPerspective, '] (@timepoint datetime)', $N,
+                'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                'SELECT', $N,
+                $T, '[', $anchorMnemonic, '].', $anchorIdentity,
+                $anchorMetadataColumnReference,
+                $columnReferences, $N,
+                'FROM', $N,
+                $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']',
+                $lpJoinConditions, ';', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
             <xsl:variable name="insertStatements">
                 <xsl:for-each select="attribute">
                     <xsl:call-template name="insertStatement">
@@ -755,6 +804,35 @@
             $point-in-timeJoinConditions, ';', $N,
             'GO', $N, $N
             )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                'CREATE SYNONYM [', $anchorCapsule, '].[', $plPerspective, '] FOR [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N, $N
+                )"/>
+                <xsl:variable name="ppJoinConditions">
+                    <xsl:for-each select="attribute">
+                        <xsl:call-template name="joinCondition">
+                            <xsl:with-param name="attribute" select="."/>
+                            <xsl:with-param name="changingTimepoint" select="'@changingTimepoint'"/>
+                            <xsl:with-param name="recordingTimepoint" select="'@recordingTimepoint'"/>
+                        </xsl:call-template>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                '----------------- [Point-in-changing point-in-recording Perspective] -------------------', $N,
+                '-- ', $anchorName, ' viewed as is (given by the latest available information)', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'CREATE FUNCTION [', $anchorCapsule, '].[', $ppPerspective, '] (@changingTimepoint datetime, @recordingTimepoint datetime)', $N,
+                'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                'SELECT', $N,
+                $T, '[', $anchorMnemonic, '].', $anchorIdentity,
+                $anchorMetadataColumnReference,
+                $columnReferences, $N,
+                'FROM', $N,
+                $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']',
+                $ppJoinConditions, ';', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
             <xsl:for-each select="attribute[@timeRange]">
                 <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
                 <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
@@ -1359,10 +1437,11 @@
                 </xsl:when>
                 <xsl:otherwise>
                     <xsl:value-of select="concat(
-                        'changingTimepoint = ', $Q, $changingTimepoint, $Q,
-                        ' recordingTimepoint = ', $Q, $recordingTimepoint, $Q,
-                        ' timeRange = ', $Q, $attribute/@timeRange, $Q,
-                        ' temporalization = ', $Q, $temporalization, $Q
+                        'YOU SHOULD NEVER SEE THIS:', $N,
+                        'changingTimepoint = ', $Q, $changingTimepoint, $Q, $N,
+                        'recordingTimepoint = ', $Q, $recordingTimepoint, $Q, $N,
+                        'timeRange = ', $Q, $attribute/@timeRange, $Q, $N,
+                        'temporalization = ', $Q, $temporalization, $Q, $N
                         )"/>
                 </xsl:otherwise>
             </xsl:choose>
@@ -1381,7 +1460,20 @@
             <xsl:variable name="knotName" select="concat($knotMnemonic, '_', key('knotLookup', $attribute/@knotRange)/@descriptor)"/>
             <xsl:variable name="knotCapsule" select="key('knotLookup', $attribute/@knotRange)/metadata/@capsule"/>
             <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
-            <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, '[', $knotCapsule, '].[', $knotName, '] [',  $knotMnemonic, ']')"/>
+            <xsl:variable name="knotSource">
+                <xsl:choose>
+                    <xsl:when test="$temporalization = 'mono'">
+                        <xsl:value-of select="concat('[', $knotCapsule, '].[', $knotName, ']')"/>
+                    </xsl:when>
+                    <xsl:when test="$temporalization = 'bi' and $recordingTimepoint = '?'">
+                        <xsl:value-of select="concat('[', $knotCapsule, '].[ac', $knotName, ']')"/>
+                    </xsl:when>
+                    <xsl:when test="$temporalization = 'bi' and not($recordingTimepoint = '?')">
+                        <xsl:value-of select="concat('[', $knotCapsule, '].[ar', $knotName, '] (', $recordingTimepoint, ')')"/>
+                    </xsl:when>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, $knotSource, ' [',  $knotMnemonic, ']')"/>
             <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $knotMnemonic, '].', $knotIdentity, ' = [', $attributeMnemonic, '].', $knotIdentity)"/>
         </xsl:if>
     </xsl:template>
