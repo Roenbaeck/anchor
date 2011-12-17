@@ -65,6 +65,7 @@
             '-- sends current information into the overflow partition, where passed values', $N,
             '-- less than ', $infinity, ' (assumed infinity) are considered erased', $N,
             '--------------------------------------------------------------------------------------', $N,
+            'IF NOT EXISTS (SELECT * FROM sys.partition_functions WHERE name = ', $Q, 'RecordingPartition', $Q, ')', $N,
             'CREATE PARTITION FUNCTION RecordingPartition (', $recordingRange, ')', $N,
             'AS RANGE RIGHT FOR VALUES(', $infinity, ');', $N,
             'GO', $N, $N,
@@ -73,12 +74,56 @@
             '-- 1st filegroup ($partition 1) - previously recorded (erased) information', $N,
             '-- 2nd filegroup ($partition 2) - currently recorded information', $N,
             '--------------------------------------------------------------------------------------', $N,
+            'IF NOT EXISTS (SELECT * FROM sys.partition_schemes WHERE name = ', $Q, 'RecordingScheme', $Q, ')', $N,
             'CREATE PARTITION SCHEME RecordingScheme', $N,
             'AS PARTITION RecordingPartition', $N,
             'TO ([PRIMARY], [PRIMARY]);', $N,
             'GO', $N, $N
             )"/>
         </xsl:if>
+
+        <xsl:for-each select="anchor">
+            <xsl:variable name="anchorCapsule" select="metadata/@capsule"/>
+            <xsl:variable name="anchorName" select="concat(@mnemonic, '_', @descriptor)"/>
+            <xsl:variable name="latestPerspective" select="concat('l', $anchorName)"/>
+            <xsl:variable name="point-in-timePerspective" select="concat('p', $anchorName)"/>
+            <xsl:variable name="differencePerspective" select="concat('d', $anchorName)"/>
+            <xsl:variable name="llPerspective" select="concat('ll', $anchorName)"/>
+            <xsl:variable name="lpPerspective" select="concat('lp', $anchorName)"/>
+            <xsl:variable name="plPerspective" select="concat('pl', $anchorName)"/>
+            <xsl:variable name="ppPerspective" select="concat('pp', $anchorName)"/>
+            <xsl:value-of select="concat(
+            '-------------------------------- [Drop Perspectives] ---------------------------------', $N,
+            '-- perspectives are recreated every time the script is run', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $anchorCapsule, '].[', $differencePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+            'DROP VIEW [', $anchorCapsule, '].[', $latestPerspective, '];', $N,
+            'GO', $N
+            )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $llPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $anchorCapsule, '].[', $llPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $lpPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $anchorCapsule, '].[', $lpPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $plPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $anchorCapsule, '].[', $plPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $ppPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $anchorCapsule, '].[', $ppPerspective, '];', $N,
+                'GO', $N
+                )"/>
+            </xsl:if>
+            <xsl:value-of select="$N"/>
+        </xsl:for-each>
 
 		<!-- process all knots -->
 		<xsl:for-each select="knot">
@@ -132,11 +177,15 @@
             'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $knotName, $Q, ' and type LIKE ', $Q, '%U%', $Q, ')', $N,
             'CREATE TABLE [', $knotCapsule, '].[', $knotName, '] (', $N,
             $T, $knotIdentity, ' ', $knotIdentityType, $knotIdentityGenerator, ' not null,', $N,
-            $T, $knotName, ' ', $knotDataType, ' not null unique,', $N,
+            $T, $knotName, ' ', $knotDataType, ' not null,', $N,
             $knotRecordingDefinition,
             $knotMetadataDefinition,
             $T, 'primary key (', $N,
             $T, $T, $knotIdentity, ' asc',
+            $knotRecordingKey,
+            $T, '),', $N,
+            $T, 'unique (', $N,
+            $T, $T, $knotName, $N,
             $knotRecordingKey,
             $T, ')', $N,
             ') ON ', $knotPartition, ';', $N,
@@ -255,6 +304,13 @@
             <xsl:variable name="anchorIdentity" select="concat(@mnemonic, '_', $identitySuffix)"/>
             <xsl:variable name="anchorIdentityType" select="@identity"/>
             <xsl:variable name="anchorCapsule" select="metadata/@capsule"/>
+            <xsl:variable name="latestPerspective" select="concat('l', $anchorName)"/>
+            <xsl:variable name="point-in-timePerspective" select="concat('p', $anchorName)"/>
+            <xsl:variable name="differencePerspective" select="concat('d', $anchorName)"/>
+            <xsl:variable name="llPerspective" select="concat('ll', $anchorName)"/>
+            <xsl:variable name="lpPerspective" select="concat('lp', $anchorName)"/>
+            <xsl:variable name="plPerspective" select="concat('pl', $anchorName)"/>
+            <xsl:variable name="ppPerspective" select="concat('pp', $anchorName)"/>
             <xsl:variable name="anchorIdentityGenerator">
                 <xsl:if test="string(metadata/@generator) = 'true'">
                     <xsl:text> identity(1, 1)</xsl:text>
@@ -284,44 +340,6 @@
             ');', $N,
             'GO', $N, $N
             )"/>
-            <xsl:variable name="latestPerspective" select="concat('l', $anchorName)"/>
-            <xsl:variable name="point-in-timePerspective" select="concat('p', $anchorName)"/>
-            <xsl:variable name="differencePerspective" select="concat('d', $anchorName)"/>
-            <xsl:variable name="llPerspective" select="concat('ll', $anchorName)"/>
-            <xsl:variable name="lpPerspective" select="concat('lp', $anchorName)"/>
-            <xsl:variable name="plPerspective" select="concat('pl', $anchorName)"/>
-            <xsl:variable name="ppPerspective" select="concat('pp', $anchorName)"/>
-            <xsl:value-of select="concat(
-            '-------------------------------- [Drop Perspectives] ---------------------------------', $N,
-            '-- perspectives are recreated every time the script is run', $N,
-            '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $anchorCapsule, '].[', $differencePerspective, '];', $N,
-            'GO', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N,
-            'GO', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
-            'DROP VIEW [', $anchorCapsule, '].[', $latestPerspective, '];', $N,
-            'GO', $N
-            )"/>
-            <xsl:if test="$temporalization = 'bi'">
-                <xsl:value-of select="concat(
-                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $llPerspective, $Q, ')', $N,
-                'DROP SYNONYM [', $anchorCapsule, '].[', $llPerspective, '];', $N,
-                'GO', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $lpPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $anchorCapsule, '].[', $lpPerspective, '];', $N,
-                'GO', $N,
-                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $plPerspective, $Q, ')', $N,
-                'DROP SYNONYM [', $anchorCapsule, '].[', $plPerspective, '];', $N,
-                'GO', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $ppPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $anchorCapsule, '].[', $ppPerspective, '];', $N,
-                'GO', $N
-                )"/>
-            </xsl:if>
-            <xsl:value-of select="$N"/>
             <xsl:variable name="insertIntoStatement">
                 <xsl:choose>
                     <xsl:when test="$metadataUsage = 'true'">
@@ -398,7 +416,14 @@
                     <xsl:choose>
                         <xsl:when test="key('knotLookup', @knotRange)">
                             <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                            <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,') on delete cascade,', $N)"/>
+                            <xsl:choose>
+                                <xsl:when test="$temporalization = 'bi'">
+                                    <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null,', $N)"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="concat($T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,') on delete cascade,', $N)"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="concat($T, $attributeName, ' ', @dataRange, ' not null,', $N)"/>
@@ -647,7 +672,8 @@
             )"/>
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
-                'CREATE SYNONYM [', $anchorCapsule, '].[', $llPerspective, '] FOR [', $anchorCapsule, '].[', $latestPerspective, '];', $N, $N
+                'CREATE SYNONYM [', $anchorCapsule, '].[', $llPerspective, '] FOR [', $anchorCapsule, '].[', $latestPerspective, '];', $N,
+                'GO', $N, $N
                 )"/>
                 <xsl:variable name="lpJoinConditions">
                     <xsl:for-each select="attribute">
@@ -806,7 +832,8 @@
             )"/>
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
-                'CREATE SYNONYM [', $anchorCapsule, '].[', $plPerspective, '] FOR [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N, $N
+                'CREATE SYNONYM [', $anchorCapsule, '].[', $plPerspective, '] FOR [', $anchorCapsule, '].[', $point-in-timePerspective, '];', $N,
+                'GO', $N, $N
                 )"/>
                 <xsl:variable name="ppJoinConditions">
                     <xsl:for-each select="attribute">
@@ -916,7 +943,14 @@
                     <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
                     <xsl:variable name="referent" select="concat(@type, '_', key('anchorLookup', @type)/@descriptor, key('knotLookup', @type)/@descriptor)"/>
                     <xsl:variable name="capsule" select="concat(key('anchorLookup', @type)/metadata/@capsule, key('knotLookup', @type)/metadata/@capsule)"/>
-                    <xsl:value-of select="concat($T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null foreign key references [', $capsule, '].[', $referent, '](', @type, '_', $identitySuffix, '),', $N)"/>
+                    <xsl:choose>
+                        <xsl:when test="$temporalization = 'bi' and local-name(.) = 'knotRole'">
+                            <xsl:value-of select="concat($T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null,', $N)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null foreign key references [', $capsule, '].[', $referent, '](', @type, '_', $identitySuffix, '),', $N)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
                 </xsl:for-each>
             </xsl:variable>
             <xsl:variable name="primaryKeyColumns">
