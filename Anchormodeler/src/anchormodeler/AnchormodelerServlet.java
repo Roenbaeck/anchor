@@ -24,7 +24,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.google.appengine.api.datastore.Email;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Text;
@@ -208,12 +207,18 @@ public class AnchormodelerServlet extends HttpServlet {
 		resp.getWriter().println("OK: " + KeyFactory.keyToString(m.getKey()));
 	}
 	
-	private void actionLoad(AnchorRequest areq, HttpServletResponse resp) throws IOException {
+	private void actionLoad(AnchorRequest areq, HttpServletResponse resp) throws Exception {
 		String modelId = areq.stringParams.get("modelId");
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 		try {
 			Key key = KeyFactory.stringToKey(modelId);
 			Model m = (Model)pm.getObjectById(Model.class, key);
+			
+			if(!m.isPublic()) {
+				if(areq.user==null || !m.getUserId().equals(areq.user.getUserId()))
+					throw new ServletException("Cannot load a private model unless logged in as the user that created it");
+			}
+			
 			resp.getWriter().println( m.getModelXml().getValue() );
 		} finally {
 			pm.close();
