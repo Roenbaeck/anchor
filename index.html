@@ -292,6 +292,20 @@
         font:               75% georgia, sans-serif;        
     }
 
+    .modelDeleteButton  {
+        border-style: hidden;
+        display: block;
+        margin: -8px -2px -20px;
+        padding: 0;
+        background-image:   url(deleteButton.png);
+        position:           relative;
+        left:               -15px;
+        top:                -15px;
+        height:             30px;
+        width:              30px;
+        z-index:            14;
+    }
+
     #cloudSaverPopover {
         position:           relative;
         border:             2px solid white;
@@ -591,6 +605,7 @@
         var ASKBEFOREUNLOAD = true;
         var LOGGED_IN = false;
         var PARAMETERS = {};
+        var USER_ID = "";
 
         var Defaults = {
             changingRange: 'datetime',
@@ -3691,6 +3706,29 @@
                     Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
                     self.close(e); 
                 }, false);
+
+                //modelContainer.setAttribute("id","codePopover");
+                if(LOGGED_IN && (USER_ID==model.getAttribute("userId"))) {
+                    var deleteButton = document.createElement('div');
+                    deleteButton.className = 'modelDeleteButton';
+                    deleteButton.setAttribute("style","border-style: hidden; display: block; margin: -8px -2px -20px; padding: 0;");
+                    deleteButton.modelId = modelContainer.modelId;
+                    deleteButton.modelName = modelContainer.modelName;
+                    deleteButton.modelContainer = modelContainer;
+                    deleteButton.addEventListener('click', function(event) {
+                        //Disable click for modelcontainer
+                        if (event.stopPropagation)
+                            event.stopPropagation();
+                        else if(window.event)
+                           window.event.cancelBubble=true;
+                        if(confirm("Are you sure you want to delete this model:?\n" + this.modelName)) {
+                            Actions.deleteModelFromCloud(this.modelId);
+                            content.removeChild(this.modelContainer);
+                        }
+                    }, false);
+                    modelContainer.appendChild(deleteButton);
+                }
+
                 var icon = document.createElement('img');
                 icon.setAttribute("src", model.getAttribute("icon"));
                 var name = document.createElement("p");
@@ -4296,6 +4334,7 @@
                             var login = lines[0].replace(/^OK:/, '').replace(/^[^\S]+/,'');
                             Actions.cloudStatusText = document.createTextNode(login);
                             statusElement.appendChild(Actions.cloudStatusText);
+                            USER_ID = lines[2];
                             LOGGED_IN = true;
                         }
                         else if(response.match(/^LOGIN:/) && redirect) {
@@ -4492,6 +4531,44 @@
                         alert("Cloud connection not supported by your browser");
                     }                    
                 }
+            },
+            deleteModelFromCloud : function(modelId) {
+                window.status = "Contacting Cloud...";
+                document.body.style.cursor = "wait";
+                var xmlhttp = new window.XMLHttpRequest();
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+                // this is needed in order for cookies to be sent with the request
+                xmlhttp.withCredentials = 'true';
+                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        window.status = "";
+                        document.body.style.cursor = "default";
+                        var response = xmlhttp.responseText;
+                        if(!response || response.length <= 5 || response.match(/ERROR.*/)) {
+                            alert("The selected model could not be deleted from the cloud service!\n" + response);
+                        }
+                        else {
+                            alert("The model was deleted successfully.");
+                        }
+                    }
+                };
+                if(window.FormData) {
+                    var formData = new FormData();
+                    formData.append("action", "delete");
+                    formData.append("modelId", modelId);
+                    xmlhttp.send(formData);
+                }
+                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                    var params = {};
+                    params.action = 'delete';
+                    params.modelId = modelId;
+                    this.sendMultiPart(xmlhttp, params);
+                }
+                else {
+                    alert("Cloud connection not supported by your browser");
+                }
+
             },
             sendMultiPart: function(xmlhttp, params) {
               var BOUNDARY = "---------------------------1966284435497298061834782736";
