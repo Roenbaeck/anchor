@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
@@ -33,6 +35,8 @@ import com.google.appengine.api.users.UserServiceFactory;
 @SuppressWarnings("serial")
 public class AnchormodelerServlet extends HttpServlet {
 
+	private static final Logger log = Logger.getLogger(AnchormodelerServlet.class.getName());
+	  
 	public void doGet(HttpServletRequest req, HttpServletResponse resp)	throws IOException {
 		String url = req.getParameter("redirect");
 		if ((url != null) && (url.length() > 0)) {
@@ -111,6 +115,7 @@ public class AnchormodelerServlet extends HttpServlet {
 
 		} catch (Exception e) {
 			resp.getWriter().println("ERROR: " + e.toString());
+			log.log(Level.WARNING, e.toString());
 		}
 	}
 
@@ -174,6 +179,8 @@ public class AnchormodelerServlet extends HttpServlet {
 		String modelXml = areq.stringParams.get("modelXml");
 		String icon = areq.stringParams.get("icon");
 		String keywords = areq.stringParams.get("keywords");
+		if(keywords!=null)
+			keywords=keywords.toLowerCase();
 		String scope = areq.stringParams.get("scope");
 		boolean isPublic = (scope != null) && (scope.equalsIgnoreCase("public"));
 		String userId = areq.user.getUserId();
@@ -268,7 +275,8 @@ public class AnchormodelerServlet extends HttpServlet {
 		String filterValue = areq.stringParams.get("filterValue");
 		String filterString = null;
 		if ((filterBy != null) && (filterValue != null)) {
-			filterString = filterBy + ".contains('" + filterValue + "')";
+			filterValue=filterValue.toLowerCase();
+			filterString = filterBy + ".startsWith('" + filterValue + "')";
 			// filterString.contains("hello");
 		}
 
@@ -278,7 +286,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		Query query = null;
 		try {
 			query = pm.newQuery(Model.class);
-
+			
 			int maxHits = 20;
 			if (maxItemsReturned != null) {
 				maxHits = Integer.parseInt(maxItemsReturned);
@@ -305,8 +313,7 @@ public class AnchormodelerServlet extends HttpServlet {
 			List<Model> results = (List<Model>) query.execute();
 
 			// Format as xml http://www.roseindia.net/servlets/xm-servlet.shtml
-			DocumentBuilderFactory builderFactory = DocumentBuilderFactory
-					.newInstance();
+			DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = builderFactory.newDocumentBuilder();
 			// creating a new instance of a DOM to build a DOM tree.
 			Document doc = docBuilder.newDocument();
