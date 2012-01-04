@@ -3673,7 +3673,7 @@
             }
         };
 
-        function CloudBrowserPopover(modelList) {
+        function CloudBrowserPopover(scope) {
             DrawingEngine.stop();
             var self = this;
 
@@ -3688,61 +3688,41 @@
             close.addEventListener('click', function(event) { return self.close(event) }, false);
             popover.appendChild(close);
 
+            var table = document.createElement('table');
+            table.setAttribute("style","margin: 0pt 0pt 10px;");
+            var tr = document.createElement('tr');
+            var td = document.createElement('td');
+            td.appendChild(document.createTextNode('Keyword search: '));
+            tr.appendChild(td);
+            td = document.createElement('td');
+            var keywords = document.createElement('input');
+            keywords.setAttribute('type', 'text');
+            keywords.addEventListener('change', function() { self.keywordFilter = this.value; }, false);
+            td.appendChild(keywords);
+            tr.appendChild(td);
+
+            var td = document.createElement('td');
+            var searchButton = document.createElement('input');
+            searchButton.setAttribute('type', 'button');
+            searchButton.value = 'Search';
+            searchButton.addEventListener('click', function(e) {
+                self.generateList();
+            }, false);
+            td.appendChild(searchButton);
+            tr.appendChild(td);
+
+            table.appendChild(tr);
+
             var content = document.createElement('div');
             content.setAttribute("id", "content");
             content.style.width = (window.innerWidth - 2 * wPadding) + 'px';
             content.style.height = (window.innerHeight - 2 * hPadding) + 'px';
 
-            var models = modelList.getElementsByTagName('Model');
-            var model, modelContainer;
-            for(var i = 0; i < models.length; i++) {
-                model = models.item(i);
-                modelContainer = document.createElement('div');
-                modelContainer.modelId = model.getAttribute("modelId");
-                modelContainer.modelName = model.getAttribute("modelName");
-                modelContainer.modelScope = model.getAttribute("scope") || "private";
-                modelContainer.modelKeywords = model.getAttribute("keywords");
-                modelContainer.addEventListener('click', function(e) {
-                    Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
-                    self.close(e); 
-                }, false);
+            this.listContainer=content;
+            this.scope=scope;
+            this.generateList();
 
-                //modelContainer.setAttribute("id","codePopover");
-                if(LOGGED_IN && (USER_ID==model.getAttribute("userId"))) {
-                    var deleteButton = document.createElement('div');
-                    deleteButton.className = 'modelDeleteButton';
-                    deleteButton.setAttribute("style","border-style: hidden; display: block; margin: -8px -2px -20px; padding: 0;");
-                    deleteButton.modelId = modelContainer.modelId;
-                    deleteButton.modelName = modelContainer.modelName;
-                    deleteButton.modelContainer = modelContainer;
-                    deleteButton.addEventListener('click', function(event) {
-                        //Disable click for modelcontainer
-                        if (event.stopPropagation)
-                            event.stopPropagation();
-                        else if(window.event)
-                           window.event.cancelBubble=true;
-                        if(confirm("Are you sure you want to delete this model:?\n" + this.modelName)) {
-                            Actions.deleteModelFromCloud(this.modelId);
-                            content.removeChild(this.modelContainer);
-                        }
-                    }, false);
-                    modelContainer.appendChild(deleteButton);
-                }
-
-                var icon = document.createElement('img');
-                icon.setAttribute("src", model.getAttribute("icon"));
-                var name = document.createElement("p");
-                name.appendChild(document.createTextNode(model.getAttribute("modelName")));
-                name.className = 'modelName';
-                var keywords = document.createElement("p");
-                keywords.className = 'modelKeywords';
-                keywords.appendChild(document.createTextNode(model.getAttribute("keywords")));
-                modelContainer.appendChild(icon);
-                modelContainer.appendChild(name);
-                modelContainer.appendChild(keywords);
-                content.appendChild(modelContainer);
-            }
-
+            popover.appendChild(table);
             popover.appendChild(content);
 
             document.body.appendChild(popover);
@@ -3753,10 +3733,89 @@
         CloudBrowserPopover.prototype = {
             popover: null,
             modalBackground: null,
+            listContainer:null,
+            scope:'',
+            keywordFilter:'',
             close: function(event) {
                 document.body.removeChild(this.popover);
                 this.modalBackground.close();
                 DrawingEngine.start(false);
+            },
+            generateList : function() {
+                window.status = "Contacting Cloud...";
+                document.body.style.cursor = "wait";
+                var self = this;
+                var xmlhttp = new window.XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
+                    if(xmlhttp.readyState == 4) {
+                        window.status = "";
+                        document.body.style.cursor = "default";
+                        var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                        self.fillFromList(modelList);
+                    }
+                };
+                var params = {};
+                params.action = 'list';
+                params.maxItemsReturned = '100';
+                params.scope = this.scope;
+                if(self.keywordFilter!='') {
+                    params.filterBy='keywords';
+                    params.filterValue=self.keywordFilter;
+                }
+                Actions.cloudWrapper(xmlhttp, params);
+            },
+            fillFromList : function(modelList) {
+                var models = modelList.getElementsByTagName('Model');
+                var model, modelContainer;
+                while (this.listContainer.hasChildNodes())
+                    this.listContainer.removeChild(this.listContainer.firstChild);
+                for(var i = 0; i < models.length; i++) {
+                    model = models.item(i);
+                    modelContainer = document.createElement('div');
+                    modelContainer.modelId = model.getAttribute("modelId");
+                    modelContainer.modelName = model.getAttribute("modelName");
+                    modelContainer.modelScope = model.getAttribute("scope") || "private";
+                    modelContainer.modelKeywords = model.getAttribute("keywords");
+                    modelContainer.addEventListener('click', function(e) {
+                        Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
+                        self.close(e);
+                    }, false);
+
+                    //modelContainer.setAttribute("id","codePopover");
+                    if(LOGGED_IN && (USER_ID==model.getAttribute("userId"))) {
+                        var deleteButton = document.createElement('div');
+                        deleteButton.className = 'modelDeleteButton';
+                        deleteButton.setAttribute("style","border-style: hidden; display: block; margin: 0px 0px -28px; padding: 0;");
+                        deleteButton.modelId = modelContainer.modelId;
+                        deleteButton.modelName = modelContainer.modelName;
+                        deleteButton.modelContainer = modelContainer;
+                        deleteButton.addEventListener('click', function(event) {
+                            //Disable click for modelcontainer
+                            if (event.stopPropagation)
+                                event.stopPropagation();
+                            else if(window.event)
+                               window.event.cancelBubble=true;
+                            if(confirm("Are you sure you want to delete this model:?\n" + this.modelName)) {
+                                Actions.deleteModelFromCloud(this.modelId);
+                                content.removeChild(this.modelContainer);
+                            }
+                        }, false);
+                        modelContainer.appendChild(deleteButton);
+                    }
+
+                    var icon = document.createElement('img');
+                    icon.setAttribute("src", model.getAttribute("icon"));
+                    var name = document.createElement("p");
+                    name.appendChild(document.createTextNode(model.getAttribute("modelName")));
+                    name.className = 'modelName';
+                    var keywords = document.createElement("p");
+                    keywords.className = 'modelKeywords';
+                    keywords.appendChild(document.createTextNode(model.getAttribute("keywords")));
+                    modelContainer.appendChild(icon);
+                    modelContainer.appendChild(name);
+                    modelContainer.appendChild(keywords);
+                    this.listContainer.appendChild(modelContainer);
+                }
             }
         };
 
@@ -4317,10 +4376,6 @@
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
-                var url = "http://anchormodeler.appspot.com/anchormodeler";
-                xmlhttp.open("POST", url, true);
-                xmlhttp.withCredentials = 'true';
-
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
@@ -4361,19 +4416,9 @@
                     }
                 };
 
-                if(window.FormData) {
-                    var formData = new FormData();
-                    formData.append("action", "status");
-                    xmlhttp.send(formData);
-                }
-                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                    var params = {};
-                    params.action = 'status';
-                    this.sendMultiPart(xmlhttp, params);
-                }
-                else {
-                    alert("Cloud connection not supported by your browser");
-                }
+                var params = {};
+                params.action = 'status';
+                this.cloudWrapper(xmlhttp, params);
             },
             listModelsInCloud: function(scope) {
                 window.status = "Contacting Cloud...";
@@ -4383,49 +4428,14 @@
                     alert("You need to log in to reach your private models. Try again after logging in!");
                     this.checkCloudConnectionStatus(true);
                 }
-                
-                var xmlhttp = new window.XMLHttpRequest();
-                var url = "http://anchormodeler.appspot.com/anchormodeler";
-                xmlhttp.open("POST", url, true);
-                xmlhttp.withCredentials = 'true';
-                
-                xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
-                        window.status = "";
-                        document.body.style.cursor = "default";
-                        var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
-                        new CloudBrowserPopover(modelList);
-                    }
-                };
 
-                if(window.FormData) {
-                    var formData = new FormData();
-                    formData.append("action", "list");
-                    formData.append("maxItemsReturned", "100");
-                    formData.append("scope", scope);
-                    xmlhttp.send(formData);
-                }
-                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                    var params = {};
-                    params.action = 'list';
-                    params.maxItemsReturned = '100';
-                    params.scope = scope;
-                    this.sendMultiPart(xmlhttp, params);
-                }
-                else {
-                    alert("Cloud connection not supported by your browser");
-                }
+                new CloudBrowserPopover(scope);
             },
             loadModelFromCloud: function(modelId, modelName, modelScope, modelKeywords) {
                 var modalBackground = new ModalBackground('Loading model, please wait...');
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
-                var url = "http://anchormodeler.appspot.com/anchormodeler";
-                xmlhttp.open("POST", url, true);
-                // this is needed in order for cookies to be sent with the request
-                xmlhttp.withCredentials = 'true';
-
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
@@ -4456,21 +4466,10 @@
                     }
                 };
 
-                if(window.FormData) {
-                    var formData = new FormData();
-                    formData.append("action", "load");
-                    formData.append("modelId", modelId);
-                    xmlhttp.send(formData);
-                }
-                else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                    var params = {};
-                    params.action = 'load';
-                    params.modelId = modelId;
-                    this.sendMultiPart(xmlhttp, params);
-                }
-                else {
-                    alert("Cloud connection not supported by your browser");
-                }
+                var params = {};
+                params.action = 'load';
+                params.modelId = modelId;
+                this.cloudWrapper(xmlhttp,params);
             },
             saveModelInCloud: function(popover) {
                 if(popover) {
@@ -4478,10 +4477,6 @@
                 }
                 else {
                     var xmlhttp = new window.XMLHttpRequest();
-                    var url = "http://anchormodeler.appspot.com/anchormodeler";
-                    xmlhttp.open("POST", url, true);
-                    xmlhttp.withCredentials = 'true';
-
                     xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                         if(xmlhttp.readyState == 4) {
                             var response = xmlhttp.responseText;
@@ -4503,43 +4498,22 @@
                         }
                     };
 
-                    if(window.FormData) {
-                        var formData = new FormData();
-                        formData.append("action", "save");
-                        formData.append("modelName", Model.name);
-                        formData.append("modelXml", new XMLSerializer().serializeToString(Model.toXML(false)));
-                        formData.append("icon", DrawingEngine.miniatureCanvas.toDataURL());
-                        formData.append("scope", Model.scope || "private");
-                        formData.append("keywords", Model.keywords);
-                        if(Model.id)
-                            formData.append("modelId", Model.id);
-                        xmlhttp.send(formData);
-                    }
-                    else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                        var params = {};
-                        params.action = 'save';
-                        params.modelName = Model.name;
-                        params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
-                        params.icon = DrawingEngine.miniatureCanvas.toDataURL();
-                        params.scope = Model.scope || "private";
-                        params.keywords = Model.keywords;
-                        if(Model.id)
-                            params.modelId = Model.id;
-                        this.sendMultiPart(xmlhttp, params);
-                    }
-                    else {
-                        alert("Cloud connection not supported by your browser");
-                    }                    
+                    var params = {};
+                    params.action = 'save';
+                    params.modelName = Model.name;
+                    params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
+                    params.icon = DrawingEngine.miniatureCanvas.toDataURL();
+                    params.scope = Model.scope || "private";
+                    params.keywords = Model.keywords;
+                    if(Model.id)
+                        params.modelId = Model.id;
+                    this.cloudWrapper(xmlhttp,params);
                 }
             },
             deleteModelFromCloud : function(modelId) {
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
-                var url = "http://anchormodeler.appspot.com/anchormodeler";
-                xmlhttp.open("POST", url, true);
-                // this is needed in order for cookies to be sent with the request
-                xmlhttp.withCredentials = 'true';
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
@@ -4553,35 +4527,38 @@
                         }
                     }
                 };
+                var params = {};
+                params.action = 'delete';
+                params.modelId = modelId;
+                this.cloudWrapper(xmlhttp, params);
+            },
+            sendMultiPart: function(xmlhttp, params) {
+                var BOUNDARY = "---------------------------1966284435497298061834782736";
+                var rn = "\r\n";
+                var req = "--" + BOUNDARY;
+                for (var i in params) {
+                    req += rn + "Content-Disposition: form-data; name=\"" + i + "\"";
+                    req += rn + rn + params[i] + rn + "--" + BOUNDARY;
+                }
+                req += "--";
+                xmlhttp.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+                xmlhttp.sendAsBinary(req);
+            },
+            cloudWrapper : function(xmlhttp, params) {
+                var url = "http://anchormodeler.appspot.com/anchormodeler";
+                xmlhttp.open("POST", url, true);
+                xmlhttp.withCredentials = 'true';
                 if(window.FormData) {
                     var formData = new FormData();
-                    formData.append("action", "delete");
-                    formData.append("modelId", modelId);
+                    for (var i in params)
+                        formData.append(i,params[i]);
                     xmlhttp.send(formData);
                 }
                 else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
-                    var params = {};
-                    params.action = 'delete';
-                    params.modelId = modelId;
                     this.sendMultiPart(xmlhttp, params);
                 }
-                else {
-                    alert("Cloud connection not supported by your browser");
-                }
+            },
 
-            },
-            sendMultiPart: function(xmlhttp, params) {
-              var BOUNDARY = "---------------------------1966284435497298061834782736";
-              var rn = "\r\n";
-              var req = "--" + BOUNDARY;
-              for (var i in params) {
-                req += rn + "Content-Disposition: form-data; name=\"" + i + "\"";
-                req += rn + rn + params[i] + rn + "--" + BOUNDARY;
-              }
-              req += "--";
-              xmlhttp.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
-              xmlhttp.sendAsBinary(req);
-            },
             resetZoom: function() {
                 ControlButtons.doZoom(1/DrawingEngine.xyScale);
                 DrawingEngine.start(false);
