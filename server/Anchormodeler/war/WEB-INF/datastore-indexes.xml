@@ -3,7 +3,7 @@
 
     <datastore-index kind="Model" ancestor="false" source="manual">
         <property name="isPublic" direction="asc"/>
-        <property name="keywords" direction="asc"/>
+        <property name="keywordList" direction="asc"/>
     </datastore-index>
     
 </datastore-indexes>
