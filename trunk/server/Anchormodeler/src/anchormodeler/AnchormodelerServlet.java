@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,6 +25,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -49,8 +52,7 @@ public class AnchormodelerServlet extends HttpServlet {
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-			throws ServletException, IOException {
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp)	throws ServletException, IOException {
 		// resp.setContentType("text/html");
 
 		// This is needed in combination with doOptions to allow
@@ -115,13 +117,12 @@ public class AnchormodelerServlet extends HttpServlet {
 
 		} catch (Exception e) {
 			resp.getWriter().println("ERROR: " + e.toString());
-			log.log(Level.WARNING, e.toString());
+			log.log(Level.WARNING, e.toString(), e);
 		}
 	}
 
 	@Override
-	protected void doOptions(HttpServletRequest req, HttpServletResponse resp)
-			throws ServletException, IOException {
+	protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		// http://code.google.com/p/googleappengine/issues/detail?id=2994
 		// CORS requires that browsers do an OPTIONS request before allowing
 		// cross-site POSTs. UMP does not require this, but no browser
@@ -149,13 +150,11 @@ public class AnchormodelerServlet extends HttpServlet {
 		resp.setHeader("Access-Control-Max-Age", "86400");
 	}
 
-	private void actionStatus(AnchorRequest areq, HttpServletResponse resp)
-			throws IOException {
+	private void actionStatus(AnchorRequest areq, HttpServletResponse resp)	throws IOException {
 		if (areq.user == null) {
 			resp.getWriter().println(areq.requireLoginMessage);
 		} else {
-			resp.getWriter().println(
-					"OK: You are logged in as " + areq.user.getEmail());
+			resp.getWriter().println("OK: You are logged in as " + areq.user.getEmail());
 			resp.getWriter().println(areq.logoutUrl);
 			resp.getWriter().println(areq.user.getUserId());
 		}
@@ -179,15 +178,12 @@ public class AnchormodelerServlet extends HttpServlet {
 		String modelXml = areq.stringParams.get("modelXml");
 		String icon = areq.stringParams.get("icon");
 		String keywords = areq.stringParams.get("keywords");
-		if(keywords!=null)
-			keywords=keywords.toLowerCase();
 		String scope = areq.stringParams.get("scope");
 		boolean isPublic = (scope != null) && (scope.equalsIgnoreCase("public"));
 		String userId = areq.user.getUserId();
 		String email = areq.user.getEmail();
 		String modelId = areq.stringParams.get("modelId");
-
-		// TODO: keywords should be stored as a list in order to be queried?
+		String description = areq.stringParams.get("description");
 
 		PersistenceManager pm = PMF.get().getPersistenceManager();
 
@@ -208,6 +204,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setKeywords(keywords);
 		m.setPublic(isPublic);
 		m.setEmail(email);
+		m.setDescription(new Text(description==null ? "" : description));
 
 		try {
 			pm.makePersistent(m);
@@ -229,7 +226,14 @@ public class AnchormodelerServlet extends HttpServlet {
 					throw new ServletException("Cannot load a private model unless logged in as the user that created it");
 			}
 
+			//Return xml-model
 			resp.getWriter().println(m.getModelXml().getValue());
+
+			//Update statistics
+			m.setLastLoaded(new Date());
+			m.setLoadCount( new Integer(m.getLoadCount().intValue()+1) );
+			pm.makePersistent(m);
+			
 		} finally {
 			pm.close();
 		}
@@ -255,10 +259,10 @@ public class AnchormodelerServlet extends HttpServlet {
 	@SuppressWarnings("unchecked")
 	private void actionList(AnchorRequest areq, HttpServletResponse resp) throws Exception {
 		/*
-		 * list scope "public","private","public/private" filterBy "keyword"
+		 * list scope "public","private","public/private" filterBy "keywords"
 		 * filterValue "lkslejg" maxItemsReturned 20
 		 * 
-		 * returnerar i xmlformat modelId, modelName, icon, domain, keyword,
+		 * returnerar i xmlformat modelId, modelName, icon, domain, keywords,
 		 * authorName
 		 */
 
@@ -276,8 +280,14 @@ public class AnchormodelerServlet extends HttpServlet {
 		String filterString = null;
 		if ((filterBy != null) && (filterValue != null)) {
 			filterValue=filterValue.toLowerCase();
-			filterString = filterBy + ".startsWith('" + filterValue + "')";
-			// filterString.contains("hello");
+			if(filterBy.equals("keywords")) {
+				String[] words = filterValue.split(" ");
+				List<String> lines = new ArrayList<String>();
+				for(String s:words)
+					lines.add("keywordList.contains('" + s + "')");
+				filterString=StringUtils.join(lines," && ");
+			} else
+				filterString = filterBy + ".startsWith('" + filterValue + "')";
 		}
 
 		String maxItemsReturned = areq.stringParams.get("maxItemsReturned");
@@ -328,6 +338,7 @@ public class AnchormodelerServlet extends HttpServlet {
 				child.setAttribute("keywords", m.getKeywords());
 				child.setAttribute("scope", m.isPublic() ? "public" : "private");
 				child.setAttribute("userId", m.getUserId());
+				child.setAttribute("description", m.getDescription()==null ? "" : m.getDescription().getValue());
 				root.appendChild(child);
 			}
 
