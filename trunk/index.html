@@ -962,6 +962,7 @@
             scope: 'private',
             keywords: null,
             id: null,
+            description:null,
             // other members
             nodes: [],
             visibleNodes: [],
@@ -3765,6 +3766,7 @@
                 Actions.cloudWrapper(xmlhttp, params);
             },
             fillFromList : function(modelList) {
+                var self = this;
                 var models = modelList.getElementsByTagName('Model');
                 var model, modelContainer;
                 while (this.listContainer.hasChildNodes())
@@ -3776,8 +3778,9 @@
                     modelContainer.modelName = model.getAttribute("modelName");
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
                     modelContainer.modelKeywords = model.getAttribute("keywords");
+                    modelContainer.modelDescription = model.getAttribute("description");
                     modelContainer.addEventListener('click', function(e) {
-                        Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords);
+                        Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords, this.modelDescription);
                         self.close(e);
                     }, false);
 
@@ -3814,6 +3817,7 @@
                     modelContainer.appendChild(icon);
                     modelContainer.appendChild(name);
                     modelContainer.appendChild(keywords);
+                    modelContainer.title=modelContainer.modelDescription;
                     this.listContainer.appendChild(modelContainer);
                 }
             }
@@ -3877,7 +3881,7 @@
 
             var modelKeywords = document.createElement('input');
             modelKeywords.setAttribute('type', 'text');
-            modelKeywords.setAttribute('placeholder', 'comma separated list');
+            modelKeywords.setAttribute('placeholder', 'keywords separated with spaces');
             if(Model.keywords && Model.keywords != null)
                 modelKeywords.value = Model.keywords;
             modelKeywords.addEventListener('change', function() { Model.keywords = this.value; }, false);
@@ -3889,6 +3893,22 @@
             td.appendChild(modelKeywords);
             tr.appendChild(td);
             table.appendChild(tr);
+
+            var modelDesc = document.createElement('textarea');
+            modelDesc.setAttribute('rows', '4');
+            modelDesc.setAttribute('cols', '40');
+            if(Model.description && Model.description != null)
+                modelDesc.value = Model.description;
+            modelDesc.addEventListener('change', function() { Model.description = this.value; }, false);
+            tr = document.createElement('tr');
+            td = document.createElement('td');
+            td.appendChild(document.createTextNode('Description: '));
+            tr.appendChild(td);
+            td = document.createElement('td');
+            td.appendChild(modelDesc);
+            tr.appendChild(td);
+            table.appendChild(tr);
+
             content.appendChild(table);
 
             if(Model.id) {
@@ -4431,7 +4451,7 @@
 
                 new CloudBrowserPopover(scope);
             },
-            loadModelFromCloud: function(modelId, modelName, modelScope, modelKeywords) {
+            loadModelFromCloud: function(modelId, modelName, modelScope, modelKeywords, modelDescription) {
                 var modalBackground = new ModalBackground('Loading model, please wait...');
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
@@ -4456,6 +4476,7 @@
                             Model.name = modelName;
                             Model.scope = modelScope;
                             Model.keywords = modelKeywords;
+                            Model.description = modelDescription;
                             Actions.setModelStatus();
                             DrawingEngine.reset();
                             Actions.resetZoom();
@@ -4505,6 +4526,7 @@
                     params.icon = DrawingEngine.miniatureCanvas.toDataURL();
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
+                    params.description = Model.description;
                     if(Model.id)
                         params.modelId = Model.id;
                     this.cloudWrapper(xmlhttp,params);
@@ -5203,7 +5225,7 @@
             // load url or previous model, if any
             var model;
             if(PARAMETERS.id) {
-                Actions.loadModelFromCloud(PARAMETERS.id, null, 'public', null);
+                Actions.loadModelFromCloud(PARAMETERS.id, null, 'public', null, null);
             }
             else if(model = window.localStorage.getItem("model")) {
                 Model.fromXML(new DOMParser().parseFromString(model, 'text/xml'));
@@ -5211,6 +5233,7 @@
                 Model.name = window.localStorage.getItem("modelName");
                 Model.scope = window.localStorage.getItem("modelScope");
                 Model.keywords = window.localStorage.getItem("modelKeywords");
+                Model.description = window.localStorage.getItem("modelDescription");
             }
             else
                 Actions.loadFromURL('example.xml');
@@ -5247,6 +5270,8 @@
                 window.localStorage.setItem("modelScope", Model.scope);
             if(Model.keywords)
                 window.localStorage.setItem("modelKeywords", Model.keywords);
+            if(Model.description)
+                window.localStorage.setItem("modelDescription", Model.description);
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
         }
