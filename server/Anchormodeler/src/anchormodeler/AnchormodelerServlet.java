@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -34,6 +35,7 @@ import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
+import com.google.appengine.api.utils.SystemProperty;
 
 @SuppressWarnings("serial")
 public class AnchormodelerServlet extends HttpServlet {
@@ -93,7 +95,10 @@ public class AnchormodelerServlet extends HttpServlet {
 				// server so we redirect to the referrer page instead as a
 				// workaround
 				// TODO: avoid using hardcoded serveraddress here
-				url = "http://anchormodeler.appspot.com/anchormodeler?redirect=" + url;
+				if(isDevelopment())
+					url = "http://localhost:8888/anchormodeler";
+				else
+					url = "http://anchormodeler.appspot.com/anchormodeler?redirect=" + url;
 				areq.requireLoginMessage = "LOGIN: " + userService.createLoginURL(url); // req.getRequestURI());
 			}
 
@@ -121,6 +126,10 @@ public class AnchormodelerServlet extends HttpServlet {
 		}
 	}
 
+	private boolean isDevelopment() {
+		return SystemProperty.environment.value()==SystemProperty.Environment.Value.Development;
+	}
+	
 	@Override
 	protected void doOptions(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 		// http://code.google.com/p/googleappengine/issues/detail?id=2994
@@ -204,7 +213,7 @@ public class AnchormodelerServlet extends HttpServlet {
 		m.setKeywords(keywords);
 		m.setPublic(isPublic);
 		m.setEmail(email);
-		m.setDescription(new Text(description==null ? "" : description));
+		m.setDescription(new Text(description==null ? "" : StringEscapeUtils.unescapeEcmaScript(description) ));
 
 		try {
 			pm.makePersistent(m);
@@ -258,12 +267,7 @@ public class AnchormodelerServlet extends HttpServlet {
 
 	@SuppressWarnings("unchecked")
 	private void actionList(AnchorRequest areq, HttpServletResponse resp) throws Exception {
-		/*
-		 * list scope "public","private","public/private" filterBy "keywords"
-		 * filterValue "lkslejg" maxItemsReturned 20
-		 * 
-		 * returnerar i xmlformat modelId, modelName, icon, domain, keywords,
-		 * authorName
+		/* Returns a xml-formatted list with modelId, modelName, icon, domain, keywords, description
 		 */
 
 		String scope = areq.stringParams.get("scope");
@@ -313,6 +317,7 @@ public class AnchormodelerServlet extends HttpServlet {
 			else if (isPrivate) {
 				String userId = areq.user.getUserId();
 				s = "(isPublic == false) && (userId == '" + userId + "')";
+				//TODO: use query parameters
 			}
 			if (s != null) {
 				filterString = ((filterString == null) ? "" : filterString + " && ") + s;
@@ -320,6 +325,7 @@ public class AnchormodelerServlet extends HttpServlet {
 
 			if (filterString != null)
 				query.setFilter(filterString);
+			//query.setOrdering("loadCount desc, lastLoaded desc");
 			List<Model> results = (List<Model>) query.execute();
 
 			// Format as xml http://www.roseindia.net/servlets/xm-servlet.shtml
@@ -338,7 +344,7 @@ public class AnchormodelerServlet extends HttpServlet {
 				child.setAttribute("keywords", m.getKeywords());
 				child.setAttribute("scope", m.isPublic() ? "public" : "private");
 				child.setAttribute("userId", m.getUserId());
-				child.setAttribute("description", m.getDescription()==null ? "" : m.getDescription().getValue());
+				child.setAttribute("description", m.getDescription()==null ? "" :  StringEscapeUtils.escapeEcmaScript((m.getDescription().getValue())));
 				root.appendChild(child);
 			}
 

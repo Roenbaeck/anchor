@@ -1,10 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<datastore-indexes autoGenerate="false">
+<datastore-indexes autoGenerate="true">
+
+    <datastore-index kind="Model" ancestor="false" source="manual">
+        <property name="isPublic" direction="asc"/>
+        <property name="loadCount" direction="desc"/>
+        <property name="lastLoaded" direction="desc"/>
+    </datastore-index>
+
+    <datastore-index kind="Model" ancestor="false" source="manual">
+        <property name="isPublic" direction="asc"/>
+        <property name="userId" direction="asc"/>
+        <property name="loadCount" direction="desc"/>
+        <property name="lastLoaded" direction="desc"/>
+    </datastore-index>
 
     <datastore-index kind="Model" ancestor="false" source="manual">
         <property name="isPublic" direction="asc"/>
         <property name="keywordList" direction="asc"/>
+        <property name="loadCount" direction="desc"/>
+        <property name="lastLoaded" direction="desc"/>
     </datastore-index>
-    
-</datastore-indexes>
+
+    <datastore-index kind="Model" ancestor="false" source="manual">
+        <property name="isPublic" direction="asc"/>
+        <property name="keywordList" direction="asc"/>
+        <property name="userId" direction="asc"/>
+        <property name="loadCount" direction="desc"/>
+        <property name="lastLoaded" direction="desc"/>
+    </datastore-index>
+     
+ </datastore-indexes>
 
