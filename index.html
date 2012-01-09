@@ -180,7 +180,7 @@
     .collapsed:hover {
         background-color:   #fa5;
     }
-    
+
     .operators {
         position:           relative;
         margin:             0px 5px 5px 5px;
@@ -280,7 +280,7 @@
     }
     #cloudBrowserPopover #content img {
         background:         #fff;
-        border:             1px solid black; 
+        border:             1px solid black;
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -289,7 +289,7 @@
         font:               100% georgia, sans-serif;
     }
     .modelKeywords {
-        font:               75% georgia, sans-serif;        
+        font:               75% georgia, sans-serif;
     }
 
     .modelDeleteButton  {
@@ -363,7 +363,7 @@
         display:            inherit;
         position:           relative;
     }
-    
+
     #content {
         position:           relative;
         margin-top:         -30px;
@@ -397,7 +397,7 @@
         font-style:         italic;
     }
     .preformatted {
-        white-space:        pre;        
+        white-space:        pre;
     }
 
 
@@ -535,7 +535,7 @@
         z-index:            555;
     }
     #controls .playing {
-        background-color:   #fa5;      
+        background-color:   #fa5;
     }
     #controls .pausing {
         /* just go back to normal */
@@ -567,7 +567,7 @@
     #controls div + div {
         margin-left:        -50px;
     }
-    
+
     </style>
 
     <!-- run some checks first -->
@@ -1277,7 +1277,7 @@
                         knot = nodes[i];
                 }
                 if(anchor && tie) {
-                    this.addEdge(new Edge(tie, anchor, false));                    
+                    this.addEdge(new Edge(tie, anchor, false));
                 }
                 else if (attribute && knot) {
                     attribute.setKnotted(true);
@@ -1630,7 +1630,7 @@
                     this.xVisible = -this.xTranslation/this.xyScale;
                     this.yVisible = -this.yTranslation/this.xyScale;
                     this.widthVisible = this.canvas.width/this.xyScale;
-                    this.heightVisible = this.canvas.height/this.xyScale;                    
+                    this.heightVisible = this.canvas.height/this.xyScale;
                 }
             },
             xContext: function(xScreen) {
@@ -1744,7 +1744,7 @@
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
-                
+
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
                     this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
@@ -1879,7 +1879,7 @@
                             this.hoveringPrepared = false;
                             if(this.contextMenu != null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
-                                this.contextMenu = null;                                
+                                this.contextMenu = null;
                             }
                             DrawingEngine.start(false);
                         }
@@ -1913,7 +1913,7 @@
             closeContextMenu: function() {
                 if(this.contextMenu) {
                     this.contextMenu.close();
-                    this.contextMenu = null;                    
+                    this.contextMenu = null;
                 }
             },
             keypress: function(event) {
@@ -2583,7 +2583,7 @@
                             Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
                         }
-                    }                    
+                    }
                 }
                 attribute.incomplete = attribute.isIncomplete();
                 return attribute;
@@ -3778,7 +3778,7 @@
                     modelContainer.modelName = model.getAttribute("modelName");
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
                     modelContainer.modelKeywords = model.getAttribute("keywords");
-                    modelContainer.modelDescription = model.getAttribute("description");
+                    modelContainer.modelDescription = unescape(model.getAttribute("description"));
                     modelContainer.addEventListener('click', function(e) {
                         Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords, this.modelDescription);
                         self.close(e);
@@ -4009,7 +4009,7 @@
             this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
             this.divider = document.createElement('div');
             this.divider.setAttribute('class', 'divider');
-            
+
             var editable;
             this.editsHaveBeenMade = false;
             this.editables = document.createElement('table');
@@ -4052,7 +4052,7 @@
             else {
                 this.topper.appendChild(document.createTextNode("Edit selection"));
             }
-            
+
             var supportedOperations = [];
 
             var allNodes = selectedNodes.slice(0);
@@ -4526,7 +4526,7 @@
                     params.icon = DrawingEngine.miniatureCanvas.toDataURL();
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
-                    params.description = Model.description;
+                    params.description = escape(Model.description);
                     if(Model.id)
                         params.modelId = Model.id;
                     this.cloudWrapper(xmlhttp,params);
@@ -4568,6 +4568,7 @@
             },
             cloudWrapper : function(xmlhttp, params) {
                 var url = "http://anchormodeler.appspot.com/anchormodeler";
+                //var url = "http://localhost:8888/anchormodeler";
                 xmlhttp.open("POST", url, true);
                 xmlhttp.withCredentials = 'true';
                 if(window.FormData) {
@@ -5165,7 +5166,7 @@
             zoomOut: function (event) {
                 this.doZoom(1/this.zoomFactor);
             }
-        };        
+        };
 
         // make sure our init function is called when the page is loaded
         window.onload = function() { try { init(this); } catch(e) { alert(e); } };
@@ -5257,7 +5258,7 @@
         };
 
         window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
-        
+
         function exit(window) {
             window.localStorage.clear();
             if(Model.nodes.length)
@@ -5346,7 +5347,7 @@
             <div id="redo">Redo</div>
             <div id="undo">Undo</div>
         </div>
-        
+
         <div id="search">
             <input id="searchFilter" type="text" placeholder=" search filter " title="Search the model for the given (sub)string." onfocus="Actions.stopKeyboardEvents()" onblur="Actions.populateSelector(document.getElementById('nodeSelector'), this.value)"/>
             <select id="nodeSelector" title="Focus model on the selected node." onmouseover="Actions.populateSelector(this, document.getElementById('searchFilter').value)" onchange="Actions.selectNode(this.value)">
