@@ -3709,6 +3709,7 @@
             searchButton.addEventListener('click', function(e) {
                 self.generateList();
             }, false);
+            this.searchButton=searchButton;
             td.appendChild(searchButton);
             tr.appendChild(td);
 
@@ -3735,6 +3736,7 @@
             popover: null,
             modalBackground: null,
             listContainer:null,
+            searchButton:null,
             scope:'',
             keywordFilter:'',
             close: function(event) {
@@ -3747,6 +3749,7 @@
                 document.body.style.cursor = "wait";
                 var self = this;
                 var xmlhttp = new window.XMLHttpRequest();
+                this.searchButton.disabled=true;
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
                     if(xmlhttp.readyState == 4) {
                         window.status = "";
@@ -3754,7 +3757,7 @@
                         var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         self.fillFromList(modelList);
                     }
-                };
+				};
                 var params = {};
                 params.action = 'list';
                 params.maxItemsReturned = '100';
@@ -3820,6 +3823,7 @@
                     modelContainer.title=modelContainer.modelDescription;
                     this.listContainer.appendChild(modelContainer);
                 }
+				self.searchButton.disabled=false;
             }
         };
 
