@@ -325,7 +325,7 @@ public class AnchormodelerServlet extends HttpServlet {
 
 			if (filterString != null)
 				query.setFilter(filterString);
-			//query.setOrdering("loadCount desc, lastLoaded desc");
+			query.setOrdering("loadCount desc, lastLoaded desc");
 			List<Model> results = (List<Model>) query.execute();
 
 			// Format as xml http://www.roseindia.net/servlets/xm-servlet.shtml
@@ -370,4 +370,5 @@ public class AnchormodelerServlet extends HttpServlet {
 
 	}
 
+		
 }
