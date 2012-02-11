@@ -44,6 +44,12 @@
     <xsl:variable name="Q"><xsl:text>'</xsl:text></xsl:variable>
     <xsl:variable name="D"><xsl:text>"</xsl:text></xsl:variable>
 
+    <!-- change if on SQL Server 2005, use smallest possible granularity -->
+    <xsl:variable name="now">
+        <xsl:value-of select="'DECLARE @now DATETIME2(7) = SYSDATETIME()'"/>
+    </xsl:variable>
+
+    <!-- any date larger than this value is considered infinity -->
     <xsl:variable name="infinity">
         <xsl:choose>
             <xsl:when test="$recordingRange = 'smalldatetime'">
@@ -611,7 +617,7 @@
             'AS', $N,
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, 'DECLARE @now DATETIME = current_timestamp;', $N,
+	        $T, $now, $N,
             $T, 'DECLARE @', $anchorMnemonic, ' TABLE (', $N,
             $T, $T, 'Row ', $anchorIdentityType, ' identity(1,1) not null primary key,', $N,
             $T, $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null', $N,
@@ -653,7 +659,7 @@
             'AS', $N,
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, 'DECLARE @now DATETIME = current_timestamp;', $N,
+	        $T, $now, $N,
 	        $updateStatements,
 	        'END', $N,
 	        'GO', $N, $N
@@ -671,7 +677,7 @@
             'AS', $N,
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, 'DECLARE @now DATETIME = current_timestamp;', $N,
+	        $T, $now, $N,
 	        $T, 'DELETE [', $anchorMnemonic, ']', $N,
 	        $T, 'FROM', $N,
 	        $T, $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']', $N,
