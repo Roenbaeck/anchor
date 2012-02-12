@@ -95,6 +95,12 @@
         background-color:   rgba(255, 255, 255, 0.9);
     }
 
+    #keywordFilter {
+        position:           relative;
+        text-align:         center;
+        top:                -20px;
+    }
+
     /* shows login status to the cloud (google app engine) */
     #cloud {
         font:               8pt sans-serif;
@@ -268,28 +274,38 @@
         margin:             -10px 10px 20px 10px;
         padding:            0;
     }
-    #cloudBrowserPopover #content div {
-        display:            inline-block;
-        text-align:         center;
+    .modelContainer {
+        text-align:         left;
         color:              black;
         border-width:       medium;
         border-style:       inset;
         margin:             0px 5px 10px 5px;
         padding:            8px;
         cursor:             pointer;
+        height:             100px;
     }
-    #cloudBrowserPopover #content img {
+    .modelContainer img {
         background:         #fff;
         border:             1px solid black;
+        width:              100px;
+        max-height:         100px;
+        clip:               rect(0px,100px,100px,0px);
+        float:              left;
+        margin-right:       10px;
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
     }
+
     .modelName {
         font:               100% georgia, sans-serif;
     }
     .modelKeywords {
-        font:               75% georgia, sans-serif;
+        font:               italic 75% georgia, sans-serif;
+    }
+    .modelDescription {
+        margin-top:         8pt;
+        font:               90% georgia, sans-serif;
     }
 
     .modelDeleteButton  {
@@ -3689,20 +3705,13 @@
             close.addEventListener('click', function(event) { return self.close(event) }, false);
             popover.appendChild(close);
 
-            var table = document.createElement('table');
-            table.setAttribute("style","margin: 0pt 0pt 10px;");
-            var tr = document.createElement('tr');
-            var td = document.createElement('td');
-            td.appendChild(document.createTextNode('Keyword search: '));
-            tr.appendChild(td);
-            td = document.createElement('td');
+            var filter = document.createElement('div');
+            filter.setAttribute("id", "keywordFilter");
+            filter.appendChild(document.createTextNode('Keyword: '));
             var keywords = document.createElement('input');
             keywords.setAttribute('type', 'text');
             keywords.addEventListener('change', function() { self.keywordFilter = this.value; }, false);
-            td.appendChild(keywords);
-            tr.appendChild(td);
-
-            var td = document.createElement('td');
+            filter.appendChild(keywords);
             var searchButton = document.createElement('input');
             searchButton.setAttribute('type', 'button');
             searchButton.value = 'Search';
@@ -3710,10 +3719,7 @@
                 self.generateList();
             }, false);
             this.searchButton=searchButton;
-            td.appendChild(searchButton);
-            tr.appendChild(td);
-
-            table.appendChild(tr);
+            filter.appendChild(searchButton);
 
             var content = document.createElement('div');
             content.setAttribute("id", "content");
@@ -3724,7 +3730,7 @@
             this.scope=scope;
             this.generateList();
 
-            popover.appendChild(table);
+            popover.appendChild(filter);
             popover.appendChild(content);
 
             document.body.appendChild(popover);
@@ -3777,6 +3783,7 @@
                 for(var i = 0; i < models.length; i++) {
                     model = models.item(i);
                     modelContainer = document.createElement('div');
+                    modelContainer.setAttribute("class", "modelContainer");
                     modelContainer.modelId = model.getAttribute("modelId");
                     modelContainer.modelName = model.getAttribute("modelName");
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
@@ -3803,7 +3810,7 @@
                                window.event.cancelBubble=true;
                             if(confirm("Are you sure you want to delete this model:?\n" + this.modelName)) {
                                 Actions.deleteModelFromCloud(this.modelId);
-                                content.removeChild(this.modelContainer);
+                                self.listContainer.removeChild(this.modelContainer);
                             }
                         }, false);
                         modelContainer.appendChild(deleteButton);
@@ -3811,16 +3818,20 @@
 
                     var icon = document.createElement('img');
                     icon.setAttribute("src", model.getAttribute("icon"));
-                    var name = document.createElement("p");
+                    var name = document.createElement("div");
                     name.appendChild(document.createTextNode(model.getAttribute("modelName")));
                     name.className = 'modelName';
-                    var keywords = document.createElement("p");
+                    var keywords = document.createElement("div");
                     keywords.className = 'modelKeywords';
                     keywords.appendChild(document.createTextNode(model.getAttribute("keywords")));
+                    var description = document.createElement("div");
+                    description.className = 'modelDescription';
+                    description.appendChild(document.createTextNode(modelContainer.modelDescription));
                     modelContainer.appendChild(icon);
                     modelContainer.appendChild(name);
                     modelContainer.appendChild(keywords);
-                    modelContainer.title=modelContainer.modelDescription;
+                    modelContainer.appendChild(description);
+                    modelContainer.title=modelContainer.modelName;
                     this.listContainer.appendChild(modelContainer);
                 }
 				self.searchButton.disabled=false;
