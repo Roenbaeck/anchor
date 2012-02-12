@@ -95,12 +95,6 @@
         background-color:   rgba(255, 255, 255, 0.9);
     }
 
-    #keywordFilter {
-        position:           relative;
-        text-align:         center;
-        top:                -20px;
-    }
-
     /* shows login status to the cloud (google app engine) */
     #cloud {
         font:               8pt sans-serif;
@@ -282,14 +276,14 @@
         margin:             0px 5px 10px 5px;
         padding:            8px;
         cursor:             pointer;
-        height:             100px;
+        height:             140px;
     }
     .modelContainer img {
         background:         #fff;
         border:             1px solid black;
-        width:              100px;
-        max-height:         100px;
-        clip:               rect(0px,100px,100px,0px);
+        width:              140px;
+        max-height:         140px;
+        clip:               rect(0px,140px,140px,0px);
         float:              left;
         margin-right:       10px;
         box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -307,6 +301,13 @@
         margin-top:         8pt;
         font:               90% georgia, sans-serif;
     }
+    #keywordFilter {
+        position:           relative;
+        text-align:         center;
+        top:                -20px;
+        font:               10pt georgia, sans-serif;
+    }
+
 
     .modelDeleteButton  {
         border-style: hidden;
@@ -3789,6 +3790,8 @@
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
                     modelContainer.modelKeywords = model.getAttribute("keywords");
                     modelContainer.modelDescription = unescape(model.getAttribute("description"));
+                    modelContainer.url = window.location.protocol + '//' +
+                            window.location.hostname + window.location.pathname + "?id=" + modelContainer.modelId;
                     modelContainer.addEventListener('click', function(e) {
                         Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords, this.modelDescription);
                         self.close(e);
@@ -3819,7 +3822,7 @@
                     var icon = document.createElement('img');
                     icon.setAttribute("src", model.getAttribute("icon"));
                     var name = document.createElement("div");
-                    name.appendChild(document.createTextNode(model.getAttribute("modelName")));
+                    name.appendChild(document.createTextNode(model.getAttribute("modelName") + " "));
                     name.className = 'modelName';
                     var keywords = document.createElement("div");
                     keywords.className = 'modelKeywords';
