@@ -49,7 +49,7 @@
         <xsl:value-of select="'DECLARE @now DATETIME2(7) = SYSDATETIME()'"/>
     </xsl:variable>
 
-    <!-- any date larger than this value is considered infinity -->
+    <!-- any date equal to or larger than this value is considered infinity -->
     <xsl:variable name="infinity">
         <xsl:choose>
             <xsl:when test="$recordingRange = 'smalldatetime'">
@@ -339,7 +339,8 @@
                         <xsl:value-of select="concat(
                         $T, 'constraint uq', $attributeName, ' unique (', $N,
                         $T, $T, $attributeMnemonic, '_', $erasingSuffix, ', ', $N,
-                        $T, $T, $anchorIdentity, $N,
+                        $T, $T, $anchorIdentity,
+                        $attributeChangingKey, $N,
                         $T, ')', $N
                         )"/>
                     </xsl:if>
