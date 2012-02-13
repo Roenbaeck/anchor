@@ -3848,29 +3848,31 @@
                     var description = document.createElement("div");
                     description.className = 'modelDescription';
                     description.appendChild(document.createTextNode(modelContainer.modelDescription));
-                    var twitter = document.createElement('div');
-                    var tweet = document.createElement("a");
-                    var externalLink = document.createElement("img");
-                    externalLink.setAttribute("src", "externalLink.png");
-                    externalLink.setAttribute("class", "externalLink");
-                    var params = [];
-                    params.push("url=" + modelContainer.url);
-                    params.push("via=anchormodeling");
-                    params.push("text=" + modelContainer.modelName + ' ');
-                    params.push("lang=en");
-                    params.push("count=vertical");
-                    tweet.setAttribute("href", "https://twitter.com/share?" + params.join('&'));
-                    tweet.setAttribute("class", "tweet");
-                    tweet.setAttribute("target", "_blank");
-                    tweet.appendChild(document.createTextNode("tweet this model"));
-                    twitter.setAttribute("class", "twitter");
-                    twitter.appendChild(tweet);
-                    twitter.appendChild(externalLink);
                     modelContainer.appendChild(icon);
                     modelContainer.appendChild(name);
                     modelContainer.appendChild(keywords);
                     modelContainer.appendChild(description);
-                    modelContainer.appendChild(twitter);
+                    if(modelContainer.modelScope == 'public') {
+                        var twitter = document.createElement('div');
+                        var tweet = document.createElement("a");
+                        var externalLink = document.createElement("img");
+                        externalLink.setAttribute("src", "externalLink.png");
+                        externalLink.setAttribute("class", "externalLink");
+                        var params = [];
+                        params.push("url=" + modelContainer.url);
+                        params.push("via=anchormodeling");
+                        params.push("text=" + modelContainer.modelName);
+                        params.push("lang=en");
+                        params.push("count=vertical");
+                        tweet.setAttribute("href", "https://twitter.com/share?" + params.join('&'));
+                        tweet.setAttribute("class", "tweet");
+                        tweet.setAttribute("target", "_blank");
+                        tweet.appendChild(document.createTextNode("tweet this model"));
+                        twitter.setAttribute("class", "twitter");
+                        twitter.appendChild(tweet);
+                        twitter.appendChild(externalLink);
+                        modelContainer.appendChild(twitter);
+                    }
                     modelContainer.title=modelContainer.modelName;
                     this.listContainer.appendChild(modelContainer);
                 }
@@ -4707,13 +4709,15 @@
                 Model.explode(allNodes);
             },
             generateURL: function() {
-                if(Model.id && Model.scope == 'public') {
+                if(Model.id) {
+                    if(Model.scope != 'public')
+                        alert("This model not public. Please note that only you will be able to use the URL.");
                     var url = window.location.protocol + '//' + window.location.hostname + window.location.pathname;
                     url += "?id=" + Model.id;
                     prompt("Sharable and social media friendly URL:", url);
                 }
                 else {
-                    alert("Sharing a model requires it to be a public model saved in the cloud.");
+                    alert("This model is not saved in the cloud. Please save the model before generating a URL.");
                 }
             },
             generateHTML: function() {
