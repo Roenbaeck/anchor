@@ -15,6 +15,19 @@
         padding:            0;
     }
 
+    * {
+        target-new:         tab ! important
+    }
+    
+    a:link, a:active, a:visited {
+        color:              #b55;
+        text-decoration:    none;
+    }
+    a:hover {
+        color:              #633;
+        text-decoration:    underline;
+    }
+
     .unselectable {
         user-select:        none;
         -moz-user-select:   none;
@@ -278,7 +291,7 @@
         cursor:             pointer;
         height:             140px;
     }
-    .modelContainer img {
+    .modelContainer .modelIcon {
         background:         #fff;
         border:             1px solid black;
         width:              140px;
@@ -290,7 +303,9 @@
         -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
     }
-
+    .externalLink {
+        margin-left:        0.5em;
+    }
     .modelName {
         font:               100% georgia, sans-serif;
     }
@@ -301,14 +316,16 @@
         margin-top:         8pt;
         font:               90% georgia, sans-serif;
     }
+    .twitter {
+        margin-top:         8pt;
+        font:               italic 90% georgia, sans-serif;
+    }
     #keywordFilter {
         position:           relative;
         text-align:         center;
         top:                -20px;
         font:               10pt georgia, sans-serif;
     }
-
-
     .modelDeleteButton  {
         border-style: hidden;
         display: block;
@@ -3821,6 +3838,7 @@
 
                     var icon = document.createElement('img');
                     icon.setAttribute("src", model.getAttribute("icon"));
+                    icon.setAttribute("class", "modelIcon");
                     var name = document.createElement("div");
                     name.appendChild(document.createTextNode(model.getAttribute("modelName") + " "));
                     name.className = 'modelName';
@@ -3830,10 +3848,29 @@
                     var description = document.createElement("div");
                     description.className = 'modelDescription';
                     description.appendChild(document.createTextNode(modelContainer.modelDescription));
+                    var twitter = document.createElement('div');
+                    var tweet = document.createElement("a");
+                    var externalLink = document.createElement("img");
+                    externalLink.setAttribute("src", "externalLink.png");
+                    externalLink.setAttribute("class", "externalLink");
+                    var params = [];
+                    params.push("url=" + modelContainer.url);
+                    params.push("via=anchormodeling");
+                    params.push("text=" + modelContainer.modelName + ' ' + modelContainer.url);
+                    params.push("lang=en");
+                    params.push("count=vertical");
+                    tweet.setAttribute("href", "https://twitter.com/share?" + params.join('&'));
+                    tweet.setAttribute("class", "tweet");
+                    tweet.setAttribute("target", "_blank");
+                    tweet.appendChild(document.createTextNode("tweet this model"));
+                    twitter.setAttribute("class", "twitter");
+                    twitter.appendChild(tweet);
+                    twitter.appendChild(externalLink);
                     modelContainer.appendChild(icon);
                     modelContainer.appendChild(name);
                     modelContainer.appendChild(keywords);
                     modelContainer.appendChild(description);
+                    modelContainer.appendChild(twitter);
                     modelContainer.title=modelContainer.modelName;
                     this.listContainer.appendChild(modelContainer);
                 }
