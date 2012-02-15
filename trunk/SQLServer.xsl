@@ -716,6 +716,46 @@
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
+            <xsl:variable name="deleteAnchorStatement">
+                <xsl:variable name="joinStatements">
+                    <xsl:for-each select="attribute">
+                        <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                        <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
+                        <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
+                        <xsl:value-of select="concat(
+                        $T, 'LEFT JOIN', $N,
+                        $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] ', $attributeMnemonic, $N,
+                        $T, 'ON', $N,
+                        $T, $T, $attributeMnemonic, '.', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity, $N
+                        )"/>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:variable name="whereConditions">
+                    <xsl:for-each select="attribute">
+                        <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                        <xsl:choose>
+                            <xsl:when test="position() = 1">
+                                <xsl:value-of select="concat($T, 'WHERE', $N)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat($T, 'AND', $N)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                        <xsl:value-of select="concat(
+                        $T, $T, $attributeMnemonic, '.', $anchorIdentity, ' is null', $N
+                        )"/>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:if test="$temporalization = 'mono'">
+                    <xsl:value-of select="concat(
+                    $T, 'DELETE [', $anchorMnemonic, ']', $N,
+                    $T, 'FROM', $N,
+                    $T, $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']', $N,
+                    $joinStatements,
+                    $whereConditions
+                    )"/>
+                </xsl:if>
+            </xsl:variable>
             <xsl:value-of select="concat(
             '--------------------------------- [Delete Trigger] -----------------------------------', $N,
             '-- ', $anchorName, ' delete trigger on the latest perspective', $N,
@@ -730,6 +770,7 @@
 	        $T, 'SET NOCOUNT ON;', $N,
 	        $T, $now, $N,
 	        $deleteStatements,
+	        $deleteAnchorStatement,
 	        'END', $N,
 	        'GO', $N, $N
             )"/>
