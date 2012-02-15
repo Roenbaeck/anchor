@@ -674,8 +674,16 @@
                     <xsl:variable name="changingCondition">
                         <xsl:if test="@timeRange">
                             <xsl:value-of select="concat(
-                            $T, 'AND', $N,
-                            $T, $T, 'd.', $attributeMnemonic, '_', $changingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $changingSuffix, $N
+                            $N, $T, 'AND', $N,
+                            $T, $T, 'd.', $attributeMnemonic, '_', $changingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $changingSuffix
+                            )"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:variable name="recordingCondition">
+                        <xsl:if test="$temporalization = 'bi'">
+                            <xsl:value-of select="concat(
+                            $N, $T, 'AND', $N,
+                            $T, $T, 'd.', $attributeMnemonic, '_', $recordingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $recordingSuffix
                             )"/>
                         </xsl:if>
                     </xsl:variable>
@@ -683,7 +691,7 @@
                         <xsl:choose>
                             <xsl:when test="$temporalization = 'mono'">
                                 <xsl:value-of select="concat(
-                                $T, 'DELETE', $attributeMnemonic, $N
+                                $T, 'DELETE ', $attributeMnemonic, $N
                                 )"/>
                             </xsl:when>
                             <xsl:when test="$temporalization = 'bi'">
@@ -702,10 +710,9 @@
                     $T, 'JOIN', $N,
                     $T, $T, 'deleted d', $N,
                     $T, 'ON', $N,
-                    $T, $T, 'd.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $anchorIdentity, $N,
+                    $T, $T, 'd.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $anchorIdentity,
                     $changingCondition,
-                    $T, 'AND', $N,
-                    $T, $T, 'd.', $attributeMnemonic, '_', $recordingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $recordingSuffix, ';', $N
+                    $recordingCondition, ';', $N
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
