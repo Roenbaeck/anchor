@@ -46,7 +46,7 @@
 
     <!-- change if on SQL Server 2005, use smallest possible granularity -->
     <xsl:variable name="now">
-        <xsl:value-of select="'DECLARE @now DATETIME2(7) = SYSDATETIME()'"/>
+        <xsl:value-of select="'DECLARE @now DATETIME2(7) = SYSDATETIME();'"/>
     </xsl:variable>
 
     <!-- any date equal to or larger than this value is considered infinity -->
@@ -341,7 +341,7 @@
                         $T, $T, $attributeMnemonic, '_', $erasingSuffix, ', ', $N,
                         $T, $T, $anchorIdentity,
                         $attributeChangingKey, $N,
-                        $T, ')', $N
+                        $T, '),', $N
                         )"/>
                     </xsl:if>
                 </xsl:variable>
@@ -356,12 +356,12 @@
                 $attributeChangingDefinition,
                 $attributeRecordingDefinition,
                 $attributeMetadataDefinition,
+                $attributeUniqueRecordingConstraint,
                 $T, 'constraint pk', $attributeName, ' primary key (', $N,
                 $T, $T, $anchorIdentity, ' asc',
                 $attributeChangingKey,
                 $attributeRecordingKey,
                 $T, ')', $N,
-                $attributeUniqueRecordingConstraint,
                 ') ON ', $attributePartition, ';', $N,
                 'GO', $N, $N
                 )"/>
@@ -666,6 +666,49 @@
 	        'GO', $N, $N
             )"/>
             <xsl:variable name="deleteTriggerName" select="concat('dt', $anchorName)"/>
+            <xsl:variable name="deleteStatements">
+                <xsl:for-each select="attribute">
+                    <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                    <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
+                    <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
+                    <xsl:variable name="changingCondition">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat(
+                            $T, 'AND', $N,
+                            $T, $T, 'd.', $attributeMnemonic, '_', $changingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $changingSuffix, $N
+                            )"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:variable name="logicalOrActualDelete">
+                        <xsl:choose>
+                            <xsl:when test="$temporalization = 'mono'">
+                                <xsl:value-of select="concat(
+                                $T, 'DELETE', $attributeMnemonic, $N
+                                )"/>
+                            </xsl:when>
+                            <xsl:when test="$temporalization = 'bi'">
+                                <xsl:value-of select="concat(
+                                $T, 'UPDATE ', $attributeMnemonic, $N,
+                                $T, 'SET', $N,
+                                $T, $T, $attributeMnemonic, '.', $attributeMnemonic, '_', $erasingSuffix, ' = @now', $N
+                                )"/>
+                            </xsl:when>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:value-of select="concat(
+                    $logicalOrActualDelete,
+                    $T, 'FROM', $N,
+                    $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] ', $attributeMnemonic, $N,
+                    $T, 'JOIN', $N,
+                    $T, $T, 'deleted d', $N,
+                    $T, 'ON', $N,
+                    $T, $T, 'd.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $anchorIdentity, $N,
+                    $changingCondition,
+                    $T, 'AND', $N,
+                    $T, $T, 'd.', $attributeMnemonic, '_', $recordingSuffix, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $recordingSuffix, ';', $N
+                    )"/>
+                </xsl:for-each>
+            </xsl:variable>
             <xsl:value-of select="concat(
             '--------------------------------- [Delete Trigger] -----------------------------------', $N,
             '-- ', $anchorName, ' delete trigger on the latest perspective', $N,
@@ -679,13 +722,7 @@
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
 	        $T, $now, $N,
-	        $T, 'DELETE [', $anchorMnemonic, ']', $N,
-	        $T, 'FROM', $N,
-	        $T, $T, '[', $anchorCapsule, '].[', $anchorName, '] [', $anchorMnemonic, ']', $N,
-	        $T, 'JOIN', $N,
-	        $T, $T, 'deleted d', $N,
-	        $T, 'ON', $N,
-	        $T, $T, 'd.', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity, ';', $N,
+	        $deleteStatements,
 	        'END', $N,
 	        'GO', $N, $N
             )"/>
@@ -1405,8 +1442,8 @@
         </xsl:if>
         <xsl:if test="$temporalization = 'bi'">
             <xsl:value-of select="concat(
-            ',', $N, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
-            $T, $T, $attributeMnemonic, '_', $erasingSuffix
+            ',', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
+            $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $erasingSuffix
             )"/>
         </xsl:if>
     </xsl:template>
@@ -1538,6 +1575,8 @@
         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
         <xsl:variable name="changingColumn" select="concat($attributeMnemonic, '_', $changingSuffix)"/>
+        <xsl:variable name="recordingColumn" select="concat($attributeMnemonic, '_', $recordingSuffix)"/>
+        <xsl:variable name="erasingColumn" select="concat($attributeMnemonic, '_', $erasingSuffix)"/>
         <xsl:variable name="attributeHistorization">
             <xsl:if test="$attribute/@timeRange">
                 <xsl:value-of select="concat(', ', $N, $T, $T, $changingColumn)"/>
@@ -1545,7 +1584,14 @@
         </xsl:variable>
         <xsl:variable name="attributeHistorizationAliased">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $changingColumn, ') THEN i.', $changingColumn, ' ELSE @now END')"/>
+                <xsl:choose>
+                    <xsl:when test="$temporalization = 'mono'">
+                        <xsl:value-of select="concat(', ', $N, $T, $T, '@now')"/>
+                    </xsl:when>
+                    <xsl:when test="$temporalization = 'bi'">
+                        <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $erasingColumn, ') THEN i.', $changingColumn, ' ELSE @now END')"/>
+                    </xsl:when>
+                </xsl:choose>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeMetadataColumn">
@@ -1561,16 +1607,16 @@
         <xsl:variable name="attributeRecordingColumns">
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
-                ',', $N, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
-                $T, $T, $attributeMnemonic, '_', $erasingSuffix
+                ',', $N, $T, $T, $recordingColumn, ', ', $N,
+                $T, $T, $erasingColumn
                 )"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeRecordingValues">
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
-                ',', $N, $T, $T, 'CASE WHEN UPDATE(', $attributeMnemonic, '_', $recordingSuffix, ') THEN i.', $attributeMnemonic, '_', $recordingSuffix, ' ELSE @now END, ', $N,
-                $T, $T, 'CASE WHEN UPDATE(', $attributeMnemonic, '_', $erasingSuffix, ') THEN ', $infinity, ' ELSE i.', $attributeMnemonic, '_', $erasingSuffix, ' END'
+                ',', $N, $T, $T, 'CASE WHEN UPDATE(', $erasingColumn, ') THEN ISNULL(i.', $erasingColumn, ', @now) ELSE @now END, ', $N,
+                $T, $T, $infinity
                 )"/>
             </xsl:if>
         </xsl:variable>
@@ -1578,20 +1624,17 @@
             <xsl:if test="$attribute/@timeRange">
                 <xsl:value-of select="concat(
                 $T, 'AND', $N,
-                $T, $T, 'CASE WHEN UPDATE(', $attributeMnemonic, '_', $changingSuffix, ')', $N,
-                $T, $T, 'THEN i.', $attributeMnemonic, '_', $changingSuffix, $N,
-                $T, $T, 'ELSE cast(@now as ', $attribute/@timeRange, ')', $N,
-                $T, $T, 'END = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $changingSuffix, $N
+                $T, $T, 'i.', $changingColumn, ' = ', $attributeMnemonic, '.', $changingColumn, $N
                 )"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="updatePrevious">
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
+                $T, 'IF(UPDATE(', $erasingColumn, '))', $N,
                 $T, 'UPDATE ', $attributeMnemonic, $N,
                 $T, 'SET', $N,
-                $T, $T, $attributeMnemonic, '.', $attributeMnemonic, '_', $erasingSuffix, ' =', $N,
-                $T, $T, $T, 'CASE WHEN UPDATE(', $attributeMnemonic, '_', $erasingSuffix, ') THEN i.', $attributeMnemonic, '_', $erasingSuffix, ' ELSE @now END', $N,
+                $T, $T, $attributeMnemonic, '.', $erasingColumn, ' = ISNULL(i.', $erasingColumn, ', @now)', $N,
                 $T, 'FROM', $N,
                 $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] ', $attributeMnemonic, $N,
                 $T, 'JOIN', $N,
@@ -1600,8 +1643,18 @@
                 $T, $T, 'i.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $anchorIdentity, $N,
                 $attributeChangingCondition,
                 $T, 'AND', $N,
-                $T, $T, $attributeMnemonic, '.', $attributeMnemonic, '_', $erasingSuffix, ' = ', $infinity, ';', $N
+                $T, $T, 'i.', $recordingColumn, ' = ', $attributeMnemonic, '.', $recordingColumn, ';', $N
                 )"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="changingCheck">
+            <xsl:if test="$attribute/@timeRange">
+                <xsl:value-of select="concat(' OR UPDATE(', $changingColumn, ')')"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="recordingCheck">
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(' OR UPDATE(', $recordingColumn, ')')"/>
             </xsl:if>
         </xsl:variable>
         <xsl:choose>
@@ -1612,9 +1665,10 @@
                 <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
                 <xsl:variable name="knotCapsule" select="$knot/metadata/@capsule"/>
                 <xsl:value-of select="concat(
-                $T, 'IF(UPDATE(', $knotName, '))', $N,
-                $T, 'BEGIN', $N,
+                $T, 'IF(UPDATE(', $anchorIdentity, ')', $changingCheck, $recordingCheck, ')', $N,
+                $T, 'RAISERROR(', $Q, 'Primary key columns are not updatable.', $Q, ', 16, 1);', $N,
                 $updatePrevious,
+                $T, 'IF(UPDATE(', $knotName, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
                 $T, $T, $anchorIdentity, ', ', $N,
                 $T, $T, $knotIdentity,
@@ -1633,15 +1687,15 @@
                 $T, 'JOIN', $N,
                 $T, $T, '[', $knotCapsule, '].[', $knotName, '] k', $N,
                 $T, 'ON', $N,
-                $T, $T, 'k.', $knotName, ' = i.', $knotName, ';', $N,
-                $T, 'END', $N
+                $T, $T, 'k.', $knotName, ' = i.', $knotName, ';', $N
                 )"/>
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="concat(
-                $T, 'IF(UPDATE(', $attributeName, '))', $N,
-                $T, 'BEGIN', $N,
+                $T, 'IF(UPDATE(', $anchorIdentity, ')', $changingCheck, $recordingCheck, ')', $N,
+                $T, 'RAISERROR(', $Q, 'Primary key columns are not updatable.', $Q, ', 16, 1);', $N,
                 $updatePrevious,
+                $T, 'IF(UPDATE(', $attributeName, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
                 $T, $T, $anchorIdentity, ', ', $N,
                 $T, $T, $attributeName,
@@ -1656,8 +1710,7 @@
                 $attributeHistorizationAliased,
                 $attributeRecordingValues, $N,
                 $T, 'FROM', $N,
-                $T, $T, 'inserted i;', $N,
-                $T, 'END', $N
+                $T, $T, 'inserted i;', $N
                 )"/>
             </xsl:otherwise>
         </xsl:choose>
