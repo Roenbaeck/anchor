@@ -239,6 +239,11 @@
             </xsl:variable>
             <xsl:if test="string(metadata/@generator) = 'true'">
                 <xsl:variable name="anchorKeyGenerator" select="concat('k', $anchorName)"/>
+                <xsl:variable name="metadataParameter">
+                    <xsl:if test="$metadataUsage = 'true'">
+                        <xsl:value-of select="concat(',', $N, $T, '@', $anchorMetadata, ' ', $metadataType)"/>
+                    </xsl:if>
+                </xsl:variable>
                 <xsl:value-of select="concat(
                 '----------------------- [Key Generation Stored Procedure] ----------------------------', $N,
                 '-- ', $anchorName, ' surrogate key generation stored procedure', $N,
@@ -247,8 +252,8 @@
                 'DROP PROCEDURE [', $anchorCapsule, '].[', $anchorKeyGenerator, ']', $N,
                 'GO', $N,
                 'CREATE PROCEDURE [', $anchorCapsule, '].[', $anchorKeyGenerator, '] (', $N,
-	            $T, '@requestedNumberOfIdentities bigint,', $N,
-	            $T, '@', $anchorMetadata, ' ', $metadataType, $N,
+	            $T, '@requestedNumberOfIdentities bigint',
+	            $metadataParameter, $N,
 	            ') AS', $N,
                 'BEGIN', $N,
 	            $T, 'SET NOCOUNT ON;', $N,
