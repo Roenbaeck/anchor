@@ -1236,7 +1236,7 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
                                 affectedEdges.push(edge);
-                            var otherNode = node == edge.otherNode ? edge.node : edge.otherNode;
+                            var otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
                             if(otherNode instanceof Attribute && affectedNodes.indexOf(otherNode) < 0)
                                 affectedNodes.push(otherNode);
                         }
@@ -1275,7 +1275,8 @@
                         var dangling = true;
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
-                            dangling &= affectedNodes.indexOf(otherNode) > 0;
+                            if(affectedNodes.indexOf(otherNode) < 0)
+                                dangling = false;
                         }
                         if(dangling) {
                             affectedNodes.push(node);
@@ -4900,7 +4901,6 @@
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
                 if(value == 'bi') {
-                    alert("Please note that bitemporal support is under development and may not work at all in some releases.");
                     this.recordingRange = document.createElement('li');
                     var recordingRangeInput = document.createElement('input');
                     recordingRangeInput.setAttribute('type', 'text');
