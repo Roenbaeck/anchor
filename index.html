@@ -1241,7 +1241,7 @@
                                 affectedNodes.push(otherNode);
                         }
                     }
-                    else if ((node instanceof Tie || node instanceof Attribute) && affectedNodes.indexOf(node) < 0) {
+                    else if ((node instanceof Tie || node instanceof Attribute || node instanceof Knot) && affectedNodes.indexOf(node) < 0) {
                         affectedNodes.push(node);
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
@@ -1424,10 +1424,8 @@
                     tie = new Tie(anchor.xPosition + 2 * LayoutEngine.normalDistance, anchor.yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, anchor, true);
-                    edge.role = '!unknown';
                     this.addEdge(edge);
                     edge = new Edge(tie, anchor, true);
-                    edge.role = '!unknown';
                     this.addEdge(edge);
                 }
                 this.recordState();
@@ -1447,12 +1445,10 @@
                     var tie = new Tie(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, nodes[i], true);
-                    edge.role = '!unknown!';
                     this.addEdge(edge);
                     var anchor = new Anchor(nodes[i].xPosition + 4 * LayoutEngine.normalDistance, nodes[i].yPosition - 6 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
                     edge = new Edge(tie, anchor, true);
-                    edge.role = '!unknown!';
                     this.addEdge(edge);
                 }
                 this.recordState();
@@ -2623,6 +2619,30 @@
                 attribute.incomplete = attribute.isIncomplete();
                 return attribute;
             },
+            addXML: function(element, schema) {
+                // create an attribute element
+                var attribute = schema.createElement("attribute");
+                // set attributes on the element
+                attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
+                attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                if(this.historized)
+                    attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
+                if(this.knotted) {
+                    var knot, edge;
+                    for(var i = 0; edge = this.edges[i]; i++)
+                        if(edge.otherNode instanceof Knot)
+                            knot = edge.otherNode;
+                    attribute.setAttribute("knotRange", this.isEmpty(knot.mnemonic) ? '' : knot.mnemonic);
+                }
+                else {
+                    attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
+                }
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                attribute.appendChild(metadata);
+                this.addLayoutXML(attribute, schema);
+                element.appendChild(attribute);
+            },
             contextualName: function() {
                 var name;
                 if(Settings.showMnemonics)
@@ -2643,30 +2663,6 @@
                     return 22;
                 else
                     return 20;
-            },
-            addXML: function(element, schema) {
-                // create an attribute element
-                var attribute = schema.createElement("attribute");
-                // set attributes on the element
-                attribute.setAttribute("mnemonic", this.mnemonic);
-                attribute.setAttribute("descriptor", this.descriptor);
-                if(this.historized)
-                    attribute.setAttribute("timeRange", this.changingRange);
-                if(this.knotted) {
-                    var knot, edge;
-                    for(var i = 0; edge = this.edges[i]; i++)
-                        if(edge.otherNode instanceof Knot)
-                            knot = edge.otherNode;
-                    attribute.setAttribute("knotRange", knot.mnemonic);
-                }
-                else {
-                    attribute.setAttribute("dataRange", this.dataRange);
-                }
-                var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.encapsulation);
-                attribute.appendChild(metadata);
-                this.addLayoutXML(attribute, schema);
-                element.appendChild(attribute);
             },
             drawOutline: function(context) {
                 // the outermost path
@@ -2857,13 +2853,13 @@
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
                 // set attributes on the element
-                anchor.setAttribute("mnemonic", this.mnemonic);
-                anchor.setAttribute("descriptor", this.descriptor);
-                anchor.setAttribute("identity", this.identity);
+                anchor.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "??" : this.mnemonic);
+                anchor.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                anchor.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
 
                 var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.encapsulation);
-                metadata.setAttribute("generator", this.generator);
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
                 anchor.appendChild(metadata);
 
                 var edge;
@@ -3016,14 +3012,14 @@
                 // create an anchor element
                 var knot = schema.createElement("knot");
                 // set attributes on the element
-                knot.setAttribute("mnemonic", this.mnemonic);
-                knot.setAttribute("descriptor", this.descriptor);
-                knot.setAttribute("identity", this.identity);
-                knot.setAttribute("dataRange", this.dataRange);
+                knot.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
+                knot.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                knot.setAttribute("identity", this.isEmpty(this.identity) ? '' : this.identity);
+                knot.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
 
                 var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.encapsulation);
-                metadata.setAttribute("generator", this.generator);
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
                 knot.appendChild(metadata);
 
                 this.addLayoutXML(knot, schema);
@@ -3244,6 +3240,30 @@
                 tie.incomplete = tie.isIncomplete();
                 return tie;
             },
+            toXML: function(schema) {
+                var tie = schema.createElement("tie");
+                if(this.historized)
+                    tie.setAttribute("timeRange", this.changingRange);
+                for(var i = 0; i < this.edges.length; i++) {
+                    var role;
+                    var node = this.edges[i].otherNode;
+                    if(this.edges[i].otherNode instanceof Anchor)
+                        role = schema.createElement("anchorRole");
+                    else if(this.edges[i].otherNode instanceof Knot)
+                        role = schema.createElement("knotRole");
+                    role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!unknown!" : this.edges[i].role);
+                    role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
+                    role.setAttribute("identifier", this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
+                    tie.appendChild(role);
+                }
+
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.encapsulation);
+                tie.appendChild(metadata);
+
+                this.addLayoutXML(tie, schema);
+                return tie;
+            },
             contextualName: function() {
                 var name;
                 if(Settings.showMnemonics)
@@ -3280,30 +3300,6 @@
                     return 26;
                 else
                     return 24;
-            },
-            toXML: function(schema) {
-                var tie = schema.createElement("tie");
-                if(this.historized)
-                    tie.setAttribute("timeRange", this.changingRange);
-                for(var i = 0; i < this.edges.length; i++) {
-                    var role;
-                    var node = this.edges[i].otherNode;
-                    if(this.edges[i].otherNode instanceof Anchor)
-                        role = schema.createElement("anchorRole");
-                    else if(this.edges[i].otherNode instanceof Knot)
-                        role = schema.createElement("knotRole");
-                    role.setAttribute("role", this.edges[i].role);
-                    role.setAttribute("type", node.mnemonic);
-                    role.setAttribute("identifier", this.edges[i].identifier);
-                    tie.appendChild(role);
-                }
-
-                var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.encapsulation);
-                tie.appendChild(metadata);
-
-                this.addLayoutXML(tie, schema);
-                return tie;
             },
             drawOutline: function(context) {
                 if(this.historized) {
@@ -3401,7 +3397,7 @@
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
             Edge.mass = 1;
             Edge.charge = 1;
-            this.role = null;
+            this.role = '';
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -3415,7 +3411,7 @@
             this.type = 'Edge';
         }
         Edge.prototype = {
-            role: '',
+            role: null,
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
