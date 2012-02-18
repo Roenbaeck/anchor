@@ -136,6 +136,56 @@
             <xsl:value-of select="$N"/>
         </xsl:for-each>
 
+        <xsl:for-each select="tie">
+            <xsl:variable name="tieCapsule" select="metadata/@capsule"/>
+            <xsl:variable name="tieName">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:value-of select="concat(@type, '_', @role)"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:text>_</xsl:text>
+                    </xsl:if>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="latestPerspective" select="concat('l', $tieName)"/>
+            <xsl:variable name="point-in-timePerspective" select="concat('p', $tieName)"/>
+            <xsl:variable name="differencePerspective" select="concat('d', $tieName)"/>
+            <xsl:variable name="llPerspective" select="concat('ll', $tieName)"/>
+            <xsl:variable name="lpPerspective" select="concat('lp', $tieName)"/>
+            <xsl:variable name="plPerspective" select="concat('pl', $tieName)"/>
+            <xsl:variable name="ppPerspective" select="concat('pp', $tieName)"/>
+            <xsl:value-of select="concat(
+            '-------------------------------- [Drop Perspectives] ---------------------------------', $N,
+            '-- perspectives are recreated every time the script is run', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $tieCapsule, '].[', $differencePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+            'DROP FUNCTION [', $tieCapsule, '].[', $point-in-timePerspective, '];', $N,
+            'GO', $N,
+            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+            'DROP VIEW [', $tieCapsule, '].[', $latestPerspective, '];', $N,
+            'GO', $N
+            )"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $llPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $tieCapsule, '].[', $llPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $lpPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $tieCapsule, '].[', $lpPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $plPerspective, $Q, ')', $N,
+                'DROP SYNONYM [', $tieCapsule, '].[', $plPerspective, '];', $N,
+                'GO', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $ppPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $tieCapsule, '].[', $ppPerspective, '];', $N,
+                'GO', $N
+                )"/>
+            </xsl:if>
+            <xsl:value-of select="$N"/>
+        </xsl:for-each>
+
 		<!-- process all knots -->
 		<xsl:for-each select="knot">
             <xsl:variable name="knotName" select="concat(@mnemonic, '_', @descriptor)"/>
@@ -1024,6 +1074,24 @@
             ') ON ', $tiePartition, ';', $N,
             'GO', $N, $N
             )"/>
+            <xsl:variable name="columnReferencesWithoutKnotValues">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:value-of select="concat($T, 'tie.', @type, '_', $identitySuffix, '_', @role)"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, 'tie.', $tieName, '_', $changingSuffix)"/>
+                </xsl:if>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="concat(
+                    ',', $N, $T, 'tie.', $tieName, '_', $recordingSuffix,
+                    ',', $N, $T, 'tie.', $tieName, '_', $erasingSuffix
+                    )"/>
+                </xsl:if>
+                <xsl:value-of select="$N"/>
+            </xsl:variable>
             <xsl:variable name="columnReferences">
                 <xsl:for-each select="anchorRole|knotRole">
                     <xsl:choose>
@@ -1063,32 +1131,59 @@
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
-            <xsl:variable name="latestWhereCondition">
-                <xsl:if test="@timeRange">
-                    <xsl:value-of select="concat($N, 'WHERE', $N)"/>
-                    <xsl:call-template name="whereCondition">
-                        <xsl:with-param name="tie" select="."/>
-                        <xsl:with-param name="tieName" select="$tieName"/>
-                        <xsl:with-param name="type" select="'latest'"/>
-                    </xsl:call-template>
-                </xsl:if>
-            </xsl:variable>
             <xsl:variable name="tieMetadataReference">
 				<xsl:if test="$metadataUsage = 'true'">
 					<xsl:value-of select="concat($T, 'tie.', $tieMetadata, ',', $N)"/>
 				</xsl:if>
 			</xsl:variable>
-            <xsl:variable name="recordingCondition">
-                <xsl:if test="$temporalization = 'bi'">
-                    <xsl:choose>
-                        <xsl:when test="@timeRange">
-                            <xsl:value-of select="concat($N, 'AND', $N)"/>
-                        </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:value-of select="concat($N, 'WHERE', $N)"/>
-                        </xsl:otherwise>
-                    </xsl:choose>
-                    <xsl:value-of select="concat($T, $tieName, '_', $erasingSuffix, ' &gt;= ', $infinity)"/>
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="concat(
+                '-------------------------- [Currently recorded perspective] --------------------------', $N,
+                '-- c', $tieName, ' view', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'c', $tieName, $Q, ' AND type LIKE ', $Q, '%V%', $Q, ')', $N,
+                'DROP VIEW [', $tieCapsule, '].[c', $tieName, '];', $N,
+                'GO', $N,
+                'CREATE VIEW [', $tieCapsule, '].[c', $tieName, '] WITH SCHEMABINDING AS', $N,
+                'SELECT', $N,
+                $tieMetadataReference,
+                $columnReferencesWithoutKnotValues,
+                'FROM', $N,
+                $T, '[', $tieCapsule, '].[', $tieName, '] tie', $N,
+                'WHERE', $N,
+                $T, $tieName, '_', $erasingSuffix, ' &gt;= ', $infinity, ';', $N,
+                'GO', $N, $N
+                )"/>
+                <xsl:value-of select="concat(
+                '--------------------------- [Rewind recording perspective] ---------------------------', $N,
+                '-- r', $tieName, ' function', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'r', $tieName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                'DROP FUNCTION [', $tieCapsule, '].[r', $tieName, '];', $N,
+                'GO', $N,
+                'CREATE FUNCTION [', $tieCapsule, '].[r', $tieName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
+                'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
+                'SELECT', $N,
+                $tieMetadataReference,
+                $columnReferencesWithoutKnotValues,
+                'FROM', $N,
+                $T, '[', $tieCapsule, '].[', $tieName, '] tie', $N,
+                'WHERE', $N,
+                $T, $tieName, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
+                'AND', $N,
+                $T, $tieName, '_', $recordingSuffix, ' &lt;= @recordingTimepoint;', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
+            <xsl:variable name="latestCurrentWhereCondition">
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat($N, 'WHERE', $N)"/>
+                    <xsl:call-template name="whereCondition">
+                        <xsl:with-param name="tie" select="."/>
+                        <xsl:with-param name="tieName" select="$tieName"/>
+                        <xsl:with-param name="changingType" select="'latest'"/>
+                        <xsl:with-param name="recordingType" select="'c'"/>
+                    </xsl:call-template>
                 </xsl:if>
             </xsl:variable>
             <xsl:variable name="latestPerspective" select="concat('l', $tieName)"/>
@@ -1096,76 +1191,65 @@
             <xsl:variable name="lpPerspective" select="concat('lp', $tieName)"/>
             <xsl:variable name="plPerspective" select="concat('pl', $tieName)"/>
             <xsl:variable name="ppPerspective" select="concat('pp', $tieName)"/>
+            <xsl:variable name="prefixCurrent">
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="'c'"/>
+                </xsl:if>
+            </xsl:variable>
             <xsl:value-of select="concat(
             '--------------------------------- [Latest Perspective] -------------------------------', $N,
             '-- ', $tieName, ' viewed as is (given by the latest available information)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $latestPerspective, $Q, ' and type LIKE ', $Q, '%V%', $Q, ')', $N,
-            'DROP VIEW [', $tieCapsule, '].[', $latestPerspective, '];', $N,
-            'GO', $N,
             'CREATE VIEW [', $tieCapsule, '].[', $latestPerspective, '] WITH SCHEMABINDING AS', $N,
             'SELECT', $N,
             $tieMetadataReference,
             $columnReferences,
             'FROM', $N,
-            $T, '[', $tieCapsule, '].[', $tieName, '] tie',
+            $T, '[', $tieCapsule, '].[', $prefixCurrent, $tieName, '] tie',
             $joinConditions,
-            $latestWhereCondition,
-            $recordingCondition, ';', $N,
+            $latestCurrentWhereCondition, ';', $N,
             'GO', $N, $N
             )"/>
             <xsl:if test="$temporalization = 'bi'">
+                <xsl:variable name="latestRewindWhereCondition">
+                    <xsl:if test="@timeRange">
+                        <xsl:value-of select="concat($N, 'WHERE', $N)"/>
+                        <xsl:call-template name="whereCondition">
+                            <xsl:with-param name="tie" select="."/>
+                            <xsl:with-param name="tieName" select="$tieName"/>
+                            <xsl:with-param name="changingType" select="'latest'"/>
+                            <xsl:with-param name="recordingType" select="'r'"/>
+                        </xsl:call-template>
+                    </xsl:if>
+                </xsl:variable>
                 <xsl:value-of select="concat(
-                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $llPerspective, $Q, ')', $N,
-                'DROP SYNONYM [', $tieCapsule, '].[', $llPerspective, '];', $N,
-                'GO', $N,
                 'CREATE SYNONYM [', $tieCapsule, '].[', $llPerspective, '] FOR [', $tieCapsule, '].[', $latestPerspective, '];', $N,
                 'GO', $N, $N
                 )"/>
-                <xsl:variable name="point-in-recordingCondition">
-                    <xsl:if test="$temporalization = 'bi'">
-                        <xsl:choose>
-                            <xsl:when test="@timeRange">
-                                <xsl:value-of select="concat($N, 'AND', $N)"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="concat($N, 'WHERE', $N)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                        <xsl:value-of select="concat(
-                        $T, $tieName, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
-                        'AND', $N,
-                        $T, $tieName, '_', $recordingSuffix, ' &lt;= @recordingTimepoint'
-                        )"/>
-                    </xsl:if>
-                </xsl:variable>
                 <xsl:value-of select="concat(
                 '----------------- [Latest changing point-in-recording Perspective] -------------------', $N,
                 '-- ', $tieName, ' viewed as is at the given recording timepoint', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $lpPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $tieCapsule, '].[', $lpPerspective, '];', $N,
-                'GO', $N,
                 'CREATE FUNCTION [', $tieCapsule, '].[', $lpPerspective, '] (@recordingTimepoint ', $recordingRange, ')', $N,
                 'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                 'SELECT', $N,
                 $tieMetadataReference,
                 $columnReferences,
                 'FROM', $N,
-                $T, '[', $tieCapsule, '].[', $tieName, '] tie',
+                $T, '[', $tieCapsule, '].[r', $tieName, '](@recordingTimepoint) tie',
                 $joinConditions,
-                $latestWhereCondition,
-                $point-in-recordingCondition, ';', $N,
+                $latestRewindWhereCondition, ';', $N,
                 'GO', $N, $N
                 )"/>
             </xsl:if>
-            <xsl:variable name="point-in-timeWhereCondition">
+            <xsl:variable name="point-in-timeCurrentWhereCondition">
                 <xsl:if test="@timeRange">
                     <xsl:value-of select="concat($N, 'WHERE', $N)"/>
                     <xsl:call-template name="whereCondition">
                         <xsl:with-param name="tie" select="."/>
                         <xsl:with-param name="tieName" select="$tieName"/>
-                        <xsl:with-param name="type" select="'point-in-time'"/>
+                        <xsl:with-param name="changingType" select="'point-in-time'"/>
+                        <xsl:with-param name="recordingType" select="'c'"/>
                     </xsl:call-template>
                 </xsl:if>
             </xsl:variable>
@@ -1174,73 +1258,57 @@
             '---------------------------- [Point-in-Time Perspective] -----------------------------', $N,
             '-- ', $tieName, ' viewed as was (at the given timepoint)', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $point-in-timePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $tieCapsule, '].[', $point-in-timePerspective, '];', $N,
-            'GO', $N,
             'CREATE FUNCTION [', $tieCapsule, '].[', $point-in-timePerspective, '] (@changingTimepoint ', $chronon, ')', $N,
             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
             'SELECT', $N,
             $tieMetadataReference,
             $columnReferences,
             'FROM', $N,
-            $T, '[', $tieCapsule, '].[', $tieName, '] tie',
+            $T, '[', $tieCapsule, '].[', $prefixCurrent, $tieName, '] tie',
             $joinConditions,
-            $point-in-timeWhereCondition,
-            $recordingCondition, ';', $N,
+            $point-in-timeCurrentWhereCondition, ';', $N,
             'GO', $N, $N
             )"/>
             <xsl:if test="$temporalization = 'bi'">
+                <xsl:variable name="point-in-timeRewindWhereCondition">
+                    <xsl:if test="@timeRange">
+                        <xsl:value-of select="concat($N, 'WHERE', $N)"/>
+                        <xsl:call-template name="whereCondition">
+                            <xsl:with-param name="tie" select="."/>
+                            <xsl:with-param name="tieName" select="$tieName"/>
+                            <xsl:with-param name="changingType" select="'point-in-time'"/>
+                            <xsl:with-param name="recordingType" select="'r'"/>
+                        </xsl:call-template>
+                    </xsl:if>
+                </xsl:variable>
                 <xsl:value-of select="concat(
-                'IF EXISTS (SELECT * FROM sys.synonyms WHERE name = ', $Q, $plPerspective, $Q, ')', $N,
-                'DROP SYNONYM [', $tieCapsule, '].[', $plPerspective, '];', $N,
-                'GO', $N,
                 'CREATE SYNONYM [', $tieCapsule, '].[', $plPerspective, '] FOR [', $tieCapsule, '].[', $point-in-timePerspective, '];', $N,
                 'GO', $N, $N
                 )"/>
-                <xsl:variable name="point-in-recordingCondition">
-                    <xsl:if test="$temporalization = 'bi'">
-                        <xsl:choose>
-                            <xsl:when test="@timeRange">
-                                <xsl:value-of select="concat($N, 'AND', $N)"/>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="concat($N, 'WHERE', $N)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                        <xsl:value-of select="concat(
-                        $T, $tieName, '_', $erasingSuffix, ' &gt; @recordingTimepoint', $N,
-                        'AND', $N,
-                        $T, $tieName, '_', $recordingSuffix, ' &lt;= @recordingTimepoint'
-                        )"/>
-                    </xsl:if>
-                </xsl:variable>
                 <xsl:value-of select="concat(
                 '----------------- [Point-in-changing point-in-recording Perspective] -------------------', $N,
                 '-- ', $tieName, ' viewed as was (timepoint) at the given recording timepoint', $N,
                 '--------------------------------------------------------------------------------------', $N,
-                'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $ppPerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-                'DROP FUNCTION [', $tieCapsule, '].[', $ppPerspective, '];', $N,
-                'GO', $N,
                 'CREATE FUNCTION [', $tieCapsule, '].[', $ppPerspective, '] (@changingTimepoint ', $chronon, ', @recordingTimepoint ', $recordingRange, ')', $N,
                 'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                 'SELECT', $N,
                 $tieMetadataReference,
                 $columnReferences,
                 'FROM', $N,
-                $T, '[', $tieCapsule, '].[', $tieName, '] tie',
+                $T, '[', $tieCapsule, '].[r', $tieName, '](@recordingTimepoint) tie',
                 $joinConditions,
-                $point-in-timeWhereCondition,
-                $point-in-recordingCondition, ';', $N,
+                $point-in-timeRewindWhereCondition, ';', $N,
                 'GO', $N, $N
                 )"/>
             </xsl:if>
-            <xsl:variable name="differenceWhereCondition">
+            <xsl:variable name="differenceCurrentWhereCondition">
                 <xsl:if test="@timeRange">
                     <xsl:value-of select="concat($N, 'WHERE', $N)"/>
                     <xsl:call-template name="whereCondition">
                         <xsl:with-param name="tie" select="."/>
                         <xsl:with-param name="tieName" select="$tieName"/>
-                        <xsl:with-param name="type" select="'difference'"/>
+                        <xsl:with-param name="changingType" select="'difference'"/>
+                        <xsl:with-param name="recordingType" select="'c'"/>
                     </xsl:call-template>
                 </xsl:if>
             </xsl:variable>
@@ -1249,19 +1317,15 @@
             '------------------------------ [Difference Perspective] ------------------------------', $N,
             '-- ', $tieName, ' viewed by differences in the tie', $N,
             '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $differencePerspective, $Q, ' and type LIKE ', $Q, '%F%', $Q, ')', $N,
-            'DROP FUNCTION [', $tieCapsule, '].[', $differencePerspective, '];', $N,
-            'GO', $N,
             'CREATE FUNCTION [', $tieCapsule, '].[', $differencePerspective, '] (@intervalStart ', $chronon, ', @intervalEnd ', $chronon, ')', $N,
             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
             'SELECT', $N,
             $tieMetadataReference,
             $columnReferences,
             'FROM', $N,
-            $T, '[', $tieCapsule, '].[', $tieName, '] tie',
+            $T, '[', $tieCapsule, '].[', $prefixCurrent, $tieName, '] tie',
             $joinConditions,
-            $differenceWhereCondition,
-            $recordingCondition, ';', $N,
+            $differenceCurrentWhereCondition, ';', $N,
             'GO', $N, $N
             )"/>
         </xsl:for-each>
@@ -1477,7 +1541,8 @@
     <xsl:template name="whereCondition">
         <xsl:param name="tie"/>
         <xsl:param name="tieName"/>
-        <xsl:param name="type"/>
+        <xsl:param name="changingType"/>
+        <xsl:param name="recordingType"/>
         <xsl:variable name="tieCapsule" select="$tie/metadata/@capsule"/>
         <xsl:variable name="joinConditions">
             <xsl:for-each select="$tie/*[string(@identifier) = 'true']">
@@ -1490,17 +1555,17 @@
         </xsl:variable>
         <xsl:variable name="restriction">
             <xsl:choose>
-                <xsl:when test="$type = 'point-in-time'">
+                <xsl:when test="$changingType = 'point-in-time'">
                     <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, ' &lt;= @changingTimepoint', $N)"/>
                 </xsl:when>
-                <xsl:when test="$type = 'difference'">
+                <xsl:when test="$changingType = 'difference'">
                     <xsl:value-of select="concat($T, $T, 'AND', $N, $T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, ' BETWEEN @intervalStart AND @intervalEnd', $N)"/>
                 </xsl:when>
             </xsl:choose>
         </xsl:variable>
         <xsl:variable name="operator">
             <xsl:choose>
-                <xsl:when test="$type = 'difference'">
+                <xsl:when test="$changingType = 'difference'">
                     <xsl:text>IN</xsl:text>
                 </xsl:when>
                 <xsl:otherwise>
@@ -1510,7 +1575,7 @@
         </xsl:variable>
         <xsl:variable name="selection">
             <xsl:choose>
-                <xsl:when test="$type = 'difference'">
+                <xsl:when test="$changingType = 'difference'">
                     <xsl:value-of select="concat($T, $T, $T, 'sub.', $tieName, '_', $changingSuffix, $N)"/>
                 </xsl:when>
                 <xsl:otherwise>
@@ -1518,12 +1583,22 @@
                 </xsl:otherwise>
             </xsl:choose>            
         </xsl:variable>
+        <xsl:variable name="parameter">
+            <xsl:if test="$recordingType = 'r'">
+                <xsl:value-of select="'(@recordingTimepoint)'"/>
+            </xsl:if>
+        </xsl:variable>
+        <xsl:variable name="prefix">
+            <xsl:if test="$temporalization = 'bi'">
+                <xsl:value-of select="$recordingType"/>
+            </xsl:if>
+        </xsl:variable>
         <xsl:value-of select="concat(
         $T, 'tie.', $tieName, '_', $changingSuffix, ' ', $operator, ' (', $N,
         $T, $T, 'SELECT', $N,
         $selection,
         $T, $T, 'FROM', $N,
-        $T, $T, $T, '[', $tieCapsule, '].[', $tieName, '] sub', $N,
+        $T, $T, $T, '[', $tieCapsule, '].[', $prefix, $tieName, ']', $parameter, ' sub', $N,
         $T, $T, 'WHERE', $N,
         $joinConditions,
         $restriction,
