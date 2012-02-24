@@ -37,6 +37,9 @@
     <xsl:param name="partitioning">
         <xsl:text>false</xsl:text>
     </xsl:param>
+    <xsl:param name="entityIntegrity">
+        <xsl:text>true</xsl:text>
+    </xsl:param>
 
     <!-- "global" variables -->
     <xsl:variable name="N"><xsl:text>&#13;&#10;</xsl:text></xsl:variable>
@@ -393,17 +396,79 @@
                     </xsl:choose>
                 </xsl:variable>
                 <!-- guarantee only one current version of the information -->
-                <xsl:variable name="attributeUniqueRecordingConstraint">
-                    <xsl:if test="$temporalization = 'bi'">
+                <xsl:variable name="attributeEntityIntegrity">
+                    <xsl:variable name="attributeChangingParameter">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat($T, $T, $T, $attributeMnemonic, '_', $changingSuffix, ',', $N)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:if test="$temporalization = 'bi' and $entityIntegrity = 'true'">
                         <xsl:value-of select="concat(
                         $T, 'constraint uq', $attributeName, ' unique (', $N,
                         $T, $T, $attributeMnemonic, '_', $erasingSuffix, ', ', $N,
                         $T, $T, $anchorIdentity,
                         $attributeChangingKey, $N,
+                        $T, '),', $N,
+                        $T, 'constraint in', $attributeName, ' check (', $N,
+                        $T, $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt; ', $attributeMnemonic, '_', $erasingSuffix, $N,
+                        $T, '),', $N,
+                        $T, 'constraint ov', $attributeName, ' check (', $N,
+                        $T, $T, '[', $attributeCapsule, '].[o', $attributeName, '] (', $N,
+                        $T, $T, $T, $anchorIdentity, ',', $N,
+                        $attributeChangingParameter,
+                        $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ',', $N,
+                        $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix, $N,
+                        $T, $T, ') = 0', $N,
                         $T, '),', $N
                         )"/>
                     </xsl:if>
                 </xsl:variable>
+                <xsl:if test="$temporalization = 'bi' and $entityIntegrity = 'true'">
+                    <xsl:variable name="attributeChangingParameter">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat($T, '@changedAt ', @timeRange, ', ', $N)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:variable name="attributeChangingCondition">
+                        <xsl:if test="@timeRange">
+                            <xsl:value-of select="concat($T, 'AND', $N, $T, $T, $attributeMnemonic, '_', $changingSuffix, ' = @changedAt', $N)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:value-of select="concat(
+                    '--------------------------------- [Overlap Counter] ----------------------------------', $N,
+                    '-- o', $attributeName, ' counter', $N,
+                    '--------------------------------------------------------------------------------------', $N,
+                    'IF EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 'o', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                    'DROP FUNCTION [', $attributeCapsule, '].[o', $attributeName, '];', $N,
+                    'GO', $N,
+                    'CREATE FUNCTION [', $attributeCapsule, '].[o', $attributeName, '] (', $N,
+                    $T, '@identity ', $anchorIdentityType, ',', $N,
+                    $attributeChangingParameter,
+                    $T, '@recordedAt ', $recordingRange, ',', $N,
+                    $T, '@erasedAt ', $recordingRange, $N,
+                    ')', $N,
+                    'RETURNS ', $anchorIdentityType, ' AS BEGIN RETURN (', $N,
+                    $T, 'SELECT', $N,
+                    $T, $T, 'count(*)', $N,
+                    $T, 'FROM', $N,
+                    $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                    $T, 'WHERE', $N,
+                    $T, $T, $anchorIdentity, ' = @identity', $N,
+                    $attributeChangingCondition,
+                    $T, 'AND ((', $N,
+                    $T, $T, $T, '@recordedAt &gt;= ', $attributeMnemonic, '_', $recordingSuffix, $N,
+                    $T, $T, 'AND', $N,
+                    $T, $T, $T, '@recordedAt &lt; ', $attributeMnemonic, '_', $erasingSuffix, $N,
+                    $T, ') OR (', $N,
+                    $T, $T, $T, '@erasedAt &gt; ', $attributeMnemonic, '_', $recordingSuffix, $N,
+                    $T, $T, 'AND', $N,
+                    $T, $T, $T, '@erasedAt &lt;= ', $attributeMnemonic, '_', $erasingSuffix, $N,
+                    $T, '))', $N,
+                    ')', $N,
+                    'END', $N,
+                    'GO', $N, $N
+                    )"/>
+                </xsl:if>
                 <xsl:value-of select="concat(
                 '--------------------------------- [Attribute Table] ----------------------------------', $N,
                 '-- ', $attributeName, ' table (on ', $anchorName, ')', $N,
@@ -415,7 +480,7 @@
                 $attributeChangingDefinition,
                 $attributeRecordingDefinition,
                 $attributeMetadataDefinition,
-                $attributeUniqueRecordingConstraint,
+                $attributeEntityIntegrity,
                 $T, 'constraint pk', $attributeName, ' primary key (', $N,
                 $T, $T, $anchorIdentity, ' asc',
                 $attributeChangingKey,

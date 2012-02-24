@@ -653,7 +653,8 @@
             recordingRange: 'datetime',
             recordingSuffix: 'RecordedAt',
             erasingSuffix: 'ErasedAt',
-            partitioning: 'false'
+            partitioning: 'false',
+            entityIntegrity: 'true'
         };
 
         // create a singleton
@@ -4385,6 +4386,7 @@
                     processor.setParameter(null, 'recordingSuffix', Defaults.recordingSuffix);
                     processor.setParameter(null, 'erasingSuffix', Defaults.erasingSuffix);
                     processor.setParameter(null, 'partitioning', Defaults.partitioning);
+                    processor.setParameter(null, 'entityIntegrity', Defaults.entityIntegrity);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
@@ -4777,6 +4779,7 @@
                 this.setRecordingSuffix('RecordedAt');
                 this.setErasingSuffix('ErasedAt');
                 this.setPartitioning('false');
+                this.setEntityIntegrity('true');
                 this.setTemporalization('mono');
                 this.setDatabase('SQLServer.xsl');
                 this.init();
@@ -4829,6 +4832,7 @@
                 storage.setItem("recordingSuffix", Defaults.recordingSuffix);
                 storage.setItem("erasingSuffix", Defaults.erasingSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
+                storage.setItem("entityIntegrity", Defaults.entityIntegrity);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -4865,6 +4869,7 @@
                 this.setRecordingSuffix(storage.getItem('recordingSuffix') || Defaults.recordingSuffix);
                 this.setErasingSuffix(storage.getItem('erasingSuffix') || Defaults.erasingSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
+                this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -4889,10 +4894,14 @@
             setPartitioning: function(value) {
                 Defaults.partitioning = value;
             },
+            setEntityIntegrity: function(value) {
+                Defaults.entityIntegrity = value;
+            },
             recordingRange: null,
             recordingSuffix: null,
             erasingSuffix: null,
             partitioning: null,
+            entityIntegrity: null,
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
@@ -4924,6 +4933,15 @@
                     this.erasingSuffix.appendChild(erasingSuffixInput);
                     this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
                     listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
+                    this.entityIntegrity = document.createElement('li');
+                    var entityIntegrityInput = document.createElement('input');
+                    entityIntegrityInput.setAttribute('type', 'checkbox');
+                    entityIntegrityInput.setAttribute('class', 'inputDefaults');
+                    entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
+                    entityIntegrityInput.addEventListener('change', function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }, false);
+                    this.entityIntegrity.appendChild(entityIntegrityInput);
+                    this.entityIntegrity.appendChild(document.createTextNode(' Ensure entity integrity'));
+                    listOfDefaults.insertBefore(this.entityIntegrity, tempoItem);
                     this.partitioning = document.createElement('li');
                     var partitioningInput = document.createElement('input');
                     partitioningInput.setAttribute('type', 'checkbox');
@@ -4941,6 +4959,8 @@
                     this.recordingSuffix = null;
                     if(this.erasingSuffix) listOfDefaults.removeChild(this.erasingSuffix);
                     this.erasingSuffix = null;
+                    if(this.entityIntegrity) listOfDefaults.removeChild(this.entityIntegrity);
+                    this.entityIntegrity = null;
                     if(this.partitioning) listOfDefaults.removeChild(this.partitioning);
                     this.partitioning = null;
                 }
