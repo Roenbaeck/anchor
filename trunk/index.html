@@ -2208,6 +2208,16 @@
                 event: 'click',
                 attributes: ['type', 'checkbox', 'title', 'Identity generator (auto incremented sequence)']
             },
+            restatementsEdit: {
+                name: 'Allow restatements',
+                setMember: function (element, node) { node.restatements = element.checked; },
+                getMember: function (node) { return node.restatements },
+                setElement: function (element, node) { element.checked = node.restatements },
+                getElement: function (element) { return element.checked },
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox', 'title', 'Allow temporal restatements to be made']
+            },
             roleEdit: {
                 name: 'Role',
                 setMember: function (element, node) { node.role = element.value; },
@@ -2499,6 +2509,7 @@
             dataRange: '',
             changingRange: '',
             historized: false,
+            restatements: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
@@ -2536,6 +2547,11 @@
                     this.editables.push(Editables.changingRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
+                index = this.editables.indexOf(Editables.restatementsEdit);
+                if(historized && index < 0)
+                    this.editables.push(Editables.restatementsEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
@@ -2567,12 +2583,13 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation;
+                var metadata, capsule = Defaults.encapsulation, restatements = false;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
+                    restatements = metadata.getAttribute("restatements") == 'true';
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -2596,6 +2613,7 @@
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 attribute.encapsulation = capsule;
+                attribute.restatements = restatements;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -2640,6 +2658,7 @@
                 }
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? false : this.restatements);
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
@@ -3081,6 +3100,7 @@
         Tie.prototype = {
             changingRange: Defaults.changingRange,
             historized: false,
+            restatements: false,
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
@@ -3147,6 +3167,11 @@
                     this.editables.push(Editables.changingRangeEdit);
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
+                index = this.editables.indexOf(Editables.restatementsEdit);
+                if(historized && index < 0)
+                    this.editables.push(Editables.restatementsEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
@@ -3178,12 +3203,14 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
                 imploded = imploded ? imploded == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation;
+                var metadata, capsule = Defaults.encapsulation, restatements = false;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
-                if(metadata)
+                if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
+                    restatements = metadata.getAttribute("restatements") == 'true';
+                }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'description')
@@ -3196,6 +3223,7 @@
                 tie.setImploded(imploded);
                 tie.changingRange = changingRange;
                 tie.encapsulation = capsule;
+                tie.restatements = restatements;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
@@ -3260,6 +3288,7 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? false : this.restatements);
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
