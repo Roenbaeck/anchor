@@ -345,6 +345,8 @@ public class AnchormodelerServlet extends HttpServlet {
 				child.setAttribute("scope", m.isPublic() ? "public" : "private");
 				child.setAttribute("userId", m.getUserId());
 				child.setAttribute("description", m.getDescription()==null ? "" :  StringEscapeUtils.escapeEcmaScript((m.getDescription().getValue())));
+				child.setAttribute("lastLoaded", m.getLastLoaded().toString());
+				child.setAttribute("loadedCount", String.valueOf(m.getLoadCount()) );
 				root.appendChild(child);
 			}
 
