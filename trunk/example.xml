@@ -1,69 +1,51 @@
 <schema>
-    <metadata format="0.92"/>
     <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)">
-        <metadata capsule="dbo" generator="false"/>
         <layout x="828.38" y="447.73" fixed="false"/>
     </knot>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)">
-        <metadata capsule="dbo" generator="false"/>
         <layout x="581.71" y="507.59" fixed="false"/>
     </knot>
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
-        <metadata capsule="dbo" generator="false"/>
         <layout x="745.96" y="679.79" fixed="false"/>
     </knot>
     <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(42)">
-        <metadata capsule="dbo" generator="false"/>
         <layout x="597.00" y="664.06" fixed="false"/>
     </knot>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
-        <metadata capsule="dbo" generator="true"/>
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
-            <metadata capsule="dbo"/>
             <layout x="660.26" y="283.88" fixed="false"/>
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int">
-            <metadata capsule="dbo"/>
             <layout x="691.59" y="344.90" fixed="false"/>
         </attribute>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money">
-            <metadata capsule="dbo"/>
             <layout x="579.73" y="282.88" fixed="false"/>
         </attribute>
         <layout x="612.53" y="359.86" fixed="false"/>
     </anchor>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
-        <metadata capsule="dbo" generator="true"/>
         <attribute mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)">
-            <metadata capsule="dbo"/>
             <layout x="431.40" y="284.11" fixed="false"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="varchar(42)">
-            <metadata capsule="dbo"/>
             <layout x="379.49" y="368.49" fixed="false"/>
         </attribute>
         <layout x="459.05" y="360.51" fixed="false"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
-        <metadata capsule="dbo" generator="true"/>
         <attribute mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)">
-            <metadata capsule="dbo"/>
             <layout x="762.48" y="540.48" fixed="false"/>
         </attribute>
         <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN">
-            <metadata capsule="dbo"/>
             <layout x="765.63" y="464.85" fixed="false"/>
         </attribute>
         <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="date" knotRange="PLV">
-            <metadata capsule="dbo"/>
             <layout x="628.55" y="613.07" fixed="false"/>
         </attribute>
         <layout x="680.26" y="531.74" fixed="false"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
-        <metadata capsule="dbo" generator="true"/>
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
-            <metadata capsule="dbo"/>
             <layout x="440.56" y="555.95" fixed="false"/>
         </attribute>
         <layout x="489.17" y="506.64" fixed="false"/>
@@ -72,38 +54,32 @@
         <anchorRole role="part" type="AC" identifier="true"/>
         <anchorRole role="in" type="PR" identifier="true"/>
         <knotRole role="got" type="RAT" identifier="false"/>
-        <metadata capsule="dbo"/>
         <layout x="570.60" y="561.11" fixed="false"/>
     </tie>
     <tie>
         <anchorRole role="in" type="PE" identifier="true"/>
         <anchorRole role="wasCast" type="AC" identifier="true"/>
-        <metadata capsule="dbo"/>
         <layout x="666.56" y="432.83" fixed="false"/>
     </tie>
     <tie timeRange="date">
         <anchorRole role="atLocation" type="ST" identifier="true"/>
         <anchorRole role="isPlaying" type="PR" identifier="true"/>
-        <metadata capsule="dbo"/>
         <layout x="435.00" y="445.86" fixed="false"/>
     </tie>
     <tie>
         <anchorRole role="parent" type="AC" identifier="true"/>
         <anchorRole role="child" type="AC" identifier="true"/>
         <knotRole role="having" type="PAT" identifier="true"/>
-        <metadata capsule="dbo"/>
         <layout x="727.93" y="610.79" fixed="false"/>
     </tie>
     <tie>
         <anchorRole role="at" type="PE" identifier="true"/>
         <anchorRole role="wasPlayed" type="PR" identifier="false"/>
-        <metadata capsule="dbo"/>
         <layout x="555.42" y="434.85" fixed="false"/>
     </tie>
     <tie>
         <anchorRole role="wasHeld" type="PE" identifier="true"/>
         <anchorRole role="atLocation" type="ST" identifier="false"/>
-        <metadata capsule="dbo"/>
         <layout x="530.87" y="328.24" fixed="false"/>
     </tie>
 </schema>
