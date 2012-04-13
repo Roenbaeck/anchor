@@ -408,45 +408,59 @@
                             </xsl:otherwise>
                         </xsl:choose>
                     </xsl:variable>
-                    <xsl:variable name="attributeRestatementChecker">
-                        <xsl:value-of select="concat(
-                        '------------------------------- [Restatement Checker] --------------------------------', $N,
-                        '-- s', $attributeName, ' restatement checker, returns 0 when last value differs', $N,
-                        '--------------------------------------------------------------------------------------', $N,
-                        'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 's', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
-                        'EXEC (', $Q, $N,
-                        'CREATE FUNCTION [', $attributeCapsule, '].[s', $attributeName, '] (', $N,
-                        $T, '@identity ', $anchorIdentityType, ',', $N,
-                        $T, '@value ', $knotOrDataType, ',', $N,
-                        $T, '@changedAt ', @timeRange, ',', $N,
-                        $T, '@erasedAt ', $recordingRange, $N,
-                        ')', $N,
-                        'RETURNS ', $anchorIdentityType, ' AS BEGIN RETURN (', $N,
-                        $T, 'SELECT', $N,
-                        $T, $T, 'count(*)', $N,
-                        $T, 'FROM', $N,
-                        $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
-                        $T, 'WHERE', $N,
-                        $T, $T, $anchorIdentity, ' = @identity', $N,
-                        $T, 'AND (', $N,
-                        $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;&gt; @recordedAt', $N,
-                        $T, $T, 'OR', $N,
-                        $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix, ' &lt;&gt; @erasedAt', $N,
-                        $T, ')', $N,
-                        $T, 'AND ((', $N,
-                        $T, $T, $T, '@recordedAt &gt;= ', $attributeMnemonic, '_', $recordingSuffix, $N,
-                        $T, $T, 'AND', $N,
-                        $T, $T, $T, '@recordedAt &lt; ', $attributeMnemonic, '_', $erasingSuffix, $N,
-                        $T, ') OR (', $N,
-                        $T, $T, $T, '@erasedAt &gt; ', $attributeMnemonic, '_', $recordingSuffix, $N,
-                        $T, $T, 'AND', $N,
-                        $T, $T, $T, '@erasedAt &lt;= ', $attributeMnemonic, '_', $erasingSuffix, $N,
-                        $T, '))', $N,
-                        ')', $N,
-                        'END', $Q, ');', $N,
-                        'GO', $N, $N
-                        )"/>
+                    <xsl:variable name="knotOrDataName">
+                        <xsl:choose>
+                            <xsl:when test="key('knotLookup', @knotRange)">
+                                <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
+                                <xsl:value-of select="concat($knot/@mnemonic, '_', $identitySuffix)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="$attributeName"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
                     </xsl:variable>
+                    <xsl:variable name="erasedAtParameter">
+                        <xsl:if test="$temporalization = 'bi'">
+                            <xsl:value-of select="concat(',', $N, $T, '@erasedAt ', $recordingRange)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:variable name="erasedAtCondition">
+                        <xsl:if test="$temporalization = 'bi'">
+                            <xsl:value-of select="concat($N, $T, $T, 'AND', $N, $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix, ' = @erasedAt')"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:value-of select="concat(
+                    '------------------------------- [Restatement Checker] --------------------------------', $N,
+                    '-- s', $attributeName, ' restatement checker, returns 0 when last value differs', $N,
+                    '--------------------------------------------------------------------------------------', $N,
+                    'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 's', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                    'EXEC (', $Q, $N,
+                    'CREATE FUNCTION [', $attributeCapsule, '].[s', $attributeName, '] (', $N,
+                    $T, '@identity ', $anchorIdentityType, ',', $N,
+                    $T, '@value ', $knotOrDataType, ',', $N,
+                    $T, '@changedAt ', @timeRange,
+                    $erasedAtParameter, $N,
+                    ')', $N,
+                    'RETURNS tinyint AS BEGIN RETURN (', $N,
+                    $T, 'SELECT', $N,
+                    $T, $T, 'count(*)', $N,
+                    $T, 'WHERE (', $N,
+                    $T, $T, 'SELECT TOP 1', $N,
+                    $T, $T, $T, $knotOrDataName, $N,
+                    $T, $T, 'FROM', $N,
+                    $T, $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                    $T, $T, 'WHERE', $N,
+                    $T, $T, $T, $anchorIdentity, ' = @identity', $N,
+                    $T, $T, 'AND', $N,
+                    $T, $T, $T, $attributeMnemonic, '_', $changingSuffix, ' &lt; @changedAt',
+                    $erasedAtCondition, $N,
+                    $T, $T, 'ORDER BY', $N,
+                    $T, $T, $T, $attributeMnemonic, '_', $changingSuffix, ' desc', $N,
+                    $T, ') = @value', $N,
+                    ')', $N,
+                    'END', $Q, ');', $N,
+                    'GO', $N, $N
+                    )"/>
                 </xsl:if>
                 <!-- guarantee only one current version of the information -->
                 <xsl:variable name="attributeEntityIntegrity">
