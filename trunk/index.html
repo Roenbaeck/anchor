@@ -1608,6 +1608,7 @@
             miniature: null,
             showNames: false,
             drawShadows: false,
+            drawCurves: true,
             newState: true,
             FPS: 100,
             miniatureFramesBetweenRefresh: 50,
@@ -3539,7 +3540,13 @@
             draw: function(context, detailLevel) {
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
-                context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
+                if(DrawingEngine.drawCurves) {
+                    context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
+                }
+                else {
+                    context.lineTo(this.xPosition, this.yPosition);
+                    context.lineTo(this.otherNode.xPosition, this.otherNode.yPosition);
+                }
                 context.strokeStyle = Color.scheme.edge;
                 context.lineWidth = 1.0;
                 context.stroke();
@@ -3606,8 +3613,14 @@
                     var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
                     context.beginPath();
                     context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
-                    context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
+                    if(DrawingEngine.drawCurves) {
+                        context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
                             this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
+                    }
+                    else {
+                        context.lineTo(this.xPosition - controlOffsetX, this.yPosition + controlOffsetY);
+                        context.lineTo(this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
+                    }
                     var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
                     // shift the color slightly towards red
                     context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
@@ -4725,6 +4738,9 @@
             toggleShadows: function() {
                 DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
             },
+            toggleCurves: function() {
+                DrawingEngine.drawCurves = !DrawingEngine.drawCurves;
+            },
             implodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -5429,6 +5445,7 @@
                         <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                         <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
                         <li onclick="Actions.toggleShadows()">Toggle shadows</li>
+                        <li onclick="Actions.toggleCurves()">Toggle curves</li>
                         <li onclick="Actions.toggleFixation()">Toggle fixation</li>
                         <li onclick="Actions.releaseAll()">Release all fixed</li>
                         <li onclick="Actions.implodeAll()">Implode all</li>
