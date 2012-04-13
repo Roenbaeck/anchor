@@ -656,7 +656,7 @@
             erasingSuffix: 'ErasedAt',
             partitioning: 'false',
             entityIntegrity: 'true',
-            allowRestatements: 'true'
+            preventRestatements: 'false'
         };
 
         // create a singleton
@@ -2212,14 +2212,14 @@
                 attributes: ['type', 'checkbox', 'title', 'Identity generator (auto incremented sequence)']
             },
             restatementsEdit: {
-                name: 'Allow restatements',
-                setMember: function (element, node) { node.restatements = element.checked; },
+                name: 'Prevent restatements',
+                setMember: function (element, node) { node.restatements = !element.checked; },
                 getMember: function (node) { return node.restatements },
-                setElement: function (element, node) { element.checked = node.restatements },
+                setElement: function (element, node) { element.checked = !node.restatements },
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title', 'Allow temporal restatements to be made']
+                attributes: ['type', 'checkbox', 'title', 'Prevent temporal restatements from being made']
             },
             roleEdit: {
                 name: 'Role',
@@ -2317,7 +2317,7 @@
                 return this.toString();
             },
             isEmpty: function(value) {
-                return !value || value == null || value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
+                return typeof value == "undefined" || value == null || value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
             },
             isIncomplete: function() {
                 var editable;
@@ -2503,7 +2503,7 @@
             this.editables.push(Editables.dataRangeEdit);
             this.knotted = false;
             this.historized = historized;
-            this.restatements = Defaults.allowRestatements == 'true';
+            this.restatements = !(Defaults.preventRestatements == 'true');
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
         }
@@ -2513,7 +2513,7 @@
             dataRange: '',
             changingRange: '',
             historized: false,
-            restatements: false,
+            restatements: true,
             knotted: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
@@ -2587,7 +2587,7 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation, restatements = Defaults.allowRestatements == 'true';
+                var metadata, capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
@@ -2662,7 +2662,7 @@
                 }
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? Defaults.allowRestatements : this.restatements);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? !(Defaults.preventRestatements == 'true') : this.restatements);
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
@@ -3101,7 +3101,7 @@
             Tie.mass = 1;
             Tie.charge = 1;
             this.historized = historized;
-            this.restatements = Defaults.allowRestatements == 'true';
+            this.restatements = !(Defaults.preventRestatements == 'true');
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
@@ -3110,7 +3110,7 @@
         Tie.prototype = {
             changingRange: Defaults.changingRange,
             historized: false,
-            restatements: false,
+            restatements: true,
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
@@ -3213,7 +3213,7 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
                 imploded = imploded ? imploded == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation, restatements = Defaults.allowRestatements == 'true';
+                var metadata, capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3298,7 +3298,7 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? Defaults.allowRestatements : this.restatements);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? !(Defaults.preventRestatements == 'true') : this.restatements);
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
@@ -4818,7 +4818,7 @@
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
-                document.getElementById('allowRestatements').checked = Defaults.allowRestatements == 'true';
+                document.getElementById('preventRestatements').checked = Defaults.preventRestatements == 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
@@ -4829,7 +4829,7 @@
                 this.setDefaultChangingRange('datetime');
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
-                this.setAllowRestatements('true');
+                this.setPreventRestatements('false');
                 this.setMetadataUsage('true');
                 this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
@@ -4884,7 +4884,7 @@
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
-                storage.setItem("allowRestatements", Defaults.allowRestatements);
+                storage.setItem("preventRestatements", Defaults.preventRestatements);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("recordingRange", Defaults.recordingRange);
@@ -5034,8 +5034,8 @@
             setMetadataUsage: function(value) {
                 Defaults.metadataUsage = value;
             },
-            setAllowRestatements: function(value) {
-                Defaults.allowRestatements = value;
+            setPreventRestatements: function(value) {
+                Defaults.preventRestatements = value;
             },
             setChangingSuffix: function(value) {
                 Defaults.changingSuffix = value;
@@ -5522,7 +5522,7 @@
                                 <option value="bi">Bitemporal</option>
                             </select> Temporalization
                         </li>
-                        <li><input id="allowRestatements" class="inputDefaults" type="checkbox" onchange="Settings.setAllowRestatements(this.checked ? 'true' : 'false')"/> Allow restatements</li>
+                        <li><input id="preventRestatements" class="inputDefaults" type="checkbox" onchange="Settings.setPreventRestatements(this.checked ? 'true' : 'false')"/> Prevent restatements</li>
                         <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                         <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
                         <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
