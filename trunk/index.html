@@ -656,7 +656,7 @@
             erasingSuffix: 'ErasedAt',
             partitioning: 'false',
             entityIntegrity: 'true',
-            allowRestatements: 'false'
+            allowRestatements: 'true'
         };
 
         // create a singleton
@@ -2734,6 +2734,11 @@
                     context.arc(this.xPosition, this.yPosition, 7, 0, 2*Math.PI, false);
                     context.fill();
                     context.stroke();
+                    if(!this.restatements) {
+                        context.moveTo(this.xPosition, this.yPosition - 12);
+                        context.lineTo(this.xPosition, this.yPosition - 7);
+                        context.stroke();
+                    }
                 }
                 else {
                     context.fillStyle = Color.scheme.attributeFill;
