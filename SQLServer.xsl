@@ -342,7 +342,8 @@
                 <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
                 <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
                 <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
-				<xsl:variable name="attributeMetadataDefinition">
+                <xsl:variable name="attributeRestatements" select="metadata/@restatements"/>
+                <xsl:variable name="attributeMetadataDefinition">
 					<xsl:if test="$metadataUsage = 'true'">
 						<xsl:value-of select="concat($T, $attributeMetadata, ' ', $metadataType, ' not null,', $N)"/>
 					</xsl:if>
@@ -395,6 +396,58 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
+                <xsl:if test="@timeRange and $attributeRestatements = 'false'">
+                    <xsl:variable name="knotOrDataType">
+                        <xsl:choose>
+                            <xsl:when test="key('knotLookup', @knotRange)">
+                                <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
+                                <xsl:value-of select="$knot/@identity"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="@dataRange"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="attributeRestatementChecker">
+                        <xsl:value-of select="concat(
+                        '------------------------------- [Restatement Checker] --------------------------------', $N,
+                        '-- s', $attributeName, ' restatement checker, returns 0 when last value differs', $N,
+                        '--------------------------------------------------------------------------------------', $N,
+                        'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 's', $attributeName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                        'EXEC (', $Q, $N,
+                        'CREATE FUNCTION [', $attributeCapsule, '].[s', $attributeName, '] (', $N,
+                        $T, '@identity ', $anchorIdentityType, ',', $N,
+                        $T, '@value ', $knotOrDataType, ',', $N,
+                        $T, '@changedAt ', @timeRange, ',', $N,
+                        $T, '@erasedAt ', $recordingRange, $N,
+                        ')', $N,
+                        'RETURNS ', $anchorIdentityType, ' AS BEGIN RETURN (', $N,
+                        $T, 'SELECT', $N,
+                        $T, $T, 'count(*)', $N,
+                        $T, 'FROM', $N,
+                        $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
+                        $T, 'WHERE', $N,
+                        $T, $T, $anchorIdentity, ' = @identity', $N,
+                        $T, 'AND (', $N,
+                        $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;&gt; @recordedAt', $N,
+                        $T, $T, 'OR', $N,
+                        $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix, ' &lt;&gt; @erasedAt', $N,
+                        $T, ')', $N,
+                        $T, 'AND ((', $N,
+                        $T, $T, $T, '@recordedAt &gt;= ', $attributeMnemonic, '_', $recordingSuffix, $N,
+                        $T, $T, 'AND', $N,
+                        $T, $T, $T, '@recordedAt &lt; ', $attributeMnemonic, '_', $erasingSuffix, $N,
+                        $T, ') OR (', $N,
+                        $T, $T, $T, '@erasedAt &gt; ', $attributeMnemonic, '_', $recordingSuffix, $N,
+                        $T, $T, 'AND', $N,
+                        $T, $T, $T, '@erasedAt &lt;= ', $attributeMnemonic, '_', $erasingSuffix, $N,
+                        $T, '))', $N,
+                        ')', $N,
+                        'END', $Q, ');', $N,
+                        'GO', $N, $N
+                        )"/>
+                    </xsl:variable>
+                </xsl:if>
                 <!-- guarantee only one current version of the information -->
                 <xsl:variable name="attributeEntityIntegrity">
                     <xsl:variable name="attributeChangingParameter">
