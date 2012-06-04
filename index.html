@@ -4440,6 +4440,7 @@
                     processor.setParameter(null, 'erasingSuffix', Defaults.erasingSuffix);
                     processor.setParameter(null, 'partitioning', Defaults.partitioning);
                     processor.setParameter(null, 'entityIntegrity', Defaults.entityIntegrity);
+                    processor.setParameter(null, 'defaultCapsule', Defaults.encapsulation);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
