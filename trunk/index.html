@@ -4448,6 +4448,37 @@
                 }
                 return result;
             },
+            /*
+             document.querySelector('#download-button').onclick = function(e) {
+             var bb = new BlobBuilder();
+             bb.append('Lorem ipsum');
+
+             var blob = bb.getBlob()
+             document.querySelector('#myframe').src =
+             window.URL.createObjectURL(blob);
+             };
+
+             // alternatively
+
+             var bb = new BlobBuilder();
+             var output = Builder.output({"binary":true});
+             var ui8a = new Uint8Array(output.length);
+             for(var i = 0; i< output.length; i++) {
+             ui8a[i] = output.charCodeAt(i);
+             }
+             bb.append(ui8a.buffer);
+             var blob = bb.getBlob("application/octet-stream");
+             var saveas = document.createElement("iframe");
+             saveas.style.display = "none";
+             if(!!window.createObjectURL == false) {
+             saveas.src = window.webkitURL.createObjectURL(blob);
+             }
+             else {
+             saveas.src = window.createObjectURL(blob);
+             }
+
+            see http://jsfiddle.net/rudiedirkx/79JrG/
+             */
             saveToDisk: function (str) {
                 with (document) {
                     var iframe = createElement('iframe');
