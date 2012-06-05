@@ -493,6 +493,36 @@
                         )"/>
                     </xsl:if>
                 </xsl:variable>
+                <xsl:variable name="attributeRestatementPrevention">
+                    <xsl:variable name="knotOrDataName">
+                        <xsl:choose>
+                            <xsl:when test="key('knotLookup', @knotRange)">
+                                <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
+                                <xsl:value-of select="concat($knot/@mnemonic, '_', $identitySuffix)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="$attributeName"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="erasedAtParameter">
+                        <xsl:if test="$temporalization = 'bi'">
+                            <xsl:value-of select="concat(',', $N, $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix)"/>
+                        </xsl:if>
+                    </xsl:variable>
+                    <xsl:if test="@timeRange and $attributeRestatements = 'false'">
+                        <xsl:value-of select="concat(
+                        $T, 'constraint rs', $attributeName, ' check (', $N,
+                        $T, $T, '[', $attributeCapsule, '].[s', $attributeName, '] (', $N,
+                        $T, $T, $T, $anchorIdentity, ',', $N,
+                        $T, $T, $T, $knotOrDataName, ',', $N,
+                        $T, $T, $T, $attributeMnemonic, '_', $changingSuffix,
+                        $erasedAtParameter, $N,
+                        $T, $T, ') = 0', $N,
+                        $T, '),', $N
+                        )"/>
+                    </xsl:if>
+                </xsl:variable>
                 <xsl:if test="$temporalization = 'bi' and $entityIntegrity = 'true'">
                     <xsl:variable name="attributeChangingParameter">
                         <xsl:if test="@timeRange">
@@ -555,6 +585,7 @@
                 $attributeRecordingDefinition,
                 $attributeMetadataDefinition,
                 $attributeEntityIntegrity,
+                $attributeRestatementPrevention,
                 $T, 'constraint pk', $attributeName, ' primary key (', $N,
                 $T, $T, $anchorIdentity, ' asc',
                 $attributeChangingKey,
