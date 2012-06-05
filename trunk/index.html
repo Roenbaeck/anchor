@@ -505,6 +505,9 @@
         text-align:         right;
         z-index:            43;
     }
+    #file .fileSelect {
+        width:              200px;
+    }
     .menu {
         font:               10pt georgia, sans-serif;
         margin:             0;
@@ -4315,17 +4318,18 @@
             handleFiles: function(files) {
                 // does not work in Safari, but works in Firefox 3.6 and Chrome 6.
                 this.reader = new FileReader();
-                this.reader.onload = function() { FileHandler.fileLoaded() };
+                this.reader.onload = function(e) { FileHandler.fileLoaded(e) };
+                this.reader.onerror = function(e) { console.error("File could not be read! Code " + event.target.error.code);};
                 this.reader.readAsText(files[0]);
             },
             replaceInput: function(parent, input) {
                 var newInput = document.createElement('input');
-                newInput.className = 'invisible';
+                newInput.className = 'fileSelect';
                 newInput.setAttribute('type', 'file');
                 newInput.addEventListener('change', function() { FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this); }, false);
                 parent.replaceChild(newInput, input)
             },
-            fileLoaded: function() {
+            fileLoaded: function(event) {
                 try {
                     var parser = new DOMParser();
                     var xml = parser.parseFromString(this.reader.result, "text/xml");
@@ -4448,59 +4452,13 @@
                 }
                 return result;
             },
-            /*
-             document.querySelector('#download-button').onclick = function(e) {
-             var bb = new BlobBuilder();
-             bb.append('Lorem ipsum');
-
-             var blob = bb.getBlob()
-             document.querySelector('#myframe').src =
-             window.URL.createObjectURL(blob);
-             };
-
-             // alternatively
-
-             var bb = new BlobBuilder();
-             var output = Builder.output({"binary":true});
-             var ui8a = new Uint8Array(output.length);
-             for(var i = 0; i< output.length; i++) {
-             ui8a[i] = output.charCodeAt(i);
-             }
-             bb.append(ui8a.buffer);
-             var blob = bb.getBlob("application/octet-stream");
-             var saveas = document.createElement("iframe");
-             saveas.style.display = "none";
-             if(!!window.createObjectURL == false) {
-             saveas.src = window.webkitURL.createObjectURL(blob);
-             }
-             else {
-             saveas.src = window.createObjectURL(blob);
-             }
-
-            see http://jsfiddle.net/rudiedirkx/79JrG/
-             */
             saveToDisk: function (str) {
-                with (document) {
-                    var iframe = createElement('iframe');
-                    iframe.id = 'saveToDisk';
-                    iframe.location = 'about:blank';
-                    iframe.style.display = 'none';
-                    body.appendChild(iframe);
-                    with (getElementById('saveToDisk').contentWindow.document) {
-                        open();
-                        write(str);
-                        close();
-                        if (document.compatMode && document.all) {
-                            execCommand('SaveAs', false, '.xml');
-                        } else {
-                            location = 'data:application/octet-stream;base64,' + btoa(str);
-                        }
-                    }
-
-                    setTimeout(function() {
-                        body.removeChild(iframe);
-                    }, 1000);
-                }
+                // while waiting for a working method
+                window.open(
+                        'data:text/xml,'
+                        + '<!-- Due to browser limitations you have to copy or save this content manually -->'
+                        + str, '_newtab'
+                );
             },
             loadFromURL: function (url) {
                 try {
@@ -5466,7 +5424,8 @@
                         <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                         <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                         <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
-                        <li>Load model from local file...<input class="invisible" type="file" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                        <li><i>Load model from local file:</i></li>
+                        <li><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                         <li onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
                         <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
                     </ul>
