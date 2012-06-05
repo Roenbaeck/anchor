@@ -4432,7 +4432,13 @@
                     xmlhttp.open("GET", transformationURL, false);
                     xmlhttp.send(null);
                     var processor = new XSLTProcessor();
-                    processor.importStylesheet(xmlhttp.responseXML.documentElement);
+                    if(xmlhttp.responseXML) {
+                        processor.importStylesheet(xmlhttp.responseXML.documentElement);
+                    }
+                    else {
+                        var xml = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                        processor.importStylesheet(xml.documentElement);
+                    }
                     processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
                     processor.setParameter(null, 'metadataType', Defaults.metadataType);
                     processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage);
@@ -4919,6 +4925,7 @@
                 this.setErasingSuffix(storage.getItem('erasingSuffix') || Defaults.erasingSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
+                this.setPreventRestatements(storage.getItem('preventRestatements') || Defaults.preventRestatements);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
