@@ -1828,13 +1828,28 @@
         <xsl:param name="recordingType"/>
         <xsl:variable name="tieCapsule" select="$tie/metadata/@capsule"/>
         <xsl:variable name="joinConditions">
-            <xsl:for-each select="$tie/*[string(@identifier) = 'true']">
-                <xsl:variable name="identity" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
-                <xsl:value-of select="concat($T, $T, $T, 'sub.', $identity, ' = tie.', $identity, $N)"/>
-                <xsl:if test="not(position() = last())">
-                    <xsl:value-of select="concat($T, $T, 'AND', $N)"/>
-                </xsl:if>
-            </xsl:for-each>
+            <xsl:choose>
+                <!-- one-to-one -->
+                <xsl:when test="count($tie/*[string(@identifier) = 'true']) = 0">
+                    <xsl:for-each select="$tie/anchorRole[1]">
+                        <xsl:variable name="identity" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                        <xsl:value-of select="concat($T, $T, $T, 'sub.', $identity, ' = tie.', $identity, $N)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($T, $T, 'AND', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:when>
+                <!-- other cardinalities -->
+                <xsl:otherwise>
+                    <xsl:for-each select="$tie/*[string(@identifier) = 'true']">
+                        <xsl:variable name="identity" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                        <xsl:value-of select="concat($T, $T, $T, 'sub.', $identity, ' = tie.', $identity, $N)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($T, $T, 'AND', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:otherwise>
+            </xsl:choose>
         </xsl:variable>
         <xsl:variable name="restriction">
             <xsl:choose>
