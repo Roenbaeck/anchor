@@ -890,7 +890,9 @@
             'BEGIN', $N,
 	        $T, 'SET NOCOUNT ON;', $N,
 	        $T, $now, $N,
-	        $updateStatements,
+            $T, 'IF(UPDATE(', $anchorIdentity, '))', $N,
+            $T, 'RAISERROR(', $Q, 'The identity column is not updatable.', $Q, ', 16, 1);', $N,
+            $updateStatements,
 	        'END', $N,
 	        'GO', $N, $N
             )"/>
@@ -2147,7 +2149,7 @@
             <xsl:if test="$attribute/@timeRange">
                 <xsl:choose>
                     <xsl:when test="$temporalization = 'mono'">
-                        <xsl:value-of select="concat(', ', $N, $T, $T, '@now')"/>
+                        <xsl:value-of select="concat(', ', $N, $T, $T, 'ISNULL(i.', $changingColumn,', @now)')"/>
                     </xsl:when>
                     <xsl:when test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $erasingColumn, ') THEN i.', $changingColumn, ' ELSE @now END')"/>
@@ -2208,14 +2210,12 @@
                 )"/>
             </xsl:if>
         </xsl:variable>
-        <xsl:variable name="changingCheck">
-            <xsl:if test="$attribute/@timeRange">
-                <xsl:value-of select="concat(' OR UPDATE(', $changingColumn, ')')"/>
-            </xsl:if>
-        </xsl:variable>
         <xsl:variable name="recordingCheck">
             <xsl:if test="$temporalization = 'bi'">
-                <xsl:value-of select="concat(' OR UPDATE(', $recordingColumn, ')')"/>
+                <xsl:value-of select="concat(
+                    $T, 'IF(UPDATE(', $recordingColumn, '))', $N,
+                    $T, 'RAISERROR(', $Q, 'The start of the recording time is not updatable.', $Q, ', 16, 1);', $N
+                    )"/>
             </xsl:if>
         </xsl:variable>
         <xsl:choose>
@@ -2226,8 +2226,7 @@
                 <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
                 <xsl:variable name="knotCapsule" select="$knot/metadata/@capsule"/>
                 <xsl:value-of select="concat(
-                $T, 'IF(UPDATE(', $anchorIdentity, ')', $changingCheck, $recordingCheck, ')', $N,
-                $T, 'RAISERROR(', $Q, 'Primary key columns are not updatable.', $Q, ', 16, 1);', $N,
+                $recordingCheck,
                 $updatePrevious,
                 $T, 'IF(UPDATE(', $knotName, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
@@ -2253,8 +2252,7 @@
             </xsl:when>
             <xsl:otherwise>
                 <xsl:value-of select="concat(
-                $T, 'IF(UPDATE(', $anchorIdentity, ')', $changingCheck, $recordingCheck, ')', $N,
-                $T, 'RAISERROR(', $Q, 'Primary key columns are not updatable.', $Q, ', 16, 1);', $N,
+                $recordingCheck,
                 $updatePrevious,
                 $T, 'IF(UPDATE(', $attributeName, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
