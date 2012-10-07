@@ -704,7 +704,8 @@
             },
             // measures distance between two nodes
             manhattanDistance: function(node, otherNode) {
-                var d = this.absolute(otherNode.xPosition - node.xPosition) + this.absolute(otherNode.yPosition - node.yPosition);
+                var d = this.absolute(otherNode.xPosition - node.xPosition) +
+                        this.absolute(otherNode.yPosition - node.yPosition);
                 if(d > 0)
                     return d;
                 // move one node a pixel to the right if both nodes overlap
@@ -712,7 +713,8 @@
                 return 1;
             },
             euclideanDistance: function(node, otherNode) {
-                var d = Math.sqrt(this.square(otherNode.xPosition - node.xPosition) + this.square(otherNode.yPosition - node.yPosition));
+                var d = Math.sqrt(this.square(otherNode.xPosition - node.xPosition) +
+                        this.square(otherNode.yPosition - node.yPosition));
                 if(d > 0)
                     return d;
                 // move one node a pixel to the right if both nodes overlap
@@ -731,31 +733,37 @@
 
             // x component of the attracting force formula
             xSimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.manhattanDistance(node, otherNode);
+                return this.attractionConstant * (otherNode.xPosition - node.xPosition) *
+                        this.manhattanDistance(node, otherNode);
             },
 
             // y component of the attracting force formula
             ySimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.manhattanDistance(node, otherNode);
+                return this.attractionConstant * (otherNode.yPosition - node.yPosition) *
+                        this.manhattanDistance(node, otherNode);
             },
             // x component of the repelling force formula
             xComplexRepelling: function(node, otherNode) {
-                return (node.getCharge() + otherNode.getCharge())/2 * (node.xPosition - otherNode.xPosition) / this.square(this.euclideanDistance(node, otherNode));
+                return (node.getCharge() + otherNode.getCharge())/2 * (node.xPosition - otherNode.xPosition) /
+                        this.square(this.euclideanDistance(node, otherNode));
             },
 
             // y component of the repelling force formula
             yComplexRepelling: function(node, otherNode) {
-                return (node.getCharge() + otherNode.getCharge())/2 * (node.yPosition - otherNode.yPosition) / this.square(this.euclideanDistance(node, otherNode));
+                return (node.getCharge() + otherNode.getCharge())/2 * (node.yPosition - otherNode.yPosition) /
+                        this.square(this.euclideanDistance(node, otherNode));
             },
 
             // x component of the attracting force formula
             xComplexAttracting: function (node, otherNode) {
-                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant * (otherNode.xPosition - node.xPosition) * this.euclideanDistance(node, otherNode);
+                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant *
+                        (otherNode.xPosition - node.xPosition) * this.euclideanDistance(node, otherNode);
             },
 
             // y component of the attracting force formula
             yComplexAttracting: function (node, otherNode) {
-                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant * (otherNode.yPosition - node.yPosition) * this.euclideanDistance(node, otherNode);
+                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant *
+                        (otherNode.yPosition - node.yPosition) * this.euclideanDistance(node, otherNode);
             },
             // create the square of influence
             createSquare: function(node, offset) {
@@ -803,11 +811,17 @@
                     // bending force (straightens out edges)
                     if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
                         // update the control and center points
-                        node.controlPoint.xPosition = 2 * node.xPosition - node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                        node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                        node.centerPoint.xPosition = node.node.xPosition + (node.otherNode.xPosition - node.node.xPosition) / 2;
-                        node.centerPoint.yPosition = node.node.yPosition + (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(this.stiffness * this.manhattanDistance(node.centerPoint, node.controlPoint)/this.manhattanDistance(node.node, node.otherNode));
+                        node.controlPoint.xPosition = 2 * node.xPosition -
+                                node.node.xPosition / 2 - node.otherNode.xPosition / 2;
+                        node.controlPoint.yPosition = 2 * node.yPosition -
+                                node.node.yPosition / 2 - node.otherNode.yPosition / 2;
+                        node.centerPoint.xPosition = node.node.xPosition +
+                                (node.otherNode.xPosition - node.node.xPosition) / 2;
+                        node.centerPoint.yPosition = node.node.yPosition +
+                                (node.otherNode.yPosition - node.node.yPosition) / 2;
+                        curvature = this.square(this.stiffness *
+                                this.manhattanDistance(node.centerPoint, node.controlPoint) /
+                                this.manhattanDistance(node.node, node.otherNode));
                         // safeguard
                         curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
                         // flexure force moves the midway point toward the center point
@@ -829,7 +843,8 @@
                     if(node.velocity <= this.stoppingVelocity)
                         node.stop();
                     // the more nodes that have stopped, the larger the starting velocity must be
-                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta *
+                            numberOfStoppedNodes / numberOfNodes)
                         node.start();
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.getFixed()) {
@@ -876,11 +891,17 @@
                     // bending force (straightens out edges)
                     if(node instanceof Edge) {
                         // update the control and center points
-                        node.controlPoint.xPosition = 2 * node.xPosition - node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                        node.controlPoint.yPosition = 2 * node.yPosition - node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                        node.centerPoint.xPosition = node.node.xPosition + (node.otherNode.xPosition - node.node.xPosition) / 2;
-                        node.centerPoint.yPosition = node.node.yPosition + (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(this.stiffness * this.euclideanDistance(node.centerPoint, node.controlPoint)/this.euclideanDistance(node.node, node.otherNode));
+                        node.controlPoint.xPosition = 2 * node.xPosition -
+                                node.node.xPosition / 2 - node.otherNode.xPosition / 2;
+                        node.controlPoint.yPosition = 2 * node.yPosition -
+                                node.node.yPosition / 2 - node.otherNode.yPosition / 2;
+                        node.centerPoint.xPosition = node.node.xPosition +
+                                (node.otherNode.xPosition - node.node.xPosition) / 2;
+                        node.centerPoint.yPosition = node.node.yPosition +
+                                (node.otherNode.yPosition - node.node.yPosition) / 2;
+                        curvature = this.square(this.stiffness *
+                                this.euclideanDistance(node.centerPoint, node.controlPoint) /
+                                this.euclideanDistance(node.node, node.otherNode));
                         // safeguard
                         curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
                         // flexure force moves the midway point toward the center point
@@ -900,7 +921,8 @@
                     if(node.velocity <= this.stoppingVelocity)
                         node.stop();
                     // the more nodes that have stopped, the larger the starting velocity must be
-                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta *
+                            numberOfStoppedNodes / numberOfNodes)
                         node.start();
                     // if the node is moving and not fixed then calculate the new position
                     if(node.moving && !node.getFixed()) {
@@ -1074,7 +1096,8 @@
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
             setupMinimal: function(ask) {
-                var go = ask ? confirm("Are you sure you want to clear the current model?\nAny unsaved changes will be lost!") : true;
+                var go = ask ? confirm("Are you sure you want to clear the current model?\n" +
+                                       "Any unsaved changes will be lost!") : true;
                 if(go) {
                     this.uncloud();
                     this.empty();
@@ -1103,7 +1126,8 @@
                         return -1;
                     if (a instanceof Anchor && !(b instanceof Edge) && !(b instanceof Knot))
                         return -1;
-                    if (a instanceof Attribute && !(b instanceof Anchor) && !(b instanceof Edge) && !(b instanceof Knot))
+                    if (a instanceof Attribute && !(b instanceof Anchor) && !(b instanceof Edge) &&
+                            !(b instanceof Knot))
                         return -1;
                     return 1;
                 });
@@ -1178,7 +1202,11 @@
                 return schema;
             },
             toSVG: function() {
-                var type = document.implementation.createDocumentType("svg", "-//W3C//DTD SVG 1.0//EN", "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd");
+                var type = document.implementation.createDocumentType(
+                        "svg",
+                        "-//W3C//DTD SVG 1.0//EN",
+                        "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd"
+                );
                 var svg = document.implementation.createDocument(SVGNS, "svg", type);
                 var g = svg.createElementNS(SVGNS, 'g');
                 for(var i = 0; i < this.visibleNodes.length; i++)
@@ -1249,7 +1277,8 @@
                                 affectedNodes.push(otherNode);
                         }
                     }
-                    else if ((node instanceof Tie || node instanceof Attribute || node instanceof Knot) && affectedNodes.indexOf(node) < 0) {
+                    else if ((node instanceof Tie || node instanceof Attribute || node instanceof Knot) &&
+                            affectedNodes.indexOf(node) < 0) {
                         affectedNodes.push(node);
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
@@ -1353,7 +1382,9 @@
                         }
                     }
                     else {
-                        knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 2 * LayoutEngine.normalDistance);
+                        knot = new Knot(nodes[i].xPosition +
+                                2 * LayoutEngine.normalDistance, nodes[i].yPosition -
+                                2 * LayoutEngine.normalDistance);
                         if(nodes[i].dataRange)
                             knot.dataRange = nodes[i].dataRange;
                         this.addNode(knot);
@@ -1393,7 +1424,8 @@
                 var tie;
                 for(var i = 0; i < nodes.length; i++) {
                     if(nodes[i] instanceof Edge) {
-                        if(tie = nodes[i].node instanceof Tie ? nodes[i].node : nodes[i].otherNode instanceof Tie ? nodes[i].otherNode : null) {
+                        if(tie = nodes[i].node instanceof Tie ? nodes[i].node :
+                                nodes[i].otherNode instanceof Tie ? nodes[i].otherNode : null) {
                             tie.setFirstRole(nodes[i]);
                         }
                     }
@@ -1403,7 +1435,8 @@
             },
             addAttribute: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
-                    var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
+                    var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance,
+                            nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
                     this.addNode(attribute);
                     this.addEdge(new Edge(attribute, nodes[i], true));
                 }
@@ -1429,7 +1462,9 @@
                 // single anchor selected
                 else {
                     var anchor = nodes[0];
-                    tie = new Tie(anchor.xPosition + 2 * LayoutEngine.normalDistance, anchor.yPosition - 3 * LayoutEngine.normalDistance, false);
+                    tie = new Tie(anchor.xPosition +
+                            2 * LayoutEngine.normalDistance, anchor.yPosition -
+                            3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, anchor, true);
                     this.addEdge(edge);
@@ -1441,7 +1476,9 @@
             },
             addAnchor: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
-                    var anchor = new Anchor(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance);
+                    var anchor = new Anchor(nodes[i].xPosition +
+                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
+                            3 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
                     this.addEdge(new Edge(nodes[i], anchor, true));
                 }
@@ -1450,11 +1487,15 @@
             },
             addTieAndAnchor: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
-                    var tie = new Tie(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
+                    var tie = new Tie(nodes[i].xPosition +
+                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
+                            3 * LayoutEngine.normalDistance, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, nodes[i], true);
                     this.addEdge(edge);
-                    var anchor = new Anchor(nodes[i].xPosition + 4 * LayoutEngine.normalDistance, nodes[i].yPosition - 6 * LayoutEngine.normalDistance);
+                    var anchor = new Anchor(nodes[i].xPosition +
+                            4 * LayoutEngine.normalDistance, nodes[i].yPosition -
+                            6 * LayoutEngine.normalDistance);
                     this.addNode(anchor);
                     edge = new Edge(tie, anchor, true);
                     this.addEdge(edge);
@@ -1464,7 +1505,9 @@
             },
             addKnot: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
-                    var knot = new Knot(nodes[i].xPosition + 2 * LayoutEngine.normalDistance, nodes[i].yPosition - 3 * LayoutEngine.normalDistance);
+                    var knot = new Knot(nodes[i].xPosition +
+                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
+                            3 * LayoutEngine.normalDistance);
                     this.addNode(knot);
                     this.addEdge(new Edge(nodes[i], knot, true));
                 }
@@ -1786,8 +1829,10 @@
                 if(!model.rightmostNode) return;
 
                 do {
-                    this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition + 2 * this.miniPadding;
-                    this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition + 2 * this.miniPadding;
+                    this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition +
+                            2 * this.miniPadding;
+                    this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition +
+                            2 * this.miniPadding;
                     this.miniatureCanvas.width = this.miniScale * this.miniWidth;
                     this.miniatureCanvas.height = this.miniScale * this.miniHeight;
                 }
@@ -1795,7 +1840,9 @@
 
                 this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
                 this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
-                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale * (this.miniPadding - model.leftmostNode.xPosition), this.miniScale * (this.miniPadding - model.topmostNode.yPosition));
+                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale *
+                        (this.miniPadding - model.leftmostNode.xPosition), this.miniScale *
+                        (this.miniPadding - model.topmostNode.yPosition));
 
                 // show the viewport on the miniature
                 this.miniatureContext.strokeStyle = Color.scheme.viewport;
@@ -1803,11 +1850,13 @@
                 this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
             },
             resizeMiniature: function() {
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height < (window.innerWidth + window.innerHeight)/6) {
+                if(this.miniatureCanvas.width + this.miniatureCanvas.height <
+                        (window.innerWidth + window.innerHeight) / 6) {
                     this.miniScale += 0.03;
                     return true;
                 }
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height > (window.innerWidth + window.innerHeight)/4) {
+                if(this.miniatureCanvas.width + this.miniatureCanvas.height >
+                        (window.innerWidth + window.innerHeight) / 4) {
                     this.miniScale -= 0.03;
                     return true;
                 }
@@ -1843,7 +1892,8 @@
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
                 // apparently changing the canvas width or height resets the transform
-                context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale, DrawingEngine.xTranslation, DrawingEngine.yTranslation);
+                context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale,
+                        DrawingEngine.xTranslation, DrawingEngine.yTranslation);
                 DrawingEngine.refreshViewportCoordinates();
                 DrawingEngine.start(false);
             }
@@ -1902,7 +1952,8 @@
                     // if the dragging started over an empty part of the canvas
                     else {
                         DrawingEngine.setCursor('move');
-                        DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale, (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
+                        DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale,
+                                (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
                         DrawingEngine.start(false);
                     }
                 }
@@ -1913,7 +1964,8 @@
                             xPosition: DrawingEngine.xContext(event.xScreen),
                             yPosition: DrawingEngine.yContext(event.yScreen)
                         };
-                        if(LayoutEngine.manhattanDistance(this.hoveredNode, mouse) > 1.5 * LayoutEngine.normalDistance) {
+                        if(LayoutEngine.manhattanDistance(this.hoveredNode, mouse) >
+                                1.5 * LayoutEngine.normalDistance) {
                             DrawingEngine.setCursor('default');
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
@@ -2029,7 +2081,9 @@
                 var scale = DrawingEngine.xyScale * zoom;
                 if(scale > 0.1 && scale < 10) {
                     DrawingEngine.scale(zoom);
-                    DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) - DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) - DrawingEngine.yContext(event.yScreen) * zoom);
+                    DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) -
+                            DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) -
+                            DrawingEngine.yContext(event.yScreen) * zoom);
                     DrawingEngine.start(false);
                 }
             },
@@ -2080,8 +2134,10 @@
                 var xCenter = DrawingEngine.xVisible + DrawingEngine.widthVisible/2;
                 var yCenter = DrawingEngine.yVisible + DrawingEngine.heightVisible/2;
                 // scale down
-                xCenter = xCenter * DrawingEngine.miniScale + DrawingEngine.miniScale * (DrawingEngine.miniPadding - Model.leftmostNode.xPosition);
-                yCenter = yCenter * DrawingEngine.miniScale + DrawingEngine.miniScale * (DrawingEngine.miniPadding - Model.topmostNode.yPosition);
+                xCenter = xCenter * DrawingEngine.miniScale + DrawingEngine.miniScale *
+                        (DrawingEngine.miniPadding - Model.leftmostNode.xPosition);
+                yCenter = yCenter * DrawingEngine.miniScale + DrawingEngine.miniScale *
+                        (DrawingEngine.miniPadding - Model.topmostNode.yPosition);
 
                 var xTranslate = xCenter - event.xScreen;
                 var yTranslate = yCenter - event.yScreen;
@@ -2149,7 +2205,8 @@
                 type: 'input',
                 pattern: '([A-Z][a-z0-9]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Descriptive name', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Descriptive name',
+                    'required', 'required']
             },
             twoMnemonicEdit: {
                 name: 'Mnemonic',
@@ -2160,7 +2217,8 @@
                 type: 'input',
                 pattern: '[A-Z]{2}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Two letter mnemonic (unique)', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Two letter mnemonic (unique)',
+                    'required', 'required']
             },
             threeMnemonicEdit: {
                 name: 'Mnemonic',
@@ -2171,7 +2229,8 @@
                 type: 'input',
                 pattern: '[A-Z]{3}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Three letter mnemonic (unique)', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Three letter mnemonic (unique)',
+                    'required', 'required']
             },
             dataRangeEdit: {
                 name: 'Data range',
@@ -2182,7 +2241,8 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Data type of stored value', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Data type of stored value',
+                    'required', 'required']
             },
             changingRangeEdit: {
                 name: 'Time range',
@@ -2193,7 +2253,8 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Historization time type (expected update frequency)', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Historization time type (expected update frequency)',
+                    'required', 'required']
             },
             identityEdit: {
                 name: 'Identity',
@@ -2204,7 +2265,8 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Identity data type', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Identity data type',
+                    'required', 'required']
             },
             generatorEdit: {
                 name: 'Generator',
@@ -2235,7 +2297,8 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Role of the connected entity in the relationship', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'Role of the connected entity in the relationship',
+                    'required', 'required']
             },
             encapsulationEdit: {
                 name: 'Capsule',
@@ -2246,7 +2309,8 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'In order to achieve separation of concerns', 'required', 'required']
+                attributes: ['type', 'text', 'title', 'In order to achieve separation of concerns',
+                    'required', 'required']
             }
         };
 
@@ -2322,7 +2386,8 @@
                 return this.toString();
             },
             isEmpty: function(value) {
-                return typeof value == "undefined" || value == null || value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
+                return typeof value == "undefined" || value == null ||
+                        value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
             },
             isIncomplete: function() {
                 var editable;
@@ -2391,7 +2456,9 @@
                     var currentDistance, smallestDistance, yClosest;
                     for(i = 0; edge = this.edges[i]; i++) {
                         currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
+                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
+                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
+                                        (currentDistance < smallestDistance))) {
                             smallestDistance = currentDistance;
                             yClosest = edge.yPosition;
                         }
@@ -2424,7 +2491,9 @@
                     var currentDistance, smallestDistance, yClosest;
                     for(i = 0; edge = this.edges[i]; i++) {
                         currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) || (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) && (currentDistance < smallestDistance))) {
+                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
+                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
+                                        (currentDistance < smallestDistance))) {
                             smallestDistance = currentDistance;
                             yClosest = edge.yPosition;
                         }
@@ -2451,13 +2520,16 @@
                     context.beginPath();
                     context.moveTo(this.xPosition, this.yPosition);
                     // draw an exaggerated velocity vector
-                    context.lineTo(this.xPosition + LayoutEngine.normalDistance * this.xVelocity, this.yPosition + LayoutEngine.normalDistance * this.yVelocity);
+                    context.lineTo(this.xPosition + LayoutEngine.normalDistance * this.xVelocity,
+                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity);
                     context.strokeStyle = Color.scheme.forceVector;
                     context.lineWidth = 0.5;
                     context.stroke();
                     context.fillStyle = Color.scheme.forceEndpoint;
-                    context.fillRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
-                    context.strokeRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3, this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
+                    context.fillRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3,
+                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
+                    context.strokeRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3,
+                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
                 }
             },
             // this is how a node draws itself on the shadow context
@@ -2509,6 +2581,7 @@
             this.knotted = false;
             this.historized = historized;
             this.restatements = !(Defaults.preventRestatements == 'true');
+            this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
         }
@@ -2544,8 +2617,9 @@
                 for(i = 0; edge = anchor.edges[i]; i++) {
                     otherNode = (edge.node == anchor ? edge.otherNode : edge.node);
                     if(otherNode instanceof Attribute && otherNode != this && otherNode.mnemonic == this.mnemonic) {
-                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other attributes on the '"
-                                + anchor + "' anchor. Please change to a different mnemonic in order to continue.");
+                        return !confirm("The mnemonic '" + this.mnemonic +
+                                "' is not unique among other attributes on the '" + anchor +
+                                "' anchor. Please change to a different mnemonic in order to continue.");
                     }
                 }
                 return true;
@@ -2592,7 +2666,8 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
+                var metadata;
+                var capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
@@ -2666,8 +2741,10 @@
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
                 }
                 var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? !(Defaults.preventRestatements == 'true') : this.restatements);
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ?
+                        !(Defaults.preventRestatements == 'true') : this.restatements);
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
@@ -2771,6 +2848,8 @@
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
+            this.encapsulation = Defaults.encapsulation;
+            this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
         }
@@ -2830,7 +2909,8 @@
                 // then check mnemonic uniqueness
                 for(i = 0; anchor = anchors[i]; i++) {
                     if(anchor != this && anchor.mnemonic == this.mnemonic) {
-                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other anchors in the model. " +
+                        return !confirm("The mnemonic '" + this.mnemonic +
+                                "' is not unique among other anchors in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
                     }
                 }
@@ -2892,7 +2972,8 @@
                 anchor.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
 
                 var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
                 metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
                 anchor.appendChild(metadata);
 
@@ -2947,6 +3028,7 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
+            this.encapsulation = Defaults.encapsulation;
             this.type = 'Knot';
         }
         Knot.prototype = {
@@ -2990,7 +3072,8 @@
                 // then check mnemonic uniqueness
                 for(i = 0; knot = knots[i]; i++) {
                     if(knot != this && knot.mnemonic == this.mnemonic) {
-                        return !confirm("The mnemonic '" + this.mnemonic + "' is not unique among other knots in the model. " +
+                        return !confirm("The mnemonic '" + this.mnemonic +
+                                "' is not unique among other knots in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
                     }
                 }
@@ -3052,7 +3135,8 @@
                 knot.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
 
                 var metadata = schema.createElement("metadata");
-                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
                 metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
                 knot.appendChild(metadata);
 
@@ -3063,13 +3147,17 @@
                 context.beginPath();
                 context.moveTo(this.xPosition - 6, this.yPosition - 9);
                 context.lineTo(this.xPosition + 6, this.yPosition - 9);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition - 9, this.xPosition + 9, this.yPosition - 6);
+                context.quadraticCurveTo(this.xPosition + 9, this.yPosition - 9,
+                        this.xPosition + 9, this.yPosition - 6);
                 context.lineTo(this.xPosition + 9, this.yPosition + 6);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition + 9, this.xPosition + 6, this.yPosition + 9);
+                context.quadraticCurveTo(this.xPosition + 9, this.yPosition + 9,
+                        this.xPosition + 6, this.yPosition + 9);
                 context.lineTo(this.xPosition - 6, this.yPosition + 9);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition + 9, this.xPosition - 9, this.yPosition + 6);
+                context.quadraticCurveTo(this.xPosition - 9, this.yPosition + 9,
+                        this.xPosition - 9, this.yPosition + 6);
                 context.lineTo(this.xPosition - 9, this.yPosition - 6);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition - 9, this.xPosition - 6, this.yPosition - 9);
+                context.quadraticCurveTo(this.xPosition - 9, this.yPosition - 9,
+                        this.xPosition - 6, this.yPosition - 9);
             },
             toSVG: function(svg, g) {
                 var group = svg.createElementNS(SVGNS, 'g');
@@ -3110,6 +3198,7 @@
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
+            this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
         }
         Tie.prototype = {
@@ -3150,11 +3239,15 @@
                     for(var i = 0; i < this.edges.length; i++)
                         outside += this.edges[i].identifier ? 0 : 1;
                     if(outside > 1)
-                        alert("The tie " + this + " has " + outside + " roles outside the identifier, which is not recommended for a historized tie. "
-                            + "In order to determine what changes over time leaving exactly one role outside the identifier is recommended.");
+                        alert("The tie " + this + " has " + outside +
+                                " roles outside the identifier, which is not recommended for a historized tie. " +
+                                "In order to determine what changes over time leaving exactly one role outside the " +
+                                "identifier is recommended.");
                     else if (outside == 0)
-                        alert("The tie " + this + " has no role outside the identifier, which is not recommended for a historized tie. "
-                            + "If you want a many-to-many relationship then gaps in the timeline needs to be modeled explicitly using a knotted tie.");
+                        alert("The tie " + this +
+                                " has no role outside the identifier, which is not recommended for a historized tie. " +
+                                "If you want a many-to-many relationship then gaps in the timeline needs to be " +
+                                "modeled explicitly using a knotted tie.");
                 }
             },
             isConforming: function() {
@@ -3170,7 +3263,8 @@
                             identical &= roles[edge.role + "_" + (edge.node == node ? edge.otherNode : edge.node)];
                         }
                         if(identical) {
-                            return !confirm("This tie will become identical to the already existing tie named " + node + ". Please rename the role.");
+                            return !confirm("This tie will become identical to the already existing tie named " +
+                                    node + ". Please rename the role.");
                         }
                     }
                 }
@@ -3201,7 +3295,8 @@
                 return this.knotted;
             },
             isIncomplete: function() {
-                return AbstractNode.prototype.isIncomplete.apply(this, arguments) || !this.toString().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
+                return AbstractNode.prototype.isIncomplete.apply(this, arguments) ||
+                        !this.toString().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
             },
             fromXML: function(element) {
                 var x, y, fixed, i, layout, imploded;
@@ -3218,7 +3313,8 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
                 imploded = imploded ? imploded == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
+                var metadata;
+                var capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3297,13 +3393,15 @@
                         role = schema.createElement("knotRole");
                     role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!unknown!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
-                    role.setAttribute("identifier", this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
+                    role.setAttribute("identifier",
+                            this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
                     tie.appendChild(role);
                 }
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ? !(Defaults.preventRestatements == 'true') : this.restatements);
+                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ?
+                        !(Defaults.preventRestatements == 'true') : this.restatements);
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
@@ -3374,7 +3472,8 @@
                     path.setAttributeNS(null, 'fill', Color.scheme.tieOutline);
                     path.setAttributeNS(null, 'stroke', Color.scheme.tieFill);
                     path.setAttributeNS(null, 'stroke-width', 1.5);
-                    path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
+                    path.setAttributeNS(null, 'd',
+                            'M ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size + 2)).toFixed(2) +
                             ' ' + (this.xPosition + (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size + 2)).toFixed(2) +
@@ -3382,7 +3481,8 @@
                     group.appendChild(path);
                     path = svg.createElementNS(SVGNS, 'path');
                     path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
+                    path.setAttributeNS(null, 'd',
+                            'M ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 4)).toFixed(2) +
                             ' ' + (this.xPosition + (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 4)).toFixed(2) +
@@ -3392,7 +3492,8 @@
                 else {
                     path = svg.createElementNS(SVGNS, 'path');
                     path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd', 'M ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
+                    path.setAttributeNS(null, 'd',
+                            'M ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 1)).toFixed(2) +
                             ' ' + (this.xPosition + this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 1)).toFixed(2) +
@@ -3502,7 +3603,8 @@
                 var path = svg.createElementNS(SVGNS, 'path');
                 path.setAttributeNS(null, 'fill', 'none');
                 path.setAttributeNS(null, 'stroke', Color.scheme.edge);
-                path.setAttributeNS(null, 'd', 'M ' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                path.setAttributeNS(null, 'd',
+                        'M ' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                         ' Q ' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
                 group.appendChild(path);
@@ -3512,7 +3614,9 @@
                 else if(this.otherNode instanceof Tie)
                     tie = this.otherNode;
                 if(tie && !tie.imploded) {
-                    var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
+                    var     cardinality,
+                            strokeStyle = Color.scheme.identifierOutline,
+                            fillStyle = Color.scheme.identifierSelectedFill;
                     var circle = svg.createElementNS(SVGNS, 'circle');
                     if(this.identifier) {
                         fillStyle = Color.scheme.identifierSelectedFill;
@@ -3551,7 +3655,8 @@
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
                 if(DrawingEngine.drawCurves) {
-                    context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition, this.otherNode.xPosition, this.otherNode.yPosition);
+                    context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition,
+                            this.otherNode.xPosition, this.otherNode.yPosition);
                 }
                 else {
                     context.lineTo(this.xPosition, this.yPosition);
@@ -3574,7 +3679,9 @@
                 else if(this.otherNode instanceof Tie)
                     tie = this.otherNode;
                 if(detailLevel == 0 && tie && !tie.imploded) {
-                    var cardinality, strokeStyle = Color.scheme.identifierOutline, fillStyle = Color.scheme.identifierSelectedFill;
+                    var     cardinality,
+                            strokeStyle = Color.scheme.identifierOutline,
+                            fillStyle = Color.scheme.identifierSelectedFill;
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
                     if(this.identifier) {
@@ -3605,7 +3712,8 @@
                 AbstractNode.prototype.draw.apply(this, arguments);
             },
             drawMoving: function(context) {
-                if((this.node.moving && !this.node.getFixed()) || (this.otherNode.moving && !this.otherNode.getFixed())) {
+                if((this.node.moving && !this.node.getFixed()) ||
+                        (this.otherNode.moving && !this.otherNode.getFixed())) {
                     var nodeShadowOffsetX = 0;
                     var nodeShadowOffsetY = 0;
                     if(this.node.moving && !this.node.getFixed()) {
@@ -3624,12 +3732,15 @@
                     context.beginPath();
                     context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
                     if(DrawingEngine.drawCurves) {
-                        context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX, this.controlPoint.yPosition + controlOffsetY,
-                            this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
+                        context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX,
+                                this.controlPoint.yPosition + controlOffsetY,
+                                this.otherNode.xPosition - otherNodeShadowOffsetX,
+                                this.otherNode.yPosition + otherNodeShadowOffsetY);
                     }
                     else {
                         context.lineTo(this.xPosition - controlOffsetX, this.yPosition + controlOffsetY);
-                        context.lineTo(this.otherNode.xPosition - otherNodeShadowOffsetX, this.otherNode.yPosition + otherNodeShadowOffsetY);
+                        context.lineTo(this.otherNode.xPosition - otherNodeShadowOffsetX,
+                                this.otherNode.yPosition + otherNodeShadowOffsetY);
                     }
                     var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
                     // shift the color slightly towards red
@@ -3866,7 +3977,13 @@
                     modelContainer.url = window.location.protocol + '//' +
                             window.location.hostname + window.location.pathname + "?id=" + modelContainer.modelId;
                     modelContainer.addEventListener('click', function(e) {
-                        Actions.loadModelFromCloud(this.modelId, this.modelName, this.modelScope, this.modelKeywords, this.modelDescription);
+                        Actions.loadModelFromCloud(
+                                this.modelId,
+                                this.modelName,
+                                this.modelScope,
+                                this.modelKeywords,
+                                this.modelDescription
+                        );
                         self.close(e);
                     }, false);
 
@@ -3874,7 +3991,10 @@
                     if(LOGGED_IN && (USER_ID==model.getAttribute("userId"))) {
                         var deleteButton = document.createElement('div');
                         deleteButton.className = 'modelDeleteButton';
-                        deleteButton.setAttribute("style","border-style: hidden; display: block; margin: 0px 0px -28px; padding: 0;");
+                        deleteButton.setAttribute(
+                                "style",
+                                "border-style: hidden; display: block; margin: 0px 0px -28px; padding: 0;"
+                        );
                         deleteButton.modelId = modelContainer.modelId;
                         deleteButton.modelName = modelContainer.modelName;
                         deleteButton.modelContainer = modelContainer;
@@ -4321,14 +4441,19 @@
                 // does not work in Safari, but works in Firefox 3.6 and Chrome 6.
                 this.reader = new FileReader();
                 this.reader.onload = function(e) { FileHandler.fileLoaded(e) };
-                this.reader.onerror = function(e) { console.error("File could not be read! Code " + event.target.error.code);};
+                this.reader.onerror = function(e) {
+                    console.error("File could not be read! Code " + event.target.error.code);
+                };
                 this.reader.readAsText(files[0]);
             },
             replaceInput: function(parent, input) {
                 var newInput = document.createElement('input');
                 newInput.className = 'fileSelect';
                 newInput.setAttribute('type', 'file');
-                newInput.addEventListener('change', function() { FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this); }, false);
+                newInput.addEventListener('change', function() {
+                    FileHandler.handleFiles(this.files);
+                    FileHandler.replaceInput(this.parentNode, this);
+                }, false);
                 parent.replaceChild(newInput, input)
             },
             fileLoaded: function(event) {
@@ -4694,8 +4819,10 @@
                 DrawingEngine.start(false);
             },
             centerModel: function() {
-                var xCenter = Model.leftmostNode.xPosition + (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
-                var yCenter = Model.topmostNode.yPosition + (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
+                var xCenter = Model.leftmostNode.xPosition +
+                        (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
+                var yCenter = Model.topmostNode.yPosition +
+                        (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
                 this.centerModelAt(xCenter, yCenter);
             },
             centerModelOn: function(node) {
@@ -4969,7 +5096,9 @@
                     recordingRangeInput.setAttribute('type', 'text');
                     recordingRangeInput.setAttribute('class', 'inputDefaults');
                     recordingRangeInput.value = Defaults.recordingRange;
-                    recordingRangeInput.addEventListener('blur', function() { Settings.setRecordingRange(this.value); }, false);
+                    recordingRangeInput.addEventListener('blur', function() {
+                        Settings.setRecordingRange(this.value);
+                    }, false);
                     this.recordingRange.appendChild(recordingRangeInput);
                     this.recordingRange.appendChild(document.createTextNode(' Recording time range'));
                     listOfDefaults.insertBefore(this.recordingRange, tempoItem);
@@ -4978,7 +5107,9 @@
                     recordingSuffixInput.setAttribute('type', 'text');
                     recordingSuffixInput.setAttribute('class', 'inputDefaults');
                     recordingSuffixInput.value = Defaults.recordingSuffix;
-                    recordingSuffixInput.addEventListener('blur', function() { Settings.setRecordingSuffix(this.value); }, false);
+                    recordingSuffixInput.addEventListener('blur', function() {
+                        Settings.setRecordingSuffix(this.value);
+                    }, false);
                     this.recordingSuffix.appendChild(recordingSuffixInput);
                     this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
                     listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
@@ -4987,7 +5118,9 @@
                     erasingSuffixInput.setAttribute('type', 'text');
                     erasingSuffixInput.setAttribute('class', 'inputDefaults');
                     erasingSuffixInput.value = Defaults.erasingSuffix;
-                    erasingSuffixInput.addEventListener('blur', function() { Settings.setErasingSuffix(this.value); }, false);
+                    erasingSuffixInput.addEventListener('blur', function() {
+                        Settings.setErasingSuffix(this.value);
+                    }, false);
                     this.erasingSuffix.appendChild(erasingSuffixInput);
                     this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
                     listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
@@ -4996,7 +5129,9 @@
                     entityIntegrityInput.setAttribute('type', 'checkbox');
                     entityIntegrityInput.setAttribute('class', 'inputDefaults');
                     entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
-                    entityIntegrityInput.addEventListener('change', function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }, false);
+                    entityIntegrityInput.addEventListener('change', function() {
+                        Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
+                    }, false);
                     this.entityIntegrity.appendChild(entityIntegrityInput);
                     this.entityIntegrity.appendChild(document.createTextNode(' Ensure entity integrity'));
                     listOfDefaults.insertBefore(this.entityIntegrity, tempoItem);
@@ -5005,7 +5140,9 @@
                     partitioningInput.setAttribute('type', 'checkbox');
                     partitioningInput.setAttribute('class', 'inputDefaults');
                     partitioningInput.checked = Defaults.partitioning == 'true';
-                    partitioningInput.addEventListener('change', function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }, false);
+                    partitioningInput.addEventListener('change', function() {
+                        Settings.setPartitioning(this.checked ? 'true' : 'false');
+                    }, false);
                     this.partitioning.appendChild(partitioningInput);
                     this.partitioning.appendChild(document.createTextNode(' Use partitioning'));
                     listOfDefaults.insertBefore(this.partitioning, tempoItem);
@@ -5237,11 +5374,21 @@
                 // voodoo
                 var self = this;
 
-                this.playPauseButton.addEventListener('click', function(event) { return self.togglePlayPause(event) },  false);
-                this.undoButton.addEventListener('click', function(event) { return self.undo(event) }, false);
-                this.redoButton.addEventListener('click', function(event) { return self.redo(event) }, false);
-                this.zoomInButton.addEventListener('click', function(event) { return self.zoomIn(event) }, false);
-                this.zoomOutButton.addEventListener('click', function(event) { return self.zoomOut(event) }, false);
+                this.playPauseButton.addEventListener('click', function(event) {
+                    return self.togglePlayPause(event)
+                }, false);
+                this.undoButton.addEventListener('click', function(event) {
+                    return self.undo(event)
+                }, false);
+                this.redoButton.addEventListener('click', function(event) {
+                    return self.redo(event)
+                }, false);
+                this.zoomInButton.addEventListener('click', function(event) {
+                    return self.zoomIn(event)
+                }, false);
+                this.zoomOutButton.addEventListener('click', function(event) {
+                    return self.zoomOut(event)
+                }, false);
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
@@ -5329,14 +5476,18 @@
 
             // make this a full screen canvas, that can be resized
             ResizeHandler.resizeCanvas(canvas, context);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas, context) }, false);
+            window.addEventListener('resize', function() {
+                ResizeHandler.resizeCanvas(canvas, context)
+            }, false);
 
             shadowCanvas = document.getElementById('shadow');
             shadowContext = shadowCanvas.getContext('2d');
 
             // make this a full screen canvas, that can be resized
             ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
-            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas, shadowContext) }, false);
+            window.addEventListener('resize', function() {
+                ResizeHandler.resizeCanvas(shadowCanvas, shadowContext)
+            }, false);
 
             miniatureCanvas = document.getElementById('miniature');
             miniatureContext = miniatureCanvas.getContext('2d');
