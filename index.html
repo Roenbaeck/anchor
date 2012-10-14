@@ -633,7 +633,7 @@
 
     <script type="text/javascript">
         <!--
-        var VERSION = 0.95;
+        var VERSION = 0.96;
 
         // set to true to show debugging information
         var DEBUG = false;
@@ -661,7 +661,8 @@
             erasingSuffix: 'ErasedAt',
             partitioning: 'false',
             entityIntegrity: 'true',
-            preventRestatements: 'false'
+            preventRestatements: 'false',
+            idempotency: 'false'
         };
 
         // create a singleton
@@ -2288,6 +2289,16 @@
                 event: 'click',
                 attributes: ['type', 'checkbox', 'title', 'Prevent temporal restatements from being made']
             },
+            idempotencyEdit: {
+                name: 'Idempotent',
+                setMember: function (element, node) { node.idempotent = element.checked; },
+                getMember: function (node) { return node.idempotent },
+                setElement: function (element, node) { element.checked = node.idempotent },
+                getElement: function (element) { return element.checked },
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox', 'title', 'Changed values must be different in order to be recorded ']
+            },
             roleEdit: {
                 name: 'Role',
                 setMember: function (element, node) { node.role = element.value; },
@@ -2581,6 +2592,7 @@
             this.knotted = false;
             this.historized = historized;
             this.restatements = !(Defaults.preventRestatements == 'true');
+            this.idempotent = Defaults.idempotency == 'true';
             this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
@@ -2592,6 +2604,7 @@
             changingRange: '',
             historized: false,
             restatements: true,
+            idempotent: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
@@ -2631,10 +2644,12 @@
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 index = this.editables.indexOf(Editables.restatementsEdit);
-                if(historized && index < 0)
+                if(historized && index < 0) {
                     this.editables.push(Editables.restatementsEdit);
+                    this.editables.push(Editables.idempotencyEdit);
+                }
                 else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
+                    this.editables.splice(index, 2);
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
@@ -2667,13 +2682,18 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
                 var metadata;
-                var capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
+                var capsule = Defaults.encapsulation;
+                var restatements = !(Defaults.preventRestatements == 'true');
+                var idempotent = Defaults.idempotency == 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatements = metadata.getAttribute("restatements") == 'true' || restatements;
+                    restatements = metadata.getAttribute("restatable") == 'false' ? false :
+                            metadata.getAttribute("restatements") == 'false' ? false :
+                            restatements;
+                    idempotent = metadata.getAttribute("idempotent") == 'true' || idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -2698,6 +2718,7 @@
                 attribute.descriptor = descriptor;
                 attribute.encapsulation = capsule;
                 attribute.restatements = restatements;
+                attribute.idempotent = idempotent;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -2743,8 +2764,12 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ?
-                        !(Defaults.preventRestatements == 'true') : this.restatements);
+                if(this.historized) {
+                    metadata.setAttribute("restatable", this.isEmpty(this.restatements) ?
+                            !(Defaults.preventRestatements == 'true') : this.restatements);
+                    metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
+                            Defaults.idempotency == 'true' : this.idempotent);
+                }
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 element.appendChild(attribute);
@@ -2931,18 +2956,20 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed == 'true' : false;
                 imploded = imploded ? imploded == 'true' : false;
-                var metadata, capsule = Defaults.encapsulation, generator = false;
+                var metadata, capsule = Defaults.encapsulation, generator = true;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    generator = metadata.getAttribute("generator") == 'true';
+                    generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
+                                metadata.getAttribute("generator") == 'true';
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = idElement.getAttribute("generator") == 'true';
+                    generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
+                                idElement.getAttribute("generator") == 'true';
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3098,12 +3125,14 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    generator = metadata.getAttribute("generator") == 'true';
+                    generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
+                                metadata.getAttribute("generator") == 'true';
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = idElement.getAttribute("generator") == 'true';
+                    generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
+                                idElement.getAttribute("generator") == 'true';
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3195,6 +3224,7 @@
             Tie.charge = 1;
             this.historized = historized;
             this.restatements = !(Defaults.preventRestatements == 'true');
+            this.idempotent = Defaults.idempotency == 'true';
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
@@ -3205,6 +3235,7 @@
             changingRange: Defaults.changingRange,
             historized: false,
             restatements: true,
+            idempotent: false,
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
@@ -3277,10 +3308,12 @@
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 index = this.editables.indexOf(Editables.restatementsEdit);
-                if(historized && index < 0)
+                if(historized && index < 0) {
                     this.editables.push(Editables.restatementsEdit);
+                    this.editables.push(Editables.idempotencyEdit);
+                }
                 else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
+                    this.editables.splice(index, 2);
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
@@ -3314,13 +3347,18 @@
                 fixed = fixed ? fixed == 'true' : false;
                 imploded = imploded ? imploded == 'true' : false;
                 var metadata;
-                var capsule = Defaults.encapsulation, restatements = !(Defaults.preventRestatements == 'true');
+                var capsule = Defaults.encapsulation;
+                var restatements = !(Defaults.preventRestatements == 'true');
+                var idempotent = Defaults.idempotency == 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName == 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatements = metadata.getAttribute("restatements") == 'true' || restatements;
+                    restatements = metadata.getAttribute("restatable") == 'false' ? false :
+                            metadata.getAttribute("restatements") == 'false' ? false :
+                            restatements;
+                    idempotent = metadata.getAttribute("idempotent") == 'true' || idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3335,6 +3373,7 @@
                 tie.changingRange = changingRange;
                 tie.encapsulation = capsule;
                 tie.restatements = restatements;
+                tie.idempotent = idempotent;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
@@ -3400,8 +3439,12 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                metadata.setAttribute("restatements", this.isEmpty(this.restatements) ?
-                        !(Defaults.preventRestatements == 'true') : this.restatements);
+                if(this.historized) {
+                    metadata.setAttribute("restatable", this.isEmpty(this.restatements) ?
+                            !(Defaults.preventRestatements == 'true') : this.restatements);
+                    metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
+                            Defaults.idempotency == 'true' : this.idempotent);
+                }
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
@@ -4556,7 +4599,8 @@
                 var result;
                 try {
                     var xmlhttp = new window.XMLHttpRequest();
-                    xmlhttp.open("GET", transformationURL, false);
+                    // Added random parameter to prevent caching...
+                    xmlhttp.open("GET", transformationURL + '?r=' + Math.random(), false);
                     xmlhttp.send(null);
                     var processor = new XSLTProcessor();
                     if(xmlhttp.responseXML) {
@@ -4944,6 +4988,7 @@
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
                 document.getElementById('preventRestatements').checked = Defaults.preventRestatements == 'true';
+                document.getElementById('idempotency').checked = Defaults.idempotency == 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
@@ -4955,6 +5000,7 @@
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
                 this.setPreventRestatements('false');
+                this.setIdempotency('false');
                 this.setMetadataUsage('true');
                 this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
@@ -5010,6 +5056,7 @@
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("preventRestatements", Defaults.preventRestatements);
+                storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("recordingRange", Defaults.recordingRange);
@@ -5055,6 +5102,7 @@
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                 this.setPreventRestatements(storage.getItem('preventRestatements') || Defaults.preventRestatements);
+                this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -5172,6 +5220,9 @@
             },
             setPreventRestatements: function(value) {
                 Defaults.preventRestatements = value;
+            },
+            setIdempotency: function(value) {
+                Defaults.idempotency = value;
             },
             setChangingSuffix: function(value) {
                 Defaults.changingSuffix = value;
@@ -5674,6 +5725,7 @@
                             </select> Temporalization
                         </li>
                         <li><input id="preventRestatements" class="inputDefaults" type="checkbox" onchange="Settings.setPreventRestatements(this.checked ? 'true' : 'false')"/> Prevent restatements</li>
+                        <li><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
                         <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                         <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
                         <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
