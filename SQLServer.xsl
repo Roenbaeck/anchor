@@ -848,12 +848,15 @@
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                                <xsl:value-of select="concat($T, $T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' null,', $N)"/>
+                                <xsl:value-of select="concat($T, $T, @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' null')"/>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:value-of select="concat($T, $T, $attributeName, ' ', @dataRange, ' null,', $N)"/>
+                                <xsl:value-of select="concat($T, $T, $attributeName, ' ', @dataRange, ' null')"/>
                             </xsl:otherwise>
                         </xsl:choose>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat(',', $N)"/>
+                        </xsl:if>
                     </xsl:variable>
                     <xsl:variable name="attributeChangingDefinition">
                         <xsl:if test="@timeRange">
@@ -869,10 +872,10 @@
                         </xsl:if>
                     </xsl:variable>
                     <xsl:value-of select="concat(
-                    $knotOrDataDefinition,
                     $attributeChangingDefinition,
                     $attributeRecordingDefinition,
-                    $attributeMetadataDefinition
+                    $attributeMetadataDefinition,
+                    $knotOrDataDefinition
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
@@ -890,12 +893,15 @@
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                                <xsl:value-of select="concat($T, $T, 'i.', @knotRange, '_', $identitySuffix,',', $N)"/>
+                                <xsl:value-of select="concat($T, $T, 'i.', @knotRange, '_', $identitySuffix)"/>
                             </xsl:when>
                             <xsl:otherwise>
-                                <xsl:value-of select="concat($T, $T, 'i.', $attributeName, ',', $N)"/>
+                                <xsl:value-of select="concat($T, $T, 'i.', $attributeName)"/>
                             </xsl:otherwise>
                         </xsl:choose>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat(',', $N)"/>
+                        </xsl:if>
                     </xsl:variable>
                     <xsl:variable name="attributeChangingInsert">
                         <xsl:if test="@timeRange">
@@ -911,10 +917,10 @@
                         </xsl:if>
                     </xsl:variable>
                     <xsl:value-of select="concat(
-                    $knotOrDataInsert,
                     $attributeChangingInsert,
                     $attributeRecordingInsert,
-                    $attributeMetadataInsert
+                    $attributeMetadataInsert,
+                    $knotOrDataInsert
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
@@ -953,14 +959,13 @@
                         </xsl:if>
                     </xsl:variable>
                     <xsl:value-of select="concat(
-                    $knotOrDataSelect,
                     $attributeChangingSelect,
                     $attributeRecordingSelect,
-                    $attributeMetadataSelect
+                    $attributeMetadataSelect,
+                    $knotOrDataSelect
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
-            <!-- TODO: Remove comma after last columnDefinitions and last columnInserts -->
             <xsl:variable name="insertedTable">
                 <xsl:choose>
                     <xsl:when test="string(metadata/@generator) = 'true'">
@@ -984,12 +989,12 @@
                         $T, $T, 'inserted.', $anchorIdentity, ' is null;', $N,
                         $T, 'DECLARE @inserted TABLE (', $N,
                         $T, $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
-                        $columnDefinitions,
+                        $columnDefinitions, $N,
                         $T, ');', $N,
                         $T, 'INSERT INTO @inserted', $N,
                         $T, 'SELECT', $N,
                         $T, $T, 'ISNULL(i.', $anchorIdentity, ', a.', $anchorIdentity, '),', $N,
-                        $columnInserts,
+                        $columnInserts, $N,
                         $T, 'FROM (', $N,
                         $T, $T, 'SELECT', $N,
                         $T, $T, $T, $anchorIdentity, ', ', $N,
@@ -1005,24 +1010,20 @@
                         )"/>
                     </xsl:when>
                     <xsl:otherwise>
-                        <!--
-   DECLARE @inserted TABLE (
-	  ST_ID int not null,
-	  ST_NAM_Stage_Name varchar(42) null,
-	  ST_NAM_ChangedAt date null,
-	  ST_LOC_Stage_Location varchar(42) null
-   );
-   INSERT INTO @inserted
-   SELECT
-      i.ST_ID,
-      i.ST_NAM_Stage_Name,
-      ISNULL(i.ST_NAM_ChangedAt, @now),
-      i.ST_LOC_Stage_Location
-   FROM
-      inserted i
-   WHERE
-      i.ST_ID is not null;
-                        -->
+                        <xsl:value-of select="concat(
+                        $T, 'DECLARE @inserted TABLE (', $N,
+                        $T, $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
+                        $columnDefinitions, $N,
+                        $T, ');', $N,
+                        $T, 'INSERT INTO @inserted', $N,
+                        $T, 'SELECT', $N,
+                        $T, $T, 'i.', $anchorIdentity, ',', $N,
+                        $columnInserts, $N,
+                        $T, 'FROM', $N,
+                        $T, $T, 'inserted i', $N,
+                        $T, 'WHERE', $N,
+                        $T, $T, 'i.', $anchorIdentity, ' is not null;', $N
+                        )"/>
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:variable>
@@ -2192,6 +2193,7 @@
         <xsl:variable name="anchor" select="$attribute/parent::anchor"/>
         <xsl:variable name="anchorMnemonic" select="$anchor/@mnemonic"/>
         <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
+        <xsl:variable name="anchorIdentityType" select="$anchor/@identity"/>
         <xsl:variable name="anchorMetadata" select="concat($metadataPrefix, '_', $anchorMnemonic)"/>
         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', $attribute/@mnemonic)"/>
         <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
@@ -2233,6 +2235,54 @@
                 )"/>
             </xsl:if>
         </xsl:variable>
+        <!--
+   DECLARE @versioned TABLE (
+	  ST_ID int not null,
+	  ST_NAM_Stage_Name varchar(42) null,
+	  ST_NAM_ChangedAt date null,
+  	  ST_NAM_Version int not null,
+  	  PRIMARY KEY(ST_NAM_Version, ST_ID)
+   );
+   INSERT INTO @versioned
+   SELECT
+      ST_ID,
+	  ST_NAM_Stage_Name,
+	  ST_NAM_ChangedAt,
+	  ROW_NUMBER() OVER (PARTITION BY ST_ID ORDER BY ST_NAM_ChangedAt)
+   FROM
+      @inserted
+   WHERE
+	  ST_NAM_Stage_Name is not null;
+
+   SELECT @maxV = MAX(ST_NAM_Version) FROM @versioned;
+   SET @v = 0;
+   WHILE(@v < @maxV)
+   BEGIN
+       SET @v = @v + 1;
+	   INSERT INTO [dbo].[ST_NAM_Stage_Name](
+		  ST_ID,
+		  ST_NAM_Stage_Name,
+		  ST_NAM_ChangedAt
+	   )
+	   SELECT
+		  v.ST_ID,
+		  v.ST_NAM_Stage_Name,
+		  v.ST_NAM_ChangedAt
+	   FROM
+		  @versioned v
+	   LEFT JOIN
+	      lST_Stage [ST]
+	   ON
+	      [ST].ST_ID = v.ST_ID
+	   WHERE
+	      v.ST_NAM_Version = @v
+	   AND (
+		  [ST].ST_NAM_Stage_Name is null
+	   OR
+	      [ST].ST_NAM_Stage_Name <> v.ST_NAM_Stage_Name
+	   )
+   END
+        -->
         <xsl:choose>
             <xsl:when test="$attribute/@knotRange">
                 <xsl:variable name="knot" select="key('knotLookup', $attribute/@knotRange)"/>
@@ -2240,68 +2290,72 @@
                 <xsl:variable name="knotName" select="concat($knotMnemonic, '_', $knot/@descriptor)"/>
                 <xsl:variable name="knotCapsule" select="$knot/metadata/@capsule"/>
                 <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
-                <xsl:value-of select="concat(
-                $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                $T, $T, $anchorIdentity, ', ', $N,
-                $T, $T, $knotIdentity,
-                $attributeMetadataColumn,
-                $attributeHistorizationColumn,
-                $attributeRecordingColumns, $N,
-                $T, ')', $N,
-                $T, 'SELECT', $N,
-                $T, $T, 'ISNULL(i.', $anchorIdentity, ', a.', $anchorIdentity, '),', $N,
-                $T, $T, 'k.', $knotIdentity,
-                $attributeMetadataInsert,
-                $attributeHistorizationValue,
-                $attributeRecordingValues, $N,
-                $T, 'FROM (', $N,
-                $T, $T, 'SELECT', $N,
-                $T, $T, $T, '*,', $N,
-                $T, $T, $T, 'ROW_NUMBER() OVER (PARTITION BY ', $anchorIdentity, ' ORDER BY ', $anchorIdentity, ') AS Row', $N,
-                $T, $T, 'FROM', $N,
-                $T, $T, $T, 'inserted', $N,
-                $T, ') i', $N,
-                $T, 'LEFT JOIN', $N,
-                $T, $T, '@', $anchorMnemonic, ' a', $N,
-                $T, 'ON', $N,
-                $T, $T, 'a.Row = i.Row', $N,
-                $T, 'JOIN', $N,
-                $T, $T, '[', $knotCapsule, '].[', $knotName, '] k', $N,
-                $T, 'ON', $N,
-                $T, $T, 'k.', $knotName, ' = i.', $knotName, $N,
-                $T, 'WHERE', $N,
-                $T, $T, 'i.', $knotName, ' is not null;', $N
-                )"/>
+                <xsl:choose>
+                    <xsl:when test="$attribute/@timeRange and $attribute/metadata/@idempotent = 'true'">
+                        <xsl:value-of select="concat(
+                        $T, 'DECLARE @', $attributeName, ' TABLE (', $N
+                        )"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="concat(
+                        $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
+                        $T, $T, $anchorIdentity, ', ', $N,
+                        $T, $T, $knotIdentity,
+                        $attributeMetadataColumn,
+                        $attributeHistorizationColumn,
+                        $attributeRecordingColumns, $N,
+                        $T, ')', $N,
+                        $T, 'SELECT', $N,
+                        $T, $T, 'i.', $anchorIdentity, ',', $N,
+                        $T, $T, 'k.', $knotIdentity,
+                        $attributeMetadataInsert,
+                        $attributeHistorizationValue,
+                        $attributeRecordingValues, $N,
+                        $T, 'FROM', $N,
+                        $T, $T, '@inserted i', $N,
+                        $T, 'JOIN', $N,
+                        $T, $T, '[', $knotCapsule, '].[', $knotName, '] k', $N,
+                        $T, 'ON', $N,
+                        $T, $T, 'k.', $knotName, ' = i.', $knotName, $N,
+                        $T, 'WHERE', $N,
+                        $T, $T, 'i.', $knotName, ' is not null;', $N
+                        )"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="concat(
-                $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                $T, $T, $anchorIdentity, ', ', $N,
-                $T, $T, $attributeName,
-                $attributeMetadataColumn,
-                $attributeHistorizationColumn,
-                $attributeRecordingColumns, $N,
-                $T, ')', $N,
-                $T, 'SELECT', $N,
-                $T, $T, 'ISNULL(i.', $anchorIdentity, ', a.', $anchorIdentity, '),', $N,
-                $T, $T, 'i.', $attributeName, 
-                $attributeMetadataInsert,
-                $attributeHistorizationValue,
-                $attributeRecordingValues, $N,
-                $T, 'FROM (', $N,
-                $T, $T, 'SELECT', $N,
-                $T, $T, $T, '*,', $N,
-                $T, $T, $T, 'ROW_NUMBER() OVER (PARTITION BY ', $anchorIdentity, ' ORDER BY ', $anchorIdentity, ') AS Row', $N,
-                $T, $T, 'FROM', $N,
-                $T, $T, $T, 'inserted', $N,
-                $T, ') i', $N,
-                $T, 'LEFT JOIN', $N,
-                $T, $T, '@', $anchorMnemonic, ' a', $N,
-                $T, 'ON', $N,
-                $T, $T, 'a.Row = i.Row', $N,
-                $T, 'WHERE', $N,
-                $T, $T, 'i.', $attributeName, ' is not null;', $N
-                )"/>
+                <xsl:variable name="attributeDataType" select="$attribute/@dataRange"/>
+                <xsl:choose>
+                    <xsl:when test="$attribute/@timeRange and $attribute/metadata/@idempotent = 'true'">
+                        <xsl:value-of select="concat(
+                        $T, 'DECLARE @', $attributeName, ' TABLE (', $N,
+                        $T, $T, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
+                        $T, $T, $attributeName, ' ', $attributeDataType, ' not null', $N
+                        )"/>
+                        <!-- TODO: add attributeMetadataDefinition, attributeHistorizationDefinition, attributeRecordingDefinition -->
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="concat(
+                        $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
+                        $T, $T, $anchorIdentity, ', ', $N,
+                        $T, $T, $attributeName,
+                        $attributeMetadataColumn,
+                        $attributeHistorizationColumn,
+                        $attributeRecordingColumns, $N,
+                        $T, ')', $N,
+                        $T, 'SELECT', $N,
+                        $T, $T, 'i.', $anchorIdentity, ',', $N,
+                        $T, $T, 'i.', $attributeName,
+                        $attributeMetadataInsert,
+                        $attributeHistorizationValue,
+                        $attributeRecordingValues, $N,
+                        $T, 'FROM', $N,
+                        $T, $T, '@inserted i', $N,
+                        $T, 'WHERE', $N,
+                        $T, $T, 'i.', $attributeName, ' is not null;', $N
+                        )"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:template>
