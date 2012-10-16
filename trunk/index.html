@@ -2775,11 +2775,19 @@
                 element.appendChild(attribute);
             },
             contextualName: function() {
-                var name;
+                var name = '';
                 if(Settings.showMnemonics)
-                    name = this.toString();
+                    name += this.toString();
                 else
-                    name = this.descriptor;
+                    name += this.descriptor;
+                if(this.historized && (this.restatable || this.idempotent)) {
+                    name += ' (';
+                    if(this.restatable)
+                        name += 'r';
+                    if(this.idempotent)
+                        name += 'i';
+                    name += ')';
+                }
                 return name;
             },
             toString: function() {
@@ -2841,11 +2849,6 @@
                     context.arc(this.xPosition, this.yPosition, 7, 0, 2*Math.PI, false);
                     context.fill();
                     context.stroke();
-                    if(!this.restatable) {
-                        context.moveTo(this.xPosition, this.yPosition - 12);
-                        context.lineTo(this.xPosition, this.yPosition - 7);
-                        context.stroke();
-                    }
                 }
                 else {
                     context.fillStyle = Color.scheme.attributeFill;
