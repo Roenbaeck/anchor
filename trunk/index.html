@@ -515,17 +515,17 @@
         margin:             0;
         cursor:             pointer;
         list-style:         none;
-    }
-    .menu li {
         padding-left:       8px;
         padding-right:      8px;
         line-height:        32px;
-    }
-    .menu > li {
         display:            inline-block;
     }
+    .menu:hover {
+        font-style:         italic;
+    }
     .submenu {
-        opacity:            0;
+        display:            none;
+        position:           relative;
         background-color:   rgba(212, 212, 212, 0.9);
         white-space:        nowrap;
         border:             2px solid #fff;
@@ -534,20 +534,21 @@
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
         z-index:            9;
     }
+    .menu:hover > .submenu {
+        display:            block;
+    }
     .submenu li {
-        height:             0;
+        height:             25px;
         line-height:        25px;
         list-style-type:    none;
         margin:             0;
         padding-right:      8px;
         padding-left:       8px;
+        color:              black;
+        font-style:         normal;
+        text-decoration:    none !important;
+        text-shadow:        none;
         text-align:         left;
-    }
-    .menu > li:hover .submenu, .menu > li.focus .submenu {
-        opacity:            1;
-    }
-    .menu > li:hover .submenu li, .menu > li.focus .submenu li {
-        height:             25px;
     }
     .submenu li:hover {
         color:              white;
@@ -5630,56 +5631,44 @@
     </canvas>
 
     <div id="header" class="unselectable">
-        <div id="file">
-            <ul class="menu">
-                <li>File
-                    <ul class="submenu">
-                        <li onclick="Model.setupMinimal(true)">New model...</li>
-                        <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
-                        <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
-                        <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
-                        <li><i>Load model from local file:</i></li>
-                        <li><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
-                        <li onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
-                        <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
-                    </ul>
-                </li>
+        <div id="file" class="menu">File
+            <ul class="submenu">
+                <li onclick="Model.setupMinimal(true)">New model...</li>
+                <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
+                <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
+                <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
+                <li><i>Load model from local file:</i></li>
+                <li><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                <li onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
+                <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
             </ul>
         </div>
 
-        <div id="actions">
-            <ul class="menu">
-                <li>Layout
-                    <ul class="submenu">
-                        <li onclick="Actions.toggleNames()">Toggle names</li>
-                        <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
-                        <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
-                        <li onclick="Actions.toggleShadows()">Toggle shadows</li>
-                        <li onclick="Actions.toggleCurves()">Toggle curves</li>
-                        <li onclick="Actions.toggleFixation()">Toggle fixation</li>
-                        <li onclick="Actions.releaseAll()">Release all fixed</li>
-                        <li onclick="Actions.implodeAll()">Implode all</li>
-                        <li onclick="Actions.explodeAll()">Explode all</li>
-                        <li onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
-                        <li onclick="Actions.randomizeLayout()">Randomize layout</li>
-                    </ul>
-                </li>
+        <div id="actions" class="menu">Layout
+            <ul class="submenu">
+                <li onclick="Actions.toggleNames()">Toggle names</li>
+                <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
+                <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
+                <li onclick="Actions.toggleShadows()">Toggle shadows</li>
+                <li onclick="Actions.toggleCurves()">Toggle curves</li>
+                <li onclick="Actions.toggleFixation()">Toggle fixation</li>
+                <li onclick="Actions.releaseAll()">Release all fixed</li>
+                <li onclick="Actions.implodeAll()">Implode all</li>
+                <li onclick="Actions.explodeAll()">Explode all</li>
+                <li onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
+                <li onclick="Actions.randomizeLayout()">Randomize layout</li>
             </ul>
         </div>
 
-        <div id="generate">
-            <ul class="menu">
-                <li>Generate
-                    <ul class="submenu">
-                        <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                        <li onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
-                        <li onclick="Actions.generateURL()">URL for sharing</li>
-                        <li onclick="Actions.generateHTML()">HTML documentation</li>
-                        <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                        <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                        <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
-                    </ul>
-                </li>
+        <div id="generate" class="menu">Generate
+            <ul class="submenu">
+                <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
+                <li onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
+                <li onclick="Actions.generateURL()">URL for sharing</li>
+                <li onclick="Actions.generateHTML()">HTML documentation</li>
+                <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
+                <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
+                <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
@@ -5698,73 +5687,61 @@
             </select>
         </div>
 
-        <div id="about">
-            <ul class="menu">
-                <li>Help
-                    <ul class="submenu">
-                        <li onclick="new URLPopover('http://www.anchormodeling.com/?page_id=186')">Tutorials</li>
-                        <li onclick="new URLPopover('about.html')">About</li>
-                    </ul>
-                </li>
+        <div id="about" class="menu">Help
+            <ul class="submenu">
+                <li onclick="new URLPopover('http://www.anchormodeling.com/?page_id=186')">Tutorials</li>
+                <li onclick="new URLPopover('about.html')">About</li>
             </ul>
         </div>
 
-        <div id="defaults">
-            <ul class="menu">
-                <li>Defaults
-                    <ul id="listOfDefaults" class="submenu">
-                        <li>
-                            <select id="database" onchange="Settings.setDatabase(this.value)">
-                                <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
-                                <option value="Oracle.xsl">Oracle</option>
-                            </select> Target database
-                        </li>
-                        <li><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
-                        <li><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
-                        <li id="tempoItem">
-                            <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
-                                <option value="mono" selected="selected">Monotemporal</option>
-                                <option value="bi">Bitemporal</option>
-                            </select> Temporalization
-                        </li>
-                        <li><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
-                        <li><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                        <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                        <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
-                        <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
-                        <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
-                        <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
-                        <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
-                        <li onclick="Settings.resetDefaults()">Reset to default values</li>
-                    </ul>
+        <div id="defaults" class="menu">Defaults
+            <ul id="listOfDefaults" class="submenu">
+                <li>
+                    <select id="database" onchange="Settings.setDatabase(this.value)">
+                        <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
+                        <option value="Oracle.xsl">Oracle</option>
+                    </select> Target database
                 </li>
+                <li><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
+                <li><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
+                <li id="tempoItem">
+                    <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
+                        <option value="mono" selected="selected">Monotemporal</option>
+                        <option value="bi">Bitemporal</option>
+                    </select> Temporalization
+                </li>
+                <li><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
+                <li><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
+                <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
+                <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
+                <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
+                <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
+                <li onclick="Settings.resetDefaults()">Reset to default values</li>
             </ul>
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
-        <div id="settings" title="Expert settings">
-            <ul class="menu">
-                <li>Settings
-                    <ul id="listOfSettings" class="submenu">
-                        <li><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
-                        <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
-                        <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
-                        <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
-                        <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                        <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
-                        <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
-                        <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
-                        <li><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
-                        <li id="calcsItem">
-                            <select id="calculations" onchange="Settings.setCalculations(this.value)">
-                                <option value="simple" selected="selected">Simplified</option>
-                                <option value="complex">Adjustable</option>
-                            </select> &nbsp;Calculations
-                        </li>
-                        <li onclick="Settings.resetSettings()">Reset settings to default values</li>
-                        <li onclick="Settings.toggleDebug()">Toggle debug</li>
-                    </ul>
+        <div id="settings" title="Expert settings" class="menu">Settings
+            <ul id="listOfSettings" class="submenu">
+                <li><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
+                <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
+                <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
+                <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
+                <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
+                <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
+                <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
+                <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
+                <li><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                <li id="calcsItem">
+                    <select id="calculations" onchange="Settings.setCalculations(this.value)">
+                        <option value="simple" selected="selected">Simplified</option>
+                        <option value="complex">Adjustable</option>
+                    </select> &nbsp;Calculations
                 </li>
+                <li onclick="Settings.resetSettings()">Reset settings to default values</li>
+                <li onclick="Settings.toggleDebug()">Toggle debug</li>
             </ul>
         </div>
     </div>
