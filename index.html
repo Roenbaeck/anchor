@@ -2306,7 +2306,10 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Identity data type',
+                attributes: ['type', 'text', 'title',
+                    'Identity data type. The identity is an abstract and immutable property ' +
+                    'that uniquely identifies an entity. If you expect to store very many ' +
+                    'entities you also need an appropriately large data type.',
                     'required', 'required']
             },
             generatorEdit: {
@@ -2317,7 +2320,10 @@
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title', 'Identity generator (auto incremented sequence)']
+                attributes: ['type', 'checkbox', 'title',
+                    'Identity generator. Check this if you would like the database to generate ' +
+                    'identities for you through some auto incremented sequence. Uncheck if you ' +
+                    'intend to manage your identities somewhere else.']
             },
             restatabilityEdit: {
                 name: 'Restatable',
@@ -2327,7 +2333,10 @@
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title', 'Prevent temporal restatements from being made']
+                attributes: ['type', 'checkbox', 'title',
+                    'Check this if you want to allow temporal restatements. A temporal restatement ' +
+                    'is when two consecutive values over changing time are identical. Uncheck this ' +
+                    'to introduce a constraint preventing restatements from being made.']
             },
             idempotencyEdit: {
                 name: 'Idempotent',
@@ -2337,7 +2346,10 @@
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title', 'Changed values must be different in order to be recorded ']
+                attributes: ['type', 'checkbox', 'title',
+                    'Checking this modifies the insert and update triggers such that changed values ' +
+                    'must be different in order to be recorded. Idempotency is not recommended when data can arrive ' +
+                    'asynchronously with respect to changing time.']
             },
             roleEdit: {
                 name: 'Role',
@@ -2348,7 +2360,10 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Role of the connected entity in the relationship',
+                attributes: ['type', 'text', 'title',
+                    'The role of the connected entity in the relationship. The same entity may, for example ' +
+                    'participate more than once in the same relationship and must therefore be distinguished ' +
+                    'through which role it plays. Because of this, roles must be unique within a tie.',
                     'required', 'required']
             },
             encapsulationEdit: {
@@ -2360,7 +2375,9 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'In order to achieve separation of concerns',
+                attributes: ['type', 'text', 'title',
+                    'In order to achieve separation of concerns, different parts of the model can be encapsulated ' +
+                    'in different "capsules", which translate to schemas in the relational database implementation.',
                     'required', 'required']
             }
         };
@@ -4747,7 +4764,7 @@
                             LOGGED_IN = false;
                         }
                         else {
-                            Actions.cloudStatusText = document.createTextNode("Not logged in");
+                            Actions.cloudStatusText = document.createTextNode("Not logged in (click here to log in)");
                             statusElement.appendChild(Actions.cloudStatusText);
                             LOGGED_IN = false;
                         }
@@ -5182,6 +5199,9 @@
                     var recordingRangeInput = document.createElement('input');
                     recordingRangeInput.setAttribute('type', 'text');
                     recordingRangeInput.setAttribute('class', 'inputDefaults');
+                    this.recordingRange.setAttribute('title',
+                            "The recording time (corrections) 'data type' used throughout the implementation."
+                    );
                     recordingRangeInput.value = Defaults.recordingRange;
                     recordingRangeInput.addEventListener('blur', function() {
                         Settings.setRecordingRange(this.value);
@@ -5193,6 +5213,9 @@
                     var recordingSuffixInput = document.createElement('input');
                     recordingSuffixInput.setAttribute('type', 'text');
                     recordingSuffixInput.setAttribute('class', 'inputDefaults');
+                    this.recordingSuffix.setAttribute('title',
+                            "The suffix used for the column storing the start of a recording time period."
+                    );
                     recordingSuffixInput.value = Defaults.recordingSuffix;
                     recordingSuffixInput.addEventListener('blur', function() {
                         Settings.setRecordingSuffix(this.value);
@@ -5204,6 +5227,9 @@
                     var erasingSuffixInput = document.createElement('input');
                     erasingSuffixInput.setAttribute('type', 'text');
                     erasingSuffixInput.setAttribute('class', 'inputDefaults');
+                    this.erasingSuffix.setAttribute('title',
+                            "The suffix used for the column storing the end of a recording time period."
+                    );
                     erasingSuffixInput.value = Defaults.erasingSuffix;
                     erasingSuffixInput.addEventListener('blur', function() {
                         Settings.setErasingSuffix(this.value);
@@ -5215,6 +5241,12 @@
                     var entityIntegrityInput = document.createElement('input');
                     entityIntegrityInput.setAttribute('type', 'checkbox');
                     entityIntegrityInput.setAttribute('class', 'inputDefaults');
+                    this.entityIntegrity.setAttribute('title',
+                            "Entity integrity adds constraints ensuring that no temporal duplicates " +
+                            "can co-exist for the same entity and version, that no negative recording " +
+                            "time intervals can be stored, and that there are no overlapping intervals " +
+                            "with respect to recording time."
+                    );
                     entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
                     entityIntegrityInput.addEventListener('change', function() {
                         Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
@@ -5226,6 +5258,10 @@
                     var partitioningInput = document.createElement('input');
                     partitioningInput.setAttribute('type', 'checkbox');
                     partitioningInput.setAttribute('class', 'inputDefaults');
+                    this.partitioning.setAttribute('title',
+                            "Partitioning will put currently recorded information in a separate partition " +
+                            "from erased information, greatly speeding up querying in the bitemporal implementation."
+                    );
                     partitioningInput.checked = Defaults.partitioning == 'true';
                     partitioningInput.addEventListener('change', function() {
                         Settings.setPartitioning(this.checked ? 'true' : 'false');
