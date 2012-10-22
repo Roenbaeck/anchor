@@ -1660,9 +1660,23 @@
             drawShadows: false,
             drawCurves: true,
             newState: true,
-            FPS: 100,
             miniatureFramesBetweenRefresh: 50,
+            layout: false,
             init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
+                var requestAnimationFrame =
+                        window.requestAnimationFrame ||
+                        window.webkitRequestAnimationFrame ||
+                        window.mozRequestAnimationFrame ||
+                        window.msRequestAnimationFrame ||
+                        window.oRequestAnimationFrame;
+                window.requestAnimationFrame = requestAnimationFrame;
+                var cancelRequestAnimationFrame =
+                        window.cancelRequestAnimationFrame ||
+                        window.webkitCancelRequestAnimationFrame ||
+                        window.mozCancelRequestAnimationFrame ||
+                        window.msCancelRequestAnimationFrame ||
+                        window.oCancelRequestAnimationFrame;
+                window.cancelRequestAnimationFrame = cancelRequestAnimationFrame;
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
                 this.miniatureCanvas = miniatureCanvas;
@@ -1748,43 +1762,55 @@
             },
             start: function(layoutModel) {
                 if(this.initialized) {
+                    this.layout = layoutModel;
                     this.invalidateMiniature();
                     if(!this.running) {
                         this.running = true;
-                        this.drawId = setInterval(function() { DrawingEngine.draw(layoutModel); }, 1000 / this.FPS);
-                        if(layoutModel)
+                        if(window.requestAnimationFrame)
+                            this.drawId = window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
+                        else
+                            this.drawId = window.setInterval(DrawingEngine.engine, 10);
+                        if(this.layout)
                             ControlButtons.setPauseState();
                     }
                 }
             },
             stop: function() {
                 if(this.running) {
-                    clearInterval(this.drawId);
+                    if(window.cancelRequestAnimationFrame)
+                        window.cancelRequestAnimationFrame(this.drawId);
+                    else
+                        window.clearInterval(DrawingEngine.drawId);
                     this.running = false;
                     ControlButtons.setPlayState();
+                }
+            },
+            engine: function() {
+                // layout nodes
+                if(DrawingEngine.layout || !LayoutEngine.equilibrium) {
+                    LayoutEngine.layout(Model);
+                    DrawingEngine.newState = true;
+                }
+                DrawingEngine.draw();
+                // check if all nodes have stopped moving and that we may stop
+                if(LayoutEngine.equilibrium) {
+                    DrawingEngine.stop();
+                    DrawingEngine.invalidateMiniature();
+                    if(DrawingEngine.newState) {
+                        DrawingEngine.newState = false;
+                        Model.recordState();
+                    }
+                    DrawingEngine.layout = false;
+                    ControlButtons.setPlayState();
+                }
+                else if(DrawingEngine.running && window.requestAnimationFrame) {
+                    window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
                 }
             },
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
-            draw: function(layoutModel) {
-                // layout nodes
-                if(layoutModel || !LayoutEngine.equilibrium) {
-                    LayoutEngine.layout(Model);
-                    this.newState = true;
-                }
-                // check if all nodes have stopped moving and that we may stop
-                if(LayoutEngine.equilibrium) {
-                    clearInterval(this.drawId);
-                    this.running = false;
-                    this.invalidateMiniature();
-                    if(this.newState) {
-                        this.newState = false;
-                        Model.recordState();
-                    }
-                    ControlButtons.setPlayState();
-                }
-
+            draw: function() {
                 // clear the visible context
                 this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
@@ -2207,8 +2233,10 @@
                 type: 'input',
                 pattern: '([A-Z][a-z0-9]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Descriptive name',
-                    'required', 'required']
+                attributes: ['type', 'text', 'title',
+                    'Should be a descriptive name of that which you are creating. ' +
+                    'An understandable description of something found in the domain ' +
+                    'you are modeling, for example "CoffeeMachine".', 'required']
             },
             twoMnemonicEdit: {
                 name: 'Mnemonic',
@@ -2219,7 +2247,10 @@
                 type: 'input',
                 pattern: '[A-Z]{2}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Two letter mnemonic (unique)',
+                attributes: ['type', 'text', 'title',
+                    'A two letter mnemonic, that needs to be unique within the entire ' +
+                    'model. If an anchor is named "CoffeeMachine" for example, then ' +
+                    '"CM" is a suitable mnemonic.',
                     'required', 'required']
             },
             threeMnemonicEdit: {
@@ -2231,7 +2262,11 @@
                 type: 'input',
                 pattern: '[A-Z]{3}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Three letter mnemonic (unique)',
+                attributes: ['type', 'text', 'title',
+                    'A three letter mnemonic, that needs to be unique within the entire ' +
+                    'model for knots, but only within the anchor for attributes. If an ' +
+                    'attribute is named "Capacity" for example, then "CAP" is a ' +
+                    'suitable mnemonic.',
                     'required', 'required']
             },
             dataRangeEdit: {
@@ -2243,7 +2278,8 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Data type of stored value',
+                attributes: ['type', 'text', 'title',
+                    'The data type of the column in the resulting implementation.',
                     'required', 'required']
             },
             changingRangeEdit: {
@@ -2255,7 +2291,10 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title', 'Historization time type (expected update frequency)',
+                attributes: ['type', 'text', 'title',
+                    'Changing time data type. Versions of data are stored over changing time ' +
+                    'and this data type should be granular enough to handle the expected ' +
+                    'update frequency.',
                     'required', 'required']
             },
             identityEdit: {
@@ -4983,7 +5022,6 @@
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
                 document.getElementById('temporalization').value = this.temporalization;
                 document.getElementById('database').value = this.databaseTransform;
-                document.getElementById('FPS').value = DrawingEngine.FPS;
                 document.getElementById('miniatureFramesBetweenRefresh').value = DrawingEngine.miniatureFramesBetweenRefresh;
                 document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
@@ -5025,7 +5063,6 @@
                 this.setMaximumStartingVelocity(5);
                 this.setInfluenceConstant(4);
                 this.setStiffness(3);
-                this.setFPS(100);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
                 Knot.mass = 1;
@@ -5050,7 +5087,6 @@
                 storage.setItem("stiffness", LayoutEngine.stiffness);
                 storage.setItem("temporalization", this.temporalization);
                 storage.setItem("database", this.databaseTransform);
-                storage.setItem("FPS", DrawingEngine.FPS);
                 storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
@@ -5089,7 +5125,6 @@
                 this.setStiffness(storage.getItem('stiffness') || 3);
                 this.setTemporalization(storage.getItem('temporalization') || 'mono');
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
-                this.setFPS(storage.getItem('FPS') || 100);
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                 this.setCalculations(storage.getItem('calculations') || 'simple');
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
@@ -5268,9 +5303,6 @@
             },
             setDatabase: function(value) {
                 this.databaseTransform = value;
-            },
-            setFPS: function(value) {
-                DrawingEngine.FPS = 1 * value;
             },
             setMiniRate: function(value) {
                 DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
@@ -5633,42 +5665,42 @@
     <div id="header" class="unselectable">
         <div id="file" class="menu">File
             <ul class="submenu">
-                <li onclick="Model.setupMinimal(true)">New model...</li>
-                <li onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
-                <li onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
-                <li onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
+                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Model.setupMinimal(true)">New model...</li>
+                <li title="Load a publicly stored model from the Google Cloud connection." onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
+                <li title="Load a privately stored model from the Google Cloud connection. Requires that you log in to your Google account." onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
+                <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                 <li><i>Load model from local file:</i></li>
-                <li><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
-                <li onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
-                <li onclick="Actions.loadFromURL('example.xml')">Load example model</li>
+                <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
+                <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml')">Load example model</li>
             </ul>
         </div>
 
         <div id="actions" class="menu">Layout
             <ul class="submenu">
-                <li onclick="Actions.toggleNames()">Toggle names</li>
-                <li onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
-                <li onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
-                <li onclick="Actions.toggleShadows()">Toggle shadows</li>
-                <li onclick="Actions.toggleCurves()">Toggle curves</li>
-                <li onclick="Actions.toggleFixation()">Toggle fixation</li>
-                <li onclick="Actions.releaseAll()">Release all fixed</li>
-                <li onclick="Actions.implodeAll()">Implode all</li>
-                <li onclick="Actions.explodeAll()">Explode all</li>
-                <li onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
-                <li onclick="Actions.randomizeLayout()">Randomize layout</li>
+                <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
+                <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
+                <li title="Toggle style of the cardinalities in ties, dots or letters." onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
+                <li title="Toggle if shadows should be drawn under moving objects for a 'lift off the paper' effect." onclick="Actions.toggleShadows()">Toggle shadows</li>
+                <li title="Toggle if edges should be curved or drawn using straight lines (for better performance)." onclick="Actions.toggleCurves()">Toggle curves</li>
+                <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
+                <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
+                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
+                <li title="Unhide all hidden attributes and knots." onclick="Actions.explodeAll()">Explode all</li>
+                <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
+                <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." onclick="Actions.randomizeLayout()">Randomize layout</li>
             </ul>
         </div>
 
         <div id="generate" class="menu">Generate
             <ul class="submenu">
-                <li onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                <li onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
-                <li onclick="Actions.generateURL()">URL for sharing</li>
-                <li onclick="Actions.generateHTML()">HTML documentation</li>
-                <li onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                <li onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                <li onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
+                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
+                <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()">URL for sharing</li>
+                <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
+                <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
@@ -5689,59 +5721,58 @@
 
         <div id="about" class="menu">Help
             <ul class="submenu">
-                <li onclick="new URLPopover('http://www.anchormodeling.com/?page_id=186')">Tutorials</li>
-                <li onclick="new URLPopover('about.html')">About</li>
+                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." onclick="new URLPopover('http://www.anchormodeling.com/?page_id=186')">Tutorials</li>
+                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." onclick="new URLPopover('about.html')">About</li>
             </ul>
         </div>
 
         <div id="defaults" class="menu">Defaults
             <ul id="listOfDefaults" class="submenu">
-                <li>
+                <li title="Selects the target database for the generated SQL code.">
                     <select id="database" onchange="Settings.setDatabase(this.value)">
                         <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
                         <option value="Oracle.xsl">Oracle</option>
                     </select> Target database
                 </li>
-                <li><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
-                <li><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
-                <li id="tempoItem">
+                <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
+                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
+                <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time)." id="tempoItem">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="mono" selected="selected">Monotemporal</option>
                         <option value="bi">Bitemporal</option>
                     </select> Temporalization
                 </li>
-                <li><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
-                <li><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                <li><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
-                <li><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
-                <li><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
-                <li><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
-                <li><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
-                <li onclick="Settings.resetDefaults()">Reset to default values</li>
+                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
+                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
+                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
+                <li title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                <li title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li title="The default 'schema' to use for new items."><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
+                <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
+                <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
+                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults()">Reset to default values</li>
             </ul>
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
         <div id="settings" title="Expert settings" class="menu">Settings
             <ul id="listOfSettings" class="submenu">
-                <li><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
-                <li><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
-                <li><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
-                <li><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
-                <li><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                <li><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
-                <li><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
-                <li><input id="FPS" type="number" min="10" max="1000" step="10" onblur="Settings.setFPS(this.value)"/> fps Target frame rate</li>
-                <li><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
-                <li id="calcsItem">
+                <li title="Damping can be likened to friction and is needed in order to slow down the movement of the nodes."><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
+                <li title="The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph."><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
+                <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
+                <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
+                <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
+                <li title="How many times the normal distance a node can influence another node."><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
+                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
+                <li title="The number of frame redraws needed in the large canvas to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
                     <select id="calculations" onchange="Settings.setCalculations(this.value)">
                         <option value="simple" selected="selected">Simplified</option>
                         <option value="complex">Adjustable</option>
                     </select> &nbsp;Calculations
                 </li>
-                <li onclick="Settings.resetSettings()">Reset settings to default values</li>
-                <li onclick="Settings.toggleDebug()">Toggle debug</li>
+                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings()">Reset settings to default values</li>
+                <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
             </ul>
         </div>
     </div>
@@ -5750,7 +5781,7 @@
     <canvas id="maxiature" class="unselectable">
     </canvas>
     -->
-    <canvas id="miniature" class="unselectable" title="This is the Navigation Window.&#10;It will always show the whole model&#10;with the current viewport shown by&#10;a red outline. Click and drag to&#10;move the viewport.">
+    <canvas id="miniature" class="unselectable" title="This is the Navigation Window. It will always show the whole model with the current viewport shown by a red outline. Click and drag to move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
 
