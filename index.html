@@ -165,13 +165,10 @@
         border-bottom:      1px solid #888;
         background-color:   rgba(255, 255, 255, 0.8);
     }
-    #contextMenu .divider {
-        border-top:         1px dotted #888;
-        height:             2px;
-    }
 
     .toggler {
         position:           absolute;
+        color:              #555;
         margin:             0;
         padding:            0;
         border:             1px solid #555;
@@ -199,7 +196,6 @@
     .operators {
         position:           relative;
         margin:             0px 5px 5px 5px;
-        padding:            5px 0px 0px 0px;
         top:                0;
         left:               0;
     }
@@ -449,6 +445,13 @@
 
     td {
         padding:            0px 5px 2px 5px;
+    }
+
+    legend {
+        padding:            0.2em 0.5em;
+        color:              #555;
+        font-size:          90%;
+        text-align:         left;
     }
 
     #header {
@@ -2226,6 +2229,10 @@
         var Editables = {
             descriptorEdit: {
                 name: 'Descriptor',
+                description:
+                       'Should be a descriptive name of that which you are creating. ' +
+                       'An understandable description of something found in the domain ' +
+                       'you are modeling, for example "CoffeeMachine".',
                 setMember: function (element, node) { node.descriptor = element.value; },
                 getMember: function (node) { return node.descriptor },
                 setElement: function (element, node) { element.value = node.descriptor },
@@ -2233,13 +2240,14 @@
                 type: 'input',
                 pattern: '([A-Z][a-z0-9]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'Should be a descriptive name of that which you are creating. ' +
-                    'An understandable description of something found in the domain ' +
-                    'you are modeling, for example "CoffeeMachine".', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             twoMnemonicEdit: {
                 name: 'Mnemonic',
+                description:
+                       'A two letter mnemonic, that needs to be unique within the entire ' +
+                       'model. If an anchor is named "CoffeeMachine" for example, then ' +
+                       '"CM" is a suitable mnemonic.',
                 setMember: function (element, node) { node.mnemonic = element.value; },
                 getMember: function (node) { return node.mnemonic },
                 setElement: function (element, node) { element.value = node.mnemonic },
@@ -2247,14 +2255,15 @@
                 type: 'input',
                 pattern: '[A-Z]{2}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'A two letter mnemonic, that needs to be unique within the entire ' +
-                    'model. If an anchor is named "CoffeeMachine" for example, then ' +
-                    '"CM" is a suitable mnemonic.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             threeMnemonicEdit: {
                 name: 'Mnemonic',
+                description:
+                       'A three letter mnemonic, that needs to be unique within the entire ' +
+                       'model for knots, but only within the anchor for attributes. If an ' +
+                       'attribute is named "Capacity" for example, then "CAP" is a ' +
+                       'suitable mnemonic.',
                 setMember: function (element, node) { node.mnemonic = element.value; },
                 getMember: function (node) { return node.mnemonic },
                 setElement: function (element, node) { element.value = node.mnemonic },
@@ -2262,15 +2271,11 @@
                 type: 'input',
                 pattern: '[A-Z]{3}',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'A three letter mnemonic, that needs to be unique within the entire ' +
-                    'model for knots, but only within the anchor for attributes. If an ' +
-                    'attribute is named "Capacity" for example, then "CAP" is a ' +
-                    'suitable mnemonic.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             dataRangeEdit: {
                 name: 'Data range',
+                description: 'The data type of the column in the resulting implementation.',
                 setMember: function (element, node) { node.dataRange = element.value; },
                 getMember: function (node) { return node.dataRange },
                 setElement: function (element, node) { element.value = node.dataRange },
@@ -2278,12 +2283,14 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'The data type of the column in the resulting implementation.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             changingRangeEdit: {
                 name: 'Time range',
+                description:
+                       'Changing time data type. Versions of data are stored over changing time ' +
+                       'and this data type should be granular enough to handle the expected ' +
+                       'update frequency.',
                 setMember: function (element, node) { node.changingRange = element.value; },
                 getMember: function (node) { return node.changingRange },
                 setElement: function (element, node) { element.value = node.changingRange },
@@ -2291,14 +2298,14 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'Changing time data type. Versions of data are stored over changing time ' +
-                    'and this data type should be granular enough to handle the expected ' +
-                    'update frequency.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             identityEdit: {
                 name: 'Identity',
+                description:
+                       'Identity data type. The identity is an abstract and immutable property ' +
+                       'that uniquely identifies an entity. If you expect to store very many ' +
+                       'entities you also need an appropriately large data type.',
                 setMember: function (element, node) { node.identity = element.value; },
                 getMember: function (node) { return node.identity },
                 setElement: function (element, node) { element.value = node.identity },
@@ -2306,53 +2313,56 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'Identity data type. The identity is an abstract and immutable property ' +
-                    'that uniquely identifies an entity. If you expect to store very many ' +
-                    'entities you also need an appropriately large data type.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             generatorEdit: {
                 name: 'Generator',
+                description:
+                       'Identity generator. Check this if you would like the database to generate ' +
+                       'identities for you through some auto incremented sequence. Uncheck if you ' +
+                       'intend to manage your identities somewhere else.',
                 setMember: function (element, node) { node.generator = element.checked; },
                 getMember: function (node) { return node.generator },
                 setElement: function (element, node) { element.checked = node.generator },
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title',
-                    'Identity generator. Check this if you would like the database to generate ' +
-                    'identities for you through some auto incremented sequence. Uncheck if you ' +
-                    'intend to manage your identities somewhere else.']
+                attributes: ['type', 'checkbox']
             },
             restatabilityEdit: {
                 name: 'Restatable',
+                description:
+                       'Check this if you want to allow temporal restatements. A temporal restatement ' +
+                       'is when two consecutive values over changing time are identical. Uncheck this ' +
+                       'to introduce a constraint preventing restatements from being made.',
                 setMember: function (element, node) { node.restatable = element.checked; },
                 getMember: function (node) { return node.restatable },
                 setElement: function (element, node) { element.checked = node.restatable },
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title',
-                    'Check this if you want to allow temporal restatements. A temporal restatement ' +
-                    'is when two consecutive values over changing time are identical. Uncheck this ' +
-                    'to introduce a constraint preventing restatements from being made.']
+                attributes: ['type', 'checkbox']
             },
             idempotencyEdit: {
                 name: 'Idempotent',
+                description:
+                       'Checking this modifies the insert and update triggers such that changed values ' +
+                       'must be different in order to be recorded. Idempotency is not recommended when ' +
+                       'data can arrive asynchronously with respect to changing time.',
                 setMember: function (element, node) { node.idempotent = element.checked; },
                 getMember: function (node) { return node.idempotent },
                 setElement: function (element, node) { element.checked = node.idempotent },
                 getElement: function (element) { return element.checked },
                 type: 'input',
                 event: 'click',
-                attributes: ['type', 'checkbox', 'title',
-                    'Checking this modifies the insert and update triggers such that changed values ' +
-                    'must be different in order to be recorded. Idempotency is not recommended when data can arrive ' +
-                    'asynchronously with respect to changing time.']
+                attributes: ['type', 'checkbox']
             },
             roleEdit: {
                 name: 'Role',
+                description:
+                       'The role of the connected entity in the relationship. The same entity may, for example ' +
+                       'participate more than once in the same relationship and must therefore be distinguished ' +
+                       'through which role it plays. Because of this, roles must be unique within a tie.',
                 setMember: function (element, node) { node.role = element.value; },
                 getMember: function (node) { return node.role },
                 setElement: function (element, node) { element.value = node.role },
@@ -2360,14 +2370,13 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'The role of the connected entity in the relationship. The same entity may, for example ' +
-                    'participate more than once in the same relationship and must therefore be distinguished ' +
-                    'through which role it plays. Because of this, roles must be unique within a tie.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             },
             encapsulationEdit: {
                 name: 'Capsule',
+                description:
+                       'In order to achieve separation of concerns, different parts of the model can be encapsulated ' +
+                       'in different "capsules", which translate to schemas in the relational database implementation.',
                 setMember: function (element, node) { node.encapsulation = element.value; },
                 getMember: function (node) { return node.encapsulation },
                 setElement: function (element, node) { element.value = node.encapsulation },
@@ -2375,10 +2384,7 @@
                 type: 'input',
                 pattern: '([a-z][A-Z]*)+',
                 event: 'blur',
-                attributes: ['type', 'text', 'title',
-                    'In order to achieve separation of concerns, different parts of the model can be encapsulated ' +
-                    'in different "capsules", which translate to schemas in the relational database implementation.',
-                    'required', 'required']
+                attributes: ['type', 'text', 'required', 'required']
             }
         };
 
@@ -4287,37 +4293,62 @@
         };
 
         var Operations = {
-            // operations are defined as 'method', 'display name', 'optional rule'
+            // operations are defined as 'method', 'display name', 'description', 'optional rule'
             list: [
-                ['erase', 'Delete selected...'],
-                ['toggleKnotted', 'Toggle knotted'], // TODO: only remove knot if it is the last attribute
-                ['toggleHistorized', 'Toggle historized'],
-                ['addAttribute', 'Add attribute'],
-                ['addTie', 'Add tie'],
-                ['addAnchor', 'Add anchor'],
-                ['addKnot', 'Add knot'],
-                ['addTieAndAnchor', 'Add tied anchor'],
-                ['toggleIdentifier', 'Toggle identifier'],
-                ['makeFirstRole', 'Make first role'],
-                ['connect', 'Connect', function(allNodes) {
-                    if(allNodes.length != 2)
-                        return false;
-                    var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
-                    for(var i = 0; node = allNodes[i]; i++) {
-                        if(node instanceof Anchor)
-                            anchors++;
-                        else if(node instanceof Tie)
-                            ties++;
-                        else if(node instanceof Knot)
-                            knots++;
-                        else if(node instanceof Attribute) {
-                            attributes++;
-                            knotted = node.getKnotted();
+                ['erase',
+                    'Delete selected...',
+                    'Deletes the selected item(s) from the model.'],
+                ['toggleKnotted',
+                    'Toggle knotted',
+                    'Adds or removes a knot from the selected attribute(s).'], // TODO: only remove knot if it is the last attribute
+                ['toggleHistorized',
+                    'Toggle historized',
+                    'Historized items can store versions of values over changing time and are marked by a double outline in the model.'],
+                ['addAttribute',
+                    'Add attribute',
+                    'Add an attribute to the selected anchor(s).'],
+                ['addTie',
+                    'Add tie',
+                    'Add a tie between the selected anchors.'],
+                ['addAnchor',
+                    'Add anchor',
+                    'Add an anchor to the selected tie(s).'],
+                ['addKnot',
+                    'Add knot',
+                    'Add a knot to the selected tie(s).'],
+                ['addTieAndAnchor',
+                    'Add tied anchor',
+                    'Add a tie with a connected anchor to the selected anchor(s).'],
+                ['toggleIdentifier',
+                    'Toggle identifier',
+                    'Toggles whether the selected role(s) should be a part of the primary key or not.'],
+                ['makeFirstRole',
+                    'Make first role',
+                    'Make the selected role(s) the first role in the primary key and tie name.'],
+                ['connect',
+                    'Connect',
+                    'Connect the selected node(s).',
+                    function(allNodes) {
+                        if(allNodes.length != 2)
+                            return false;
+                        var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                        for(var i = 0; node = allNodes[i]; i++) {
+                            if(node instanceof Anchor)
+                                anchors++;
+                            else if(node instanceof Tie)
+                                ties++;
+                            else if(node instanceof Knot)
+                                knots++;
+                            else if(node instanceof Attribute) {
+                                attributes++;
+                                knotted = node.getKnotted();
+                            }
                         }
-                    }
-                    return anchors && ties || knots && ties || attributes && knots && !knotted;
-                }],
-                ['explode', 'Explode/Implode']
+                        return anchors && ties || knots && ties || attributes && knots && !knotted;
+                    }],
+                ['explode',
+                    'Explode/Implode',
+                    'Change the level of detail for the selected item(s) in the model.']
             ],
             isSupported: function(operation, nodes) {
                 for(var i = 0; i < nodes.length; i++)
@@ -4336,6 +4367,7 @@
             contextMenu.setAttribute('id', 'contextMenu');
             this.toggler = document.createElement('div');
             this.toggler.setAttribute('class', 'toggler collapsed');
+            this.toggler.setAttribute('title', 'Click to open the context menu.');
             this.toggler.addEventListener('click', function(event) { self.toggle() }, false);
             contextMenu.appendChild(this.toggler);
             this.contextMenu = contextMenu;
@@ -4343,8 +4375,6 @@
             this.topper = document.createElement('div');
             this.topper.setAttribute('class', 'topper unselectable');
             this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
-            this.divider = document.createElement('div');
-            this.divider.setAttribute('class', 'divider');
 
             var editable;
             this.editsHaveBeenMade = false;
@@ -4376,6 +4406,7 @@
                         element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
                     tr.setAttribute('valign', 'top');
+                    tr.setAttribute('title', editable.description);
                     var td1 = document.createElement('td');
                     td1.appendChild(document.createTextNode(editable.name + ":"));
                     tr.appendChild(td1);
@@ -4398,7 +4429,7 @@
             var validator;
             for(i = 0; i < Operations.list.length; i++) {
                 if(Operations.isSupported(Operations.list[i][0], allNodes)) {
-                    if(validator = Operations.list[i][2]) {
+                    if(validator = Operations.list[i][3]) {
                         if(validator(allNodes))
                             supportedOperations.push(Operations.list[i]);
                     }
@@ -4407,11 +4438,21 @@
                 }
             }
 
-            this.operators = document.createElement('div');
+            this.operators = document.createElement('fieldset');
             this.operators.setAttribute('class', 'operators');
+            var operations = document.createElement('legend');
+            operations.setAttribute(
+                    'title',
+                    'Context sensitive list of operations that can be performed ' +
+                    'on the selected item(s). Shift+click in order to select ' +
+                    'multiple items in the model graph.'
+            );
+            operations.appendChild(document.createTextNode('OPERATIONS'));
+            this.operators.appendChild(operations);
             for(i = 0; i < supportedOperations.length; i++) {
                 var operator = document.createElement('div');
                 operator.setAttribute('class', 'operator');
+                operator.setAttribute('title', supportedOperations[i][2]);
                 operator.appendChild(document.createTextNode(supportedOperations[i][1]));
                 operator.method = supportedOperations[i][0];
                 operator.addEventListener('click', function() { self.operate(this, allNodes); }, false);
@@ -4496,12 +4537,12 @@
                 var self = this;
                 if(this.collapsed) {
                     this.toggler.className = 'toggler expanded';
+                    this.toggler.setAttribute('title', 'Click to close the context menu.');
                     this.collapsed = false;
                     this.modalBackground = new ModalBackground();
                     this.contextMenu.appendChild(this.topper);
                     if(this.showEditables) {
                         this.contextMenu.appendChild(this.editables);
-                        this.contextMenu.appendChild(this.divider);
                         var editables = this.editables.getElementsByClassName('editable');
                         if(editables.length > 0)
                             editables[0].focus();
@@ -4512,10 +4553,10 @@
                     if(this.editsHaveBeenMade && !Model.isConforming())
                         return;
                     this.toggler.className = 'toggler collapsed';
+                    this.toggler.setAttribute('title', 'Click to open the context menu.');
                     this.collapsed = true;
                     this.contextMenu.removeChild(this.operators);
                     if(this.showEditables) {
-                        this.contextMenu.removeChild(this.divider);
                         this.contextMenu.removeChild(this.editables);
                     }
                     this.contextMenu.removeChild(this.topper);
