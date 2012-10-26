@@ -345,7 +345,7 @@
                 <xsl:variable name="attributeMetadata" select="concat($metadataPrefix, '_', $attributeMnemonic)"/>
                 <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
                 <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
-                <xsl:variable name="attributeRestatements" select="metadata/@restatements"/>
+                <xsl:variable name="attributeRestatable" select="metadata/@restatable"/>
                 <xsl:variable name="attributeMetadataDefinition">
 					<xsl:if test="$metadataUsage = 'true'">
 						<xsl:value-of select="concat($T, $attributeMetadata, ' ', $metadataType, ' not null,', $N)"/>
@@ -399,7 +399,7 @@
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
-                <xsl:if test="@timeRange and $attributeRestatements = 'false'">
+                <xsl:if test="@timeRange and $attributeRestatable = 'false'">
                     <xsl:variable name="knotOrDataType">
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
@@ -507,10 +507,10 @@
                     </xsl:variable>
                     <xsl:variable name="erasedAtParameter">
                         <xsl:if test="$temporalization = 'bi'">
-                            <xsl:value-of select="concat(',', $N, $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix)"/>
+                            <xsl:value-of select="concat(',', $N, $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix)"/>
                         </xsl:if>
                     </xsl:variable>
-                    <xsl:if test="@timeRange and $attributeRestatements = 'false'">
+                    <xsl:if test="@timeRange and $attributeRestatable = 'false'">
                         <xsl:value-of select="concat(
                         $T, 'constraint rs', $attributeName, ' check (', $N,
                         $T, $T, '[', $attributeCapsule, '].[s', $attributeName, '] (', $N,
@@ -1341,6 +1341,7 @@
                 </xsl:for-each>
             </xsl:variable>
             <xsl:variable name="tieMetadata" select="concat($metadataPrefix, '_', $tieName)"/>
+            <xsl:variable name="tieRestatable" select="metadata/@restatable"/>
             <xsl:variable name="columnDefinitions">
                 <xsl:for-each select="anchorRole|knotRole">
                     <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
@@ -1544,6 +1545,104 @@
                 'GO', $N, $N
                 )"/>
             </xsl:if>
+            <xsl:if test="@timeRange and $tieRestatable = 'false'">
+                <xsl:variable name="erasedAtParameter">
+                    <xsl:if test="$temporalization = 'bi'">
+                        <xsl:value-of select="concat(',', $N, $T, '@erasedAt ', $recordingRange)"/>
+                    </xsl:if>
+                </xsl:variable>
+                <xsl:variable name="erasedAtCondition">
+                    <xsl:if test="$temporalization = 'bi'">
+                        <xsl:value-of select="concat($N, $T, $T, 'AND', $N, $T, $T, $T, $tieName, '_', $erasingSuffix, ' = @erasedAt')"/>
+                    </xsl:if>
+                </xsl:variable>
+                <xsl:variable name="roleParameters">
+                    <xsl:for-each select="anchorRole|knotRole">
+                        <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
+                        <xsl:value-of select="concat($T, '@', @role, ' ', $identityType, ',', $N)"/>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:variable name="outsideColumnNames">
+                    <xsl:for-each select="anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]">
+                        <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat(',', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:variable name="primaryColumnConditions">
+                    <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                        <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @role)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($N, $T, $T, 'AND', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:variable name="outsideColumnConditions">
+                    <xsl:for-each select="anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]">
+                        <xsl:value-of select="concat($T, $T, 's.', @type, '_', $identitySuffix, '_', @role, ' = @', @role)"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($N, $T, 'AND', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:value-of select="concat(
+                    '------------------------------- [Restatement Checker] --------------------------------', $N,
+                    '-- s', $tieName, ' restatement checker, returns 0 when last value differs', $N,
+                    '--------------------------------------------------------------------------------------', $N,
+                    'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, 's', $tieName, $Q, ' AND type LIKE ', $Q, '%F%', $Q, ')', $N,
+                    'EXEC (', $Q, $N,
+                    'CREATE FUNCTION [', $tieCapsule, '].[s', $tieName, '] (', $N,
+                    $roleParameters,
+                    $T, '@changedAt ', @timeRange,
+                    $erasedAtParameter, $N,
+                    ')', $N,
+                    'RETURNS tinyint AS BEGIN RETURN (', $N,
+                    $T, 'SELECT', $N,
+                    $T, $T, 'count(*)', $N,
+                    $T, 'FROM (', $N,
+                    $T, $T, 'SELECT TOP 1', $N,
+                    $outsideColumnNames, $N,
+                    $T, $T, 'FROM', $N,
+                    $T, $T, $T, '[', $tieCapsule, '].[', $tieName, ']', $N,
+                    $T, $T, 'WHERE', $N,
+                    $primaryColumnConditions, $N,
+                    $T, $T, 'AND', $N,
+                    $T, $T, $T, $tieName, '_', $changingSuffix, ' &lt; @changedAt',
+                    $erasedAtCondition, $N,
+                    $T, $T, 'ORDER BY', $N,
+                    $T, $T, $T, $tieName, '_', $changingSuffix, ' desc', $N,
+                    $T, ') s', $N,
+                    $T, 'WHERE', $N,
+                    $outsideColumnConditions, $N,
+                    ')', $N,
+                    'END', $Q, ');', $N,
+                    'GO', $N, $N
+                    )"/>
+            </xsl:if>
+            <xsl:variable name="tieRestatementPrevention">
+                <xsl:variable name="erasedAtParameter">
+                    <xsl:if test="$temporalization = 'bi'">
+                        <xsl:value-of select="concat(',', $N, $T, $T, $T, $tieName, '_', $erasingSuffix)"/>
+                    </xsl:if>
+                </xsl:variable>
+                <xsl:variable name="roleParameters">
+                    <xsl:for-each select="anchorRole|knotRole">
+                        <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ',', $N)"/>
+                    </xsl:for-each>
+                </xsl:variable>
+                <xsl:if test="@timeRange and $tieRestatable = 'false' and count(anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]) > 0">
+                    <xsl:value-of select="concat(
+                        $T, 'constraint rs', $tieName, ' check (', $N,
+                        $T, $T, '[', $tieCapsule, '].[s', $tieName, '] (', $N,
+                        $roleParameters,
+                        $T, $T, $T, $tieName, '_', $changingSuffix,
+                        $erasedAtParameter, $N,
+                        $T, $T, ') = 0', $N,
+                        $T, '),', $N
+                        )"/>
+                </xsl:if>
+            </xsl:variable>
             <xsl:value-of select="concat(
             '------------------------------------- [Tie Table] ------------------------------------', $N,
             '-- ', $tieName, ' table (', count(anchorRole|knotRole), '-ary)', $N,
@@ -1555,6 +1654,7 @@
             $tieRecordingDefinition,
             $tieMetadataDefinition,
             $tieUniqueRecordingConstraint,
+            $tieRestatementPrevention,
             $T, 'constraint pk', $tieName, ' primary key (', $N,
             $primaryKeyColumns,
             $tieChangingKey,
