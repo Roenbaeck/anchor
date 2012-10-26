@@ -1800,6 +1800,295 @@
             $latestCurrentWhereCondition, ';', $N,
             'GO', $N, $N
             )"/>
+            <xsl:variable name="partitioningColumns">
+                <xsl:choose>
+                    <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
+                        <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                            <xsl:variable name="column" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                            <xsl:choose>
+                                <xsl:when test="local-name(.) = 'anchorRole'">
+                                    <xsl:value-of select="concat('i.', $column)"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="concat('ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ')')"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:if test="not(position() = last())">
+                                <xsl:value-of select="', '"/>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:for-each select="anchorRole[1]">
+                            <xsl:value-of select="concat('i.', @type, '_', $identitySuffix, '_', @role)"/>
+                        </xsl:for-each>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="columnInsertedReferences">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:variable name="column" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                    <xsl:choose>
+                        <xsl:when test="local-name(.) = 'anchorRole'">
+                            <xsl:value-of select="concat($T, $T, 'i.', $column)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ')')"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, $T, 'ISNULL(i.', $tieName, '_', $changingSuffix, ', @now)')"/>
+                </xsl:if>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="concat(
+                    ',', $N, $T, $T, 'ISNULL(i.', $tieName, '_', $recordingSuffix, ', @now)',
+                    ',', $N, $T, $T, 'ISNULL(i.', $tieName, '_', $erasingSuffix, ', ', $infinity, ')'
+                    )"/>
+                </xsl:if>
+                <xsl:value-of select="$N"/>
+            </xsl:variable>
+            <xsl:variable name="tieMetadataInsertedReference">
+                <xsl:if test="$metadataUsage = 'true'">
+                    <xsl:value-of select="concat($T, $T, 'i.', $tieMetadata, ',', $N)"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="primaryKeyConditions">
+                <xsl:choose>
+                    <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
+                        <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                            <xsl:variable name="column" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                            <xsl:choose>
+                                <xsl:when test="local-name(.) = 'anchorRole'">
+                                    <xsl:value-of select="concat($T, $T, 'i.', $column, ' is not null')"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ') is not null')"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:if test="not(position() = last())">
+                                <xsl:value-of select="concat($N, $T, 'AND', $N)"/>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:for-each select="anchorRole[1]">
+                            <xsl:value-of select="concat($T, $T, 'i.', @type, '_', $identitySuffix, '_', @role, ' is not null')"/>
+                        </xsl:for-each>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="columnInsertedDefinitions">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
+                    <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role, ' ', $identityType, ' not null')"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, $T, $tieName, '_', $changingSuffix, ' ', @timeRange, ' not null')"/>
+                </xsl:if>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="concat(
+                    ',', $N, $T, $T, $tieName, '_', $recordingSuffix, ' ', $recordingRange, ' not null',
+                    ',', $N, $T, $T, $tieName, '_', $erasingSuffix, ' ', $recordingRange, ' not null'
+                    )"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="tieMetadataInsertedDefinition">
+                <xsl:if test="$metadataUsage = 'true'">
+                    <xsl:value-of select="concat($T, $T, $tieMetadata, ' ', $metadataType, ' null,', $N)"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="primaryKeyInsertedColumns">
+                <xsl:choose>
+                    <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
+                        <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                            <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ' asc')"/>
+                            <xsl:if test="not(position() = last())">
+                                <xsl:value-of select="concat(',', $N)"/>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:for-each select="anchorRole[1]">
+                            <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ' asc')"/>
+                        </xsl:for-each>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="versionSelect">
+                <xsl:choose>
+                    <xsl:when test="@timeRange">
+                        <xsl:value-of select="concat($T, $T, 'ROW_NUMBER() OVER (PARTITION BY ', $partitioningColumns, ' ORDER BY i.', $tieName, '_', $changingSuffix, '),', $N)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="concat($T, $T, '1,', $N)"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="knotJoins">
+                <xsl:for-each select="knotRole">
+                    <xsl:variable name="referent" select="concat(@type, '_', key('knotLookup', @type)/@descriptor)"/>
+                    <xsl:variable name="capsule" select="key('knotLookup', @type)/metadata/@capsule"/>
+                    <xsl:value-of select="concat(
+                    $T, 'LEFT JOIN', $N,
+                    $T, $T, '[', $capsule, '].[', $referent, '] [', @role, ']', $N,
+                    $T, 'ON', $N,
+                    $T, $T, '[', @role, '].', $referent, ' = i.', $referent, $N
+                    )"/>
+                </xsl:for-each>
+            </xsl:variable>
+            <xsl:variable name="insertedTable">
+                <xsl:value-of select="concat(
+                    $T, 'DECLARE @inserted TABLE (', $N,
+                    $T, $T, $tieName, '_Version int not null, ', $N,
+                    $tieMetadataInsertedDefinition,
+                    $columnInsertedDefinitions, ',', $N,
+                    $T, $T, 'primary key(', $N,
+                    $T, $T, $T, $tieName, '_Version asc, ', $N,
+                    $primaryKeyInsertedColumns, $N,
+                    $T, $T, ')', $N,
+                    $T, ');', $N,
+                    $T, 'INSERT INTO @inserted', $N,
+                    $T, 'SELECT', $N,
+                    $versionSelect,
+                    $tieMetadataInsertedReference,
+                    $columnInsertedReferences,
+                    $T, 'FROM', $N,
+                    $T, $T, 'inserted i', $N,
+                    $knotJoins,
+                    $T, 'WHERE', $N,
+                    $primaryKeyConditions, ';', $N
+                    )"/>
+            </xsl:variable>
+            <xsl:variable name="columnInsertList">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role)"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, $T, $tieName, '_', $changingSuffix)"/>
+                </xsl:if>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="concat(
+                    ',', $N, $T, $T, $tieName, '_', $recordingSuffix,
+                    ',', $N, $T, $T, $tieName, '_', $erasingSuffix
+                    )"/>
+                </xsl:if>
+                <xsl:value-of select="$N"/>
+            </xsl:variable>
+            <xsl:variable name="tieMetadataSelect">
+                <xsl:if test="$metadataUsage = 'true'">
+                    <xsl:value-of select="concat($T, $T, 'i.', $tieMetadata, ',', $N)"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="columnSelectList">
+                <xsl:for-each select="anchorRole|knotRole">
+                    <xsl:value-of select="concat($T, $T, 'i.', @type, '_', $identitySuffix, '_', @role)"/>
+                    <xsl:if test="not(position() = last())">
+                        <xsl:value-of select="concat(',', $N)"/>
+                    </xsl:if>
+                </xsl:for-each>
+                <xsl:if test="@timeRange">
+                    <xsl:value-of select="concat(',', $N, $T, $T, 'i.', $tieName, '_', $changingSuffix)"/>
+                </xsl:if>
+                <xsl:if test="$temporalization = 'bi'">
+                    <xsl:value-of select="concat(
+                    ',', $N, $T, $T, 'i.', $tieName, '_', $recordingSuffix,
+                    ',', $N, $T, $T, 'i.', $tieName, '_', $erasingSuffix
+                    )"/>
+                </xsl:if>
+                <xsl:value-of select="$N"/>
+            </xsl:variable>
+            <xsl:variable name="primaryKeyJoin">
+                <xsl:choose>
+                    <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
+                        <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
+                            <xsl:value-of select="concat($T, $T, 'tie.', @type, '_', $identitySuffix, '_', @role, ' = i.', @type, '_', $identitySuffix, '_', @role)"/>
+                            <xsl:if test="not(position() = last())">
+                                <xsl:value-of select="concat($N, $T, 'AND', $N)"/>
+                            </xsl:if>
+                        </xsl:for-each>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:for-each select="anchorRole[1]">
+                            <xsl:value-of select="concat($T, $T, 'tie.', @type, '_', $identitySuffix, '_', @role, ' = i.', @type, '_', $identitySuffix, '_', @role)"/>
+                        </xsl:for-each>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
+            <xsl:variable name="idempotencyJoin">
+                <xsl:if test="metadata/@idempotent = 'true'">
+                    <xsl:value-of select="concat(
+                    $T, 'LEFT JOIN', $N,
+                    $T, $T, '[', $tieCapsule, '].[l', $tieName, '] tie', $N,
+                    $T, 'ON', $N,
+                    $primaryKeyJoin, $N
+                    )"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="idempotencyConditions">
+                <xsl:if test="metadata/@idempotent = 'true' and count(anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]) > 0">
+                    <xsl:value-of select="concat($N, $T, 'AND (', $N)"/>
+                    <xsl:for-each select="anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]">
+                        <xsl:variable name="column" select="concat(@type, '_', $identitySuffix, '_', @role)"/>
+                        <xsl:value-of select="concat(
+                        $T, $T, 'tie.', $column, ' is null', $N,
+                        $T, 'OR', $N,
+                        $T, $T, 'tie.', $column, ' &lt;&gt; i.', $column
+                        )"/>
+                        <xsl:if test="not(position() = last())">
+                            <xsl:value-of select="concat($N, $T, 'OR', $N)"/>
+                        </xsl:if>
+                    </xsl:for-each>
+                    <xsl:value-of select="concat($N, $T, ')')"/>
+                </xsl:if>
+            </xsl:variable>
+            <xsl:variable name="insertTriggerName" select="concat('it', $tieName)"/>
+            <xsl:value-of select="concat(
+            '--------------------------------- [Insert Trigger] -----------------------------------', $N,
+            '-- ', $tieName, ' insert trigger on the latest perspective', $N,
+            '--------------------------------------------------------------------------------------', $N,
+            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
+            'DROP TRIGGER [', $tieCapsule, '].[', $insertTriggerName, ']', $N,
+            'GO', $N,
+            'CREATE TRIGGER [', $tieCapsule, '].[', $insertTriggerName, '] ON ', $latestPerspective, $N,
+            'INSTEAD OF INSERT', $N,
+            'AS', $N,
+            'BEGIN', $N,
+	        $T, 'SET NOCOUNT ON;', $N,
+	        $T, $now, $N,
+	        $T, 'DECLARE @v INT, @maxV INT;', $N,
+	        $insertedTable,
+            $T, 'SELECT @maxV = MAX(', $tieName, '_Version) FROM @inserted;', $N,
+            $T, 'SET @v = 0;', $N,
+            $T, 'WHILE(@v &lt; @maxV)', $N,
+            $T, 'BEGIN', $N,
+            $T, 'SET @v = @v + 1;', $N,
+            $T, 'INSERT INTO [', $tieCapsule, '].[', $tieName, '](', $N,
+            $tieMetadataInsertedReference,
+            $columnInsertList,
+            $T, ')', $N,
+            $T, 'SELECT', $N,
+            $tieMetadataSelect,
+            $columnSelectList,
+            $T, 'FROM', $N,
+            $T, $T, '@inserted i', $N,
+            $idempotencyJoin,
+            $T, 'WHERE', $N,
+            $T, $T, 'i.', $tieName, '_Version = @v',
+            $idempotencyConditions, ';', $N,
+            $T, 'END', $N,
+	        'END', $N,
+	        'GO', $N, $N
+            )"/>
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:variable name="latestRewindWhereCondition">
                     <xsl:if test="@timeRange">
@@ -2406,14 +2695,14 @@
                         $T, 'SELECT', $N,
                         $T, $T, 'i.', $anchorIdentity, ',', $N,
                         $T, $T, 'i.', $knotName, ',', $N,
-                        $T, $T, '[', $knotMnemonic, '].', $knotIdentity, ',', $N,
+                        $T, $T, 'ISNULL(i.', $knotIdentity, ', [', $knotMnemonic, '].', $knotIdentity, '),', $N,
                         $T, $T, 'ROW_NUMBER() OVER (PARTITION BY i.', $anchorIdentity, ' ORDER BY i.', $attributeMnemonic, '_', $changingSuffix, ')',
                         $attributeMetadataInsert,
                         $attributeHistorizationInsert,
                         $attributeRecordingInserts, $N,
                         $T, 'FROM', $N,
                         $T, $T, '@inserted i', $N,
-                        $T, 'JOIN', $N,
+                        $T, 'LEFT JOIN', $N,
                         $T, $T, '[', $knotCapsule, '].[', $knotName, '] [', $knotMnemonic, ']', $N,
                         $T, 'ON', $N,
                         $T, $T, '[', $knotMnemonic, '].', $knotName, ' = i.', $knotName, ';', $N,
