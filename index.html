@@ -1673,6 +1673,11 @@
                         window.msRequestAnimationFrame ||
                         window.oRequestAnimationFrame;
                 window.requestAnimationFrame = requestAnimationFrame;
+                if(!window.requestAnimationFrame) {
+                    window.requestAnimationFrame = function(callback, canvas) {
+                        return setTimeout(callback, 10);
+                    }
+                }
                 var cancelRequestAnimationFrame =
                         window.cancelRequestAnimationFrame ||
                         window.webkitCancelRequestAnimationFrame ||
@@ -1680,6 +1685,11 @@
                         window.msCancelRequestAnimationFrame ||
                         window.oCancelRequestAnimationFrame;
                 window.cancelRequestAnimationFrame = cancelRequestAnimationFrame;
+                if(!window.cancelRequestAnimationFrame) {
+                    window.cancelRequestAnimationFrame = function(id) {
+                        return clearTimeout(id);
+                    }
+                }
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
                 this.miniatureCanvas = miniatureCanvas;
@@ -1769,10 +1779,7 @@
                     this.invalidateMiniature();
                     if(!this.running) {
                         this.running = true;
-                        if(window.requestAnimationFrame)
-                            this.drawId = window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
-                        else
-                            this.drawId = window.setInterval(DrawingEngine.engine, 10);
+                        this.drawId = window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
                         if(this.layout)
                             ControlButtons.setPauseState();
                     }
@@ -1780,10 +1787,7 @@
             },
             stop: function() {
                 if(this.running) {
-                    if(window.cancelRequestAnimationFrame)
-                        window.cancelRequestAnimationFrame(this.drawId);
-                    else
-                        window.clearInterval(DrawingEngine.drawId);
+                    window.cancelRequestAnimationFrame(this.drawId);
                     this.running = false;
                     ControlButtons.setPlayState();
                 }
@@ -1806,7 +1810,7 @@
                     DrawingEngine.layout = false;
                     ControlButtons.setPlayState();
                 }
-                else if(DrawingEngine.running && window.requestAnimationFrame) {
+                else if(DrawingEngine.running) {
                     window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
                 }
             },
