@@ -3356,7 +3356,20 @@
                 }
             },
             isConforming: function() {
-                var i, j, edge, node, roles = {}, identical;
+                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, roles = {}, identical;
+                // check that no roles are identical in the tie
+                for(i = 0; edge = this.edges[i]; i++) {
+                    for(j = 0; otherEdge = this.edges[j]; j++) {
+                        if(i != j && edge.role == otherEdge.role) {
+                            mnemonic = (edge.node == this ? edge.otherNode : edge.node).toString();
+                            otherMnemonic = (otherEdge.node == this ? otherEdge.otherNode : otherEdge.node).toString();
+                            if(mnemonic == otherMnemonic)
+                                return !confirm("The roles named '" + edge.role + "' for the anchor '" +
+                                        mnemonic + "' cannot be identical in this tie. " +
+                                        "Please give the roles different and distinguishing names.");
+                        }
+                    }
+                }
                 // first find the anchors and knots connected to this tie
                 for(i = 0; edge = this.edges[i]; i++)
                     roles[edge.role + "_" + (edge.node == this ? edge.otherNode : edge.node)] = true;
