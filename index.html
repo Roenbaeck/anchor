@@ -2099,6 +2099,10 @@
                                 if(Operations.isSupported("explode", allNodes))
                                     Model.explode(allNodes);
                                 break;
+                            case "d":
+                                if(Operations.isSupported("erase", allNodes))
+                                    Model.erase(allNodes);
+                                break;
                         }
                         if(event.stopPropagation)
                             event.stopPropagation();
