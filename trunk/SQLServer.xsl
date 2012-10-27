@@ -1054,26 +1054,28 @@
                     </xsl:otherwise>
                 </xsl:choose>
             </xsl:variable>
-            <xsl:variable name="insertTriggerName" select="concat('it', $anchorName)"/>
-            <xsl:value-of select="concat(
-            '--------------------------------- [Insert Trigger] -----------------------------------', $N,
-            '-- ', $anchorName, ' insert trigger on the latest perspective', $N,
-            '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
-            'DROP TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, ']', $N,
-            'GO', $N,
-            'CREATE TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, '] ON ', $latestPerspective, $N,
-            'INSTEAD OF INSERT', $N,
-            'AS', $N,
-            'BEGIN', $N,
-	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, $now, $N,
-	        $T, 'DECLARE @v INT, @maxV INT;', $N,
-	        $insertedTable,
-	        $insertStatements,
-	        'END', $N,
-	        'GO', $N, $N
-            )"/>
+            <xsl:if test="count(attribute) > 0">
+                <xsl:variable name="insertTriggerName" select="concat('it', $anchorName)"/>
+                <xsl:value-of select="concat(
+                '--------------------------------- [Insert Trigger] -----------------------------------', $N,
+                '-- ', $anchorName, ' insert trigger on the latest perspective', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $insertTriggerName, $Q, ')', $N,
+                'DROP TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, ']', $N,
+                'GO', $N,
+                'CREATE TRIGGER [', $anchorCapsule, '].[', $insertTriggerName, '] ON ', $latestPerspective, $N,
+                'INSTEAD OF INSERT', $N,
+                'AS', $N,
+                'BEGIN', $N,
+                $T, 'SET NOCOUNT ON;', $N,
+                $T, $now, $N,
+                $T, 'DECLARE @v INT, @maxV INT;', $N,
+                $insertedTable,
+                $insertStatements,
+                'END', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
             <xsl:variable name="updateStatements">
                 <xsl:for-each select="attribute">
                     <xsl:call-template name="updateStatement">
@@ -1081,26 +1083,28 @@
                     </xsl:call-template>
                 </xsl:for-each>
             </xsl:variable>
-            <xsl:variable name="updateTriggerName" select="concat('ut', $anchorName)"/>
-            <xsl:value-of select="concat(
-            '--------------------------------- [Update Trigger] -----------------------------------', $N,
-            '-- ', $anchorName, ' update trigger on the latest perspective', $N,
-            '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $updateTriggerName, $Q, ')', $N,
-            'DROP TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, ']', $N,
-            'GO', $N,
-            'CREATE TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, '] ON ', $latestPerspective, $N,
-            'INSTEAD OF UPDATE', $N,
-            'AS', $N,
-            'BEGIN', $N,
-	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, $now, $N,
-            $T, 'IF(UPDATE(', $anchorIdentity, '))', $N,
-            $T, 'RAISERROR(', $Q, 'The identity column is not updatable.', $Q, ', 16, 1);', $N,
-            $updateStatements,
-	        'END', $N,
-	        'GO', $N, $N
-            )"/>
+            <xsl:if test="count(attribute) > 0">
+                <xsl:variable name="updateTriggerName" select="concat('ut', $anchorName)"/>
+                <xsl:value-of select="concat(
+                '--------------------------------- [Update Trigger] -----------------------------------', $N,
+                '-- ', $anchorName, ' update trigger on the latest perspective', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $updateTriggerName, $Q, ')', $N,
+                'DROP TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, ']', $N,
+                'GO', $N,
+                'CREATE TRIGGER [', $anchorCapsule, '].[', $updateTriggerName, '] ON ', $latestPerspective, $N,
+                'INSTEAD OF UPDATE', $N,
+                'AS', $N,
+                'BEGIN', $N,
+                $T, 'SET NOCOUNT ON;', $N,
+                $T, $now, $N,
+                $T, 'IF(UPDATE(', $anchorIdentity, '))', $N,
+                $T, 'RAISERROR(', $Q, 'The identity column is not updatable.', $Q, ', 16, 1);', $N,
+                $updateStatements,
+                'END', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
             <xsl:variable name="deleteTriggerName" select="concat('dt', $anchorName)"/>
             <xsl:variable name="deleteStatements">
                 <xsl:for-each select="attribute">
@@ -1192,24 +1196,26 @@
                     )"/>
                 </xsl:if>
             </xsl:variable>
-            <xsl:value-of select="concat(
-            '--------------------------------- [Delete Trigger] -----------------------------------', $N,
-            '-- ', $anchorName, ' delete trigger on the latest perspective', $N,
-            '--------------------------------------------------------------------------------------', $N,
-            'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $deleteTriggerName, $Q, ')', $N,
-            'DROP TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, ']', $N,
-            'GO', $N,
-            'CREATE TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, '] ON ', $latestPerspective, $N,
-            'INSTEAD OF DELETE', $N,
-            'AS', $N,
-            'BEGIN', $N,
-	        $T, 'SET NOCOUNT ON;', $N,
-	        $T, $now, $N,
-	        $deleteStatements,
-	        $deleteAnchorStatement,
-	        'END', $N,
-	        'GO', $N, $N
-            )"/>
+            <xsl:if test="count(attribute) > 0">
+                <xsl:value-of select="concat(
+                '--------------------------------- [Delete Trigger] -----------------------------------', $N,
+                '-- ', $anchorName, ' delete trigger on the latest perspective', $N,
+                '--------------------------------------------------------------------------------------', $N,
+                'IF EXISTS (SELECT * FROM sys.triggers WHERE name = ', $Q, $deleteTriggerName, $Q, ')', $N,
+                'DROP TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, ']', $N,
+                'GO', $N,
+                'CREATE TRIGGER [', $anchorCapsule, '].[', $deleteTriggerName, '] ON ', $latestPerspective, $N,
+                'INSTEAD OF DELETE', $N,
+                'AS', $N,
+                'BEGIN', $N,
+                $T, 'SET NOCOUNT ON;', $N,
+                $T, $now, $N,
+                $deleteStatements,
+                $deleteAnchorStatement,
+                'END', $N,
+                'GO', $N, $N
+                )"/>
+            </xsl:if>
             <xsl:variable name="point-in-timeJoinConditions">
                 <xsl:for-each select="attribute">
                     <xsl:call-template name="joinCondition">
@@ -1468,13 +1474,13 @@
                         <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
                             <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
                                 <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
-                                <xsl:value-of select="concat($T, '@', @role, ' ', $identityType, ',', $N)"/>
+                                <xsl:value-of select="concat($T, '@', @type, '_', @role, ' ', $identityType, ',', $N)"/>
                             </xsl:for-each>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:for-each select="anchorRole[1]">
                                 <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
-                                <xsl:value-of select="concat($T, '@', @role, ' ', $identityType, ',', $N)"/>
+                                <xsl:value-of select="concat($T, '@', @type, '_', @role, ' ', $identityType, ',', $N)"/>
                             </xsl:for-each>
                         </xsl:otherwise>
                     </xsl:choose>
@@ -1483,7 +1489,7 @@
                     <xsl:choose>
                         <xsl:when test="count(anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']) > 0">
                             <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
-                                <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @role, $N)"/>
+                                <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @type, '_', @role, $N)"/>
                                 <xsl:if test="not(position() = last())">
                                     <xsl:value-of select="concat($T, 'AND', $N)"/>
                                 </xsl:if>
@@ -1491,7 +1497,7 @@
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:for-each select="anchorRole[1]">
-                                <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @role, $N)"/>
+                                <xsl:value-of select="concat($T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @type, '_', @role, $N)"/>
                             </xsl:for-each>
                         </xsl:otherwise>
                     </xsl:choose>
@@ -1559,7 +1565,7 @@
                 <xsl:variable name="roleParameters">
                     <xsl:for-each select="anchorRole|knotRole">
                         <xsl:variable name="identityType" select="concat(key('anchorLookup', @type)/@identity, key('knotLookup', @type)/@identity)"/>
-                        <xsl:value-of select="concat($T, '@', @role, ' ', $identityType, ',', $N)"/>
+                        <xsl:value-of select="concat($T, '@', @type, '_', @role, ' ', $identityType, ',', $N)"/>
                     </xsl:for-each>
                 </xsl:variable>
                 <xsl:variable name="outsideColumnNames">
@@ -1572,7 +1578,7 @@
                 </xsl:variable>
                 <xsl:variable name="primaryColumnConditions">
                     <xsl:for-each select="anchorRole[string(@identifier) = 'true']|knotRole[string(@identifier) = 'true']">
-                        <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @role)"/>
+                        <xsl:value-of select="concat($T, $T, $T, @type, '_', $identitySuffix, '_', @role, ' = @', @type, '_', @role)"/>
                         <xsl:if test="not(position() = last())">
                             <xsl:value-of select="concat($N, $T, $T, 'AND', $N)"/>
                         </xsl:if>
@@ -1580,7 +1586,7 @@
                 </xsl:variable>
                 <xsl:variable name="outsideColumnConditions">
                     <xsl:for-each select="anchorRole[not(string(@identifier) = 'true')]|knotRole[not(string(@identifier) = 'true')]">
-                        <xsl:value-of select="concat($T, $T, 's.', @type, '_', $identitySuffix, '_', @role, ' = @', @role)"/>
+                        <xsl:value-of select="concat($T, $T, 's.', @type, '_', $identitySuffix, '_', @role, ' = @', @type, '_', @role)"/>
                         <xsl:if test="not(position() = last())">
                             <xsl:value-of select="concat($N, $T, 'AND', $N)"/>
                         </xsl:if>
@@ -1810,7 +1816,7 @@
                                     <xsl:value-of select="concat('i.', $column)"/>
                                 </xsl:when>
                                 <xsl:otherwise>
-                                    <xsl:value-of select="concat('ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ')')"/>
+                                    <xsl:value-of select="concat('ISNULL(i.', $column, ', [', @type, '_', @role, '].', @type, '_', $identitySuffix, ')')"/>
                                 </xsl:otherwise>
                             </xsl:choose>
                             <xsl:if test="not(position() = last())">
@@ -1833,7 +1839,7 @@
                             <xsl:value-of select="concat($T, $T, 'i.', $column)"/>
                         </xsl:when>
                         <xsl:otherwise>
-                            <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ')')"/>
+                            <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @type, '_', @role, '].', @type, '_', $identitySuffix, ')')"/>
                         </xsl:otherwise>
                     </xsl:choose>
                     <xsl:if test="not(position() = last())">
@@ -1866,7 +1872,7 @@
                                     <xsl:value-of select="concat($T, $T, 'i.', $column, ' is not null')"/>
                                 </xsl:when>
                                 <xsl:otherwise>
-                                    <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @role, '].', @type, '_', $identitySuffix, ') is not null')"/>
+                                    <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $column, ', [', @type, '_', @role, '].', @type, '_', $identitySuffix, ') is not null')"/>
                                 </xsl:otherwise>
                             </xsl:choose>
                             <xsl:if test="not(position() = last())">
@@ -1937,9 +1943,9 @@
                     <xsl:variable name="capsule" select="key('knotLookup', @type)/metadata/@capsule"/>
                     <xsl:value-of select="concat(
                     $T, 'LEFT JOIN', $N,
-                    $T, $T, '[', $capsule, '].[', $referent, '] [', @role, ']', $N,
+                    $T, $T, '[', $capsule, '].[', $referent, '] [', @type, '_', @role, ']', $N,
                     $T, 'ON', $N,
-                    $T, $T, '[', @role, '].', $referent, ' = i.', $referent, $N
+                    $T, $T, '[', @type, '_', @role, '].', $referent, ' = i.', $referent, $N
                     )"/>
                 </xsl:for-each>
             </xsl:variable>
