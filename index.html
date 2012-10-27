@@ -1231,15 +1231,16 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var metadata, temporalization = 'mono';
-                    for(i = 0; i < xml.childNodes.length; i++) {
-                        if(xml.childNodes.item(i).nodeName == 'metadata') {
-                            metadata = xml.childNodes.item(i);
-                            break;
+                    var metadata, nodes, temporalization = 'mono';
+                    nodes = xml.getElementsByTagName('metadata');
+                    if(nodes)
+                        for(i = 0; i < nodes.length; i++) {
+                            if(nodes[i].getAttribute('temporalization')) {
+                                temporalization = nodes[i].getAttribute('temporalization')
+                                break;
+                            }
                         }
-                    }
-                    if(metadata)
-                        temporalization = metadata.getAttribute('temporalization') || 'mono';
+                    document.getElementById('temporalization').value = temporalization;
                     Settings.setTemporalization(temporalization);
                     var i;
                     // the order in which we add these are important (attributes create edges to anchors)
