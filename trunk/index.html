@@ -1240,8 +1240,10 @@
                                 break;
                             }
                         }
-                    document.getElementById('temporalization').value = temporalization;
                     Settings.setTemporalization(temporalization);
+                    var selector = document.getElementById('temporalization');
+                    if(selector.value != temporalization)
+                        selector.value = temporalization;
                     var i;
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
@@ -5258,80 +5260,90 @@
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
                 if(value == 'bi') {
-                    this.recordingRange = document.createElement('li');
-                    var recordingRangeInput = document.createElement('input');
-                    recordingRangeInput.setAttribute('type', 'text');
-                    recordingRangeInput.setAttribute('class', 'inputDefaults');
-                    this.recordingRange.setAttribute('title',
-                            "The recording time (corrections) 'data type' used throughout the implementation."
-                    );
-                    recordingRangeInput.value = Defaults.recordingRange;
-                    recordingRangeInput.addEventListener('blur', function() {
-                        Settings.setRecordingRange(this.value);
-                    }, false);
-                    this.recordingRange.appendChild(recordingRangeInput);
-                    this.recordingRange.appendChild(document.createTextNode(' Recording time range'));
-                    listOfDefaults.insertBefore(this.recordingRange, tempoItem);
-                    this.recordingSuffix = document.createElement('li');
-                    var recordingSuffixInput = document.createElement('input');
-                    recordingSuffixInput.setAttribute('type', 'text');
-                    recordingSuffixInput.setAttribute('class', 'inputDefaults');
-                    this.recordingSuffix.setAttribute('title',
-                            "The suffix used for the column storing the start of a recording time period."
-                    );
-                    recordingSuffixInput.value = Defaults.recordingSuffix;
-                    recordingSuffixInput.addEventListener('blur', function() {
-                        Settings.setRecordingSuffix(this.value);
-                    }, false);
-                    this.recordingSuffix.appendChild(recordingSuffixInput);
-                    this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
-                    listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
-                    this.erasingSuffix = document.createElement('li');
-                    var erasingSuffixInput = document.createElement('input');
-                    erasingSuffixInput.setAttribute('type', 'text');
-                    erasingSuffixInput.setAttribute('class', 'inputDefaults');
-                    this.erasingSuffix.setAttribute('title',
-                            "The suffix used for the column storing the end of a recording time period."
-                    );
-                    erasingSuffixInput.value = Defaults.erasingSuffix;
-                    erasingSuffixInput.addEventListener('blur', function() {
-                        Settings.setErasingSuffix(this.value);
-                    }, false);
-                    this.erasingSuffix.appendChild(erasingSuffixInput);
-                    this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
-                    listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
-                    this.entityIntegrity = document.createElement('li');
-                    var entityIntegrityInput = document.createElement('input');
-                    entityIntegrityInput.setAttribute('type', 'checkbox');
-                    entityIntegrityInput.setAttribute('class', 'inputDefaults');
-                    this.entityIntegrity.setAttribute('title',
-                            "Entity integrity adds constraints ensuring that no temporal duplicates " +
-                            "can co-exist for the same entity and version, that no negative recording " +
-                            "time intervals can be stored, and that there are no overlapping intervals " +
-                            "with respect to recording time."
-                    );
-                    entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
-                    entityIntegrityInput.addEventListener('change', function() {
-                        Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
-                    }, false);
-                    this.entityIntegrity.appendChild(entityIntegrityInput);
-                    this.entityIntegrity.appendChild(document.createTextNode(' Ensure entity integrity'));
-                    listOfDefaults.insertBefore(this.entityIntegrity, tempoItem);
-                    this.partitioning = document.createElement('li');
-                    var partitioningInput = document.createElement('input');
-                    partitioningInput.setAttribute('type', 'checkbox');
-                    partitioningInput.setAttribute('class', 'inputDefaults');
-                    this.partitioning.setAttribute('title',
-                            "Partitioning will put currently recorded information in a separate partition " +
-                            "from erased information, greatly speeding up querying in the bitemporal implementation."
-                    );
-                    partitioningInput.checked = Defaults.partitioning == 'true';
-                    partitioningInput.addEventListener('change', function() {
-                        Settings.setPartitioning(this.checked ? 'true' : 'false');
-                    }, false);
-                    this.partitioning.appendChild(partitioningInput);
-                    this.partitioning.appendChild(document.createTextNode(' Use partitioning'));
-                    listOfDefaults.insertBefore(this.partitioning, tempoItem);
+                    if(!this.recordingRange) {
+                        this.recordingRange = document.createElement('li');
+                        var recordingRangeInput = document.createElement('input');
+                        recordingRangeInput.setAttribute('type', 'text');
+                        recordingRangeInput.setAttribute('class', 'inputDefaults');
+                        this.recordingRange.setAttribute('title',
+                                "The recording time (corrections) 'data type' used throughout the implementation."
+                        );
+                        recordingRangeInput.value = Defaults.recordingRange;
+                        recordingRangeInput.addEventListener('blur', function() {
+                            Settings.setRecordingRange(this.value);
+                        }, false);
+                        this.recordingRange.appendChild(recordingRangeInput);
+                        this.recordingRange.appendChild(document.createTextNode(' Recording time range'));
+                        listOfDefaults.insertBefore(this.recordingRange, tempoItem);
+                    }
+                    if(!this.recordingSuffix) {
+                        this.recordingSuffix = document.createElement('li');
+                        var recordingSuffixInput = document.createElement('input');
+                        recordingSuffixInput.setAttribute('type', 'text');
+                        recordingSuffixInput.setAttribute('class', 'inputDefaults');
+                        this.recordingSuffix.setAttribute('title',
+                                "The suffix used for the column storing the start of a recording time period."
+                        );
+                        recordingSuffixInput.value = Defaults.recordingSuffix;
+                        recordingSuffixInput.addEventListener('blur', function() {
+                            Settings.setRecordingSuffix(this.value);
+                        }, false);
+                        this.recordingSuffix.appendChild(recordingSuffixInput);
+                        this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
+                        listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
+                    }
+                    if(!this.erasingSuffix) {
+                        this.erasingSuffix = document.createElement('li');
+                        var erasingSuffixInput = document.createElement('input');
+                        erasingSuffixInput.setAttribute('type', 'text');
+                        erasingSuffixInput.setAttribute('class', 'inputDefaults');
+                        this.erasingSuffix.setAttribute('title',
+                                "The suffix used for the column storing the end of a recording time period."
+                        );
+                        erasingSuffixInput.value = Defaults.erasingSuffix;
+                        erasingSuffixInput.addEventListener('blur', function() {
+                            Settings.setErasingSuffix(this.value);
+                        }, false);
+                        this.erasingSuffix.appendChild(erasingSuffixInput);
+                        this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
+                        listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
+                    }
+                    if(!this.entityIntegrity) {
+                        this.entityIntegrity = document.createElement('li');
+                        var entityIntegrityInput = document.createElement('input');
+                        entityIntegrityInput.setAttribute('type', 'checkbox');
+                        entityIntegrityInput.setAttribute('class', 'inputDefaults');
+                        this.entityIntegrity.setAttribute('title',
+                                "Entity integrity adds constraints ensuring that no temporal duplicates " +
+                                        "can co-exist for the same entity and version, that no negative recording " +
+                                        "time intervals can be stored, and that there are no overlapping intervals " +
+                                        "with respect to recording time."
+                        );
+                        entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
+                        entityIntegrityInput.addEventListener('change', function() {
+                            Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
+                        }, false);
+                        this.entityIntegrity.appendChild(entityIntegrityInput);
+                        this.entityIntegrity.appendChild(document.createTextNode(' Ensure entity integrity'));
+                        listOfDefaults.insertBefore(this.entityIntegrity, tempoItem);
+                    }
+                    if(!this.partitioning) {
+                        this.partitioning = document.createElement('li');
+                        var partitioningInput = document.createElement('input');
+                        partitioningInput.setAttribute('type', 'checkbox');
+                        partitioningInput.setAttribute('class', 'inputDefaults');
+                        this.partitioning.setAttribute('title',
+                                "Partitioning will put currently recorded information in a separate partition " +
+                                        "from erased information, greatly speeding up querying in the bitemporal implementation."
+                        );
+                        partitioningInput.checked = Defaults.partitioning == 'true';
+                        partitioningInput.addEventListener('change', function() {
+                            Settings.setPartitioning(this.checked ? 'true' : 'false');
+                        }, false);
+                        this.partitioning.appendChild(partitioningInput);
+                        this.partitioning.appendChild(document.createTextNode(' Use partitioning'));
+                        listOfDefaults.insertBefore(this.partitioning, tempoItem);
+                    }
                 }
                 else {
                     if(this.recordingRange) listOfDefaults.removeChild(this.recordingRange);
