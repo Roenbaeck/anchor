@@ -651,6 +651,11 @@
         var PARAMETERS = {};
         var USER_ID = "";
 
+        // latin-1 encoding
+        var LOWER = '[a-z0-9\u00E0-\u00F6\u00F8-\u00FF]';
+        var UPPER = '[A-Z\u00C0-\u00D6\u00D8-\u00DF]';
+
+
         var Defaults = {
             changingRange: 'datetime',
             encapsulation: 'dbo',
@@ -2249,7 +2254,7 @@
                 setElement: function (element, node) { element.value = node.descriptor },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '([A-Z][a-z0-9]*)+',
+                pattern: '(' + UPPER + LOWER + '*)+',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
@@ -2264,7 +2269,7 @@
                 setElement: function (element, node) { element.value = node.mnemonic },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '[A-Z]{2}',
+                pattern: UPPER + '{2}',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
@@ -2280,7 +2285,7 @@
                 setElement: function (element, node) { element.value = node.mnemonic },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '[A-Z]{3}',
+                pattern: UPPER + '{3}',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
@@ -2379,7 +2384,7 @@
                 setElement: function (element, node) { element.value = node.role },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '([a-z][A-Z]*)+',
+                pattern: '(' + LOWER + UPPER + '*)+',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
@@ -2393,7 +2398,7 @@
                 setElement: function (element, node) { element.value = node.encapsulation },
                 getElement: function (element) { return element.value },
                 type: 'input',
-                pattern: '([a-z][A-Z]*)+',
+                pattern: LOWER + '*',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             }
