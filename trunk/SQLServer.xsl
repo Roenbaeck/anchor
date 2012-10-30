@@ -43,8 +43,8 @@
     <xsl:param name="defaultCapsule">
         <xsl:text>dbo</xsl:text>
     </xsl:param>
-    <xsl:param name="namingVersion">
-        <xsl:text>1</xsl:text>
+    <xsl:param name="namingConvention">
+        <xsl:text>improved</xsl:text>
     </xsl:param>
 
     <!-- "global" variables -->
@@ -356,7 +356,7 @@
 				</xsl:variable>
                 <xsl:variable name="knotId">
                     <xsl:choose>
-                        <xsl:when test="$namingVersion = 2">
+                        <xsl:when test="$namingConvention = 'improved'">
                             <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
                         </xsl:when>
                         <xsl:otherwise>
@@ -366,7 +366,7 @@
                 </xsl:variable>
                 <xsl:variable name="attributeIdentity">
                     <xsl:choose>
-                        <xsl:when test="$namingVersion = 2">
+                        <xsl:when test="$namingConvention = 'improved'">
                             <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
                         </xsl:when>
                         <xsl:otherwise>
@@ -868,7 +868,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotId">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -878,7 +878,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotName">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -936,7 +936,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotId">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -946,7 +946,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotName">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -1004,7 +1004,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotId">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -1014,7 +1014,7 @@
                     </xsl:variable>
                     <xsl:variable name="knotName">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -1227,7 +1227,7 @@
                     </xsl:variable>
                     <xsl:variable name="attributeIdentity">
                         <xsl:choose>
-                            <xsl:when test="$namingVersion = 2">
+                            <xsl:when test="$namingConvention = 'improved'">
                                 <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -1256,7 +1256,7 @@
                         <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
                         <xsl:variable name="attributeIdentity">
                             <xsl:choose>
-                                <xsl:when test="$namingVersion = 2">
+                                <xsl:when test="$namingConvention = 'improved'">
                                     <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
                                 </xsl:when>
                                 <xsl:otherwise>
@@ -1277,7 +1277,7 @@
                         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
                         <xsl:variable name="attributeIdentity">
                             <xsl:choose>
-                                <xsl:when test="$namingVersion = 2">
+                                <xsl:when test="$namingConvention = 'improved'">
                                     <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
                                 </xsl:when>
                                 <xsl:otherwise>
@@ -2627,6 +2627,16 @@
         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', $anchor/@descriptor, '_', $attribute/@descriptor)"/>
         <xsl:variable name="attributeCapsule" select="$attribute/metadata/@capsule"/>
         <xsl:variable name="anchorIdentity" select="concat($anchorMnemonic, '_', $identitySuffix)"/>
+        <xsl:variable name="attributeIdentity">
+            <xsl:choose>
+                <xsl:when test="$namingConvention = 'improved'">
+                    <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:value-of select="$anchorIdentity"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:variable name="attributeSource">
             <xsl:choose>
                 <xsl:when test="$temporalization = 'mono' and not($attribute/@timeRange)">
@@ -2668,12 +2678,12 @@
             </xsl:choose>
         </xsl:variable>
         <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, $attributeSource, ' [',  $attributeMnemonic, ']')"/>
-        <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '].', $attributeMnemonic, '_', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
+        <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '].', $attributeIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
         <xsl:if test="$attribute/@timeRange">
             <xsl:value-of select="concat($N, 'AND', $N, $T, '[', $attributeMnemonic, '].', $attributeMnemonic, '_', $changingSuffix, ' = (')"/>
             <xsl:value-of select="concat($N, $T, $T, 'SELECT', $N, $T, $T, $T, 'max(sub.', $attributeMnemonic, '_', $changingSuffix, ')')"/>
             <xsl:value-of select="concat($N, $T, $T, 'FROM', $N, $T, $T, $T, $attributeSource, ' sub')"/>
-            <xsl:value-of select="concat($N, $T, $T, 'WHERE', $N, $T, $T, $T, 'sub.', $attributeMnemonic, '_', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
+            <xsl:value-of select="concat($N, $T, $T, 'WHERE', $N, $T, $T, $T, 'sub.', $attributeIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity)"/>
             <xsl:value-of select="concat($N, $T, ')')"/>
         </xsl:if>
         <xsl:if test="key('knotLookup', $attribute/@knotRange)">
@@ -2682,8 +2692,18 @@
             <xsl:variable name="knotCapsule" select="key('knotLookup', $attribute/@knotRange)/metadata/@capsule"/>
             <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
             <xsl:variable name="knotSource" select="concat('[', $knotCapsule, '].[', $knotName, ']')"/>
+            <xsl:variable name="attributeKnotId">
+                <xsl:choose>
+                    <xsl:when test="$namingConvention = 'improved'">
+                        <xsl:value-of select="concat($attributeMnemonic, '_', $knotIdentity)"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="$knotIdentity"/>
+                    </xsl:otherwise>
+                </xsl:choose>
+            </xsl:variable>
             <xsl:value-of select="concat($N, 'LEFT JOIN', $N, $T, $knotSource, ' [',  $attributeMnemonic, '_', $knotMnemonic, ']')"/>
-            <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '_', $knotMnemonic, '].', $knotIdentity, ' = [', $attributeMnemonic, '].', $attributeMnemonic, '_', $knotIdentity)"/>
+            <xsl:value-of select="concat($N, 'ON', $N, $T, '[',  $attributeMnemonic, '_', $knotMnemonic, '].', $knotIdentity, ' = [', $attributeMnemonic, '].', $attributeKnotId)"/>
         </xsl:if>
     </xsl:template>
     <xsl:template name="columnReference">
@@ -2699,10 +2719,40 @@
                 <xsl:variable name="knotMetadata" select="concat($metadataPrefix, '_', $knotMnemonic)"/>
                 <xsl:variable name="knotName" select="concat($knotMnemonic, '_', key('knotLookup', $attribute/@knotRange)/@descriptor)"/>
                 <xsl:variable name="knotIdentity" select="concat($knotMnemonic, '_', $identitySuffix)"/>
-                <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotIdentity, ' AS ', $attributeMnemonic, '_', $knotIdentity)"/>
-                <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotName, ' AS ', $attributeMnemonic, '_', $knotName)"/>
+                <xsl:variable name="attributeKnotId">
+                    <xsl:choose>
+                        <xsl:when test="$namingConvention = 'improved'">
+                            <xsl:value-of select="concat($attributeMnemonic, '_', $knotIdentity)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$knotIdentity"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="attributeKnotName">
+                    <xsl:choose>
+                        <xsl:when test="$namingConvention = 'improved'">
+                            <xsl:value-of select="concat($attributeMnemonic, '_', $knotName)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$knotName"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="attributeKnotMetadata">
+                    <xsl:choose>
+                        <xsl:when test="$namingConvention = 'improved'">
+                            <xsl:value-of select="concat($attributeMnemonic, '_', $knotMetadata)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$knotMetadata"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotIdentity, ' AS ', $attributeKnotId)"/>
+                <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotName, ' AS ', $attributeKnotName)"/>
                 <xsl:if test="$metadataUsage = 'true'">
-                    <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotMetadata, ' AS ', $attributeMnemonic, '_', $knotMetadata)"/>
+                    <xsl:value-of select="concat(',', $N, $T, '[', $attributeMnemonic, '_', $knotMnemonic, '].', $knotMetadata, ' AS ', $attributeKnotMetadata)"/>
                 </xsl:if>
             </xsl:when>
             <xsl:otherwise>
@@ -2788,6 +2838,11 @@
                 )"/>
             </xsl:if>
         </xsl:variable>
+        <xsl:variable name="namingPrefix">
+            <xsl:if test="$namingConvention = 'improved'">
+                <xsl:value-of select="concat($attributeMnemonic, '_')"/>
+            </xsl:if>
+        </xsl:variable>
         <xsl:choose>
             <xsl:when test="$attribute/@knotRange">
                 <xsl:variable name="knot" select="key('knotLookup', $attribute/@knotRange)"/>
@@ -2799,20 +2854,20 @@
                     <xsl:when test="$attribute/@timeRange and $attribute/metadata/@idempotent = 'true'">
                         <xsl:value-of select="concat(
                         $T, 'DECLARE @', $attributeName, ' TABLE (', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
-                        $T, $T, $attributeMnemonic, '_', $knotName, ' ', $knot/@dataRange, ' not null,', $N,
-                        $T, $T, $attributeMnemonic, '_', $knotIdentity, ' ', $knot/@identity, ' not null,', $N,
+                        $T, $T, $namingPrefix, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
+                        $T, $T, $namingPrefix, $knotName, ' ', $knot/@dataRange, ' not null,', $N,
+                        $T, $T, $namingPrefix, $knotIdentity, ' ', $knot/@identity, ' not null,', $N,
                         $T, $T, $attributeMnemonic, '_Version int not null',
                         $attributeMetadataDefinition,
                         $attributeHistorizationDefinition,
                         $attributeRecordingDefinitions, $N,
-                        $T, $T, 'primary key(', $attributeMnemonic, '_Version, ', $attributeMnemonic, '_', $anchorIdentity, ')', $N,
+                        $T, $T, 'primary key(', $attributeMnemonic, '_Version, ', $namingPrefix, $anchorIdentity, ')', $N,
                         $T, ')', $N,
                         $T, 'INSERT INTO @', $attributeName, $N,
                         $T, 'SELECT', $N,
                         $T, $T, 'i.', $anchorIdentity, ',', $N,
-                        $T, $T, 'i.', $attributeMnemonic, '_', $knotName, ',', $N,
-                        $T, $T, 'ISNULL(i.', $attributeMnemonic, '_', $knotIdentity, ', [', $knotMnemonic, '].', $knotIdentity, '),', $N,
+                        $T, $T, 'i.', $namingPrefix, $knotName, ',', $N,
+                        $T, $T, 'ISNULL(i.', $namingPrefix, $knotIdentity, ', [', $knotMnemonic, '].', $knotIdentity, '),', $N,
                         $T, $T, 'ROW_NUMBER() OVER (PARTITION BY i.', $anchorIdentity, ' ORDER BY i.', $attributeMnemonic, '_', $changingSuffix, ')',
                         $attributeMetadataInsert,
                         $attributeHistorizationInsert,
@@ -2822,22 +2877,22 @@
                         $T, 'LEFT JOIN', $N,
                         $T, $T, '[', $knotCapsule, '].[', $knotName, '] [', $knotMnemonic, ']', $N,
                         $T, 'ON', $N,
-                        $T, $T, '[', $knotMnemonic, '].', $knotName, ' = i.', $attributeMnemonic, '_', $knotName, ';', $N,
+                        $T, $T, '[', $knotMnemonic, '].', $knotName, ' = i.', $namingPrefix, $knotName, ';', $N,
                         $T, 'SELECT @maxV = MAX(', $attributeMnemonic, '_Version) FROM @', $attributeName, ';', $N,
                         $T, 'SET @v = 0;', $N,
                         $T, 'WHILE(@v &lt; @maxV)', $N,
                         $T, 'BEGIN', $N,
                         $T, 'SET @v = @v + 1;', $N,
                         $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
-                        $T, $T, $attributeMnemonic, '_', $knotIdentity,
+                        $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
+                        $T, $T, $namingPrefix, $knotIdentity,
                         $attributeMetadataColumn,
                         $attributeHistorizationColumn,
                         $attributeRecordingColumns, $N,
                         $T, ')', $N,
                         $T, 'SELECT', $N,
-                        $T, $T, 'i.', $attributeMnemonic, '_', $anchorIdentity, ',', $N,
-                        $T, $T, 'i.', $attributeMnemonic, '_', $knotIdentity,
+                        $T, $T, 'i.', $namingPrefix, $anchorIdentity, ',', $N,
+                        $T, $T, 'i.', $namingPrefix, $knotIdentity,
                         $attributeMetadataInsert,
                         $attributeHistorizationInsert,
                         $attributeRecordingInserts, $N,
@@ -2846,13 +2901,13 @@
                         $T, 'LEFT JOIN', $N,
                         $T, $T, '[', $anchorCapsule, '].[l', $anchorName, '] [', $anchorMnemonic, ']', $N,
                         $T, 'ON', $N,
-                        $T, $T, '[', $anchorMnemonic, '].', $anchorIdentity , ' = i.', $attributeMnemonic, '_', $anchorIdentity, $N,
+                        $T, $T, '[', $anchorMnemonic, '].', $anchorIdentity , ' = i.', $namingPrefix, $anchorIdentity, $N,
                         $T, 'WHERE', $N,
                         $T, $T, 'i.', $attributeMnemonic, '_Version = @v', $N,
                         $T, 'AND (', $N,
-                        $T, $T, '[', $anchorMnemonic, '].', $attributeMnemonic, '_', $knotIdentity, ' is null', $N,
+                        $T, $T, '[', $anchorMnemonic, '].', $namingPrefix, $knotIdentity, ' is null', $N,
                         $T, 'OR', $N,
-                        $T, $T, '[', $anchorMnemonic, '].', $attributeMnemonic, '_', $knotIdentity, ' &lt;&gt; i.', $attributeMnemonic, '_', $knotIdentity, $N,
+                        $T, $T, '[', $anchorMnemonic, '].', $namingPrefix, $knotIdentity, ' &lt;&gt; i.', $namingPrefix, $knotIdentity, $N,
                         $T, ')', $N,
                         $T, 'END', $N
                         )"/>
@@ -2860,15 +2915,15 @@
                     <xsl:otherwise>
                         <xsl:value-of select="concat(
                         $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
-                        $T, $T, $attributeMnemonic, '_', $knotIdentity,
+                        $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
+                        $T, $T, $namingPrefix, $knotIdentity,
                         $attributeMetadataColumn,
                         $attributeHistorizationColumn,
                         $attributeRecordingColumns, $N,
                         $T, ')', $N,
                         $T, 'SELECT', $N,
                         $T, $T, 'i.', $anchorIdentity, ',', $N,
-                        $T, $T, 'ISNULL(i.', $attributeMnemonic, '_', $knotIdentity, ', k.', $knotIdentity, ')',
+                        $T, $T, 'ISNULL(i.', $namingPrefix, $knotIdentity, ', k.', $knotIdentity, ')',
                         $attributeMetadataInsert,
                         $attributeHistorizationInsert,
                         $attributeRecordingInserts, $N,
@@ -2877,9 +2932,9 @@
                         $T, 'JOIN', $N,
                         $T, $T, '[', $knotCapsule, '].[', $knotName, '] k', $N,
                         $T, 'ON', $N,
-                        $T, $T, 'k.', $knotName, ' = i.', $attributeMnemonic, '_', $knotName, $N,
+                        $T, $T, 'k.', $knotName, ' = i.', $namingPrefix, $knotName, $N,
                         $T, 'WHERE', $N,
-                        $T, $T, 'i.', $attributeMnemonic, '_', $knotName, ' is not null;', $N
+                        $T, $T, 'i.', $namingPrefix, $knotName, ' is not null;', $N
                         )"/>
                     </xsl:otherwise>
                 </xsl:choose>
@@ -2890,13 +2945,13 @@
                     <xsl:when test="$attribute/@timeRange and $attribute/metadata/@idempotent = 'true'">
                         <xsl:value-of select="concat(
                         $T, 'DECLARE @', $attributeName, ' TABLE (', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
-                        $T, $T, $attributeName, ' ', $attributeDataType, ' not null,', $N,
+                        $T, $T, $namingPrefix, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
+                        $T, $T, $namingPrefix, $attributeDataType, ' not null,', $N,
                         $T, $T, $attributeMnemonic, '_Version int not null',
                         $attributeMetadataDefinition,
                         $attributeHistorizationDefinition,
                         $attributeRecordingDefinitions, $N,
-                        $T, $T, 'primary key(', $attributeMnemonic, '_Version, ', $attributeMnemonic, '_', $anchorIdentity, ')', $N,
+                        $T, $T, 'primary key(', $attributeMnemonic, '_Version, ', $namingPrefix, $anchorIdentity, ')', $N,
                         $T, ')', $N,
                         $T, 'INSERT INTO @', $attributeName, $N,
                         $T, 'SELECT', $N,
@@ -2916,14 +2971,14 @@
                         $T, 'BEGIN', $N,
                         $T, 'SET @v = @v + 1;', $N,
                         $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                        $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
                         $T, $T, $attributeName,
                         $attributeMetadataColumn,
                         $attributeHistorizationColumn,
                         $attributeRecordingColumns, $N,
                         $T, ')', $N,
                         $T, 'SELECT', $N,
-                        $T, $T, 'i.', $attributeMnemonic, '_', $anchorIdentity, ',', $N,
+                        $T, $T, 'i.', $namingPrefix, $anchorIdentity, ',', $N,
                         $T, $T, 'i.', $attributeName,
                         $attributeMetadataInsert,
                         $attributeHistorizationInsert,
@@ -2933,7 +2988,7 @@
                         $T, 'LEFT JOIN', $N,
                         $T, $T, '[', $anchorCapsule, '].[l', $anchorName, '] [', $anchorMnemonic, ']', $N,
                         $T, 'ON', $N,
-                        $T, $T, '[', $anchorMnemonic, '].', $anchorIdentity , ' = i.', $attributeMnemonic, '_', $anchorIdentity, $N,
+                        $T, $T, '[', $anchorMnemonic, '].', $anchorIdentity , ' = i.', $namingPrefix, $anchorIdentity, $N,
                         $T, 'WHERE', $N,
                         $T, $T, 'i.', $attributeMnemonic, '_Version = @v', $N,
                         $T, 'AND (', $N,
@@ -2947,7 +3002,7 @@
                     <xsl:otherwise>
                         <xsl:value-of select="concat(
                         $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                        $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
                         $T, $T, $attributeName,
                         $attributeMetadataColumn,
                         $attributeHistorizationColumn,
@@ -3032,6 +3087,11 @@
                 )"/>
             </xsl:if>
         </xsl:variable>
+        <xsl:variable name="namingPrefix">
+            <xsl:if test="$namingConvention = 'improved'">
+                <xsl:value-of select="concat($attributeMnemonic, '_')"/>
+            </xsl:if>
+        </xsl:variable>
         <xsl:variable name="updatePrevious">
             <xsl:if test="$temporalization = 'bi'">
                 <xsl:value-of select="concat(
@@ -3044,7 +3104,7 @@
                 $T, 'JOIN', $N,
                 $T, $T, 'inserted i', $N,
                 $T, 'ON', $N,
-                $T, $T, 'i.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $anchorIdentity, $N,
+                $T, $T, 'i.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $namingPrefix, $anchorIdentity, $N,
                 $attributeChangingCondition,
                 $T, 'AND', $N,
                 $T, $T, 'i.', $recordingColumn, ' = ', $attributeMnemonic, '.', $recordingColumn, ';', $N
@@ -3074,7 +3134,7 @@
                         $T, 'ON', $N,
                         $T, $T, 'd.', $anchorIdentity, ' = i.', $anchorIdentity, $N,
                         $T, 'AND', $N,
-                        $T, $T, 'd.', $attributeMnemonic, '_', $knotIdentity, ' = k.', $knotIdentity, $N,
+                        $T, $T, 'd.', $namingPrefix, $knotIdentity, ' = k.', $knotIdentity, $N,
                         $T, 'WHERE', $N,
                         $T, $T, 'd.', $anchorIdentity, ' is null'
                         )"/>
@@ -3083,17 +3143,17 @@
                 <xsl:value-of select="concat(
                 $recordingCheck,
                 $updatePrevious,
-                $T, 'IF(UPDATE(', $attributeMnemonic, '_', $knotName, ') OR UPDATE(', $attributeMnemonic, '_', $knotIdentity, '))', $N,
+                $T, 'IF(UPDATE(', $namingPrefix, $knotName, ') OR UPDATE(', $namingPrefix, $knotIdentity, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
-                $T, $T, $attributeMnemonic, '_', $knotIdentity,
+                $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
+                $T, $T, $namingPrefix, $knotIdentity,
                 $attributeMetadataColumn,
                 $attributeHistorization,
                 $attributeRecordingColumns, $N,
                 $T, ')', $N,
                 $T, 'SELECT', $N,
                 $T, $T, 'i.', $anchorIdentity, ', ', $N,
-                $T, $T, 'ISNULL(i.', $attributeMnemonic, '_', $knotIdentity, ', k.', $knotIdentity, ')',
+                $T, $T, 'ISNULL(i.', $namingPrefix, $knotIdentity, ', k.', $knotIdentity, ')',
                 $attributeMetadataValue,
                 $attributeHistorizationAliased,
                 $attributeRecordingValues, $N,
@@ -3102,7 +3162,7 @@
                 $T, 'LEFT JOIN', $N,
                 $T, $T, '[', $knotCapsule, '].[', $knotName, '] k', $N,
                 $T, 'ON', $N,
-                $T, $T, 'k.', $knotName, ' = i.', $attributeMnemonic, '_', $knotName,
+                $T, $T, 'k.', $knotName, ' = i.', $namingPrefix, $knotName,
                 $idempotencyStatement, ';', $N
                 )"/>
             </xsl:when>
@@ -3126,7 +3186,7 @@
                 $updatePrevious,
                 $T, 'IF(UPDATE(', $attributeName, '))', $N,
                 $T, 'INSERT INTO [', $attributeCapsule, '].[', $attributeName, '](', $N,
-                $T, $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                $T, $T, $namingPrefix, $anchorIdentity, ', ', $N,
                 $T, $T, $attributeName,
                 $attributeMetadataColumn,
                 $attributeHistorization,

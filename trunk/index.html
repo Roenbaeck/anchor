@@ -671,7 +671,8 @@
             partitioning: 'false',
             entityIntegrity: 'true',
             restatability: 'true',
-            idempotency: 'false'
+            idempotency: 'false',
+            naming: 'improved'
         };
 
         // create a singleton
@@ -4752,6 +4753,7 @@
                     processor.setParameter(null, 'partitioning', Defaults.partitioning);
                     processor.setParameter(null, 'entityIntegrity', Defaults.entityIntegrity);
                     processor.setParameter(null, 'defaultCapsule', Defaults.encapsulation);
+                    processor.setParameter(null, 'namingConvention', Defaults.naming);
                     result = processor.transformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
@@ -5121,6 +5123,7 @@
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
+                document.getElementById('naming').value = Defaults.naming;
             },
             resetDefaults: function() {
                 this.setDefaultCapsule('dbo');
@@ -5140,6 +5143,7 @@
                 this.setEntityIntegrity('true');
                 this.setTemporalization('mono');
                 this.setDatabase('SQLServer.xsl');
+                this.setNaming('improved');
                 this.init();
             },
             resetSettings: function() {
@@ -5191,6 +5195,7 @@
                 storage.setItem("erasingSuffix", Defaults.erasingSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
+                storage.setItem("naming", Defaults.naming);
                 storage.setItem("knotMass", Knot.mass);
                 storage.setItem("knotCharge", Knot.charge);
                 storage.setItem("anchorMass", Anchor.mass);
@@ -5229,6 +5234,7 @@
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                 this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
                 this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
+                this.setNaming(storage.getItem('naming') || Defaults.naming);
                 Knot.mass = 1 * storage.getItem('knotMass') || 1;
                 Knot.charge = 1 * storage.getItem('knotCharge') || 1;
                 Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
@@ -5255,6 +5261,9 @@
             },
             setEntityIntegrity: function(value) {
                 Defaults.entityIntegrity = value;
+            },
+            setNaming: function(value) {
+                Defaults.naming = value;
             },
             recordingRange: null,
             recordingSuffix: null,
@@ -5849,6 +5858,12 @@
                         <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
                         <option value="Oracle.xsl">Oracle</option>
                     </select> Target database
+                </li>
+                <li title="Selects the version of the naming convention to use for the generated code.">
+                    <select id="naming" onchange="Settings.setNaming(this.value)">
+                        <option value="original">Original</option>
+                        <option value="improved" selected="selected">Improved</option>
+                    </select> Naming convention
                 </li>
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
