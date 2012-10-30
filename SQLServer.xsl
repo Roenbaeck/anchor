@@ -43,6 +43,9 @@
     <xsl:param name="defaultCapsule">
         <xsl:text>dbo</xsl:text>
     </xsl:param>
+    <xsl:param name="namingVersion">
+        <xsl:text>1</xsl:text>
+    </xsl:param>
 
     <!-- "global" variables -->
     <xsl:variable name="N"><xsl:text>&#13;&#10;</xsl:text></xsl:variable>
@@ -351,11 +354,31 @@
 						<xsl:value-of select="concat($T, $attributeMetadata, ' ', $metadataType, ' not null,', $N)"/>
 					</xsl:if>
 				</xsl:variable>
+                <xsl:variable name="knotId">
+                    <xsl:choose>
+                        <xsl:when test="$namingVersion = 2">
+                            <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="concat(@knotRange, '_', $identitySuffix)"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="attributeIdentity">
+                    <xsl:choose>
+                        <xsl:when test="$namingVersion = 2">
+                            <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="$anchorIdentity"/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
                 <xsl:variable name="knotOrDataDefinition">
                     <xsl:choose>
                         <xsl:when test="key('knotLookup', @knotRange)">
                             <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                            <xsl:value-of select="concat($T, $attributeMnemonic, '_', @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,'),', $N)"/>
+                            <xsl:value-of select="concat($T, $knotId,' ', $knot/@identity, ' not null foreign key references [', $knot/metadata/@capsule, '].[', @knotRange, '_', $knot/@descriptor, '](', @knotRange, '_', $identitySuffix,'),', $N)"/>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="concat($T, $attributeName, ' ', @dataRange, ' not null,', $N)"/>
@@ -414,8 +437,7 @@
                     <xsl:variable name="knotOrDataName">
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
-                                <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                                <xsl:value-of select="concat($attributeMnemonic, '_', $knot/@mnemonic, '_', $identitySuffix)"/>
+                                <xsl:value-of select="$knotId"/>
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:value-of select="$attributeName"/>
@@ -453,7 +475,7 @@
                     $T, $T, 'FROM', $N,
                     $T, $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                     $T, $T, 'WHERE', $N,
-                    $T, $T, $T, $attributeMnemonic, '_', $anchorIdentity, ' = @identity', $N,
+                    $T, $T, $T, $attributeIdentity, ' = @identity', $N,
                     $T, $T, 'AND', $N,
                     $T, $T, $T, $attributeMnemonic, '_', $changingSuffix, ' &lt; @changedAt',
                     $erasedAtCondition, $N,
@@ -476,7 +498,7 @@
                         <xsl:value-of select="concat(
                         $T, 'constraint uq', $attributeName, ' unique (', $N,
                         $T, $T, $attributeMnemonic, '_', $erasingSuffix, ', ', $N,
-                        $T, $T, $attributeMnemonic, '_', $anchorIdentity,
+                        $T, $T, $attributeIdentity,
                         $attributeChangingKey, $N,
                         $T, '),', $N,
                         $T, 'constraint in', $attributeName, ' check (', $N,
@@ -484,7 +506,7 @@
                         $T, '),', $N,
                         $T, 'constraint ov', $attributeName, ' check (', $N,
                         $T, $T, '[', $attributeCapsule, '].[o', $attributeName, '] (', $N,
-                        $T, $T, $T, $attributeMnemonic, '_', $anchorIdentity, ',', $N,
+                        $T, $T, $T, $attributeIdentity, ',', $N,
                         $attributeChangingParameter,
                         $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ',', $N,
                         $T, $T, $T, $attributeMnemonic, '_', $erasingSuffix, $N,
@@ -498,7 +520,7 @@
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
-                                <xsl:value-of select="concat($attributeMnemonic, '_', $knot/@mnemonic, '_', $identitySuffix)"/>
+                                <xsl:value-of select="$knotId"/>
                             </xsl:when>
                             <xsl:otherwise>
                                 <xsl:value-of select="$attributeName"/>
@@ -514,7 +536,7 @@
                         <xsl:value-of select="concat(
                         $T, 'constraint rs', $attributeName, ' check (', $N,
                         $T, $T, '[', $attributeCapsule, '].[s', $attributeName, '] (', $N,
-                        $T, $T, $T, $attributeMnemonic, '_', $anchorIdentity, ',', $N,
+                        $T, $T, $T, $attributeIdentity, ',', $N,
                         $T, $T, $T, $knotOrDataName, ',', $N,
                         $T, $T, $T, $attributeMnemonic, '_', $changingSuffix,
                         $erasedAtParameter, $N,
@@ -552,7 +574,7 @@
                     $T, 'FROM', $N,
                     $T, $T, '[', $attributeCapsule, '].[', $attributeName, ']', $N,
                     $T, 'WHERE', $N,
-                    $T, $T, $attributeMnemonic, '_', $anchorIdentity, ' = @identity', $N,
+                    $T, $T, $attributeIdentity, ' = @identity', $N,
                     $attributeChangingCondition,
                     $T, 'AND (', $N,
                     $T, $T, $T, $attributeMnemonic, '_', $recordingSuffix, ' &lt;&gt; @recordedAt', $N,
@@ -579,7 +601,7 @@
                 '--------------------------------------------------------------------------------------', $N,
                 'IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = ', $Q, $attributeName, $Q, ' AND type LIKE ', $Q, '%U%', $Q, ')', $N,
                 'CREATE TABLE [', $attributeCapsule, '].[', $attributeName, '] (', $N,
-                $T, $attributeMnemonic, '_', $anchorIdentity, ' ', $anchorIdentityType, ' not null foreign key references [', $anchorCapsule, '].[', $anchorName, '](', $anchorIdentity, '),', $N,
+                $T, $attributeIdentity, ' ', $anchorIdentityType, ' not null foreign key references [', $anchorCapsule, '].[', $anchorName, '](', $anchorIdentity, '),', $N,
                 $knotOrDataDefinition,
                 $attributeChangingDefinition,
                 $attributeRecordingDefinition,
@@ -587,7 +609,7 @@
                 $attributeEntityIntegrity,
                 $attributeRestatementPrevention,
                 $T, 'constraint pk', $attributeName, ' primary key (', $N,
-                $T, $T, $attributeMnemonic, '_', $anchorIdentity, ' asc',
+                $T, $T, $attributeIdentity, ' asc',
                 $attributeChangingKey,
                 $attributeRecordingKey,
                 $T, ')', $N,
@@ -608,7 +630,7 @@
                 <xsl:variable name="knotOrDataColumn">
                     <xsl:choose>
                         <xsl:when test="key('knotLookup', @knotRange)">
-                            <xsl:value-of select="concat($T, $attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
+                            <xsl:value-of select="concat($T, $knotId)"/>
                         </xsl:when>
                         <xsl:otherwise>
                             <xsl:value-of select="concat($T, $attributeName)"/>
@@ -628,7 +650,7 @@
                             'CREATE FUNCTION [', $attributeCapsule, '].[r', $attributeName, '] (@changingTimepoint ', @timeRange, ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
-                            $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                            $T, $attributeIdentity, ', ', $N,
                             $knotOrDataColumn,
                             $attributeChangingColumn,
                             $attributeMetadataColumn,
@@ -650,7 +672,7 @@
                         'GO', $N,
                         'CREATE VIEW [', $attributeCapsule, '].[ac', $attributeName, '] WITH SCHEMABINDING AS', $N,
                         'SELECT', $N,
-                        $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                        $T, $attributeIdentity, ', ', $N,
                         $knotOrDataColumn,
                         $attributeChangingColumn, ', ', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
@@ -672,7 +694,7 @@
                         'CREATE FUNCTION [', $attributeCapsule, '].[ar', $attributeName, '] (@recordingTimepoint ', $recordingRange, ')', $N,
                         'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                         'SELECT', $N,
-                        $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                        $T, $attributeIdentity, ', ', $N,
                         $knotOrDataColumn,
                         $attributeChangingColumn, ', ', $N,
                         $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
@@ -697,7 +719,7 @@
                             'CREATE FUNCTION [', $attributeCapsule, '].[rc', $attributeName, '] (@changingTimepoint ', @timeRange, ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
-                            $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                            $T, $attributeIdentity, ', ', $N,
                             $knotOrDataColumn,
                             $attributeChangingColumn, ', ', $N,
                             $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
@@ -724,7 +746,7 @@
                             ')', $N,
                             'RETURNS TABLE WITH SCHEMABINDING AS RETURN', $N,
                             'SELECT', $N,
-                            $T, $attributeMnemonic, '_', $anchorIdentity, ', ', $N,
+                            $T, $attributeIdentity, ', ', $N,
                             $knotOrDataColumn,
                             $attributeChangingColumn, ', ', $N,
                             $T, $attributeMnemonic, '_', $recordingSuffix, ', ', $N,
@@ -844,13 +866,33 @@
                             <xsl:value-of select="concat($T, $T, $attributeMetadata, ' ', $metadataType, ' null,', $N)"/>
                         </xsl:if>
                     </xsl:variable>
+                    <xsl:variable name="knotId">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', $identitySuffix)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="knotName">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
                     <xsl:variable name="knotOrDataDefinition">
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
                                 <xsl:value-of select="concat(
-                                    $T, $T, $attributeMnemonic, '_', @knotRange, '_', $identitySuffix,' ', $knot/@identity, ' null,', $N,
-                                    $T, $T, $attributeMnemonic, '_', @knotRange, '_', $knot/@descriptor,' ', $knot/@dataRange, ' null'
+                                    $T, $T, $knotId,' ', $knot/@identity, ' null,', $N,
+                                    $T, $T, $knotName,' ', $knot/@dataRange, ' null'
                                 )"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -892,13 +934,33 @@
                             <xsl:value-of select="concat($T, $T, 'ISNULL(i.', $attributeMetadata, ', i.', $anchorMetadata, '),', $N)"/>
                         </xsl:if>
                     </xsl:variable>
+                    <xsl:variable name="knotId">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', $identitySuffix)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="knotName">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
                     <xsl:variable name="knotOrDataInsert">
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
                                 <xsl:value-of select="concat(
-                                    $T, $T, 'i.', $attributeMnemonic, '_', @knotRange, '_', $identitySuffix, ',', $N,
-                                    $T, $T, 'i.', $attributeMnemonic, '_', @knotRange, '_', $knot/@descriptor
+                                    $T, $T, 'i.', $knotId, ',', $N,
+                                    $T, $T, 'i.', $knotName
                                 )"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -940,13 +1002,33 @@
                             <xsl:value-of select="concat($T, $T, $T, $attributeMetadata, ',', $N)"/>
                         </xsl:if>
                     </xsl:variable>
+                    <xsl:variable name="knotId">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', $identitySuffix)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', $identitySuffix)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
+                    <xsl:variable name="knotName">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', @knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="concat(@knotRange, '_', key('knotLookup', @knotRange)/@descriptor)"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
                     <xsl:variable name="knotOrDataSelect">
                         <xsl:choose>
                             <xsl:when test="key('knotLookup', @knotRange)">
                                 <xsl:variable name="knot" select="key('knotLookup', @knotRange)"/>
                                 <xsl:value-of select="concat(
-                                    $T, $T, $T, $attributeMnemonic, '_', @knotRange, '_', $identitySuffix,',', $N,
-                                    $T, $T, $T, $attributeMnemonic, '_', @knotRange, '_', $knot/@descriptor, ',', $N
+                                    $T, $T, $T, $knotId,',', $N,
+                                    $T, $T, $T, $knotName, ',', $N
                                 )"/>
                             </xsl:when>
                             <xsl:otherwise>
@@ -1143,6 +1225,16 @@
                             </xsl:when>
                         </xsl:choose>
                     </xsl:variable>
+                    <xsl:variable name="attributeIdentity">
+                        <xsl:choose>
+                            <xsl:when test="$namingVersion = 2">
+                                <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <xsl:value-of select="$anchorIdentity"/>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </xsl:variable>
                     <xsl:value-of select="concat(
                     $logicalOrActualDelete,
                     $T, 'FROM', $N,
@@ -1150,7 +1242,7 @@
                     $T, 'JOIN', $N,
                     $T, $T, 'deleted d', $N,
                     $T, 'ON', $N,
-                    $T, $T, 'd.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $attributeMnemonic, '_', $anchorIdentity,
+                    $T, $T, 'd.', $anchorIdentity, ' = ', $attributeMnemonic, '.', $attributeIdentity,
                     $changingCondition,
                     $recordingCondition, ';', $N
                     )"/>
@@ -1162,17 +1254,37 @@
                         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
                         <xsl:variable name="attributeName" select="concat($attributeMnemonic, '_', parent::*/@descriptor, '_', @descriptor)"/>
                         <xsl:variable name="attributeCapsule" select="metadata/@capsule"/>
+                        <xsl:variable name="attributeIdentity">
+                            <xsl:choose>
+                                <xsl:when test="$namingVersion = 2">
+                                    <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="$anchorIdentity"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:variable>
                         <xsl:value-of select="concat(
                         $T, 'LEFT JOIN', $N,
                         $T, $T, '[', $attributeCapsule, '].[', $attributeName, '] ', $attributeMnemonic, $N,
                         $T, 'ON', $N,
-                        $T, $T, $attributeMnemonic, '.', $attributeMnemonic, '_', $anchorIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity, $N
+                        $T, $T, $attributeMnemonic, '.', $attributeIdentity, ' = [', $anchorMnemonic, '].', $anchorIdentity, $N
                         )"/>
                     </xsl:for-each>
                 </xsl:variable>
                 <xsl:variable name="whereConditions">
                     <xsl:for-each select="attribute">
                         <xsl:variable name="attributeMnemonic" select="concat($anchorMnemonic, '_', @mnemonic)"/>
+                        <xsl:variable name="attributeIdentity">
+                            <xsl:choose>
+                                <xsl:when test="$namingVersion = 2">
+                                    <xsl:value-of select="concat($attributeMnemonic, '_', $anchorIdentity)"/>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="$anchorIdentity"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:variable>
                         <xsl:choose>
                             <xsl:when test="position() = 1">
                                 <xsl:value-of select="concat($T, 'WHERE', $N)"/>
@@ -1182,7 +1294,7 @@
                             </xsl:otherwise>
                         </xsl:choose>
                         <xsl:value-of select="concat(
-                        $T, $T, $attributeMnemonic, '.', $attributeMnemonic, '_', $anchorIdentity, ' is null', $N
+                        $T, $T, $attributeMnemonic, '.', $attributeIdentity, ' is null', $N
                         )"/>
                     </xsl:for-each>
                 </xsl:variable>
