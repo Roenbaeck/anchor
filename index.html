@@ -687,36 +687,43 @@
             minimumStartingVelocity: 1,
             // maximum starting velocity is higher (to remove "twitching" when few nodes are moving)
             maximumStartingVelocity: 5,
+            // maximum - minimum starting velocity
+            startingVelocityDelta: 4,
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
             attractionConstant: 0.00003703703704,
-            // adjusts the size of the influence square by this factor
-            influenceConstant: 4,
+            // size of partitions in number of normal distances
+            partitionFactor: 8,
             // the stiffness of the edges
-            stiffness: 3,
-            // calculated as stiffness^2
-            stiffnessBound: 9,
+            stiffness: 6,
             // when the layout has reached equilibrium
             equilibrium: true,
             // which layout function to use
             layout: null,
+            // holds space partitions
+            partitions: null,
+            // size of partitions
+            partitionSize: 120,
+            // the effect of the long range force
+            longRangeEffect: 0.25,
+            // fuzziness of the partition size
+            fuzziness: 0.1,
+            fuzz: 24,
+            fuzzing: 0,
             init: function() {
                 this.layout = this.simpleLayout;
                 this.attractionConstant = 1/this.normalDistance/this.normalDistance/this.normalDistance;
-                this.stiffnessBound = this.stiffness * this.stiffness;
+                this.partitionSize = this.partitionFactor * this.normalDistance;
+                this.startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
+                this.fuzz = this.normalDistance * this.partitionFactor * this.fuzziness;
             },
-            // for some reason Math.abs is slower than this
-            absolute: function(value) {
-                return value < 0 ? -value : value;
-            },
-
             // use our own squaring algorithm rather than Math.pow
             square: function(value) {
                 return value * value;
             },
             // measures distance between two nodes
             manhattanDistance: function(node, otherNode) {
-                var d = this.absolute(otherNode.xPosition - node.xPosition) +
-                        this.absolute(otherNode.yPosition - node.yPosition);
+                var d = Math.abs(otherNode.xPosition - node.xPosition) +
+                        Math.abs(otherNode.yPosition - node.yPosition);
                 if(d > 0)
                     return d;
                 // move one node a pixel to the right if both nodes overlap
@@ -801,76 +808,129 @@
                 var i, j, node, otherNode, edge, curvature, square;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
-                var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
+                // set up partitions
+                this.partitions = {};
+                this.fuzzing = (this.fuzzing + 1) % 3;
+                var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
+                size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
                 for(i = 0; node = model.visibleNodes[i]; i++) {
-                    square = this.createSquare(node, this.influenceConstant * this.normalDistance);
-                    for(j = 0; otherNode = model.visibleNodes[j]; j++) {
-                        // not the same node
-                        if(i != j) {
-                            // for nodes within range, add the repelling velocity
-                            if(this.withinSquare(otherNode, square)) {
+                    // count the number of stopped nodes
+                    if(!node.moving || node.getFixed())
+                        numberOfStoppedNodes++;
+                    xPosition = Math.floor(node.xPosition / size);
+                    yPosition = Math.floor(node.yPosition / size);
+                    key = xPosition.toString() + '|' + yPosition.toString();
+                    if(!this.partitions[key]) {
+                         partition = {
+                            nodes: [node],
+                            xPosition: node.xPosition,
+                            yPosition: node.yPosition,
+                            xVelocity: 0,
+                            yVelocity: 0,
+                            xMin: node.xPosition,
+                            yMin: node.yPosition,
+                            xMax: node.xPosition,
+                            yMax: node.yPosition
+                        };
+                        this.partitions[key] = partition;
+                    }
+                    else {
+                        partition = this.partitions[key];
+                        // find the center of mass in the partition
+                        partition.xPosition =
+                                (partition.xPosition * partition.nodes.length + node.xPosition) /
+                                (partition.nodes.length + 1);
+                        partition.yPosition =
+                                (partition.yPosition * partition.nodes.length + node.yPosition) /
+                                (partition.nodes.length + 1);
+                        if(node.xPosition < partition.xMin)
+                            partition.xMin = node.xPosition;
+                        else if(node.xPosition > partition.xMax)
+                            partition.xMax = node.xPosition;
+                        if(node.yPosition < partition.yMin)
+                            partition.yMin = node.yPosition;
+                        else if(node.yPosition > partition.yMax)
+                            partition.yMax = node.yPosition;
+                        partition.nodes.push(node);
+                    }
+                }
+                // calculate the velocity of the partitions
+                for(key in this.partitions) {
+                    partition = this.partitions[key];
+                    for(otherKey in this.partitions) {
+                        if(key != otherKey) {
+                            otherPartition = this.partitions[otherKey];
+                            partition.xVelocity +=
+                                    otherPartition.nodes.length *
+                                            this.xSimpleRepelling(partition, otherPartition);
+                            partition.yVelocity +=
+                                    otherPartition.nodes.length *
+                                            this.ySimpleRepelling(partition, otherPartition);
+                        }
+                    }
+                }
+                for(key in this.partitions) {
+                    partition = this.partitions[key];
+                    for(i = 0; node = partition.nodes[i]; i++) {
+                        // add the long range effect from other partitions, somewhat weakened
+                        node.xVelocity += this.longRangeEffect * partition.xVelocity;
+                        node.yVelocity += this.longRangeEffect * partition.yVelocity;
+                        for(j = 0; otherNode = partition.nodes[j]; j++) {
+                            if(i != j) {
+                                // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xSimpleRepelling(node, otherNode);
                                 node.yVelocity += this.ySimpleRepelling(node, otherNode);
                             }
                         }
-                        // the first iteration we count the number of stopped nodes
-                        if(j == 0 && (!otherNode.moving || otherNode.getFixed())) {
-                            numberOfStoppedNodes++;
+                        // bending force (straightens out edges)
+                        if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
+                            // update the control and center points
+                            node.controlPoint.xPosition = 2 * node.xPosition -
+                                    node.node.xPosition / 2 - node.otherNode.xPosition / 2;
+                            node.controlPoint.yPosition = 2 * node.yPosition -
+                                    node.node.yPosition / 2 - node.otherNode.yPosition / 2;
+                            node.centerPoint.xPosition = node.node.xPosition +
+                                    (node.otherNode.xPosition - node.node.xPosition) / 2;
+                            node.centerPoint.yPosition = node.node.yPosition +
+                                    (node.otherNode.yPosition - node.node.yPosition) / 2;
+                            // stiffness controls the attraction between the node and center point
+                            node.xVelocity += this.xSimpleAttracting(node, node.centerPoint) * this.stiffness;
+                            node.yVelocity += this.ySimpleAttracting(node, node.centerPoint) * this.stiffness;
                         }
-                    }
-                    // bending force (straightens out edges)
-                    if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
-                        // update the control and center points
-                        node.controlPoint.xPosition = 2 * node.xPosition -
-                                node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                        node.controlPoint.yPosition = 2 * node.yPosition -
-                                node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                        node.centerPoint.xPosition = node.node.xPosition +
-                                (node.otherNode.xPosition - node.node.xPosition) / 2;
-                        node.centerPoint.yPosition = node.node.yPosition +
-                                (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(this.stiffness *
-                                this.manhattanDistance(node.centerPoint, node.controlPoint) /
-                                this.manhattanDistance(node.node, node.otherNode));
-                        // safeguard
-                        curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
-                        // flexure force moves the midway point toward the center point
-                        node.xVelocity -= curvature * this.xSimpleRepelling(node, node.centerPoint);
-                        node.yVelocity -= curvature * this.ySimpleRepelling(node, node.centerPoint);
-                    }
-                    // for all edges, add the attracting velocity
-                    for(j = 0; edge = node.edges[j]; j++) {
-                        if(edge.visible) {
-                            node.xVelocity += this.xSimpleAttracting(node, edge)/node.edges.length;
-                            node.yVelocity += this.ySimpleAttracting(node, edge)/node.edges.length;
+                        // for all edges, add the attracting velocity
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            if(edge.visible) {
+                                node.xVelocity += this.xSimpleAttracting(node, edge) / node.edges.length;
+                                node.yVelocity += this.ySimpleAttracting(node, edge) / node.edges.length;
+                            }
                         }
+                        // apply damping
+                        node.xVelocity *= this.damping;
+                        node.yVelocity *= this.damping;
+                        node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
+                        // check to see if the node has stopped moving
+                        if(node.velocity <= this.stoppingVelocity)
+                            node.stop();
+                        // the more nodes that have stopped, the larger the starting velocity must be
+                        if(node.velocity >= this.minimumStartingVelocity +
+                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                            node.start();
+                        // if the node is moving and not fixed then calculate the new position
+                        if(node.moving && !node.getFixed()) {
+                            this.equilibrium = false;
+                            node.xPosition += node.xVelocity;
+                            node.yPosition += node.yVelocity;
+                        }
+                        if(node.yPosition < model.topmostNode.yPosition)
+                            model.topmostNode = node;
+                        else if(node.yPosition > model.bottommostNode.yPosition)
+                            model.bottommostNode = node;
+                        if(node.xPosition < model.leftmostNode.xPosition)
+                            model.leftmostNode = node;
+                        else if(node.xPosition > model.rightmostNode.xPosition)
+                            model.rightmostNode = node;
                     }
-                    // apply damping
-                    node.xVelocity *= this.damping;
-                    node.yVelocity *= this.damping;
-                    node.velocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
-                    // check to see if the node has stopped moving
-                    if(node.velocity <= this.stoppingVelocity)
-                        node.stop();
-                    // the more nodes that have stopped, the larger the starting velocity must be
-                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta *
-                            numberOfStoppedNodes / numberOfNodes)
-                        node.start();
-                    // if the node is moving and not fixed then calculate the new position
-                    if(node.moving && !node.getFixed()) {
-                        this.equilibrium = false;
-                        node.xPosition += node.xVelocity;
-                        node.yPosition += node.yVelocity;
-                    }
-                    if(node.yPosition < model.topmostNode.yPosition)
-                        model.topmostNode = node;
-                    if(node.xPosition > model.rightmostNode.xPosition)
-                        model.rightmostNode = node;
-                    if(node.yPosition > model.bottommostNode.yPosition)
-                        model.bottommostNode = node;
-                    if(node.xPosition < model.leftmostNode.xPosition)
-                        model.leftmostNode = node;
                 }
             },
             // calculate all forces and change the velocity and position of the node
@@ -881,74 +941,139 @@
                 var i, j, node, otherNode, edge, curvature, square;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
-                var startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
 
+                // set up partitions
+                this.partitions = {};
+                this.fuzzing = (this.fuzzing + 1) % 3;
+                var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
+                size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
                 for(i = 0; node = model.visibleNodes[i]; i++) {
-                    square = this.createSquare(node, this.influenceConstant * this.normalDistance);
-                    for(j = 0; otherNode = model.visibleNodes[j]; j++) {
-                        // not the same node
-                        if(i != j) {
-                            // for nodes within range, add the repelling velocity
-                            if(this.withinSquare(otherNode, square)) {
+                    // count the number of stopped nodes
+                    if(!node.moving || node.getFixed())
+                        numberOfStoppedNodes++;
+                    xPosition = Math.floor(node.xPosition / size);
+                    yPosition = Math.floor(node.yPosition / size);
+                    key = xPosition.toString() + '|' + yPosition.toString();
+                    if(!this.partitions[key]) {
+                        partition = {
+                            nodes: [node],
+                            xPosition: node.xPosition,
+                            yPosition: node.yPosition,
+                            mass: node.getMass(),
+                            charge: node.getCharge(),
+                            xVelocity: 0,
+                            yVelocity: 0,
+                            xMin: node.xPosition,
+                            yMin: node.yPosition,
+                            xMax: node.xPosition,
+                            yMax: node.yPosition,
+                            getMass: function() {
+                                return this.mass;
+                            },
+                            getCharge: function() {
+                                return this.charge;
+                            }
+                        };
+                        this.partitions[key] = partition;
+                    }
+                    else {
+                        partition = this.partitions[key];
+                        // find the center of mass in the partition
+                        partition.xPosition =
+                                (partition.xPosition * partition.mass + node.xPosition * node.getMass()) /
+                                        (partition.mass + node.getMass());
+                        partition.yPosition =
+                                (partition.yPosition * partition.mass + node.yPosition * node.getMass()) /
+                                        (partition.mass + node.getMass());
+                        partition.mass += node.getMass();
+                        partition.charge += node.getCharge();
+                        if(node.xPosition < partition.xMin)
+                            partition.xMin = node.xPosition;
+                        else if(node.xPosition > partition.xMax)
+                            partition.xMax = node.xPosition;
+                        if(node.yPosition < partition.yMin)
+                            partition.yMin = node.yPosition;
+                        else if(node.yPosition > partition.yMax)
+                            partition.yMax = node.yPosition;
+                        partition.nodes.push(node);
+                    }
+                }
+                // calculate the velocity of the partitions
+                for(key in this.partitions) {
+                    partition = this.partitions[key];
+                    for(otherKey in this.partitions) {
+                        if(key != otherKey) {
+                            otherPartition = this.partitions[otherKey];
+                            partition.xVelocity +=
+                                    otherPartition.nodes.length *
+                                            this.xComplexRepelling(partition, otherPartition);
+                            partition.yVelocity +=
+                                    otherPartition.nodes.length *
+                                            this.yComplexRepelling(partition, otherPartition);
+                        }
+                    }
+                }
+                for(key in this.partitions) {
+                    partition = this.partitions[key];
+                    for(i = 0; node = partition.nodes[i]; i++) {
+                        // add the long range effect from other partitions, somewhat weakened
+                        node.xVelocity += this.longRangeEffect * partition.xVelocity;
+                        node.yVelocity += this.longRangeEffect * partition.yVelocity;
+                        for(j = 0; otherNode = partition.nodes[j]; j++) {
+                            if(i != j) {
+                                // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xComplexRepelling(node, otherNode);
                                 node.yVelocity += this.yComplexRepelling(node, otherNode);
                             }
                         }
-                        // the first iteration we count the number of stopped nodes
-                        if(j == 0 && (!otherNode.moving || otherNode.getFixed())) {
-                            numberOfStoppedNodes++;
+                        // bending force (straightens out edges)
+                        if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
+                            // update the control and center points
+                            node.controlPoint.xPosition = 2 * node.xPosition -
+                                    node.node.xPosition / 2 - node.otherNode.xPosition / 2;
+                            node.controlPoint.yPosition = 2 * node.yPosition -
+                                    node.node.yPosition / 2 - node.otherNode.yPosition / 2;
+                            node.centerPoint.xPosition = node.node.xPosition +
+                                    (node.otherNode.xPosition - node.node.xPosition) / 2;
+                            node.centerPoint.yPosition = node.node.yPosition +
+                                    (node.otherNode.yPosition - node.node.yPosition) / 2;
+                            // stiffness controls the attraction between the node and center point
+                            node.xVelocity += this.xComplexAttracting(node, node.centerPoint) * this.stiffness;
+                            node.yVelocity += this.yComplexAttracting(node, node.centerPoint) * this.stiffness;
                         }
+                        // for all edges, add the attracting velocity
+                        for(j = 0; edge = node.edges[j]; j++) {
+                            if(edge.visible) {
+                                node.xVelocity += this.xComplexAttracting(node, edge) / node.edges.length;
+                                node.yVelocity += this.yComplexAttracting(node, edge) / node.edges.length;
+                            }
+                        }
+                        // apply damping
+                        node.xVelocity *= this.damping;
+                        node.yVelocity *= this.damping;
+                        node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
+                        // check to see if the node has stopped moving
+                        if(node.velocity <= this.stoppingVelocity)
+                            node.stop();
+                        // the more nodes that have stopped, the larger the starting velocity must be
+                        if(node.velocity >= this.minimumStartingVelocity +
+                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                            node.start();
+                        // if the node is moving and not fixed then calculate the new position
+                        if(node.moving && !node.getFixed()) {
+                            this.equilibrium = false;
+                            node.xPosition += node.xVelocity;
+                            node.yPosition += node.yVelocity;
+                        }
+                        if(node.yPosition < model.topmostNode.yPosition)
+                            model.topmostNode = node;
+                        else if(node.yPosition > model.bottommostNode.yPosition)
+                            model.bottommostNode = node;
+                        if(node.xPosition < model.leftmostNode.xPosition)
+                            model.leftmostNode = node;
+                        else if(node.xPosition > model.rightmostNode.xPosition)
+                            model.rightmostNode = node;
                     }
-                    // bending force (straightens out edges)
-                    if(node instanceof Edge) {
-                        // update the control and center points
-                        node.controlPoint.xPosition = 2 * node.xPosition -
-                                node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                        node.controlPoint.yPosition = 2 * node.yPosition -
-                                node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                        node.centerPoint.xPosition = node.node.xPosition +
-                                (node.otherNode.xPosition - node.node.xPosition) / 2;
-                        node.centerPoint.yPosition = node.node.yPosition +
-                                (node.otherNode.yPosition - node.node.yPosition) / 2;
-                        curvature = this.square(this.stiffness *
-                                this.euclideanDistance(node.centerPoint, node.controlPoint) /
-                                this.euclideanDistance(node.node, node.otherNode));
-                        // safeguard
-                        curvature = curvature > this.stiffnessBound ? this.stiffnessBound : curvature;
-                        // flexure force moves the midway point toward the center point
-                        node.xVelocity -= curvature * this.xSimpleRepelling(node, node.centerPoint);
-                        node.yVelocity -= curvature * this.ySimpleRepelling(node, node.centerPoint);
-                    }
-                    // for all edges, add the attracting velocity
-                    for(j = 0; edge = node.edges[j]; j++) {
-                        node.xVelocity += this.xComplexAttracting(node, edge)/node.edges.length;
-                        node.yVelocity += this.yComplexAttracting(node, edge)/node.edges.length;
-                    }
-                    // apply damping
-                    node.xVelocity *= this.damping;
-                    node.yVelocity *= this.damping;
-                    node.velocity = this.absolute(node.xVelocity) + this.absolute(node.yVelocity);
-                    // check to see if the node has stopped moving
-                    if(node.velocity <= this.stoppingVelocity)
-                        node.stop();
-                    // the more nodes that have stopped, the larger the starting velocity must be
-                    if(node.velocity >= this.minimumStartingVelocity + startingVelocityDelta *
-                            numberOfStoppedNodes / numberOfNodes)
-                        node.start();
-                    // if the node is moving and not fixed then calculate the new position
-                    if(node.moving && !node.getFixed()) {
-                        this.equilibrium = false;
-                        node.xPosition += node.xVelocity;
-                        node.yPosition += node.yVelocity;
-                    }
-                    if(node.yPosition < model.topmostNode.yPosition)
-                        model.topmostNode = node;
-                    if(node.xPosition > model.rightmostNode.xPosition)
-                        model.rightmostNode = node;
-                    if(node.yPosition > model.bottommostNode.yPosition)
-                        model.bottommostNode = node;
-                    if(node.xPosition < model.leftmostNode.xPosition)
-                        model.leftmostNode = node;
                 }
             }
         };
@@ -968,6 +1093,9 @@
                 textComplete: '#000',
                 forceVector: '#080',
                 forceEndpoint: '#fff',
+                partitionOutline: '#e9e8e7',
+                partitionForceVector: '#888',
+                partitionForceEndpoint: '#ccc',
                 attributeFill: '#fff',
                 attributeOutline: '#f88',
                 anchorFill: '#b55',
@@ -1830,6 +1958,32 @@
                 // clear the visible context
                 this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
+                if(DEBUG) {
+                    var partition;
+                    for(var key in LayoutEngine.partitions) {
+                        partition =  LayoutEngine.partitions[key];
+                        this.context.lineWidth = 5;
+                        this.context.strokeStyle = Color.scheme.partitionOutline;
+                        this.context.strokeRect(
+                                partition.xMin - LayoutEngine.fuzz,
+                                partition.yMin - LayoutEngine.fuzz,
+                                partition.xMax - partition.xMin + 2 * LayoutEngine.fuzz,
+                                partition.yMax - partition.yMin + 2 * LayoutEngine.fuzz
+                        );
+                        this.context.fillStyle = Color.scheme.partitionForceEndpoint;
+                        this.context.fillRect(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity - 5,
+                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity - 5, 10, 10);
+                        this.context.beginPath();
+                        this.context.moveTo(partition.xPosition, partition.yPosition);
+                        // draw an exaggerated velocity vector
+                        this.context.lineTo(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity,
+                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity);
+                        this.context.strokeStyle = Color.scheme.partitionForceVector;
+                        this.context.lineWidth = 0.5;
+                        this.context.stroke();
+                    }
+                }
+
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 if(this.miniCounter == 1)
@@ -1871,7 +2025,6 @@
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
-
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition +
                             2 * this.miniPadding;
@@ -1896,12 +2049,12 @@
             resizeMiniature: function() {
                 if(this.miniatureCanvas.width + this.miniatureCanvas.height <
                         (window.innerWidth + window.innerHeight) / 6) {
-                    this.miniScale += 0.03;
+                    this.miniScale *= 1.05;
                     return true;
                 }
                 if(this.miniatureCanvas.width + this.miniatureCanvas.height >
                         (window.innerWidth + window.innerHeight) / 4) {
-                    this.miniScale -= 0.03;
+                    this.miniScale *= 0.95;
                     return true;
                 }
                 return false;
@@ -1975,6 +2128,7 @@
                     this.clearSelection();
                 }
                 this.dragging = true;
+                return false;
             },
             mousemove: function(event) {
                 if (this.dragging) {
@@ -2028,6 +2182,7 @@
                 }
                 this.xLastKnown = event.xScreen;
                 this.yLastKnown = event.yScreen;
+                return false;
             },
             mousehover: function(event) {
                 // mouse pointer over node
@@ -2045,6 +2200,7 @@
                 else {
                     this.hoveringPrepared = false;
                 }
+                return false;
             },
             closeContextMenu: function() {
                 if(this.contextMenu) {
@@ -2081,7 +2237,7 @@
                                     var i, operation, validator;
                                     for(i = 0; operation = Operations.list[i]; i++)
                                         if(operation[0] == "connect")
-                                            validator = operation[2];
+                                            validator = operation[3];
                                     if(validator(allNodes))
                                         Model.connect(allNodes);
                                 }
@@ -2119,6 +2275,7 @@
                             event.preventDefault();
                     }
                 }
+                return false;
             },
             // this is special Firefox handling
             DOMMouseScroll: function(event) {
@@ -2134,6 +2291,7 @@
                             DrawingEngine.yContext(event.yScreen) * zoom);
                     DrawingEngine.start(false);
                 }
+                return false;
             },
             mouseup: function(event) {
                 var layout = false;
@@ -2147,6 +2305,7 @@
                 this.hasMoved = false;
                 DrawingEngine.setCursor('default');
                 DrawingEngine.start(layout);
+                return false;
             },
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
@@ -2170,7 +2329,7 @@
                 this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
             },
             clearSelection: function() {
-                this.selectedNodes.length = 0;
+                this.selectedNodes = [];
             }
         };
 
@@ -2546,7 +2705,7 @@
                     xAverage /= this.edges.length;
                     var currentDistance, smallestDistance, yClosest;
                     for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
+                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
                         if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
                                 (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
                                         (currentDistance < smallestDistance))) {
@@ -2581,7 +2740,7 @@
                     xAverage /= this.edges.length;
                     var currentDistance, smallestDistance, yClosest;
                     for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = LayoutEngine.absolute(this.yPosition - edge.yPosition);
+                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
                         if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
                                 (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
                                         (currentDistance < smallestDistance))) {
@@ -3670,18 +3829,30 @@
         extend(Tie, AbstractNode);
 
         function Edge(node, otherNode, identifier) {
+            Edge.mass = 1;
+            Edge.charge = 1;
             // assume that the control point and midway point coincide with the center point
             this.centerPoint = {
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
-                yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2
+                yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2,
+                getMass: function() {
+                    return Edge.mass;
+                },
+                getCharge: function() {
+                    return Edge.charge;
+                }
             };
             this.controlPoint = {
                 xPosition: this.centerPoint.xPosition,
-                yPosition: this.centerPoint.yPosition
+                yPosition: this.centerPoint.yPosition,
+                getMass: function() {
+                    return Edge.mass;
+                },
+                getCharge: function() {
+                    return Edge.charge;
+                }
             };
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
-            Edge.mass = 1;
-            Edge.charge = 1;
             this.role = '';
             this.node = node;
             this.otherNode = otherNode;
@@ -5103,11 +5274,13 @@
             temporalization: 'mono',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
+                document.getElementById('longRangeEffect').value = (LayoutEngine.longRangeEffect * 100).toFixed(0);
+                document.getElementById('fuzziness').value = (LayoutEngine.fuzziness * 100).toFixed(0);
                 document.getElementById('normalDistance').value = LayoutEngine.normalDistance.toFixed(0);
                 document.getElementById('stoppingVelocity').value = LayoutEngine.stoppingVelocity.toFixed(1);
                 document.getElementById('minimumStartingVelocity').value = LayoutEngine.minimumStartingVelocity.toFixed(1);
                 document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
-                document.getElementById('influenceConstant').value = LayoutEngine.influenceConstant.toFixed(0);
+                document.getElementById('partitionFactor').value = LayoutEngine.partitionFactor.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
                 document.getElementById('temporalization').value = this.temporalization;
                 document.getElementById('database').value = this.databaseTransform;
@@ -5148,12 +5321,14 @@
             },
             resetSettings: function() {
                 this.setDamping(4);
+                this.setLongRangeEffect(25);
+                this.setFuzziness(10);
                 this.setNormalDistance(30);
                 this.setStoppingVelocity(0.1);
                 this.setMinimumStartingVelocity(1);
                 this.setMaximumStartingVelocity(5);
-                this.setInfluenceConstant(4);
-                this.setStiffness(3);
+                this.setPartitionFactor(8);
+                this.setStiffness(6);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
                 Knot.mass = 1;
@@ -5170,11 +5345,13 @@
             },
             storeSettings: function(storage) {
                 storage.setItem("damping", (1 - LayoutEngine.damping) * 100);
+                storage.setItem("longRangeEffect", LayoutEngine.longRangeEffect * 100);
+                storage.setItem("fuzziness", LayoutEngine.fuzziness * 100);
                 storage.setItem("normalDistance", LayoutEngine.normalDistance);
                 storage.setItem("stoppingVelocity", LayoutEngine.stoppingVelocity);
                 storage.setItem("minimumStartingVelocity", LayoutEngine.minimumStartingVelocity);
                 storage.setItem("maximumStartingVelocity", LayoutEngine.maximumStartingVelocity);
-                storage.setItem("influenceConstant", LayoutEngine.influenceConstant);
+                storage.setItem("partitionFactor", LayoutEngine.partitionFactor);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
                 storage.setItem("temporalization", this.temporalization);
                 storage.setItem("database", this.databaseTransform);
@@ -5209,12 +5386,14 @@
             },
             loadSettings: function(storage) {
                 this.setDamping(storage.getItem('damping') || 4);
+                this.setLongRangeEffect(storage.getItem('longRangeEffect') || 25);
+                this.setFuzziness(storage.getItem('fuzziness') || 10);
                 this.setNormalDistance(storage.getItem('normalDistance') || 30);
                 this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
                 this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
                 this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
-                this.setInfluenceConstant(storage.getItem('influenceConstant') || 4);
-                this.setStiffness(storage.getItem('stiffness') || 3);
+                this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
+                this.setStiffness(storage.getItem('stiffness') || 6);
                 this.setTemporalization(storage.getItem('temporalization') || 'mono');
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
@@ -5405,26 +5584,39 @@
             },
             setDamping: function(value) {
                 LayoutEngine.damping = (100 - value)/100;
+                LayoutEngine.init();
+            },
+            setLongRangeEffect: function(value) {
+                LayoutEngine.longRangeEffect = value/100;
+                LayoutEngine.init();
+            },
+            setFuzziness: function(value) {
+                LayoutEngine.fuzziness = value/100;
+                LayoutEngine.init();
             },
             setNormalDistance: function(value) {
                 LayoutEngine.normalDistance = 1 * value;
-                LayoutEngine.attractionConstant = 1/value/value/value;
+                LayoutEngine.init();
             },
             setStoppingVelocity: function(value) {
                 LayoutEngine.stoppingVelocity = 1 * value;
+                LayoutEngine.init();
             },
             setMinimumStartingVelocity: function(value) {
                 LayoutEngine.minimumStartingVelocity = 1 * value;
+                LayoutEngine.init();
             },
             setMaximumStartingVelocity: function(value) {
                 LayoutEngine.maximumStartingVelocity = 1 * value;
+                LayoutEngine.init();
             },
-            setInfluenceConstant: function(value) {
-                LayoutEngine.influenceConstant = 1 * value;
+            setPartitionFactor: function(value) {
+                LayoutEngine.partitionFactor = 1 * value;
+                LayoutEngine.init();
             },
             setStiffness: function(value) {
                 LayoutEngine.stiffness = 1 * value;
-                LayoutEngine.stiffnessBound = value * value;
+                LayoutEngine.init();
             },
             setDatabase: function(value) {
                 this.databaseTransform = value;
@@ -5893,8 +6085,10 @@
                 <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
                 <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
                 <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                <li title="How many times the normal distance a node can influence another node."><input id="influenceConstant" type="number" min="0" max="10" step="1" onblur="Settings.setInfluenceConstant(this.value)"/> Node influence factor</li>
-                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="1" max="9" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
+                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="10" step="1" onblur="Settings.setPartitionFactor(this.value)"/> Partition size</li>
+                <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" onblur="Settings.setFuzziness(this.value)"/> % Fuzziness</li>
+                <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" onblur="Settings.setLongRangeEffect(this.value)"/> % Long range effect</li>
+                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="1" max="20" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
                 <li title="The number of frame redraws needed in the large canvas to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
                 <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
                     <select id="calculations" onchange="Settings.setCalculations(this.value)">
