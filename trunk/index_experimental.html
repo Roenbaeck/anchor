@@ -64,6 +64,7 @@
 
     /* visible canvas - at the bottom of the visible layers */
     #canvas {
+        visibility:         hidden;
         position:           absolute;
         top:                0px;
         left:               0px;
@@ -74,8 +75,9 @@
         position:           absolute;
         top:                0px;
         left:               0px;
+        width:              100%;
+        height:             100%;
         z-index:            1;
-        border:             5px solid blue;
     }
 
     /* invisible canvas - at the very z-bottom */
@@ -1308,6 +1310,15 @@
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
+                var graph = document.getElementById('graph');
+                edge.svg = document.createElementNS(SVGNS, 'path');
+                edge.svg.setAttributeNS(null, 'id', edge.id);
+                edge.svg.setAttributeNS(null, 'class', 'edge');
+                edge.svg.setAttributeNS(null, 'd', 'M' + edge.node.xPosition.toFixed(2) + ',' + edge.node.yPosition.toFixed(2) +
+                        ' Q' + edge.controlPoint.xPosition.toFixed(2) + ',' + edge.controlPoint.yPosition.toFixed(2) +
+                        ' ' + edge.otherNode.xPosition.toFixed(2) + ',' + edge.otherNode.yPosition.toFixed(2));
+                graph.appendChild(edge.svg);
+
                 // the edge is also a node
                 if(edge)
                     this.addNode(edge);
@@ -1964,7 +1975,7 @@
             },
             draw: function() {
                 // clear the visible context
-                this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
+                //this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
 
                 if(DEBUG) {
                     var partition;
@@ -1993,12 +2004,14 @@
                 }
 
                 // draw the miniature every minirate frames
+                /*
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 if(this.miniCounter == 1)
                     this.drawMiniature(Model);
-
+                */
                 var i, node;
                 // draw focus rings around hovered and selected nodes
+                /*
                 if(node = CanvasEventHandler.hoveredNode)
                     this.drawHovered(node.xPosition, node.yPosition);
 
@@ -2009,7 +2022,7 @@
                 if(this.drawShadows)
                     for(i = 0; node = Model.visibleNodes[i]; i++)
                         node.drawMoving(this.context);
-
+                */
                 // draw all nodes and edges on the visible context
                 for(i = 0; node = Model.visibleNodes[i]; i++) {
                     if(node.imploded) {
@@ -2020,15 +2033,17 @@
                         Color.useScheme(Color.normal);
                         node.draw(this.context, 0);
                     }
-                    if(this.miniCounter == 1)
-                        node.draw(this.miniatureContext, 1);
+                    //if(this.miniCounter == 1)
+                      //  node.draw(this.miniatureContext, 1);
                 }
+                /*
                 if(this.showNames) {
                     for(i = 0; node = Model.visibleNodes[i]; i++)
                         node.drawName(this.context);
                 }
                 else if (node = CanvasEventHandler.hoveredNode)
                     node.drawName(this.context);
+                    */
             },
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
@@ -3100,6 +3115,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                /*
                 this.drawOutline(context);
                 if(this.historized) {
                     // then we get back to drawing the actual symbol
@@ -3122,6 +3138,7 @@
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
+                */
             }
         };
 
@@ -3308,11 +3325,13 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                /*
                 this.drawOutline(context);
                 context.fillStyle = Color.scheme.anchorFill;
                 context.fill();
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
+                */
                 this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition.toFixed(2) + ',' + this.yPosition.toFixed(2) + ')');
             }
         };
@@ -3481,6 +3500,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                /*
                 this.drawOutline(context);
                 context.fillStyle = Color.scheme.knotFill;
                 context.fill();
@@ -3489,6 +3509,7 @@
                 context.stroke();
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
+                */
             }
         };
 
@@ -3836,6 +3857,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                /*
                 this.drawOutline(context);
                 if(this.historized) {
                     context.fillStyle = Color.scheme.tieOutline;
@@ -3857,6 +3879,7 @@
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
+                */
             }
         };
 
@@ -3997,6 +4020,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                /*
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
                 if(DrawingEngine.drawCurves) {
@@ -4054,7 +4078,11 @@
                         context.restore();
                     }
                 }
-                AbstractNode.prototype.draw.apply(this, arguments);
+                */
+                this.svg.setAttribute('d', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                        ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
+                        ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+                //AbstractNode.prototype.draw.apply(this, arguments);
             },
             drawMoving: function(context) {
                 if((this.node.moving && !this.node.getFixed()) ||
@@ -6014,28 +6042,73 @@
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
 
-    <svg id="graph" xmlns="http://www.w3.org/2000/svg" version="1.1">
+    <svg id="graph" class="unselectable" xmlns="http://www.w3.org/2000/svg" version="1.1">
         <defs>
-            <style type="text/css"><![CDATA[
+            <style type="text/css">
                 .anchor {
-                    fill:   #b55;
+                    fill:           #b55;
+                }
+                .tie {
+                    fill:           #a8a8a8;
+                }
+                .tie_outline {
+                    fill:           #fff;
+                    stroke:         #a8a8a8;
+                    stroke-width:   2px;
+                }
+                .attribute {
+                    fill:           #fff;
+                    stroke:         #f88;
+                    stroke-width:   2px;
+                }
+                .edge {
+                    fill:           none;
+                    stroke:         #544;
+                    stroke-width:   1px;
                 }
                 .highlight {
-                    stroke: #ede5e5;
-                    stroke-width: 10px;
-                    fill: #fff;
+                    stroke:         #ede5e5;
+                    stroke-width:   10px;
+                    fill:           #fff;
                 }
-            ]]></style>
+            </style>
             <g id="anchor">
                 <rect class="anchor" width="20" height="20" transform="translate(-10, -10)"/>
             </g>
             <g id="highlight">
                 <circle class="highlight" r="30"/>
             </g>
+            <g id="tie">
+                <rect class="tie" width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
+            </g>
+            <g id="tie_historized">
+                <rect class="tie_outline" width="22" height="22" transform="rotate(45) translate(-11, -11)"/>
+                <rect class="tie" width="14" height="14" transform="rotate(45) translate(-7, -7)"/>
+            </g>
+            <g id="attribute">
+                <circle class="attribute" r="10"/>
+            </g>
+            <g id="attribute_historized">
+                <circle class="attribute" r="12"/>
+                <circle class="attribute" r="7"/>
+            </g>
         </defs>
         <g id="test" transform="translate(100, 100)">
             <use xlink:href="#highlight"/>
             <use xlink:href="#anchor"/>
+        </g>
+        <g id="test" transform="translate(200, 200)">
+            <use xlink:href="#tie"/>
+        </g>
+        <path d="M 100,100 Q 150,200 200,200" class="edge"/>
+        <g id="test" transform="translate(250, 200)">
+            <use xlink:href="#tie_historized"/>
+        </g>
+        <g id="test" transform="translate(300, 200)">
+            <use xlink:href="#attribute"/>
+        </g>
+        <g id="test" style="-webkit-transform: translate3d(350px,200px,0px);" transform="translate(350, 200)">
+            <use xlink:href="#attribute_historized"/>
         </g>
     </svg>
 
