@@ -2946,7 +2946,7 @@
                         <xsl:value-of select="concat(
                         $T, 'DECLARE @', $attributeName, ' TABLE (', $N,
                         $T, $T, $namingPrefix, $anchorIdentity, ' ', $anchorIdentityType, ' not null,', $N,
-                        $T, $T, $namingPrefix, $attributeDataType, ' not null,', $N,
+                        $T, $T, $attributeName, ' ', $attributeDataType, ' not null,', $N,
                         $T, $T, $attributeMnemonic, '_Version int not null',
                         $attributeMetadataDefinition,
                         $attributeHistorizationDefinition,
