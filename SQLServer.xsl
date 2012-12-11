@@ -3045,7 +3045,7 @@
             <xsl:if test="$attribute/@timeRange">
                 <xsl:choose>
                     <xsl:when test="$temporalization = 'mono'">
-                        <xsl:value-of select="concat(', ', $N, $T, $T, 'ISNULL(i.', $changingColumn,', @now)')"/>
+                        <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $changingColumn, ') THEN i.', $changingColumn,' ELSE @now END')"/>
                     </xsl:when>
                     <xsl:when test="$temporalization = 'bi'">
                         <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $erasingColumn, ') THEN i.', $changingColumn, ' ELSE @now END')"/>
@@ -3134,7 +3134,7 @@
                         $T, 'ON', $N,
                         $T, $T, 'd.', $anchorIdentity, ' = i.', $anchorIdentity, $N,
                         $T, 'AND', $N,
-                        $T, $T, 'd.', $namingPrefix, $knotIdentity, ' = k.', $knotIdentity, $N,
+                        $T, $T, 'd.', $namingPrefix, $knotIdentity, ' = CASE WHEN UPDATE(', $namingPrefix, $knotIdentity, ') THEN i.', $namingPrefix, $knotIdentity, ' ELSE k.', $knotIdentity, ' END', $N,
                         $T, 'WHERE', $N,
                         $T, $T, 'd.', $anchorIdentity, ' is null'
                         )"/>
@@ -3153,7 +3153,7 @@
                 $T, ')', $N,
                 $T, 'SELECT', $N,
                 $T, $T, 'i.', $anchorIdentity, ', ', $N,
-                $T, $T, 'ISNULL(i.', $namingPrefix, $knotIdentity, ', k.', $knotIdentity, ')',
+                $T, $T, 'CASE WHEN UPDATE(', $namingPrefix, $knotIdentity, ') THEN i.', $namingPrefix, $knotIdentity, ' ELSE k.', $knotIdentity, ' END',
                 $attributeMetadataValue,
                 $attributeHistorizationAliased,
                 $attributeRecordingValues, $N,
