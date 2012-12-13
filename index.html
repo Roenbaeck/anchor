@@ -1913,7 +1913,6 @@
             start: function(layoutModel) {
                 if(this.initialized) {
                     this.layout = layoutModel;
-                    this.invalidateMiniature();
                     if(!this.running) {
                         this.running = true;
                         this.drawId = window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
