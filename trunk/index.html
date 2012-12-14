@@ -1405,6 +1405,7 @@
                 }
             },
             erase: function(nodes) {
+                DrawingEngine.stop();
                 var i, j, node, edge, affectedNodes = [], affectedEdges = [];
                 for(i = 0; node = nodes[i]; i++) {
                     if(node instanceof Edge && affectedEdges.indexOf(node) < 0)
@@ -2329,6 +2330,9 @@
             },
             clearSelection: function() {
                 this.selectedNodes = [];
+                this.hoveredNode = null;
+                this.hoveringPrepared = false;
+                this.closeContextMenu();
             }
         };
 
