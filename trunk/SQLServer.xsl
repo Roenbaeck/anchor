@@ -3043,14 +3043,7 @@
         </xsl:variable>
         <xsl:variable name="attributeHistorizationAliased">
             <xsl:if test="$attribute/@timeRange">
-                <xsl:choose>
-                    <xsl:when test="$temporalization = 'mono'">
-                        <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $changingColumn, ') THEN i.', $changingColumn,' ELSE @now END')"/>
-                    </xsl:when>
-                    <xsl:when test="$temporalization = 'bi'">
-                        <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $erasingColumn, ') THEN i.', $changingColumn, ' ELSE @now END')"/>
-                    </xsl:when>
-                </xsl:choose>
+                <xsl:value-of select="concat(', ', $N, $T, $T, 'CASE WHEN UPDATE(', $changingColumn, ') THEN i.', $changingColumn,' ELSE @now END')"/>
             </xsl:if>
         </xsl:variable>
         <xsl:variable name="attributeMetadataColumn">
