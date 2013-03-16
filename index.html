@@ -694,7 +694,7 @@
             // size of partitions in number of normal distances
             partitionFactor: 8,
             // the stiffness of the edges
-            stiffness: 6,
+            stiffness: 1,
             // when the layout has reached equilibrium
             equilibrium: true,
             // which layout function to use
@@ -739,6 +739,15 @@
                 node.xPosition +=1;
                 return 1;
             },
+
+            xStiffness: function(node, otherNode, multiplier) {
+                return multiplier * (otherNode.xPosition - node.xPosition);
+            },
+
+            yStiffness: function(node, otherNode, multiplier) {
+                return multiplier * (otherNode.yPosition - node.yPosition);
+            },
+
             // x component of the repelling force formula
             xSimpleRepelling: function(node, otherNode) {
                 return (node.xPosition - otherNode.xPosition) / this.square(this.manhattanDistance(node, otherNode));
@@ -805,7 +814,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, edge, curvature, square;
+                var i, j, node, otherNode, edge, curvature;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
 
@@ -894,9 +903,13 @@
                                     (node.otherNode.xPosition - node.node.xPosition) / 2;
                             node.centerPoint.yPosition = node.node.yPosition +
                                     (node.otherNode.yPosition - node.node.yPosition) / 2;
-                            // stiffness controls the attraction between the node and center point
-                            node.xVelocity += this.xSimpleAttracting(node, node.centerPoint) * this.stiffness;
-                            node.yVelocity += this.ySimpleAttracting(node, node.centerPoint) * this.stiffness;
+                            // curvature is higher for a very bent edge (nodes close together)
+                            curvature = this.stiffness / this.manhattanDistance(node.node, node.otherNode);
+                            // attract the edge mid point to the center and control points
+                            node.xVelocity += this.xStiffness(node, node.centerPoint, curvature);
+                            node.yVelocity += this.yStiffness(node, node.centerPoint, curvature);
+                            node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
+                            node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
                         // for all edges, add the attracting velocity
                         for(j = 0; edge = node.edges[j]; j++) {
@@ -938,7 +951,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, edge, curvature, square;
+                var i, j, node, otherNode, edge, curvature;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
 
@@ -1037,9 +1050,13 @@
                                     (node.otherNode.xPosition - node.node.xPosition) / 2;
                             node.centerPoint.yPosition = node.node.yPosition +
                                     (node.otherNode.yPosition - node.node.yPosition) / 2;
-                            // stiffness controls the attraction between the node and center point
-                            node.xVelocity += this.xComplexAttracting(node, node.centerPoint) * this.stiffness;
-                            node.yVelocity += this.yComplexAttracting(node, node.centerPoint) * this.stiffness;
+                            // curvature is higher for a very bent edge (nodes close together)
+                            curvature = this.stiffness / this.manhattanDistance(node.node, node.otherNode);
+                            // attract the edge mid point to the center and control points
+                            node.xVelocity += this.xStiffness(node, node.centerPoint, curvature);
+                            node.yVelocity += this.yStiffness(node, node.centerPoint, curvature);
+                            node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
+                            node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
                         // for all edges, add the attracting velocity
                         for(j = 0; edge = node.edges[j]; j++) {
@@ -2025,6 +2042,7 @@
             drawMiniature: function(model) {
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
+                var maxResizes = 10;
                 do {
                     this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition +
                             2 * this.miniPadding;
@@ -2033,7 +2051,7 @@
                     this.miniatureCanvas.width = this.miniScale * this.miniWidth;
                     this.miniatureCanvas.height = this.miniScale * this.miniHeight;
                 }
-                while(this.resizeMiniature());
+                while(this.resizeMiniature() && --maxResizes);
 
                 this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
                 this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
@@ -5331,7 +5349,7 @@
                 this.setMinimumStartingVelocity(1);
                 this.setMaximumStartingVelocity(5);
                 this.setPartitionFactor(8);
-                this.setStiffness(6);
+                this.setStiffness(1);
                 this.setMiniRate(50);
                 this.setCalculations('simple');
                 Knot.mass = 1;
@@ -5396,7 +5414,7 @@
                 this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
                 this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
                 this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
-                this.setStiffness(storage.getItem('stiffness') || 6);
+                this.setStiffness(storage.getItem('stiffness') || 1);
                 this.setTemporalization(storage.getItem('temporalization') || 'mono');
                 this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
@@ -6091,7 +6109,7 @@
                 <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="10" step="1" onblur="Settings.setPartitionFactor(this.value)"/> Partition size</li>
                 <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" onblur="Settings.setFuzziness(this.value)"/> % Fuzziness</li>
                 <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" onblur="Settings.setLongRangeEffect(this.value)"/> % Long range effect</li>
-                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="1" max="20" step="0.5" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
+                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
                 <li title="The number of frame redraws needed in the large canvas to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
                 <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
                     <select id="calculations" onchange="Settings.setCalculations(this.value)">
