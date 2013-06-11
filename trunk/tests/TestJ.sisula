@@ -1,0 +1,13 @@
+for(var anchor in schema.anchor) {
+    anchor.name = anchor.mnemonic + '_' + anchor.descriptor;
+}
+
+*schema.anchor <!
+
+CREATE TABLE $anchor.name (
+  col1 int
+);
+
+!>
+
+* schema.anchor.attribute      <!Testing: $attribute.mnemonic!>

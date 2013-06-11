@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript">
+        window.onload = init;
+
+        // the map defines 'keys' for elements that may occur more than once
+        // on the same level in the XML document
+        var MAP = {
+            knot: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            anchor: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            attribute: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            tie: function(xml, fragment) {
+                var role, roles = xml.evaluate(
+                        '*[@role]',
+                        fragment,
+                        null,
+                        XPathResult.ORDERED_NODE_ITERATOR_TYPE, // document order
+                        null
+                );
+                var key = '', role = roles.iterateNext();
+                while(role) {
+                    key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                    role = roles.iterateNext();
+                    if(role) key += '_';
+                }
+                return key;
+            },
+            anchorRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            },
+            knotRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            }
+        };
+
+        // this function will recursively traverse the XML document and
+        // create a 'hash' object that mimics the structure using the given map
+        // to handle siblings using the same tag
+        function objectify(xml, map) {
+            function objectifier(xmlFragment, map, object) {
+                // element
+                if(xmlFragment.nodeType == 1) {
+                    if(!object[xmlFragment.nodeName])
+                        object[xmlFragment.nodeName] = {};
+                    var partialObject = object[xmlFragment.nodeName];
+                    if(typeof map[xmlFragment.nodeName] == 'function') {
+                        var key = map[xmlFragment.nodeName](xml, xmlFragment);
+                        if(key) partialObject = partialObject[key] = {};
+                    }
+                    // process attributes
+                    if (xmlFragment.attributes.length > 0) {
+                        for (var j = 0; j < xmlFragment.attributes.length; j++) {
+                            var attribute = xmlFragment.attributes.item(j);
+                            partialObject[attribute.nodeName] = attribute.nodeValue;
+                        }
+                    }
+                    // process children
+                    var child = xmlFragment.firstChild;
+                    if(child) objectifier(child, map, partialObject);
+                }
+                // process siblings
+                var sibling = xmlFragment.nextSibling;
+                if(sibling) objectifier(sibling, map, object);
+                return object;
+            }
+            // just initialize and return the result
+            return objectifier(xml.documentElement, map, {});
+        }
+
+        function init() {
+
+            var xmlhttp = new window.XMLHttpRequest();
+            xmlhttp.open("GET", "../example.xml", false);
+            xmlhttp.send(null);
+            var example = xmlhttp.responseXML;
+
+            // show the contents
+/*
+            if (typeof (XMLSerializer) != "undefined") {
+                var serializer = new XMLSerializer();
+                alert(serializer.serializeToString(example));
+            }
+*/
+            var o = objectify(example, MAP);
+            console.log(o);
+
+            // just for testing that it won't give an error
+            var json = JSON.stringify(o, null, '\t');
+
+            var xmlhttp = new window.XMLHttpRequest();
+            xmlhttp.open("GET", "TestJ.sisula", false);
+            xmlhttp.send(null);
+            var sisula = xmlhttp.responseText;
+
+            alert(sisula);
+
+            var Language = {
+                REGEXP: 0,
+                SUBSTITUTION: 1,
+                Parser: [
+                    [/\*\s*(\S+\.(\S*))\s+<!([\s\S]*?)!>/g, 'for(var $2 in $1) {___R="$3"}'] // first rule
+                ]
+            };
+
+            for(var rule = 0; rule < Language.Parser.length; rule++)
+                sisula = sisula.replace(
+                    Language.Parser[rule][Language.REGEXP],
+                    Language.Parser[rule][Language.SUBSTITUTION]
+                );
+
+            alert(sisula);
+
+        }
+    </script>
+    <title>Test J - sisula</title>
+</head>
+<body id="body">
+    <!-- trying to fill dynamically -->
+</body>
+</html>
