@@ -5,6 +5,26 @@
     <script type="text/javascript">
         window.onload = init;
 
+        var Defaults = {
+            changingRange: 'datetime',
+            encapsulation: 'dbo',
+            identity: 'int',
+            metadataPrefix: 'Metadata',
+            metadataType: 'int',
+            metadataUsage: 'true',
+            changingSuffix: 'ChangedAt',
+            identitySuffix: 'ID',
+            recordingRange: 'datetime',
+            recordingSuffix: 'RecordedAt',
+            erasingSuffix: 'ErasedAt',
+            partitioning: 'false',
+            entityIntegrity: 'true',
+            restatability: 'true',
+            idempotency: 'false',
+            naming: 'improved'
+        };
+
+
         // the map defines 'keys' for elements that may occur more than once
         // on the same level in the XML document
         var MAP = {
@@ -45,15 +65,19 @@
         // create a 'hash' object that mimics the structure using the given map
         // to handle siblings using the same tag
         function objectify(xml, map) {
-            function objectifier(xmlFragment, map, object) {
+            function objectifier(xmlFragment, map, object, position) {
                 // element
                 if(xmlFragment.nodeType == 1) {
                     if(!object[xmlFragment.nodeName])
-                        object[xmlFragment.nodeName] = {};
+                        object[xmlFragment.nodeName] = [];
                     var partialObject = object[xmlFragment.nodeName];
                     if(typeof map[xmlFragment.nodeName] == 'function') {
                         var key = map[xmlFragment.nodeName](xml, xmlFragment);
-                        if(key) partialObject = partialObject[key] = {};
+                        if(key) {
+                            partialObject = partialObject[key] = {};
+                            // reference the object from the array
+                            object[xmlFragment.nodeName].push(partialObject);
+                        }
                     }
                     // process attributes
                     if (xmlFragment.attributes.length > 0) {
@@ -62,17 +86,19 @@
                             partialObject[attribute.nodeName] = attribute.nodeValue;
                         }
                     }
+                    // set the position
+                    partialObject.position = ++position;
                     // process children
                     var child = xmlFragment.firstChild;
-                    if(child) objectifier(child, map, partialObject);
+                    if(child) objectifier(child, map, partialObject, 0);
                 }
                 // process siblings
                 var sibling = xmlFragment.nextSibling;
-                if(sibling) objectifier(sibling, map, object);
+                if(sibling) objectifier(sibling, map, object, position);
                 return object;
             }
             // just initialize and return the result
-            return objectifier(xml.documentElement, map, {});
+            return objectifier(xml.documentElement, map, {}, 0);
         }
 
         function init() {
@@ -82,42 +108,35 @@
             xmlhttp.send(null);
             var example = xmlhttp.responseXML;
 
-            // show the contents
-/*
-            if (typeof (XMLSerializer) != "undefined") {
-                var serializer = new XMLSerializer();
-                alert(serializer.serializeToString(example));
-            }
-*/
-            var o = objectify(example, MAP);
-            console.log(o);
-
-            // just for testing that it won't give an error
-            var json = JSON.stringify(o, null, '\t');
-
             var xmlhttp = new window.XMLHttpRequest();
             xmlhttp.open("GET", "TestJ.sisula", false);
             xmlhttp.send(null);
             var sisula = xmlhttp.responseText;
 
-            alert(sisula);
+            // alert(sisula);
 
-            var Language = {
-                REGEXP: 0,
-                SUBSTITUTION: 1,
-                Parser: [
-                    [/\*\s*(\S+\.(\S*))\s+<!([\s\S]*?)!>/g, 'for(var $2 in $1) {___R="$3"}'] // first rule
-                ]
-            };
+            var splitter = /~([\s\S]*?)~/g;
+            var sisulets = sisula.split(splitter);
 
-            for(var rule = 0; rule < Language.Parser.length; rule++)
-                sisula = sisula.replace(
-                    Language.Parser[rule][Language.REGEXP],
-                    Language.Parser[rule][Language.SUBSTITUTION]
-                );
+            for(var i = 1; i < sisulets.length; i+=2) {
+                sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "');
+                sisulets[i] = sisulets[i].replace(/[$]([\S\s]*?)\s/g, '" + $1 + " ');
+                sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n');
+                sisulets[i] = sisulets[i].replace(/^/gm, '"');
+                sisulets[i] = '_sisula_+=' + sisulets[i] + '"';
+            }
 
-            alert(sisula);
+            sisula = sisulets.join('');
+            // alert(sisula);
+            var _sisula_ = '';
+            var schema = objectify(example, MAP).schema;
+            eval(sisula);
 
+            console.log(schema);
+            // just for testing that it won't give an error
+            var json = JSON.stringify(schema, null, '\t');
+
+            console.log(_sisula_);
         }
     </script>
     <title>Test J - sisula</title>
