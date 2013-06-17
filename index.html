@@ -429,7 +429,9 @@
         color:              #ffc0c0;
         font-style:         italic;
     }
-    .preformatted {
+    .preformatted, pre {
+        font:               100% Andale Mono, monospace;
+        color:              white;
         white-space:        pre;
     }
 
@@ -672,7 +674,9 @@
             entityIntegrity: 'true',
             restatability: 'true',
             idempotency: 'false',
-            naming: 'improved'
+            naming: 'improved',
+            positSuffix: 'Posit',
+            annexSuffix: 'Annex'
         };
 
         // create a singleton
@@ -2569,6 +2573,20 @@
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
+            coloringEdit: {
+                name: 'Coloring',
+                description:
+                        'Coloring can be used to create your own visual separation of the components in a model. It ' +
+                        'has no effect on the implementation.',
+                setMember: function (element, node) { node.coloring = element.value; },
+                getMember: function (node) { return node.coloring },
+                setElement: function (element, node) { element.value = node.coloring },
+                getElement: function (element) { return element.value },
+                type: 'input',
+                pattern: '#[0-9A-Fa-f]{6}',
+                event: 'change',
+                attributes: ['type', 'color', 'required', 'required']
+            },
             encapsulationEdit: {
                 name: 'Capsule',
                 description:
@@ -2717,7 +2735,7 @@
                 var name = this.contextualName();
                 if(name && this.visible) {
                     var text = svg.createElementNS(SVGNS, 'text');
-                    text.setAttributeNS(null, 'font-size', 10);
+                    text.setAttributeNS(null, 'font-size', '10');
                     text.setAttributeNS(null, 'font-family', 'sans-serif');
                     text.appendChild(svg.createTextNode(name));
                     var i, edge, xAverage = 0;
@@ -3076,22 +3094,22 @@
                 var circle = svg.createElementNS(SVGNS, 'circle');
                 circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
                 circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                circle.setAttributeNS(null, 'stroke-width', 1.5);
+                circle.setAttributeNS(null, 'stroke-width', '1.5');
                 circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                 circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
                 if(this.historized)
-                    circle.setAttributeNS(null, 'r', 12);
+                    circle.setAttributeNS(null, 'r', '12');
                 else
-                    circle.setAttributeNS(null, 'r', 10);
+                    circle.setAttributeNS(null, 'r', '10');
                 group.appendChild(circle);
                 if(this.historized) {
                     circle = svg.createElementNS(SVGNS, 'circle');
                     circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
                     circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                    circle.setAttributeNS(null, 'stroke-width', 1.5);
+                    circle.setAttributeNS(null, 'stroke-width', '1.5');
                     circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', 7);
+                    circle.setAttributeNS(null, 'r', '7');
                     group.appendChild(circle);
                 }
                 g.appendChild(group);
@@ -3289,8 +3307,8 @@
                 rect.setAttributeNS(null, 'fill', Color.scheme.anchorFill);
                 rect.setAttributeNS(null, 'x', (this.xPosition - this.size).toFixed(2));
                 rect.setAttributeNS(null, 'y', (this.yPosition - this.size).toFixed(2));
-                rect.setAttributeNS(null, 'width', 2 * this.size);
-                rect.setAttributeNS(null, 'height', 2 * this.size);
+                rect.setAttributeNS(null, 'width', (2 * this.size).toFixed());
+                rect.setAttributeNS(null, 'height', (2 * this.size).toFixed());
                 group.appendChild(rect);
                 g.appendChild(group);
             },
@@ -3456,13 +3474,13 @@
                 var rect = svg.createElementNS(SVGNS, 'rect');
                 rect.setAttributeNS(null, 'fill', Color.scheme.knotFill);
                 rect.setAttributeNS(null, 'stroke', Color.scheme.knotOutline);
-                rect.setAttributeNS(null, 'stroke-width', 1.5);
+                rect.setAttributeNS(null, 'stroke-width', '1.5');
                 rect.setAttributeNS(null, 'x', (this.xPosition - 9).toFixed(2));
                 rect.setAttributeNS(null, 'y', (this.yPosition - 9).toFixed(2));
-                rect.setAttributeNS(null, 'rx', 3);
-                rect.setAttributeNS(null, 'ry', 3);
-                rect.setAttributeNS(null, 'width', 18);
-                rect.setAttributeNS(null, 'height', 18);
+                rect.setAttributeNS(null, 'rx', '3');
+                rect.setAttributeNS(null, 'ry', '3');
+                rect.setAttributeNS(null, 'width', '18');
+                rect.setAttributeNS(null, 'height', '18');
                 group.appendChild(rect);
                 g.appendChild(group);
             },
@@ -3660,17 +3678,19 @@
                     if(Model.nodes[i] instanceof Knot)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var grandparent = element.parentNode.parentNode;
-                var j, type, edge, role, identifier, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
+                var j, type, edge, role, identifier, coloring, anchor, anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
                     role = anchorRoles[i].getAttribute("role") || "!unknown!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
+                    coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") == type) {
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, anchor, (identifier == "true"));
                             edge.role = role;
+                            edge.coloring = coloring;
                             Model.addEdge(edge);
                             break; // only one should match
                         }
@@ -3681,12 +3701,14 @@
                     type = knotRoles[i].getAttribute("type") || "???";
                     role = knotRoles[i].getAttribute("role") || "!unknown!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
+                    coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") == type) {
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, knot, (identifier == "true"));
                             edge.role = role;
+                            edge.coloring = coloring;
                             Model.addEdge(edge);
                             break; // only one should match
                         }
@@ -3708,6 +3730,8 @@
                         role = schema.createElement("knotRole");
                     role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!unknown!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
+                    if(this.edges[i].coloring != '#ffffff')
+                        role.setAttribute("coloring", this.edges[i].coloring);
                     role.setAttribute("identifier",
                             this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
                     tie.appendChild(role);
@@ -3790,7 +3814,7 @@
                     path = svg.createElementNS(SVGNS, 'path');
                     path.setAttributeNS(null, 'fill', Color.scheme.tieOutline);
                     path.setAttributeNS(null, 'stroke', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'stroke-width', 1.5);
+                    path.setAttributeNS(null, 'stroke-width', '1.5');
                     path.setAttributeNS(null, 'd',
                             'M ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
                             ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size + 2)).toFixed(2) +
@@ -3882,7 +3906,7 @@
             otherNode.edges.push(this);
             this.edges.push(node);
             this.edges.push(otherNode);
-            this.editables.push(Editables.roleEdit);
+            this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.incomplete = false;
             this.type = 'Edge';
@@ -3894,6 +3918,7 @@
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
+            coloring: '#ffffff',
             getMass: function() {
                 return Edge.mass;
             },
@@ -3930,6 +3955,7 @@
                 return this.role;
             },
             toSVG: function(svg, g) {
+                // TODO: Add coloring here also
                 var group = svg.createElementNS(SVGNS, 'g');
                 var path = svg.createElementNS(SVGNS, 'path');
                 path.setAttributeNS(null, 'fill', 'none');
@@ -3964,13 +3990,13 @@
                     circle.setAttributeNS(null, 'stroke', strokeStyle);
                     circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
                     circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', 6);
+                    circle.setAttributeNS(null, 'r', '6');
                     group.appendChild(circle);
                     if(Settings.showCardinalities) {
                         var text = svg.createElementNS(SVGNS, 'text');
                         text.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
                         text.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
-                        text.setAttributeNS(null, 'font-size', 8);
+                        text.setAttributeNS(null, 'font-size', '8');
                         text.setAttributeNS(null, 'font-family', 'sans-serif');
                         text.setAttributeNS(null, 'font-weight', 'bold');
                         text.setAttributeNS(null, 'text-anchor', 'middle');
@@ -3983,6 +4009,21 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
+                if(this.coloring != '#ffffff') {
+                    context.beginPath();
+                    context.moveTo(this.node.xPosition, this.node.yPosition);
+                    if(DrawingEngine.drawCurves) {
+                        context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition,
+                                this.otherNode.xPosition, this.otherNode.yPosition);
+                    }
+                    else {
+                        context.lineTo(this.xPosition, this.yPosition);
+                        context.lineTo(this.otherNode.xPosition, this.otherNode.yPosition);
+                    }
+                    context.strokeStyle = this.coloring;
+                    context.lineWidth = 7.0;
+                    context.stroke();
+                }
                 context.beginPath();
                 context.moveTo(this.node.xPosition, this.node.yPosition);
                 if(DrawingEngine.drawCurves) {
@@ -4956,9 +4997,8 @@
             saveToDisk: function (str) {
                 // while waiting for a working method
                 window.open(
-                        'data:text/xml,'
-                        + '<!-- Due to browser limitations you have to copy or save this content manually -->'
-                        + str, '_newtab'
+                        'data:text/xml,' +
+                        str, '_newtab'
                 );
             },
             loadFromURL: function (url) {
@@ -5286,9 +5326,153 @@
             }
         };
 
+        var Sisulator = {
+            // the map defines 'keys' for elements that may occur more than once
+            // on the same level in the XML document
+            MAP: {
+                knot: function(xml, fragment) {
+                    return fragment.getAttribute('mnemonic');
+                },
+                anchor: function(xml, fragment) {
+                    return fragment.getAttribute('mnemonic');
+                },
+                attribute: function(xml, fragment) {
+                    return fragment.getAttribute('mnemonic');
+                },
+                tie: function(xml, fragment) {
+                    var role, roles = xml.evaluate(
+                            '*[@role]',
+                            fragment,
+                            null,
+                            XPathResult.ORDERED_NODE_ITERATOR_TYPE, // document order
+                            null
+                    );
+                    var key = '', role = roles.iterateNext();
+                    while(role) {
+                        key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                        role = roles.iterateNext();
+                        if(role) key += '_';
+                    }
+                    return key;
+                },
+                anchorRole: function(xml, fragment) {
+                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+                },
+                knotRole: function(xml, fragment) {
+                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+                }
+            },
+            // used to replace certain element names with others
+            replacer: function(name) {
+                switch(name) {
+                    case 'anchorRoles':
+                        return 'roles';
+                    case 'knotRoles':
+                        return 'roles';
+                    default:
+                        return name;
+                }
+            },
+            // this function will recursively traverse the XML document and
+            // create a 'hash' object that mimics the structure using the given map
+            // to handle siblings using the same tag
+            objectify: function(xml, map) {
+                var listSuffix = 's';
+                function objectifier(xmlFragment, map, object) {
+                    // element
+                    if(xmlFragment.nodeType == 1) {
+                        if(!object[xmlFragment.nodeName])
+                            object[xmlFragment.nodeName] = {};
+                        var partialObject = object[xmlFragment.nodeName];
+                        if(typeof map[xmlFragment.nodeName] == 'function') {
+                            var key = map[xmlFragment.nodeName](xml, xmlFragment);
+                            if(key) {
+                                partialObject = partialObject[key] = {};
+                                var name = Sisulator.replacer(
+                                        xmlFragment.nodeName + listSuffix
+                                );
+                                // reference the object from the array
+                                if(!object[name])
+                                    object[name] = [];
+                                object[name].push(key);
+                            }
+                        }
+                        // process attributes
+                        if (xmlFragment.attributes.length > 0) {
+                            for (var j = 0; j < xmlFragment.attributes.length; j++) {
+                                var attribute = xmlFragment.attributes.item(j);
+                                partialObject[attribute.nodeName] = attribute.nodeValue;
+                            }
+                        }
+                        // process children
+                        var child = xmlFragment.firstChild;
+                        if(child) objectifier(child, map, partialObject);
+                    }
+                    // process siblings
+                    var sibling = xmlFragment.nextSibling;
+                    if(sibling) objectifier(sibling, map, object);
+                    return object;
+                }
+                // just initialize and return the result
+                return objectifier(xml.documentElement, map, {});
+            },
+            sisulate: function(xml, directive) {
+                // objectify the xml
+                var schema = Sisulator.objectify(xml, Sisulator.MAP).schema;
+                // this variable holds the result
+                var _sisula_ = '';
+
+                // process and evaluate all sisulas in the directive
+                var xmlhttp = new window.XMLHttpRequest();
+                xmlhttp.open("GET", directive + '?r=' + Math.random(), false);
+                xmlhttp.send(null);
+                // only non-empty lines that are not comments (starts with #)
+                var scripts = xmlhttp.responseText.match(/^[^#].+/gm);
+                var script;
+                var splitter = /~([\s\S]*?)~/g;
+                // process every sisula
+                for(var s = 0; script = scripts[s]; s++) {
+                    xmlhttp.open("GET", script + '?r=' + Math.random(), false);
+                    xmlhttp.send(null);
+                    var sisula = xmlhttp.responseText;
+                    // split language into JavaScript and SQL template components
+                    var sisulets = sisula.split(splitter);
+                    // substitute from SQL template to JavaScript
+                    for(var i = 1; i < sisulets.length; i+=2) {
+                        sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
+                        sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.])/g, '" + $1 + "$2'); // single
+                        sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
+                        sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
+                        sisulets[i] = '_sisula_+=' + sisulets[i] + '"'; // variable assignment
+                    }
+                    // join the parts together again (now all JavaScript)
+                    sisula = sisulets.join('');
+                    // this eval needs schema and _sisula_ to be defined
+                    eval(sisula);
+                    _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
+                }
+                console.log(schema);
+                return Sisulator.preformat(_sisula_);
+            },
+            jsonify: function(xml) {
+                var object = Sisulator.objectify(xml, Sisulator.MAP);
+                // jsonify the object
+                var json = JSON.stringify(object, null, 3);
+                return Sisulator.preformat(json);
+            },
+            // creates a preformatted document fragment from the given text
+            preformat: function(text) {
+                var fragment = document.createDocumentFragment();
+                var pre = document.createElement('pre');
+                pre.appendChild(document.createTextNode(text));
+                fragment.appendChild(pre);
+                return fragment;
+            }
+        };
+
         var Settings = {
             // default values for some 'global' settings
-            databaseTransform: 'SQLServer.xsl',
+            databaseTarget: 'SQLServer',
             calculations: 'simple',
             showMnemonics: true,
             showCardinalities: true,
@@ -5304,7 +5488,7 @@
                 document.getElementById('partitionFactor').value = LayoutEngine.partitionFactor.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
                 document.getElementById('temporalization').value = this.temporalization;
-                document.getElementById('database').value = this.databaseTransform;
+                document.getElementById('database').value = this.databaseTarget;
                 document.getElementById('miniatureFramesBetweenRefresh').value = DrawingEngine.miniatureFramesBetweenRefresh;
                 document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
@@ -5336,7 +5520,7 @@
                 this.setPartitioning('false');
                 this.setEntityIntegrity('true');
                 this.setTemporalization('mono');
-                this.setDatabase('SQLServer.xsl');
+                this.setDatabase('SQLServer');
                 this.setNaming('improved');
                 this.init();
             },
@@ -5375,7 +5559,7 @@
                 storage.setItem("partitionFactor", LayoutEngine.partitionFactor);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
                 storage.setItem("temporalization", this.temporalization);
-                storage.setItem("database", this.databaseTransform);
+                storage.setItem("database", this.databaseTarget);
                 storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
@@ -5416,7 +5600,7 @@
                 this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
                 this.setStiffness(storage.getItem('stiffness') || 1);
                 this.setTemporalization(storage.getItem('temporalization') || 'mono');
-                this.setDatabase(storage.getItem('database') || 'SQLServer.xsl');
+                this.setDatabase(storage.getItem('database') || 'SQLServer');
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                 this.setCalculations(storage.getItem('calculations') || 'simple');
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
@@ -5640,7 +5824,7 @@
                 LayoutEngine.init();
             },
             setDatabase: function(value) {
-                this.databaseTransform = value;
+                this.databaseTarget = value;
             },
             setMiniRate: function(value) {
                 DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
@@ -6033,7 +6217,8 @@
         <div id="generate" class="menu">Generate
             <ul class="submenu">
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), 'SQLServer_uni.directive', document), true)">SQL code</li>
+                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Sisulator.jsonify(Model.toXML(false)), true)">JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()">URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
@@ -6068,8 +6253,8 @@
             <ul id="listOfDefaults" class="submenu">
                 <li title="Selects the target database for the generated SQL code.">
                     <select id="database" onchange="Settings.setDatabase(this.value)">
-                        <option value="SQLServer.xsl" selected="selected">Microsoft SQL Server</option>
-                        <option value="Oracle.xsl">Oracle</option>
+                        <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
+                        <option value="Oracle">Oracle</option>
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
@@ -6083,6 +6268,7 @@
                 <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time)." id="tempoItem">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="mono" selected="selected">Monotemporal</option>
+                        <option value="crt">Concurrent-reliance-temporal</option>
                         <option value="bi">Bitemporal</option>
                     </select> Temporalization
                 </li>

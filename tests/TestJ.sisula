@@ -2,21 +2,25 @@
 var D = '_';
 
 // the following builds the naming convention of Anchor Modeling, change if you want something else
-for(var k in schema.knot) {
+for(var k in schema.knots) {
     var knot = schema.knot[k];
     knot.name = knot.mnemonic + D + knot.descriptor;
 }
 
-for(var a in schema.anchor) {
-    var anchor = schema.anchor[a];
+var anchor;
+for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+    if(a == 0) anchor.first = true;
+    if(a == schema.anchors.length - 1) anchor.last = true;
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
-    for(var b in anchor.attribute) {
-        var attribute = anchor.attribute[b];
+    var attribute;
+    for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        if(b == 0) attribute.first = true;
+        if(b == anchor.attributes.length - 1) attribute.last = true;
         attribute.name = anchor.mnemonic + D + attribute.mnemonic + D + anchor.descriptor + D + attribute.descriptor;
     }
 }
 
-for(var t in schema.tie) {
+for(var t in schema.ties) {
     var tie = schema.tie[t];
     var name = '';
     for(var ar in tie.anchorRole) {
@@ -36,7 +40,7 @@ for(var d in Defaults) {
 }
 
 var anchor;
-for(var a = 0; anchor = schema.anchor[a]; a++) {
+for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
 // tilde delimits the sisula code
 ~
 CREATE TABLE $anchor.name (
@@ -45,7 +49,7 @@ CREATE TABLE $anchor.name (
 
 ~
 var attribute;
-for(var b = 0; attribute = anchor.attribute[b]; b++) {
+for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
 // inner sisula code
 ~
 
