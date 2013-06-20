@@ -25,10 +25,16 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
         attribute.annexName = attribute.name + D + schema.annexSuffix;
         attribute.identityColumnName = anchor.mnemonic + D + attribute.mnemonic + D + schema.identitySuffix;
         attribute.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic + D + attribute.mnemonic;
-        if(schema.naming = 'improved')
+        if(schema.naming = 'improved') {
             attribute.anchorReferenceName = anchor.mnemonic + D + attribute.mnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
-        else
+            if(attribute.knotRange)
+                attribute.knotReferenceName = anchor.mnemonic + D + attribute.mnemonic + D + attribute.knotRange + D + schema.identitySuffix;
+        }
+        else {
             attribute.anchorReferenceName = anchor.identityColumnName;
+            if(attribute.knotRange)
+                attribute.knotReferenceName = attribute.knotRange + D + schema.identitySuffix;
+        }
         // historized
         if(attribute.timeRange) {
             attribute.changingColumnName = anchor.mnemonic + D + attribute.mnemonic + D + schema.changingSuffix;
