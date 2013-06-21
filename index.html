@@ -3753,7 +3753,7 @@
                 return tie;
             },
             contextualName: function() {
-                var name;
+                var name, edge;
                 if(Settings.showMnemonics)
                     name = this.toString();
                 else
@@ -3764,7 +3764,7 @@
                     }
                     else {
                         name = "(";
-                        for(i = 0; edge = this.edges[i]; i++) {
+                        for(var i = 0; edge = this.edges[i]; i++) {
                             if(i > 0)
                                 name += " ";
                             name += edge.role;
@@ -4890,7 +4890,8 @@
                 this.startKeyboardEvents();
                 var node;
                 var selected = selector.value;
-                selector.options.length = 0;
+                while(selector.options.length > 0)
+                    selector.options.remove(0);
                 selector.options.add(new Option("None selected", "none"));
                 var nodes = Model.nodes.slice();
                 nodes.sort(
@@ -4924,7 +4925,8 @@
                 window.onkeypress = CanvasEventHandler.handleEvent;
             },
             findNodeToExplode: function(node) {
-                for(i = 0; edge = node.edges[i]; i++) {
+                var edge, otherNode;
+                for(var i = 0; edge = node.edges[i]; i++) {
                     otherNode = edge.node == node ? edge.otherNode : edge.node;
                     if((otherNode instanceof Anchor || otherNode instanceof Tie) && otherNode.imploded) {
                         Model.explode([otherNode]);
@@ -5431,7 +5433,7 @@
                 // only non-empty lines that are not comments (starts with #)
                 var scripts = xmlhttp.responseText.match(/^[^#].+/gm);
                 var script;
-                var splitter = /~([\s\S]*?)~/g;
+                var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
                 // process every sisula
                 for(var s = 0; script = scripts[s]; s++) {
                     xmlhttp.open("GET", script + '?r=' + Math.random(), false);
@@ -5442,7 +5444,7 @@
                     // substitute from SQL template to JavaScript
                     for(var i = 1; i < sisulets.length; i+=2) {
                         sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
-                        sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.])/g, '" + $1 + "$2'); // single
+                        sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.])/g, '" + ($1 ? $1 : "") + "$2'); // single
                         sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
                         sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
                         sisulets[i] = '_sisula_+=' + sisulets[i] + '"'; // variable assignment
@@ -5451,9 +5453,9 @@
                     sisula = sisulets.join('');
                     // this eval needs schema and _sisula_ to be defined
                     eval(sisula);
-                    _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
                 }
-                console.log(schema);
+                _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
+                _sisula_ = _sisula_.replace(/(\S+[^\S\n])(?:[^\S\n]+)/gm, '$1'); // consume multiple spaces, but not indentation
                 return Sisulator.preformat(_sisula_);
             },
             jsonify: function(xml) {
