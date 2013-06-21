@@ -52,7 +52,9 @@ for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
         anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
         knotRole = tie.knotRole ? tie.knotRole[key] : null;
         var role = anchorRole ? anchorRole : knotRole;
-        name += role.type + D + role.role;
+        role.name = role.type + D + role.role;
+        role.columnName = role.type + D + schema.identitySuffix + D + role.role;
+        name += role.name;
         if(!role.last) name += D;
     }
     tie.name = name;
