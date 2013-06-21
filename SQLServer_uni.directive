@@ -1,6 +1,8 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Defaults.js
 SQL/Positions.js
+SQL/Identifiers.js
 SQL/SQLServer/NamingConvention.js
 SQL/SQLServer/uni/CreateKnots.js
 SQL/SQLServer/uni/CreateAnchorsAndAttributes.js
+SQL/SQLServer/uni/CreateTies.js
