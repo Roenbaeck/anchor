@@ -1,22 +1,20 @@
-~
-/** KNOTS *************************************************************************************************************
- *
- *  Knots are used to store finite sets of values, normally used to describe states
- *  of entities (through knotted attributes) or relationships (through knotted ties).
- *
- */
-~
+/*~
+-- KNOTS --------------------------------------------------------------------------------------------------------------
+--
+-- Knots are used to store finite sets of values, normally used to describe states
+-- of entities (through knotted attributes) or relationships (through knotted ties).
+-- Knots have their own surrogate identities and are therefore immutable.
+-- Values can be added to the set over time though.
+-- Knots should have values that are mutually exclusive and exhaustive.
+--
+ ~*/
 var knot;
 for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
     if(knot.metadata.generator == 'true')
         knot.identityGenerator = 'IDENTITY(1,1)';
-    else
-        knot.identityGenerator = '';
     if(schema.metadataUsage == 'true')
         knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadataType + ' not null,';
-    else
-        knot.metadataDefinition = '';
-~
+/*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table (number ${(knot.position + 1)}$ of $schema.knots.length)
 -----------------------------------------------------------------------------------------------------------------------
@@ -33,5 +31,5 @@ CREATE TABLE [$knot.capsule].[$knot.name] (
     )
 );
 GO
-~
+~*/
 }

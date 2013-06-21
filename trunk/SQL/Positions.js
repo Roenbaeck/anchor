@@ -1,5 +1,4 @@
 // sets positions, first, last
-
 var knot;
 for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
     if(k == 0) knot.first = true;
