@@ -3549,15 +3549,17 @@
             },
             checkIdentifiers: function() {
                 if(this.historized) {
-                    var otherNode, outside = 0;
-                    for(var i = 0; i < this.edges.length; i++)
+                    var outside = 0, inside = 0;
+                    for(var i = 0; i < this.edges.length; i++) {
                         outside += this.edges[i].identifier ? 0 : 1;
+                        inside += this.edges[i].identifier ? 1 : 0;
+                    }
                     if(outside > 1)
                         alert("The tie " + this + " has " + outside +
                                 " roles outside the identifier, which is not recommended for a historized tie. " +
                                 "In order to determine what changes over time leaving exactly one role outside the " +
                                 "identifier is recommended.");
-                    else if (outside == 0)
+                    else if (outside == 0 && inside > 0)
                         alert("The tie " + this +
                                 " has no role outside the identifier, which is not recommended for a historized tie. " +
                                 "If you want a many-to-many relationship then gaps in the timeline needs to be " +
@@ -4225,6 +4227,7 @@
 
             var content = document.createElement('div');
             content.setAttribute("id", "content");
+            content.setAttribute("contenteditable", "true");
             if(preformatted)
                 content.setAttribute("class", "preformatted");
             content.style.width = (window.innerWidth - 2 * wPadding) + 'px';
