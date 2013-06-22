@@ -1,5 +1,5 @@
 /*~
--- TIES --------------------------------------------------------------------------------------------------------------
+-- TIES ---------------------------------------------------------------------------------------------------------------
 --
 -- Ties are used to represent relationships between entities.
 -- They come in four flavors: static, historized, knotted static, and knotted historized.
@@ -19,17 +19,17 @@ for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
     }
     else if(tie.timeRange) {
 /*~
--- Historized tie table ----------------------------------------------------------------------------------------------
+-- Historized tie table -----------------------------------------------------------------------------------------------
 ~*/
     }
     else if(tie.knotRole) {
 /*~
--- Knotted static tie table ------------------------------------------------------------------------------------------
+-- Knotted static tie table -------------------------------------------------------------------------------------------
 ~*/
     }
     else {
 /*~
--- Static tie table --------------------------------------------------------------------------------------------------
+-- Static tie table ---------------------------------------------------------------------------------------------------
 ~*/
     }
 /*~
@@ -85,18 +85,41 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
  ~*/
         }
     }
+    var role;
+    // one-to-one and we need additional constraints
+    if(tie.identifiers.length == 0) {
+        for(r = 0; r < tie.roles.length; r++) {
+            key = tie.roles[r];
+            anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
+            knotRole = tie.knotRole ? tie.knotRole[key] : null;
+            role = anchorRole || knotRole;
+            if(tie.timeRange) {
 /*~
-    constraint uq$tie.name unique (
+    constraint ${tie.name + '_uq' + role.name}$ unique (
+        $role.columnName,
+        $tie.changingColumnName
     ),
+~*/
+            }
+            else {
+/*~
+    constraint ${tie.name + '_uq' + role.name}$ unique (
+        $role.columnName
+    ),
+~*/
+            }
+        }
+    }
+/*~
     constraint pk$tie.name primary key (
 ~*/
-    var role;
-    for(r = 0; r < tie.identifiers.length; r++) {
-        key = tie.identifiers[r];
+    var listOfKeys = tie.identifiers.length > 0 ? tie.identifiers : tie.roles;
+    for(r = 0; r < listOfKeys.length; r++) {
+        key = listOfKeys[r];
         anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
         knotRole = tie.knotRole ? tie.knotRole[key] : null;
         role = anchorRole || knotRole;
-        if((r == tie.identifiers.length - 1) && !tie.timeRange) {
+        if((r == listOfKeys.length - 1) && !tie.timeRange) {
 /*~
         $role.columnName asc
 ~*/
