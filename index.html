@@ -110,13 +110,33 @@
         background-color:   rgba(255, 255, 255, 0.9);
     }
 
+    /* shows a beta disclaimer */
+    #disclaimer {
+        position:           absolute;
+        font:               bold 64pt sans-serif;
+        color:              white;
+        top:                42px;
+        left:               16px;
+        z-index:            0;
+    }
+
+    /* the logotype 'ANCHOR' */
+    #logotype {
+        position:           absolute;
+        z-index:            1;
+        display:            block;
+        left:               12px;
+        bottom:             6px;
+        width:              142px;
+    }
+
     /* shows login status to the cloud (google app engine) */
     #cloud {
         font:               8pt sans-serif;
         position:           absolute;
         color:              black;
         text-align:         left;
-        bottom:             12px;
+        bottom:             40px;
         left:               12px;
         cursor:             pointer;
         display:            block;
@@ -129,7 +149,7 @@
         position:           absolute;
         color:              black;
         text-align:         left;
-        bottom:             26px;
+        bottom:             54px;
         left:               12px;
         display:            block;
         z-index:            10;
@@ -6190,6 +6210,12 @@
     <canvas id="shadow" class="unselectable">
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
+    <div id="disclaimer" class="unselectable">
+        THIS<br/>
+        IS A<br/>
+        BETA<br/>
+        VERSION
+    </div>
 
     <div id="header" class="unselectable">
         <div id="file" class="menu">File
@@ -6323,7 +6349,9 @@
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window. It will always show the whole model with the current viewport shown by a red outline. Click and drag to move the viewport.">
         <!-- shows a navigatable miniature of the model -->
     </canvas>
-
+    <div id="logotype" class="unselectable">
+        <img width="100%" src="Anchor.svg" type="image/svg+xml"/>
+    </div>
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
     </div>
