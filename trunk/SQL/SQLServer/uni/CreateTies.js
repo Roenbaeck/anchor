@@ -71,7 +71,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
         if(anchorRole) {
             anchor = schema.anchor[anchorRole.type];
 /*~
-    constraint ${(tie.name + '_fk' + anchorRole.name)}$ (
+    constraint ${(tie.name + '_fk' + anchorRole.name)}$ foreign key (
         $anchorRole.columnName
     ) references $anchor.name($anchor.identityColumnName),
  ~*/
@@ -79,7 +79,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
         else if (knotRole) {
             knot = schema.knot[knotRole.type];
 /*~
-    constraint ${(tie.name + '_fk' + knotRole.name)}$ (
+    constraint ${(tie.name + '_fk' + knotRole.name)}$ foreign key (
         $knotRole.columnName
     ) references $knot.name($knot.identityColumnName),
  ~*/

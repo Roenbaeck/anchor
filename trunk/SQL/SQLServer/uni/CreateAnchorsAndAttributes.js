@@ -45,10 +45,10 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.changingColumnName $attribute.timeRange not null,
     $attribute.metadataDefinition
     constraint fk$attribute.name foreign key (
-        $attribute.identityColumnName
+        $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.identityColumnName asc,
+        $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
     )
 );
@@ -64,17 +64,17 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.knotReferenceName $knot.dataRange not null,
+    $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     $attribute.metadataDefinition
     constraint fk_A_$attribute.name foreign key (
-        $attribute.identityColumnName
+        $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.identityColumnName asc,
+        $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
     )
 );
@@ -90,16 +90,16 @@ GO
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.knotReferenceName $knot.dataRange not null,
+    $attribute.knotReferenceName $knot.identity not null,
     $attribute.metadataDefinition
     constraint fk_A_$attribute.name foreign key (
-        $attribute.identityColumnName
+        $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.identityColumnName asc
+        $attribute.anchorReferenceName asc
     )
 );
 GO
@@ -116,10 +116,10 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.name $attribute.dataRange not null,
     $attribute.metadataDefinition
     constraint fk$attribute.name foreign key (
-        $attribute.identityColumnName
+        $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.identityColumnName asc
+        $attribute.anchorReferenceName asc
     )
 );
 GO
