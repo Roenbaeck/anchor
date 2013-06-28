@@ -5408,32 +5408,38 @@
                 function objectifier(xmlFragment, map, object) {
                     // element
                     if(xmlFragment.nodeType == 1) {
-                        if(!object[xmlFragment.nodeName])
-                            object[xmlFragment.nodeName] = {};
-                        var partialObject = object[xmlFragment.nodeName];
-                        if(typeof map[xmlFragment.nodeName] == 'function') {
-                            var key = map[xmlFragment.nodeName](xml, xmlFragment);
-                            if(key) {
-                                partialObject = partialObject[key] = {};
-                                var name = Sisulator.replacer(
-                                        xmlFragment.nodeName + listSuffix
-                                );
-                                // reference the object from the array
-                                if(!object[name])
-                                    object[name] = [];
-                                object[name].push(key);
+                        // add content with underscore naming
+                        if(xmlFragment.textContent)
+                            object['_' + xmlFragment.nodeName] = xmlFragment.textContent;
+                        // if there are children or attributes we need a container
+                        if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
+                            if(!object[xmlFragment.nodeName])
+                                object[xmlFragment.nodeName] = {};
+                            var partialObject = object[xmlFragment.nodeName];
+                            if(typeof map[xmlFragment.nodeName] == 'function') {
+                                var key = map[xmlFragment.nodeName](xml, xmlFragment);
+                                if(key) {
+                                    partialObject = partialObject[key] = {};
+                                    var name = Sisulator.replacer(
+                                            xmlFragment.nodeName + listSuffix
+                                    );
+                                    // reference the object from the array
+                                    if(!object[name])
+                                        object[name] = [];
+                                    object[name].push(key);
+                                }
                             }
-                        }
-                        // process attributes
-                        if (xmlFragment.attributes.length > 0) {
-                            for (var j = 0; j < xmlFragment.attributes.length; j++) {
-                                var attribute = xmlFragment.attributes.item(j);
-                                partialObject[attribute.nodeName] = attribute.nodeValue;
+                            // process attributes
+                            if (xmlFragment.attributes.length > 0) {
+                                for (var j = 0; j < xmlFragment.attributes.length; j++) {
+                                    var attribute = xmlFragment.attributes.item(j);
+                                    partialObject[attribute.nodeName] = attribute.nodeValue;
+                                }
                             }
+                            // process children
+                            var child = xmlFragment.firstChild;
+                            if(child) objectifier(child, map, partialObject);
                         }
-                        // process children
-                        var child = xmlFragment.firstChild;
-                        if(child) objectifier(child, map, partialObject);
                     }
                     // process siblings
                     var sibling = xmlFragment.nextSibling;
@@ -5462,6 +5468,8 @@
                     xmlhttp.open("GET", script + '?r=' + Math.random(), false);
                     xmlhttp.send(null);
                     var sisula = xmlhttp.responseText;
+                    // honor escaped dollar signs
+                    sisula = sisula.replace(/[$]{2}/g, '§°§'); // escaping
                     // split language into JavaScript and SQL template components
                     var sisulets = sisula.split(splitter);
                     // substitute from SQL template to JavaScript
@@ -5474,6 +5482,7 @@
                     }
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
+                    sisula = sisula.replace(/§°§/g, '$'); // unescaping
                     // this eval needs schema and _sisula_ to be defined
                     eval(sisula);
                 }

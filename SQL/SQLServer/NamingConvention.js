@@ -2,7 +2,7 @@
 
 // delimiter that is used in the naming convention
 var D = '_';
-var defaultCapsule = 'dbo';
+var defaultCapsule = schema.defaultCapsule || 'dbo';
 
 var knot;
 for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
