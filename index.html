@@ -5469,7 +5469,8 @@
                     xmlhttp.send(null);
                     var sisula = xmlhttp.responseText;
                     // honor escaped dollar signs
-                    sisula = sisula.replace(/[$]{2}/g, '§°§'); // escaping
+                    sisula = sisula.replace(/[$]{2}/g, '§DOLLAR§'); // escaping dollar signs
+                    sisula = sisula.replace(/["]{2}/g, '§QUOTED§'); // escaping double quotes
                     // split language into JavaScript and SQL template components
                     var sisulets = sisula.split(splitter);
                     // substitute from SQL template to JavaScript
@@ -5482,10 +5483,11 @@
                     }
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
-                    sisula = sisula.replace(/§°§/g, '$'); // unescaping
                     // this eval needs schema and _sisula_ to be defined
                     eval(sisula);
                 }
+                _sisula_ = _sisula_.replace(/§DOLLAR§/g, '$'); // unescaping dollar signs
+                _sisula_ = _sisula_.replace(/§QUOTED§/g, '"'); // unescaping double quotes
                 _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
                 _sisula_ = _sisula_.replace(/(\S+[^\S\n])(?:[^\S\n]+)/gm, '$1'); // consume multiple spaces, but not indentation
                 return Sisulator.preformat(_sisula_);
