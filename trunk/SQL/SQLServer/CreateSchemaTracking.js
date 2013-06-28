@@ -27,7 +27,7 @@ INSERT INTO [$schema.defaultCapsule].[_Schema] (
 )
 SELECT
    current_timestamp,
-   N'$schema._serialization;
+   N'$schema._serialization';
 GO
 -- Anchor view --------------------------------------------------------------------------------------------------------
 -- The anchor view shows information about all the anchors in a schema
@@ -41,7 +41,7 @@ AS
 SELECT
    S.version,
    S.activation,
-   Nodeset.anchor.value('concat(@mnemonic, '_', @descriptor)', 'nvarchar(max)') as [name],
+   Nodeset.anchor.value('concat(@mnemonic, ""_"", @descriptor)', 'nvarchar(max)') as [name],
    Nodeset.anchor.value('metadata[1]/@capsule', 'nvarchar(max)') as [capsule],
    Nodeset.anchor.value('@mnemonic', 'nvarchar(max)') as [mnemonic],
    Nodeset.anchor.value('@descriptor', 'nvarchar(max)') as [descriptor],
@@ -65,7 +65,7 @@ AS
 SELECT
    S.version,
    S.activation,
-   Nodeset.knot.value('concat(@mnemonic, '_', @descriptor)', 'nvarchar(max)') as [name],
+   Nodeset.knot.value('concat(@mnemonic, ""_"", @descriptor)', 'nvarchar(max)') as [name],
    Nodeset.knot.value('metadata[1]/@capsule', 'nvarchar(max)') as [capsule],
    Nodeset.knot.value('@mnemonic', 'nvarchar(max)') as [mnemonic],
    Nodeset.knot.value('@descriptor', 'nvarchar(max)') as [descriptor],
@@ -89,9 +89,9 @@ AS
 SELECT
    S.version,
    S.activation,
-   ParentNodeset.anchor.value('concat(@mnemonic, '_')', 'nvarchar(max)') +
-   Nodeset.attribute.value('concat(@mnemonic, '_')', 'nvarchar(max)') +
-   ParentNodeset.anchor.value('concat(@descriptor, '_')', 'nvarchar(max)') +
+   ParentNodeset.anchor.value('concat(@mnemonic, ""_"")', 'nvarchar(max)') +
+   Nodeset.attribute.value('concat(@mnemonic, ""_"")', 'nvarchar(max)') +
+   ParentNodeset.anchor.value('concat(@descriptor, ""_"")', 'nvarchar(max)') +
    Nodeset.attribute.value('@descriptor', 'nvarchar(max)') as [name],
    Nodeset.attribute.value('metadata[1]/@capsule', 'nvarchar(max)') as [capsule],
    Nodeset.attribute.value('@mnemonic', 'nvarchar(max)') as [mnemonic],
@@ -122,13 +122,13 @@ SELECT
    S.version,
    S.activation,
    REPLACE(Nodeset.tie.query('
-      for $$role in *[local-name() = 'anchorRole' or local-name() = 'knotRole']
-      return concat($$role/@type, '_', $$role/@role)
+      for $$role in *[local-name() = ""anchorRole"" or local-name() = ""knotRole""]
+      return concat($$role/@type, ""_"", $$role/@role)
    ').value('.', 'nvarchar(max)'), ' ', '_') as [name],
    Nodeset.tie.value('metadata[1]/@capsule', 'nvarchar(max)') as [capsule],
    Nodeset.tie.value('count(anchorRole) + count(knotRole)', 'int') as [numberOfRoles],
    Nodeset.tie.query('
-      for $$role in *[local-name() = 'anchorRole' or local-name() = 'knotRole']
+      for $$role in *[local-name() = ""anchorRole"" or local-name() = ""knotRole""]
       return string($$role/@role)
    ').value('.', 'nvarchar(max)') as [roles],
    Nodeset.tie.value('count(anchorRole)', 'int') as [numberOfAnchors],
@@ -141,9 +141,9 @@ SELECT
       for $$role in knotRole
       return string($$role/@type)
    ').value('.', 'nvarchar(max)') as [knots],
-   Nodeset.tie.value('count(*[local-name() = 'anchorRole' or local-name() = 'knotRole'][@identifier = 'true'])', 'int') as [numberOfIdentifiers],
+   Nodeset.tie.value('count(*[local-name() = ""anchorRole"" or local-name() = ""knotRole""][@identifier = ""true""])', 'int') as [numberOfIdentifiers],
    Nodeset.tie.query('
-      for $$role in *[local-name() = 'anchorRole' or local-name() = 'knotRole'][@identifier = 'true']
+      for $$role in *[local-name() = ""anchorRole"" or local-name() = ""knotRole""][@identifier = ""true""]
       return string($$role/@type)
    ').value('.', 'nvarchar(max)') as [identifiers],
    Nodeset.tie.value('@timeRange', 'nvarchar(max)') as [timeRange]
@@ -237,5 +237,7 @@ FULL OUTER JOIN (
 ) T
 ON
    S.[name] = T.[name];
+GO
+
 ~*/
 }
