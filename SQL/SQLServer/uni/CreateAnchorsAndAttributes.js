@@ -19,7 +19,7 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with $anchor.attributes.length attributes)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$anchor.name' AND type LIKE '%U%')
+IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
     $anchor.metadataDefinition
@@ -38,7 +38,7 @@ GO
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
+IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.name $attribute.dataRange not null,
@@ -61,7 +61,7 @@ GO
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
+IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
@@ -87,7 +87,7 @@ GO
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
+IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
@@ -110,7 +110,7 @@ GO
 -- Static attribute table ---------------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$attribute.name' AND type LIKE '%U%')
+IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.name $attribute.dataRange not null,

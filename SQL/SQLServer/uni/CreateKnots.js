@@ -18,7 +18,7 @@ for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table (number ${(knot.position + 1)}$ of $schema.knots.length)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$knot.name' and type LIKE '%U%')
+IF Object_ID('$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.name $knot.dataRange not null,

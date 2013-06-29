@@ -13,7 +13,7 @@ if(schema.serialization) {
 -- Schema table -------------------------------------------------------------------------------------------------------
 -- The schema table holds every xml that has been executed against the database
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '_Schema' and type LIKE '%U%')
+IF Object_ID('_Schema', 'U') IS NULL
    CREATE TABLE [$schema.defaultCapsule].[_Schema] (
       [version] int identity(1, 1) not null primary key,
       [activation] $schema.chronon not null,
@@ -32,7 +32,7 @@ GO
 -- Anchor view --------------------------------------------------------------------------------------------------------
 -- The anchor view shows information about all the anchors in a schema
 -----------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.views WHERE name = '_Anchor')
+IF Object_ID('_Anchor', 'V') IS NOT NULL
 DROP VIEW [$schema.defaultCapsule].[_Anchor]
 GO
 
@@ -56,7 +56,7 @@ GO
 -- Knot view ----------------------------------------------------------------------------------------------------------
 -- The knot view shows information about all the knots in a schema
 -----------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.views WHERE name = '_Knot')
+IF Object_ID('_Knot', 'V') IS NOT NULL
 DROP VIEW [$schema.defaultCapsule].[_Knot]
 GO
 
@@ -80,7 +80,7 @@ GO
 -- Attribute view -----------------------------------------------------------------------------------------------------
 -- The attribute view shows information about all the attributes in a schema
 -----------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.views WHERE name = '_Attribute')
+IF Object_ID('_Attribute', 'V') IS NOT NULL
 DROP VIEW [$schema.defaultCapsule].[_Attribute]
 GO
 
@@ -112,7 +112,7 @@ GO
 -- Tie view -----------------------------------------------------------------------------------------------------------
 -- The tie view shows information about all the ties in a schema
 -----------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.views WHERE name = '_Tie')
+IF Object_ID('_Tie', 'V') IS NOT NULL
 DROP VIEW [$schema.defaultCapsule].[_Tie]
 GO
 
@@ -159,7 +159,7 @@ GO
 --
 -- @timepoint   The point in time to which you would like to travel.
 -----------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.objects WHERE name = '_Evolution' and type LIKE '%F%')
+IF Object_ID('_Evolution', 'IF') IS NOT NULL
 DROP FUNCTION [$schema.defaultCapsule].[_Evolution];
 GO
 
