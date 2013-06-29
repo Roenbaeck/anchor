@@ -15,6 +15,8 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
         anchor.identityGenerator = 'IDENTITY(1,1)';
     if(schema.metadataUsage == 'true')
         anchor.metadataDefinition = anchor.metadataColumnName + ' ' + schema.metadataType + ' not null,';
+    else
+        anchor.metadataDefinition = anchor.dummyColumnName + ' bit null,';
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with $anchor.attributes.length attributes)

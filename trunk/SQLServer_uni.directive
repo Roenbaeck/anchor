@@ -7,4 +7,5 @@ SQL/SQLServer/uni/CreateKnots.js
 SQL/SQLServer/uni/CreateAnchorsAndAttributes.js
 SQL/SQLServer/uni/CreateTies.js
 SQL/SQLServer/uni/AddAttributeRestatementConstraints.js
+SQL/SQLServer/uni/CreateKeyGenerators.js
 SQL/SQLServer/CreateSchemaTracking.js

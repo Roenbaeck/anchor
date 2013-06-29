@@ -18,6 +18,7 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
     anchor.identityColumnName = anchor.mnemonic + D + schema.identitySuffix;
     anchor.capsule = anchor.metadata.capsule || defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
+    anchor.dummyColumnName = anchor.mnemonic + D + 'Dummy';
     var attribute;
     for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
         attribute.name = anchor.mnemonic + D + attribute.mnemonic + D + anchor.descriptor + D + attribute.descriptor;
