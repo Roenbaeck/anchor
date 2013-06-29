@@ -34,66 +34,59 @@ if(restatements) {
                     valueType = knot.identity;
                 }
 /*~
--- Restatement Constraint ---------------------------------------------------------------------------------------------
--- Drop the rf$attribute.name restatement checker
+-- Restatement Finder Function and Constraint -------------------------------------------------------------------------
+-- rf$attribute.name restatement finder
+-- rc$attribute.name restatement constraint
 -----------------------------------------------------------------------------------------------------------------------
-﻿IF EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'rc$attribute.name' AND type LIKE '%C%')
-ALTER TABLE [$attribute.capsule].[$attribute.name] DROP CONSTRAINT [rc$attribute.name];
-GO
--- Restatement Finder Function ----------------------------------------------------------------------------------------
--- rf$attribute.name restatement checker
------------------------------------------------------------------------------------------------------------------------
-IF EXISTS (SELECT * FROM sys.objects WHERE name = 'rf$attribute.name' AND type LIKE '%F%')
-DROP FUNCTION [$attribute.capsule].[rf$attribute.name];
-GO
-CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
-    @id $anchor.identity,
-    @value $valueType,
-    @changed $attribute.timeRange
-)
-RETURNS tinyint AS
-BEGIN RETURN (
-    SELECT
-        CASE WHEN @value IN ((
-            SELECT TOP 1
-                pre.$valueColumn
-            FROM
-                [$attribute.capsule].[$attribute.name] pre
-            WHERE
-                pre.$attribute.anchorReferenceName = @id
-            AND
-                pre.$attribute.changingColumnName <= @changed
-            ORDER BY
-                pre.$attribute.changingColumnName DESC
-        ),(
-            SELECT TOP 1
-                fol.$valueColumn
-            FROM
-                [$attribute.capsule].[$attribute.name] fol
-            WHERE
-                fol.$attribute.anchorReferenceName = @id
-            AND
-                fol.$attribute.changingColumnName >= @changed
-            ORDER BY
-                fol.$attribute.changingColumnName ASC
-        ))
-        THEN 1
-        ELSE 0
-        END
-);
+IF Object_ID('rf$attribute.name', 'FN') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
+        @id $anchor.identity,
+        @value $valueType,
+        @changed $attribute.timeRange
+    )
+    RETURNS tinyint AS
+    BEGIN RETURN (
+        SELECT
+            CASE WHEN @value IN ((
+                SELECT TOP 1
+                    pre.$valueColumn
+                FROM
+                    [$attribute.capsule].[$attribute.name] pre
+                WHERE
+                    pre.$attribute.anchorReferenceName = @id
+                AND
+                    pre.$attribute.changingColumnName <= @changed
+                ORDER BY
+                    pre.$attribute.changingColumnName DESC
+            ),(
+                SELECT TOP 1
+                    fol.$valueColumn
+                FROM
+                    [$attribute.capsule].[$attribute.name] fol
+                WHERE
+                    fol.$attribute.anchorReferenceName = @id
+                AND
+                    fol.$attribute.changingColumnName >= @changed
+                ORDER BY
+                    fol.$attribute.changingColumnName ASC
+            ))
+            THEN 1
+            ELSE 0
+            END
+    );
+    END
+    ');
+    ALTER TABLE [$attribute.capsule].[$attribute.name]
+    ADD CONSTRAINT [rc$attribute.name] CHECK (
+        [$attribute.capsule].[rf$attribute.name] (
+            $attribute.anchorReferenceName,
+            $valueColumn,
+            $attribute.changingColumnName
+        ) = 0
+    );
 END
-GO
--- Restatement Constraint ---------------------------------------------------------------------------------------------
--- Add the rc$attribute.name restatement constraint
------------------------------------------------------------------------------------------------------------------------
-ALTER TABLE [$attribute.capsule].[$attribute.name]
-ADD CONSTRAINT [rc$attribute.name] CHECK (
-    [$attribute.capsule].[rf$attribute.name] (
-        $attribute.anchorReferenceName,
-        $valueColumn,
-        $attribute.changingColumnName
-    ) = 0
-);
 GO
 ~*/
             }

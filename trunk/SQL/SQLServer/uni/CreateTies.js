@@ -35,7 +35,7 @@ for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE name = '$tie.name' and type LIKE '%U%')
+IF Object_ID('$tie.name', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.name] (
 ~*/
     var key, anchorRole, knotRole, anchor, knot;
