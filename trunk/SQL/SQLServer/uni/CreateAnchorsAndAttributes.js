@@ -43,7 +43,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.name $attribute.dataRange not null,
+    $attribute.valueColumnName $attribute.dataRange not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     $attribute.metadataDefinition
     constraint fk$attribute.name foreign key (
@@ -115,7 +115,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.name $attribute.dataRange not null,
+    $attribute.valueColumnName $attribute.dataRange not null,
     $attribute.metadataDefinition
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
