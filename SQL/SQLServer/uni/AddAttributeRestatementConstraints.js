@@ -25,7 +25,7 @@ if(restatements) {
             if(attribute.metadata.restatable == 'false' && attribute.timeRange) {
                 var valueColumn, valueType;
                 if(attribute.dataRange) {
-                    valueColumn = attribute.name;
+                    valueColumn = attribute.valueColumnName;
                     valueType = attribute.dataRange;
                 }
                 else if(attribute.knotRange) {

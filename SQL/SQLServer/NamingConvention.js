@@ -7,6 +7,7 @@ var defaultCapsule = schema.defaultCapsule || 'dbo';
 var knot;
 for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
     knot.name = knot.mnemonic + D + knot.descriptor;
+    knot.valueColumnName = knot.name;
     knot.identityColumnName = knot.mnemonic + D + schema.identitySuffix;
     knot.capsule = knot.metadata.capsule || defaultCapsule;
     knot.metadataColumnName = schema.metadataPrefix + D + knot.mnemonic;
@@ -21,24 +22,34 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
     anchor.dummyColumnName = anchor.mnemonic + D + 'Dummy';
     var attribute;
     for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
-        attribute.name = anchor.mnemonic + D + attribute.mnemonic + D + anchor.descriptor + D + attribute.descriptor;
+        attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
+        attribute.name = attribute.uniqueMnemonic + D + anchor.descriptor + D + attribute.descriptor;
         attribute.positName = attribute.name + D + schema.positSuffix;
         attribute.annexName = attribute.name + D + schema.annexSuffix;
-        attribute.identityColumnName = anchor.mnemonic + D + attribute.mnemonic + D + schema.identitySuffix;
-        attribute.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic + D + attribute.mnemonic;
-        if(schema.naming = 'improved') {
-            attribute.anchorReferenceName = anchor.mnemonic + D + attribute.mnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
-            if(attribute.knotRange)
-                attribute.knotReferenceName = anchor.mnemonic + D + attribute.mnemonic + D + attribute.knotRange + D + schema.identitySuffix;
+        attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.identitySuffix;
+        attribute.metadataColumnName = schema.metadataPrefix + D + attribute.uniqueMnemonic;
+        if(schema.naming == 'improved') {
+            attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
+            if(attribute.knotRange) {
+                knot = schema.knot[attribute.knotRange];
+                attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.identitySuffix;
+                attribute.knotValueColumnName = attribute.uniqueMnemonic + D + knot.name;
+                attribute.knotMetadataColumnName = attribute.uniqueMnemonic + D + knot.metadataColumnName;
+            }
         }
         else {
             attribute.anchorReferenceName = anchor.identityColumnName;
-            if(attribute.knotRange)
+            if(attribute.knotRange) {
+                knot = schema.knot[attribute.knotRange];
                 attribute.knotReferenceName = attribute.knotRange + D + schema.identitySuffix;
+                attribute.knotValueColumnName = knot.name;
+                attribute.knotMetadataColumnName = knot.metadataColumnName;
+            }
         }
+        attribute.valueColumnName = attribute.knotReferenceName || attribute.name;
         // historized
         if(attribute.timeRange) {
-            attribute.changingColumnName = anchor.mnemonic + D + attribute.mnemonic + D + schema.changingSuffix;
+            attribute.changingColumnName = attribute.uniqueMnemonic + D + schema.changingSuffix;
         }
         attribute.capsule = attribute.metadata.capsule || defaultCapsule;
     }

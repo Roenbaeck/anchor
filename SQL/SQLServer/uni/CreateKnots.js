@@ -21,13 +21,13 @@ for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
 IF Object_ID('$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
-    $knot.name $knot.dataRange not null,
+    $knot.valueColumnName $knot.dataRange not null,
     $knot.metadataDefinition
     constraint pk$knot.name primary key (
         $knot.identityColumnName asc
     ),
     constraint uq$knot.name unique (
-        $knot.name
+        $knot.valueColumnName
     )
 );
 GO

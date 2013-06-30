@@ -1,10 +1,10 @@
 /*~
- -- KEY GENERATORS -----------------------------------------------------------------------------------------------------
- --
- -- These stored procedures can be used to generate identities of entities.
- -- Corresponding anchors must have an incrementing identity column.
- --
- ~*/
+-- KEY GENERATORS -----------------------------------------------------------------------------------------------------
+--
+-- These stored procedures can be used to generate identities of entities.
+-- Corresponding anchors must have an incrementing identity column.
+--
+~*/
 var anchor;
 for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
     if(anchor.metadata.generator == 'true') {
@@ -13,39 +13,41 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('k$anchor.name', 'P') IS NOT NULL
-DROP PROCEDURE [$anchor.capsule].[k$anchor.name]
-GO
-CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-    @requestedNumberOfIdentities bigint,
-    @metadata $schema.metadataType
-) AS
+IF Object_ID('k$anchor.name', 'P') IS NULL
 BEGIN
-    SET NOCOUNT ON;
-    IF @requestedNumberOfIdentities > 0
+    EXEC('
+    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
+        @requestedNumberOfIdentities bigint,
+        @metadata $schema.metadataType
+    ) AS
     BEGIN
-        WITH idGenerator (idNumber) AS (
+        SET NOCOUNT ON;
+        IF @requestedNumberOfIdentities > 0
+        BEGIN
+            WITH idGenerator (idNumber) AS (
+                SELECT
+                    1
+                UNION ALL
+                SELECT
+                    idNumber + 1
+                FROM
+                    idGenerator
+                WHERE
+                    idNumber > @requestedNumberOfIdentities
+            )
+            INSERT INTO [$anchor.capsule].[$anchor.name] (
+                $anchor.metadataColumnName
+            )
+            OUTPUT
+                inserted.$anchor.identityColumnName
             SELECT
-                1
-            UNION ALL
-            SELECT
-                idNumber + 1
+                @metadata
             FROM
                 idGenerator
-            WHERE
-                idNumber > @requestedNumberOfIdentities
-        )
-        INSERT INTO [$anchor.capsule].[$anchor.name] (
-            $anchor.metadataColumnName
-        )
-        OUTPUT
-            inserted.$anchor.identityColumnName
-        SELECT
-            @metadata
-        FROM
-            idGenerator
-        OPTION (maxrecursion 0);
+            OPTION (maxrecursion 0);
+        END
     END
+    ');
 END
 GO
 ~*/
@@ -55,38 +57,40 @@ GO
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('k$anchor.name', 'P') IS NOT NULL
-DROP PROCEDURE [$anchor.capsule].[k$anchor.name]
-GO
-CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-    @requestedNumberOfIdentities bigint
-) AS
+IF Object_ID('k$anchor.name', 'P') IS NULL
 BEGIN
-    SET NOCOUNT ON;
-    IF @requestedNumberOfIdentities > 0
+    EXEC('
+    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
+        @requestedNumberOfIdentities bigint
+    ) AS
     BEGIN
-        WITH idGenerator (idNumber) AS (
+        SET NOCOUNT ON;
+        IF @requestedNumberOfIdentities > 0
+        BEGIN
+            WITH idGenerator (idNumber) AS (
+                SELECT
+                    1
+                UNION ALL
+                SELECT
+                    idNumber + 1
+                FROM
+                    idGenerator
+                WHERE
+                    idNumber > @requestedNumberOfIdentities
+            )
+            INSERT INTO [$anchor.capsule].[$anchor.name] (
+                $anchor.dummyColumnName
+            )
+            OUTPUT
+                inserted.$anchor.identityColumnName
             SELECT
-                1
-            UNION ALL
-            SELECT
-                idNumber + 1
+                null
             FROM
                 idGenerator
-            WHERE
-                idNumber > @requestedNumberOfIdentities
-        )
-        INSERT INTO [$anchor.capsule].[$anchor.name] (
-            $anchor.dummyColumnName
-        )
-        OUTPUT
-            inserted.$anchor.identityColumnName
-        SELECT
-            null
-        FROM
-            idGenerator
-        OPTION (maxrecursion 0);
+            OPTION (maxrecursion 0);
+        END
     END
+    ');
 END
 GO
 ~*/
