@@ -895,7 +895,7 @@
                 for(key in this.partitions) {
                     partition = this.partitions[key];
                     for(otherKey in this.partitions) {
-                        if(key != otherKey) {
+                        if(key !== otherKey) {
                             otherPartition = this.partitions[otherKey];
                             partition.xVelocity +=
                                     otherPartition.nodes.length *
@@ -913,7 +913,7 @@
                         node.xVelocity += this.longRangeEffect * partition.xVelocity;
                         node.yVelocity += this.longRangeEffect * partition.yVelocity;
                         for(j = 0; otherNode = partition.nodes[j]; j++) {
-                            if(i != j) {
+                            if(i !== j) {
                                 // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xSimpleRepelling(node, otherNode);
                                 node.yVelocity += this.ySimpleRepelling(node, otherNode);
@@ -1042,7 +1042,7 @@
                 for(key in this.partitions) {
                     partition = this.partitions[key];
                     for(otherKey in this.partitions) {
-                        if(key != otherKey) {
+                        if(key !== otherKey) {
                             otherPartition = this.partitions[otherKey];
                             partition.xVelocity +=
                                     otherPartition.nodes.length *
@@ -1060,7 +1060,7 @@
                         node.xVelocity += this.longRangeEffect * partition.xVelocity;
                         node.yVelocity += this.longRangeEffect * partition.yVelocity;
                         for(j = 0; otherNode = partition.nodes[j]; j++) {
-                            if(i != j) {
+                            if(i !== j) {
                                 // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xComplexRepelling(node, otherNode);
                                 node.yVelocity += this.yComplexRepelling(node, otherNode);
@@ -1193,7 +1193,7 @@
                 var g = Math.ceil(Math.random() * 255);
                 var b = Math.ceil(Math.random() * 255);
                 var color = this.formatColor(r, g, b);
-                if(this.takenColors[color] || (r + g + b) == 0)
+                if(this.takenColors[color] || (r + g + b) === 0)
                     return this.reserveUniqueColor();
                 this.takenColors[color] = true;
                 return color;
@@ -1227,7 +1227,7 @@
                 this.id = null;
             },
             isEmpty: function() {
-                return this.nodes.length == 0;
+                return this.nodes.length === 0;
             },
             empty: function() {
                 this.nodes = [];
@@ -1265,14 +1265,14 @@
                 ControlButtons.setRedoLevels(0);
             },
             undoState: function() {
-                this.version -= (this.version == 0 ? 0 : 1);
+                this.version -= (this.version === 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
                 DrawingEngine.stop();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
             redoState: function() {
-                this.version += (this.version == this.versions.length - 1 ? 0 : 1);
+                this.version += (this.version === this.versions.length - 1 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
                 DrawingEngine.stop();
                 ControlButtons.setUndoLevels(this.version);
@@ -1321,13 +1321,13 @@
                     this.nodes[this.nodes.length] = node;
                     this.sort();
                     this.shadowToNode[node.shadowColor] = node;
-                    if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
+                    if(this.topmostNode === null || node.yPosition < this.topmostNode.yPosition)
                         this.topmostNode = node;
-                    if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
+                    if(this.rightmostNode === null || node.xPosition > this.rightmostNode.xPosition)
                         this.rightmostNode = node;
-                    if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
+                    if(this.bottommostNode === null || node.yPosition > this.bottommostNode.yPosition)
                         this.bottommostNode = node;
-                    if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
+                    if(this.leftmostNode === null || node.xPosition < this.leftmostNode.xPosition)
                         this.leftmostNode = node;
                     this.invalidateNode(node);
                 }
@@ -1335,7 +1335,7 @@
             removeNode: function(node) {
                 if(node instanceof Knot) {
                     var edge = node.edges[0];
-                    var otherNode = edge.node == this ? edge.otherNode : edge.node;
+                    var otherNode = edge.node === this ? edge.otherNode : edge.node;
                     if(otherNode instanceof Attribute)
                         otherNode.setKnotted(false);
                 }
@@ -1374,7 +1374,7 @@
                 schema.documentElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
-                    if(node != null)
+                    if(node !== null)
                         schema.documentElement.appendChild(node);
                 }
                 if(serialize) {
@@ -1420,7 +1420,7 @@
                         }
                     Settings.setTemporalization(temporalization);
                     var selector = document.getElementById('temporalization');
-                    if(selector.value != temporalization)
+                    if(selector.value !== temporalization)
                         selector.value = temporalization;
                     var i;
                     // the order in which we add these are important (attributes create edges to anchors)
@@ -1459,7 +1459,7 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
                                 affectedEdges.push(edge);
-                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             if(otherNode instanceof Attribute && affectedNodes.indexOf(otherNode) < 0)
                                 affectedNodes.push(otherNode);
                         }
@@ -1478,7 +1478,7 @@
                     if(node instanceof Tie) {
                         var anchors = 0;
                         for(j = 0; edge = node.edges[j]; j++) {
-                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             if(affectedNodes.indexOf(otherNode) < 0 && affectedEdges.indexOf(edge) < 0)
                                 if(otherNode instanceof Anchor)
                                     anchors++;
@@ -1497,7 +1497,7 @@
                     if(node instanceof Knot) {
                         var dangling = true;
                         for(j = 0; edge = node.edges[j]; j++) {
-                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             if(affectedNodes.indexOf(otherNode) < 0)
                                 dangling = false;
                         }
@@ -1554,7 +1554,7 @@
                     if(nodes[i].getKnotted()) {
                         for(var j = 0; edge = nodes[i].edges[j]; j++) {
                             if(edge.otherNode instanceof Knot) {
-                                if(edge.otherNode.edges.length == 1) {
+                                if(edge.otherNode.edges.length === 1) {
                                     if(!confirm("This will also delete the knot: " + edge.otherNode +
                                             ".\nDo you still want to un-knot the attribute?"))
                                         break;
@@ -1701,13 +1701,13 @@
                 DrawingEngine.start(true);
             },
             switchEdgeNodes: function(oldNode, newNode) {
-                if(oldNode == Model.topmostNode)
+                if(oldNode === Model.topmostNode)
                     Model.topmostNode = newNode;
-                if(oldNode == Model.bottommostNode)
+                if(oldNode === Model.bottommostNode)
                     Model.bottommostNode = newNode;
-                if(oldNode == Model.leftmostNode)
+                if(oldNode === Model.leftmostNode)
                     Model.leftmostNode = newNode;
-                if(oldNode == Model.rightmostNode)
+                if(oldNode === Model.rightmostNode)
                     Model.rightmostNode = newNode;
             },
             explode: function(nodes, startEngine) {
@@ -1716,11 +1716,11 @@
                     if(node instanceof Anchor) {
                         if(node.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Attribute) {
                                     if(otherNode.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
-                                            knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
+                                            knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
                                             if(knot instanceof Knot) {
                                                 break;
                                             }
@@ -1747,11 +1747,11 @@
                         }
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Attribute) {
                                     if(otherNode.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
-                                            knot = knotEdge.node == otherNode ? knotEdge.otherNode : knotEdge.node;
+                                            knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
                                             if(knot instanceof Knot) {
                                                 break;
                                             }
@@ -1761,7 +1761,7 @@
                                         for(k = 0; knotEdge = knot.edges[k]; k++)
                                             if(knotEdge.visible)
                                                 visibleEdges++;
-                                        if(visibleEdges == 0) {
+                                        if(visibleEdges === 0) {
                                             this.switchEdgeNodes(knot, node);
                                             knot.visible = false;
                                         }
@@ -1777,7 +1777,7 @@
                     else if(node instanceof Tie) {
                         if(node.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Knot) {
                                     if(!otherNode.visible) {
                                         otherNode.xPosition = node.xPosition + j + 1;
@@ -1793,14 +1793,14 @@
                         }
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode instanceof Knot) {
                                     edge.visible = false;
                                     visibleEdges = 0;
                                     for(k = 0; knotEdge = otherNode.edges[k]; k++)
                                         if(knotEdge.visible)
                                             visibleEdges++;
-                                    if(visibleEdges == 0) {
+                                    if(visibleEdges === 0) {
                                         this.switchEdgeNodes(otherNode, node);
                                         otherNode.visible = false;
                                     }
@@ -1811,7 +1811,7 @@
                     }
                 }
                 this.refresh();
-                if(startEngine == null || startEngine)
+                if(startEngine === null || startEngine)
                     DrawingEngine.start(true);
             }
         };
@@ -2029,7 +2029,7 @@
 
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                if(this.miniCounter == 1)
+                if(this.miniCounter === 1)
                     this.drawMiniature(Model);
 
                 var i, node;
@@ -2038,7 +2038,7 @@
                     this.drawHovered(node.xPosition, node.yPosition);
 
                 for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++)
-                    this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
+                    this.drawSelected(node.xPosition, node.yPosition, node === CanvasEventHandler.hoveredNode);
 
                 // cast all shadows first
                 if(this.drawShadows)
@@ -2055,7 +2055,7 @@
                         Color.useScheme(Color.normal);
                         node.draw(this.context, 0);
                     }
-                    if(this.miniCounter == 1)
+                    if(this.miniCounter === 1)
                         node.draw(this.miniatureContext, 1);
                 }
                 if(this.showNames) {
@@ -2183,7 +2183,7 @@
                             this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
                             this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
                             this.focusedNode.setFixed(true);
-                            if(this.contextMenu != null && this.contextMenu.collapsed) {
+                            if(this.contextMenu !== null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
                                 this.contextMenu = null;
                             }
@@ -2211,7 +2211,7 @@
                             DrawingEngine.setCursor('default');
                             this.hoveredNode = null;
                             this.hoveringPrepared = false;
-                            if(this.contextMenu != null && this.contextMenu.collapsed) {
+                            if(this.contextMenu !== null && this.contextMenu.collapsed) {
                                 this.contextMenu.close();
                                 this.contextMenu = null;
                             }
@@ -2231,7 +2231,7 @@
             mousehover: function(event) {
                 // mouse pointer over node
                 if(this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown)) {
-                    if(this.contextMenu == null)
+                    if(this.contextMenu === null)
                         this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
                     else if (this.contextMenu.collapsed) {
                         this.contextMenu.close();
@@ -2280,7 +2280,7 @@
                                 if(Operations.isSupported("connect", allNodes)) {
                                     var i, operation, validator;
                                     for(i = 0; operation = Operations.list[i]; i++)
-                                        if(operation[0] == "connect")
+                                        if(operation[0] === "connect")
                                             validator = operation[3];
                                     if(validator(allNodes))
                                         Model.connect(allNodes);
@@ -2457,9 +2457,9 @@
                        'An understandable description of something found in the domain ' +
                        'you are modeling, for example "CoffeeMachine".',
                 setMember: function (element, node) { node.descriptor = element.value; },
-                getMember: function (node) { return node.descriptor },
-                setElement: function (element, node) { element.value = node.descriptor },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.descriptor; },
+                setElement: function (element, node) { element.value = node.descriptor; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '(' + UPPER + LOWER + '*)+',
                 event: 'blur',
@@ -2472,9 +2472,9 @@
                        'model. If an anchor is named "CoffeeMachine" for example, then ' +
                        '"CM" is a suitable mnemonic.',
                 setMember: function (element, node) { node.mnemonic = element.value; },
-                getMember: function (node) { return node.mnemonic },
-                setElement: function (element, node) { element.value = node.mnemonic },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.mnemonic; },
+                setElement: function (element, node) { element.value = node.mnemonic; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: UPPER + '{2}',
                 event: 'blur',
@@ -2488,9 +2488,9 @@
                        'attribute is named "Capacity" for example, then "CAP" is a ' +
                        'suitable mnemonic.',
                 setMember: function (element, node) { node.mnemonic = element.value; },
-                getMember: function (node) { return node.mnemonic },
-                setElement: function (element, node) { element.value = node.mnemonic },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.mnemonic; },
+                setElement: function (element, node) { element.value = node.mnemonic; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: UPPER + '{3}',
                 event: 'blur',
@@ -2500,9 +2500,9 @@
                 name: 'Data range',
                 description: 'The data type of the column in the resulting implementation.',
                 setMember: function (element, node) { node.dataRange = element.value; },
-                getMember: function (node) { return node.dataRange },
-                setElement: function (element, node) { element.value = node.dataRange },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.dataRange; },
+                setElement: function (element, node) { element.value = node.dataRange; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2515,9 +2515,9 @@
                        'and this data type should be granular enough to handle the expected ' +
                        'update frequency.',
                 setMember: function (element, node) { node.changingRange = element.value; },
-                getMember: function (node) { return node.changingRange },
-                setElement: function (element, node) { element.value = node.changingRange },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.changingRange; },
+                setElement: function (element, node) { element.value = node.changingRange; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2530,9 +2530,9 @@
                        'that uniquely identifies an entity. If you expect to store very many ' +
                        'entities you also need an appropriately large data type.',
                 setMember: function (element, node) { node.identity = element.value; },
-                getMember: function (node) { return node.identity },
-                setElement: function (element, node) { element.value = node.identity },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.identity; },
+                setElement: function (element, node) { element.value = node.identity; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2545,9 +2545,9 @@
                        'identities for you through some auto incremented sequence. Uncheck if you ' +
                        'intend to manage your identities somewhere else.',
                 setMember: function (element, node) { node.generator = element.checked; },
-                getMember: function (node) { return node.generator },
-                setElement: function (element, node) { element.checked = node.generator },
-                getElement: function (element) { return element.checked },
+                getMember: function (node) { return node.generator; },
+                setElement: function (element, node) { element.checked = node.generator; },
+                getElement: function (element) { return element.checked; },
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2559,9 +2559,9 @@
                        'is when two consecutive values over changing time are identical. Uncheck this ' +
                        'to introduce a constraint preventing restatements from being made.',
                 setMember: function (element, node) { node.restatable = element.checked; },
-                getMember: function (node) { return node.restatable },
-                setElement: function (element, node) { element.checked = node.restatable },
-                getElement: function (element) { return element.checked },
+                getMember: function (node) { return node.restatable; },
+                setElement: function (element, node) { element.checked = node.restatable; },
+                getElement: function (element) { return element.checked; },
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2573,9 +2573,9 @@
                        'must be different in order to be recorded. Idempotency is not recommended when ' +
                        'data can arrive asynchronously with respect to changing time.',
                 setMember: function (element, node) { node.idempotent = element.checked; },
-                getMember: function (node) { return node.idempotent },
-                setElement: function (element, node) { element.checked = node.idempotent },
-                getElement: function (element) { return element.checked },
+                getMember: function (node) { return node.idempotent; },
+                setElement: function (element, node) { element.checked = node.idempotent; },
+                getElement: function (element) { return element.checked; },
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2587,9 +2587,9 @@
                        'participate more than once in the same relationship and must therefore be distinguished ' +
                        'through which role it plays. Because of this, roles must be unique within a tie.',
                 setMember: function (element, node) { node.role = element.value; },
-                getMember: function (node) { return node.role },
-                setElement: function (element, node) { element.value = node.role },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.role; },
+                setElement: function (element, node) { element.value = node.role; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '(' + LOWER + UPPER + '*)+',
                 event: 'blur',
@@ -2601,9 +2601,9 @@
                         'Coloring can be used to create your own visual separation of the components in a model. It ' +
                         'has no effect on the implementation.',
                 setMember: function (element, node) { node.coloring = element.value; },
-                getMember: function (node) { return node.coloring },
-                setElement: function (element, node) { element.value = node.coloring },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.coloring; },
+                setElement: function (element, node) { element.value = node.coloring; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: '#[0-9A-Fa-f]{6}',
                 event: 'change',
@@ -2615,9 +2615,9 @@
                        'In order to achieve separation of concerns, different parts of the model can be encapsulated ' +
                        'in different "capsules", which translate to schemas in the relational database implementation.',
                 setMember: function (element, node) { node.encapsulation = element.value; },
-                getMember: function (node) { return node.encapsulation },
-                setElement: function (element, node) { element.value = node.encapsulation },
-                getElement: function (element) { return element.value },
+                getMember: function (node) { return node.encapsulation; },
+                setElement: function (element, node) { element.value = node.encapsulation; },
+                getElement: function (element) { return element.value; },
                 type: 'input',
                 pattern: LOWER + '*',
                 event: 'blur',
@@ -2697,8 +2697,8 @@
                 return this.toString();
             },
             isEmpty: function(value) {
-                return typeof value == "undefined" || value == null ||
-                        value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') == '';
+                return typeof value === "undefined" || value === null ||
+                        value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') === '';
             },
             isIncomplete: function() {
                 var editable;
@@ -2891,8 +2891,8 @@
             this.editables.push(Editables.dataRangeEdit);
             this.knotted = false;
             this.historized = historized;
-            this.restatable = Defaults.restatability == 'true';
-            this.idempotent = Defaults.idempotency == 'true';
+            this.restatable = Defaults.restatability === 'true';
+            this.idempotent = Defaults.idempotency === 'true';
             this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
@@ -2920,7 +2920,7 @@
                 var i, edge, anchor, otherNode;
                 // first find the anchor
                 for(i = 0; edge = this.edges[i]; i++) {
-                    otherNode = (edge.node == this ? edge.otherNode : edge.node);
+                    otherNode = (edge.node === this ? edge.otherNode : edge.node);
                     if(otherNode instanceof Anchor) {
                         anchor = otherNode;
                         break;
@@ -2928,8 +2928,8 @@
                 }
                 // then check mnemonic uniqueness
                 for(i = 0; edge = anchor.edges[i]; i++) {
-                    otherNode = (edge.node == anchor ? edge.otherNode : edge.node);
-                    if(otherNode instanceof Attribute && otherNode != this && otherNode.mnemonic == this.mnemonic) {
+                    otherNode = (edge.node === anchor ? edge.otherNode : edge.node);
+                    if(otherNode instanceof Attribute && otherNode !== this && otherNode.mnemonic === this.mnemonic) {
                         return !confirm("The mnemonic '" + this.mnemonic +
                                 "' is not unique among other attributes on the '" + anchor +
                                 "' anchor. Please change to a different mnemonic in order to continue.");
@@ -2950,7 +2950,7 @@
                 }
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 2);
-                if(this.changingRange == '')
+                if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
             },
@@ -2971,7 +2971,7 @@
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'layout')
+                    if(element.childNodes.item(i).nodeName === 'layout')
                         layout = element.childNodes.item(i);
                 if(layout) {
                     x = layout.getAttribute("x");
@@ -2980,24 +2980,24 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? fixed == 'true' : false;
+                fixed = fixed ? fixed === 'true' : false;
                 var metadata;
                 var capsule = Defaults.encapsulation;
-                var restatable = Defaults.restatability == 'true';
-                var idempotent = Defaults.idempotency == 'true';
+                var restatable = Defaults.restatability === 'true';
+                var idempotent = Defaults.idempotency === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'metadata')
+                    if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatable = metadata.getAttribute("restatable") == 'false' ? false :
-                            metadata.getAttribute("restatements") == 'false' ? false :
+                    restatable = metadata.getAttribute("restatable") === 'false' ? false :
+                            metadata.getAttribute("restatements") === 'false' ? false :
                                     restatable;
-                    idempotent = metadata.getAttribute("idempotent") == 'true' || idempotent;
+                    idempotent = metadata.getAttribute("idempotent") === 'true' || idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'description')
+                    if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
@@ -3033,7 +3033,7 @@
                     var grandparent = parent.parentNode;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(i = 0; i < knots.length; i++) {
-                        if(knots[i].getAttribute("mnemonic") == knotRange) {
+                        if(knots[i].getAttribute("mnemonic") === knotRange) {
                             var knot = knotLookup[knots[i].getAttribute("mnemonic")];
                             Model.addEdge(new Edge(attribute, knot, false));
                             break; // only one should match
@@ -3066,9 +3066,9 @@
                         Defaults.encapsulation : this.encapsulation);
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
-                            Defaults.restatability == 'true' : this.restatable);
+                            Defaults.restatability === 'true' : this.restatable);
                     metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
-                            Defaults.idempotency == 'true' : this.idempotent);
+                            Defaults.idempotency === 'true' : this.idempotent);
                 }
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
@@ -3236,7 +3236,7 @@
                 }
                 // then check mnemonic uniqueness
                 for(i = 0; anchor = anchors[i]; i++) {
-                    if(anchor != this && anchor.mnemonic == this.mnemonic) {
+                    if(anchor !== this && anchor.mnemonic === this.mnemonic) {
                         return !confirm("The mnemonic '" + this.mnemonic +
                                 "' is not unique among other anchors in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
@@ -3247,7 +3247,7 @@
             fromXML: function(element) {
                 var x, y, fixed, i, layout, imploded;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'layout')
+                    if(element.childNodes.item(i).nodeName === 'layout')
                         layout = element.childNodes.item(i);
                 if(layout) {
                     x = layout.getAttribute("x");
@@ -3257,26 +3257,26 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? fixed == 'true' : false;
-                imploded = imploded ? imploded == 'true' : false;
+                fixed = fixed ? fixed === 'true' : false;
+                imploded = imploded ? imploded === 'true' : false;
                 var metadata, capsule = Defaults.encapsulation, generator = true;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'metadata')
+                    if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
                     generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
-                                metadata.getAttribute("generator") == 'true';
+                                metadata.getAttribute("generator") === 'true';
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
                     generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
-                                idElement.getAttribute("generator") == 'true';
+                                idElement.getAttribute("generator") === 'true';
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'description')
+                    if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
@@ -3401,7 +3401,7 @@
                 }
                 // then check mnemonic uniqueness
                 for(i = 0; knot = knots[i]; i++) {
-                    if(knot != this && knot.mnemonic == this.mnemonic) {
+                    if(knot !== this && knot.mnemonic === this.mnemonic) {
                         return !confirm("The mnemonic '" + this.mnemonic +
                                 "' is not unique among other knots in the model. " +
                                 "Please change to a different mnemonic in order to continue.");
@@ -3412,7 +3412,7 @@
             fromXML: function(element) {
                 var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'layout')
+                    if(element.childNodes.item(i).nodeName === 'layout')
                         layout = element.childNodes.item(i);
                 if(layout) {
                     x = layout.getAttribute("x");
@@ -3421,25 +3421,25 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? fixed == 'true' : false;
+                fixed = fixed ? fixed === 'true' : false;
                 var metadata, capsule = Defaults.encapsulation, generator = false;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'metadata')
+                    if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
                     generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
-                                metadata.getAttribute("generator") == 'true';
+                                metadata.getAttribute("generator") === 'true';
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
                     generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
-                                idElement.getAttribute("generator") == 'true';
+                                idElement.getAttribute("generator") === 'true';
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'description')
+                    if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || "???";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
@@ -3526,8 +3526,8 @@
             Tie.mass = 1;
             Tie.charge = 1;
             this.historized = historized;
-            this.restatable = Defaults.restatability == 'true';
-            this.idempotent = Defaults.idempotency == 'true';
+            this.restatable = Defaults.restatability === 'true';
+            this.idempotent = Defaults.idempotency === 'true';
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
@@ -3579,7 +3579,7 @@
                                 " roles outside the identifier, which is not recommended for a historized tie. " +
                                 "In order to determine what changes over time leaving exactly one role outside the " +
                                 "identifier is recommended.");
-                    else if (outside == 0 && inside > 0)
+                    else if (outside === 0 && inside > 0)
                         alert("The tie " + this +
                                 " has no role outside the identifier, which is not recommended for a historized tie. " +
                                 "If you want a many-to-many relationship then gaps in the timeline needs to be " +
@@ -3591,10 +3591,10 @@
                 // check that no roles are identical in the tie
                 for(i = 0; edge = this.edges[i]; i++) {
                     for(j = 0; otherEdge = this.edges[j]; j++) {
-                        if(i != j && edge.role == otherEdge.role) {
-                            mnemonic = (edge.node == this ? edge.otherNode : edge.node).toString();
-                            otherMnemonic = (otherEdge.node == this ? otherEdge.otherNode : otherEdge.node).toString();
-                            if(mnemonic == otherMnemonic)
+                        if(i !== j && edge.role === otherEdge.role) {
+                            mnemonic = (edge.node === this ? edge.otherNode : edge.node).toString();
+                            otherMnemonic = (otherEdge.node === this ? otherEdge.otherNode : otherEdge.node).toString();
+                            if(mnemonic === otherMnemonic)
                                 return !confirm("The roles named '" + edge.role + "' for the anchor '" +
                                         mnemonic + "' cannot be identical in this tie. " +
                                         "Please give the roles different and distinguishing names.");
@@ -3603,13 +3603,13 @@
                 }
                 // first find the anchors and knots connected to this tie
                 for(i = 0; edge = this.edges[i]; i++)
-                    roles[edge.role + "_" + (edge.node == this ? edge.otherNode : edge.node)] = true;
+                    roles[edge.role + "_" + (edge.node === this ? edge.otherNode : edge.node)] = true;
                 // then find all other ties of the same cardinality
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node instanceof Tie && node != this && node.edges.length == this.edges.length) {
+                    if(node instanceof Tie && node !== this && node.edges.length === this.edges.length) {
                         identical = true;
                         for(j = 0; edge = node.edges[j]; j++) {
-                            identical &= roles[edge.role + "_" + (edge.node == node ? edge.otherNode : edge.node)];
+                            identical &= roles[edge.role + "_" + (edge.node === node ? edge.otherNode : edge.node)];
                         }
                         if(identical) {
                             return !confirm("This tie will become identical to the already existing tie named " +
@@ -3632,7 +3632,7 @@
                 }
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 2);
-                if(this.changingRange == '')
+                if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
                 this.historized = historized;
             },
@@ -3652,7 +3652,7 @@
             fromXML: function(element) {
                 var x, y, fixed, i, layout, imploded;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'layout')
+                    if(element.childNodes.item(i).nodeName === 'layout')
                         layout = element.childNodes.item(i);
                 if(layout) {
                     x = layout.getAttribute("x");
@@ -3662,25 +3662,25 @@
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
-                fixed = fixed ? fixed == 'true' : false;
-                imploded = imploded ? imploded == 'true' : false;
+                fixed = fixed ? fixed === 'true' : false;
+                imploded = imploded ? imploded === 'true' : false;
                 var metadata;
                 var capsule = Defaults.encapsulation;
-                var restatable = Defaults.restatability == 'true';
-                var idempotent = Defaults.idempotency == 'true';
+                var restatable = Defaults.restatability === 'true';
+                var idempotent = Defaults.idempotency === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'metadata')
+                    if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatable = metadata.getAttribute("restatable") == 'false' ? false :
-                            metadata.getAttribute("restatements") == 'false' ? false :
+                    restatable = metadata.getAttribute("restatable") === 'false' ? false :
+                            metadata.getAttribute("restatements") === 'false' ? false :
                                     restatable;
-                    idempotent = metadata.getAttribute("idempotent") == 'true' || idempotent;
+                    idempotent = metadata.getAttribute("idempotent") === 'true' || idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName == 'description')
+                    if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
@@ -3710,9 +3710,9 @@
                     coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
-                        if(anchors[j].getAttribute("mnemonic") == type) {
+                        if(anchors[j].getAttribute("mnemonic") === type) {
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
-                            edge = new Edge(tie, anchor, (identifier == "true"));
+                            edge = new Edge(tie, anchor, (identifier === "true"));
                             edge.role = role;
                             edge.coloring = coloring;
                             Model.addEdge(edge);
@@ -3728,9 +3728,9 @@
                     coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
-                        if(knots[j].getAttribute("mnemonic") == type) {
+                        if(knots[j].getAttribute("mnemonic") === type) {
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
-                            edge = new Edge(tie, knot, (identifier == "true"));
+                            edge = new Edge(tie, knot, (identifier === "true"));
                             edge.role = role;
                             edge.coloring = coloring;
                             Model.addEdge(edge);
@@ -3754,7 +3754,7 @@
                         role = schema.createElement("knotRole");
                     role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!unknown!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
-                    if(this.edges[i].coloring != '#ffffff')
+                    if(this.edges[i].coloring !== '#ffffff')
                         role.setAttribute("coloring", this.edges[i].coloring);
                     role.setAttribute("identifier",
                             this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
@@ -3765,9 +3765,9 @@
                 metadata.setAttribute("capsule", this.encapsulation);
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
-                            Defaults.restatability == 'true' : this.restatable);
+                            Defaults.restatability === 'true' : this.restatable);
                     metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
-                            Defaults.idempotency == 'true' : this.idempotent);
+                            Defaults.idempotency === 'true' : this.idempotent);
                 }
                 tie.appendChild(metadata);
 
@@ -4033,7 +4033,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
-                if(this.coloring != '#ffffff') {
+                if(this.coloring !== '#ffffff') {
                     context.beginPath();
                     context.moveTo(this.node.xPosition, this.node.yPosition);
                     if(DrawingEngine.drawCurves) {
@@ -4074,7 +4074,7 @@
                     tie = this.node;
                 else if(this.otherNode instanceof Tie)
                     tie = this.otherNode;
-                if(detailLevel == 0 && tie && !tie.imploded) {
+                if(detailLevel === 0 && tie && !tie.imploded) {
                     var     cardinality,
                             strokeStyle = Color.scheme.identifierOutline,
                             fillStyle = Color.scheme.identifierSelectedFill;
@@ -4205,7 +4205,7 @@
             var hPadding = window.innerHeight * 0.1;
             var close = document.createElement('div');
             close.className = 'closebutton';
-            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            close.addEventListener('click', function(event) { return self.close(event); }, false);
             popover.appendChild(close);
 
             var content = document.createElement('iframe');
@@ -4242,7 +4242,7 @@
             var hPadding = window.innerHeight * 0.1;
             var close = document.createElement('div');
             close.className = 'closebutton';
-            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            close.addEventListener('click', function(event) { return self.close(event); }, false);
             popover.appendChild(close);
 
             var content = document.createElement('div');
@@ -4282,7 +4282,7 @@
             var hPadding = window.innerHeight * 0.1;
             var close = document.createElement('div');
             close.className = 'closebutton';
-            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            close.addEventListener('click', function(event) { return self.close(event); }, false);
             popover.appendChild(close);
 
             var filter = document.createElement('div');
@@ -4337,7 +4337,7 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 this.searchButton.disabled=true;
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
+                    if(xmlhttp.readyState === 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
                         var modelList = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
@@ -4348,7 +4348,7 @@
                 params.action = 'list';
                 params.maxItemsReturned = '100';
                 params.scope = this.scope;
-                if(self.keywordFilter!='') {
+                if(self.keywordFilter!=='') {
                     params.filterBy='keywords';
                     params.filterValue=self.keywordFilter;
                 }
@@ -4385,7 +4385,7 @@
                     }, false);
 
                     //modelContainer.setAttribute("id","codePopover");
-                    if(LOGGED_IN && (USER_ID==model.getAttribute("userId"))) {
+                    if(LOGGED_IN && (USER_ID===model.getAttribute("userId"))) {
                         var deleteButton = document.createElement('div');
                         deleteButton.className = 'modelDeleteButton';
                         deleteButton.setAttribute(
@@ -4424,7 +4424,7 @@
                     modelContainer.appendChild(name);
                     modelContainer.appendChild(keywords);
                     modelContainer.appendChild(description);
-                    if(modelContainer.modelScope == 'public') {
+                    if(modelContainer.modelScope === 'public') {
                         var twitter = document.createElement('div');
                         var tweet = document.createElement("a");
                         var externalLink = document.createElement("img");
@@ -4463,7 +4463,7 @@
             popover.setAttribute("id", "cloudSaverPopover");
             var close = document.createElement('div');
             close.className = 'closebutton';
-            close.addEventListener('click', function(event) { return self.close(event) }, false);
+            close.addEventListener('click', function(event) { return self.close(event); }, false);
             popover.appendChild(close);
 
             var content = document.createElement('div');
@@ -4481,7 +4481,7 @@
             td = document.createElement('td');
             var modelName = document.createElement('input');
             modelName.setAttribute('type', 'text');
-            if(Model.name && Model.name != null)
+            if(Model.name && Model.name !== null)
                 modelName.value = Model.name;
             modelName.addEventListener('change', function() { Model.name = this.value; }, false);
             td.appendChild(modelName);
@@ -4497,7 +4497,7 @@
             publicOption.setAttribute('value', 'public');
             publicOption.appendChild(document.createTextNode('Public'));
             modelScope.appendChild(publicOption);
-            if(Model.scope && Model.scope != null)
+            if(Model.scope && Model.scope !== null)
                 modelScope.value = Model.scope;
             modelScope.addEventListener('change', function() { Model.scope = this.value; }, false);
             tr = document.createElement('tr');
@@ -4512,7 +4512,7 @@
             var modelKeywords = document.createElement('input');
             modelKeywords.setAttribute('type', 'text');
             modelKeywords.setAttribute('placeholder', 'keywords separated with spaces');
-            if(Model.keywords && Model.keywords != null)
+            if(Model.keywords && Model.keywords !== null)
                 modelKeywords.value = Model.keywords;
             modelKeywords.addEventListener('change', function() { Model.keywords = this.value; }, false);
             tr = document.createElement('tr');
@@ -4527,7 +4527,7 @@
             var modelDesc = document.createElement('textarea');
             modelDesc.setAttribute('rows', '4');
             modelDesc.setAttribute('cols', '40');
-            if(Model.description && Model.description != null)
+            if(Model.description && Model.description !== null)
                 modelDesc.value = Model.description;
             modelDesc.addEventListener('change', function() { Model.description = this.value; }, false);
             tr = document.createElement('tr');
@@ -4617,7 +4617,7 @@
                     'Connect',
                     'Connect the selected node(s).',
                     function(allNodes) {
-                        if(allNodes.length != 2)
+                        if(allNodes.length !== 2)
                             return false;
                         var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
                         for(var i = 0; node = allNodes[i]; i++) {
@@ -4656,7 +4656,7 @@
             this.toggler = document.createElement('div');
             this.toggler.setAttribute('class', 'toggler collapsed');
             this.toggler.setAttribute('title', 'Click to open the context menu.');
-            this.toggler.addEventListener('click', function(event) { self.toggle() }, false);
+            this.toggler.addEventListener('click', function(event) { self.toggle(); }, false);
             contextMenu.appendChild(this.toggler);
             this.contextMenu = contextMenu;
 
@@ -4672,7 +4672,7 @@
 
             var i, j, tr;
             // if we are operating a single node, show its editable fields
-            if(selectedNodes.length == 0 || (selectedNodes.length == 1 && selectedNodes[0] == hoveredNode)) {
+            if(selectedNodes.length === 0 || (selectedNodes.length === 1 && selectedNodes[0] === hoveredNode)) {
                 this.topper.appendChild(document.createTextNode("Edit " + hoveredNode.type));
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
                     this.showEditables = true;
@@ -4815,7 +4815,7 @@
                 this.contextMenu.style.top = y + 'px';
             },
             keypress: function(self, event) {
-                if(event.keyCode == 13) {
+                if(event.keyCode === 13) {
                     event.srcElement.blur();
                     if(Model.isConforming())
                         CanvasEventHandler.closeContextMenu();
@@ -4872,7 +4872,7 @@
             handleFiles: function(files) {
                 // does not work in Safari, but works in Firefox 3.6 and Chrome 6.
                 this.reader = new FileReader();
-                this.reader.onload = function(e) { FileHandler.fileLoaded(e) };
+                this.reader.onload = function(e) { FileHandler.fileLoaded(e); };
                 this.reader.onerror = function(e) {
                     console.error("File could not be read! Code " + event.target.error.code);
                 };
@@ -4886,12 +4886,13 @@
                     FileHandler.handleFiles(this.files);
                     FileHandler.replaceInput(this.parentNode, this);
                 }, false);
-                parent.replaceChild(newInput, input)
+                parent.replaceChild(newInput, input);
             },
             fileLoaded: function(event) {
+                var xml;
                 try {
                     var parser = new DOMParser();
-                    var xml = parser.parseFromString(this.reader.result, "text/xml");
+                    xml = parser.parseFromString(this.reader.result, "text/xml");
                 }
                 catch(exception) {
                     alert(exception);
@@ -4930,7 +4931,7 @@
                         if(node.isIncomplete())
                             fullName = "* " + fullName;
                         var option = new Option(fullName, node.shadowColor);
-                        if(searchString && searchString.trim() != '') {
+                        if(searchString && searchString.trim() !== '') {
                             if(fullName.indexOf(searchString) >= 0)
                                 selector.options.add(option);
                         }
@@ -4950,7 +4951,7 @@
             findNodeToExplode: function(node) {
                 var edge, otherNode;
                 for(var i = 0; edge = node.edges[i]; i++) {
-                    otherNode = edge.node == node ? edge.otherNode : edge.node;
+                    otherNode = edge.node === node ? edge.otherNode : edge.node;
                     if((otherNode instanceof Anchor || otherNode instanceof Tie) && otherNode.imploded) {
                         Model.explode([otherNode]);
                         break;
@@ -4958,7 +4959,7 @@
                 }
             },
             selectNode: function(shadowColor) {
-                if(shadowColor != 'none') {
+                if(shadowColor !== 'none') {
                     var i, edge, otherNode, node = Model.getNodeFromShadow(shadowColor);
                     // find the closest imploded node and explode it
                     if(!node.visible) {
@@ -4968,7 +4969,7 @@
                             this.findNodeToExplode(node);
                             if(!node.visible) {
                                 for(i = 0; edge = node.edges[i]; i++) {
-                                    otherNode = edge.node == node ? edge.otherNode : edge.node;
+                                    otherNode = edge.node === node ? edge.otherNode : edge.node;
                                     if(otherNode instanceof Attribute) {
                                         this.findNodeToExplode(otherNode);
                                         break;
@@ -5064,7 +5065,7 @@
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
+                    if(xmlhttp.readyState === 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
                         var statusElement = document.getElementById("cloud");
@@ -5111,7 +5112,7 @@
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
 
-                if(scope == 'private' && !LOGGED_IN) {
+                if(scope === 'private' && !LOGGED_IN) {
                     alert("You need to log in to reach your private models. Try again after logging in!");
                     this.checkCloudConnectionStatus(true);
                 }
@@ -5124,7 +5125,7 @@
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
+                    if(xmlhttp.readyState === 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
                         var response = xmlhttp.responseText;
@@ -5166,7 +5167,7 @@
                 else {
                     var xmlhttp = new window.XMLHttpRequest();
                     xmlhttp.onreadystatechange = function() { //Call a function when the state changes.
-                        if(xmlhttp.readyState == 4) {
+                        if(xmlhttp.readyState === 4) {
                             var response = xmlhttp.responseText;
                             if(response.match(/^LOGIN:/)) {
                                 alert("You need to log in before saving. Try to save again after logging in!");
@@ -5204,7 +5205,7 @@
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
                 xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
-                    if(xmlhttp.readyState == 4) {
+                    if(xmlhttp.readyState === 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
                         var response = xmlhttp.responseText;
@@ -5325,7 +5326,7 @@
             },
             generateURL: function() {
                 if(Model.id) {
-                    if(Model.scope != 'public')
+                    if(Model.scope !== 'public')
                         alert("This model not public. Please note that only you will be able to use the URL.");
                     var url = window.location.protocol + '//' + window.location.hostname + window.location.pathname;
                     url += "?id=" + Model.id;
@@ -5367,7 +5368,7 @@
                     return fragment.getAttribute('mnemonic');
                 },
                 tie: function(xml, fragment) {
-                    var role, roles = xml.evaluate(
+                    var roles = xml.evaluate(
                             '*[@role]',
                             fragment,
                             null,
@@ -5407,7 +5408,7 @@
                 var listSuffix = 's';
                 function objectifier(xmlFragment, map, object) {
                     // element
-                    if(xmlFragment.nodeType == 1) {
+                    if(xmlFragment.nodeType === 1) {
                         // add content with underscore naming
                         if(xmlFragment.textContent)
                             object['_' + xmlFragment.nodeName] = xmlFragment.textContent;
@@ -5416,7 +5417,7 @@
                             if(!object[xmlFragment.nodeName])
                                 object[xmlFragment.nodeName] = {};
                             var partialObject = object[xmlFragment.nodeName];
-                            if(typeof map[xmlFragment.nodeName] == 'function') {
+                            if(typeof map[xmlFragment.nodeName] === 'function') {
                                 var key = map[xmlFragment.nodeName](xml, xmlFragment);
                                 if(key) {
                                     partialObject = partialObject[key] = {};
@@ -5534,9 +5535,9 @@
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
-                document.getElementById('restatability').checked = Defaults.restatability == 'true';
-                document.getElementById('idempotency').checked = Defaults.idempotency == 'true';
-                document.getElementById('metadataUsage').checked = Defaults.metadataUsage == 'true';
+                document.getElementById('restatability').checked = Defaults.restatability === 'true';
+                document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
+                document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
                 document.getElementById('naming').value = Defaults.naming;
@@ -5695,7 +5696,7 @@
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
-                if(value == 'bi') {
+                if(value === 'bi') {
                     if(!this.recordingRange) {
                         this.recordingRange = document.createElement('li');
                         var recordingRangeInput = document.createElement('input');
@@ -5755,7 +5756,7 @@
                                         "time intervals can be stored, and that there are no overlapping intervals " +
                                         "with respect to recording time."
                         );
-                        entityIntegrityInput.checked = Defaults.entityIntegrity == 'true';
+                        entityIntegrityInput.checked = Defaults.entityIntegrity === 'true';
                         entityIntegrityInput.addEventListener('change', function() {
                             Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
                         }, false);
@@ -5772,7 +5773,7 @@
                                 "Partitioning will put currently recorded information in a separate partition " +
                                         "from erased information, greatly speeding up querying in the bitemporal implementation."
                         );
-                        partitioningInput.checked = Defaults.partitioning == 'true';
+                        partitioningInput.checked = Defaults.partitioning === 'true';
                         partitioningInput.addEventListener('change', function() {
                             Settings.setPartitioning(this.checked ? 'true' : 'false');
                         }, false);
@@ -5884,7 +5885,7 @@
             setCalculations: function(value) {
                 var listOfSettings = document.getElementById('listOfSettings');
                 var calcsItem = document.getElementById('calcsItem');
-                if(value == 'simple') {
+                if(value === 'simple') {
                     LayoutEngine.layout = LayoutEngine.simpleLayout;
                     if(this.knotMass) listOfSettings.removeChild(this.knotMass);
                     if(this.knotCharge) listOfSettings.removeChild(this.knotCharge);
@@ -5907,7 +5908,7 @@
                     this.edgeMass = null;
                     this.edgeCharge = null;
                 }
-                else if (value == 'complex') {
+                else if (value === 'complex') {
                     LayoutEngine.layout = LayoutEngine.complexLayout;
                     this.knotMass = document.createElement('li');
                     this.knotCharge = document.createElement('li');
@@ -6022,19 +6023,19 @@
                 var self = this;
 
                 this.playPauseButton.addEventListener('click', function(event) {
-                    return self.togglePlayPause(event)
+                    return self.togglePlayPause(event);
                 }, false);
                 this.undoButton.addEventListener('click', function(event) {
-                    return self.undo(event)
+                    return self.undo(event);
                 }, false);
                 this.redoButton.addEventListener('click', function(event) {
-                    return self.redo(event)
+                    return self.redo(event);
                 }, false);
                 this.zoomInButton.addEventListener('click', function(event) {
-                    return self.zoomIn(event)
+                    return self.zoomIn(event);
                 }, false);
                 this.zoomOutButton.addEventListener('click', function(event) {
-                    return self.zoomOut(event)
+                    return self.zoomOut(event);
                 }, false);
             },
             togglePlayPause: function (event) {
@@ -6124,7 +6125,7 @@
             // make this a full screen canvas, that can be resized
             ResizeHandler.resizeCanvas(canvas, context);
             window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(canvas, context)
+                ResizeHandler.resizeCanvas(canvas, context);
             }, false);
 
             shadowCanvas = document.getElementById('shadow');
@@ -6133,7 +6134,7 @@
             // make this a full screen canvas, that can be resized
             ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
             window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(shadowCanvas, shadowContext)
+                ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
             }, false);
 
             miniatureCanvas = document.getElementById('miniature');
