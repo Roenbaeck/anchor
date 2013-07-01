@@ -699,7 +699,11 @@
             naming: 'improved',
             positSuffix: 'Posit',
             annexSuffix: 'Annex',
-            chronon: 'datetime2(7)'
+            chronon: 'datetime2(7)',
+            now: 'SYSDATETIME()',
+            dummySuffix: 'Dummy',
+            versionSuffix: 'Version',
+            statementTypeSuffix: 'StatementType'
         };
 
         // create a singleton
@@ -5480,12 +5484,18 @@
                         sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.]|$)/g, '" + ($1 ? $1 : "") + "$2'); // single
                         sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
                         sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
-                        sisulets[i] = '_sisula_+=' + sisulets[i] + '\\n";'; // variable assignment
+                        sisulets[i] = '_sisula_+=' + sisulets[i] + '";'; // variable assignment
                     }
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
-                    // this eval needs schema and _sisula_ to be defined
-                    eval(sisula);
+                    try {
+                        // this eval needs schema and _sisula_ to be defined
+                        eval(sisula);
+                    }
+                    catch(e) {
+                        console.error('The script ' + script + ' could not be executed.');
+                        throw e;
+                    }
                 }
                 _sisula_ = _sisula_.replace(/§DOLLAR§/g, '$'); // unescaping dollar signs
                 _sisula_ = _sisula_.replace(/§QUOTED§/g, '"'); // unescaping double quotes

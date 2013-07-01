@@ -19,7 +19,7 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
     anchor.identityColumnName = anchor.mnemonic + D + schema.identitySuffix;
     anchor.capsule = anchor.metadata.capsule || defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
-    anchor.dummyColumnName = anchor.mnemonic + D + 'Dummy';
+    anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
     var attribute;
     for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
         attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
@@ -28,6 +28,8 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
         attribute.annexName = attribute.name + D + schema.annexSuffix;
         attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.identitySuffix;
         attribute.metadataColumnName = schema.metadataPrefix + D + attribute.uniqueMnemonic;
+        attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.versionSuffix;
+        attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.statementTypeSuffix;
         if(schema.naming == 'improved') {
             attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
             if(attribute.knotRange) {
