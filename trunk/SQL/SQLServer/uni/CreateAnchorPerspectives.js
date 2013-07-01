@@ -226,7 +226,7 @@ AS
 SELECT
     *
 FROM
-    [$anchor.capsule].[p$anchor.name](SYSDATETIME());
+    [$anchor.capsule].[p$anchor.name]($schema.now);
 GO
 ~*/
         if(anchor.historizedAttributes.length > 0) {
