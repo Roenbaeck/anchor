@@ -27,11 +27,11 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
 IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[d$anchor.name];
 IF Object_ID('n$anchor.name', 'V') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[n$anchor.name];
+DROP VIEW [$anchor.capsule].[n$anchor.name];
 IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[p$anchor.name];
 IF Object_ID('l$anchor.name', 'V') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[l$anchor.name];
+DROP VIEW [$anchor.capsule].[l$anchor.name];
 GO
 ~*/
     if(anchor.attributes.length > 0) { // only do perspectives if there are attributes
@@ -62,7 +62,7 @@ SELECT
             }
             if(attribute.timeRange) {
 /*~
-    [$attribute.mnemonic].$attribute.changingColumnName
+    [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
             }
             if(attribute.knotRange) {
@@ -99,7 +99,7 @@ ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
             if(attribute.timeRange) {
 /*~
-﻿AND
+AND
     [$attribute.mnemonic].$attribute.changingColumnName = (
         SELECT
             max(sub.$attribute.changingColumnName)
@@ -112,7 +112,7 @@ ON
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
-﻿LEFT JOIN
+LEFT JOIN
     [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
 ON
     [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
@@ -138,7 +138,6 @@ SELECT
     [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         }
-        var b, knot, attribute;
         for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
             if(schema.naming == 'improved') {
 /*~
@@ -152,7 +151,7 @@ SELECT
             }
             if(attribute.timeRange) {
 /*~
-    [$attribute.mnemonic].$attribute.changingColumnName
+    [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
             }
             if(attribute.knotRange) {
@@ -188,7 +187,7 @@ LEFT JOIN
     [$attribute.capsule].[r$attribute.name](@changingTimepoint) [$attribute.mnemonic]
 ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-﻿AND
+AND
     [$attribute.mnemonic].$attribute.changingColumnName = (
         SELECT
             max(sub.$attribute.changingColumnName)
@@ -208,7 +207,7 @@ ON
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
-﻿LEFT JOIN
+LEFT JOIN
     [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
 ON
     [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
@@ -223,6 +222,7 @@ GO
 -- n$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE VIEW [$anchor.capsule].[n$anchor.name]
+AS
 SELECT
     *
 FROM

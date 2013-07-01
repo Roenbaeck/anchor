@@ -1414,7 +1414,7 @@
                     if(nodes)
                         for(i = 0; i < nodes.length; i++) {
                             if(nodes[i].getAttribute('temporalization')) {
-                                temporalization = nodes[i].getAttribute('temporalization')
+                                temporalization = nodes[i].getAttribute('temporalization');
                                 break;
                             }
                         }
@@ -1450,7 +1450,7 @@
             },
             erase: function(nodes) {
                 DrawingEngine.stop();
-                var i, j, node, edge, affectedNodes = [], affectedEdges = [];
+                var i, j, node, otherNode, edge, affectedNodes = [], affectedEdges = [];
                 for(i = 0; node = nodes[i]; i++) {
                     if(node instanceof Edge && affectedEdges.indexOf(node) < 0)
                         affectedEdges.push(node);
@@ -1459,7 +1459,7 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
                                 affectedEdges.push(edge);
-                            var otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
+                            otherNode = (node == edge.otherNode ? edge.node : edge.otherNode);
                             if(otherNode instanceof Attribute && affectedNodes.indexOf(otherNode) < 0)
                                 affectedNodes.push(otherNode);
                         }
@@ -1474,7 +1474,6 @@
                     }
                 }
                 // check for ties in violation
-                var otherNode;
                 for(i = 0; node = this.nodes[i]; i++) {
                     if(node instanceof Tie) {
                         var anchors = 0;
@@ -1858,7 +1857,7 @@
                 if(!window.requestAnimationFrame) {
                     window.requestAnimationFrame = function(callback, canvas) {
                         return setTimeout(callback, 10);
-                    }
+                    };
                 }
                 var cancelRequestAnimationFrame =
                         window.cancelRequestAnimationFrame ||
@@ -1870,7 +1869,7 @@
                 if(!window.cancelRequestAnimationFrame) {
                     window.cancelRequestAnimationFrame = function(id) {
                         return clearTimeout(id);
-                    }
+                    };
                 }
                 this.canvas = canvas;
                 this.shadowCanvas = shadowCanvas;
@@ -5480,7 +5479,7 @@
                         sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.]|$)/g, '" + ($1 ? $1 : "") + "$2'); // single
                         sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
                         sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
-                        sisulets[i] = '_sisula_+=' + sisulets[i] + '"'; // variable assignment
+                        sisulets[i] = '_sisula_+=' + sisulets[i] + '\\n";'; // variable assignment
                     }
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
