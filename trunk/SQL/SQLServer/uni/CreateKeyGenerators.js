@@ -6,7 +6,7 @@
 --
 ~*/
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+while (anchor = schema.nextAnchor()) {
     if(anchor.metadata.generator == 'true') {
         if(schema.metadataUsage == 'true') {
 /*~

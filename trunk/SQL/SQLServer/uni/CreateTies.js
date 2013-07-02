@@ -9,7 +9,7 @@
 --
 ~*/
 var tie;
-for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
+while (tie = schema.nextTie()) {
     if(schema.metadataUsage == 'true')
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadataType + ' not null,';
     if(tie.timeRange && tie.knotRole) {
@@ -38,21 +38,18 @@ for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
 IF Object_ID('$tie.name', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.name] (
 ~*/
-    var key, anchorRole, knotRole, anchor, knot;
-    for(var r = 0; r < tie.roles.length; r++) {
-        key = tie.roles[r];
-        anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
-        knotRole = tie.knotRole ? tie.knotRole[key] : null;
-        if(anchorRole) {
-            anchor = schema.anchor[anchorRole.type];
+    var role, anchor, knot;
+    while (role = tie.nextRole()) {
+        if(role.anchor) {
+            anchor = schema.anchor[role.anchor];
 /*~
-    $anchorRole.columnName $anchor.identity not null,
+    $role.columnName $anchor.identity not null,
 ~*/
         }
-        else if (knotRole) {
-            knot = schema.knot[knotRole.type];
+        else if (role.knot) {
+            knot = schema.knot[role.knot];
 /*~
-    $knotRole.columnName $knot.identity not null,
+    $role.columnName $knot.identity not null,
 ~*/
         }
     }
@@ -64,35 +61,27 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
 /*~
     $tie.metadataDefinition
 ~*/
-    for(var r = 0; r < tie.roles.length; r++) {
-        key = tie.roles[r];
-        anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
-        knotRole = tie.knotRole ? tie.knotRole[key] : null;
-        if(anchorRole) {
-            anchor = schema.anchor[anchorRole.type];
+    while (role = tie.nextRole()) {
+        if(role.anchor) {
+            anchor = schema.anchor[role.anchor];
 /*~
-    constraint ${(tie.name + '_fk' + anchorRole.name)}$ foreign key (
-        $anchorRole.columnName
+    constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
+        $role.columnName
     ) references $anchor.name($anchor.identityColumnName),
  ~*/
         }
-        else if (knotRole) {
-            knot = schema.knot[knotRole.type];
+        else if (role.knot) {
+            knot = schema.knot[role.knot];
 /*~
-    constraint ${(tie.name + '_fk' + knotRole.name)}$ foreign key (
-        $knotRole.columnName
+    constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
+        $role.columnName
     ) references $knot.name($knot.identityColumnName),
  ~*/
         }
     }
-    var role;
     // one-to-one and we need additional constraints
     if(tie.identifiers.length == 0) {
-        for(r = 0; r < tie.roles.length; r++) {
-            key = tie.roles[r];
-            anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
-            knotRole = tie.knotRole ? tie.knotRole[key] : null;
-            role = anchorRole || knotRole;
+        while (role = tie.nextRole()) {
             if(tie.timeRange) {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
@@ -113,21 +102,22 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
 /*~
     constraint pk$tie.name primary key (
 ~*/
-    var listOfKeys = tie.identifiers.length > 0 ? tie.identifiers : tie.roles;
-    for(r = 0; r < listOfKeys.length; r++) {
-        key = listOfKeys[r];
-        anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
-        knotRole = tie.knotRole ? tie.knotRole[key] : null;
-        role = anchorRole || knotRole;
-        if((r == listOfKeys.length - 1) && !tie.timeRange) {
+    if(tie.identifiers.length > 0) {
+        while (role = tie.nextIdentifier()) {
 /*~
-        $role.columnName asc
-~*/
+        $role.columnName asc~*/
+            if(tie.hasMoreIdentifiers() || tie.timeRange) {
+                /*~,~*/
+            }
         }
-        else {
+    }
+    else {
+        while (role = tie.nextRole()) {
 /*~
-        $role.columnName asc,
-~*/
+        $role.columnName asc~*/
+            if(tie.hasMoreRoles() || tie.timeRange) {
+                /*~,~*/
+            }
         }
     }
     if(tie.timeRange) {

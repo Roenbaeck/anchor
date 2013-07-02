@@ -9,7 +9,7 @@
 --
  ~*/
 var knot;
-for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
+while (knot = schema.nextKnot()) {
     if(knot.metadata.generator == 'true')
         knot.identityGenerator = 'IDENTITY(1,1)';
     if(schema.metadataUsage == 'true')

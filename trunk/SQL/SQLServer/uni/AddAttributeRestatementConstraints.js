@@ -1,10 +1,9 @@
-var a, b, anchor, knot, attribute, restatements = false;
-for(a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
-    for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
-            if(attribute.timeRange && attribute.metadata.restatable == 'false')
-                restatements = true;
-    }
-}
+var anchor, knot, attribute, restatements = false;
+while (anchor = schema.nextAnchor())
+    while(attribute = anchor.nextAttribute())
+        if(attribute.timeRange && attribute.metadata.restatable == 'false')
+            restatements = true;
+
 if(restatements) {
 /*~
 -- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
@@ -20,8 +19,8 @@ if(restatements) {
 -- @changed     the point in time from which this value shall represent a change
 --
 ~*/
-    for(a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+    while (anchor = schema.nextAnchor()) {
+        while(attribute = anchor.nextAttribute()) {
             if(attribute.metadata.restatable == 'false' && attribute.timeRange) {
                 var valueColumn, valueType;
                 if(attribute.dataRange) {

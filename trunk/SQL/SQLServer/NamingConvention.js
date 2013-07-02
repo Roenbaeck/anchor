@@ -5,7 +5,7 @@ var D = '_';
 var defaultCapsule = schema.defaultCapsule || 'dbo';
 
 var knot;
-for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
+while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
     knot.valueColumnName = knot.name;
     knot.identityColumnName = knot.mnemonic + D + schema.identitySuffix;
@@ -14,14 +14,14 @@ for(var k = 0; knot = schema.knot[schema.knots[k]]; k++) {
 }
 
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+while (anchor = schema.nextAnchor()) {
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
     anchor.identityColumnName = anchor.mnemonic + D + schema.identitySuffix;
     anchor.capsule = anchor.metadata.capsule || defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
     var attribute;
-    for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+    while (attribute = anchor.nextAttribute()) {
         attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
         attribute.name = attribute.uniqueMnemonic + D + anchor.descriptor + D + attribute.descriptor;
         attribute.positName = attribute.name + D + schema.positSuffix;
@@ -58,18 +58,14 @@ for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
 }
 
 var tie;
-for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
+while (tie = schema.nextTie()) {
     var name = '';
-    var key, anchorRole, knotRole;
-    for(var r = 0; r < tie.roles.length; r++) {
-        key = tie.roles[r];
-        anchorRole = tie.anchorRole ? tie.anchorRole[key] : null;
-        knotRole = tie.knotRole ? tie.knotRole[key] : null;
-        var role = anchorRole ? anchorRole : knotRole;
+    var role;
+    while (role = tie.nextRole()) {
         role.name = role.type + D + role.role;
         role.columnName = role.type + D + schema.identitySuffix + D + role.role;
         name += role.name;
-        if(!role.last) name += D;
+        if(tie.hasMoreRoles()) name += D;
     }
     tie.name = name;
     tie.positName = tie.name + D + schema.positSuffix;
