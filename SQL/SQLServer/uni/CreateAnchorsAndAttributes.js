@@ -10,7 +10,7 @@
 --
 ~*/
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+while (anchor = schema.nextAnchor()) {
     if(anchor.metadata.generator == 'true')
         anchor.identityGenerator = 'IDENTITY(1,1)';
     if(schema.metadataUsage == 'true')
@@ -32,7 +32,7 @@ CREATE TABLE [$anchor.capsule].[$anchor.name] (
 GO
 ~*/
     var knot, attribute;
-    for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+    while (attribute = anchor.nextAttribute()) {
         if(schema.metadataUsage == 'true')
             attribute.metadataDefinition = attribute.metadataColumnName + ' ' + schema.metadataType + ' not null,';
         if(attribute.timeRange && attribute.dataRange) {

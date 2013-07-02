@@ -10,9 +10,9 @@
 --
 ~*/
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+while (anchor = schema.nextAnchor()) {
     var knot, attribute;
-    for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+    while (attribute = anchor.nextAttribute()) {
         if(attribute.timeRange) {
             if(attribute.dataRange) {
 /*~

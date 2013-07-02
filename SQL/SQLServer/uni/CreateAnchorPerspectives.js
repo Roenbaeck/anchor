@@ -21,7 +21,7 @@
 --
 ~*/
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+while (anchor = schema.nextAnchor()) {
 /*~
 -- Drop perspectives --------------------------------------------------------------------------------------------------
 IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
@@ -34,7 +34,7 @@ IF Object_ID('l$anchor.name', 'V') IS NOT NULL
 DROP VIEW [$anchor.capsule].[l$anchor.name];
 GO
 ~*/
-    if(anchor.attributes.length > 0) { // only do perspectives if there are attributes
+    if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$anchor.name viewed by the latest available information (may include future versions)
@@ -48,8 +48,8 @@ SELECT
     [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         }
-        var b, knot, attribute;
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        var knot, attribute;
+        while (attribute = anchor.nextAttribute()) {
             if(schema.naming == 'improved') {
 /*~
     [$attribute.mnemonic].$attribute.anchorReferenceName,
@@ -76,14 +76,14 @@ SELECT
 ~*/
                 }
             }
-            if(b == anchor.attributes.length - 1) {
+            if(anchor.hasMoreAttributes()) {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName
+    [$attribute.mnemonic].$attribute.valueColumnName,
 ~*/
             }
             else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName,
+    [$attribute.mnemonic].$attribute.valueColumnName
 ~*/
             }
         }
@@ -91,7 +91,7 @@ SELECT
 FROM
     [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
 ~*/
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
 /*~
 LEFT JOIN
     [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
@@ -117,7 +117,7 @@ LEFT JOIN
 ON
     [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
             }
-            if(b == anchor.attributes.length - 1) {
+            if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
             }
         }
@@ -138,7 +138,7 @@ SELECT
     [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         }
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
             if(schema.naming == 'improved') {
 /*~
     [$attribute.mnemonic].$attribute.anchorReferenceName,
@@ -165,14 +165,14 @@ SELECT
 ~*/
                 }
             }
-            if(b == anchor.attributes.length - 1) {
+            if(anchor.hasMoreAttributes()) {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName
+    [$attribute.mnemonic].$attribute.valueColumnName,
 ~*/
             }
             else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName,
+    [$attribute.mnemonic].$attribute.valueColumnName
 ~*/
             }
         }
@@ -180,7 +180,7 @@ SELECT
 FROM
     [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
 ~*/
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
             if(attribute.timeRange) {
 /*~
 LEFT JOIN
@@ -212,7 +212,7 @@ LEFT JOIN
 ON
     [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
             }
-            if(b == anchor.attributes.length - 1) {
+            if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
             }
         }
@@ -229,7 +229,7 @@ FROM
     [$anchor.capsule].[p$anchor.name]($schema.now);
 GO
 ~*/
-        if(anchor.historizedAttributes.length > 0) {
+        if(anchor.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
@@ -245,7 +245,7 @@ SELECT
     [p$anchor.mnemonic].*
 FROM (
 ~*/
-        for(b = 0; attribute = anchor.attribute[anchor.historizedAttributes[b]]; b++) {
+            while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
         $attribute.changingColumnName AS inspectedTimepoint
@@ -256,12 +256,12 @@ FROM (
     AND
         $attribute.changingColumnName BETWEEN @intervalStart AND @intervalEnd
 ~*/
-            if(b < anchor.historizedAttributes.length - 1) {
+                if(anchor.hasMoreHistorizedAttributes()) {
 /*~
     UNION
 ~*/
+                }
             }
-        }
 /*~
 ) timepoints
 CROSS APPLY

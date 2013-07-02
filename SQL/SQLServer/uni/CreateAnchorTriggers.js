@@ -13,8 +13,8 @@
 --
 ~*/
 var anchor;
-for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
-    if(anchor.attributes.length > 0) {
+while (anchor = schema.nextAnchor()) {
+    if(anchor.hasMoreAttributes()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it$anchor.name instead of INSERT trigger on l$anchor.name
@@ -75,8 +75,8 @@ BEGIN
         $anchor.metadataColumnName $schema.metadataType not null
 ~*/
         }
-        var b, knot, attribute;
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        var knot, attribute;
+        while (attribute = anchor.nextAttribute()) {
             if(schema.naming == 'improved') {
 /*~
         $attribute.anchorReferenceName $anchor.identity null,
@@ -103,14 +103,14 @@ BEGIN
 ~*/
                 }
             }
-            if(b == anchor.attributes.length - 1) {
+            if(anchor.hasMoreAttributes()) {
 /*~
-        $attribute.valueColumnName $attribute.dataRange null
+        $attribute.valueColumnName $attribute.dataRange null,
 ~*/
             }
             else {
 /*~
-        $attribute.valueColumnName $attribute.dataRange null,
+        $attribute.valueColumnName $attribute.dataRange null
 ~*/
             }
         }
@@ -125,7 +125,7 @@ BEGIN
         i.$anchor.metadataColumnName,
  ~*/
         }
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
             if(schema.naming == 'improved') {
 /*~
         ISNULL(i.$attribute.anchorReferenceName, a.$anchor.identityColumnName),
@@ -152,14 +152,14 @@ BEGIN
 ~*/
                 }
             }
-            if(b == anchor.attributes.length - 1) {
+            if(anchor.hasMoreAttributes()) {
 /*~
-        i.$attribute.valueColumnName
+        i.$attribute.valueColumnName,
 ~*/
             }
             else {
 /*~
-        i.$attribute.valueColumnName,
+        i.$attribute.valueColumnName
 ~*/
             }
         }
@@ -173,7 +173,7 @@ BEGIN
             $anchor.metadataColumnName,
  ~*/
         }
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
             if(schema.naming == 'improved') {
 /*~
             $attribute.anchorReferenceName,
@@ -214,7 +214,7 @@ BEGIN
     ON
         a.Row = i.Row;
 ~*/
-        for(b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        while (attribute = anchor.nextAttribute()) {
             if(attribute.timeRange) {
                 var statementTypes = "'N'";
                 if(attribute.metadata.restatable == 'true')
@@ -352,6 +352,9 @@ BEGIN
             $attribute.statementTypeColumnName in ($statementTypes);
     END
 ~*/
+            }
+            else {
+                // TODO: not historized attributes
             }
         }
 /*~
