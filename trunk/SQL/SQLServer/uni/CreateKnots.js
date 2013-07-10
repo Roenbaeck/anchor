@@ -16,7 +16,7 @@ while (knot = schema.nextKnot()) {
         knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadataType + ' not null,';
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
--- $knot.name table (number ${(knot.position + 1)}$ of $schema.knots.length)
+-- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (

@@ -5481,6 +5481,7 @@
                     // substitute from SQL template to JavaScript
                     for(var i = 1; i < sisulets.length; i+=2) {
                         sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
+                        sisulets[i] = sisulets[i].replace(/[$]\(([\S\s]*?)\)\?[^\S\n]*([^:\n]*)[:]?[^\S\n]*(.*)/g, '" + ($1 ? "$2" : "$3") + "'); // conditional
                         sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.]|$)/g, '" + ($1 ? $1 : "") + "$2'); // single
                         sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
                         sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
@@ -5489,6 +5490,7 @@
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
                     try {
+                        console.log(sisula);
                         // this eval needs schema and _sisula_ to be defined
                         eval(sisula);
                     }

@@ -13,10 +13,6 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     if(anchor.metadata.generator == 'true')
         anchor.identityGenerator = 'IDENTITY(1,1)';
-    if(schema.metadataUsage == 'true')
-        anchor.metadataDefinition = anchor.metadataColumnName + ' ' + schema.metadataType + ' not null,';
-    else
-        anchor.metadataDefinition = anchor.dummyColumnName + ' bit null,';
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with $anchor.attributes.length attributes)
@@ -24,7 +20,7 @@ while (anchor = schema.nextAnchor()) {
 IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
-    $anchor.metadataDefinition
+    $(METADATA)? $anchor.metadataColumnName $schema.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName asc
     )
@@ -33,8 +29,6 @@ GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
-        if(schema.metadataUsage == 'true')
-            attribute.metadataDefinition = attribute.metadataColumnName + ' ' + schema.metadataType + ' not null,';
         if(attribute.timeRange && attribute.dataRange) {
 /*~
 -- Historized attribute table -----------------------------------------------------------------------------------------
@@ -45,7 +39,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $attribute.changingColumnName $attribute.timeRange not null,
-    $attribute.metadataDefinition
+    $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -68,7 +62,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
-    $attribute.metadataDefinition
+    $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -93,7 +87,7 @@ IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
-    $attribute.metadataDefinition
+    $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -116,7 +110,7 @@ IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $attribute.metadataDefinition
+    $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),

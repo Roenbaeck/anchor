@@ -33,133 +33,58 @@ BEGIN
         $anchor.identityColumnName $anchor.identity not null
     );
     INSERT INTO [$anchor.capsule].[$anchor.name] (
-~*/
-        if(schema.metadataUsage = 'true') {
-/*~
-        $anchor.metadataColumnName
-~*/
-        }
-        else {
-/*~
-        $anchor.dummyColumnName
-~*/
-        }
-/*~
+        $(METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
     )
     OUTPUT
         inserted.$anchor.identityColumnName
     INTO
         @$anchor.mnemonic
     SELECT
-~*/
-        if(schema.metadataUsage = 'true') {
-/*~
-        $anchor.metadataColumnName
-~*/
-        }
-        else {
-/*~
-        null
-~*/
-        }
-/*~
+        $(METADATA)? $anchor.metadataColumnName : null
     FROM
         inserted
     WHERE
         inserted.$anchor.identityColumnName is null;
     DECLARE @inserted TABLE (
         $anchor.identityColumnName $anchor.identity not null,
+        $(METADATA)? $anchor.metadataColumnName $schema.metadataType not null,
 ~*/
-        if(schema.metadataUsage = 'true') {
-/*~
-        $anchor.metadataColumnName $schema.metadataType not null
-~*/
-        }
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
-            if(schema.naming == 'improved') {
 /*~
-        $attribute.anchorReferenceName $anchor.identity null,
+        $(IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
+        $(METADATA)? $attribute.metadataColumnName $schema.metadataType null,
+        $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
 ~*/
-            }
-            if(schema.metadataUsage == 'true') {
-/*~
-        $attribute.metadataColumnName $schema.metadataType null,
-~*/
-            }
-            if(attribute.timeRange) {
-/*~
-        $attribute.changingColumnName $attribute.timeRange null,
-~*/
-            }
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
         $attribute.knotValueColumnName $knot.identity null,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-        $attribute.knotMetadataColumnName $schema.metadataType null,
-~*/
-                }
-            }
-            if(anchor.hasMoreAttributes()) {
-/*~
-        $attribute.valueColumnName $attribute.dataRange null,
+        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
 ~*/
             }
-            else {
 /*~
-        $attribute.valueColumnName $attribute.dataRange null
+        $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
-            }
         }
 /*~
     );
     INSERT INTO @inserted
     SELECT
         ISNULL(i.$anchor.identityColumnName, a.$anchor.identityColumnName),
+        $(METADATA)? i.$anchor.metadataColumnName,
  ~*/
-        if(schema.metadataUsage = 'true') {
-/*~
-        i.$anchor.metadataColumnName,
- ~*/
-        }
         while (attribute = anchor.nextAttribute()) {
-            if(schema.naming == 'improved') {
 /*~
-        ISNULL(i.$attribute.anchorReferenceName, a.$anchor.identityColumnName),
+        $(IMPROVED)? ISNULL(i.$attribute.anchorReferenceName, a.$anchor.identityColumnName),
+        $(METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
+        $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
 ~*/
-            }
-            if(schema.metadataUsage == 'true') {
-/*~
-        ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
-~*/
-            }
-            if(attribute.timeRange) {
-/*~
-        ISNULL(i.$attribute.changingColumnName, @now),
-~*/
-            }
             if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
 /*~
         i.$attribute.knotValueColumnName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-        ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
-~*/
-                }
-            }
-            if(anchor.hasMoreAttributes()) {
-/*~
-        i.$attribute.valueColumnName,
-~*/
-            }
-            else {
-/*~
-        i.$attribute.valueColumnName
+        $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
+        i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
         }
@@ -167,38 +92,19 @@ BEGIN
     FROM (
         SELECT
             $anchor.identityColumnName,
+            $(METADATA)? $anchor.metadataColumnName,
  ~*/
-        if(schema.metadataUsage = 'true') {
-/*~
-            $anchor.metadataColumnName,
- ~*/
-        }
         while (attribute = anchor.nextAttribute()) {
-            if(schema.naming == 'improved') {
 /*~
-            $attribute.anchorReferenceName,
+            $(IMPROVED)? $attribute.anchorReferenceName,
+            $(METADATA)? $attribute.metadataColumnName,
+            $(attribute.timeRange)? $attribute.changingColumnName,
 ~*/
-            }
-            if(schema.metadataUsage == 'true') {
-/*~
-            $attribute.metadataColumnName,
-~*/
-            }
-            if(attribute.timeRange) {
-/*~
-            $attribute.changingColumnName,
-~*/
-            }
             if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
 /*~
             $attribute.knotValueColumnName,
+            $(METADATA)? $attribute.knotMetadataColumnName,
 ~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-            $attribute.knotMetadataColumnName,
-~*/
-                }
             }
 /*~
             $attribute.valueColumnName,
@@ -215,35 +121,17 @@ BEGIN
         a.Row = i.Row;
 ~*/
         while (attribute = anchor.nextAttribute()) {
+            knot = schema.knot[attribute.knotRange];
             if(attribute.timeRange) {
                 var statementTypes = "'N'";
-                if(attribute.metadata.restatable == 'true')
+                if(attribute.metadata.idempotent == 'true')
                     statementTypes += ",'R'";
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
-~*/
-
-                if(schema.metadataUsage == 'true') {
-/*~
-        $attribute.metadataColumnName $schema.metadataType not null,
-~*/
-                }
-/*~
+        $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
-~*/
-                if(attribute.knotRange) {
-                    knot = schema.knot[attribute.knotRange];
-/*~
-        $attribute.knotValueColumnName $knot.identity not null,
-~*/
-                }
-                else {
-/*~
-        $attribute.valueColumnName $attribute.dataRange not null,
-~*/
-                }
-/*~
+        $(attribute.knotRange)? $attribute.knotValueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $attribute.versionColumnName bigint not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
@@ -254,13 +142,7 @@ BEGIN
     INSERT INTO @$attribute.name
     SELECT
         $attribute.anchorReferenceName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-        $attribute.metadataColumnName,
-~*/
-                }
-/*~
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName,
         DENSE_RANK() OVER (PARTITION BY $attribute.anchorReferenceName ORDER BY $attribute.changingColumnName),
@@ -323,25 +205,13 @@ BEGIN
             v.$attribute.versionColumnName = @currentVersion;
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $attribute.anchorReferenceName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-            $attribute.metadataColumnName,
-~*/
-                }
-/*~
+            $(METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $attribute.anchorReferenceName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-            $attribute.metadataColumnName,
-~*/
-                }
-/*~
+            $(METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         FROM
