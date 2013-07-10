@@ -42,50 +42,25 @@ GO
 CREATE VIEW [$anchor.capsule].[l$anchor.name] WITH SCHEMABINDING AS
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName,
+    $(METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
-        if(schema.metadataUsage == 'true') {
-/*~
-    [$anchor.mnemonic].$anchor.metadataColumnName,
-~*/
-        }
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
-            if(schema.naming == 'improved') {
 /*~
-    [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
-            }
-            if(schema.metadataUsage == 'true') {
-/*~
-    [$attribute.mnemonic].$attribute.metadataColumnName,
-~*/
-            }
-            if(attribute.timeRange) {
-/*~
-    [$attribute.mnemonic].$attribute.changingColumnName,
-~*/
-            }
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-    [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
-~*/
-                }
-            }
-            if(anchor.hasMoreAttributes()) {
-/*~
-    [$attribute.mnemonic].$attribute.valueColumnName,
+    $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
-            else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
-            }
         }
 /*~
 FROM
@@ -132,49 +107,24 @@ CREATE FUNCTION [$anchor.capsule].[p$anchor.name] ﻿(
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName,
+    $(METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
-        if(schema.metadataUsage == 'true') {
-/*~
-    [$anchor.mnemonic].$anchor.metadataColumnName,
-~*/
-        }
         while (attribute = anchor.nextAttribute()) {
-            if(schema.naming == 'improved') {
 /*~
-    [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
-            }
-            if(schema.metadataUsage == 'true') {
-/*~
-    [$attribute.mnemonic].$attribute.metadataColumnName,
-~*/
-            }
-            if(attribute.timeRange) {
-/*~
-    [$attribute.mnemonic].$attribute.changingColumnName,
-~*/
-            }
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-~*/
-                if(schema.metadataUsage == 'true') {
-/*~
-    [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
-~*/
-                }
-            }
-            if(anchor.hasMoreAttributes()) {
-/*~
-    [$attribute.mnemonic].$attribute.valueColumnName,
+    $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
-            else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
-            }
         }
 /*~
 FROM
@@ -255,12 +205,8 @@ FROM (
         (@selection is null OR @selection like '%$attribute.mnemonic%')
     AND
         $attribute.changingColumnName BETWEEN @intervalStart AND @intervalEnd
+    $(anchor.hasMoreHistorizedAttributes())? UNION
 ~*/
-                if(anchor.hasMoreHistorizedAttributes()) {
-/*~
-    UNION
-~*/
-                }
             }
 /*~
 ) timepoints

@@ -53,13 +53,9 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
 ~*/
         }
     }
-    if(tie.timeRange) {
 /*~
-    $tie.changingColumnName $tie.timeRange not null,
-~*/
-    }
-/*~
-    $tie.metadataDefinition
+    $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
+    $(METADATA)? $tie.metadataColumnName $schema.metadataType not null,
 ~*/
     while (role = tie.nextRole()) {
         if(role.anchor) {

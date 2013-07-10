@@ -27,7 +27,7 @@ BEGIN
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        ${(schema.metadataUsage == 'true' ? attribute.metadataColumnName + ',' : '')}$
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
@@ -53,7 +53,7 @@ BEGIN
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        ${(schema.metadataUsage == 'true' ? attribute.metadataColumnName + ',' : '')}$
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
         $attribute.knotReferenceName,
         $attribute.changingColumnName

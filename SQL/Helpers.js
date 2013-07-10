@@ -154,3 +154,9 @@ while (tie = schema.nextTie()) {
         return schema._iterator.identifier < this.identifiers.length;
     }
 }
+
+// global variables
+window.METADATA = schema.metadataUsage == 'true';
+window.IMPROVED = schema.naming == 'improved';
+
+
