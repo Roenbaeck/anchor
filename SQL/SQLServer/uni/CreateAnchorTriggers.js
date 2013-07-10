@@ -19,7 +19,6 @@ while (anchor = schema.nextAnchor()) {
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it$anchor.name instead of INSERT trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('it$anchor.name', 'TR') IS NULL
 CREATE TRIGGER [$anchor.capsule].[it$anchor.name] ON [$anchor.capsule].[l$anchor.name]
 INSTEAD OF INSERT
 AS
@@ -59,13 +58,16 @@ BEGIN
             if(attribute.knotRange) {
                 knot = schema.knot[attribute.knotRange];
 /*~
-        $attribute.knotValueColumnName $knot.identity null,
+        $attribute.knotValueColumnName $knot.dataRange null,
         $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
+        $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
+            else {
 /*~
         $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
+            }
         }
 /*~
     );
@@ -84,9 +86,11 @@ BEGIN
 /*~
         i.$attribute.knotValueColumnName,
         $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
-        i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
+/*~
+        i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
         }
 /*~
     FROM (
@@ -131,7 +135,7 @@ BEGIN
         $attribute.anchorReferenceName $anchor.identity not null,
         $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
-        $(attribute.knotRange)? $attribute.knotValueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $attribute.versionColumnName bigint not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
@@ -155,7 +159,7 @@ BEGIN
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        [k$knot.mnemonic].$knot.identityColumnName = i.$attribute.valueColumnName
+        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
 ~*/
@@ -247,9 +251,9 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
-        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
+        i.$attribute.anchorReferenceName,
+        $(METADATA)? i.$attribute.metadataColumnName,
+        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
     FROM
         @inserted i
     LEFT JOIN
@@ -262,7 +266,7 @@ BEGIN
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        [k$knot.mnemonic].$knot.identityColumnName = i.$attribute.valueColumnName
+        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
  ~*/
@@ -274,6 +278,139 @@ BEGIN
             }
         }
 /*~
+END
+GO
+~*/
+    }
+    if(anchor.hasMoreHistorizedAttributes()) {
+/*~
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut$anchor.name instead of UPDATE trigger on l$anchor.name
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$anchor.capsule].[ut$anchor.name] ON [$anchor.capsule].[l$anchor.name]
+INSTEAD OF UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.chronon = $schema.now;
+    IF(UPDATE($anchor.identityColumnName))
+        RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
+~*/
+        while (attribute = anchor.nextHistorizedAttribute()) {
+            if(attribute.knotRange) {
+                knot = schema.knot[attribute.knotRange];
+/*~
+    IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
+    INSERT INTO [$attribute.capsule].[$attribute.name] (
+        $attribute.anchorReferenceName,
+        $(METADATA)? $attribute.metadataColumnName,
+        $attribute.changingColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        i.$attribute.anchorReferenceName,
+        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
+        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
+        CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+    FROM
+        inserted i
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
+    ON
+        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
+                if(attribute.metadata.idempotent == 'true') {
+/*~
+    LEFT JOIN
+        deleted d
+    ON
+        d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    AND
+        d.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+    WHERE
+        d.$attribute.anchorReferenceName is null~*/
+                }
+            /*~;~*/
+            }
+            else {
+/*~
+    IF(UPDATE($attribute.valueColumnName))
+    INSERT INTO [$attribute.capsule].[$attribute.name] (
+        $attribute.anchorReferenceName,
+        $(METADATA)? $attribute.metadataColumnName,
+        $attribute.changingColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        i.$attribute.anchorReferenceName,
+        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
+        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
+        i.$attribute.valueColumnName
+    FROM
+        inserted i~*/
+                if(attribute.metadata.idempotent == 'true') {
+/*~
+    LEFT JOIN
+        deleted d
+    ON
+        d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    AND
+        d.$attribute.valueColumnName = i.$attribute.valueColumnName
+    WHERE
+        d.$attribute.anchorReferenceName is null~*/
+                }
+            /*~;~*/
+            }
+        }
+/*~
+END
+GO
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt$anchor.name instead of DELETE trigger on l$anchor.name
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$anchor.capsule].[dt$anchor.name] ON [$anchor.capsule].[l$anchor.name]
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+ ~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+    DELETE [$attribute.mnemonic]
+    FROM
+        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+    JOIN
+        deleted d
+    ON
+        d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
+    $(attribute.timeRange)? AND
+        $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName;
+~*/
+        }
+/*~
+    DELETE [$anchor.mnemonic]
+    FROM
+        [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+    LEFT JOIN
+        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+    ON
+        [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+~*/
+        }
+/*~
+    $(anchor.hasMoreAttributes())? WHERE
+~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+        [$attribute.mnemonic].$attribute.anchorReferenceName is null~*/
+            if(anchor.hasMoreAttributes()) {
+/*~
+    AND
+~*/
+            }
+        }
+/*~;
 END
 GO
 ~*/
