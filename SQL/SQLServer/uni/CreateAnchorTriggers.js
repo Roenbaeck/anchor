@@ -141,16 +141,32 @@ BEGIN
     );
     INSERT INTO @$attribute.name
     SELECT
-        $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
-        $attribute.changingColumnName,
-        $attribute.valueColumnName,
-        DENSE_RANK() OVER (PARTITION BY $attribute.anchorReferenceName ORDER BY $attribute.changingColumnName),
+        i.$attribute.anchorReferenceName,
+        $(METADATA)? i.$attribute.metadataColumnName,
+        i.$attribute.changingColumnName,
+        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
+        DENSE_RANK() OVER (PARTITION BY i.$attribute.anchorReferenceName ORDER BY i.$attribute.changingColumnName),
         'X'
     FROM
         @inserted i
+~*/
+                if(attribute.knotRange) {
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
+    ON
+        [k$knot.mnemonic].$knot.identityColumnName = i.$attribute.valueColumnName
     WHERE
-        $attribute.valueColumnName is not null;
+        ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
+~*/
+                }
+                else {
+/*~
+    WHERE
+        i.$attribute.valueColumnName is not null;
+~*/
+                }
+/*~
     SELECT
         @maxVersion = max($attribute.versionColumnName),
         @currentVersion = 0
@@ -224,7 +240,37 @@ BEGIN
 ~*/
             }
             else {
-                // TODO: not historized attributes
+/*~
+    INSERT INTO [$attribute.capsule].[$attribute.name] (
+        $attribute.anchorReferenceName,
+        $(METADATA)? $attribute.metadataColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        $attribute.anchorReferenceName,
+        $(METADATA)? $attribute.metadataColumnName,
+        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
+    FROM
+        @inserted i
+    LEFT JOIN
+        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+    ON
+        [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+~*/
+                if(attribute.knotRange) {
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
+    ON
+        [k$knot.mnemonic].$knot.identityColumnName = i.$attribute.valueColumnName
+    WHERE
+        ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
+ ~*/
+                }
+/*~
+    $(attribute.knotRange)? AND : WHERE
+        [$attribute.mnemonic].$attribute.anchorReferenceName is null;
+~*/
             }
         }
 /*~
