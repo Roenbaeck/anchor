@@ -10,4 +10,5 @@ SQL/SQLServer/uni/CreateKeyGenerators.js
 SQL/SQLServer/uni/CreateAttributeRewinders.js
 SQL/SQLServer/uni/CreateAnchorPerspectives.js
 SQL/SQLServer/uni/CreateAnchorTriggers.js
+SQL/SQLServer/uni/AddTieRestatementConstraints.js
 SQL/SQLServer/CreateSchemaTracking.js

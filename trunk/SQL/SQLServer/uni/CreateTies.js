@@ -10,19 +10,19 @@
 ~*/
 var tie;
 while (tie = schema.nextTie()) {
-    if(schema.metadataUsage == 'true')
+    if(METADATA)
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadataType + ' not null,';
-    if(tie.timeRange && tie.knotRole) {
+    if(tie.isHistorized() && tie.isKnotted()) {
 /*~
 -- Knotted historized tie table ---------------------------------------------------------------------------------------
 ~*/
     }
-    else if(tie.timeRange) {
+    else if(tie.isHistorized()) {
 /*~
 -- Historized tie table -----------------------------------------------------------------------------------------------
 ~*/
     }
-    else if(tie.knotRole) {
+    else if(tie.isKnotted()) {
 /*~
 -- Knotted static tie table -------------------------------------------------------------------------------------------
 ~*/
@@ -38,47 +38,27 @@ while (tie = schema.nextTie()) {
 IF Object_ID('$tie.name', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.name] (
 ~*/
-    var role, anchor, knot;
+    var role;
     while (role = tie.nextRole()) {
-        if(role.anchor) {
-            anchor = schema.anchor[role.anchor];
 /*~
-    $role.columnName $anchor.identity not null,
+    $role.columnName $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
 ~*/
-        }
-        else if (role.knot) {
-            knot = schema.knot[role.knot];
-/*~
-    $role.columnName $knot.identity not null,
-~*/
-        }
     }
 /*~
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
     $(METADATA)? $tie.metadataColumnName $schema.metadataType not null,
 ~*/
     while (role = tie.nextRole()) {
-        if(role.anchor) {
-            anchor = schema.anchor[role.anchor];
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $anchor.name($anchor.identityColumnName),
+    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
  ~*/
-        }
-        else if (role.knot) {
-            knot = schema.knot[role.knot];
-/*~
-    constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
-        $role.columnName
-    ) references $knot.name($knot.identityColumnName),
- ~*/
-        }
     }
     // one-to-one and we need additional constraints
     if(tie.identifiers.length == 0) {
         while (role = tie.nextRole()) {
-            if(tie.timeRange) {
+            if(tie.isHistorized()) {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
         $role.columnName,
@@ -102,7 +82,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
         while (role = tie.nextIdentifier()) {
 /*~
         $role.columnName asc~*/
-            if(tie.hasMoreIdentifiers() || tie.timeRange) {
+            if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
                 /*~,~*/
             }
         }
@@ -111,12 +91,12 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
         while (role = tie.nextRole()) {
 /*~
         $role.columnName asc~*/
-            if(tie.hasMoreRoles() || tie.timeRange) {
+            if(tie.hasMoreRoles() || tie.isHistorized()) {
                 /*~,~*/
             }
         }
     }
-    if(tie.timeRange) {
+    if(tie.isHistorized()) {
 /*~
         $tie.changingColumnName desc
 ~*/

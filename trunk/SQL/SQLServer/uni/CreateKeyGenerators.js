@@ -7,7 +7,7 @@
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
-    if(anchor.metadata.generator == 'true') {
+    if(anchor.isGenerator()) {
         if(METADATA) {
 /*~
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------

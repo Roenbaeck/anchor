@@ -8,6 +8,7 @@ schema._iterator.tie = 0;
 schema._iterator.historizedTie = 0;
 schema._iterator.role = 0;
 schema._iterator.identifier = 0;
+schema._iterator.value = 0;
 
 // set up helpers for knots
 schema.nextKnot = function() {
@@ -20,6 +21,13 @@ schema.nextKnot = function() {
 schema.hasMoreKnots = function() {
     return schema._iterator.knot < schema.knots.length;
 };
+
+var knot;
+while(knot = schema.nextKnot()) {
+    knot.isGenerator = function() {
+        return this.metadata.generator == 'true';
+    };
+}
 
 // set up helpers for anchors
 schema.nextAnchor = function() {
@@ -36,6 +44,9 @@ schema.hasMoreAnchors = function() {
 var anchor;
 while(anchor = schema.nextAnchor()) {
     anchor.historizedAttributes = [];
+    anchor.isGenerator = function() {
+        return this.metadata.generator == 'true';
+    };
 }
 
 // set up helpers for attributes
@@ -55,8 +66,22 @@ while (anchor = schema.nextAnchor()) {
 var attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
-        if(attribute.timeRange)
+        attribute.isKnotted = function() {
+            return this.hasOwnProperty('knotRange');
+        };
+        attribute.isIdempotent = function() {
+            return this.metadata.idempotent == 'true';
+        };
+        attribute.isRestatable = function() {
+            return this.metadata.restatable == 'true';
+        };
+        attribute.isHistorized = function() {
+            return this.hasOwnProperty('timeRange');
+        };
+        if(attribute.isHistorized())
             anchor.historizedAttributes.push(attribute.mnemonic);
+        if(attribute.isKnotted())
+            attribute.knot = schema.knot[attribute.knotRange];
     }
 }
 
@@ -89,7 +114,17 @@ schema.historizedTies = [];
 var tie;
 for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
     tie.identifiers = [];
-    if(tie.timeRange)
+    tie.values = [];
+    tie.isKnotted = function() {
+        return this.hasOwnProperty('knotRole');
+    };
+    tie.isHistorized = function() {
+        return this.hasOwnProperty('timeRange');
+    };
+    tie.isRestatable = function() {
+        return this.metadata.restatable == 'true';
+    };
+    if(tie.isHistorized())
         schema.historizedTies.push(schema.ties[t]);
 }
 
@@ -127,12 +162,17 @@ while(tie = schema.nextTie()) {
 var role;
 while (tie = schema.nextTie()) {
     while(role = tie.nextRole()) {
+        role.isIdentifier = function() {
+            return this.identifier == 'true';
+        };
         if(role.type.length == 3)
-            role.knot = role.type;
+            role.knot = schema.knot[role.type];
         if(role.type.length == 2)
-            role.anchor = role.type;
-        if(role.identifier == 'true')
+            role.anchor = schema.anchor[role.type];
+        if(role.isIdentifier())
             tie.identifiers.push(role.type + '_' + role.role);
+        else
+            tie.values.push(role.type + '_' + role.role);
     }
 }
 
@@ -150,9 +190,25 @@ while (tie = schema.nextTie()) {
         schema._iterator.identifier++;
         return anchorRole || knotRole;
     };
+    tie.nextValue = function() {
+        if(schema._iterator.value == this.values.length) {
+            schema._iterator.value = 0;
+            return null;
+        }
+        var anchorRole, knotRole;
+        if(this.anchorRole)
+            anchorRole = this.anchorRole[this.values[schema._iterator.value]];
+        if(this.knotRole)
+            knotRole = this.knotRole[this.values[schema._iterator.value]];
+        schema._iterator.value++;
+        return anchorRole || knotRole;
+    };
     tie.hasMoreIdentifiers = function() {
         return schema._iterator.identifier < this.identifiers.length;
-    }
+    };
+    tie.hasMoreValues = function() {
+        return schema._iterator.value < this.values.length;
+    };
 }
 
 // global variables
