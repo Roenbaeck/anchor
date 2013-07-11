@@ -55,8 +55,8 @@ BEGIN
         $(METADATA)? $attribute.metadataColumnName $schema.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
 ~*/
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
@@ -82,7 +82,7 @@ BEGIN
         $(METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
 ~*/
-            if(attribute.knotRange) {
+            if(attribute.isKnotted()) {
 /*~
         i.$attribute.knotValueColumnName,
         $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
@@ -104,7 +104,7 @@ BEGIN
             $(METADATA)? $attribute.metadataColumnName,
             $(attribute.timeRange)? $attribute.changingColumnName,
 ~*/
-            if(attribute.knotRange) {
+            if(attribute.isKnotted()) {
 /*~
             $attribute.knotValueColumnName,
             $(METADATA)? $attribute.knotMetadataColumnName,
@@ -125,10 +125,10 @@ BEGIN
         a.Row = i.Row;
 ~*/
         while (attribute = anchor.nextAttribute()) {
-            knot = schema.knot[attribute.knotRange];
-            if(attribute.timeRange) {
+            knot = attribute.knot;
+            if(attribute.isHistorized()) {
                 var statementTypes = "'N'";
-                if(attribute.metadata.idempotent == 'true')
+                if(attribute.isIdempotent())
                     statementTypes += ",'R'";
 /*~
     DECLARE @$attribute.name TABLE (
@@ -154,7 +154,7 @@ BEGIN
     FROM
         @inserted i
 ~*/
-                if(attribute.knotRange) {
+                if(attribute.isKnotted()) {
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
@@ -261,7 +261,7 @@ BEGIN
     ON
         [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
 ~*/
-                if(attribute.knotRange) {
+                if(attribute.isKnotted()) {
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
@@ -297,8 +297,8 @@ BEGIN
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/
         while (attribute = anchor.nextHistorizedAttribute()) {
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     INSERT INTO [$attribute.capsule].[$attribute.name] (
@@ -318,7 +318,7 @@ BEGIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
         [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
-                if(attribute.metadata.idempotent == 'true') {
+                if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
         deleted d
@@ -347,7 +347,7 @@ BEGIN
         i.$attribute.valueColumnName
     FROM
         inserted i~*/
-                if(attribute.metadata.idempotent == 'true') {
+                if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
         deleted d

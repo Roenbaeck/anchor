@@ -13,8 +13,8 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
-        if(attribute.timeRange) {
-            if(attribute.dataRange) {
+        if(attribute.isHistorized()) {
+            if(!attribute.isKnotted()) {
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
@@ -40,7 +40,7 @@ END
 GO
 ~*/
             }
-            else if(attribute.knotRange) {
+            else {
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function

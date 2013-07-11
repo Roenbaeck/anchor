@@ -51,8 +51,8 @@ SELECT
     $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
@@ -72,7 +72,7 @@ LEFT JOIN
     [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
 ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
-            if(attribute.timeRange) {
+            if(attribute.isHistorized()) {
 /*~
 AND
     [$attribute.mnemonic].$attribute.changingColumnName = (
@@ -84,8 +84,8 @@ AND
             sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
    )~*/
             }
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
 LEFT JOIN
     [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
@@ -115,8 +115,8 @@ SELECT
     $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
@@ -131,7 +131,7 @@ FROM
     [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
 ~*/
         while (attribute = anchor.nextAttribute()) {
-            if(attribute.timeRange) {
+            if(attribute.isHistorized()) {
 /*~
 LEFT JOIN
     [$attribute.capsule].[r$attribute.name](@changingTimepoint) [$attribute.mnemonic]
@@ -154,8 +154,8 @@ LEFT JOIN
 ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
             }
-            if(attribute.knotRange) {
-                knot = schema.knot[attribute.knotRange];
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
 LEFT JOIN
     [$knot.capsule].[$knot.name] [k$attribute.mnemonic]

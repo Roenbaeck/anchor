@@ -1,7 +1,7 @@
 var anchor, knot, attribute, restatements = false;
 while (anchor = schema.nextAnchor())
     while(attribute = anchor.nextAttribute())
-        if(attribute.timeRange && attribute.metadata.restatable == 'false')
+        if(attribute.isHistorized() && !attribute.isRestatable())
             restatements = true;
 
 if(restatements) {
@@ -21,14 +21,14 @@ if(restatements) {
 ~*/
     while (anchor = schema.nextAnchor()) {
         while(attribute = anchor.nextAttribute()) {
-            if(attribute.metadata.restatable == 'false' && attribute.timeRange) {
+            if(!attribute.isRestatable() && attribute.isHistorized()) {
                 var valueColumn, valueType;
-                if(attribute.dataRange) {
+                if(!attribute.isKnotted()) {
                     valueColumn = attribute.valueColumnName;
                     valueType = attribute.dataRange;
                 }
-                else if(attribute.knotRange) {
-                    knot = schema.knot[attribute.knotRange]
+                else {
+                    knot = attribute.knot;
                     valueColumn = attribute.knotReferenceName;
                     valueType = knot.identity;
                 }

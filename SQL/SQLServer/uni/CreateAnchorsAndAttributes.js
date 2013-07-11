@@ -11,7 +11,7 @@
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
-    if(anchor.metadata.generator == 'true')
+    if(anchor.isGenerator())
         anchor.identityGenerator = 'IDENTITY(1,1)';
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
-        if(attribute.timeRange && attribute.dataRange) {
+        if(attribute.isHistorized() && !attribute.isKnotted()) {
 /*~
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
@@ -51,8 +51,8 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
 GO
 ~*/
     }
-    else if(attribute.timeRange && attribute.knotRange) {
-        knot = schema.knot[attribute.knotRange];
+    else if(attribute.isHistorized() && attribute.isKnotted()) {
+        knot = attribute.knot;
 /*~
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
@@ -77,8 +77,8 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
 GO
 ~*/
     }
-    else if(attribute.knotRange) {
-        knot = schema.knot[attribute.knotRange];
+    else if(attribute.isKnotted()) {
+        knot = attribute.knot;
 /*~
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
