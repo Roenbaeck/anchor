@@ -7,6 +7,8 @@ schema._iterator.historizedAttribute = 0;
 schema._iterator.tie = 0;
 schema._iterator.historizedTie = 0;
 schema._iterator.role = 0;
+schema._iterator.knotRole = 0;
+schema._iterator.anchorRole = 0;
 schema._iterator.identifier = 0;
 schema._iterator.value = 0;
 
@@ -115,6 +117,8 @@ var tie;
 for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
     tie.identifiers = [];
     tie.values = [];
+    tie.knotRoles = [];
+    tie.anchorRoles = [];
     tie.isKnotted = function() {
         return this.hasOwnProperty('knotRole');
     };
@@ -162,17 +166,22 @@ while(tie = schema.nextTie()) {
 var role;
 while (tie = schema.nextTie()) {
     while(role = tie.nextRole()) {
+        role.id = role.type + '_' + role.role;
         role.isIdentifier = function() {
             return this.identifier == 'true';
         };
-        if(role.type.length == 3)
+        if(role.type.length == 3) {
             role.knot = schema.knot[role.type];
-        if(role.type.length == 2)
+            tie.knotRoles.push(role.id);
+        }
+        if(role.type.length == 2) {
             role.anchor = schema.anchor[role.type];
+            tie.anchorRoles.push(role.id);
+        }
         if(role.isIdentifier())
-            tie.identifiers.push(role.type + '_' + role.role);
+            tie.identifiers.push(role.id);
         else
-            tie.values.push(role.type + '_' + role.role);
+            tie.values.push(role.id);
     }
 }
 
@@ -190,6 +199,9 @@ while (tie = schema.nextTie()) {
         schema._iterator.identifier++;
         return anchorRole || knotRole;
     };
+    tie.hasMoreIdentifiers = function() {
+        return schema._iterator.identifier < this.identifiers.length;
+    };
     tie.nextValue = function() {
         if(schema._iterator.value == this.values.length) {
             schema._iterator.value = 0;
@@ -203,11 +215,28 @@ while (tie = schema.nextTie()) {
         schema._iterator.value++;
         return anchorRole || knotRole;
     };
-    tie.hasMoreIdentifiers = function() {
-        return schema._iterator.identifier < this.identifiers.length;
-    };
     tie.hasMoreValues = function() {
         return schema._iterator.value < this.values.length;
+    };
+    tie.nextKnotRole = function() {
+        if(schema._iterator.knotRole == this.knotRoles.length) {
+            schema._iterator.knotRole = 0;
+            return null;
+        }
+        return this.knotRole[this.knotRoles[schema._iterator.knotRole++]];
+    };
+    tie.hasMoreKnotRoles = function() {
+        return schema._iterator.knotRole < this.knotRoles.length;
+    };
+    tie.nextAnchorRole = function() {
+        if(schema._iterator.anchorRole == this.anchorRoles.length) {
+            schema._iterator.anchorRole = 0;
+            return null;
+        }
+        return this.anchorRole[this.anchorRoles[schema._iterator.anchorRole++]];
+    };
+    tie.hasMoreAnchorRoles = function() {
+        return schema._iterator.anchorRole < this.anchorRoles.length;
     };
 }
 
