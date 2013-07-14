@@ -67,8 +67,8 @@ while (tie = schema.nextTie()) {
         if(role.knot) {
             knot = role.knot;
             if(IMPROVED) {
-                role.knotValueColumnName = knot.valueColumnName + D + role.role;
-                role.knotMetadataColumnName = knot.metadataColumnName + D + role.role;
+                role.knotValueColumnName = role.role + D + knot.valueColumnName;
+                role.knotMetadataColumnName = role.role + D + knot.metadataColumnName;
             }
             else {
                 role.knotValueColumnName = knot.valueColumnName;
@@ -84,6 +84,8 @@ while (tie = schema.nextTie()) {
     tie.identityColumnName = tie.name + D + schema.identitySuffix;
     tie.capsule = tie.metadata.capsule || defaultCapsule;
     tie.metadataColumnName = schema.metadataPrefix + D + tie.name;
+    tie.versionColumnName = tie.name + D + schema.versionSuffix;
+    tie.statementTypeColumnName = tie.name + D + schema.statementTypeSuffix;
     if(tie.timeRange) {
         tie.changingColumnName = tie.name + D + schema.changingSuffix;
     }

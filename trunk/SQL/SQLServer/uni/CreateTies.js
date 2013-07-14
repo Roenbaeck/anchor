@@ -56,7 +56,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
  ~*/
     }
     // one-to-one and we need additional constraints
-    if(tie.identifiers.length == 0) {
+    if(!tie.hasMoreIdentifiers()) {
         while (role = tie.nextRole()) {
             if(tie.isHistorized()) {
 /*~
@@ -78,7 +78,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
 /*~
     constraint pk$tie.name primary key (
 ~*/
-    if(tie.identifiers.length > 0) {
+    if(tie.hasMoreIdentifiers()) {
         while (role = tie.nextIdentifier()) {
 /*~
         $role.columnName asc~*/

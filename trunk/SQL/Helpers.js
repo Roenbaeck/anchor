@@ -14,6 +14,7 @@ schema._iterator.value = 0;
 
 // set up helpers for knots
 schema.nextKnot = function() {
+    if(!schema.knots) return null;
     if(schema._iterator.knot == schema.knots.length) {
         schema._iterator.knot = 0;
         return null;
@@ -21,7 +22,11 @@ schema.nextKnot = function() {
     return schema.knot[schema.knots[schema._iterator.knot++]];
 };
 schema.hasMoreKnots = function() {
+    if(!schema.knots) return false;
     return schema._iterator.knot < schema.knots.length;
+};
+schema.isFirstKnot = function() {
+    return schema._iterator.knot == 1;
 };
 
 var knot;
@@ -33,6 +38,7 @@ while(knot = schema.nextKnot()) {
 
 // set up helpers for anchors
 schema.nextAnchor = function() {
+    if(!schema.anchors) return null;
     if(schema._iterator.anchor == schema.anchors.length) {
         schema._iterator.anchor = 0;
         return null;
@@ -40,7 +46,11 @@ schema.nextAnchor = function() {
     return schema.anchor[schema.anchors[schema._iterator.anchor++]];
 };
 schema.hasMoreAnchors = function() {
+    if(!schema.anchors) return false;
     return schema._iterator.anchor < schema.anchors.length;
+};
+schema.isFirstAnchor = function() {
+    return schema._iterator.anchor == 1;
 };
 
 var anchor;
@@ -54,6 +64,7 @@ while(anchor = schema.nextAnchor()) {
 // set up helpers for attributes
 while (anchor = schema.nextAnchor()) {
     anchor.nextAttribute = function() {
+        if(!this.attributes) return null;
         if(schema._iterator.attribute == this.attributes.length) {
             schema._iterator.attribute = 0;
             return null;
@@ -61,7 +72,11 @@ while (anchor = schema.nextAnchor()) {
         return this.attribute[this.attributes[schema._iterator.attribute++]];
     };
     anchor.hasMoreAttributes = function() {
+        if(!this.attributes) return false;
         return schema._iterator.attribute < this.attributes.length;
+    };
+    anchor.isFirstAttribute = function() {
+        return schema._iterator.attribute == 1;
     };
 }
 
@@ -98,10 +113,14 @@ while (anchor = schema.nextAnchor()) {
     anchor.hasMoreHistorizedAttributes = function() {
         return schema._iterator.historizedAttribute < this.historizedAttributes.length;
     };
+    anchor.isFirstHistorizedAttribute = function() {
+        return schema._iterator.historizedAttribute == 1;
+    };
 }
 
 // set up helpers for ties
 schema.nextTie = function() {
+    if(!schema.ties) return null;
     if(schema._iterator.tie == schema.ties.length) {
         schema._iterator.tie = 0;
         return null;
@@ -109,12 +128,17 @@ schema.nextTie = function() {
     return schema.tie[schema.ties[schema._iterator.tie++]];
 };
 schema.hasMoreTies = function() {
+    if(!schema.ties) return false;
     return schema._iterator.tie < schema.ties.length;
 };
+schema.isFirstTie = function() {
+    return schema._iterator.tie == 1;
+};
+
 
 schema.historizedTies = [];
 var tie;
-for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
+while(tie = schema.nextTie()) {
     tie.identifiers = [];
     tie.values = [];
     tie.knotRoles = [];
@@ -128,8 +152,11 @@ for(var t = 0; tie = schema.tie[schema.ties[t]]; t++) {
     tie.isRestatable = function() {
         return this.metadata.restatable == 'true';
     };
+    tie.isIdempotent = function() {
+        return this.metadata.idempotent == 'true';
+    };
     if(tie.isHistorized())
-        schema.historizedTies.push(schema.ties[t]);
+        schema.historizedTies.push(tie.id);
 }
 
 schema.nextHistorizedTie = function() {
@@ -142,10 +169,15 @@ schema.nextHistorizedTie = function() {
 schema.hasMoreHistorizedTies = function() {
     return schema._iterator.historizedTie < schema.historizedTies.length;
 };
+schema.isFirstHistorizedTie = function() {
+    return schema._iterator.historizedTie == 1;
+};
+
 
 // set up helpers for roles
 while(tie = schema.nextTie()) {
     tie.nextRole = function() {
+        if(!this.roles) return null;
         if(schema._iterator.role == this.roles.length) {
             schema._iterator.role = 0;
             return null;
@@ -159,14 +191,17 @@ while(tie = schema.nextTie()) {
         return anchorRole || knotRole;
     };
     tie.hasMoreRoles = function() {
+        if(!this.roles) return false;
         return schema._iterator.role < this.roles.length;
+    };
+    tie.isFirstRole = function() {
+        return schema._iterator.role == 1;
     };
 }
 
 var role;
 while (tie = schema.nextTie()) {
     while(role = tie.nextRole()) {
-        role.id = role.type + '_' + role.role;
         role.isIdentifier = function() {
             return this.identifier == 'true';
         };
@@ -202,6 +237,9 @@ while (tie = schema.nextTie()) {
     tie.hasMoreIdentifiers = function() {
         return schema._iterator.identifier < this.identifiers.length;
     };
+    tie.isFirstIdentifier = function() {
+        return schema._iterator.identifier == 1;
+    };
     tie.nextValue = function() {
         if(schema._iterator.value == this.values.length) {
             schema._iterator.value = 0;
@@ -218,6 +256,9 @@ while (tie = schema.nextTie()) {
     tie.hasMoreValues = function() {
         return schema._iterator.value < this.values.length;
     };
+    tie.isFirstValue = function() {
+        return schema._iterator.value == 1;
+    };
     tie.nextKnotRole = function() {
         if(schema._iterator.knotRole == this.knotRoles.length) {
             schema._iterator.knotRole = 0;
@@ -228,6 +269,9 @@ while (tie = schema.nextTie()) {
     tie.hasMoreKnotRoles = function() {
         return schema._iterator.knotRole < this.knotRoles.length;
     };
+    tie.isFirstKnotRole = function() {
+        return schema._iterator.knotRole == 1;
+    };
     tie.nextAnchorRole = function() {
         if(schema._iterator.anchorRole == this.anchorRoles.length) {
             schema._iterator.anchorRole = 0;
@@ -237,6 +281,9 @@ while (tie = schema.nextTie()) {
     };
     tie.hasMoreAnchorRoles = function() {
         return schema._iterator.anchorRole < this.anchorRoles.length;
+    };
+    tie.isFirstAnchorRole = function() {
+        return schema._iterator.anchorRole == 1;
     };
 }
 

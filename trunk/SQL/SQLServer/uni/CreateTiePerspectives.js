@@ -36,6 +36,7 @@ GO
 CREATE VIEW [$tie.capsule].[l$tie.name] WITH SCHEMABINDING AS
 SELECT
     $(METADATA)? tie.$tie.metadataColumnName,
+    $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -70,11 +71,21 @@ WHERE
             [$tie.capsule].[$tie.name] sub
         WHERE
 ~*/
-            while (role = tie.nextIdentifier()) {
+            if(tie.hasMoreIdentifiers()) {
+                while (role = tie.nextIdentifier()) {
 /*~
             sub.$role.columnName = tie.$role.columnName
         $(tie.hasMoreIdentifiers())? AND
 ~*/
+                }
+            }
+            else {
+                while (role = tie.nextValue()) {
+/*~
+            sub.$role.columnName = tie.$role.columnName
+        $(tie.hasMoreValues())? OR
+~*/
+                }
             }
 /*~
    )~*/
@@ -90,6 +101,7 @@ CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
     $(METADATA)? tie.$tie.metadataColumnName,
+    $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -124,9 +136,26 @@ WHERE
             [$tie.capsule].[$tie.name] sub
         WHERE
 ~*/
-            while (role = tie.nextIdentifier()) {
+            if(tie.hasMoreIdentifiers()) {
+                while (role = tie.nextIdentifier()) {
 /*~
             sub.$role.columnName = tie.$role.columnName
+        AND
+~*/
+                }
+            }
+            else {
+/*~
+        (
+~*/
+                while (role = tie.nextValue()) {
+/*~
+                sub.$role.columnName = tie.$role.columnName
+            $(tie.hasMoreValues())? OR
+~*/
+                }
+/*~
+        )
         AND
 ~*/
             }
@@ -159,6 +188,7 @@ CREATE FUNCTION [$tie.capsule].[d$tie.name] (
 RETURNS TABLE AS RETURN
 SELECT
     $(METADATA)? tie.$tie.metadataColumnName,
+    $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
