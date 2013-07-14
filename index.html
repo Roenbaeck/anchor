@@ -4878,7 +4878,8 @@
                 this.reader = new FileReader();
                 this.reader.onload = function(e) { FileHandler.fileLoaded(e); };
                 this.reader.onerror = function(e) {
-                    console.error("File could not be read! Code " + event.target.error.code);
+                    if(console && console.error)
+                        console.error("File could not be read! Code " + event.target.error.code);
                 };
                 this.reader.readAsText(files[0]);
             },
@@ -5033,7 +5034,8 @@
                         str, '_newtab'
                 );
             },
-            loadFromURL: function (url) {
+            loadFromURL: function (url, layout) {
+                layout = typeof layout !== 'undefined' ? layout : false;
                 try {
                     var xmlhttp = new window.XMLHttpRequest();
                     xmlhttp.open("GET", url, false);
@@ -5046,7 +5048,7 @@
                     DrawingEngine.reset();
                     Actions.resetZoom();
                     Actions.centerModel();
-                    DrawingEngine.start(false);
+                    DrawingEngine.start(layout);
                 }
                 catch(exception){
                     alert(exception);
@@ -5425,6 +5427,7 @@
                                 var key = map[xmlFragment.nodeName](xml, xmlFragment);
                                 if(key) {
                                     partialObject = partialObject[key] = {};
+                                    partialObject.id = key;
                                     var name = Sisulator.replacer(
                                             xmlFragment.nodeName + listSuffix
                                     );
@@ -5457,12 +5460,14 @@
             sisulate: function(xml, directive) {
                 // objectify the xml
                 var schema = Sisulator.objectify(xml, Sisulator.MAP).schema;
+                var cacheDisabler = '';
+                if(DEBUG) cacheDisabler = '?r=' + Math.random();
                 // this variable holds the result
                 var _sisula_ = '';
 
                 // process and evaluate all sisulas in the directive
                 var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.open("GET", directive + '?r=' + Math.random(), false);
+                xmlhttp.open("GET", directive + cacheDisabler, false);
                 xmlhttp.send(null);
                 // only non-empty lines that are not comments (starts with #)
                 var scripts = xmlhttp.responseText.match(/^[^#].+/gm);
@@ -5470,7 +5475,7 @@
                 var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
                 // process every sisula
                 for(var s = 0; script = scripts[s]; s++) {
-                    xmlhttp.open("GET", script + '?r=' + Math.random(), false);
+                    xmlhttp.open("GET", script + cacheDisabler, false);
                     xmlhttp.send(null);
                     var sisula = xmlhttp.responseText;
                     // honor escaped dollar signs
@@ -5490,12 +5495,14 @@
                     // join the parts together again (now all JavaScript)
                     sisula = sisulets.join('');
                     try {
-                        // console.log(sisula);
+                        if(DEBUG && console && console.log)
+                            console.log(sisula);
                         // this eval needs schema and _sisula_ to be defined
                         eval(sisula);
                     }
                     catch(e) {
-                        console.error('The script ' + script + ' could not be executed.');
+                        if(DEBUG && console && console.error)
+                            console.error('The script ' + script + ' could not be executed.');
                         throw e;
                     }
                 }
@@ -6251,7 +6258,7 @@
                 <li><i>Load model from local file:</i></li>
                 <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                 <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
-                <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml')">Load example model</li>
+                <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
             </ul>
         </div>
 

@@ -15,7 +15,7 @@ while (anchor = schema.nextAnchor()) {
         anchor.identityGenerator = 'IDENTITY(1,1)';
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
--- $anchor.name table (with $anchor.attributes.length attributes)
+-- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (

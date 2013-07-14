@@ -1,6 +1,6 @@
 var tie, role, restatements = false;
 while (tie = schema.nextHistorizedTie())
-    if(!tie.isRestatable() && tie.roles.length > tie.identifiers.length)
+    if(!tie.isRestatable() && tie.hasMoreValues())
         restatements = true;
 
 if(restatements) {
@@ -16,7 +16,7 @@ if(restatements) {
 ~*/
     while (tie = schema.nextHistorizedTie()) {
         // the tie needs to have at least one role outside of the identifier
-        if(!tie.isRestatable() && tie.roles.length > tie.identifiers.length) {
+        if(!tie.isRestatable() && tie.hasMoreValues()) {
 /*~
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
 -- rf$tie.name restatement finder
@@ -62,9 +62,26 @@ BEGIN
                 [$tie.capsule].[$tie.name] pre
             WHERE
 ~*/
-            while(role = tie.nextIdentifier()) {
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
 /*~
                 pre.$role.columnName = @$role.columnName
+            AND
+~*/
+                }
+            }
+            else {
+/*~
+            (
+~*/
+                while(role = tie.nextValue()) {
+/*~
+                    pre.$role.columnName = @$role.columnName
+                $(tie.hasMoreValues())? OR
+~*/
+                }
+/*~
+            )
             AND
 ~*/
             }
@@ -85,9 +102,26 @@ BEGIN
                 [$tie.capsule].[$tie.name] fol
             WHERE
 ~*/
-            while(role = tie.nextIdentifier()) {
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
 /*~
                 fol.$role.columnName = @$role.columnName
+            AND
+~*/
+                }
+            }
+            else {
+/*~
+            (
+~*/
+                while(role = tie.nextValue()) {
+/*~
+                    fol.$role.columnName = @$role.columnName
+                $(tie.hasMoreValues())? OR
+~*/
+                }
+/*~
+            )
             AND
 ~*/
             }
