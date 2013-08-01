@@ -12,7 +12,7 @@
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var tie, role, knot, anchor;
+var tie, role, knot, anchor, anyRole;
 while (tie = schema.nextTie()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
@@ -306,12 +306,57 @@ BEGIN
             $tie.statementTypeColumnName in ($statementTypes);
     END
 ~*/
-            }
-            else {
+        }
+        else {
 /*~
-            // TODO: not historized insert
+    INSERT INTO [$tie.capsule].[$tie.name] (
+        $(METADATA)? $tie.metadataColumnName,
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        $role.columnName$(tie.hasMoreRoles())?,
 ~*/
             }
+/*~
+    )
+    SELECT
+        $(METADATA)? i.$tie.metadataColumnName,
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        i.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+            }
+/*~
+    FROM
+        @inserted i
+    LEFT JOIN
+        [$tie.capsule].[$tie.name] tie
+    ON
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+                    anyRole = role;
+/*~
+        tie.$role.columnName = i.$role.columnName
+    $(tie.hasMoreIdentifiers())? AND
+~*/
+                }
+            }
+            else {
+                while(role = tie.nextValue()) {
+                    anyRole = role;
+/*~
+        fol.$role.columnName = @$role.columnName
+    $(tie.hasMoreValues())? OR
+~*/
+                }
+            }
+/*~
+    WHERE
+        tie.$anyRole.columnName is null;
+~*/
+        }
 /*~
 END
 GO
