@@ -718,9 +718,9 @@
             minimumStartingVelocity: 1,
             // maximum starting velocity is higher (to remove "twitching" when few nodes are moving)
             maximumStartingVelocity: 5,
-            // maximum - minimum starting velocity
+            // maximum - minimum starting velocity [set by init]
             startingVelocityDelta: 4,
-            // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
+            // calculated as 1/normalDistance^3, assuming that the repelling factor is -1 [set by init]
             attractionConstant: 0.00003703703704,
             // size of partitions in number of normal distances
             partitionFactor: 8,
@@ -732,20 +732,22 @@
             layout: null,
             // holds space partitions
             partitions: null,
-            // size of partitions
+            // size of partitions [set by init]
             partitionSize: 120,
             // the effect of the long range force
             longRangeEffect: 0.25,
-            // fuzziness of the partition size
+            // fuzziness of the partition size (ranges between +/- fuzziness percentage of partition size)
             fuzziness: 0.1,
+            // amount of fuzz [set by init]
             fuzz: 24,
+            // current fuzz-operation, 0 for subtract, 1 for nothing, 2 for add [changes every iteration]
             fuzzing: 0,
             init: function() {
                 this.layout = this.simpleLayout;
                 this.attractionConstant = 1/this.normalDistance/this.normalDistance/this.normalDistance;
                 this.partitionSize = this.partitionFactor * this.normalDistance;
                 this.startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
-                this.fuzz = this.normalDistance * this.partitionFactor * this.fuzziness;
+                this.fuzz = this.partitionSize * this.fuzziness;
             },
             // use our own squaring algorithm rather than Math.pow
             square: function(value) {
@@ -2161,6 +2163,26 @@
             },
             enableKeyboardShortcuts: function() {
                 this.keyboardShortcuts = true;
+            },
+            touchstart: function(event) {
+                var touches = event.changedTouches;
+                var touch;
+                for(var t = 0; touch = touches[t]; t++) {
+                    if(this.focusedNode = DrawingEngine.getNodeAt(touch.xScreen, touch.yScreen)) {
+                        if(this.selectedNodes.indexOf(this.focusedNode) < 0)
+                            this.addNodeToSelection(this.focusedNode);
+                    }
+                }
+            },
+            touchend: function(event) {
+                var touches = event.changedTouches;
+                var touch;
+                for(var t = 0; touch = touches[t]; t++) {
+                    if(this.focusedNode = DrawingEngine.getNodeAt(touch.xScreen, touch.yScreen)) {
+                        if(this.selectedNodes.indexOf(this.focusedNode) >= 0)
+                            this.removeNodeFromSelection(this.focusedNode);
+                    }
+                }
             },
             mousedown: function(event) {
                 if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen)) {
@@ -6168,6 +6190,12 @@
             canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
             canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
+            // add touch events
+            canvas.addEventListener('touchstart', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('touchend', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('touchcancel', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('touchleave', CanvasEventHandler.handleEvent, false);
+            canvas.addEventListener('touchmove', CanvasEventHandler.handleEvent, false);
 
             // setting a listener on the canvas did not work, so this is a workaround
             window.onkeypress = CanvasEventHandler.handleEvent;
