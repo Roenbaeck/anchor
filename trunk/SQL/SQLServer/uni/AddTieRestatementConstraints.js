@@ -86,7 +86,7 @@ BEGIN
 ~*/
             }
 /*~
-                pre.$tie.changingColumnName <= @changed
+                pre.$tie.changingColumnName < @changed
             ORDER BY
                 pre.$tie.changingColumnName DESC
             UNION
@@ -126,7 +126,7 @@ BEGIN
 ~*/
             }
 /*~
-                fol.$tie.changingColumnName >= @changed
+                fol.$tie.changingColumnName > @changed
             ORDER BY
                 fol.$tie.changingColumnName ASC
         ) s

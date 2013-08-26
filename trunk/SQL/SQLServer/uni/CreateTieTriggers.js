@@ -140,9 +140,9 @@ BEGIN
             }
         }
 /*~;~*/
-        if(tie.isHistorized()) {
+        if(tie.isHistorized() && tie.hasMoreValues()) {
             var statementTypes = "'N'";
-            if(tie.isIdempotent())
+            if(!tie.isIdempotent())
                 statementTypes += ",'R'";
 /*~
     SELECT
@@ -178,7 +178,7 @@ BEGIN
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                                pre.$role.columnName = @$role.columnName
+                                pre.$role.columnName = v.$role.columnName
                             AND
 ~*/
                 }
@@ -189,7 +189,7 @@ BEGIN
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                    pre.$role.columnName = @$role.columnName
+                                    pre.$role.columnName = v.$role.columnName
                                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -199,7 +199,7 @@ BEGIN
 ~*/
             }
 /*~
-                                pre.$tie.changingColumnName <= @changed
+                                pre.$tie.changingColumnName < v.$tie.changingColumnName
                             ORDER BY
                                 pre.$tie.changingColumnName DESC
                             UNION
@@ -218,7 +218,7 @@ BEGIN
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                                fol.$role.columnName = @$role.columnName
+                                fol.$role.columnName = v.$role.columnName
                             AND
 ~*/
                 }
@@ -229,7 +229,7 @@ BEGIN
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                    fol.$role.columnName = @$role.columnName
+                                    fol.$role.columnName = v.$role.columnName
                                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -239,7 +239,7 @@ BEGIN
 ~*/
             }
 /*~
-                                fol.$tie.changingColumnName >= @changed
+                                fol.$tie.changingColumnName > v.$tie.changingColumnName
                             ORDER BY
                                 fol.$tie.changingColumnName ASC
                         ) s
@@ -247,7 +247,7 @@ BEGIN
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                            s.$role.columnName = @$role.columnName
+                            s.$role.columnName = v.$role.columnName
                         $(tie.hasMoreValues())? AND
 ~*/
             }
@@ -347,7 +347,7 @@ BEGIN
                 while(role = tie.nextValue()) {
                     anyRole = role;
 /*~
-        fol.$role.columnName = @$role.columnName
+        tie.$role.columnName = i.$role.columnName
     $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -361,4 +361,34 @@ BEGIN
 END
 GO
 ~*/
+    if(tie.isHistorized() && tie.hasMoreValues()) {
+/*~
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut$tie.name instead of UPDATE trigger on l$tie.name
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule].[ut$tie.name] ON [$tie.capsule].[l$tie.name]
+INSTEAD OF UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.chronon = $schema.now;
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+    IF(UPDATE($role.columnName))
+        RAISERROR('The identity column $role.columnName is not updatable.', 16, 1);
+~*/
+            }
+        }
+        while(role = tie.nextValue()) {
+/*
+    INSERT INTO
+~*/
+        }
+/*~
+END
+GO
+~*/
+    }
 }

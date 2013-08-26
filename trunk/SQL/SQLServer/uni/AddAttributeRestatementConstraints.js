@@ -47,33 +47,32 @@ BEGIN
     )
     RETURNS tinyint AS
     BEGIN RETURN (
-        SELECT
-            CASE WHEN @value IN ((
-                SELECT TOP 1
-                    pre.$valueColumn
-                FROM
-                    [$attribute.capsule].[$attribute.name] pre
-                WHERE
-                    pre.$attribute.anchorReferenceName = @id
-                AND
-                    pre.$attribute.changingColumnName <= @changed
-                ORDER BY
-                    pre.$attribute.changingColumnName DESC
-            ),(
-                SELECT TOP 1
-                    fol.$valueColumn
-                FROM
-                    [$attribute.capsule].[$attribute.name] fol
-                WHERE
-                    fol.$attribute.anchorReferenceName = @id
-                AND
-                    fol.$attribute.changingColumnName >= @changed
-                ORDER BY
-                    fol.$attribute.changingColumnName ASC
-            ))
-            THEN 1
-            ELSE 0
-            END
+        CASE WHEN @value IN ((
+            SELECT TOP 1
+                pre.$valueColumn
+            FROM
+                [$attribute.capsule].[$attribute.name] pre
+            WHERE
+                pre.$attribute.anchorReferenceName = @id
+            AND
+                pre.$attribute.changingColumnName < @changed
+            ORDER BY
+                pre.$attribute.changingColumnName DESC
+        ),(
+            SELECT TOP 1
+                fol.$valueColumn
+            FROM
+                [$attribute.capsule].[$attribute.name] fol
+            WHERE
+                fol.$attribute.anchorReferenceName = @id
+            AND
+                fol.$attribute.changingColumnName > @changed
+            ORDER BY
+                fol.$attribute.changingColumnName ASC
+        ))
+        THEN 1
+        ELSE 0
+        END
     );
     END
     ');
