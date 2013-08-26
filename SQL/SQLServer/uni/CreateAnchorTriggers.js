@@ -128,7 +128,7 @@ BEGIN
             knot = attribute.knot;
             if(attribute.isHistorized()) {
                 var statementTypes = "'N'";
-                if(attribute.isIdempotent())
+                if(!attribute.isIdempotent())
                     statementTypes += ",'R'";
 /*~
     DECLARE @$attribute.name TABLE (
@@ -193,7 +193,7 @@ BEGIN
                         WHERE
                             pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         AND
-                            pre.$attribute.changingColumnName <= v.$attribute.changingColumnName
+                            pre.$attribute.changingColumnName < v.$attribute.changingColumnName
                         ORDER BY
                             pre.$attribute.changingColumnName DESC
                     ),(
@@ -204,7 +204,7 @@ BEGIN
                         WHERE
                             fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         AND
-                            fol.$attribute.changingColumnName >= v.$attribute.changingColumnName
+                            fol.$attribute.changingColumnName > v.$attribute.changingColumnName
                         ORDER BY
                             fol.$attribute.changingColumnName ASC
                     ))
@@ -273,7 +273,9 @@ BEGIN
                 }
 /*~
     $(attribute.knotRange)? AND : WHERE
-        [$attribute.mnemonic].$attribute.anchorReferenceName is null;
+        [$attribute.mnemonic].$attribute.anchorReferenceName is null
+    AND
+        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null; : i.$attribute.valueColumnName is not null;
 ~*/
             }
         }
