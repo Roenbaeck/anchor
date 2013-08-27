@@ -1849,6 +1849,7 @@
             showNames: false,
             drawShadows: false,
             drawCurves: true,
+            coloring: true,
             newState: true,
             miniatureFramesBetweenRefresh: 50,
             layout: false,
@@ -4059,7 +4060,7 @@
                 g.appendChild(group);
             },
             draw: function(context, detailLevel) {
-                if(this.coloring !== '#ffffff') {
+                if(DrawingEngine.coloring && this.coloring !== '#ffffff') {
                     context.beginPath();
                     context.moveTo(this.node.xPosition, this.node.yPosition);
                     if(DrawingEngine.drawCurves) {
@@ -5335,6 +5336,10 @@
             toggleCurves: function() {
                 DrawingEngine.drawCurves = !DrawingEngine.drawCurves;
             },
+            toggleColoring: function() {
+                DrawingEngine.coloring = !DrawingEngine.coloring;
+                DrawingEngine.start(false);
+            },
             implodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
@@ -6295,6 +6300,7 @@
                 <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
                 <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                 <li title="Toggle style of the cardinalities in ties, dots or letters." onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
+                <li title="Toggle whether coloring of edges should be visible or not." onclick="Actions.toggleColoring()">Toggle coloring</li>
                 <li title="Toggle if shadows should be drawn under moving objects for a 'lift off the paper' effect." onclick="Actions.toggleShadows()">Toggle shadows</li>
                 <li title="Toggle if edges should be curved or drawn using straight lines (for better performance)." onclick="Actions.toggleCurves()">Toggle curves</li>
                 <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>

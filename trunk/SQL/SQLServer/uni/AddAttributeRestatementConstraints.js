@@ -21,7 +21,7 @@ if(restatements) {
 ~*/
     while (anchor = schema.nextAnchor()) {
         while(attribute = anchor.nextAttribute()) {
-            if(!attribute.isRestatable() && attribute.isHistorized()) {
+            if((!attribute.isRestatable() || attribute.isIdempotent()) && attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     valueColumn = attribute.valueColumnName;
@@ -34,8 +34,8 @@ if(restatements) {
                 }
 /*~
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
--- rf$attribute.name restatement finder
--- rc$attribute.name restatement constraint
+-- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
+-- rc$attribute.name restatement constraint, with checking made by the finder function
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('rf$attribute.name', 'FN') IS NULL
 BEGIN
@@ -76,6 +76,9 @@ BEGIN
     );
     END
     ');
+~*/
+                if(!attribute.isRestatable()) {
+/*~
     ALTER TABLE [$attribute.capsule].[$attribute.name]
     ADD CONSTRAINT [rc$attribute.name] CHECK (
         [$attribute.capsule].[rf$attribute.name] (
@@ -87,6 +90,7 @@ BEGIN
 END
 GO
 ~*/
+                }
             }
         }
     }

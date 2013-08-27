@@ -16,7 +16,7 @@ if(restatements) {
 ~*/
     while (tie = schema.nextHistorizedTie()) {
         // the tie needs to have at least one role outside of the identifier
-        if(!tie.isRestatable() && tie.hasMoreValues()) {
+        if((!tie.isRestatable() || tie.isIdempotent()) && tie.hasMoreValues()) {
 /*~
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
 -- rf$tie.name restatement finder
@@ -142,6 +142,9 @@ BEGIN
     );
     END
     ');
+~*/
+            if(!tie.isRestatable()) {
+/*~
     ALTER TABLE [$tie.capsule].[$tie.name]
     ADD CONSTRAINT [rc$tie.name] CHECK (
         [$tie.capsule].[rf$tie.name] (
@@ -155,6 +158,9 @@ BEGIN
             $tie.changingColumnName
         ) = 0
     );
+~*/
+            }
+/*~
 END
 GO
 ~*/
