@@ -185,29 +185,11 @@ BEGIN
                 CASE
                     WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
                     THEN 'D' -- duplicate
-                    WHEN v.$attribute.valueColumnName IN ((
-                        SELECT TOP 1
-                            pre.$attribute.valueColumnName
-                        FROM
-                            [$attribute.capsule].[$attribute.name] pre
-                        WHERE
-                            pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                        AND
-                            pre.$attribute.changingColumnName < v.$attribute.changingColumnName
-                        ORDER BY
-                            pre.$attribute.changingColumnName DESC
-                    ),(
-                        SELECT TOP 1
-                            fol.$attribute.valueColumnName
-                        FROM
-                            [$attribute.capsule].[$attribute.name] fol
-                        WHERE
-                            fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                        AND
-                            fol.$attribute.changingColumnName > v.$attribute.changingColumnName
-                        ORDER BY
-                            fol.$attribute.changingColumnName ASC
-                    ))
+                    WHEN [$attribute.capsule].[rf$attribute.name](
+                        v.$attribute.anchorReferenceName,
+                        v.$attribute.valueColumnName,
+                        v.$attribute.changingColumnName
+                    ) = 1
                     THEN 'R' -- restatement
                     ELSE 'N' -- new statement
                 END
@@ -323,13 +305,21 @@ BEGIN
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
-        deleted d
+        [$attribute.capsule].[$attribute.name] b
     ON
-        d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        d.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        b.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+    AND
+        b.$attribute.changingColumnName = i.$attribute.changingColumnName
     WHERE
-        d.$attribute.anchorReferenceName is null~*/
+        b.$attribute.anchorReferenceName is null
+    AND
+        [$attribute.capsule].[rf$attribute.name](
+            i.$attribute.anchorReferenceName,
+            i.$attribute.valueColumnName,
+            i.$attribute.changingColumnName
+        ) = 0~*/
                 }
             /*~;~*/
             }
@@ -352,13 +342,21 @@ BEGIN
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
-        deleted d
+        [$attribute.capsule].[$attribute.name] b
     ON
-        d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        d.$attribute.valueColumnName = i.$attribute.valueColumnName
+        b.$attribute.valueColumnName = i.$attribute.valueColumnName
+    AND
+        b.$attribute.changingColumnName = i.$attribute.changingColumnName
     WHERE
-        d.$attribute.anchorReferenceName is null~*/
+        b.$attribute.anchorReferenceName is null
+    AND
+        [$attribute.capsule].[rf$attribute.name](
+            i.$attribute.anchorReferenceName,
+            i.$attribute.valueColumnName,
+            i.$attribute.changingColumnName
+        ) = 0~*/
                 }
             /*~;~*/
             }

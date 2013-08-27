@@ -159,99 +159,15 @@ BEGIN
                 CASE
                     WHEN tie.$tie.changingColumnName is not null
                     THEN 'D' -- duplicate
-                    WHEN (
-                        SELECT
-                            COUNT(*)
-                        FROM (
-                            SELECT TOP 1
+                    WHEN [$tie.capsule].[rf$tie.name] (
 ~*/
-            while(role = tie.nextValue()) {
+            while(role = tie.nextRole()) {
 /*~
-                                pre.$role.columnName$(tie.hasMoreValues())?,
+                        $role.columnName,
 ~*/
             }
 /*~
-                            FROM
-                                [$tie.capsule].[$tie.name] pre
-                            WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                                pre.$role.columnName = v.$role.columnName
-                            AND
-~*/
-                }
-            }
-            else {
-/*~
-                            (
-~*/
-                while(role = tie.nextValue()) {
-/*~
-                                    pre.$role.columnName = v.$role.columnName
-                                $(tie.hasMoreValues())? OR
-~*/
-                }
-/*~
-                            )
-                            AND
-~*/
-            }
-/*~
-                                pre.$tie.changingColumnName < v.$tie.changingColumnName
-                            ORDER BY
-                                pre.$tie.changingColumnName DESC
-                            UNION
-                            SELECT TOP 1
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                                fol.$role.columnName$(tie.hasMoreValues())?,
-~*/
-            }
-/*~
-                            FROM
-                                [$tie.capsule].[$tie.name] fol
-                            WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                                fol.$role.columnName = v.$role.columnName
-                            AND
-~*/
-                }
-            }
-            else {
-/*~
-                            (
-~*/
-                while(role = tie.nextValue()) {
-/*~
-                                    fol.$role.columnName = v.$role.columnName
-                                $(tie.hasMoreValues())? OR
-~*/
-                }
-/*~
-                            )
-                            AND
-~*/
-            }
-/*~
-                                fol.$tie.changingColumnName > v.$tie.changingColumnName
-                            ORDER BY
-                                fol.$tie.changingColumnName ASC
-                        ) s
-                        WHERE
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                            s.$role.columnName = v.$role.columnName
-                        $(tie.hasMoreValues())? AND
-~*/
-            }
-/*~
+                        $tie.changingColumnName
                     ) > 0
                     THEN 'R' -- restatement
                     ELSE 'N' -- new statement
