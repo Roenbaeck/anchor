@@ -163,11 +163,11 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                        $role.columnName,
+                        v.$role.columnName,
 ~*/
             }
 /*~
-                        $tie.changingColumnName
+                        v.$tie.changingColumnName
                     ) > 0
                     THEN 'R' -- restatement
                     ELSE 'N' -- new statement
@@ -297,12 +297,69 @@ BEGIN
 ~*/
             }
         }
-        while(role = tie.nextValue()) {
-/*
-    INSERT INTO
-~*/
-        }
 /*~
+    INSERT INTO [$tie.capsule].[$tie.name] (
+        $(METADATA)? $tie.metadataColumnName,
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        $role.columnName$(tie.hasMoreRoles())?,
+~*/
+            }
+/*~
+    )
+    SELECT
+        $(METADATA)? i.$tie.metadataColumnName,
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        i.$role.columnName,
+~*/
+            }
+/*~
+        CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END
+    FROM
+        inserted i~*/
+        if(tie.isIdempotent()) {
+/*~
+    LEFT JOIN
+        [$tie.capsule].[$tie.name] tie
+    ON
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+                    anyRole = role;
+/*~
+        tie.$role.columnName = i.$role.columnName
+    $(tie.hasMoreIdentifiers())? AND
+~*/
+                }
+            }
+            else {
+                while(role = tie.nextValue()) {
+                    anyRole = role;
+/*~
+        tie.$role.columnName = i.$role.columnName
+    $(tie.hasMoreValues())? OR
+~*/
+                }
+            }
+/*~
+    WHERE
+        tie.$anyRole.columnName is null
+    AND
+        [$tie.capsule].[rf$tie.name](
+~*/
+            while(role = tie.nextRole()) {
+/*~
+            i.$role.columnName,
+~*/
+            }
+/*~
+            i.$tie.changingColumnName
+        ) = 0~*/
+        }
+/*~;
 END
 GO
 ~*/
