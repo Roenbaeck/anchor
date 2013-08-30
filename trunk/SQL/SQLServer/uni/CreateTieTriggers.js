@@ -303,10 +303,11 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-        $role.columnName$(tie.hasMoreRoles())?,
+        $role.columnName,
 ~*/
             }
 /*~
+        $tie.changingColumnName
     )
     SELECT
         $(METADATA)? i.$tie.metadataColumnName,
