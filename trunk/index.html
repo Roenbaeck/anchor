@@ -700,7 +700,7 @@
             positSuffix: 'Posit',
             annexSuffix: 'Annex',
             chronon: 'datetime2(7)',
-            now: 'SYSDATETIME()',
+            now: 'sysdatetime()',
             dummySuffix: 'Dummy',
             versionSuffix: 'Version',
             statementTypeSuffix: 'StatementType'
@@ -5016,6 +5016,12 @@
                     DrawingEngine.start(false);
                 }
             },
+            getDirective: function() {
+                var database = document.getElementById('database').value;
+                var temporalization = document.getElementById('temporalization').value;
+                var directive = database + '_' + temporalization + '.directive';
+                return directive;
+            },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
                 try {
@@ -5031,20 +5037,7 @@
                         var xml = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                         processor.importStylesheet(xml.documentElement);
                     }
-                    processor.setParameter(null, 'metadataPrefix', Defaults.metadataPrefix);
-                    processor.setParameter(null, 'metadataType', Defaults.metadataType);
-                    processor.setParameter(null, 'metadataUsage', Defaults.metadataUsage);
-                    processor.setParameter(null, 'changingSuffix', Defaults.changingSuffix);
-                    processor.setParameter(null, 'identitySuffix', Defaults.identitySuffix);
-                    processor.setParameter(null, 'temporalization', Settings.temporalization);
-                    processor.setParameter(null, 'recordingRange', Defaults.recordingRange);
-                    processor.setParameter(null, 'recordingSuffix', Defaults.recordingSuffix);
-                    processor.setParameter(null, 'erasingSuffix', Defaults.erasingSuffix);
-                    processor.setParameter(null, 'partitioning', Defaults.partitioning);
-                    processor.setParameter(null, 'entityIntegrity', Defaults.entityIntegrity);
-                    processor.setParameter(null, 'defaultCapsule', Defaults.encapsulation);
-                    processor.setParameter(null, 'namingConvention', Defaults.naming);
-                    result = processor.transformToFragment(xmlDocument, ownerDocument);
+                    result = processor.tranmsformToFragment(xmlDocument, ownerDocument);
                 }
                 catch(exception){
                     alert(exception);
@@ -5562,7 +5555,7 @@
             calculations: 'simple',
             showMnemonics: true,
             showCardinalities: true,
-            temporalization: 'mono',
+            temporalization: 'uni',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('longRangeEffect').value = (LayoutEngine.longRangeEffect * 100).toFixed(0);
@@ -5579,6 +5572,8 @@
                 document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
                 document.getElementById('defaultIdentity').value = Defaults.identity;
+                document.getElementById('defaultChronon').value = Defaults.chronon;
+                document.getElementById('defaultNow').value = Defaults.now;
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
                 document.getElementById('metadataType').value = Defaults.metadataType;
@@ -5592,6 +5587,8 @@
             resetDefaults: function() {
                 this.setDefaultCapsule('dbo');
                 this.setDefaultIdentity('int');
+                this.setDefaultChronon('datetime2(7)');
+                this.setDefaultNow('sysdatetime()');
                 this.setDefaultChangingRange('datetime');
                 this.setMetadataPrefix('Metadata');
                 this.setMetadataType('int');
@@ -5605,7 +5602,7 @@
                 this.setErasingSuffix('ErasedAt');
                 this.setPartitioning('false');
                 this.setEntityIntegrity('true');
-                this.setTemporalization('mono');
+                this.setTemporalization('uni');
                 this.setDatabase('SQLServer');
                 this.setNaming('improved');
                 this.init();
@@ -5650,6 +5647,8 @@
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
                 storage.setItem("defaultIdentity", Defaults.identity);
+                storage.setItem("defaultChronon", Defaults.chronon);
+                storage.setItem("defaultNow", Defaults.now);
                 storage.setItem("defaultChangingRange", Defaults.changingRange);
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
@@ -5685,12 +5684,14 @@
                 this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
                 this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
                 this.setStiffness(storage.getItem('stiffness') || 1);
-                this.setTemporalization(storage.getItem('temporalization') || 'mono');
+                this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 this.setDatabase(storage.getItem('database') || 'SQLServer');
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                 this.setCalculations(storage.getItem('calculations') || 'simple');
                 this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
                 this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
+                this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
+                this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
                 this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
@@ -5869,6 +5870,12 @@
             },
             setDefaultIdentity: function(value) {
                 Defaults.identity = value;
+            },
+            setDefaultChronon: function(value) {
+                Defaults.chronon = value;
+            },
+            setDefaultNow: function(value) {
+                Defaults.now = value;
             },
             setDefaultChangingRange: function(value) {
                 Defaults.changingRange = value;
@@ -6235,6 +6242,17 @@
             // load previous scale and transform
             DrawingEngine.loadSettings(window.localStorage);
             DrawingEngine.start(true);
+
+            // another disclaimer for the testing versions
+            confirm(
+                '----------- DISCLAIMER -----------\n' +
+                'Please note that this is a test version.\n' +
+                'It should not be used for production \n' +
+                'work. Report bugs found in our issue \n' +
+                'tracking system, to which a link can \n' +
+                'be found under the Help/About menu.\n' +
+                '----------- DISCLAIMER -----------'
+            );
         }
 
         // make sure our exit function is called when the page is unloaded
@@ -6278,7 +6296,7 @@
     <div id="disclaimer" class="unselectable">
         THIS<br/>
         IS A<br/>
-        BETA<br/>
+        TEST<br/>
         VERSION
     </div>
 
@@ -6316,7 +6334,7 @@
         <div id="generate" class="menu">Generate
             <ul class="submenu">
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), 'SQLServer_uni.directive', document), true)">SQL code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document), true)">SQL code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Sisulator.jsonify(Model.toXML(false)), true)">JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()">URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
@@ -6353,7 +6371,9 @@
                 <li title="Selects the target database for the generated SQL code.">
                     <select id="database" onchange="Settings.setDatabase(this.value)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
+                        <!-- hidden until someone writes the generator
                         <option value="Oracle">Oracle</option>
+                        -->
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
@@ -6366,9 +6386,11 @@
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
                 <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time)." id="tempoItem">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
-                        <option value="mono" selected="selected">Monotemporal</option>
+                        <option value="uni" selected="selected">Unitemporal</option>
+                        <!-- hidden until ported to sisula
                         <option value="crt">Concurrent-reliance-temporal</option>
                         <option value="bi">Bitemporal</option>
+                        -->
                     </select> Temporalization
                 </li>
                 <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
@@ -6379,6 +6401,8 @@
                 <li title="The default 'schema' to use for new items."><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
                 <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
                 <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
+                <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
+                <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
                 <li title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults()">Reset to default values</li>
             </ul>
         </div>

@@ -365,4 +365,48 @@ END
 GO
 ~*/
     }
+/*~
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt$tie.name instead of DELETE trigger on l$tie.name
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule].[dt$tie.name] ON [$tie.capsule].[l$tie.name]
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE tie
+    FROM
+        [$tie.capsule].[$tie.name] tie
+    JOIN
+        deleted d
+    ON
+        $(tie.timeRange)? d.$tie.changingColumnName = tie.$tie.changingColumnName
+    $(tie.timeRange)? AND
+~*/
+   if(tie.hasMoreIdentifiers()) {
+        while(role = tie.nextIdentifier()) {
+/*~
+        d.$role.columnName = tie.$role.columnName$(!tie.hasMoreIdentifiers())? ;
+    $(tie.hasMoreIdentifiers())? AND
+~*/
+        }
+    }
+    else {
+/*~
+       (
+~*/
+        while(role = tie.nextValue()) {
+/*~
+            d.$role.columnName = tie.$role.columnName
+        $(tie.hasMoreValues())? OR
+~*/
+        }
+/*~
+       );
+~*/
+    }
+/*~
+END
+GO
+~*/
 }
