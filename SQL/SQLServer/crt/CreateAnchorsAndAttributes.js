@@ -137,6 +137,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
 GO
 ~*/
     }
+    var scheme = PARTITIONING ? ' ON ReliabilityScheme(' + attribute.reliableColumnName + ')' : '';
 /*~
 -- Attribute annex table ----------------------------------------------------------------------------------------------
 -- $attribute.annexName table (of $attribute.positName on $anchor.name)
@@ -147,12 +148,12 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     $attribute.positingColumnName $schema.positingRange not null,
     $attribute.positorColumnName $schema.positorRange not null,
     $attribute.reliabilityColumnName $schema.reliabilityRange not null,
-    $attribute.reliableColumnName as cast(
+    $attribute.reliableColumnName as isnull(cast(
         case
             when $attribute.reliabilityColumnName <= $schema.unreliableCutoff then 0
             else 1
         end
-    as tinyint) persisted,
+    as tinyint), 1) persisted,
     $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName
@@ -162,7 +163,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
         $attribute.positingColumnName desc,
         $attribute.positorColumnName asc
     )
-);
+)$scheme;
 GO
 ~*/
 }}

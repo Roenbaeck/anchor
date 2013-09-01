@@ -5,6 +5,7 @@ SQL/SQLServer/NamingConvention.js
 SQL/SQLServer/crt/SetupPartitioning.js
 SQL/SQLServer/crt/CreateKnots.js
 SQL/SQLServer/crt/CreateAnchorsAndAttributes.js
+SQL/SQLServer/crt/CreateAttributeAssembledViews.js
 #SQL/SQLServer/crt/CreateTies.js
 #SQL/SQLServer/crt/AddAttributeRestatementConstraints.js
 #SQL/SQLServer/crt/CreateKeyGenerators.js
@@ -14,4 +15,4 @@ SQL/SQLServer/crt/CreateAnchorsAndAttributes.js
 #SQL/SQLServer/crt/AddTieRestatementConstraints.js
 #SQL/SQLServer/crt/CreateTiePerspectives.js
 #SQL/SQLServer/crt/CreateTieTriggers.js
-#SQL/SQLServer/CreateSchemaTracking.js
+SQL/SQLServer/CreateSchemaTracking.js
