@@ -689,9 +689,14 @@
             metadataUsage: 'true',
             changingSuffix: 'ChangedAt',
             identitySuffix: 'ID',
-            recordingRange: 'datetime',
-            recordingSuffix: 'RecordedAt',
-            erasingSuffix: 'ErasedAt',
+            positingRange: 'datetime',
+            positingSuffix: 'PositedAt',
+            positorRange: 'tinyint',
+            positorSuffix: 'Positor',
+            reliabilityRange: 'tinyint',
+            reliabilitySuffix: 'Reliability',
+            unreliableCutoff: '0', // inclusive, largest reliability considered unreliable
+            reliableSuffix: 'Reliable',
             partitioning: 'false',
             entityIntegrity: 'true',
             restatability: 'true',
@@ -1415,7 +1420,7 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var metadata, nodes, temporalization = 'mono';
+                    var metadata, nodes, temporalization = 'uni';
                     nodes = xml.getElementsByTagName('metadata');
                     if(nodes)
                         for(i = 0; i < nodes.length; i++) {
@@ -5017,8 +5022,8 @@
                 }
             },
             getDirective: function() {
-                var database = document.getElementById('database').value;
-                var temporalization = document.getElementById('temporalization').value;
+                var database = Settings.databaseTarget;
+                var temporalization = Settings.temporalization;
                 var directive = database + '_' + temporalization + '.directive';
                 return directive;
             },
@@ -5522,7 +5527,7 @@
                         eval(sisula);
                     }
                     catch(e) {
-                        if(DEBUG && console && console.error)
+                        if(DEBUG && console && console.error && script)
                             console.error('The script ' + script + ' could not be executed.');
                         throw e;
                     }
@@ -5597,9 +5602,14 @@
                 this.setMetadataUsage('true');
                 this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
-                this.setRecordingRange('datetime');
-                this.setRecordingSuffix('RecordedAt');
-                this.setErasingSuffix('ErasedAt');
+                this.setPositingRange('datetime');
+                this.setPositingSuffix('PositedAt');
+                this.setPositorRange('tinyint');
+                this.setPositorSuffix('Positor');
+                this.setReliabilityRange('tinyint');
+                this.setReliabilitySuffix('Reliability');
+                this.setUnreliableCutoff('0');
+                this.setReliableSuffix('Reliable');
                 this.setPartitioning('false');
                 this.setEntityIntegrity('true');
                 this.setTemporalization('uni');
@@ -5657,9 +5667,14 @@
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
-                storage.setItem("recordingRange", Defaults.recordingRange);
-                storage.setItem("recordingSuffix", Defaults.recordingSuffix);
-                storage.setItem("erasingSuffix", Defaults.erasingSuffix);
+                storage.setItem("positingRange", Defaults.positingRange);
+                storage.setItem("positingSuffix", Defaults.positingSuffix);
+                storage.setItem("positorRange", Defaults.positorRange);
+                storage.setItem("positorSuffix", Defaults.positorSuffix);
+                storage.setItem("reliabilityRange", Defaults.reliabilityRange);
+                storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
+                storage.setItem("unreliableCutoff", Defaults.unreliableCutoff);
+                storage.setItem("reliableSuffix", Defaults.reliableSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
                 storage.setItem("naming", Defaults.naming);
@@ -5684,7 +5699,6 @@
                 this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
                 this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
                 this.setStiffness(storage.getItem('stiffness') || 1);
-                this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 this.setDatabase(storage.getItem('database') || 'SQLServer');
                 this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                 this.setCalculations(storage.getItem('calculations') || 'simple');
@@ -5698,9 +5712,14 @@
                 this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
-                this.setRecordingRange(storage.getItem('recordingRange') || Defaults.recordingRange);
-                this.setRecordingSuffix(storage.getItem('recordingSuffix') || Defaults.recordingSuffix);
-                this.setErasingSuffix(storage.getItem('erasingSuffix') || Defaults.erasingSuffix);
+                this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
+                this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
+                this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
+                this.setPositorSuffix(storage.getItem('positorSuffix') || Defaults.positorSuffix);
+                this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
+                this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
+                this.setUnreliableCutoff(storage.getItem('unreliableCutoff') || Defaults.unreliableCutoff);
+                this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                 this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
@@ -5716,16 +5735,33 @@
                 Tie.charge = 1 * storage.getItem('tieCharge') || 1;
                 Edge.mass = 1 * storage.getItem('edgeMass') || 1;
                 Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
+                // must be done after Defaults have been populated with previously stored values
+                this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 this.init();
             },
-            setRecordingRange: function(value) {
-                Defaults.recordingRange = value;
+            setPositingRange: function(value) {
+                Defaults.positingRange = value;
             },
-            setRecordingSuffix: function(value) {
-                Defaults.recordingSuffix = value;
+            setPositingSuffix: function(value) {
+                Defaults.positingSuffix = value;
             },
-            setErasingSuffix: function(value) {
-                Defaults.erasingSuffix = value;
+            setPositorRange: function(value) {
+                Defaults.positorRange = value;
+            },
+            setPositorSuffix: function(value) {
+                Defaults.positorSuffix = value;
+            },
+            setReliabilityRange: function(value) {
+                Defaults.reliabilityRange = value;
+            },
+            setReliabilitySuffix: function(value) {
+                Defaults.reliabilitySuffix = value;
+            },
+            setUnreliableCutoff: function(value) {
+                Defaults.unreliableCutoff = value;
+            },
+            setReliableSuffix: function(value) {
+                Defaults.reliableSuffix = value;
             },
             setPartitioning: function(value) {
                 Defaults.partitioning = value;
@@ -5736,107 +5772,130 @@
             setNaming: function(value) {
                 Defaults.naming = value;
             },
-            recordingRange: null,
-            recordingSuffix: null,
-            erasingSuffix: null,
+            positingRange: null,
+            positingSuffix: null,
+            positorRange: null,
+            positorSuffix: null,
+            reliabilityRange: null,
+            reliabilitySuffix: null,
+            unreliableCutoff: null,
+            reliableSuffix: null,
             partitioning: null,
             entityIntegrity: null,
+            addTextItem: function(item, destination, before, label, title, listener) {
+                if(!this[item]) {
+                    this[item] = {
+                        container: document.createElement('li'),
+                        input: document.createElement('input')
+                    };
+                    this[item].input.setAttribute('type', 'text');
+                    this[item].input.setAttribute('class', 'inputDefaults');
+                    this[item].input.addEventListener('blur', listener, false);
+                    this[item].input.value = Defaults[item];
+                    this[item].container.setAttribute('title', title);
+                    this[item].container.appendChild(this[item].input);
+                    this[item].container.appendChild(document.createTextNode(label));
+                    destination.insertBefore(this[item].container, before);
+                }
+                else // update values in case settings have changed
+                    this[item].input.value = Defaults[item];
+            },
+            addBoolItem: function(item, destination, before, label, title, listener) {
+                if(!this[item]) {
+                    this[item] = {
+                        container: document.createElement('li'),
+                        input: document.createElement('input')
+                    };
+                    this[item].input.setAttribute('type', 'checkbox');
+                    this[item].input.setAttribute('class', 'inputDefaults');
+                    this[item].input.addEventListener('change', listener, false);
+                    this[item].input.checked = Defaults[item] === 'true';
+                    this[item].container.setAttribute('title', title);
+                    this[item].container.appendChild(this[item].input);
+                    this[item].container.appendChild(document.createTextNode(label));
+                    destination.insertBefore(this[item].container, before);
+                }
+                else // update values in case settings have changed
+                    this[item].input.checked = Defaults[item] === 'true';
+            },
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
-                if(value === 'bi') {
-                    if(!this.recordingRange) {
-                        this.recordingRange = document.createElement('li');
-                        var recordingRangeInput = document.createElement('input');
-                        recordingRangeInput.setAttribute('type', 'text');
-                        recordingRangeInput.setAttribute('class', 'inputDefaults');
-                        this.recordingRange.setAttribute('title',
-                                "The recording time (corrections) 'data type' used throughout the implementation."
-                        );
-                        recordingRangeInput.value = Defaults.recordingRange;
-                        recordingRangeInput.addEventListener('blur', function() {
-                            Settings.setRecordingRange(this.value);
-                        }, false);
-                        this.recordingRange.appendChild(recordingRangeInput);
-                        this.recordingRange.appendChild(document.createTextNode(' Recording time range'));
-                        listOfDefaults.insertBefore(this.recordingRange, tempoItem);
-                    }
-                    if(!this.recordingSuffix) {
-                        this.recordingSuffix = document.createElement('li');
-                        var recordingSuffixInput = document.createElement('input');
-                        recordingSuffixInput.setAttribute('type', 'text');
-                        recordingSuffixInput.setAttribute('class', 'inputDefaults');
-                        this.recordingSuffix.setAttribute('title',
-                                "The suffix used for the column storing the start of a recording time period."
-                        );
-                        recordingSuffixInput.value = Defaults.recordingSuffix;
-                        recordingSuffixInput.addEventListener('blur', function() {
-                            Settings.setRecordingSuffix(this.value);
-                        }, false);
-                        this.recordingSuffix.appendChild(recordingSuffixInput);
-                        this.recordingSuffix.appendChild(document.createTextNode(' Recording suffix'));
-                        listOfDefaults.insertBefore(this.recordingSuffix, tempoItem);
-                    }
-                    if(!this.erasingSuffix) {
-                        this.erasingSuffix = document.createElement('li');
-                        var erasingSuffixInput = document.createElement('input');
-                        erasingSuffixInput.setAttribute('type', 'text');
-                        erasingSuffixInput.setAttribute('class', 'inputDefaults');
-                        this.erasingSuffix.setAttribute('title',
-                                "The suffix used for the column storing the end of a recording time period."
-                        );
-                        erasingSuffixInput.value = Defaults.erasingSuffix;
-                        erasingSuffixInput.addEventListener('blur', function() {
-                            Settings.setErasingSuffix(this.value);
-                        }, false);
-                        this.erasingSuffix.appendChild(erasingSuffixInput);
-                        this.erasingSuffix.appendChild(document.createTextNode(' Erasing suffix'));
-                        listOfDefaults.insertBefore(this.erasingSuffix, tempoItem);
-                    }
-                    if(!this.entityIntegrity) {
-                        this.entityIntegrity = document.createElement('li');
-                        var entityIntegrityInput = document.createElement('input');
-                        entityIntegrityInput.setAttribute('type', 'checkbox');
-                        entityIntegrityInput.setAttribute('class', 'inputDefaults');
-                        this.entityIntegrity.setAttribute('title',
-                                "Entity integrity adds constraints ensuring that no temporal duplicates " +
-                                        "can co-exist for the same entity and version, that no negative recording " +
-                                        "time intervals can be stored, and that there are no overlapping intervals " +
-                                        "with respect to recording time."
-                        );
-                        entityIntegrityInput.checked = Defaults.entityIntegrity === 'true';
-                        entityIntegrityInput.addEventListener('change', function() {
-                            Settings.setEntityIntegrity(this.checked ? 'true' : 'false');
-                        }, false);
-                        this.entityIntegrity.appendChild(entityIntegrityInput);
-                        this.entityIntegrity.appendChild(document.createTextNode(' Ensure entity integrity'));
-                        listOfDefaults.insertBefore(this.entityIntegrity, tempoItem);
-                    }
-                    if(!this.partitioning) {
-                        this.partitioning = document.createElement('li');
-                        var partitioningInput = document.createElement('input');
-                        partitioningInput.setAttribute('type', 'checkbox');
-                        partitioningInput.setAttribute('class', 'inputDefaults');
-                        this.partitioning.setAttribute('title',
-                                "Partitioning will put currently recorded information in a separate partition " +
-                                        "from erased information, greatly speeding up querying in the bitemporal implementation."
-                        );
-                        partitioningInput.checked = Defaults.partitioning === 'true';
-                        partitioningInput.addEventListener('change', function() {
-                            Settings.setPartitioning(this.checked ? 'true' : 'false');
-                        }, false);
-                        this.partitioning.appendChild(partitioningInput);
-                        this.partitioning.appendChild(document.createTextNode(' Use partitioning'));
-                        listOfDefaults.insertBefore(this.partitioning, tempoItem);
-                    }
+                if(value === 'crt') {
+                    this.addTextItem(
+                            'positingRange', listOfDefaults, tempoItem, ' Positing time range',
+                            "The positing time (corrections) 'data type' used throughout the implementation.",
+                            function() { Settings.setPositingRange(this.value); }
+                    );
+                    this.addTextItem(
+                            'positingSuffix', listOfDefaults, tempoItem, ' Positing suffix',
+                            "The suffix used for the column storing the point in time a posit was made.",
+                            function() { Settings.setPositingSuffix(this.value); }
+                    );
+                    this.addTextItem(
+                            'positorRange', listOfDefaults, tempoItem, ' Positor range',
+                            "The positor (one able to correct) 'data type' used throughout the implementation.",
+                            function() { Settings.setPositorRange(this.value); }
+                    );
+                    this.addTextItem(
+                            'positorSuffix', listOfDefaults, tempoItem, ' Positor suffix',
+                            "The suffix used for the column storing the who made a posit.",
+                            function() { Settings.setPositorSuffix(this.value); }
+                    );
+                    this.addTextItem(
+                            'reliabilityRange', listOfDefaults, tempoItem, ' Reliability range',
+                            "A 'data type' that can hold the desired degrees of reliability.",
+                            function() { Settings.setReliabilityRange(this.value); }
+                    );
+                    this.addTextItem(
+                            'reliabilitySuffix', listOfDefaults, tempoItem, ' Reliability suffix',
+                            "The suffix used for the column storing reliability.",
+                            function() { Settings.setReliabilitySuffix(this.value); }
+                    );
+                    this.addTextItem(
+                            'unreliableCutoff', listOfDefaults, tempoItem, ' Unreliable cutoff',
+                            "The largest (inclusive) value of reliability to be considered unreliable.",
+                            function() { Settings.setUnreliableCutoff(this.value); }
+                    );
+                    this.addTextItem(
+                            'reliableSuffix', listOfDefaults, tempoItem, ' Reliable suffix',
+                            "The suffix used for the computed column storing the boolean reliable result." +
+                            "This is based on a calculation using the cutoff to determine if data is " +
+                            "considered reliable or unreliable.",
+                            function() { Settings.setReliableSuffix(this.value); }
+                    );
+                    this.addBoolItem(
+                            'entityIntegrity', listOfDefaults, tempoItem, ' Ensure entity integrity',
+                            "Entity integrity adds constraints ensuring that no temporal duplicates " +
+                            "can co-exist for the same entity and version, that no negative recording " +
+                            "time intervals can be stored, and that there are no overlapping intervals " +
+                            "with respect to recording time.",
+                            function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }
+                    );
+                    this.addBoolItem(
+                            'partitioning', listOfDefaults, tempoItem, ' Use partitioning',
+                            "Partitioning will put currently recorded information in a separate partition " +
+                            "from erased information, greatly speeding up querying in the bitemporal implementation.",
+                            function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
+                    );
                 }
                 else {
-                    if(this.recordingRange) listOfDefaults.removeChild(this.recordingRange);
-                    this.recordingRange = null;
-                    if(this.recordingSuffix) listOfDefaults.removeChild(this.recordingSuffix);
-                    this.recordingSuffix = null;
-                    if(this.erasingSuffix) listOfDefaults.removeChild(this.erasingSuffix);
-                    this.erasingSuffix = null;
+                    if(this.positingRange) listOfDefaults.removeChild(this.positingRange);
+                    this.positingRange = null;
+                    if(this.positingSuffix) listOfDefaults.removeChild(this.positingSuffix);
+                    this.positingSuffix = null;
+                    if(this.positorRange) listOfDefaults.removeChild(this.positorRange);
+                    this.positorRange = null;
+                    if(this.positorSuffix) listOfDefaults.removeChild(this.positorSuffix);
+                    this.positorSuffix = null;
+                    if(this.reliabilityRange) listOfDefaults.removeChild(this.reliabilityRange);
+                    this.reliabilityRange = null;
+                    if(this.reliabilitySuffix) listOfDefaults.removeChild(this.reliabilitySuffix);
+                    this.reliabilitySuffix = null;
+                    if(this.unreliableCutoff) listOfDefaults.removeChild(this.unreliableCutoff);
+                    this.unreliableCutoff = null;
+                    if(this.reliableSuffix) listOfDefaults.removeChild(this.reliableSuffix);
+                    this.reliableSuffix = null;
                     if(this.entityIntegrity) listOfDefaults.removeChild(this.entityIntegrity);
                     this.entityIntegrity = null;
                     if(this.partitioning) listOfDefaults.removeChild(this.partitioning);
@@ -6387,8 +6446,8 @@
                 <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time)." id="tempoItem">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="uni" selected="selected">Unitemporal</option>
-                        <!-- hidden until ported to sisula
                         <option value="crt">Concurrent-reliance-temporal</option>
+                        <!-- hidden until ported to sisula
                         <option value="bi">Bitemporal</option>
                         -->
                     </select> Temporalization

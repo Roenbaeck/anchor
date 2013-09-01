@@ -290,5 +290,6 @@ while (tie = schema.nextTie()) {
 // global variables
 window.METADATA = schema.metadataUsage == 'true';
 window.IMPROVED = schema.naming == 'improved';
+window.PARTITIONING = schema.partitioning == 'true';
 
 
