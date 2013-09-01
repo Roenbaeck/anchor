@@ -291,5 +291,6 @@ while (tie = schema.nextTie()) {
 window.METADATA = schema.metadataUsage == 'true';
 window.IMPROVED = schema.naming == 'improved';
 window.PARTITIONING = schema.partitioning == 'true';
+window.INTEGRITY = schema.entityIntegrity == 'true';
 
 
