@@ -7,7 +7,7 @@ SQL/SQLServer/crt/CreateKnots.js
 SQL/SQLServer/crt/CreateAnchorsAndAttributes.js
 SQL/SQLServer/crt/CreateAttributeAssembledViews.js
 #SQL/SQLServer/crt/CreateTies.js
-#SQL/SQLServer/crt/AddAttributeRestatementConstraints.js
+SQL/SQLServer/crt/AddAttributeRestatementConstraints.js
 #SQL/SQLServer/crt/CreateKeyGenerators.js
 #SQL/SQLServer/crt/CreateAttributeRewinders.js
 #SQL/SQLServer/crt/CreateAnchorPerspectives.js
