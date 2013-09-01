@@ -13,7 +13,7 @@ while (anchor = schema.nextAnchor()) {
 /*~
 -- Attribute assembled view -------------------------------------------------------------------------------------------
 -- $attribute.name assembled view of the posit and annex tables,
--- with optional temporal consistency constraint
+-- pk$attribute.name optional temporal consistency constraint
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.name', 'V') IS NULL
 BEGIN
@@ -41,13 +41,13 @@ BEGIN
         if(INTEGRITY) {
             var scheme = PARTITIONING ? ' ON ReliabilityScheme(' + attribute.reliableColumnName + ')' : '';
 /*~
+    -- Constraint ensuring that recorded and erased posits are temporally consistent
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name]
     ON [$attribute.capsule].[$attribute.name] (
         $attribute.reliableColumnName desc,
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
-        $attribute.positingColumnName desc,
         $attribute.positorColumnName asc
     )$scheme;
     ');
