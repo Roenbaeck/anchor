@@ -29,6 +29,10 @@ while (anchor = schema.nextAnchor()) {
         attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.identitySuffix;
         attribute.metadataColumnName = schema.metadataPrefix + D + attribute.uniqueMnemonic;
         attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.versionSuffix;
+        attribute.positingColumnName = attribute.uniqueMnemonic + D + schema.positingSuffix;
+        attribute.positorColumnName = attribute.uniqueMnemonic + D + schema.positorSuffix;
+        attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.reliabilitySuffix;
+        attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.reliableSuffix;
         attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.statementTypeSuffix;
         if(IMPROVED) {
             attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
