@@ -65,17 +65,18 @@ BEGIN
             SELECT TOP 1
                 pre.$valueColumn
             FROM
-                [$attribute.capsule].[$attribute.name] pre
+                 [$attribute.capsule].[r$attribute.name](
+                     DEFAULT,
+                     @posited,
+                     DEFAULT,
+                     @reliable
+                 ) pre
             WHERE
                 pre.$attribute.anchorReferenceName = @id
             AND
                 pre.$attribute.changingColumnName < @changed
             AND
-                pre.$attribute.positingColumnName <= @posited
-            AND
                 pre.$attribute.positorColumnName = @positor
-            AND
-                pre.$attribute.reliableColumnName = @reliable
             ORDER BY
                 pre.$attribute.changingColumnName DESC,
                 pre.$attribute.positingColumnName DESC
@@ -83,17 +84,18 @@ BEGIN
             SELECT TOP 1
                 fol.$valueColumn
             FROM
-                [$attribute.capsule].[$attribute.name] fol
+                 [$attribute.capsule].[r$attribute.name](
+                     DEFAULT,
+                     @posited,
+                     DEFAULT,
+                     @reliable
+                 ) fol
             WHERE
                 fol.$attribute.anchorReferenceName = @id
             AND
                 fol.$attribute.changingColumnName > @changed
             AND
-                fol.$attribute.positingColumnName <= @posited
-            AND
                 fol.$attribute.positorColumnName = @positor
-            AND
-                fol.$attribute.reliableColumnName = @reliable
             ORDER BY
                 fol.$attribute.changingColumnName ASC,
                 fol.$attribute.positingColumnName DESC
