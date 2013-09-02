@@ -48,6 +48,7 @@ BEGIN
         $attribute.reliableColumnName desc,
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
+        $attribute.positingColumnName desc,
         $attribute.positorColumnName asc
     )$scheme;
     ');
