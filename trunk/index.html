@@ -5818,6 +5818,13 @@
                 else // update values in case settings have changed
                     this[item].input.checked = Defaults[item] === 'true';
             },
+            removeItem: function(item, from) {
+                if(this[item]) {
+                    this[item].container.removeChild(this[item].input);
+                    from.removeChild(this[item].container);
+                    this[item] = null;
+                }
+            },
             setTemporalization: function(value) {
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
@@ -5880,26 +5887,15 @@
                     );
                 }
                 else {
-                    if(this.positingRange) listOfDefaults.removeChild(this.positingRange);
-                    this.positingRange = null;
-                    if(this.positingSuffix) listOfDefaults.removeChild(this.positingSuffix);
-                    this.positingSuffix = null;
-                    if(this.positorRange) listOfDefaults.removeChild(this.positorRange);
-                    this.positorRange = null;
-                    if(this.positorSuffix) listOfDefaults.removeChild(this.positorSuffix);
-                    this.positorSuffix = null;
-                    if(this.reliabilityRange) listOfDefaults.removeChild(this.reliabilityRange);
-                    this.reliabilityRange = null;
-                    if(this.reliabilitySuffix) listOfDefaults.removeChild(this.reliabilitySuffix);
-                    this.reliabilitySuffix = null;
-                    if(this.unreliableCutoff) listOfDefaults.removeChild(this.unreliableCutoff);
-                    this.unreliableCutoff = null;
-                    if(this.reliableSuffix) listOfDefaults.removeChild(this.reliableSuffix);
-                    this.reliableSuffix = null;
-                    if(this.entityIntegrity) listOfDefaults.removeChild(this.entityIntegrity);
-                    this.entityIntegrity = null;
-                    if(this.partitioning) listOfDefaults.removeChild(this.partitioning);
-                    this.partitioning = null;
+                    this.removeItem('positingRange', listOfDefaults);
+                    this.removeItem('positorRange', listOfDefaults);
+                    this.removeItem('positorSuffix', listOfDefaults);
+                    this.removeItem('reliabilityRange', listOfDefaults);
+                    this.removeItem('reliabilitySuffix', listOfDefaults);
+                    this.removeItem('unreliableCutoff', listOfDefaults);
+                    this.removeItem('reliableSuffix', listOfDefaults);
+                    this.removeItem('entityIntegrity', listOfDefaults);
+                    this.removeItem('partitioning', listOfDefaults);
                 }
                 this.temporalization = value;
             },

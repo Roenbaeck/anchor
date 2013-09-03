@@ -78,7 +78,7 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(IMPROVED)? ISNULL(i.$attribute.anchorReferenceName, a.$anchor.identityColumnName),
+        $(IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
         $(METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
 ~*/
