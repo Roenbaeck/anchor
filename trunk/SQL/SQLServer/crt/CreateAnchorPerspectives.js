@@ -9,6 +9,7 @@
 -- The time traveling perspective shows information as it was or will be based on a number
 -- of input parameters.
 --
+-- @positor             the view of which positor to adopt
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
 -- @changingVersion     the version over changing time to show, 1 for current, 2 for previous, ...
@@ -52,11 +53,12 @@ GO
 -- t$anchor.name viewed as given by the input parameters
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
-        @changingTimepoint $schema.chronon = $EOT,
-        @positingTimepoint $schema.positingRange = $EOT,
-        @changingVersion int = 1,
-        @positingVersion int = 1,
-        @reliable tinyint = 1
+    @positor $schema.positorRange,
+    @changingTimepoint $schema.chronon = $EOT,
+    @positingTimepoint $schema.positingRange = $EOT,
+    @changingVersion int = 1,
+    @positingVersion int = 1,
+    @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
@@ -94,6 +96,7 @@ FROM
 /*~
 LEFT JOIN
     [$attribute.capsule].[t$attribute.name](
+        @positor,
         $(attribute.isHistorized())? @changingTimepoint,
         @positingTimepoint,
         $(attribute.isHistorized())? @changingVersion,
@@ -125,6 +128,7 @@ SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
+        0,
         DEFAULT,
         DEFAULT,
         DEFAULT,
@@ -143,6 +147,7 @@ SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
+        0,
         @changingTimepoint,
         DEFAULT,
         DEFAULT,
@@ -159,6 +164,7 @@ SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
+        0,
         $schema.now,
         DEFAULT,
         DEFAULT,
@@ -200,6 +206,7 @@ FROM (
 ) timepoints
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
+        0,
         timepoints.inspectedTimepoint,
         DEFAULT,
         DEFAULT,
