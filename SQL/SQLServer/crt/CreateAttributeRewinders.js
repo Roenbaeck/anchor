@@ -7,6 +7,7 @@
 -- instead shows all rows that have been in effect before that point
 -- in time.
 --
+-- @positor             the view of which positor to adopt
 -- @changingTimepoint   the point in changing time to rewind to (default to End of Time, no rewind)
 -- @positingTimepoint   the point in positing time to rewind to (default to End of Time, no rewind)
 -- @changingVersion     the desired changing version, where 1 is the latest, 2 the previous, ...
@@ -59,7 +60,7 @@ BEGIN
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
         $attribute.reliableColumnName,
-        dense_rank() over (
+        row_number() over (
             partition by
                 $attribute.identityColumnName,
                 $attribute.positorColumnName
@@ -96,7 +97,7 @@ BEGIN
         p.$attribute.anchorReferenceName,
         p.$attribute.valueColumnName,
         p.$attribute.changingColumnName,
-        dense_rank() over (
+        row_number() over (
             partition by
                 a.$attribute.positorColumnName
             order by
@@ -123,6 +124,7 @@ IF Object_ID('t$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[t$attribute.name] (
+        @positor $schema.positorRange,
         @changingTimepoint $attribute.timeRange = '$EOT',
         @positingTimepoint $schema.positingRange = '$EOT',
         @changingVersion int = 1,
@@ -149,6 +151,8 @@ BEGIN
         )
     WHERE
         $attribute.versionColumnName = @changingVersion
+    AND
+        $attribute.positorColumnName = @positor
     ');
 END
 GO
@@ -173,7 +177,7 @@ BEGIN
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
         $attribute.reliableColumnName,
-        dense_rank() over (
+        row_number() over (
             partition by
                 $attribute.identityColumnName,
                 $attribute.positorColumnName
@@ -228,6 +232,7 @@ IF Object_ID('t$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[t$attribute.name] (
+        @positor $schema.positorRange,
         @positingTimepoint $schema.positingRange = '$EOT',
         @positingVersion int = 1,
         @reliable tinyint = 1
@@ -248,6 +253,8 @@ BEGIN
             @positingVersion,
             @reliable
         )
+    WHERE
+        $attribute.positorColumnName = @positor
     ');
 END
 GO

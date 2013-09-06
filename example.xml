@@ -10,13 +10,13 @@
     </anchor>
     <anchor mnemonic="EV" descriptor="Event" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
-        <attribute mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)"/>
+        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="varchar(42)"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
-        <attribute mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(42)"/>
+        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
         <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
-        <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="date" knotRange="PLV"/>
+        <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)"/>
@@ -41,12 +41,12 @@
         <anchorRole role="in" type="PE" identifier="true"/>
         <anchorRole role="wasCast" type="AC" identifier="true"/>
     </tie>
-    <tie timeRange="date">
+    <tie timeRange="datetime">
         <anchorRole role="part" type="AC" identifier="true"/>
         <anchorRole role="in" type="PR" identifier="true"/>
         <knotRole role="got" type="RAT" identifier="false"/>
     </tie>
-    <tie timeRange="date">
+    <tie timeRange="datetime">
         <anchorRole role="atLocation" type="ST" identifier="true"/>
         <anchorRole role="isPlaying" type="PR" identifier="true"/>
     </tie>
