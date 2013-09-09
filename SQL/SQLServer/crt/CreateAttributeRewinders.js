@@ -37,7 +37,7 @@ BEGIN
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
-        [$attribute.capsule].[$attribute.name]
+        [$attribute.capsule].[$attribute.positName]
     WHERE
         $attribute.changingColumnName <= @changingTimepoint;
     ');
@@ -68,7 +68,7 @@ BEGIN
                 $attribute.positingColumnName desc
         ) AS $attribute.versionColumnName
     FROM
-        [$attribute.capsule].[$attribute.name]
+        [$attribute.capsule].[$attribute.annexName]
     WHERE
         $attribute.positingColumnName <= @positingTimepoint;
     ');
@@ -99,6 +99,7 @@ BEGIN
         p.$attribute.changingColumnName,
         row_number() over (
             partition by
+                p.$attribute.anchorReferenceName,
                 a.$attribute.positorColumnName
             order by
                 p.$attribute.changingColumnName desc,
@@ -185,7 +186,7 @@ BEGIN
                 $attribute.positingColumnName desc
         ) AS $attribute.versionColumnName
     FROM
-        [$attribute.capsule].[$attribute.name]
+        [$attribute.capsule].[$attribute.annexName]
     WHERE
         $attribute.positingColumnName <= @positingTimepoint;
     ');
