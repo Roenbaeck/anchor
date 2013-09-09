@@ -255,6 +255,11 @@ BEGIN
          'DROP ' + ft.[type] + ' ' + fn.[name] + '; -- ' + fn.[description] as [statement],
          row_number() OVER (
             ORDER BY
+               -- restatement finders last
+               CASE dc.[description]
+                  WHEN 'restatement finder' THEN 1
+                  ELSE 0
+               END ASC,
                -- order based on type
                CASE ft.[type]
                   WHEN 'PROCEDURE' THEN 1
