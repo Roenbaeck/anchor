@@ -3022,10 +3022,10 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatable = metadata.getAttribute("restatable") === 'false' ? false :
-                            metadata.getAttribute("restatements") === 'false' ? false :
-                                    restatable;
-                    idempotent = metadata.getAttribute("idempotent") === 'true' || idempotent;
+                    var _restatable = metadata.getAttribute("restatable") || metadata.getAttribute("restatements");
+                    restatable = _restatable ? _restatable === 'true' : restatable;
+                    var _idempotent = metadata.getAttribute("idempotent");
+                    idempotent = _idempotent ? _idempotent === 'true' : idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
