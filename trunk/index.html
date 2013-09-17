@@ -1376,12 +1376,26 @@
                     if(LayoutEngine.withinSquare(this.nodes[i], square))
                         this.nodes[i].start();
             },
+            formatDate: function(date, dateOrTime) {
+                function z(str) {
+                    return ('0' + str).substr(-2, 2);
+                }
+                var theDate = date.getFullYear() + '-' + z(date.getMonth() + 1) + '-' + z(date.getDate());
+                var theTime = z(date.getHours()) + ':' + z(date.getMinutes()) + ':' + z(date.getSeconds());
+                if(dateOrTime.toLowerCase() === 'd')
+                    return theDate;
+                if(dateOrTime.toLowerCase() === 't')
+                    return theTime;
+                return theDate + ' ' + theTime;
+            },
             toXML: function(serialize) {
                 // create the xml document (not using a namespace simplifies the transformations)
                 var schema = document.implementation.createDocument("", "schema", null);
                 var metadata = schema.createElement('metadata');
                 metadata.setAttribute('format', VERSION);
                 metadata.setAttribute('temporalization', Settings.temporalization);
+                metadata.setAttribute('date', this.formatDate(new Date(), 'd'));
+                metadata.setAttribute('time', this.formatDate(new Date(), 't'));
                 schema.documentElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
