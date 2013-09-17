@@ -3297,14 +3297,14 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
-                                metadata.getAttribute("generator") === 'true';
+                    generator = metadata.getAttribute("generator") ?
+                            metadata.getAttribute("generator") === 'true' : generator;
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
-                                idElement.getAttribute("generator") === 'true';
+                    generator = idElement.getAttribute("generator") ?
+                            idElement.getAttribute("generator") === 'true' : generator;
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3460,14 +3460,14 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    generator = this.isEmpty(metadata.getAttribute("generator")) ? true :
-                                metadata.getAttribute("generator") === 'true';
+                    generator = metadata.getAttribute("generator") ?
+                            metadata.getAttribute("generator") === 'true' : generator;
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
                 if(idElement = element.getElementsByTagName('identity').item(0))
-                    generator = this.isEmpty(idElement.getAttribute("generator")) ? true :
-                                idElement.getAttribute("generator") === 'true';
+                    generator = idElement.getAttribute("generator") ?
+                            idElement.getAttribute("generator") === 'true' : generator;
                 // End - handling obsolete XML spec
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3705,10 +3705,10 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    restatable = metadata.getAttribute("restatable") === 'false' ? false :
-                            metadata.getAttribute("restatements") === 'false' ? false :
-                                    restatable;
-                    idempotent = metadata.getAttribute("idempotent") === 'true' || idempotent;
+                    var _restatable = metadata.getAttribute("restatable") || metadata.getAttribute("restatements");
+                    restatable = _restatable ? _restatable === 'true' : restatable;
+                    var _idempotent = metadata.getAttribute("idempotent");
+                    idempotent = _idempotent ? _idempotent === 'true' : idempotent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
