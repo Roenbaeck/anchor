@@ -39,7 +39,7 @@ BEGIN
     ');
 ~*/
         if(INTEGRITY) {
-            var scheme = PARTITIONING ? ' ON ReliabilityScheme(' + attribute.reliableColumnName + ')' : '';
+            var scheme = PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
 /*~
     -- Constraint ensuring that recorded and erased posits are temporally consistent
     EXEC('

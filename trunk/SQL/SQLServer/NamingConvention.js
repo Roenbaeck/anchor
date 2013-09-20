@@ -2,14 +2,17 @@
 
 // delimiter that is used in the naming convention
 var D = '_';
-var defaultCapsule = schema.defaultCapsule || 'dbo';
+
+// set some hard coded defaults if they are missing
+schema.defaultCapsule = schema.defaultCapsule || 'dbo';
+schema.chronon = schema.chronon || 'datetime';
 
 var knot;
 while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
     knot.valueColumnName = knot.name;
     knot.identityColumnName = knot.mnemonic + D + schema.identitySuffix;
-    knot.capsule = knot.metadata.capsule || defaultCapsule;
+    knot.capsule = knot.metadata.capsule || schema.defaultCapsule;
     knot.metadataColumnName = schema.metadataPrefix + D + knot.mnemonic;
 }
 
@@ -17,7 +20,7 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
     anchor.identityColumnName = anchor.mnemonic + D + schema.identitySuffix;
-    anchor.capsule = anchor.metadata.capsule || defaultCapsule;
+    anchor.capsule = anchor.metadata.capsule || schema.defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
     var attribute;
@@ -57,7 +60,7 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.isHistorized()) {
             attribute.changingColumnName = attribute.uniqueMnemonic + D + schema.changingSuffix;
         }
-        attribute.capsule = attribute.metadata.capsule || defaultCapsule;
+        attribute.capsule = attribute.metadata.capsule || schema.defaultCapsule;
     }
 }
 
@@ -86,7 +89,7 @@ while (tie = schema.nextTie()) {
     tie.positName = tie.name + D + schema.positSuffix;
     tie.annexName = tie.name + D + schema.annexSuffix;
     tie.identityColumnName = tie.name + D + schema.identitySuffix;
-    tie.capsule = tie.metadata.capsule || defaultCapsule;
+    tie.capsule = tie.metadata.capsule || schema.defaultCapsule;
     tie.metadataColumnName = schema.metadataPrefix + D + tie.name;
     tie.versionColumnName = tie.name + D + schema.versionSuffix;
     tie.statementTypeColumnName = tie.name + D + schema.statementTypeSuffix;

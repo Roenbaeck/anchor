@@ -35,12 +35,12 @@ while (anchor = schema.nextAnchor()) {
 -- Drop perspectives --------------------------------------------------------------------------------------------------
 IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('n$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[n$anchor.name];
+IF Object_ID('n$anchor.name', 'V') IS NOT NULL
+DROP VIEW [$anchor.capsule].[n$anchor.name];
 IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('l$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[l$anchor.name];
+IF Object_ID('l$anchor.name', 'V') IS NOT NULL
+DROP VIEW [$anchor.capsule].[l$anchor.name];
 IF Object_ID('t$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[t$anchor.name];
 GO
@@ -130,17 +130,17 @@ ON
 GO
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
--- l$anchor.name viewed by the latest available information (may include future versions)
+-- l$anchor.name viewed by the latest available information for all positors (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[l$anchor.name] (
-    @positor $schema.positorRange = 0
-)
-RETURNS TABLE AS RETURN
+CREATE VIEW [$anchor.capsule].[l$anchor.name]
+AS
 SELECT
     *
 FROM
+    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        @positor,
+        p.$schema.positorSuffix,
         DEFAULT,
         DEFAULT,
         DEFAULT
@@ -150,15 +150,16 @@ GO
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
-    @positor $schema.positorRange = 0,
     @changingTimepoint $schema.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
+    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        @positor,
+        p.$schema.positorSuffix,
         @changingTimepoint,
         DEFAULT,
         DEFAULT
@@ -167,15 +168,15 @@ GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -- n$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[n$anchor.name] (
-    @positor $schema.positorRange = 0
-)
-RETURNS TABLE AS RETURN
+CREATE VIEW [$anchor.capsule].[n$anchor.name]
+AS
 SELECT
     *
 FROM
+    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        @positor,
+        p.$schema.positorSuffix,
         $schema.now,
         DEFAULT,
         DEFAULT
@@ -188,7 +189,6 @@ GO
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
-    @positor $schema.positorRange = 0,
     @intervalStart $schema.chronon,
     @intervalEnd $schema.chronon,
     @selection varchar(max) = null
@@ -197,11 +197,14 @@ RETURNS TABLE AS RETURN
 SELECT
     timepoints.inspectedTimepoint,
     [$anchor.mnemonic].*
-FROM (
+FROM
+    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+JOIN (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
+        $attribute.positorColumnName AS positor,
         $attribute.changingColumnName AS inspectedTimepoint
     FROM
         [$attribute.capsule].[$attribute.name]
@@ -214,9 +217,11 @@ FROM (
             }
 /*~
 ) timepoints
+ON
+    timepoints.positor = p.$schema.positorSuffix
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        @positor,
+        timepoints.positor,
         timepoints.inspectedTimepoint,
         DEFAULT,
         DEFAULT
