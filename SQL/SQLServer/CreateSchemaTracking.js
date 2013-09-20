@@ -1,8 +1,4 @@
 if(schema.serialization) {
-    if(!schema.defaultCapsule)
-        schema.defaultCapsule = 'dbo';
-    if(!schema.chronon)
-        schema.chronon = 'datetime';
 /*~
 -- SCHEMA EVOLUTION ---------------------------------------------------------------------------------------------------
 --

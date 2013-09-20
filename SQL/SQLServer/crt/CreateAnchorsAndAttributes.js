@@ -137,7 +137,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
 GO
 ~*/
     }
-    var scheme = PARTITIONING ? ' ON ReliabilityScheme(' + attribute.reliableColumnName + ')' : '';
+    var scheme = PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
 /*~
 -- Attribute annex table ----------------------------------------------------------------------------------------------
 -- $attribute.annexName table (of $attribute.positName on $anchor.name)

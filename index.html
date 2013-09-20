@@ -5528,7 +5528,7 @@
                         sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
                         sisulets[i] = sisulets[i].replace(/[$]\(([\S\s]*?)\)\?[^\S\n]*([^:\n]*)[:]?[^\S\n]*(.*)/g, '" + ($1 ? "$2" : "$3") + "'); // conditional
                         sisulets[i] = sisulets[i].replace(/[$]([\w.]*?)([^\w.]|$)/g, '" + ($1 ? $1 : "") + "$2'); // single
-                        sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n'); // line breaks
+                        sisulets[i] = sisulets[i].replace(/(\r\n|\n|\r)/g, '\\n" +\n'); // line breaks
                         sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
                         sisulets[i] = '_sisula_+=' + sisulets[i] + '";'; // variable assignment
                     }

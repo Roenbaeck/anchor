@@ -3,6 +3,7 @@ SQL/Defaults.js
 SQL/Helpers.js
 SQL/SQLServer/NamingConvention.js
 SQL/SQLServer/crt/SetupPartitioning.js
+SQL/SQLServer/crt/CreatePositorAndDefault.js
 SQL/SQLServer/crt/CreateKnots.js
 SQL/SQLServer/crt/CreateAnchorsAndAttributes.js
 SQL/SQLServer/crt/CreateAttributeAssembledViews.js
