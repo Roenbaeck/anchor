@@ -66,17 +66,16 @@ BEGIN
                 pre.$valueColumn
             FROM
                  [$attribute.capsule].[r$attribute.name](
+                     @positor,
                      DEFAULT,
-                     @posited,
-                     DEFAULT,
-                     @reliable
+                     @posited
                  ) pre
             WHERE
                 pre.$attribute.anchorReferenceName = @id
             AND
                 pre.$attribute.changingColumnName < @changed
             AND
-                pre.$attribute.positorColumnName = @positor
+                pre.$attribute.reliableColumnName = @reliable
             ORDER BY
                 pre.$attribute.changingColumnName DESC,
                 pre.$attribute.positingColumnName DESC
@@ -85,17 +84,16 @@ BEGIN
                 fol.$valueColumn
             FROM
                  [$attribute.capsule].[r$attribute.name](
+                     @positor,
                      DEFAULT,
-                     @posited,
-                     DEFAULT,
-                     @reliable
+                     @posited
                  ) fol
             WHERE
                 fol.$attribute.anchorReferenceName = @id
             AND
                 fol.$attribute.changingColumnName > @changed
             AND
-                fol.$attribute.positorColumnName = @positor
+                fol.$attribute.reliableColumnName = @reliable
             ORDER BY
                 fol.$attribute.changingColumnName ASC,
                 fol.$attribute.positingColumnName DESC

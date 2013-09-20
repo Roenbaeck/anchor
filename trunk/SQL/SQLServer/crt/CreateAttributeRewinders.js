@@ -7,12 +7,9 @@
 -- instead shows all rows that have been in effect before that point
 -- in time.
 --
--- @positor             the view of which positor to adopt
--- @changingTimepoint   the point in changing time to rewind to (default to End of Time, no rewind)
--- @positingTimepoint   the point in positing time to rewind to (default to End of Time, no rewind)
--- @changingVersion     the desired changing version, where 1 is the latest, 2 the previous, ...
--- @positingVersion     the desired positing version, where 1 is the latest, 2 the previous, ...
--- @reliable            whether to look at reliable (1) or unreliable (0) information
+-- @positor             the view of which positor to adopt (defaults to 0)
+-- @changingTimepoint   the point in changing time to rewind to (defaults to End of Time, no rewind)
+-- @positingTimepoint   the point in positing time to rewind to (defaults to End of Time, no rewind)
 --
 ~*/
 var anchor;
@@ -59,14 +56,7 @@ BEGIN
         $attribute.positingColumnName,
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName,
-        row_number() over (
-            partition by
-                $attribute.identityColumnName,
-                $attribute.positorColumnName
-            order by
-                $attribute.positingColumnName desc
-        ) AS $attribute.versionColumnName
+        $attribute.reliableColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -81,10 +71,9 @@ IF Object_ID('r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
+        @positor $schema.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$EOT',
-        @positingTimepoint $schema.positingRange = '$EOT',
-        @positingVersion int = 1,
-        @reliable tinyint = 1
+        @positingTimepoint $schema.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -96,15 +85,7 @@ BEGIN
         a.$attribute.reliableColumnName,
         p.$attribute.anchorReferenceName,
         p.$attribute.valueColumnName,
-        p.$attribute.changingColumnName,
-        row_number() over (
-            partition by
-                p.$attribute.anchorReferenceName,
-                a.$attribute.positorColumnName
-            order by
-                p.$attribute.changingColumnName desc,
-                a.$attribute.positingColumnName desc
-        ) as $attribute.versionColumnName
+        p.$attribute.changingColumnName
     FROM
         [$attribute.capsule].[r$attribute.positName](@changingTimepoint) p
     JOIN
@@ -112,48 +93,20 @@ BEGIN
     ON
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
-        a.$attribute.reliableColumnName = @reliable
+        a.$attribute.positorColumnName = @positor
     AND
-        a.$attribute.versionColumnName = @positingVersion
-    ');
-END
-GO
--- Attribute time traveler --------------------------------------------------------------------------------------------
--- t$attribute.name time traveler function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('t$attribute.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[t$attribute.name] (
-        @positor $schema.positorRange,
-        @changingTimepoint $attribute.timeRange = '$EOT',
-        @positingTimepoint $schema.positingRange = '$EOT',
-        @changingVersion int = 1,
-        @positingVersion int = 1,
-        @reliable tinyint = 1
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
-    SELECT
-        $(METADATA)? $attribute.metadataColumnName,
-        $attribute.identityColumnName,
-        $attribute.positingColumnName,
-        $attribute.positorColumnName,
-        $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName,
-        $attribute.anchorReferenceName,
-        $attribute.valueColumnName,
-        $attribute.changingColumnName
-    FROM
-        [$attribute.capsule].[r$attribute.name](
-            @changingTimepoint,
-            @positingTimepoint,
-            @positingVersion,
-            @reliable
+        a.$attribute.positingColumnName = (
+            SELECT TOP 1
+                sub.$attribute.positingColumnName
+            FROM
+                [$attribute.capsule].[r$attribute.annexName](@positingTimepoint) sub
+            WHERE
+                sub.$attribute.identityColumnName = p.$attribute.identityColumnName
+            AND
+                sub.$attribute.positorColumnName = @positor
+            ORDER BY
+                sub.$attribute.positingColumnName DESC
         )
-    WHERE
-        $attribute.versionColumnName = @changingVersion
-    AND
-        $attribute.positorColumnName = @positor
     ');
 END
 GO
@@ -177,14 +130,7 @@ BEGIN
         $attribute.positingColumnName,
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName,
-        row_number() over (
-            partition by
-                $attribute.identityColumnName,
-                $attribute.positorColumnName
-            order by
-                $attribute.positingColumnName desc
-        ) AS $attribute.versionColumnName
+        $attribute.reliableColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -199,9 +145,8 @@ IF Object_ID('r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @positingTimepoint $schema.positingRange = '$EOT',
-        @positingVersion int = 1,
-        @reliable tinyint = 1
+        @positor $schema.positorRange = 0,
+        @positingTimepoint $schema.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -220,42 +165,20 @@ BEGIN
     ON
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
-        a.$attribute.reliableColumnName = @reliable
+        a.$attribute.positorColumnName = @positor
     AND
-        a.$attribute.versionColumnName = @positingVersion
-    ');
-END
-GO
--- Attribute time traveler --------------------------------------------------------------------------------------------
--- t$attribute.name time traveler function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('t$attribute.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[t$attribute.name] (
-        @positor $schema.positorRange,
-        @positingTimepoint $schema.positingRange = '$EOT',
-        @positingVersion int = 1,
-        @reliable tinyint = 1
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
-    SELECT
-        $(METADATA)? $attribute.metadataColumnName,
-        $attribute.identityColumnName,
-        $attribute.positingColumnName,
-        $attribute.positorColumnName,
-        $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName,
-        $attribute.anchorReferenceName,
-        $attribute.valueColumnName
-    FROM
-        [$attribute.capsule].[r$attribute.name](
-            @positingTimepoint,
-            @positingVersion,
-            @reliable
+        a.$attribute.positingColumnName = (
+            SELECT TOP 1
+                sub.$attribute.positingColumnName
+            FROM
+                [$attribute.capsule].[r$attribute.annexName](@positingTimepoint) sub
+            WHERE
+                sub.$attribute.identityColumnName = p.$attribute.identityColumnName
+            AND
+                sub.$attribute.positorColumnName = @positor
+            ORDER BY
+                sub.$attribute.positingColumnName DESC
         )
-    WHERE
-        $attribute.positorColumnName = @positor
     ');
 END
 GO
