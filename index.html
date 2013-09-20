@@ -1434,7 +1434,7 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var metadata, nodes, temporalization = 'uni';
+                    var metadata, nodes, temporalization = Settings.temporalization;
                     nodes = xml.getElementsByTagName('metadata');
                     if(nodes)
                         for(i = 0; i < nodes.length; i++) {

@@ -9,11 +9,9 @@
 -- The time traveling perspective shows information as it was or will be based on a number
 -- of input parameters.
 --
--- @positor             the view of which positor to adopt
+-- @positor             the view of which positor to adopt (defaults to 0)
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
--- @changingVersion     the version over changing time to show, 1 for current, 2 for previous, ...
--- @positingVersion     the version over positing time to show, 1 for current, 2 for previous, ...
 -- @reliable            whether to show reliable (1) or unreliable (2) results
 --
 -- The latest perspective shows the latest available (changing & positing) information for each anchor.
@@ -37,12 +35,12 @@ while (anchor = schema.nextAnchor()) {
 -- Drop perspectives --------------------------------------------------------------------------------------------------
 IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('n$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[n$anchor.name];
+IF Object_ID('n$anchor.name', 'IF') IS NOT NULL
+DROP FUNCTION [$anchor.capsule].[n$anchor.name];
 IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('l$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[l$anchor.name];
+IF Object_ID('l$anchor.name', 'IF') IS NOT NULL
+DROP FUNCTION [$anchor.capsule].[l$anchor.name];
 IF Object_ID('t$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[t$anchor.name];
 GO
@@ -53,11 +51,9 @@ GO
 -- t$anchor.name viewed as given by the input parameters
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
-    @positor $schema.positorRange,
+    @positor $schema.positorRange = 0,
     @changingTimepoint $schema.chronon = $EOT,
     @positingTimepoint $schema.positingRange = $EOT,
-    @changingVersion int = 1,
-    @positingVersion int = 1,
     @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -95,16 +91,29 @@ FROM
         while (attribute = anchor.nextAttribute()) {
 /*~
 LEFT JOIN
-    [$attribute.capsule].[t$attribute.name](
+    [$attribute.capsule].[r$attribute.name](
         @positor,
         $(attribute.isHistorized())? @changingTimepoint,
-        @positingTimepoint,
-        $(attribute.isHistorized())? @changingVersion,
-        @positingVersion,
-        @reliable
+        @positingTimepoint
     ) [$attribute.mnemonic]
 ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
+    [$attribute.mnemonic].$attribute.identityColumnName = (
+        SELECT TOP 1
+            sub.$attribute.identityColumnName
+        FROM
+            [$attribute.capsule].[r$attribute.name](
+                @positor,
+                $(attribute.isHistorized())? @changingTimepoint,
+                @positingTimepoint
+            ) sub
+        WHERE
+            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+        AND
+            sub.$attribute.reliableColumnName = @reliable
+        ORDER BY
+            $(attribute.isHistorized())? sub.$attribute.changingColumnName DESC,
+            sub.$attribute.positingColumnName DESC
+    )~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
@@ -123,14 +132,15 @@ GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$anchor.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[l$anchor.name] AS
+CREATE FUNCTION [$anchor.capsule].[l$anchor.name] (
+    @positor $schema.positorRange = 0
+)
+RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
-        0,
-        DEFAULT,
-        DEFAULT,
+        @positor,
         DEFAULT,
         DEFAULT,
         DEFAULT
@@ -140,6 +150,7 @@ GO
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
+    @positor $schema.positorRange = 0,
     @changingTimepoint $schema.chronon
 )
 RETURNS TABLE AS RETURN
@@ -147,10 +158,8 @@ SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
-        0,
+        @positor,
         @changingTimepoint,
-        DEFAULT,
-        DEFAULT,
         DEFAULT,
         DEFAULT
     ) [$anchor.mnemonic];
@@ -158,16 +167,16 @@ GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -- n$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[n$anchor.name]
-AS
+CREATE FUNCTION [$anchor.capsule].[n$anchor.name] (
+    @positor $schema.positorRange = 0
+)
+RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
     [$anchor.capsule].[t$anchor.name] (
-        0,
+        @positor,
         $schema.now,
-        DEFAULT,
-        DEFAULT,
         DEFAULT,
         DEFAULT
     ) [$anchor.mnemonic];
@@ -179,6 +188,7 @@ GO
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
+    @positor $schema.positorRange = 0,
     @intervalStart $schema.chronon,
     @intervalEnd $schema.chronon,
     @selection varchar(max) = null
@@ -206,10 +216,8 @@ FROM (
 ) timepoints
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        0,
+        @positor,
         timepoints.inspectedTimepoint,
-        DEFAULT,
-        DEFAULT,
         DEFAULT,
         DEFAULT
     ) [$anchor.mnemonic];
