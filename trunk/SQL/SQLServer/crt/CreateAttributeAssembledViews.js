@@ -45,6 +45,7 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name]
     ON [$attribute.capsule].[$attribute.name] (
+        $attribute.reliableColumnName desc,
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
         $attribute.positingColumnName desc,
