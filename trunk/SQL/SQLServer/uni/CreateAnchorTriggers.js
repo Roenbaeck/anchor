@@ -149,7 +149,12 @@ BEGIN
         $(METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.changingColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
-        DENSE_RANK() OVER (PARTITION BY i.$attribute.anchorReferenceName ORDER BY i.$attribute.changingColumnName),
+        DENSE_RANK() OVER (
+            PARTITION BY
+                i.$attribute.anchorReferenceName
+            ORDER BY
+                i.$attribute.changingColumnName ASC
+        ),
         'X'
     FROM
         @inserted i
