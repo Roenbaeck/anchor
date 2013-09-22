@@ -695,7 +695,7 @@
             positorSuffix: 'Positor',
             reliabilityRange: 'tinyint',
             reliabilitySuffix: 'Reliability',
-            unreliableCutoff: '0', // inclusive, largest reliability considered unreliable
+            reliableCutoff: '1', // inclusive, smallest reliability considered reliable
             reliableSuffix: 'Reliable',
             partitioning: 'false',
             entityIntegrity: 'true',
@@ -5622,7 +5622,7 @@
                 this.setPositorSuffix('Positor');
                 this.setReliabilityRange('tinyint');
                 this.setReliabilitySuffix('Reliability');
-                this.setUnreliableCutoff('0');
+                this.setReliableCutoff('1');
                 this.setReliableSuffix('Reliable');
                 this.setPartitioning('false');
                 this.setEntityIntegrity('true');
@@ -5687,7 +5687,7 @@
                 storage.setItem("positorSuffix", Defaults.positorSuffix);
                 storage.setItem("reliabilityRange", Defaults.reliabilityRange);
                 storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
-                storage.setItem("unreliableCutoff", Defaults.unreliableCutoff);
+                storage.setItem("reliableCutoff", Defaults.reliableCutoff);
                 storage.setItem("reliableSuffix", Defaults.reliableSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
@@ -5732,7 +5732,7 @@
                 this.setPositorSuffix(storage.getItem('positorSuffix') || Defaults.positorSuffix);
                 this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
                 this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
-                this.setUnreliableCutoff(storage.getItem('unreliableCutoff') || Defaults.unreliableCutoff);
+                this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
                 this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
@@ -5771,8 +5771,8 @@
             setReliabilitySuffix: function(value) {
                 Defaults.reliabilitySuffix = value;
             },
-            setUnreliableCutoff: function(value) {
-                Defaults.unreliableCutoff = value;
+            setReliableCutoff: function(value) {
+                Defaults.reliableCutoff = value;
             },
             setReliableSuffix: function(value) {
                 Defaults.reliableSuffix = value;
@@ -5792,7 +5792,7 @@
             positorSuffix: null,
             reliabilityRange: null,
             reliabilitySuffix: null,
-            unreliableCutoff: null,
+            reliableCutoff: null,
             reliableSuffix: null,
             partitioning: null,
             entityIntegrity: null,
@@ -5874,9 +5874,9 @@
                             function() { Settings.setReliabilitySuffix(this.value); }
                     );
                     this.addTextItem(
-                            'unreliableCutoff', listOfDefaults, tempoItem, ' Unreliable cutoff',
-                            "The largest (inclusive) value of reliability to be considered unreliable.",
-                            function() { Settings.setUnreliableCutoff(this.value); }
+                            'reliableCutoff', listOfDefaults, tempoItem, ' Reliable cutoff',
+                            "The smallest (inclusive) value of reliability to be considered reliable.",
+                            function() { Settings.setReliableCutoff(this.value); }
                     );
                     this.addTextItem(
                             'reliableSuffix', listOfDefaults, tempoItem, ' Reliable suffix',
@@ -5906,7 +5906,7 @@
                     this.removeItem('positorSuffix', listOfDefaults);
                     this.removeItem('reliabilityRange', listOfDefaults);
                     this.removeItem('reliabilitySuffix', listOfDefaults);
-                    this.removeItem('unreliableCutoff', listOfDefaults);
+                    this.removeItem('reliableCutoff', listOfDefaults);
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('partitioning', listOfDefaults);

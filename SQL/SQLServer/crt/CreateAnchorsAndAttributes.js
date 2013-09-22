@@ -150,7 +150,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     $attribute.reliabilityColumnName $schema.reliabilityRange not null,
     $attribute.reliableColumnName as isnull(cast(
         case
-            when $attribute.reliabilityColumnName <= $schema.unreliableCutoff then 0
+            when $attribute.reliabilityColumnName < $schema.reliableCutoff then 0
             else 1
         end
     as tinyint), 1) persisted,
