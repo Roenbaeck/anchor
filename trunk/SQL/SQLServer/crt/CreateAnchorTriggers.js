@@ -207,37 +207,80 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
-                    THEN 'D' -- duplicate
-                    WHEN [$attribute.capsule].[rf$attribute.name](
-                        v.$attribute.anchorReferenceName,
-                        v.$attribute.valueColumnName,
-                        v.$attribute.changingColumnName
-                    ) = 1
+                    WHEN a.$attribute.identityColumnName is not null
+                    THEN 'D' -- identical duplicate
+                    WHEN v.$attribute.valueColumnName in ((
+                        SELECT TOP 1
+                            pre.$attribute.valueColumnName
+                        FROM
+                            [$attribute.capsule].[$attribute.positName] pre
+                        WHERE
+                            pre.$attribute.changingColumnName < v.$attribute.changingColumnName
+                        AND
+                            pre.$attribute.positingColumnName <= v.positingColumnName
+                        AND
+                            pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                        AND
+                            pre.$attribute.positorColumnName = v.$attribute.positorColumnName
+                        AND
+                            pre.$attribute.reliabilityColumnName >= $schema.reliableCutoff
+                        ORDER BY
+                            pre.$attribute.changingColumnName desc,
+                            pre.$attribute.positingColumnName desc
+                    ), (
+                        SELECT TOP 1
+                            fol.$attribute.valueColumnName
+                        FROM
+                            [$attribute.capsule].[$attribute.positName] fol
+                        WHERE
+                            fol.$attribute.changingColumnName > v.$attribute.changingColumnName
+                        AND
+                            fol.$attribute.positingColumnName <= v.positingColumnName
+                        AND
+                            fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                        AND
+                            fol.$attribute.positorColumnName = v.$attribute.positorColumnName
+                        AND
+                            fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                        ORDER BY
+                            fol.$attribute.changingColumnName asc,
+                            fol.$attribute.positingColumnName desc
+                    ))
                     THEN 'R' -- restatement
+                    WHEN p.$attribute.anchorReferenceName is not null
+                    THEN 'S' -- duplicate statement
                     ELSE 'N' -- new statement
                 END
         FROM
             @$attribute.name v
         LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+            [$attribute.capsule].[$attribute.positName] p
         ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+            p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
         AND
-            [$attribute.mnemonic].$attribute.changingColumnName = v.$attribute.changingColumnName
+            p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
-            [$attribute.mnemonic].$attribute.valueColumnName = v.$attribute.valueColumnName
+            p.$attribute.valueColumnName = v.$attribute.valueColumnName
+        LEFT JOIN
+            [$attribute.capsule].[$attribute.annexName] a
+        ON
+            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+        AND
+            a.$attribute.positorColumnName = v.$attribute.positorColumnName
+        AND
+            a.$attribute.positingColumnName = v.$attribute.positingColumnName
+        AND
+            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
-        INSERT INTO [$attribute.capsule].[$attribute.name] (
+
+        INSERT INTO [$attribute.capsule].[$attribute.positName] (
             $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         FROM
@@ -246,19 +289,43 @@ BEGIN
             $attribute.versionColumnName = @currentVersion
         AND
             $attribute.statementTypeColumnName in ($statementTypes);
+
+        INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+            $attribute.identityColumnName,
+            $attribute.positorColumnName,
+            $attribute.positingColumnName,
+            $attribute.reliabilityColumnName
+        )
+        SELECT
+            p.$attribute.identityColumnName,
+            v.$attribute.positorColumnName,
+            v.$attribute.positingColumnName,
+            v.$attribute.reliabilityColumnName
+        FROM
+            @$attribute.name v
+        JOIN
+            [$attribute.capsule].[$attribute.positName] p
+        ON
+            p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+        AND
+            p.$attribute.changingColumnName = v.$attribute.changingColumnName
+        AND
+            p.$attribute.valueColumnName = v.$attribute.valueColumnName
+        WHERE
+            v.$attribute.versionColumnName = @currentVersion
+        AND
+            $attribute.statementTypeColumnName in ('S',$statementTypes);
     END
 ~*/
             }
             else {
 /*~
-    INSERT INTO [$attribute.capsule].[$attribute.name] (
+    INSERT INTO [$attribute.capsule].[$attribute.positName] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? i.$attribute.metadataColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
     FROM
         @inserted i
@@ -282,6 +349,28 @@ BEGIN
         [$attribute.mnemonic].$attribute.anchorReferenceName is null
     AND
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null; : i.$attribute.valueColumnName is not null;
+
+    INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $attribute.identityColumnName,
+        $attribute.positorColumnName,
+        $attribute.positingColumnName,
+        $attribute.reliabilityColumnName
+    )
+    SELECT
+        p.$attribute.identityColumnName,
+        i.$attribute.positorColumnName,
+        i.$attribute.positingColumnName,
+        i.$attribute.reliabilityColumnName
+    FROM
+        @inserted i
+    JOIN
+        [$attribute.capsule].[$attribute.positName] p
+    ON
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
+    AND
+        p.$attribute.valueColumnName = i.$attribute.valueColumnName;
 ~*/
             }
         }
@@ -308,16 +397,18 @@ BEGIN
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    IF(UPDATE($attribute.identityColumnName))
+        RAISERROR('The identity column $attribute.identityColumnName is not updatable.', 16, 1);
+
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
-    INSERT INTO [$attribute.capsule].[$attribute.name] (
+    BEGIN
+    INSERT INTO [$attribute.capsule].[$attribute.positName] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
         CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
     FROM
@@ -329,36 +420,66 @@ BEGIN
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
-        [$attribute.capsule].[$attribute.name] b
+        [$attribute.capsule].[$attribute.positName] p
     ON
-        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        b.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        p.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
     AND
-        b.$attribute.changingColumnName = i.$attribute.changingColumnName
+        p.$attribute.changingColumnName = i.$attribute.changingColumnName
     WHERE
-        b.$attribute.anchorReferenceName is null
+        p.$attribute.anchorReferenceName is null
     AND
-        [$attribute.capsule].[rf$attribute.name](
-            i.$attribute.anchorReferenceName,
-            i.$attribute.valueColumnName,
-            i.$attribute.changingColumnName
-        ) = 0~*/
+        i.$attribute.valueColumnName not in ((
+            SELECT TOP 1
+                pre.$attribute.valueColumnName
+            FROM
+                [$attribute.capsule].[$attribute.positName] pre
+            WHERE
+                pre.$attribute.changingColumnName < i.$attribute.changingColumnName
+            AND
+                pre.$attribute.positingColumnName <= i.positingColumnName
+            AND
+                pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            AND
+                pre.$attribute.positorColumnName = i.$attribute.positorColumnName
+            AND
+                pre.$attribute.reliabilityColumnName = $schema.reliableCutoff
+            ORDER BY
+                pre.$attribute.changingColumnName desc,
+                pre.$attribute.positingColumnName desc
+        ), (
+            SELECT TOP 1
+                fol.$attribute.valueColumnName
+            FROM
+                [$attribute.capsule].[$attribute.positName] fol
+            WHERE
+                fol.$attribute.changingColumnName > i.$attribute.changingColumnName
+            AND
+                fol.$attribute.positingColumnName <= i.positingColumnName
+            AND
+                fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            AND
+                fol.$attribute.positorColumnName = i.$attribute.positorColumnName
+            AND
+                fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+            ORDER BY
+                fol.$attribute.changingColumnName asc,
+                fol.$attribute.positingColumnName desc
+        ))~*/
                 }
-            /*~;~*/
             }
             else {
 /*~
     IF(UPDATE($attribute.valueColumnName))
-    INSERT INTO [$attribute.capsule].[$attribute.name] (
+    BEGIN
+    INSERT INTO [$attribute.capsule].[$attribute.positName] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
         i.$attribute.valueColumnName
     FROM
@@ -376,14 +497,69 @@ BEGIN
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
-        [$attribute.capsule].[rf$attribute.name](
-            i.$attribute.anchorReferenceName,
-            i.$attribute.valueColumnName,
-            i.$attribute.changingColumnName
-        ) = 0~*/
+        i.$attribute.valueColumnName not in ((
+            SELECT TOP 1
+                pre.$attribute.valueColumnName
+            FROM
+                [$attribute.capsule].[$attribute.positName] pre
+            WHERE
+                pre.$attribute.changingColumnName < i.$attribute.changingColumnName
+            AND
+                pre.$attribute.positingColumnName <= i.positingColumnName
+            AND
+                pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            AND
+                pre.$attribute.positorColumnName = i.$attribute.positorColumnName
+            AND
+                pre.$attribute.reliabilityColumnName = $schema.reliableCutoff
+            ORDER BY
+                pre.$attribute.changingColumnName desc,
+                pre.$attribute.positingColumnName desc
+        ), (
+            SELECT TOP 1
+                fol.$attribute.valueColumnName
+            FROM
+                [$attribute.capsule].[$attribute.positName] fol
+            WHERE
+                fol.$attribute.changingColumnName > i.$attribute.changingColumnName
+            AND
+                fol.$attribute.positingColumnName <= i.positingColumnName
+            AND
+                fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            AND
+                fol.$attribute.positorColumnName = i.$attribute.positorColumnName
+            AND
+                fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+            ORDER BY
+                fol.$attribute.changingColumnName asc,
+                fol.$attribute.positingColumnName desc
+        ))~*/
                 }
-            /*~;~*/
             }
+            /*~;
+    INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $attribute.identityColumnName,
+        $attribute.positorName,
+        $attribute.positingName,
+        $attribute.reliabilityColumnName
+    )
+    SELECT
+        p.$attribute.identityColumnName,
+        i.$attribute.positorName,
+        i.$attribute.positingName,
+        i.$attribute.reliabilityColumnName
+    FROM
+        inserted i
+    JOIN
+        [$attribute.capsule].[$attribute.positName] p
+    ON
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    AND
+        p.$attribute.changingColumnName = i.$attribute.changingColumnName
+    AND
+        p.$attribute.valueColumnName = i.$attribute.valueColumnName;
+    END
+~*/
         }
 /*~
 END
@@ -399,40 +575,24 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-    DELETE [$attribute.mnemonic]
+    INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $attribute.identityColumnName,
+        $attribute.positorName,
+        $attribute.positingName,
+        $attribute.reliabilityColumnName
+    )
+    SELECT
+        p.$attribute.identityColumnName,
+        p.$attribute.positorName,
+        p.$attribute.positingName,
+        $schema.deleteReliability
     FROM
-        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-    JOIN
         deleted d
+    JOIN
+        [$attribute.capsule].[$attribute.annexName] p
     ON
-        d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
-    $(attribute.timeRange)? AND
-        $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName;
+        p.$attribute.identityColumnName = d.$attribute.identityColumnName;
 ~*/
-        }
-/*~
-    DELETE [$anchor.mnemonic]
-    FROM
-        [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]~*/
-        while (attribute = anchor.nextAttribute()) {
-/*~
-    LEFT JOIN
-        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-    ON
-        [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-~*/
-        }
-/*~
-    $(anchor.hasMoreAttributes())? WHERE
-~*/
-        while (attribute = anchor.nextAttribute()) {
-/*~
-        [$attribute.mnemonic].$attribute.anchorReferenceName is null~*/
-            if(anchor.hasMoreAttributes()) {
-/*~
-    AND
-~*/
-            }
         }
 /*~;
 END

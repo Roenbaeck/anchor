@@ -696,6 +696,7 @@
             reliabilityRange: 'tinyint',
             reliabilitySuffix: 'Reliability',
             reliableCutoff: '1', // inclusive, smallest reliability considered reliable
+            deleteReliability: '0', // default reliability value for deletes
             reliableSuffix: 'Reliable',
             partitioning: 'false',
             entityIntegrity: 'true',
@@ -5623,6 +5624,7 @@
                 this.setReliabilityRange('tinyint');
                 this.setReliabilitySuffix('Reliability');
                 this.setReliableCutoff('1');
+                this.setDeleteReliability('0');
                 this.setReliableSuffix('Reliable');
                 this.setPartitioning('false');
                 this.setEntityIntegrity('true');
@@ -5688,6 +5690,7 @@
                 storage.setItem("reliabilityRange", Defaults.reliabilityRange);
                 storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
                 storage.setItem("reliableCutoff", Defaults.reliableCutoff);
+                storage.setItem("deleteReliability", Defaults.deleteReliability);
                 storage.setItem("reliableSuffix", Defaults.reliableSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
@@ -5733,6 +5736,7 @@
                 this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
                 this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
                 this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
+                this.setDeleteReliability(storage.getItem('deleteReliability') || Defaults.deleteReliability);
                 this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
                 this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                 this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
@@ -5774,6 +5778,9 @@
             setReliableCutoff: function(value) {
                 Defaults.reliableCutoff = value;
             },
+            setDeleteReliability: function(value) {
+                Defaults.deleteReliability = value;
+            },
             setReliableSuffix: function(value) {
                 Defaults.reliableSuffix = value;
             },
@@ -5793,6 +5800,7 @@
             reliabilityRange: null,
             reliabilitySuffix: null,
             reliableCutoff: null,
+            deleteReliability: null,
             reliableSuffix: null,
             partitioning: null,
             entityIntegrity: null,
@@ -5879,6 +5887,11 @@
                             function() { Settings.setReliableCutoff(this.value); }
                     );
                     this.addTextItem(
+                            'deleteReliability', listOfDefaults, tempoItem, ' Delete reliability',
+                            "The default value of reliability to use when deleting information.",
+                            function() { Settings.setDeleteReliabilty(this.value); }
+                    );
+                    this.addTextItem(
                             'reliableSuffix', listOfDefaults, tempoItem, ' Reliable suffix',
                             "The suffix used for the computed column storing the boolean reliable result." +
                             "This is based on a calculation using the cutoff to determine if data is " +
@@ -5907,6 +5920,7 @@
                     this.removeItem('reliabilityRange', listOfDefaults);
                     this.removeItem('reliabilitySuffix', listOfDefaults);
                     this.removeItem('reliableCutoff', listOfDefaults);
+                    this.removeItem('deleteReliability', listOfDefaults);
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('partitioning', listOfDefaults);
