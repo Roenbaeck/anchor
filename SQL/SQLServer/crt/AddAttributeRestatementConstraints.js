@@ -10,7 +10,8 @@ if(restatements) {
 --
 -- Attributes may be prevented from storing restatements.
 -- A restatement is when the same value occurs for two adjacent points
--- in changing time.
+-- in changing time. Note that restatement checking is not done for
+-- unreliable information as this could prevent demotion.
 --
 -- returns      1 for at least one equal surrounding value, 0 for different surrounding values
 --
@@ -61,7 +62,10 @@ BEGIN
     WHERE
         $attribute.identityColumnName = @posit;
     RETURN (
-        CASE WHEN @value IN ((
+        CASE
+        WHEN @reliable = 0
+        THEN 0
+        WHEN @value IN ((
             SELECT TOP 1
                 pre.$valueColumn
             FROM
@@ -75,7 +79,7 @@ BEGIN
             AND
                 pre.$attribute.changingColumnName < @changed
             AND
-                pre.$attribute.reliableColumnName = @reliable
+                pre.$attribute.reliableColumnName = 1
             ORDER BY
                 pre.$attribute.changingColumnName DESC,
                 pre.$attribute.positingColumnName DESC
@@ -93,7 +97,7 @@ BEGIN
             AND
                 fol.$attribute.changingColumnName > @changed
             AND
-                fol.$attribute.reliableColumnName = @reliable
+                fol.$attribute.reliableColumnName = 1
             ORDER BY
                 fol.$attribute.changingColumnName ASC,
                 fol.$attribute.positingColumnName DESC
