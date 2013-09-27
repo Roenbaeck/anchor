@@ -12,7 +12,7 @@
 -- @positor             the view of which positor to adopt (defaults to 0)
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
--- @reliable            whether to show reliable (1) or unreliable (2) results
+-- @reliable            whether to show reliable (1) or unreliable (0) results
 --
 -- The latest perspective shows the latest available (changing & positing) information for each anchor.
 -- The now perspective shows the information as it is right now, with latest positing time.
