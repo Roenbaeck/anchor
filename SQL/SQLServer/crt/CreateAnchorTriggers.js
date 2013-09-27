@@ -213,11 +213,11 @@ BEGIN
                         SELECT TOP 1
                             pre.$attribute.valueColumnName
                         FROM
-                            [$attribute.capsule].[$attribute.positName] pre
+                            [$attribute.capsule].[$attribute.name] pre
                         WHERE
                             pre.$attribute.changingColumnName < v.$attribute.changingColumnName
                         AND
-                            pre.$attribute.positingColumnName <= v.positingColumnName
+                            pre.$attribute.positingColumnName <= v.$attribute.positingColumnName
                         AND
                             pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         AND
@@ -231,11 +231,11 @@ BEGIN
                         SELECT TOP 1
                             fol.$attribute.valueColumnName
                         FROM
-                            [$attribute.capsule].[$attribute.positName] fol
+                            [$attribute.capsule].[$attribute.name] fol
                         WHERE
                             fol.$attribute.changingColumnName > v.$attribute.changingColumnName
                         AND
-                            fol.$attribute.positingColumnName <= v.positingColumnName
+                            fol.$attribute.positingColumnName <= v.$attribute.positingColumnName
                         AND
                             fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         AND
@@ -434,11 +434,11 @@ BEGIN
             SELECT TOP 1
                 pre.$attribute.valueColumnName
             FROM
-                [$attribute.capsule].[$attribute.positName] pre
+                [$attribute.capsule].[$attribute.name] pre
             WHERE
                 pre.$attribute.changingColumnName < i.$attribute.changingColumnName
             AND
-                pre.$attribute.positingColumnName <= i.positingColumnName
+                pre.$attribute.positingColumnName <= i.$attribute.positingColumnName
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
@@ -452,11 +452,11 @@ BEGIN
             SELECT TOP 1
                 fol.$attribute.valueColumnName
             FROM
-                [$attribute.capsule].[$attribute.positName] fol
+                [$attribute.capsule].[$attribute.name] fol
             WHERE
                 fol.$attribute.changingColumnName > i.$attribute.changingColumnName
             AND
-                fol.$attribute.positingColumnName <= i.positingColumnName
+                fol.$attribute.positingColumnName <= i.$attribute.positingColumnName
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
@@ -501,11 +501,11 @@ BEGIN
             SELECT TOP 1
                 pre.$attribute.valueColumnName
             FROM
-                [$attribute.capsule].[$attribute.positName] pre
+                [$attribute.capsule].[$attribute.name] pre
             WHERE
                 pre.$attribute.changingColumnName < i.$attribute.changingColumnName
             AND
-                pre.$attribute.positingColumnName <= i.positingColumnName
+                pre.$attribute.positingColumnName <= i.$attribute.positingColumnName
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
@@ -519,11 +519,11 @@ BEGIN
             SELECT TOP 1
                 fol.$attribute.valueColumnName
             FROM
-                [$attribute.capsule].[$attribute.positName] fol
+                [$attribute.capsule].[$attribute.name] fol
             WHERE
                 fol.$attribute.changingColumnName > i.$attribute.changingColumnName
             AND
-                fol.$attribute.positingColumnName <= i.positingColumnName
+                fol.$attribute.positingColumnName <= i.$attribute.positingColumnName
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
@@ -539,14 +539,14 @@ BEGIN
             /*~;
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $attribute.identityColumnName,
-        $attribute.positorName,
-        $attribute.positingName,
+        $attribute.positorColumnName,
+        $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
         p.$attribute.identityColumnName,
-        i.$attribute.positorName,
-        i.$attribute.positingName,
+        i.$attribute.positorColumnName,
+        i.$attribute.positingColumnName,
         i.$attribute.reliabilityColumnName
     FROM
         inserted i
@@ -577,14 +577,14 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $attribute.identityColumnName,
-        $attribute.positorName,
-        $attribute.positingName,
+        $attribute.positorColumnName,
+        $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
         p.$attribute.identityColumnName,
-        p.$attribute.positorName,
-        p.$attribute.positingName,
+        p.$attribute.positorColumnName,
+        p.$attribute.positingColumnName,
         $schema.deleteReliability
     FROM
         deleted d
