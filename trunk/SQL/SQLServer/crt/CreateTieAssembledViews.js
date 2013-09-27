@@ -27,11 +27,11 @@ BEGIN
     var role;
     while (role = tie.nextRole()) {
 /*~
-        p.$role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
+        p.$role.columnName,
 ~*/
     }
 /*~
-        $(tie.timeRange)? p.$tie.changingColumnName $tie.timeRange not null,
+        $(tie.timeRange)? p.$tie.changingColumnName,
         a.$tie.positingColumnName,
         a.$tie.positorColumnName,
         a.$tie.reliabilityColumnName,
