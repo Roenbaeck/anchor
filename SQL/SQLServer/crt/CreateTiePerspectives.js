@@ -51,13 +51,13 @@ CREATE FUNCTION [$tie.capsule].[t$tie.name] (
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
-    a.$tie.identityColumnName,
-    $(METADATA)? a.$tie.metadataColumnName,
-    a.$tie.positorColumnName,
-    $(tie.isHistorized())? p.$tie.changingColumnName,
-    a.$tie.positingColumnName,
-    a.$tie.reliabilityColumnName,
-    a.$tie.reliableColumnName,
+    tie.$tie.identityColumnName,
+    $(METADATA)? tie.$tie.metadataColumnName,
+    tie.$tie.positorColumnName,
+    $(tie.isHistorized())? tie.$tie.changingColumnName,
+    tie.$tie.positingColumnName,
+    tie.$tie.reliabilityColumnName,
+    tie.$tie.reliableColumnName,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -73,7 +73,50 @@ SELECT
         }
 /*~
 FROM
-    [$tie.capsule].[$tie.name] tie~*/
+    [$tie.capsule].[r$tie.name](
+        @positor,
+        $(tie.isHistorized())? @changingTimepoint,
+        @positingTimepoint
+    ) tie
+ON
+    tie.$tie.identityColumnName = (
+        SELECT TOP 1
+            sub.$tie.identityColumnName
+        FROM
+            [$tie.capsule].[r$tie.name](
+                @positor,
+                $(tie.isHistorized())? @changingTimepoint,
+                @positingTimepoint
+            ) sub
+        WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+/*~
+            sub.$role.columnName = tie.$role.columnName
+        AND
+~*/
+                }
+            }
+            else {
+/*~
+        (
+~*/
+                while(role = tie.nextValue()) {
+/*~
+                sub.$role.columnName = tie.$role.columnName
+            $(tie.hasMoreValues())? OR
+~*/
+                }
+/*~
+            )
+~*/
+            }
+/*~
+            sub.$tie.reliableColumnName = @reliable
+        ORDER BY
+            $(tie.isHistorized())? sub.$tie.changingColumnName DESC,
+            sub.$tie.positingColumnName DESC~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
 /*~
@@ -81,35 +124,6 @@ LEFT JOIN
     [$knot.capsule].[$knot.name] [$role.name]
 ON
     [$role.name].$knot.identityColumnName = tie.$role.columnName~*/
-        }
-        if(tie.isHistorized()) {
-/*~
-WHERE
-    tie.$tie.changingColumnName = (
-        SELECT
-            max(sub.$tie.changingColumnName)
-        FROM
-            [$tie.capsule].[$tie.name] sub
-        WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while (role = tie.nextIdentifier()) {
-/*~
-            sub.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreIdentifiers())? AND
-~*/
-                }
-            }
-            else {
-                while (role = tie.nextValue()) {
-/*~
-            sub.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreValues())? OR
-~*/
-                }
-            }
-/*~
-   )~*/
         }
 /*~;
 GO
@@ -122,12 +136,12 @@ SELECT
 FROM
     [$schema.defaultCapsule].[_$schema.positorSuffix] p
 CROSS APPLY
-    [$anchor.capsule].[t$anchor.name] (
+    [$tie.capsule].[t$tie.name] (
         p.$schema.positorSuffix,
         DEFAULT,
         DEFAULT,
         DEFAULT
-    ) [$anchor.mnemonic];
+    ) tie;
 GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$tie.name viewed by the latest available information (may include future versions)
