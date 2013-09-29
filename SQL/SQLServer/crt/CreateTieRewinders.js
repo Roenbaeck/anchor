@@ -37,7 +37,7 @@ BEGIN
 /*~
         $tie.changingColumnName
     FROM
-        [$tie.capsule].[r$tie.positName]
+        [$tie.capsule].[$tie.positName]
     WHERE
         $tie.changingColumnName <= @changingTimepoint;
     ');
@@ -64,7 +64,7 @@ BEGIN
         $tie.reliabilityColumnName,
         $tie.reliableColumnName
     FROM
-        [$tie.capsule].[r$tie.annexName]
+        [$tie.capsule].[$tie.annexName]
     WHERE
         $tie.positingColumnName <= @positingTimepoint;
     ');
