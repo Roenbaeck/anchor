@@ -962,10 +962,12 @@
                         node.yVelocity *= this.damping;
                         node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
                         // check to see if the node has stopped moving
-                        if(node.velocity <= this.stoppingVelocity)
+                        if(node.moving && node.velocity <= this.stoppingVelocity) {
                             node.stop();
+                            node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
+                        }
                         // the more nodes that have stopped, the larger the starting velocity must be
-                        if(node.velocity >= this.minimumStartingVelocity +
+                        else if(node.velocity >= this.minimumStartingVelocity +
                                 this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                             node.start();
                         // if the node is moving and not fixed then calculate the new position
@@ -1109,10 +1111,12 @@
                         node.yVelocity *= this.damping;
                         node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
                         // check to see if the node has stopped moving
-                        if(node.velocity <= this.stoppingVelocity)
+                        if(node.moving && node.velocity <= this.stoppingVelocity) {
                             node.stop();
+                            node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
+                        }
                         // the more nodes that have stopped, the larger the starting velocity must be
-                        if(node.velocity >= this.minimumStartingVelocity +
+                        else if(node.velocity >= this.minimumStartingVelocity +
                                 this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                             node.start();
                         // if the node is moving and not fixed then calculate the new position
