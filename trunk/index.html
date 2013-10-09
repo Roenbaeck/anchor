@@ -962,7 +962,7 @@
                         node.yVelocity *= this.damping;
                         node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
                         // check to see if the node has stopped moving
-                        if(node.moving && node.velocity <= this.stoppingVelocity) {
+                        if(node.velocity <= this.stoppingVelocity) {
                             node.stop();
                             node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
                         }
@@ -1111,7 +1111,7 @@
                         node.yVelocity *= this.damping;
                         node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
                         // check to see if the node has stopped moving
-                        if(node.moving && node.velocity <= this.stoppingVelocity) {
+                        if(node.velocity <= this.stoppingVelocity) {
                             node.stop();
                             node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
                         }
