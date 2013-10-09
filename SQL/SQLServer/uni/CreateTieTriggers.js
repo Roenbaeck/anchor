@@ -200,20 +200,22 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-            $role.columnName$(tie.hasMoreRoles())?,
+            $role.columnName,
 ~*/
             }
 /*~
+            $tie.changingColumnName
         )
         SELECT
             $(METADATA)? $tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
-            $role.columnName$(tie.hasMoreRoles())?,
+            $role.columnName,
 ~*/
             }
 /*~
+            $tie.changingColumnName
         FROM
             @inserted
         WHERE

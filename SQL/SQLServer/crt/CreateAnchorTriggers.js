@@ -291,12 +291,14 @@ BEGIN
             $attribute.statementTypeColumnName in ($statementTypes);
 
         INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+            $(METADATA)? $attribute.metadataColumnName,
             $attribute.identityColumnName,
             $attribute.positorColumnName,
             $attribute.positingColumnName,
             $attribute.reliabilityColumnName
         )
         SELECT
+            $(METADATA)? v.$attribute.metadataColumnName,
             p.$attribute.identityColumnName,
             v.$attribute.positorColumnName,
             v.$attribute.positingColumnName,
@@ -351,12 +353,14 @@ BEGIN
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null; : i.$attribute.valueColumnName is not null;
 
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
+        $(METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
@@ -538,12 +542,14 @@ BEGIN
             }
             /*~;
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
+        $(METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
@@ -576,12 +582,14 @@ BEGIN
         while (attribute = anchor.nextAttribute()) {
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+        $(METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
+        $(METADATA)? p.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.positorColumnName,
         p.$attribute.positingColumnName,

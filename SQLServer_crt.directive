@@ -17,5 +17,5 @@ SQL/SQLServer/crt/CreateTieAssembledViews.js
 SQL/SQLServer/crt/AddTieRestatementConstraints.js
 SQL/SQLServer/crt/CreateTieRewinders.js
 SQL/SQLServer/crt/CreateTiePerspectives.js
-#SQL/SQLServer/crt/CreateTieTriggers.js
+SQL/SQLServer/crt/CreateTieTriggers.js
 SQL/SQLServer/CreateSchemaTracking.js

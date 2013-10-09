@@ -104,7 +104,7 @@ BEGIN
 /*~
                 pre.$tie.changingColumnName < @changed
             AND
-                pre.$tie.positingColumnName <= @changed
+                pre.$tie.positingColumnName <= @posited
             AND
                 pre.$tie.positorColumnName = @positor
             AND
@@ -151,7 +151,7 @@ BEGIN
 /*~
                 fol.$tie.changingColumnName > @changed
             AND
-                fol.$tie.positingColumnName <= @changed
+                fol.$tie.positingColumnName <= @posited
             AND
                 fol.$tie.positorColumnName = @positor
             AND
