@@ -205,7 +205,9 @@ JOIN (
 /*~
     SELECT DISTINCT
         $attribute.positorColumnName AS positor,
-        $attribute.changingColumnName AS inspectedTimepoint
+        $attribute.anchorReferenceName AS $anchor.identityColumnName,
+        $attribute.changingColumnName AS inspectedTimepoint,
+        '$attribute.mnemonic' AS mnemonic
     FROM
         [$attribute.capsule].[$attribute.name]
     WHERE
@@ -225,7 +227,9 @@ CROSS APPLY
         timepoints.inspectedTimepoint,
         DEFAULT,
         DEFAULT
-    ) [$anchor.mnemonic];
+    ) [$anchor.mnemonic]
+ WHERE
+    [$anchor.mnemonic].$anchor.identityColumnName = timepoints.$anchor.identityColumnName;
 GO
 ~*/
         }

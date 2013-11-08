@@ -192,13 +192,16 @@ CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
 RETURNS TABLE AS RETURN
 SELECT
     timepoints.inspectedTimepoint,
+    timepoints.mnemonic,
     [p$anchor.mnemonic].*
 FROM (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.changingColumnName AS inspectedTimepoint
+        $attribute.anchorReferenceName AS $anchor.identityColumnName,
+        $attribute.changingColumnName AS inspectedTimepoint,
+        '$attribute.mnemonic' AS mnemonic
     FROM
         [$attribute.capsule].[$attribute.name]
     WHERE
@@ -211,7 +214,9 @@ FROM (
 /*~
 ) timepoints
 CROSS APPLY
-    [$anchor.capsule].[p$anchor.name](timepoints.inspectedTimepoint) [p$anchor.mnemonic];
+    [$anchor.capsule].[p$anchor.name](timepoints.inspectedTimepoint) [p$anchor.mnemonic]
+WHERE
+    [p$anchor.mnemonic].$anchor.identityColumnName = timepoints.$anchor.identityColumnName;
 GO
 ~*/
         }
