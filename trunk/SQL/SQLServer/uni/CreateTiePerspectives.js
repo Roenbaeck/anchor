@@ -160,7 +160,7 @@ WHERE
 ~*/
             }
 /*~
-            tie.$tie.changingColumnName <= @changingTimepoint
+            sub.$tie.changingColumnName <= @changingTimepoint
    )~*/
         }
 /*~;
