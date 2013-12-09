@@ -685,6 +685,21 @@ INSTEAD OF DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
+    INSERT INTO [$tie.capsule].[$tie.annexName] (
+        $(METADATA)? $tie.metadataColumnName,
+        $tie.identityColumnName,
+        $tie.positorColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName
+    )
+    SELECT
+        $(METADATA)? d.$tie.metadataColumnName,
+        d.$tie.identityColumnName,
+        d.$tie.positorColumnName,
+        d.$tie.positingColumnName,
+        $schema.deleteReliability
+    FROM
+        deleted d;
 END
 GO
 ~*/

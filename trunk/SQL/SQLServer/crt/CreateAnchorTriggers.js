@@ -602,7 +602,7 @@ BEGIN
         p.$attribute.identityColumnName = d.$attribute.identityColumnName;
 ~*/
         }
-/*~;
+/*~
 END
 GO
 ~*/
