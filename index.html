@@ -1439,7 +1439,7 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var metadata, nodes, temporalization = Settings.temporalization;
+                    var metadata, nodes, temporalization = Settings.temporalization || "uni";
                     nodes = xml.getElementsByTagName('metadata');
                     if(nodes)
                         for(i = 0; i < nodes.length; i++) {
@@ -1448,6 +1448,15 @@
                                 break;
                             }
                         }
+                    // backwards compatibility
+                    switch (temporalization) {
+                        case "mono":
+                            temporalization = "uni";
+                            break;
+                        case "bi":
+                            temporalization = "crt";
+                            break;
+                    }
                     Settings.setTemporalization(temporalization);
                     var selector = document.getElementById('temporalization');
                     if(selector.value !== temporalization)
