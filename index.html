@@ -5861,6 +5861,8 @@
                 }
             },
             setTemporalization: function(value) {
+                var temporalizationSelect = document.getElementById('temporalization');
+                temporalizationSelect.value = value;
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var tempoItem = document.getElementById('tempoItem');
                 if(value === 'crt') {
