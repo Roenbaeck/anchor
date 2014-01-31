@@ -2414,11 +2414,9 @@
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
                 event.xScreen = event.clientX
-                        + document.body.scrollLeft
                         + document.documentElement.scrollLeft
                         - this.offsetLeft;
                 event.yScreen = event.clientY
-                        + document.body.scrollTop
                         + document.documentElement.scrollTop
                         - this.offsetTop;
 
@@ -2481,11 +2479,9 @@
             handleEvent: function(event) {
                 // note that "this" refers to the object on which we attached the event handler
                 event.xScreen = event.clientX
-                        + document.body.scrollLeft
                         + document.documentElement.scrollLeft
                         - this.offsetLeft;
                 event.yScreen = event.clientY
-                        + document.body.scrollTop
                         + document.documentElement.scrollTop
                         - this.offsetTop;
 
@@ -4859,11 +4855,9 @@
                 if(self.dragging) {
                     var xScreen, yScreen;
                     xScreen = event.clientX
-                            + document.body.scrollLeft
                             + document.documentElement.scrollLeft
                             - self.contextMenu.offsetWidth / 2;
                     yScreen = event.clientY
-                            + document.body.scrollTop
                             + document.documentElement.scrollTop
                             - self.topper.offsetHeight / 2;
                     this.updatePosition(xScreen, yScreen);
