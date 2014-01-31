@@ -3647,7 +3647,7 @@
                 }
             },
             isConforming: function() {
-                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, roles = {}, identical;
+                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, role, roles = {}, identical;
                 // check that no roles are identical in the tie
                 for(i = 0; edge = this.edges[i]; i++) {
                     for(j = 0; otherEdge = this.edges[j]; j++) {
@@ -3662,14 +3662,18 @@
                     }
                 }
                 // first find the anchors and knots connected to this tie
-                for(i = 0; edge = this.edges[i]; i++)
-                    roles[edge.role + "_" + (edge.node === this ? edge.otherNode : edge.node)] = true;
+                for(i = 0; edge = this.edges[i]; i++) {
+                    role = edge.role + "_" + (edge.node === this ? edge.otherNode : edge.node);
+                    roles[role] = true;
+                }
                 // then find all other ties of the same cardinality
                 for(i = 0; node = Model.nodes[i]; i++) {
                     if(node instanceof Tie && node !== this && node.edges.length === this.edges.length) {
                         identical = true;
                         for(j = 0; edge = node.edges[j]; j++) {
-                            identical &= roles[edge.role + "_" + (edge.node === node ? edge.otherNode : edge.node)];
+                            role = edge.role + "_" + (edge.node === node ? edge.otherNode : edge.node);
+                            identical &= roles[role];
+                            if(roles[role]) delete roles[role]; // so that it cannot be matched twice
                         }
                         if(identical) {
                             return !confirm("This tie will become identical to the already existing tie named " +
@@ -3766,7 +3770,8 @@
                 var anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
-                    role = anchorRoles[i].getAttribute("role") || "!unknown!";
+                    role = anchorRoles[i].getAttribute("role");
+                    if(!role || role.match(/!.*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
                     var anchors = grandparent.getElementsByTagName("anchor");
@@ -3784,7 +3789,8 @@
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "???";
-                    role = knotRoles[i].getAttribute("role") || "!unknown!";
+                    role = knotRoles[i].getAttribute("role");
+                    if(!role || role.match(/!.*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
                     var knots = grandparent.getElementsByTagName("knot");
@@ -3813,7 +3819,7 @@
                         role = schema.createElement("anchorRole");
                     else if(this.edges[i].otherNode instanceof Knot)
                         role = schema.createElement("knotRole");
-                    role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!unknown!" : this.edges[i].role);
+                    role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!role" + UniqueIdentity.nextId() + "!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
                     if(this.edges[i].coloring !== '#ffffff')
                         role.setAttribute("coloring", this.edges[i].coloring);
