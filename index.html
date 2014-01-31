@@ -3771,7 +3771,7 @@
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
                     role = anchorRoles[i].getAttribute("role");
-                    if(!role || role.match(/!.*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
+                    if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
                     var anchors = grandparent.getElementsByTagName("anchor");
@@ -3790,7 +3790,7 @@
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "???";
                     role = knotRoles[i].getAttribute("role");
-                    if(!role || role.match(/!.*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
+                    if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
                     var knots = grandparent.getElementsByTagName("knot");
