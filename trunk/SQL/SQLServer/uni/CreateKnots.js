@@ -22,12 +22,13 @@ IF Object_ID('$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
+    $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', $knot.valueColumnName) as varbinary(16)),
     $knot.metadataDefinition
     constraint pk$knot.name primary key (
         $knot.identityColumnName asc
     ),
     constraint uq$knot.name unique (
-        $knot.valueColumnName
+        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
 GO

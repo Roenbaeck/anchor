@@ -12,6 +12,7 @@ while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
     knot.valueColumnName = knot.name;
     knot.identityColumnName = knot.mnemonic + D + schema.identitySuffix;
+    knot.checksumColumnName = knot.mnemonic + D + schema.checksumSuffix;
     knot.capsule = knot.metadata.capsule || schema.defaultCapsule;
     knot.metadataColumnName = schema.metadataPrefix + D + knot.mnemonic;
 }
@@ -29,6 +30,7 @@ while (anchor = schema.nextAnchor()) {
         attribute.name = attribute.uniqueMnemonic + D + anchor.descriptor + D + attribute.descriptor;
         attribute.positName = attribute.name + D + schema.positSuffix;
         attribute.annexName = attribute.name + D + schema.annexSuffix;
+        attribute.checksumColumnName = attribute.uniqueMnemonic + D + schema.checksumSuffix;
         attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.identitySuffix;
         attribute.metadataColumnName = schema.metadataPrefix + D + attribute.uniqueMnemonic;
         attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.versionSuffix;

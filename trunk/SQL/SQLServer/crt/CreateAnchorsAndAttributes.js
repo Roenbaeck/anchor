@@ -39,6 +39,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
         $attribute.anchorReferenceName
@@ -49,7 +50,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     constraint uq$attribute.positName unique clustered (
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc,
-        $attribute.valueColumnName asc
+        $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
 );
 GO
@@ -123,6 +124,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
     constraint fk$attribute.positName foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -131,7 +133,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     ),
     constraint uq$attribute.positName unique clustered (
         $attribute.anchorReferenceName asc,
-        $attribute.valueColumnName asc
+        $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
 );
 GO

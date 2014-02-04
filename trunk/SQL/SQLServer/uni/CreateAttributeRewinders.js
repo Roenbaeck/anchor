@@ -29,6 +29,7 @@ BEGIN
     SELECT
         $(METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
