@@ -54,11 +54,13 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
+    $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
     [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
@@ -118,11 +120,13 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
+    $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
     [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }

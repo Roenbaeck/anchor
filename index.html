@@ -702,6 +702,7 @@
             entityIntegrity: 'true',
             restatability: 'true',
             idempotency: 'false',
+            checksum: 'false',
             naming: 'improved',
             positSuffix: 'Posit',
             annexSuffix: 'Annex',
@@ -709,7 +710,8 @@
             now: 'sysdatetime()',
             dummySuffix: 'Dummy',
             versionSuffix: 'Version',
-            statementTypeSuffix: 'StatementType'
+            statementTypeSuffix: 'StatementType',
+            checksumSuffix: 'Checksum'
         };
 
         // create a singleton
@@ -2636,6 +2638,20 @@
                 event: 'click',
                 attributes: ['type', 'checkbox']
             },
+            checksumEdit: {
+                name: 'Checksum',
+                description:
+                        'Checking this indicates that your data type is too large to fit in ' +
+                        'indexes, and a calculated checksum column will be added that can be  ' +
+                        'used instead.',
+                setMember: function (element, node) { node.checksum = element.checked; },
+                getMember: function (node) { return node.checksum; },
+                setElement: function (element, node) { element.checked = node.checksum; },
+                getElement: function (element) { return element.checked; },
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox']
+            },
             roleEdit: {
                 name: 'Role',
                 description:
@@ -2945,10 +2961,12 @@
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.dataRangeEdit);
+            this.editables.push(Editables.checksumEdit);
             this.knotted = false;
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
+            this.checksum = Defaults.checksum === 'true';
             this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
@@ -2961,6 +2979,7 @@
             historized: false,
             restatable: true,
             idempotent: false,
+            checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
@@ -3019,6 +3038,13 @@
                     this.editables.push(Editables.dataRangeEdit);
                 else if (knotted && index >= 0)
                     this.editables.splice(index, 1);
+                index = this.editables.indexOf(Editables.checksumEdit);
+                if(!knotted && index < 0)
+                    this.editables.push(Editables.checksumEdit);
+                else if (knotted && index >= 0)
+                    this.editables.splice(index, 1);
+                if(this.checksum && knotted)
+                    this.checksum = false; // knotted cannot be checksummed
                 this.knotted = knotted;
             },
             getKnotted: function() {
@@ -3041,6 +3067,7 @@
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
+                var checksum = Defaults.checksum === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3050,6 +3077,8 @@
                     restatable = _restatable ? _restatable === 'true' : restatable;
                     var _idempotent = metadata.getAttribute("idempotent");
                     idempotent = _idempotent ? _idempotent === 'true' : idempotent;
+                    var _checksum = metadata.getAttribute("checksum");
+                    checksum = _checksum ? _checksum === 'true' : checksum;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3075,6 +3104,7 @@
                 attribute.encapsulation = capsule;
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
+                attribute.checksum = checksum;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -3120,6 +3150,10 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
+                if(this.checksum) {
+                    metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
+                            Defaults.checksum : this.checksum);
+                }
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
@@ -3414,7 +3448,9 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
+            this.editables.push(Editables.checksumEdit);
             this.encapsulation = Defaults.encapsulation;
+            this.checksum = Defaults.checksum === 'true';
             this.type = 'Knot';
         }
         Knot.prototype = {
@@ -3423,6 +3459,7 @@
             identity: '',
             dataRange: '',
             generator: false,
+            checksum: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Knot.mass;
@@ -3482,10 +3519,13 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
+                var checksum;
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    generator = metadata.getAttribute("generator") ?
-                            metadata.getAttribute("generator") === 'true' : generator;
+                    var _generator = metadata.getAttribute("generator");
+                    generator = _generator ? _generator === 'true' : generator;
+                    var _checksum = metadata.getAttribute("checksum");
+                    checksum = _checksum ? _checksum === 'true' : checksum;
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
@@ -3510,6 +3550,7 @@
                 knot.dataRange = dataRange;
                 knot.generator = generator;
                 knot.encapsulation = capsule;
+                knot.checksum = checksum;
                 knot.incomplete = knot.isIncomplete();
                 return knot;
             },
@@ -3526,6 +3567,10 @@
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
                 metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
+                if(this.checksum) {
+                    metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
+                            Defaults.checksum : this.checksum);
+                }
                 knot.appendChild(metadata);
 
                 this.addLayoutXML(knot, schema);
@@ -5614,6 +5659,7 @@
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
+                document.getElementById('checksumSuffix').value = Defaults.checksumSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
                 document.getElementById('naming').value = Defaults.naming;
             },
@@ -5700,6 +5746,7 @@
                 storage.setItem("positingSuffix", Defaults.positingSuffix);
                 storage.setItem("positorRange", Defaults.positorRange);
                 storage.setItem("positorSuffix", Defaults.positorSuffix);
+                storage.setItem("checksumSuffix", Defaults.checksumSuffix);
                 storage.setItem("reliabilityRange", Defaults.reliabilityRange);
                 storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
                 storage.setItem("reliableCutoff", Defaults.reliableCutoff);
@@ -5746,6 +5793,7 @@
                 this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
                 this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
                 this.setPositorSuffix(storage.getItem('positorSuffix') || Defaults.positorSuffix);
+                this.setChecksumSuffix(storage.getItem('checksumSuffix') || Defaults.checksumSuffix);
                 this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
                 this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
                 this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
@@ -5781,6 +5829,9 @@
             },
             setPositorSuffix: function(value) {
                 Defaults.positorSuffix = value;
+            },
+            setChecksumSuffix: function(value) {
+                Defaults.checksumSuffix = value;
             },
             setReliabilityRange: function(value) {
                 Defaults.reliabilityRange = value;
@@ -6496,6 +6547,7 @@
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
                 <li title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
                 <li title="The default 'schema' to use for new items."><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
                 <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
                 <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>

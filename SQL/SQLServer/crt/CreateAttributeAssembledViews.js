@@ -24,6 +24,7 @@ BEGIN
         $(METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.anchorReferenceName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
         $(attribute.timeRange)? p.$attribute.changingColumnName,
         a.$attribute.positingColumnName,

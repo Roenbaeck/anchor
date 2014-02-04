@@ -34,6 +34,9 @@ while(knot = schema.nextKnot()) {
     knot.isGenerator = function() {
         return this.metadata.generator == 'true';
     };
+    knot.hasChecksum = function() {
+        return this.metadata.checksum == 'true';
+    };
 }
 
 // set up helpers for anchors
@@ -91,6 +94,9 @@ while (anchor = schema.nextAnchor()) {
         };
         attribute.isRestatable = function() {
             return this.metadata.restatable == 'true';
+        };
+        attribute.hasChecksum = function() {
+            return this.metadata.checksum == 'true';
         };
         attribute.isHistorized = function() {
             return this.hasOwnProperty('timeRange');

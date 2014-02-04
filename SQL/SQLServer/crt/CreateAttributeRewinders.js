@@ -31,6 +31,7 @@ BEGIN
     SELECT
         $attribute.identityColumnName,
         $attribute.anchorReferenceName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
@@ -84,6 +85,7 @@ BEGIN
         a.$attribute.reliabilityColumnName,
         a.$attribute.reliableColumnName,
         p.$attribute.anchorReferenceName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
         p.$attribute.changingColumnName
     FROM
@@ -157,6 +159,7 @@ BEGIN
         a.$attribute.reliabilityColumnName,
         a.$attribute.reliableColumnName,
         p.$attribute.anchorReferenceName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName
     FROM
         [$attribute.capsule].[$attribute.positName] p
