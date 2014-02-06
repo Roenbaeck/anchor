@@ -1,6 +1,6 @@
 var tie, role, restatements = false;
 while (tie = schema.nextHistorizedTie())
-    if(!tie.isRestatable() && tie.hasMoreValues())
+    if(tie.hasMoreValues())
         restatements = true;
 
 if(restatements) {
@@ -21,11 +21,11 @@ if(restatements) {
 ~*/
     while (tie = schema.nextHistorizedTie()) {
         // the tie needs to have at least one role outside of the identifier
-        if((!tie.isRestatable() || tie.isIdempotent()) && tie.hasMoreValues()) {
+        if(tie.hasMoreValues()) {
 /*~
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
 -- rf$tie.name restatement finder
--- rc$tie.name restatement constraint
+-- rc$tie.name restatement constraint (available only in ties that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('rf$tie.name', 'FN') IS NULL
 BEGIN

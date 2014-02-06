@@ -1,7 +1,7 @@
 var anchor, knot, attribute, restatements = false;
 while (anchor = schema.nextAnchor())
     while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized() && !attribute.isRestatable())
+        if(attribute.isHistorized())
             restatements = true;
 
 if(restatements) {
@@ -21,7 +21,7 @@ if(restatements) {
 ~*/
     while (anchor = schema.nextAnchor()) {
         while(attribute = anchor.nextAttribute()) {
-            if((!attribute.isRestatable() || attribute.isIdempotent()) && attribute.isHistorized()) {
+            if(attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     valueColumn = attribute.valueColumnName;
@@ -35,7 +35,7 @@ if(restatements) {
 /*~
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
--- rc$attribute.name restatement constraint, with checking made by the finder function
+-- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('rf$attribute.name', 'FN') IS NULL
 BEGIN
