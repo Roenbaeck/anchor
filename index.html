@@ -1339,13 +1339,13 @@
                     this.nodes[this.nodes.length] = node;
                     this.sort();
                     this.shadowToNode[node.shadowColor] = node;
-                    if(this.topmostNode === null || node.yPosition < this.topmostNode.yPosition)
+                    if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
                         this.topmostNode = node;
-                    if(this.rightmostNode === null || node.xPosition > this.rightmostNode.xPosition)
+                    if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
                         this.rightmostNode = node;
-                    if(this.bottommostNode === null || node.yPosition > this.bottommostNode.yPosition)
+                    if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
                         this.bottommostNode = node;
-                    if(this.leftmostNode === null || node.xPosition < this.leftmostNode.xPosition)
+                    if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
                         this.leftmostNode = node;
                     this.invalidateNode(node);
                 }
@@ -1852,7 +1852,7 @@
                     }
                 }
                 this.refresh();
-                if(startEngine === null || startEngine)
+                if(startEngine == null || startEngine)
                     DrawingEngine.start(true);
             }
         };
@@ -2293,7 +2293,7 @@
             mousehover: function(event) {
                 // mouse pointer over node
                 if(this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown)) {
-                    if(this.contextMenu === null)
+                    if(this.contextMenu == null)
                         this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
                     else if (this.contextMenu.collapsed) {
                         this.contextMenu.close();
@@ -2769,7 +2769,7 @@
                 return this.toString();
             },
             isEmpty: function(value) {
-                return typeof value === "undefined" || value === null ||
+                return typeof value === "undefined" || value == null ||
                         value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') === '';
             },
             isIncomplete: function() {
