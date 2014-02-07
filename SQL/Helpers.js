@@ -298,6 +298,7 @@ window.METADATA = schema.metadataUsage == 'true';
 window.IMPROVED = schema.naming == 'improved';
 window.PARTITIONING = schema.partitioning == 'true';
 window.INTEGRITY = schema.entityIntegrity == 'true';
+window.BUSINESS_VIEWS = schema.businessViews == 'true';
 window.EOT = '\'9999-12-31\'';
 
 
