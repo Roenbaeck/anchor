@@ -575,6 +575,14 @@
         text-shadow:        none;
         text-align:         left;
     }
+    .submenu a {
+        color:              black;
+    }
+    .submenu a:hover {
+        color:              white;
+        text-decoration:    none;
+        text-shadow:        0px 0px 6px #555;
+    }
     .submenu li:hover {
         color:              white;
         background-color:   rgba(128, 128, 128, 0.8);
@@ -5122,6 +5130,11 @@
                 }
                 return result;
             },
+            createEmail: function(aTag) {
+                var modelDescription = new XMLSerializer().serializeToString(Model.toXML());
+                var modelName = Model.name ? Model.name : 'Unnamed Model';
+                aTag.href = "mailto:?subject=" + modelName + "&body=" + modelDescription;
+            },
             saveToDisk: function (str) {
                 // while waiting for a working method
                 window.open(
@@ -6459,6 +6472,9 @@
                 <li><i>Load model from local file:</i></li>
                 <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                 <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
+                <li title="Sends an email with the XML description of the model to a specified recipient.">
+                    <a id="email" href="mailto:" onclick="Actions.createEmail(this)">Send model by email...</a>
+                </li>
                 <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
             </ul>
         </div>
