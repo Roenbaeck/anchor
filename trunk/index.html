@@ -2382,6 +2382,11 @@
                                 if(Operations.isSupported("erase", allNodes))
                                     Model.erase(allNodes);
                                 break;
+                            case "p":
+                                if(this.hoveredNode)
+                                    this.hoveredNode.setFixed(!this.hoveredNode.fixed);
+                                    DrawingEngine.start(false);
+                                break;
                         }
                         if(event.stopPropagation)
                             event.stopPropagation();
