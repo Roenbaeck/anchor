@@ -5131,6 +5131,7 @@
                 return result;
             },
             createEmail: function(aTag) {
+                ASKBEFOREUNLOAD = false; // prevent onbeforeunload behavior
                 var modelDescription = new XMLSerializer().serializeToString(Model.toXML());
                 var modelName = Model.name ? Model.name : 'Unnamed Model';
                 aTag.href = "mailto:?subject=" + modelName + "&body=" + modelDescription;
