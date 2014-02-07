@@ -719,7 +719,8 @@
             dummySuffix: 'Dummy',
             versionSuffix: 'Version',
             statementTypeSuffix: 'StatementType',
-            checksumSuffix: 'Checksum'
+            checksumSuffix: 'Checksum',
+            businessViews: 'false'
         };
 
         // create a singleton
@@ -5677,6 +5678,7 @@
                 document.getElementById('restatability').checked = Defaults.restatability === 'true';
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
+                document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('checksumSuffix').value = Defaults.checksumSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
@@ -5693,6 +5695,7 @@
                 this.setRestatability('true');
                 this.setIdempotency('false');
                 this.setMetadataUsage('true');
+                this.setBusinessViews('false');
                 this.setChangingSuffix('ChangedAt');
                 this.setIdentitySuffix('ID');
                 this.setPositingRange('datetime');
@@ -5757,6 +5760,7 @@
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
+                storage.setItem("businessViews", Defaults.businessViews);
                 storage.setItem("restatability", Defaults.restatability);
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
@@ -5806,6 +5810,7 @@
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
                 this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
+                this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                 this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
@@ -6020,6 +6025,9 @@
             },
             setMetadataUsage: function(value) {
                 Defaults.metadataUsage = value;
+            },
+            setBusinessViews: function(value) {
+                Defaults.businessViews = value;
             },
             setRestatability: function(value) {
                 Defaults.restatability = value;
@@ -6567,6 +6575,7 @@
                 <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
+                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false')"/> Use business views</li>
                 <li title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
                 <li title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
                 <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>

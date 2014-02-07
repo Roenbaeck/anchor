@@ -120,10 +120,12 @@ BEGIN
             $attribute.reliableColumnName
         ) = 0
     );
+~*/
+                }
+/*~
 END
 GO
 ~*/
-                }
             }
         }
     }

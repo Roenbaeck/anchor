@@ -87,10 +87,12 @@ BEGIN
             $attribute.changingColumnName
         ) = 0
     );
+~*/
+                }
+/*~
 END
 GO
 ~*/
-                }
             }
         }
     }

@@ -2,6 +2,7 @@
 
 // delimiter that is used in the naming convention
 var D = '_';
+var SID = 'SID';
 
 // set some hard coded defaults if they are missing
 schema.defaultCapsule = schema.defaultCapsule || 'dbo';
@@ -24,6 +25,7 @@ while (anchor = schema.nextAnchor()) {
     anchor.capsule = anchor.metadata.capsule || schema.defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
+    anchor.businessIdentityColumnName = anchor.descriptor + D + SID;
     var attribute;
     while (attribute = anchor.nextAttribute()) {
         attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
@@ -69,9 +71,15 @@ while (anchor = schema.nextAnchor()) {
 var tie;
 while (tie = schema.nextTie()) {
     var name = '';
+    var businessName = '';
     var role;
     while (role = tie.nextRole()) {
         role.name = role.type + D + role.role;
+        if(role.knot)
+            role.businessName = role.knot.descriptor + D + role.role;
+        else
+            role.businessName = role.anchor.descriptor + D + role.role;
+        role.businessColumnName = role.businessName + D + SID;
         role.columnName = role.type + D + schema.identitySuffix + D + role.role;
         if(role.knot) {
             knot = role.knot;
@@ -85,9 +93,14 @@ while (tie = schema.nextTie()) {
             }
         }
         name += role.name;
-        if(tie.hasMoreRoles()) name += D;
+        businessName += role.businessName;
+        if(tie.hasMoreRoles()) {
+            name += D;
+            businessName += D;
+        }
     }
     tie.name = name;
+    tie.businessName = businessName;
     tie.positName = tie.name + D + schema.positSuffix;
     tie.annexName = tie.name + D + schema.annexSuffix;
     tie.identityColumnName = tie.name + D + schema.identitySuffix;
