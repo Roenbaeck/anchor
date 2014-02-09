@@ -24,7 +24,7 @@ while (tie = schema.nextTie()) {
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- Latest_$tie.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$tie.capsule].[Latest_$tie.businessName] WITH SCHEMABINDING AS
+CREATE VIEW [$tie.capsule].[Latest_$tie.businessName] AS
 SELECT
 ~*/
         while (role = tie.nextRole()) {
@@ -50,7 +50,7 @@ GO
 CREATE FUNCTION [$tie.capsule].[Point_$tie.businessName] ﻿(
     @changingTimepoint $schema.chronon
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
 ~*/
         while (role = tie.nextRole()) {
