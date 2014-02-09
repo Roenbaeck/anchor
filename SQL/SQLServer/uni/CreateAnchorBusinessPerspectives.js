@@ -26,9 +26,9 @@ while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
 -- Latest perspective -------------------------------------------------------------------------------------------------
--- Latest_$anchor.descriptor viewed by the latest available information (may include future versions)
+-- Latest_$anchor.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[Latest_$anchor.descriptor] WITH SCHEMABINDING AS
+CREATE VIEW [$anchor.capsule].[Latest_$anchor.businessName] WITH SCHEMABINDING AS
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/
@@ -37,12 +37,12 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.descriptor]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.businessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$anchor.mnemonic].$attribute.valueColumnName as [$attribute.descriptor]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.valueColumnName as [$attribute.businessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
         }
@@ -51,9 +51,9 @@ FROM
     [$anchor.capsule].[l$anchor.name] [$anchor.mnemonic];
 GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
--- Point_$anchor.descriptor viewed as it was on the given timepoint
+-- Point_$anchor.businessName viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[Point_$anchor.descriptor] ﻿(
+CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] ﻿(
     @changingTimepoint $schema.chronon
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -64,12 +64,12 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.descriptor]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.businessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$anchor.mnemonic].$attribute.valueColumnName as [$attribute.descriptor]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.valueColumnName as [$attribute.businessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
         }
@@ -78,30 +78,30 @@ FROM
     [$anchor.capsule].[p$anchor.name](@changingTimepoint) [$anchor.mnemonic]
 GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
--- Current_$anchor.descriptor viewed as it currently is (cannot include future versions)
+-- Current_$anchor.businessName viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[Current_$anchor.descriptor]
+CREATE VIEW [$anchor.capsule].[Current_$anchor.businessName]
 AS
 SELECT
     *
 FROM
-    [$anchor.capsule].[Point_$anchor.descriptor]($schema.now);
+    [$anchor.capsule].[Point_$anchor.businessName]($schema.now);
 GO
 ~*/
         if(anchor.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference perspective ---------------------------------------------------------------------------------------------
--- Difference_$anchor.descriptor showing all differences between the given timepoints and optionally for a subset of attributes
+-- Difference_$anchor.businessName showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[Difference_$anchor.descriptor] (
+CREATE FUNCTION [$anchor.capsule].[Difference_$anchor.businessName] (
     @intervalStart $schema.chronon,
     @intervalEnd $schema.chronon,
     @selection varchar(max) = null
 )
 RETURNS TABLE AS RETURN
 SELECT
-    timepoints.inspectedTimepoint as [Time_of_Change],
-    timepoints.descriptor as [Subject_of_Change],
+    timepoints.[Time_of_Change],
+    timepoints.[Subject_of_Change],
     [p$anchor.mnemonic].*
 FROM (
 ~*/
@@ -109,8 +109,8 @@ FROM (
 /*~
     SELECT DISTINCT
         $attribute.anchorReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName AS inspectedTimepoint,
-        '$attribute.descriptor' AS descriptor
+        $attribute.changingColumnName AS [Time_of_Change],
+        '$attribute.businessName' AS [Subject_of_Change]
     FROM
         [$attribute.capsule].[$attribute.name]
     WHERE
@@ -123,7 +123,7 @@ FROM (
 /*~
 ) timepoints
 CROSS APPLY
-    [$anchor.capsule].[Point_$anchor.descriptor](timepoints.inspectedTimepoint) [p$anchor.mnemonic]
+    [$anchor.capsule].[Point_$anchor.businessName](timepoints.[Time_of_Change]) [p$anchor.mnemonic]
 WHERE
     [p$anchor.mnemonic].$anchor.businessIdentityColumnName = timepoints.$anchor.identityColumnName;
 GO

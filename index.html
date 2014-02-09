@@ -496,7 +496,7 @@
 
     /* http://www.ie7nomore.com/fun/menu2/ */
     /* TODO: position using relative instead */
-    #actions, #settings, #file, #generate, #about, #defaults {
+    #actions, #settings, #file, #generate, #about, #defaults, #generation {
         position:           absolute;
         display:            block;
         top:                0px;
@@ -516,6 +516,11 @@
         left:               110px;
         text-align:         left;
         z-index:            45;
+    }
+    #generation {
+        right:              200px;
+        text-align:         right;
+        z-index:            46;
     }
     #defaults {
         right:              130px;
@@ -697,6 +702,7 @@
             metadataUsage: 'true',
             changingSuffix: 'ChangedAt',
             identitySuffix: 'ID',
+            positIdentityRange: 'int',
             positingRange: 'datetime',
             positingSuffix: 'PositedAt',
             positorRange: 'tinyint',
@@ -2522,6 +2528,7 @@
         };
 
         var Editables = {
+            setEditability: function(edit, isEditable) { edit.editable = isEditable; },
             descriptorEdit: {
                 name: 'Descriptor',
                 description:
@@ -2532,6 +2539,7 @@
                 getMember: function (node) { return node.descriptor; },
                 setElement: function (element, node) { element.value = node.descriptor; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '(' + UPPER + LOWER + '*)+',
                 event: 'blur',
@@ -2547,6 +2555,7 @@
                 getMember: function (node) { return node.mnemonic; },
                 setElement: function (element, node) { element.value = node.mnemonic; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: UPPER + '{2}',
                 event: 'blur',
@@ -2563,6 +2572,7 @@
                 getMember: function (node) { return node.mnemonic; },
                 setElement: function (element, node) { element.value = node.mnemonic; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: UPPER + '{3}',
                 event: 'blur',
@@ -2575,6 +2585,7 @@
                 getMember: function (node) { return node.dataRange; },
                 setElement: function (element, node) { element.value = node.dataRange; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2590,6 +2601,23 @@
                 getMember: function (node) { return node.changingRange; },
                 setElement: function (element, node) { element.value = node.changingRange; },
                 getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'input',
+                pattern: '.*',
+                event: 'blur',
+                attributes: ['type', 'text', 'required', 'required']
+            },
+            positIdentityRangeEdit: {
+                name: 'Posit identity range',
+                description:
+                        'Posit identity data type. This should be at large enough to be able to give ' +
+                        'identities to all posits that will be stored. With rapidly changing ' +
+                        'data this may be much larger than the other involved identities.',
+                setMember: function (element, node) { node.positIdentityRange = element.value; },
+                getMember: function (node) { return node.positIdentityRange; },
+                setElement: function (element, node) { element.value = node.positIdentityRange; },
+                getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2605,6 +2633,7 @@
                 getMember: function (node) { return node.identity; },
                 setElement: function (element, node) { element.value = node.identity; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
@@ -2620,6 +2649,7 @@
                 getMember: function (node) { return node.generator; },
                 setElement: function (element, node) { element.checked = node.generator; },
                 getElement: function (element) { return element.checked; },
+                editable: true,
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2634,6 +2664,7 @@
                 getMember: function (node) { return node.restatable; },
                 setElement: function (element, node) { element.checked = node.restatable; },
                 getElement: function (element) { return element.checked; },
+                editable: true,
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2648,6 +2679,7 @@
                 getMember: function (node) { return node.idempotent; },
                 setElement: function (element, node) { element.checked = node.idempotent; },
                 getElement: function (element) { return element.checked; },
+                editable: true,
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2662,6 +2694,7 @@
                 getMember: function (node) { return node.checksum; },
                 setElement: function (element, node) { element.checked = node.checksum; },
                 getElement: function (element) { return element.checked; },
+                editable: true,
                 type: 'input',
                 event: 'click',
                 attributes: ['type', 'checkbox']
@@ -2676,6 +2709,7 @@
                 getMember: function (node) { return node.role; },
                 setElement: function (element, node) { element.value = node.role; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '(' + LOWER + UPPER + '*)+',
                 event: 'blur',
@@ -2690,6 +2724,7 @@
                 getMember: function (node) { return node.coloring; },
                 setElement: function (element, node) { element.value = node.coloring; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: '#[0-9A-Fa-f]{6}',
                 event: 'change',
@@ -2704,6 +2739,7 @@
                 getMember: function (node) { return node.encapsulation; },
                 setElement: function (element, node) { element.value = node.encapsulation; },
                 getElement: function (element) { return element.value; },
+                editable: true,
                 type: 'input',
                 pattern: LOWER + '*',
                 event: 'blur',
@@ -2790,7 +2826,8 @@
                 var editable;
                 for(var i = 0; editable = this.editables[i]; i++) {
                     // only those that are supposed to contain text (i.e. not checkboxes, select lists, ...)
-                    if(editable.pattern) {
+                    // and is not switched off from editing
+                    if(editable.pattern && editable.editable) {
                         if(this.isEmpty(editable.getMember(this)))
                             return true;
                         if(!editable.getMember(this).toString().match(new RegExp('^' + editable.pattern + '$')))
@@ -2975,6 +3012,7 @@
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.dataRangeEdit);
+            this.editables.push(Editables.positIdentityRangeEdit);
             this.editables.push(Editables.checksumEdit);
             this.knotted = false;
             this.historized = historized;
@@ -2982,6 +3020,7 @@
             this.idempotent = Defaults.idempotency === 'true';
             this.checksum = Defaults.checksum === 'true';
             this.encapsulation = Defaults.encapsulation;
+            this.positIdentityRange = Defaults.positIdentityRange;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
         }
@@ -2990,6 +3029,7 @@
             descriptor: '',
             dataRange: '',
             changingRange: '',
+            positIdentityRange: '',
             historized: false,
             restatable: true,
             idempotent: false,
@@ -3106,6 +3146,7 @@
                 var knotted = knotRange ? true : false;
                 var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
+                var identity = element.getAttribute("identity") || Defaults.positIdentityRange;
                 var attribute = new Attribute(x, y, historized);
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
@@ -3119,6 +3160,7 @@
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
                 attribute.checksum = checksum;
+                attribute.positIdentityRange = identity;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -3149,6 +3191,8 @@
                 // set attributes on the element
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                if(Settings.temporalization === 'crt')
+                    attribute.setAttribute("identity", this.positIdentityRange);
                 if(this.historized)
                     attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 if(this.knotted) {
@@ -3645,6 +3689,8 @@
             this.idempotent = Defaults.idempotency === 'true';
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
+            this.editables.push(Editables.positIdentityRangeEdit);
+            this.positIdentityRange = Defaults.positIdentityRange;
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
@@ -3654,6 +3700,7 @@
             historized: false,
             restatable: true,
             idempotent: false,
+            positIdentityRange: '',
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
@@ -3803,6 +3850,7 @@
                         description = element.childNodes.item(i);
                 var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
+                var identity = element.getAttribute("identity") || Defaults.positIdentityRange;
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
@@ -3811,6 +3859,7 @@
                 tie.encapsulation = capsule;
                 tie.restatable = restatable;
                 tie.idempotent = idempotent;
+                tie.positIdentityRange = identity;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
@@ -3865,6 +3914,8 @@
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
+                if(Settings.temporalization === 'crt')
+                    tie.setAttribute("identity", this.positIdentityRange);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.changingRange);
                 for(var i = 0; i < this.edges.length; i++) {
@@ -4797,33 +4848,35 @@
             if(selectedNodes.length === 0 || (selectedNodes.length === 1 && selectedNodes[0] === hoveredNode)) {
                 this.topper.appendChild(document.createTextNode("Edit " + hoveredNode.type));
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
-                    this.showEditables = true;
-                    var element = document.createElement(editable.type);
-                    element.className = 'editable';
-                    if(editable.pattern)
-                        element.setAttribute('pattern', editable.pattern);
-                    for(j = 0; j < editable.attributes.length;) {
-                        var attribute = editable.attributes[j++];
-                        var value = editable.attributes[j++];
-                        element.setAttribute(attribute, value);
+                    if(editable.editable) {
+                        this.showEditables = true;
+                        var element = document.createElement(editable.type);
+                        element.className = 'editable';
+                        if(editable.pattern)
+                            element.setAttribute('pattern', editable.pattern);
+                        for(j = 0; j < editable.attributes.length;) {
+                            var attribute = editable.attributes[j++];
+                            var value = editable.attributes[j++];
+                            element.setAttribute(attribute, value);
+                        }
+                        editable.setElement(element, hoveredNode);
+                        element.editable = editable;
+                        element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
+                        element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
+                        element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
+                        if(editable.pattern)
+                            element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
+                        tr = document.createElement('tr');
+                        tr.setAttribute('valign', 'top');
+                        tr.setAttribute('title', editable.description);
+                        var td1 = document.createElement('td');
+                        td1.appendChild(document.createTextNode(editable.name + ":"));
+                        tr.appendChild(td1);
+                        var td2 = document.createElement('td');
+                        td2.appendChild(element);
+                        tr.appendChild(td2);
+                        this.editables.appendChild(tr);
                     }
-                    editable.setElement(element, hoveredNode);
-                    element.editable = editable;
-                    element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
-                    element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
-                    element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
-                    if(editable.pattern)
-                        element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
-                    tr = document.createElement('tr');
-                    tr.setAttribute('valign', 'top');
-                    tr.setAttribute('title', editable.description);
-                    var td1 = document.createElement('td');
-                    td1.appendChild(document.createTextNode(editable.name + ":"));
-                    tr.appendChild(td1);
-                    var td2 = document.createElement('td');
-                    td2.appendChild(element);
-                    tr.appendChild(td2);
-                    this.editables.appendChild(tr);
                 }
             }
             else {
@@ -5673,8 +5726,6 @@
                 document.getElementById('defaultChronon').value = Defaults.chronon;
                 document.getElementById('defaultNow').value = Defaults.now;
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
-                document.getElementById('metadataPrefix').value = Defaults.metadataPrefix;
-                document.getElementById('metadataType').value = Defaults.metadataType;
                 document.getElementById('restatability').checked = Defaults.restatability === 'true';
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
@@ -5685,58 +5736,69 @@
                 document.getElementById('naming').value = Defaults.naming;
             },
             resetDefaults: function() {
-                this.setDefaultCapsule('dbo');
-                this.setDefaultIdentity('int');
-                this.setDefaultChronon('datetime2(7)');
-                this.setDefaultNow('sysdatetime()');
-                this.setDefaultChangingRange('datetime');
-                this.setMetadataPrefix('Metadata');
-                this.setMetadataType('int');
-                this.setRestatability('true');
-                this.setIdempotency('false');
-                this.setMetadataUsage('true');
-                this.setBusinessViews('false');
-                this.setChangingSuffix('ChangedAt');
-                this.setIdentitySuffix('ID');
-                this.setPositingRange('datetime');
-                this.setPositingSuffix('PositedAt');
-                this.setPositorRange('tinyint');
-                this.setPositorSuffix('Positor');
-                this.setReliabilityRange('tinyint');
-                this.setReliabilitySuffix('Reliability');
-                this.setReliableCutoff('1');
-                this.setDeleteReliability('0');
-                this.setReliableSuffix('Reliable');
-                this.setPartitioning('false');
-                this.setEntityIntegrity('true');
-                this.setTemporalization('uni');
-                this.setDatabase('SQLServer');
-                this.setNaming('improved');
-                this.init();
+                if(confirm(
+                        "Are you sure you want to reset to default values? " +
+                        "This will overwrite any changes you have made."
+                )) {
+                    this.setDefaultCapsule('dbo');
+                    this.setDefaultIdentity('int');
+                    this.setDefaultChronon('datetime2(7)');
+                    this.setDefaultNow('sysdatetime()');
+                    this.setDefaultChangingRange('datetime');
+                    this.setMetadataPrefix('Metadata');
+                    this.setMetadataType('int');
+                    this.setRestatability('true');
+                    this.setIdempotency('false');
+                    this.setMetadataUsage('true');
+                    this.setBusinessViews('false');
+                    this.setChangingSuffix('ChangedAt');
+                    this.setIdentitySuffix('ID');
+                    this.setPositIdentityRange('int');
+                    this.setPositingRange('datetime');
+                    this.setPositingSuffix('PositedAt');
+                    this.setPositorRange('tinyint');
+                    this.setPositorSuffix('Positor');
+                    this.setReliabilityRange('tinyint');
+                    this.setReliabilitySuffix('Reliability');
+                    this.setReliableCutoff('1');
+                    this.setDeleteReliability('0');
+                    this.setReliableSuffix('Reliable');
+                    this.setPartitioning('false');
+                    this.setEntityIntegrity('true');
+                    this.setTemporalization('uni');
+                    this.setDatabase('SQLServer');
+                    this.setNaming('improved');
+                    this.init();
+                }
             },
             resetSettings: function() {
-                this.setDamping(4);
-                this.setLongRangeEffect(25);
-                this.setFuzziness(10);
-                this.setNormalDistance(30);
-                this.setStoppingVelocity(0.1);
-                this.setMinimumStartingVelocity(1);
-                this.setMaximumStartingVelocity(5);
-                this.setPartitionFactor(8);
-                this.setStiffness(1);
-                this.setMiniRate(50);
-                this.setCalculations('simple');
-                Knot.mass = 1;
-                Knot.charge = 1;
-                Anchor.mass = 1;
-                Anchor.charge = 1;
-                Attribute.mass = 1;
-                Attribute.charge = 1;
-                Tie.mass = 1;
-                Tie.charge = 1;
-                Edge.mass = 1;
-                Edge.charge = 1;
-                this.init();
+                if(confirm(
+                        "Are you sure you want to reset to default values? " +
+                        "This will overwrite any changes you have made."
+                )) {
+                    this.setDamping(4);
+                    this.setLongRangeEffect(25);
+                    this.setFuzziness(10);
+                    this.setNormalDistance(30);
+                    this.setStoppingVelocity(0.1);
+                    this.setMinimumStartingVelocity(1);
+                    this.setMaximumStartingVelocity(5);
+                    this.setPartitionFactor(8);
+                    this.setStiffness(1);
+                    this.setMiniRate(50);
+                    this.setCalculations('simple');
+                    Knot.mass = 1;
+                    Knot.charge = 1;
+                    Anchor.mass = 1;
+                    Anchor.charge = 1;
+                    Attribute.mass = 1;
+                    Attribute.charge = 1;
+                    Tie.mass = 1;
+                    Tie.charge = 1;
+                    Edge.mass = 1;
+                    Edge.charge = 1;
+                    this.init();
+                }
             },
             storeSettings: function(storage) {
                 storage.setItem("damping", (1 - LayoutEngine.damping) * 100);
@@ -5765,6 +5827,7 @@
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
+                storage.setItem("positIdentityRange", Defaults.positIdentityRange);
                 storage.setItem("positingRange", Defaults.positingRange);
                 storage.setItem("positingSuffix", Defaults.positingSuffix);
                 storage.setItem("positorRange", Defaults.positorRange);
@@ -5813,6 +5876,7 @@
                 this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
+                this.setPositIdentityRange(storage.getItem('positIdentityRange') || Defaults.positIdentityRange);
                 this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
                 this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
                 this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
@@ -5841,6 +5905,9 @@
                 // must be done after Defaults have been populated with previously stored values
                 this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 this.init();
+            },
+            setPositIdentityRange: function(value) {
+                Defaults.positIdentityRange = value;
             },
             setPositingRange: function(value) {
                 Defaults.positingRange = value;
@@ -5881,6 +5948,7 @@
             setNaming: function(value) {
                 Defaults.naming = value;
             },
+            positIdentityRange: null,
             positingRange: null,
             positingSuffix: null,
             positorRange: null,
@@ -5892,6 +5960,8 @@
             reliableSuffix: null,
             partitioning: null,
             entityIntegrity: null,
+            metadataPrefix: null,
+            metadataType: null,
             addTextItem: function(item, destination, before, label, title, listener) {
                 if(!this[item]) {
                     this[item] = {
@@ -5939,57 +6009,62 @@
                 var temporalizationSelect = document.getElementById('temporalization');
                 temporalizationSelect.value = value;
                 var listOfDefaults = document.getElementById('listOfDefaults');
-                var tempoItem = document.getElementById('tempoItem');
+                var beforeItem = document.getElementById('crtSettingsBeforeHere');
                 if(value === 'crt') {
                     this.addTextItem(
-                            'positingRange', listOfDefaults, tempoItem, ' Positing time range',
+                            'positIdentityRange', listOfDefaults, beforeItem, ' Posit identity',
+                            "The 'data type' for identities of posits used throughout the implementation.",
+                            function() { Settings.setPositIdentityRange(this.value); }
+                    );
+                    this.addTextItem(
+                            'positingRange', listOfDefaults, beforeItem, ' Positing time range',
                             "The positing time (corrections) 'data type' used throughout the implementation.",
                             function() { Settings.setPositingRange(this.value); }
                     );
                     this.addTextItem(
-                            'positingSuffix', listOfDefaults, tempoItem, ' Positing suffix',
+                            'positingSuffix', listOfDefaults, beforeItem, ' Positing time suffix',
                             "The suffix used for the column storing the point in time a posit was made.",
                             function() { Settings.setPositingSuffix(this.value); }
                     );
                     this.addTextItem(
-                            'positorRange', listOfDefaults, tempoItem, ' Positor range',
+                            'positorRange', listOfDefaults, beforeItem, ' Positor range',
                             "The positor (one able to correct) 'data type' used throughout the implementation.",
                             function() { Settings.setPositorRange(this.value); }
                     );
                     this.addTextItem(
-                            'positorSuffix', listOfDefaults, tempoItem, ' Positor suffix',
+                            'positorSuffix', listOfDefaults, beforeItem, ' Positor suffix',
                             "The suffix used for the column storing the who made a posit.",
                             function() { Settings.setPositorSuffix(this.value); }
                     );
                     this.addTextItem(
-                            'reliabilityRange', listOfDefaults, tempoItem, ' Reliability range',
+                            'reliabilityRange', listOfDefaults, beforeItem, ' Reliability range',
                             "A 'data type' that can hold the desired degrees of reliability.",
                             function() { Settings.setReliabilityRange(this.value); }
                     );
                     this.addTextItem(
-                            'reliabilitySuffix', listOfDefaults, tempoItem, ' Reliability suffix',
+                            'reliabilitySuffix', listOfDefaults, beforeItem, ' Reliability suffix',
                             "The suffix used for the column storing reliability.",
                             function() { Settings.setReliabilitySuffix(this.value); }
                     );
                     this.addTextItem(
-                            'reliableCutoff', listOfDefaults, tempoItem, ' Reliable cutoff',
+                            'reliableCutoff', listOfDefaults, beforeItem, ' Reliable cutoff',
                             "The smallest (inclusive) value of reliability to be considered reliable.",
                             function() { Settings.setReliableCutoff(this.value); }
                     );
                     this.addTextItem(
-                            'deleteReliability', listOfDefaults, tempoItem, ' Delete reliability',
+                            'deleteReliability', listOfDefaults, beforeItem, ' Delete reliability',
                             "The default value of reliability to use when deleting information.",
                             function() { Settings.setDeleteReliabilty(this.value); }
                     );
                     this.addTextItem(
-                            'reliableSuffix', listOfDefaults, tempoItem, ' Reliable suffix',
+                            'reliableSuffix', listOfDefaults, beforeItem, ' Reliable suffix',
                             "The suffix used for the computed column storing the boolean reliable result." +
                             "This is based on a calculation using the cutoff to determine if data is " +
                             "considered reliable or unreliable.",
                             function() { Settings.setReliableSuffix(this.value); }
                     );
                     this.addBoolItem(
-                            'entityIntegrity', listOfDefaults, tempoItem, ' Ensure entity integrity',
+                            'entityIntegrity', listOfDefaults, beforeItem, ' Ensure entity integrity',
                             "Entity integrity adds constraints ensuring that no temporal duplicates " +
                             "can co-exist for the same entity and version, that no negative recording " +
                             "time intervals can be stored, and that there are no overlapping intervals " +
@@ -5997,14 +6072,17 @@
                             function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }
                     );
                     this.addBoolItem(
-                            'partitioning', listOfDefaults, tempoItem, ' Use partitioning',
+                            'partitioning', listOfDefaults, beforeItem, ' Use partitioning',
                             "Partitioning will put currently recorded information in a separate partition " +
                             "from erased information, greatly speeding up querying in the bitemporal implementation.",
                             function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
                     );
+                    Editables.setEditability(Editables.positIdentityRangeEdit, true);
                 }
                 else {
+                    this.removeItem('positIdentityRange', listOfDefaults);
                     this.removeItem('positingRange', listOfDefaults);
+                    this.removeItem('positingSuffix', listOfDefaults);
                     this.removeItem('positorRange', listOfDefaults);
                     this.removeItem('positorSuffix', listOfDefaults);
                     this.removeItem('reliabilityRange', listOfDefaults);
@@ -6014,6 +6092,7 @@
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('partitioning', listOfDefaults);
+                    Editables.setEditability(Editables.positIdentityRangeEdit, false);
                 }
                 this.temporalization = value;
             },
@@ -6024,9 +6103,33 @@
                 Defaults.metadataType = value;
             },
             setMetadataUsage: function(value) {
+                var listOfDefaults = document.getElementById('listOfDefaults');
+                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
+                if(value === 'true') {
+                    this.addTextItem(
+                            'metadataPrefix', listOfDefaults, beforeItem, ' Metadata prefix',
+                            "The prefix used for the columns that store a metadata reference.",
+                            function() { Settings.setMetadataPrefix(this.value); }
+                    );
+                    this.addTextItem(
+                            'metadataType', listOfDefaults, beforeItem, ' Metadata type',
+                            "The 'data type' of the metadata column.",
+                            function() { Settings.setMetadataType(this.value); }
+                    );
+                }
+                else {
+                    this.removeItem('metadataPrefix', listOfDefaults);
+                    this.removeItem('metadataType', listOfDefaults);
+                }
                 Defaults.metadataUsage = value;
             },
-            setBusinessViews: function(value) {
+            setBusinessViews: function(value, userToggle) {
+                if(userToggle && value === 'true')
+                    alert(
+                            "Please note that when business views are used " +
+                            "descriptors must follow the same rules of uniqueness as mnemonics do, " +
+                            "otherwise naming clashes may occur."
+                    );
                 Defaults.businessViews = value;
             },
             setRestatability: function(value) {
@@ -6330,7 +6433,7 @@
         };
 
         // make sure our init function is called when the page is loaded
-        window.onload = function() { try { init(this); } catch(e) { alert(e); } };
+        window.onload = function() { try { init(this); } catch(e) { alert(e); throw e; } };
 
         // implementation of our init function
         function init(window) {
@@ -6512,14 +6615,39 @@
 
         <div id="generate" class="menu">Generate
             <ul class="submenu">
-                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)">XML code</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document), true)">SQL code</li>
-                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Sisulator.jsonify(Model.toXML(false)), true)">JSON string</li>
-                <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()">URL for sharing</li>
-                <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
-                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
+                <li title="Selects the target database for the generated SQL code.">
+                    <select id="database" onchange="Settings.setDatabase(this.value)">
+                        <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
+                        <!-- hidden until someone writes the generator
+                        <option value="Oracle">Oracle</option>
+                        -->
+                    </select> Target database
+                </li>
+                <li title="Selects the version of the naming convention to use for the generated code.">
+                    <select id="naming" onchange="Settings.setNaming(this.value)">
+                        <option value="original">Original</option>
+                        <option value="improved" selected="selected">Improved</option>
+                    </select> Naming convention
+                </li>
+                <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time).">
+                    <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
+                        <option value="uni" selected="selected">Unitemporal</option>
+                        <option value="crt">Concurrent-reliance-temporal</option>
+                        <!-- hidden until ported to sisula
+                        <option value="bi">Bitemporal</option>
+                        -->
+                    </select> Temporalization
+                </li>
+                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
+                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document), true)"> SQL code</li>
+                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
+                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Sisulator.jsonify(Model.toXML(false)), true)"> JSON string</li>
+                <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
+                <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"> PNG screenshot</li>
+                <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')"> SVG graphics</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)"> SVG code</li>
             </ul>
         </div>
 
@@ -6547,44 +6675,17 @@
 
         <div id="defaults" class="menu">Defaults
             <ul id="listOfDefaults" class="submenu">
-                <li title="Selects the target database for the generated SQL code.">
-                    <select id="database" onchange="Settings.setDatabase(this.value)">
-                        <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
-                        <!-- hidden until someone writes the generator
-                        <option value="Oracle">Oracle</option>
-                        -->
-                    </select> Target database
-                </li>
-                <li title="Selects the version of the naming convention to use for the generated code.">
-                    <select id="naming" onchange="Settings.setNaming(this.value)">
-                        <option value="original">Original</option>
-                        <option value="improved" selected="selected">Improved</option>
-                    </select> Naming convention
-                </li>
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
-                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing suffix</li>
-                <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time)." id="tempoItem">
-                    <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
-                        <option value="uni" selected="selected">Unitemporal</option>
-                        <option value="crt">Concurrent-reliance-temporal</option>
-                        <!-- hidden until ported to sisula
-                        <option value="bi">Bitemporal</option>
-                        -->
-                    </select> Temporalization
-                </li>
-                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
-                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false')"/> Use business views</li>
-                <li title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
-                <li title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing time suffix</li>
                 <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
                 <li title="The default 'schema' to use for new items."><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
                 <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
                 <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
-                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults()">Reset to default values</li>
+                <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
+                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
+                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults()">Reset defaults to their default values</li>
             </ul>
         </div>
 
@@ -6607,7 +6708,7 @@
                         <option value="complex">Adjustable</option>
                     </select> &nbsp;Calculations
                 </li>
-                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings()">Reset settings to default values</li>
+                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings()">Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
             </ul>
         </div>
