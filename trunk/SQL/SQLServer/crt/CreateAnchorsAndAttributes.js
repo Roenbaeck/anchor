@@ -36,7 +36,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
@@ -64,7 +64,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -94,7 +94,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
@@ -121,7 +121,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $anchor.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
@@ -146,7 +146,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.annexName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
-    $attribute.identityColumnName $anchor.identity not null,
+    $attribute.identityColumnName $attribute.identity not null,
     $attribute.positingColumnName $schema.positingRange not null,
     $attribute.positorColumnName $schema.positorRange not null,
     $attribute.reliabilityColumnName $schema.reliabilityRange not null,

@@ -31,7 +31,7 @@ SELECT
             if(role.knot) {
                 knot = role.knot;
 /*~
-    tie.$role.knotValueColumnName AS [$knot.descriptor]$(tie.hasMoreRoles())?,
+    tie.$role.knotValueColumnName AS [$knot.businessName]$(tie.hasMoreRoles())?,
 ~*/
             }
             else {
