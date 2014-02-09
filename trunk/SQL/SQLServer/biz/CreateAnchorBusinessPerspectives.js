@@ -28,7 +28,7 @@ while (anchor = schema.nextAnchor()) {
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- Latest_$anchor.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[Latest_$anchor.businessName] WITH SCHEMABINDING AS
+CREATE VIEW [$anchor.capsule].[Latest_$anchor.businessName] AS
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/
@@ -56,7 +56,7 @@ GO
 CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] ﻿(
     @changingTimepoint $schema.chronon
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/

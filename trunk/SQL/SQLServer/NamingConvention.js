@@ -2,7 +2,9 @@
 
 // delimiter that is used in the naming convention
 var D = '_';
-var SID = 'SID';
+
+// used in business naming
+var businessIdentity = 'Id';
 var businessName;
 
 // set some hard coded defaults if they are missing
@@ -47,7 +49,7 @@ while (anchor = schema.nextAnchor()) {
     anchor.capsule = anchor.metadata.capsule || schema.defaultCapsule;
     anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
-    anchor.businessIdentityColumnName = anchor.descriptor + D + SID;
+    anchor.businessIdentityColumnName = anchor.descriptor + D + businessIdentity;
     anchor.toString = function() { return this.mnemonic; };
     var attribute;
     while (attribute = anchor.nextAttribute()) {
@@ -128,7 +130,7 @@ if(BUSINESS_VIEWS) {
 
 var tie;
 while (tie = schema.nextTie()) {
-    var name = '';
+    var name = '', bName = '';
     var role;
     while (role = tie.nextRole()) {
         role.name = role.type + D + role.role;
@@ -136,7 +138,7 @@ while (tie = schema.nextTie()) {
             role.businessName = role.knot.descriptor + D + role.role;
         else
             role.businessName = role.anchor.descriptor + D + role.role;
-        role.businessColumnName = role.businessName + D + SID;
+        role.businessColumnName = role.businessName + D + businessIdentity;
         role.columnName = role.type + D + schema.identitySuffix + D + role.role;
         if(role.knot) {
             knot = role.knot;
@@ -150,14 +152,14 @@ while (tie = schema.nextTie()) {
             }
         }
         name += role.name;
-        businessName += role.businessName;
+        bName += role.businessName;
         if(tie.hasMoreRoles()) {
             name += D;
-            businessName += D;
+            bName += D;
         }
     }
     tie.name = name;
-    tie.businessName = businessName;
+    tie.businessName = bName;
     tie.positName = tie.name + D + schema.positSuffix;
     tie.annexName = tie.name + D + schema.annexSuffix;
     tie.identityColumnName = tie.name + D + schema.identitySuffix;
