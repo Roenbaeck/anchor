@@ -1,7 +1,9 @@
 <schema>
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)"/>
     <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)"/>
-    <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(42)"/>
+    <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(max)">
+        <metadata checksum="true"/>
+    </knot>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
@@ -11,7 +13,9 @@
     <anchor mnemonic="EV" descriptor="Event" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
-        <attribute mnemonic="LOC" descriptor="Location" dataRange="varchar(42)"/>
+        <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
+            <metadata checksum="true"/>
+        </attribute>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
