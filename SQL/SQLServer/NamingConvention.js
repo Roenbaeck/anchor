@@ -73,6 +73,7 @@ while (anchor = schema.nextAnchor()) {
                 knot = attribute.knot;
                 attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.identitySuffix;
                 attribute.knotValueColumnName = attribute.uniqueMnemonic + D + knot.name;
+                attribute.knotChecksumColumnName = attribute.uniqueMnemonic + D + knot.checksumColumnName;
                 attribute.knotMetadataColumnName = attribute.uniqueMnemonic + D + knot.metadataColumnName;
             }
         }
