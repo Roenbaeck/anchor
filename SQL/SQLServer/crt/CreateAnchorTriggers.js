@@ -189,6 +189,7 @@ BEGIN
         @inserted i
 ~*/
                 if(attribute.isKnotted()) {
+                    knot = attribute.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
@@ -347,6 +348,7 @@ BEGIN
         [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
 ~*/
                 if(attribute.isKnotted()) {
+                    knot = attribute.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]

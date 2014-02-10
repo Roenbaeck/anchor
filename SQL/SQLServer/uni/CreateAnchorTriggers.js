@@ -59,12 +59,14 @@ BEGIN
                 knot = attribute.knot;
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
+        $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
         $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) null,
         $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -83,12 +85,15 @@ BEGIN
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
 ~*/
             if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
         i.$attribute.knotValueColumnName,
+        $(knot.hasChecksum())? i.$attribute.knotChecksumColumnName,
         $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
             }
 /*~
+        $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
         i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
@@ -105,12 +110,15 @@ BEGIN
             $(attribute.timeRange)? $attribute.changingColumnName,
 ~*/
             if(attribute.isKnotted()) {
+                knot = attribute.knot;
 /*~
             $attribute.knotValueColumnName,
+            $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
             $(METADATA)? $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
+            $(attribute.hasChecksum())? $attribute.checksumColumnName,
             $attribute.valueColumnName,
 ~*/
         }
@@ -136,6 +144,7 @@ BEGIN
         $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.versionColumnName bigint not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
@@ -149,6 +158,7 @@ BEGIN
         $(METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.changingColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
+        $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
         DENSE_RANK() OVER (
             PARTITION BY
                 i.$attribute.anchorReferenceName
@@ -160,11 +170,12 @@ BEGIN
         @inserted i
 ~*/
                 if(attribute.isKnotted()) {
+                    knot = attribute.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
 ~*/
@@ -190,7 +201,7 @@ BEGIN
                 CASE
                     WHEN [$attribute.capsule].[rf$attribute.name](
                         v.$attribute.anchorReferenceName,
-                        v.$attribute.valueColumnName,
+                        $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
                         v.$attribute.changingColumnName
                     ) = 1
                     THEN 'R' -- restatement
@@ -207,7 +218,7 @@ BEGIN
         AND
             [$attribute.mnemonic].$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
-            [$attribute.mnemonic].$attribute.valueColumnName = v.$attribute.valueColumnName
+            $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName = v.$attribute.checksumColumnName : [$attribute.mnemonic].$attribute.valueColumnName = v.$attribute.valueColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
         INSERT INTO [$attribute.capsule].[$attribute.name] (
@@ -249,11 +260,12 @@ BEGIN
         [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
 ~*/
                 if(attribute.isKnotted()) {
+                    knot = attribute.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
  ~*/
@@ -306,7 +318,7 @@ BEGIN
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -351,7 +363,7 @@ BEGIN
     ON
         b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        b.$attribute.valueColumnName = i.$attribute.valueColumnName
+        $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
         b.$attribute.changingColumnName = i.$attribute.changingColumnName
     WHERE
@@ -359,7 +371,7 @@ BEGIN
     AND
         [$attribute.capsule].[rf$attribute.name](
             i.$attribute.anchorReferenceName,
-            i.$attribute.valueColumnName,
+            $(attribute.hasChecksum())? i.$attribute.checksumColumnName, : i.$attribute.valueColumnName,
             i.$attribute.changingColumnName
         ) = 0~*/
                 }
