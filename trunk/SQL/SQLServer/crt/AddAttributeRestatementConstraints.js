@@ -26,8 +26,14 @@ if(restatements) {
             if(attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
-                    valueColumn = attribute.valueColumnName;
-                    valueType = attribute.dataRange;
+                    if(attribute.hasChecksum()) {
+                        valueColumn = attribute.checksumColumnName;
+                        valueType = 'varbinary(16)';
+                    }
+                    else {
+                        valueColumn = attribute.valueColumnName;
+                        valueType = attribute.dataRange;
+                    }
                 }
                 else {
                     knot = attribute.knot;
@@ -55,7 +61,7 @@ BEGIN
     DECLARE @changed $attribute.timeRange;
     SELECT
         @id = $attribute.anchorReferenceName,
-        @value = $attribute.valueColumnName,
+        @value = $valueColumn,
         @changed = $attribute.changingColumnName
     FROM
         [$attribute.capsule].[$attribute.positName]

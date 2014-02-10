@@ -38,7 +38,7 @@ IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)),
     $attribute.changingColumnName $attribute.timeRange not null,
     $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk$attribute.name foreign key (
@@ -111,7 +111,7 @@ IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', $attribute.valueColumnName) as varbinary(16)),
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)),
     $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
