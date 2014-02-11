@@ -94,12 +94,12 @@ BEGIN
                 knot = attribute.knot;
 /*~
         i.$attribute.knotValueColumnName,
-        $(knot.hasChecksum())? i.$attribute.knotChecksumColumnName,
+        $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))),
         $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
             }
 /*~
-        $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
+        $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))),
         i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
