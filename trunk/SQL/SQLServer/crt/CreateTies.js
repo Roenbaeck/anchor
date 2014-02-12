@@ -12,6 +12,8 @@ var tie;
 while (tie = schema.nextTie()) {
     if(METADATA)
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadataType + ' not null,';
+    if(tie.isGenerator())
+        tie.identityGenerator = 'IDENTITY(1,1)';
     if(tie.isHistorized() && tie.isKnotted()) {
 /*~
 -- Knotted historized tie table ---------------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ while (tie = schema.nextTie()) {
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$tie.positName', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.positName] (
-    $tie.identityColumnName $tie.identity not null,
+    $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
 ~*/
     var role;
     while (role = tie.nextRole()) {

@@ -29,6 +29,8 @@ GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
+        if(attribute.isGenerator())
+            attribute.identityGenerator = 'IDENTITY(1,1)';
         if(attribute.isHistorized() && !attribute.isKnotted()) {
 /*~
 -- Historized attribute posit table -----------------------------------------------------------------------------------
@@ -36,7 +38,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
@@ -64,7 +66,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -94,7 +96,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
@@ -121,7 +123,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
-    $attribute.identityColumnName $attribute.identity $anchor.identityGenerator not null,
+    $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
