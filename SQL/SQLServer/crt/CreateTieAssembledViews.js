@@ -9,7 +9,7 @@
 var tie;
 while (tie = schema.nextTie()) {
     if(METADATA)
-        tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadataType + ' not null,';
+        tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
 /*~
 -- Tie assembled view -------------------------------------------------------------------------------------------------
 -- $tie.name assembled view of the posit and annex tables,

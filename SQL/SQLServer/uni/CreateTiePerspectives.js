@@ -96,7 +96,7 @@ GO
 -- p$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
@@ -173,7 +173,7 @@ AS
 SELECT
     *
 FROM
-    [$tie.capsule].[p$tie.name]($schema.now);
+    [$tie.capsule].[p$tie.name]($schema.metadata.now);
 GO
 ~*/
         if(tie.isHistorized()) {
@@ -182,8 +182,8 @@ GO
 -- d$tie.name showing all differences between the given timepoints
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[d$tie.name] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT

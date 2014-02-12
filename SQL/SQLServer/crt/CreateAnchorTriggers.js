@@ -24,7 +24,7 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @$anchor.mnemonic TABLE (
@@ -46,24 +46,24 @@ BEGIN
         inserted.$anchor.identityColumnName is null;
     DECLARE @inserted TABLE (
         $anchor.identityColumnName $anchor.identity not null,
-        $(METADATA)? $anchor.metadataColumnName $schema.metadataType not null,
+        $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
         $(IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadataType null,
+        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
-        $attribute.positorColumnName $schema.positorRange null,
-        $attribute.positingColumnName $schema.positingRange null,
-        $attribute.reliabilityColumnName $schema.reliabilityRange null,
+        $attribute.positorColumnName $schema.metadata.positorRange null,
+        $attribute.positingColumnName $schema.metadata.positingRange null,
+        $attribute.reliabilityColumnName $schema.metadata.reliabilityRange null,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
-        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
+        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -88,7 +88,7 @@ BEGIN
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
         ISNULL(i.$attribute.positorColumnName, 0),
         ISNULL(i.$attribute.positingColumnName, @now),
-        ISNULL(i.$attribute.reliabilityColumnName, $schema.reliableCutoff),
+        ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.reliableCutoff),
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -150,11 +150,11 @@ BEGIN
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
+        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
-        $attribute.positorColumnName $schema.positorRange not null,
-        $attribute.positingColumnName $schema.positingRange not null,
-        $attribute.reliabilityColumnName $schema.reliabilityRange not null,
+        $attribute.positorColumnName $schema.metadata.positorRange not null,
+        $attribute.positingColumnName $schema.metadata.positingRange not null,
+        $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.versionColumnName bigint not null,
@@ -234,7 +234,7 @@ BEGIN
                         AND
                             pre.$attribute.positorColumnName = v.$attribute.positorColumnName
                         AND
-                            pre.$attribute.reliabilityColumnName >= $schema.reliableCutoff
+                            pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
                         ORDER BY
                             pre.$attribute.changingColumnName desc,
                             pre.$attribute.positingColumnName desc
@@ -252,7 +252,7 @@ BEGIN
                         AND
                             fol.$attribute.positorColumnName = v.$attribute.positorColumnName
                         AND
-                            fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                            fol.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
                         ORDER BY
                             fol.$attribute.changingColumnName asc,
                             fol.$attribute.positingColumnName desc
@@ -405,7 +405,7 @@ INSTEAD OF UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     IF(UPDATE($anchor.identityColumnName))
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/
@@ -460,7 +460,7 @@ BEGIN
             AND
                 pre.$attribute.positorColumnName = i.$attribute.positorColumnName
             AND
-                pre.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                pre.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
                 pre.$attribute.changingColumnName desc,
                 pre.$attribute.positingColumnName desc
@@ -478,7 +478,7 @@ BEGIN
             AND
                 fol.$attribute.positorColumnName = i.$attribute.positorColumnName
             AND
-                fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                fol.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
                 fol.$attribute.changingColumnName asc,
                 fol.$attribute.positingColumnName desc
@@ -527,7 +527,7 @@ BEGIN
             AND
                 pre.$attribute.positorColumnName = i.$attribute.positorColumnName
             AND
-                pre.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                pre.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
                 pre.$attribute.changingColumnName desc,
                 pre.$attribute.positingColumnName desc
@@ -545,7 +545,7 @@ BEGIN
             AND
                 fol.$attribute.positorColumnName = i.$attribute.positorColumnName
             AND
-                fol.$attribute.reliabilityColumnName = $schema.reliableCutoff
+                fol.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
                 fol.$attribute.changingColumnName asc,
                 fol.$attribute.positingColumnName desc
@@ -605,7 +605,7 @@ BEGIN
         p.$attribute.identityColumnName,
         p.$attribute.positorColumnName,
         p.$attribute.positingColumnName,
-        $schema.deleteReliability
+        $schema.metadata.deleteReliability
     FROM
         deleted d
     JOIN

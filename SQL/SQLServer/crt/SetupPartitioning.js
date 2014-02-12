@@ -9,7 +9,7 @@ if(PARTITIONING) {
 -- this function sends information from each positor into its own partition
 -----------------------------------------------------------------------------------------------------------------------
 IF NOT EXISTS (SELECT * FROM sys.partition_functions WHERE name = 'PositorPartition')
-CREATE PARTITION FUNCTION PositorPartition ($schema.positorRange)
+CREATE PARTITION FUNCTION PositorPartition ($schema.metadata.positorRange)
 AS RANGE LEFT FOR VALUES (
     00,01,02,03,04,05,06,07,08,09,
     10,11,12,13,14,15,16,17,18,19,

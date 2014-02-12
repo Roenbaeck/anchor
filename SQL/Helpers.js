@@ -300,11 +300,11 @@ while (tie = schema.nextTie()) {
 }
 
 // global variables
-window.METADATA = schema.metadataUsage == 'true';
-window.IMPROVED = schema.naming == 'improved';
-window.PARTITIONING = schema.partitioning == 'true';
-window.INTEGRITY = schema.entityIntegrity == 'true';
-window.BUSINESS_VIEWS = schema.businessViews == 'true';
+window.METADATA = schema.metadata.metadataUsage == 'true';
+window.IMPROVED = schema.metadata.naming == 'improved';
+window.PARTITIONING = schema.metadata.partitioning == 'true';
+window.INTEGRITY = schema.metadata.entityIntegrity == 'true';
+window.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
 window.EOT = '\'9999-12-31\'';
 
 

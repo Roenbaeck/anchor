@@ -44,9 +44,9 @@ GO
 -- t$tie.name viewed as given by the input parameters
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[t$tie.name] (
-    @positor $schema.positorRange = 0,
-    @changingTimepoint $schema.chronon = $EOT,
-    @positingTimepoint $schema.positingRange = $EOT,
+    @positor $schema.metadata.positorRange = 0,
+    @changingTimepoint $schema.metadata.chronon = $EOT,
+    @positingTimepoint $schema.metadata.positingRange = $EOT,
     @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -138,10 +138,10 @@ CREATE VIEW [$tie.capsule].[l$tie.name] AS
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
-        p.$schema.positorSuffix,
+        p.$schema.metadata.positorSuffix,
         DEFAULT,
         DEFAULT,
         DEFAULT
@@ -151,16 +151,16 @@ GO
 -- p$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
-        p.$schema.positorSuffix,
+        p.$schema.metadata.positorSuffix,
         @changingTimepoint,
         DEFAULT,
         DEFAULT
@@ -174,11 +174,11 @@ AS
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
-        p.$schema.positorSuffix,
-        $schema.now,
+        p.$schema.metadata.positorSuffix,
+        $schema.metadata.now,
         DEFAULT,
         DEFAULT
     ) tie;
@@ -190,8 +190,8 @@ GO
 -- d$tie.name showing all differences between the given timepoints
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[d$tie.name] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT

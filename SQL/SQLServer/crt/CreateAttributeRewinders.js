@@ -48,7 +48,7 @@ IF Object_ID('r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -72,9 +72,9 @@ IF Object_ID('r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @positor $schema.positorRange = 0,
+        @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$EOT',
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -123,7 +123,7 @@ IF Object_ID('r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -147,8 +147,8 @@ IF Object_ID('r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @positor $schema.positorRange = 0,
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positor $schema.metadata.positorRange = 0,
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
