@@ -702,7 +702,8 @@
             metadataUsage: 'true',
             changingSuffix: 'ChangedAt',
             identitySuffix: 'ID',
-            positIdentityRange: 'int',
+            positIdentity: 'int',
+            positGenerator: 'true',
             positingRange: 'datetime',
             positingSuffix: 'PositedAt',
             positorRange: 'tinyint',
@@ -2607,15 +2608,15 @@
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
             },
-            positIdentityRangeEdit: {
-                name: 'Posit identity range',
+            positIdentityEdit: {
+                name: 'Posit identity',
                 description:
                         'Posit identity data type. This should be at large enough to be able to give ' +
                         'identities to all posits that will be stored. With rapidly changing ' +
                         'data this may be much larger than the other involved identities.',
-                setMember: function (element, node) { node.positIdentityRange = element.value; },
-                getMember: function (node) { return node.positIdentityRange; },
-                setElement: function (element, node) { element.value = node.positIdentityRange; },
+                setMember: function (element, node) { node.positIdentity = element.value; },
+                getMember: function (node) { return node.positIdentity; },
+                setElement: function (element, node) { element.value = node.positIdentity; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -2638,6 +2639,21 @@
                 pattern: '.*',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
+            },
+            positGeneratorEdit: {
+                name: 'Posit generator',
+                description:
+                        'Posit identity generator. Check this if you would like the database to generate ' +
+                        ' posit identities for you through some auto incremented sequence. Uncheck if you ' +
+                        'intend to manage your identities somewhere else.',
+                setMember: function (element, node) { node.positGenerator = element.checked; },
+                getMember: function (node) { return node.positGenerator; },
+                setElement: function (element, node) { element.checked = node.positGenerator; },
+                getElement: function (element) { return element.checked; },
+                editable: true,
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox']
             },
             generatorEdit: {
                 name: 'Generator',
@@ -3012,7 +3028,8 @@
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.dataRangeEdit);
-            this.editables.push(Editables.positIdentityRangeEdit);
+            this.editables.push(Editables.positIdentityEdit);
+            this.editables.push(Editables.positGeneratorEdit);
             this.editables.push(Editables.checksumEdit);
             this.knotted = false;
             this.historized = historized;
@@ -3020,7 +3037,8 @@
             this.idempotent = Defaults.idempotency === 'true';
             this.checksum = Defaults.checksum === 'true';
             this.encapsulation = Defaults.encapsulation;
-            this.positIdentityRange = Defaults.positIdentityRange;
+            this.positIdentity = Defaults.positIdentity;
+            this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
         }
@@ -3029,7 +3047,8 @@
             descriptor: '',
             dataRange: '',
             changingRange: '',
-            positIdentityRange: '',
+            positIdentity: '',
+            positGenerator: true,
             historized: false,
             restatable: true,
             idempotent: false,
@@ -3122,6 +3141,7 @@
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
                 var checksum = Defaults.checksum === 'true';
+                var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3133,6 +3153,8 @@
                     idempotent = _idempotent ? _idempotent === 'true' : idempotent;
                     var _checksum = metadata.getAttribute("checksum");
                     checksum = _checksum ? _checksum === 'true' : checksum;
+                    var _generator = metadata.getAttribute("generator");
+                    generator = _generator ? _generator === 'true' : generator;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3146,7 +3168,7 @@
                 var knotted = knotRange ? true : false;
                 var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
-                var identity = element.getAttribute("identity") || Defaults.positIdentityRange;
+                var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
@@ -3160,7 +3182,8 @@
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
                 attribute.checksum = checksum;
-                attribute.positIdentityRange = identity;
+                attribute.positIdentity = identity;
+                attribute.positGenerator = generator;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i] instanceof Anchor)
@@ -3192,7 +3215,7 @@
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 if(Settings.temporalization === 'crt')
-                    attribute.setAttribute("identity", this.positIdentityRange);
+                    attribute.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 if(this.knotted) {
@@ -3208,6 +3231,8 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
+                if(Settings.temporalization === 'crt')
+                    metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
                 if(this.checksum) {
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
                             Defaults.checksum : this.checksum);
@@ -3689,8 +3714,10 @@
             this.idempotent = Defaults.idempotency === 'true';
             this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
-            this.editables.push(Editables.positIdentityRangeEdit);
-            this.positIdentityRange = Defaults.positIdentityRange;
+            this.editables.push(Editables.positIdentityEdit);
+            this.editables.push(Editables.positGeneratorEdit);
+            this.positIdentity = Defaults.positIdentity;
+            this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
@@ -3700,7 +3727,8 @@
             historized: false,
             restatable: true,
             idempotent: false,
-            positIdentityRange: '',
+            positIdentity: '',
+            positGenerator: true,
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
@@ -3834,6 +3862,7 @@
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
+                var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3843,6 +3872,8 @@
                     restatable = _restatable ? _restatable === 'true' : restatable;
                     var _idempotent = metadata.getAttribute("idempotent");
                     idempotent = _idempotent ? _idempotent === 'true' : idempotent;
+                    var _generator = metadata.getAttribute("generator");
+                    generator = _generator ? _generator === 'true' : generator;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3850,7 +3881,7 @@
                         description = element.childNodes.item(i);
                 var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
-                var identity = element.getAttribute("identity") || Defaults.positIdentityRange;
+                var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
@@ -3859,7 +3890,8 @@
                 tie.encapsulation = capsule;
                 tie.restatable = restatable;
                 tie.idempotent = idempotent;
-                tie.positIdentityRange = identity;
+                tie.positIdentity = identity;
+                tie.positGenerator = generator;
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
@@ -3915,9 +3947,9 @@
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
                 if(Settings.temporalization === 'crt')
-                    tie.setAttribute("identity", this.positIdentityRange);
+                    tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
-                    tie.setAttribute("timeRange", this.changingRange);
+                    tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 for(var i = 0; i < this.edges.length; i++) {
                     var role;
                     var node = this.edges[i].otherNode;
@@ -3936,6 +3968,8 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
+                if(Settings.temporalization === 'crt')
+                    metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator)
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
@@ -5827,7 +5861,7 @@
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
-                storage.setItem("positIdentityRange", Defaults.positIdentityRange);
+                storage.setItem("positIdentity", Defaults.positIdentity);
                 storage.setItem("positingRange", Defaults.positingRange);
                 storage.setItem("positingSuffix", Defaults.positingSuffix);
                 storage.setItem("positorRange", Defaults.positorRange);
@@ -5876,7 +5910,7 @@
                 this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
-                this.setPositIdentityRange(storage.getItem('positIdentityRange') || Defaults.positIdentityRange);
+                this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
                 this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
                 this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
                 this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
@@ -5907,7 +5941,7 @@
                 this.init();
             },
             setPositIdentityRange: function(value) {
-                Defaults.positIdentityRange = value;
+                Defaults.positIdentity = value;
             },
             setPositingRange: function(value) {
                 Defaults.positingRange = value;
@@ -5948,7 +5982,7 @@
             setNaming: function(value) {
                 Defaults.naming = value;
             },
-            positIdentityRange: null,
+            positIdentity: null,
             positingRange: null,
             positingSuffix: null,
             positorRange: null,
@@ -6012,7 +6046,7 @@
                 var beforeItem = document.getElementById('crtSettingsBeforeHere');
                 if(value === 'crt') {
                     this.addTextItem(
-                            'positIdentityRange', listOfDefaults, beforeItem, ' Posit identity',
+                            'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
                             "The 'data type' for identities of posits used throughout the implementation.",
                             function() { Settings.setPositIdentityRange(this.value); }
                     );
@@ -6077,10 +6111,11 @@
                             "from erased information, greatly speeding up querying in the bitemporal implementation.",
                             function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
                     );
-                    Editables.setEditability(Editables.positIdentityRangeEdit, true);
+                    Editables.setEditability(Editables.positIdentityEdit, true);
+                    Editables.setEditability(Editables.positGeneratorEdit, true);
                 }
                 else {
-                    this.removeItem('positIdentityRange', listOfDefaults);
+                    this.removeItem('positIdentity', listOfDefaults);
                     this.removeItem('positingRange', listOfDefaults);
                     this.removeItem('positingSuffix', listOfDefaults);
                     this.removeItem('positorRange', listOfDefaults);
@@ -6092,7 +6127,8 @@
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('partitioning', listOfDefaults);
-                    Editables.setEditability(Editables.positIdentityRangeEdit, false);
+                    Editables.setEditability(Editables.positIdentityEdit, false);
+                    Editables.setEditability(Editables.positGeneratorEdit, false);
                 }
                 this.temporalization = value;
             },

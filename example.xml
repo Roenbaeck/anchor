@@ -31,7 +31,7 @@
     </tie>
     <tie>
         <anchorRole role="wasHeld" type="PE" identifier="true"/>
-        <anchorRole role="atLocation" type="ST" identifier="false"/>
+        <anchorRole role="at" type="ST" identifier="false"/>
     </tie>
     <tie>
         <anchorRole role="subset" type="PE" identifier="false"/>
@@ -51,12 +51,17 @@
         <knotRole role="got" type="RAT" identifier="false"/>
     </tie>
     <tie timeRange="datetime">
-        <anchorRole role="atLocation" type="ST" identifier="true"/>
+        <anchorRole role="at" type="ST" identifier="true"/>
         <anchorRole role="isPlaying" type="PR" identifier="true"/>
     </tie>
     <tie>
         <anchorRole role="parent" type="AC" identifier="true"/>
         <anchorRole role="child" type="AC" identifier="true"/>
         <knotRole role="having" type="PAT" identifier="true"/>
+    </tie>
+    <tie>
+        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
+        <anchorRole role="wasHeld" type="ST" identifier="false"/>
+        <anchorRole role="at" type="PE" identifier="true"/>
     </tie>
 </schema>

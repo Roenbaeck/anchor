@@ -86,6 +86,9 @@ while (anchor = schema.nextAnchor()) {
 var attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
+        attribute.isGenerator = function() {
+            return this.metadata.generator == 'true';
+        };
         attribute.isKnotted = function() {
             return this.hasOwnProperty('knotRange');
         };
@@ -149,6 +152,9 @@ while(tie = schema.nextTie()) {
     tie.values = [];
     tie.knotRoles = [];
     tie.anchorRoles = [];
+    tie.isGenerator = function() {
+        return this.metadata.generator == 'true';
+    };
     tie.isKnotted = function() {
         return this.hasOwnProperty('knotRole');
     };
