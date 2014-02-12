@@ -717,7 +717,6 @@
             entityIntegrity: 'true',
             restatability: 'true',
             idempotency: 'false',
-            checksum: 'false',
             naming: 'improved',
             positSuffix: 'Posit',
             annexSuffix: 'Annex',
@@ -727,7 +726,9 @@
             versionSuffix: 'Version',
             statementTypeSuffix: 'StatementType',
             checksumSuffix: 'Checksum',
-            businessViews: 'false'
+            businessViews: 'false',
+            databaseTarget: 'SQLServer',
+            temporalization: 'uni'
         };
 
         // create a singleton
@@ -1414,21 +1415,24 @@
             toXML: function(serialize) {
                 // create the xml document (not using a namespace simplifies the transformations)
                 var schema = document.implementation.createDocument("", "schema", null);
+                var schemaElement = schema.documentElement;
+                schemaElement.setAttribute('format', VERSION);
+                schemaElement.setAttribute('date', this.formatDate(new Date(), 'd'));
+                schemaElement.setAttribute('time', this.formatDate(new Date(), 't'));
                 var metadata = schema.createElement('metadata');
-                metadata.setAttribute('format', VERSION);
-                metadata.setAttribute('temporalization', Settings.temporalization);
-                metadata.setAttribute('date', this.formatDate(new Date(), 'd'));
-                metadata.setAttribute('time', this.formatDate(new Date(), 't'));
-                schema.documentElement.appendChild(metadata);
+                for(var d in Defaults)
+                    if(Defaults.hasOwnProperty(d) && Defaults[d])
+                        metadata.setAttribute(d, Defaults[d]);
+                schemaElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
                     if(node !== null)
-                        schema.documentElement.appendChild(node);
+                        schemaElement.appendChild(node);
                 }
                 if(serialize) {
                     var serialization = schema.createElement('serialization');
                     serialization.textContent = new XMLSerializer().serializeToString(schema);
-                    schema.documentElement.appendChild(serialization);
+                    schemaElement.appendChild(serialization);
                 }
                 return schema;
             },
@@ -1457,29 +1461,46 @@
             fromXML: function(xml) {
                 if(xml) {
                     this.empty();
-                    var metadata, nodes, temporalization = Settings.temporalization || "uni";
-                    nodes = xml.getElementsByTagName('metadata');
-                    if(nodes)
-                        for(i = 0; i < nodes.length; i++) {
-                            if(nodes[i].getAttribute('temporalization')) {
-                                temporalization = nodes[i].getAttribute('temporalization');
-                                break;
+                    var schemaElement = xml.documentElement;
+                    var metadata = schemaElement.getElementsByTagName('metadata');
+                    if(metadata && metadata.length > 0)
+                        metadata = metadata[0]; // from NodeList to Node
+                    var i, def, val, defaults, listOfChanges = [];
+                    if(metadata && metadata.hasAttributes()) {
+                        defaults = metadata.attributes;
+                        for(i = 0; i < defaults.length; i++) {
+                            def = defaults[i].name;
+                            val = defaults[i].value;
+                            if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
+                                listOfChanges.push(def + ': ' + Defaults[def] + ' -> ' + val);
+                        }
+                        if(listOfChanges.length > 0) {
+                            if(confirm(
+                                "The loaded model wants to change these defaults:\n\n" +
+                                listOfChanges.join('\n') + '\n\n' +
+                                "Would you like to accept these changes?\n" +
+                                "Accepting overwrites your current settings!"
+                            )) {
+                                for(i = 0; i < defaults.length; i++) {
+                                    def = defaults[i].name;
+                                    val = defaults[i].value;
+                                    if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
+                                        Defaults[def] = val;
+                                }
+                                // backwards compatibility
+                                switch (Defaults.temporalization) {
+                                    case "mono":
+                                        Defaults.temporalization = "uni";
+                                        break;
+                                    case "bi":
+                                        Defaults.temporalization = "crt";
+                                        break;
+                                }
+                                Settings.storeSettings(window.localStorage);
+                                Settings.loadSettings(window.localStorage);
                             }
                         }
-                    // backwards compatibility
-                    switch (temporalization) {
-                        case "mono":
-                            temporalization = "uni";
-                            break;
-                        case "bi":
-                            temporalization = "crt";
-                            break;
                     }
-                    Settings.setTemporalization(temporalization);
-                    var selector = document.getElementById('temporalization');
-                    if(selector.value !== temporalization)
-                        selector.value = temporalization;
-                    var i;
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
                     for (i = 0; i < knots.length; i++)
@@ -3035,7 +3056,7 @@
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
-            this.checksum = Defaults.checksum === 'true';
+            this.checksum = false;
             this.encapsulation = Defaults.encapsulation;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
@@ -3140,7 +3161,7 @@
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
-                var checksum = Defaults.checksum === 'true';
+                var checksum = false;
                 var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
@@ -3214,7 +3235,7 @@
                 // set attributes on the element
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
-                if(Settings.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt')
                     attribute.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
@@ -3231,11 +3252,11 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
-                if(Settings.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt')
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
                 if(this.checksum) {
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
-                            Defaults.checksum : this.checksum);
+                            false : this.checksum);
                 }
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
@@ -3533,7 +3554,7 @@
             this.editables.push(Editables.generatorEdit);
             this.editables.push(Editables.checksumEdit);
             this.encapsulation = Defaults.encapsulation;
-            this.checksum = Defaults.checksum === 'true';
+            this.checksum = false;
             this.type = 'Knot';
         }
         Knot.prototype = {
@@ -3652,7 +3673,7 @@
                 metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
                 if(this.checksum) {
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
-                            Defaults.checksum : this.checksum);
+                            false : this.checksum);
                 }
                 knot.appendChild(metadata);
 
@@ -3946,7 +3967,7 @@
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
-                if(Settings.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt')
                     tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
@@ -3968,7 +3989,7 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                if(Settings.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt')
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator)
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
@@ -5196,8 +5217,8 @@
                 }
             },
             getDirective: function() {
-                var database = Settings.databaseTarget;
-                var temporalization = Settings.temporalization;
+                var database = Defaults.databaseTarget;
+                var temporalization = Defaults.temporalization;
                 var directive = database + '_' + temporalization + '.directive';
                 return directive;
             },
@@ -5736,11 +5757,9 @@
 
         var Settings = {
             // default values for some 'global' settings
-            databaseTarget: 'SQLServer',
             calculations: 'simple',
             showMnemonics: true,
             showCardinalities: true,
-            temporalization: 'uni',
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
                 document.getElementById('longRangeEffect').value = (LayoutEngine.longRangeEffect * 100).toFixed(0);
@@ -5751,8 +5770,8 @@
                 document.getElementById('maximumStartingVelocity').value = LayoutEngine.maximumStartingVelocity.toFixed(1);
                 document.getElementById('partitionFactor').value = LayoutEngine.partitionFactor.toFixed(0);
                 document.getElementById('stiffness').value = LayoutEngine.stiffness.toFixed(1);
-                document.getElementById('temporalization').value = this.temporalization;
-                document.getElementById('database').value = this.databaseTarget;
+                document.getElementById('temporalization').value = Defaults.temporalization;
+                document.getElementById('database').value = Defaults.databaseTarget;
                 document.getElementById('miniatureFramesBetweenRefresh').value = DrawingEngine.miniatureFramesBetweenRefresh;
                 document.getElementById('calculations').value = this.calculations;
                 document.getElementById('defaultCapsule').value = Defaults.encapsulation;
@@ -5844,8 +5863,8 @@
                 storage.setItem("maximumStartingVelocity", LayoutEngine.maximumStartingVelocity);
                 storage.setItem("partitionFactor", LayoutEngine.partitionFactor);
                 storage.setItem("stiffness", LayoutEngine.stiffness);
-                storage.setItem("temporalization", this.temporalization);
-                storage.setItem("database", this.databaseTarget);
+                storage.setItem("temporalization", Defaults.temporalization);
+                storage.setItem("database", Defaults.databaseTarget);
                 storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("defaultCapsule", Defaults.encapsulation);
@@ -6130,7 +6149,7 @@
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
                 }
-                this.temporalization = value;
+                Defaults.temporalization = value;
             },
             setMetadataPrefix: function(value) {
                 Defaults.metadataPrefix = value;
@@ -6232,7 +6251,7 @@
                 LayoutEngine.init();
             },
             setDatabase: function(value) {
-                this.databaseTarget = value;
+                Defaults.databaseTarget = value;
             },
             setMiniRate: function(value) {
                 DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
@@ -6473,6 +6492,20 @@
 
         // implementation of our init function
         function init(window) {
+            // another disclaimer for the testing versions
+            alert(
+                '----------- DISCLAIMER -----------\n' +
+                'Please note that this is a test version.\n' +
+                'It should not be used for production \n' +
+                'work. Report bugs found in our issue \n' +
+                'tracking system, to which a link can \n' +
+                'be found under the Help/About menu.\n' +
+                '----------- DISCLAIMER -----------'
+            );
+
+            // set values in the settings and defaults input fields
+            Settings.loadSettings(window.localStorage);
+
             // find any parameters passed in the url
             var gets = window.location.search.substring(1);
             var pair, pairs = gets.split('&');
@@ -6510,6 +6543,8 @@
             miniatureContext = miniatureCanvas.getContext('2d');
 
             DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
+            // load previous scale and transform
+            DrawingEngine.loadSettings(window.localStorage);
 
             canvas.CanvasEventHandler = CanvasEventHandler;
             // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
@@ -6551,23 +6586,8 @@
 
             Actions.checkCloudConnectionStatus(false);
 
-            // set values in the settings input fields
-            Settings.loadSettings(window.localStorage);
-
-            // load previous scale and transform
-            DrawingEngine.loadSettings(window.localStorage);
+            // start the engine and let's go
             DrawingEngine.start(true);
-
-            // another disclaimer for the testing versions
-            confirm(
-                '----------- DISCLAIMER -----------\n' +
-                'Please note that this is a test version.\n' +
-                'It should not be used for production \n' +
-                'work. Report bugs found in our issue \n' +
-                'tracking system, to which a link can \n' +
-                'be found under the Help/About menu.\n' +
-                '----------- DISCLAIMER -----------'
-            );
         }
 
         // make sure our exit function is called when the page is unloaded
