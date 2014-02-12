@@ -50,8 +50,8 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
         @posit $anchor.identity,
-        @posited $schema.positingRange,
-        @positor $schema.positorRange,
+        @posited $schema.metadata.positingRange,
+        @positor $schema.metadata.positorRange,
         @reliable tinyint
     )
     RETURNS tinyint AS

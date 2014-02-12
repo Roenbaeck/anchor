@@ -53,7 +53,7 @@ IF Object_ID('r$tie.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.annexName] (
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -77,9 +77,9 @@ IF Object_ID('r$tie.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.name] (
-        @positor $schema.positorRange = 0,
+        @positor $schema.metadata.positorRange = 0,
         $(tie.isHistorized())? @changingTimepoint $tie.timeRange = '$EOT',
-        @positingTimepoint $schema.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT

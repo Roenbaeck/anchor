@@ -18,7 +18,7 @@ BEGIN
     EXEC('
     CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
         @requestedNumberOfIdentities bigint,
-        @metadata $schema.metadataType
+        @metadata $schema.metadata.metadataType
     ) AS
     BEGIN
         SET NOCOUNT ON;

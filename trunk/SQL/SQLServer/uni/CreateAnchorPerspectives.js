@@ -104,7 +104,7 @@ GO
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[p$anchor.name] ﻿(
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
@@ -180,7 +180,7 @@ AS
 SELECT
     *
 FROM
-    [$anchor.capsule].[p$anchor.name]($schema.now);
+    [$anchor.capsule].[p$anchor.name]($schema.metadata.now);
 GO
 ~*/
         if(anchor.hasMoreHistorizedAttributes()) {
@@ -189,8 +189,8 @@ GO
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon,
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon,
     @selection varchar(max) = null
 )
 RETURNS TABLE AS RETURN

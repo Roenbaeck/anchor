@@ -1,5 +1,5 @@
 if(BUSINESS_VIEWS) {
-    /*~
+/*~
 -- ANCHOR TEMPORAL BUSINESS PERSPECTIVES ------------------------------------------------------------------------------
 --
 -- These table valued functions simplify temporal querying by providing a temporal
@@ -54,7 +54,7 @@ GO
 -- Point_$anchor.businessName viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] ﻿(
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
@@ -85,7 +85,7 @@ AS
 SELECT
     *
 FROM
-    [$anchor.capsule].[Point_$anchor.businessName]($schema.now);
+    [$anchor.capsule].[Point_$anchor.businessName]($schema.metadata.now);
 GO
 ~*/
         if(anchor.hasMoreHistorizedAttributes()) {
@@ -94,8 +94,8 @@ GO
 -- Difference_$anchor.businessName showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[Difference_$anchor.businessName] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon,
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon,
     @selection varchar(max) = null
 )
 RETURNS TABLE AS RETURN

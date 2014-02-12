@@ -24,7 +24,7 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @$anchor.mnemonic TABLE (
@@ -46,13 +46,13 @@ BEGIN
         inserted.$anchor.identityColumnName is null;
     DECLARE @inserted TABLE (
         $anchor.identityColumnName $anchor.identity not null,
-        $(METADATA)? $anchor.metadataColumnName $schema.metadataType not null,
+        $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
         $(IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadataType null,
+        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
 ~*/
             if(attribute.isKnotted()) {
@@ -60,7 +60,7 @@ BEGIN
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
-        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadataType null,
+        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -141,7 +141,7 @@ BEGIN
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
+        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
@@ -293,7 +293,7 @@ INSTEAD OF UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     IF(UPDATE($anchor.identityColumnName))
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/

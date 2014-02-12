@@ -48,7 +48,7 @@ GO
 -- Point_$tie.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[Point_$tie.businessName] ﻿(
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
@@ -78,7 +78,7 @@ AS
 SELECT
     *
 FROM
-    [$tie.capsule].[Point_$tie.businessName]($schema.now);
+    [$tie.capsule].[Point_$tie.businessName]($schema.metadata.now);
 GO
 ~*/
         if(tie.isHistorized()) {
@@ -87,8 +87,8 @@ GO
 -- Difference_$tie.businessName showing all differences between the given timepoints
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[Difference_$tie.businessName] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT

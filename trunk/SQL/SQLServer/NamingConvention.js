@@ -8,18 +8,18 @@ var businessIdentity = 'Id';
 var businessName;
 
 // set some hard coded defaults if they are missing
-schema.defaultCapsule = schema.defaultCapsule || 'dbo';
-schema.chronon = schema.chronon || 'datetime';
+schema.metadata.defaultCapsule = schema.metadata.defaultCapsule || 'dbo';
+schema.metadata.chronon = schema.metadata.chronon || 'datetime';
 
 var knot;
 while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
     knot.businessName = knot.descriptor;
     knot.valueColumnName = knot.name;
-    knot.identityColumnName = knot.mnemonic + D + schema.identitySuffix;
-    knot.checksumColumnName = knot.mnemonic + D + schema.checksumSuffix;
-    knot.capsule = knot.metadata.capsule || schema.defaultCapsule;
-    knot.metadataColumnName = schema.metadataPrefix + D + knot.mnemonic;
+    knot.identityColumnName = knot.mnemonic + D + schema.metadata.identitySuffix;
+    knot.checksumColumnName = knot.mnemonic + D + schema.metadata.checksumSuffix;
+    knot.capsule = knot.metadata.capsule || schema.metadata.defaultCapsule;
+    knot.metadataColumnName = schema.metadata.metadataPrefix + D + knot.mnemonic;
     knot.toString = function() { return this.mnemonic; };
 }
 
@@ -45,10 +45,10 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
     anchor.businessName = anchor.descriptor;
-    anchor.identityColumnName = anchor.mnemonic + D + schema.identitySuffix;
-    anchor.capsule = anchor.metadata.capsule || schema.defaultCapsule;
-    anchor.metadataColumnName = schema.metadataPrefix + D + anchor.mnemonic;
-    anchor.dummyColumnName = anchor.mnemonic + D + schema.dummySuffix;
+    anchor.identityColumnName = anchor.mnemonic + D + schema.metadata.identitySuffix;
+    anchor.capsule = anchor.metadata.capsule || schema.metadata.defaultCapsule;
+    anchor.metadataColumnName = schema.metadata.metadataPrefix + D + anchor.mnemonic;
+    anchor.dummyColumnName = anchor.mnemonic + D + schema.metadata.dummySuffix;
     anchor.businessIdentityColumnName = anchor.descriptor + D + businessIdentity;
     anchor.toString = function() { return this.mnemonic; };
     var attribute;
@@ -56,22 +56,22 @@ while (anchor = schema.nextAnchor()) {
         attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
         attribute.name = attribute.uniqueMnemonic + D + anchor.descriptor + D + attribute.descriptor;
         attribute.businessName = attribute.descriptor;
-        attribute.positName = attribute.name + D + schema.positSuffix;
-        attribute.annexName = attribute.name + D + schema.annexSuffix;
-        attribute.checksumColumnName = attribute.uniqueMnemonic + D + schema.checksumSuffix;
-        attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.identitySuffix;
-        attribute.metadataColumnName = schema.metadataPrefix + D + attribute.uniqueMnemonic;
-        attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.versionSuffix;
-        attribute.positingColumnName = attribute.uniqueMnemonic + D + schema.positingSuffix;
-        attribute.positorColumnName = attribute.uniqueMnemonic + D + schema.positorSuffix;
-        attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.reliabilitySuffix;
-        attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.reliableSuffix;
-        attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.statementTypeSuffix;
+        attribute.positName = attribute.name + D + schema.metadata.positSuffix;
+        attribute.annexName = attribute.name + D + schema.metadata.annexSuffix;
+        attribute.checksumColumnName = attribute.uniqueMnemonic + D + schema.metadata.checksumSuffix;
+        attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.metadata.identitySuffix;
+        attribute.metadataColumnName = schema.metadata.metadataPrefix + D + attribute.uniqueMnemonic;
+        attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.metadata.versionSuffix;
+        attribute.positingColumnName = attribute.uniqueMnemonic + D + schema.metadata.positingSuffix;
+        attribute.positorColumnName = attribute.uniqueMnemonic + D + schema.metadata.positorSuffix;
+        attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliabilitySuffix;
+        attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliableSuffix;
+        attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
         if(IMPROVED) {
-            attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.identitySuffix;
+            attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
-                attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.identitySuffix;
+                attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.metadata.identitySuffix;
                 attribute.knotValueColumnName = attribute.uniqueMnemonic + D + knot.name;
                 attribute.knotChecksumColumnName = attribute.uniqueMnemonic + D + knot.checksumColumnName;
                 attribute.knotMetadataColumnName = attribute.uniqueMnemonic + D + knot.metadataColumnName;
@@ -81,7 +81,7 @@ while (anchor = schema.nextAnchor()) {
             attribute.anchorReferenceName = anchor.identityColumnName;
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
-                attribute.knotReferenceName = attribute.knotRange + D + schema.identitySuffix;
+                attribute.knotReferenceName = attribute.knotRange + D + schema.metadata.identitySuffix;
                 attribute.knotValueColumnName = knot.name;
                 attribute.knotMetadataColumnName = knot.metadataColumnName;
             }
@@ -89,9 +89,9 @@ while (anchor = schema.nextAnchor()) {
         attribute.valueColumnName = attribute.knotReferenceName || attribute.name;
         // historized
         if(attribute.isHistorized()) {
-            attribute.changingColumnName = attribute.uniqueMnemonic + D + schema.changingSuffix;
+            attribute.changingColumnName = attribute.uniqueMnemonic + D + schema.metadata.changingSuffix;
         }
-        attribute.capsule = attribute.metadata.capsule || schema.defaultCapsule;
+        attribute.capsule = attribute.metadata.capsule || schema.metadata.defaultCapsule;
         attribute.toString = function() { return this.mnemonic; };
     }
 }
@@ -140,7 +140,7 @@ while (tie = schema.nextTie()) {
         else
             role.businessName = role.anchor.descriptor + D + role.role;
         role.businessColumnName = role.businessName + D + businessIdentity;
-        role.columnName = role.type + D + schema.identitySuffix + D + role.role;
+        role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;
         if(role.knot) {
             knot = role.knot;
             if(IMPROVED) {
@@ -161,19 +161,19 @@ while (tie = schema.nextTie()) {
     }
     tie.name = name;
     tie.businessName = bName;
-    tie.positName = tie.name + D + schema.positSuffix;
-    tie.annexName = tie.name + D + schema.annexSuffix;
-    tie.identityColumnName = tie.name + D + schema.identitySuffix;
-    tie.positingColumnName = tie.name + D + schema.positingSuffix;
-    tie.positorColumnName = tie.name + D + schema.positorSuffix;
-    tie.reliabilityColumnName = tie.name + D + schema.reliabilitySuffix;
-    tie.reliableColumnName = tie.name + D + schema.reliableSuffix;
-    tie.capsule = tie.metadata.capsule || schema.defaultCapsule;
-    tie.metadataColumnName = schema.metadataPrefix + D + tie.name;
-    tie.versionColumnName = tie.name + D + schema.versionSuffix;
-    tie.statementTypeColumnName = tie.name + D + schema.statementTypeSuffix;
+    tie.positName = tie.name + D + schema.metadata.positSuffix;
+    tie.annexName = tie.name + D + schema.metadata.annexSuffix;
+    tie.identityColumnName = tie.name + D + schema.metadata.identitySuffix;
+    tie.positingColumnName = tie.name + D + schema.metadata.positingSuffix;
+    tie.positorColumnName = tie.name + D + schema.metadata.positorSuffix;
+    tie.reliabilityColumnName = tie.name + D + schema.metadata.reliabilitySuffix;
+    tie.reliableColumnName = tie.name + D + schema.metadata.reliableSuffix;
+    tie.capsule = tie.metadata.capsule || schema.metadata.defaultCapsule;
+    tie.metadataColumnName = schema.metadata.metadataPrefix + D + tie.name;
+    tie.versionColumnName = tie.name + D + schema.metadata.versionSuffix;
+    tie.statementTypeColumnName = tie.name + D + schema.metadata.statementTypeSuffix;
     if(tie.timeRange) {
-        tie.changingColumnName = tie.name + D + schema.changingSuffix;
+        tie.changingColumnName = tie.name + D + schema.metadata.changingSuffix;
     }
     tie.toString = function() { return tie.name; };
 }

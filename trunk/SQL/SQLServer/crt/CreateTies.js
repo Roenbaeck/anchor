@@ -11,7 +11,7 @@
 var tie;
 while (tie = schema.nextTie()) {
     if(METADATA)
-        tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadataType + ' not null,';
+        tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
     if(tie.isGenerator())
         tie.identityGenerator = 'IDENTITY(1,1)';
     if(tie.isHistorized() && tie.isKnotted()) {
@@ -116,16 +116,16 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
 IF Object_ID('$tie.annexName', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.annexName] (
     $tie.identityColumnName $tie.identity not null,
-    $tie.positingColumnName $schema.positingRange not null,
-    $tie.positorColumnName $schema.positorRange not null,
-    $tie.reliabilityColumnName $schema.reliabilityRange not null,
+    $tie.positingColumnName $schema.metadata.positingRange not null,
+    $tie.positorColumnName $schema.metadata.positorRange not null,
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
     $tie.reliableColumnName as isnull(cast(
         case
-            when $tie.reliabilityColumnName < $schema.reliableCutoff then 0
+            when $tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
             else 1
         end
     as tinyint), 1) persisted,
-    $(METADATA)? $tie.metadataColumnName $schema.metadataType not null,
+    $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
     ) references [$tie.capsule].[$tie.positName]($tie.identityColumnName),

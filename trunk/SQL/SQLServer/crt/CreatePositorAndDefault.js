@@ -5,16 +5,16 @@
 -- must be available the table is set up with a default positor with identity 0.
 --
 -- Positor table ------------------------------------------------------------------------------------------------------
-IF Object_ID('_$schema.positorSuffix', 'U') IS NULL
+IF Object_ID('_$schema.metadata.positorSuffix', 'U') IS NULL
 BEGIN
-    CREATE TABLE [$schema.defaultCapsule].[_$schema.positorSuffix] (
-        $schema.positorSuffix $schema.positorRange not null,
-        constraint pk_$schema.positorSuffix primary key (
-            $schema.positorSuffix asc
+    CREATE TABLE [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] (
+        $schema.metadata.positorSuffix $schema.metadata.positorRange not null,
+        constraint pk_$schema.metadata.positorSuffix primary key (
+            $schema.metadata.positorSuffix asc
         )
     );
-    INSERT INTO [$schema.defaultCapsule].[_$schema.positorSuffix] (
-        $schema.positorSuffix
+    INSERT INTO [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] (
+        $schema.metadata.positorSuffix
     )
     VALUES (
         0 -- the default positor

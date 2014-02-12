@@ -51,9 +51,9 @@ GO
 -- t$anchor.name viewed as given by the input parameters
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
-    @positor $schema.positorRange = 0,
-    @changingTimepoint $schema.chronon = $EOT,
-    @positingTimepoint $schema.positingRange = $EOT,
+    @positor $schema.metadata.positorRange = 0,
+    @changingTimepoint $schema.metadata.chronon = $EOT,
+    @positingTimepoint $schema.metadata.positingRange = $EOT,
     @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -139,10 +139,10 @@ AS
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        p.$schema.positorSuffix,
+        p.$schema.metadata.positorSuffix,
         DEFAULT,
         DEFAULT,
         DEFAULT
@@ -152,16 +152,16 @@ GO
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
-    @changingTimepoint $schema.chronon
+    @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        p.$schema.positorSuffix,
+        p.$schema.metadata.positorSuffix,
         @changingTimepoint,
         DEFAULT,
         DEFAULT
@@ -175,11 +175,11 @@ AS
 SELECT
     *
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
-        p.$schema.positorSuffix,
-        $schema.now,
+        p.$schema.metadata.positorSuffix,
+        $schema.metadata.now,
         DEFAULT,
         DEFAULT
     ) [$anchor.mnemonic];
@@ -191,8 +191,8 @@ GO
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
-    @intervalStart $schema.chronon,
-    @intervalEnd $schema.chronon,
+    @intervalStart $schema.metadata.chronon,
+    @intervalEnd $schema.metadata.chronon,
     @selection varchar(max) = null
 )
 RETURNS TABLE AS RETURN
@@ -200,7 +200,7 @@ SELECT
     timepoints.inspectedTimepoint,
     [$anchor.mnemonic].*
 FROM
-    [$schema.defaultCapsule].[_$schema.positorSuffix] p
+    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 JOIN (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
@@ -222,7 +222,7 @@ JOIN (
 /*~
 ) timepoints
 ON
-    timepoints.positor = p.$schema.positorSuffix
+    timepoints.positor = p.$schema.metadata.positorSuffix
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
         timepoints.positor,

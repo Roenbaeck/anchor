@@ -23,17 +23,17 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @inserted TABLE (
-        $(METADATA)? $tie.metadataColumnName $schema.metadataType not null,
+        $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
         $(tie.isHistorized())? $tie.versionColumnName bigint not null,
         $(tie.isHistorized())? $tie.statementTypeColumnName char(1) not null,
-        $tie.positorColumnName $schema.positorRange not null,
-        $tie.positingColumnName $schema.positingRange not null,
-        $tie.reliabilityColumnName $schema.reliabilityRange not null,
+        $tie.positorColumnName $schema.metadata.positorRange not null,
+        $tie.positingColumnName $schema.metadata.positingRange not null,
+        $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -104,7 +104,7 @@ BEGIN
 /*~
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
-        ISNULL(i.$tie.reliabilityColumnName, $schema.reliableCutoff),
+        ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff),
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -213,7 +213,7 @@ BEGIN
                         AND
                             pre.$tie.positorColumnName = v.$tie.positorColumnName
                         AND
-                            pre.$tie.reliabilityColumnName >= $schema.reliableCutoff
+                            pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
                         ORDER BY
                             pre.$tie.changingColumnName DESC,
                             pre.$tie.positingColumnName DESC
@@ -260,7 +260,7 @@ BEGIN
                         AND
                             fol.$tie.positorColumnName = v.$tie.positorColumnName
                         AND
-                            fol.$tie.reliabilityColumnName >= $schema.reliableCutoff
+                            fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
                         ORDER BY
                             fol.$tie.changingColumnName ASC,
                             fol.$tie.positingColumnName DESC
@@ -467,7 +467,7 @@ INSTEAD OF UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.chronon = $schema.now;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
@@ -572,7 +572,7 @@ BEGIN
                         AND
                             pre.$tie.positorColumnName = i.$tie.positorColumnName
                         AND
-                            pre.$tie.reliabilityColumnName >= $schema.reliableCutoff
+                            pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
                         ORDER BY
                             pre.$tie.changingColumnName DESC,
                             pre.$tie.positingColumnName DESC
@@ -619,7 +619,7 @@ BEGIN
                         AND
                             fol.$tie.positorColumnName = i.$tie.positorColumnName
                         AND
-                            fol.$tie.reliabilityColumnName >= $schema.reliableCutoff
+                            fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
                         ORDER BY
                             fol.$tie.changingColumnName ASC,
                             fol.$tie.positingColumnName DESC
@@ -697,7 +697,7 @@ BEGIN
         d.$tie.identityColumnName,
         d.$tie.positorColumnName,
         d.$tie.positingColumnName,
-        $schema.deleteReliability
+        $schema.metadata.deleteReliability
     FROM
         deleted d;
 END

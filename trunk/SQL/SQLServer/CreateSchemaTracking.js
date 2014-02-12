@@ -10,14 +10,14 @@ if(schema.serialization) {
 -- The schema table holds every xml that has been executed against the database
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Schema', 'U') IS NULL
-   CREATE TABLE [$schema.defaultCapsule].[_Schema] (
+   CREATE TABLE [$schema.metadata.defaultCapsule].[_Schema] (
       [version] int identity(1, 1) not null primary key,
-      [activation] $schema.chronon not null,
+      [activation] $schema.metadata.chronon not null,
       [schema] xml not null
    );
 GO
 -- Insert the XML schema (as of now)
-INSERT INTO [$schema.defaultCapsule].[_Schema] (
+INSERT INTO [$schema.metadata.defaultCapsule].[_Schema] (
    [activation],
    [schema]
 )
@@ -29,10 +29,10 @@ GO
 -- The anchor view shows information about all the anchors in a schema
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Anchor', 'V') IS NOT NULL
-DROP VIEW [$schema.defaultCapsule].[_Anchor]
+DROP VIEW [$schema.metadata.defaultCapsule].[_Anchor]
 GO
 
-CREATE VIEW [$schema.defaultCapsule].[_Anchor]
+CREATE VIEW [$schema.metadata.defaultCapsule].[_Anchor]
 AS
 SELECT
    S.version,
@@ -45,7 +45,7 @@ SELECT
    Nodeset.anchor.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.anchor.value('count(attribute)', 'int') as [numberOfAttributes]
 FROM
-   [$schema.defaultCapsule].[_Schema] S
+   [$schema.metadata.defaultCapsule].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema/anchor') as Nodeset(anchor);
 GO
@@ -53,10 +53,10 @@ GO
 -- The knot view shows information about all the knots in a schema
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Knot', 'V') IS NOT NULL
-DROP VIEW [$schema.defaultCapsule].[_Knot]
+DROP VIEW [$schema.metadata.defaultCapsule].[_Knot]
 GO
 
-CREATE VIEW [$schema.defaultCapsule].[_Knot]
+CREATE VIEW [$schema.metadata.defaultCapsule].[_Knot]
 AS
 SELECT
    S.version,
@@ -69,7 +69,7 @@ SELECT
    Nodeset.knot.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.knot.value('@dataRange', 'nvarchar(max)') as [dataRange]
 FROM
-   [$schema.defaultCapsule].[_Schema] S
+   [$schema.metadata.defaultCapsule].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema/knot') as Nodeset(knot);
 GO
@@ -77,10 +77,10 @@ GO
 -- The attribute view shows information about all the attributes in a schema
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Attribute', 'V') IS NOT NULL
-DROP VIEW [$schema.defaultCapsule].[_Attribute]
+DROP VIEW [$schema.metadata.defaultCapsule].[_Attribute]
 GO
 
-CREATE VIEW [$schema.defaultCapsule].[_Attribute]
+CREATE VIEW [$schema.metadata.defaultCapsule].[_Attribute]
 AS
 SELECT
    S.version,
@@ -99,7 +99,7 @@ SELECT
    Nodeset.attribute.value('@knotRange', 'nvarchar(max)') as [knotRange],
    Nodeset.attribute.value('@timeRange', 'nvarchar(max)') as [timeRange]
 FROM
-   [$schema.defaultCapsule].[_Schema] S
+   [$schema.metadata.defaultCapsule].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema/anchor') as ParentNodeset(anchor)
 OUTER APPLY
@@ -109,10 +109,10 @@ GO
 -- The tie view shows information about all the ties in a schema
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Tie', 'V') IS NOT NULL
-DROP VIEW [$schema.defaultCapsule].[_Tie]
+DROP VIEW [$schema.metadata.defaultCapsule].[_Tie]
 GO
 
-CREATE VIEW [$schema.defaultCapsule].[_Tie]
+CREATE VIEW [$schema.metadata.defaultCapsule].[_Tie]
 AS
 SELECT
    S.version,
@@ -144,7 +144,7 @@ SELECT
    ').value('.', 'nvarchar(max)') as [identifiers],
    Nodeset.tie.value('@timeRange', 'nvarchar(max)') as [timeRange]
 FROM
-   [$schema.defaultCapsule].[_Schema] S
+   [$schema.metadata.defaultCapsule].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema/tie') as Nodeset(tie);
 GO
@@ -156,10 +156,10 @@ GO
 -- @timepoint   The point in time to which you would like to travel.
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_Evolution', 'IF') IS NOT NULL
-DROP FUNCTION [$schema.defaultCapsule].[_Evolution];
+DROP FUNCTION [$schema.metadata.defaultCapsule].[_Evolution];
 GO
 
-CREATE FUNCTION [$schema.defaultCapsule].[_Evolution] (
+CREATE FUNCTION [$schema.metadata.defaultCapsule].[_Evolution] (
     @timepoint AS DATETIME2(7)
 )
 RETURNS TABLE
@@ -175,7 +175,7 @@ SELECT
                SELECT
                   ISNULL(MAX([activation]), @timepoint)
                FROM
-                  [$schema.defaultCapsule].[_Schema]
+                  [$schema.metadata.defaultCapsule].[_Schema]
                WHERE
                   [activation] <= @timepoint
             ) THEN 'Future'
@@ -189,7 +189,7 @@ FROM (
       MAX([version]) as [version],
       MAX([activation]) as [activation]
    FROM
-      [$schema.defaultCapsule].[_Schema]
+      [$schema.metadata.defaultCapsule].[_Schema]
    WHERE
       [activation] <= @timepoint
 ) V
@@ -198,25 +198,25 @@ JOIN (
       [name],
       [version]
    FROM
-      [$schema.defaultCapsule].[_Anchor] a
+      [$schema.metadata.defaultCapsule].[_Anchor] a
    UNION ALL
    SELECT
       [name],
       [version]
    FROM
-      [$schema.defaultCapsule].[_Knot] k
+      [$schema.metadata.defaultCapsule].[_Knot] k
    UNION ALL
    SELECT
       [name],
       [version]
    FROM
-      [$schema.defaultCapsule].[_Attribute] b
+      [$schema.metadata.defaultCapsule].[_Attribute] b
    UNION ALL
    SELECT
       [name],
       [version]
    FROM
-      [$schema.defaultCapsule].[_Tie] t
+      [$schema.metadata.defaultCapsule].[_Tie] t
 ) S
 ON
    S.[version] = V.[version]
@@ -238,10 +238,10 @@ GO
 -- generates a drop script, that must be run separately, dropping everything in an Anchor Modeled database
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('_GenerateDropScript', 'P') IS NOT NULL
-DROP PROCEDURE [$schema.defaultCapsule].[_GenerateDropScript];
+DROP PROCEDURE [$schema.metadata.defaultCapsule].[_GenerateDropScript];
 GO
 
-CREATE PROCEDURE [$schema.defaultCapsule]._GenerateDropScript (
+CREATE PROCEDURE [$schema.metadata.defaultCapsule]._GenerateDropScript (
    @exclusionPattern varchar(42) = '[_]%' -- exclude Metadata by default
 )
 AS

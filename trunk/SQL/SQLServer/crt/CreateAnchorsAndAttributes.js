@@ -20,7 +20,7 @@ while (anchor = schema.nextAnchor()) {
 IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
-    $(METADATA)? $anchor.metadataColumnName $schema.metadataType not null, : $anchor.dummyColumnName bit null,
+    $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName asc
     )
@@ -149,16 +149,16 @@ GO
 IF Object_ID('$attribute.annexName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     $attribute.identityColumnName $attribute.identity not null,
-    $attribute.positingColumnName $schema.positingRange not null,
-    $attribute.positorColumnName $schema.positorRange not null,
-    $attribute.reliabilityColumnName $schema.reliabilityRange not null,
+    $attribute.positingColumnName $schema.metadata.positingRange not null,
+    $attribute.positorColumnName $schema.metadata.positorRange not null,
+    $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
     $attribute.reliableColumnName as isnull(cast(
         case
-            when $attribute.reliabilityColumnName < $schema.reliableCutoff then 0
+            when $attribute.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
             else 1
         end
     as tinyint), 1) persisted,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadataType not null,
+    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName
     ) references [$attribute.capsule].[$attribute.positName]($attribute.identityColumnName),

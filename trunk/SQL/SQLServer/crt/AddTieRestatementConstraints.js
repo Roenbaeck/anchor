@@ -32,8 +32,8 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[rf$tie.name] (
         @posit $tie.identity,
-        @posited $schema.positingRange,
-        @positor $schema.positorRange,
+        @posited $schema.metadata.positingRange,
+        @positor $schema.metadata.positorRange,
         @reliable tinyint
     )
     RETURNS tinyint AS
