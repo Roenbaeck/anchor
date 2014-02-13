@@ -1430,9 +1430,10 @@
                         schemaElement.appendChild(node);
                 }
                 if(serialize) {
-                    var serialization = schema.createElement('serialization');
-                    serialization.textContent = new XMLSerializer().serializeToString(schema);
-                    schemaElement.appendChild(serialization);
+                    var serializationElement = schema.createElement('serialization');
+                    var serialization = schema.createTextNode(new XMLSerializer().serializeToString(schema));
+                    serializationElement.appendChild(serialization);
+                    schemaElement.appendChild(serializationElement);
                 }
                 return schema;
             },
@@ -2782,6 +2783,20 @@
                 pattern: LOWER + '*',
                 event: 'blur',
                 attributes: ['type', 'text', 'required', 'required']
+            },
+            descriptionEdit: {
+                name: 'Description',
+                description:
+                        'A textual description of this item.',
+                setMember: function (element, node) { node.description = element.value; },
+                getMember: function (node) { return node.description; },
+                setElement: function (element, node) { element.value = node.description; },
+                getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'textarea',
+                pattern: null, // anything and nothing are all fine
+                event: 'blur',
+                attributes: ['rows', '3', 'cols', '16']
             }
         };
 
@@ -2798,8 +2813,6 @@
             this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.editables = [];
-            // TODO: descriptions have to be handled separately
-            //this.editables = [['Description','description','textarea','rows','5','cols','20']];
             this.operations = ['erase', 'connect'];
             this.incomplete = true;
         }
@@ -2820,6 +2833,9 @@
             id: null,
             fixed: false,
             visible: true,
+            postCreationInitialization: function() {
+                this.editables.push(Editables.descriptionEdit);
+            },
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -2888,12 +2904,14 @@
             fromXML: function() {
                 return;
             },
-            addLayoutXML: function(element, schema) {
-                if(!this.isEmpty(this.description)) {
-                    var description = schema.createElement("description");
-                    description.innerHTML = this.description;
-                    element.appendChild(description);
+            addDescriptionXML: function(element, schema, description) {
+                if(!this.isEmpty(description)) {
+                    var descriptionElement = schema.createElement("description");
+                    descriptionElement.innerHTML = description;
+                    element.appendChild(descriptionElement);
                 }
+            },
+            addLayoutXML: function(element, schema) {
                 var layout = schema.createElement("layout");
                 layout.setAttribute("x", this.xPosition.toFixed(2));
                 layout.setAttribute("y", this.yPosition.toFixed(2));
@@ -3063,6 +3081,7 @@
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
+            this.postCreationInitialization();
         }
         Attribute.prototype = {
             mnemonic: '',
@@ -3267,6 +3286,7 @@
                 }
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
+                this.addDescriptionXML(attribute, schema, this.description);
                 element.appendChild(attribute);
             },
             contextualName: function() {
@@ -3375,6 +3395,7 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
+            this.postCreationInitialization();
         }
         Anchor.prototype = {
             mnemonic: '',
@@ -3507,6 +3528,7 @@
                     if(edge.node instanceof Attribute)
                         edge.node.addXML(anchor, schema);
                 this.addLayoutXML(anchor, schema);
+                this.addDescriptionXML(anchor, schema, this.description);
                 return anchor;
             },
             drawOutline: function(context) {
@@ -3557,6 +3579,7 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.type = 'Knot';
+            this.postCreationInitialization();
         }
         Knot.prototype = {
             mnemonic: '',
@@ -3679,6 +3702,7 @@
                 knot.appendChild(metadata);
 
                 this.addLayoutXML(knot, schema);
+                this.addDescriptionXML(knot, schema, this.description);
                 return knot;
             },
             drawOutline: function(context) {
@@ -3743,6 +3767,7 @@
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
+            this.postCreationInitialization();
         }
         Tie.prototype = {
             changingRange: Defaults.changingRange,
@@ -3924,7 +3949,7 @@
                     if(Model.nodes[i] instanceof Knot)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var grandparent = element.parentNode.parentNode;
-                var j, type, edge, role, identifier, coloring, anchor;
+                var j, d, type, edge, role, identifier, coloring, anchor;
                 var anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
@@ -3932,6 +3957,9 @@
                     if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
+                    for(d = 0; d < anchorRoles[i].childNodes.length; d++)
+                        if(anchorRoles[i].childNodes.item(d).nodeName === 'description')
+                            description = anchorRoles[i].childNodes.item(d);
                     var anchors = grandparent.getElementsByTagName("anchor");
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") === type) {
@@ -3939,6 +3967,7 @@
                             edge = new Edge(tie, anchor, (identifier === "true"));
                             edge.role = role;
                             edge.coloring = coloring;
+                            edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
                             break; // only one should match
                         }
@@ -3951,6 +3980,9 @@
                     if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
+                    for(d = 0; d < knotRoles[i].childNodes.length; d++)
+                        if(knotRoles[i].childNodes.item(d).nodeName === 'description')
+                            description = knotRoles[i].childNodes.item(d);
                     var knots = grandparent.getElementsByTagName("knot");
                     for(j = 0; i < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") === type) {
@@ -3958,6 +3990,7 @@
                             edge = new Edge(tie, knot, (identifier === "true"));
                             edge.role = role;
                             edge.coloring = coloring;
+                            edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
                             break; // only one should match
                         }
@@ -3985,6 +4018,7 @@
                         role.setAttribute("coloring", this.edges[i].coloring);
                     role.setAttribute("identifier",
                             this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
+                    this.addDescriptionXML(role, schema, this.edges[i].description);
                     tie.appendChild(role);
                 }
 
@@ -4001,6 +4035,7 @@
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
+                this.addDescriptionXML(tie, schema, this.description);
                 return tie;
             },
             contextualName: function() {
@@ -4163,6 +4198,7 @@
             this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.incomplete = false;
             this.type = 'Edge';
+            this.postCreationInitialization();
         }
         Edge.prototype = {
             role: null,
@@ -5644,8 +5680,8 @@
                     // element
                     if(xmlFragment.nodeType === 1) {
                         // add content with underscore naming
-                        if(xmlFragment.textContent)
-                            object['_' + xmlFragment.nodeName] = xmlFragment.textContent;
+                        if(xmlFragment.lastChild && xmlFragment.lastChild.nodeValue)
+                            object['_' + xmlFragment.nodeName] = xmlFragment.lastChild.nodeValue;
                         // if there are children or attributes we need a container
                         if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
                             if(!object[xmlFragment.nodeName])
