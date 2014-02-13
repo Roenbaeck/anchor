@@ -1463,41 +1463,42 @@
                     this.empty();
                     var schemaElement = xml.documentElement;
                     var metadata = schemaElement.getElementsByTagName('metadata');
-                    if(metadata && metadata.length > 0)
-                        metadata = metadata[0]; // from NodeList to Node
                     var i, def, val, defaults, listOfChanges = [];
-                    if(metadata && metadata.hasAttributes()) {
-                        defaults = metadata.attributes;
-                        for(i = 0; i < defaults.length; i++) {
-                            def = defaults[i].name;
-                            val = defaults[i].value;
-                            if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
-                                listOfChanges.push(def + ': ' + Defaults[def] + ' -> ' + val);
-                        }
-                        if(listOfChanges.length > 0) {
-                            if(confirm(
-                                "The loaded model wants to change these defaults:\n\n" +
-                                listOfChanges.join('\n') + '\n\n' +
-                                "Would you like to accept these changes?\n" +
-                                "Accepting overwrites your current settings!"
-                            )) {
-                                for(i = 0; i < defaults.length; i++) {
-                                    def = defaults[i].name;
-                                    val = defaults[i].value;
-                                    if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
-                                        Defaults[def] = val;
+                    if(metadata && metadata.length > 0) {
+                        metadata = metadata[0]; // from NodeList to Node
+                        if(metadata && metadata.hasAttributes && metadata.hasAttributes()) {
+                            defaults = metadata.attributes;
+                            for(i = 0; i < defaults.length; i++) {
+                                def = defaults[i].name;
+                                val = defaults[i].value;
+                                if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
+                                    listOfChanges.push(def + ': ' + Defaults[def] + ' -> ' + val);
+                            }
+                            if(listOfChanges.length > 0) {
+                                if(confirm(
+                                    "The loaded model wants to change these defaults:\n\n" +
+                                    listOfChanges.join('\n') + '\n\n' +
+                                    "Would you like to accept these changes?\n" +
+                                    "Accepting overwrites your current settings!"
+                                )) {
+                                    for(i = 0; i < defaults.length; i++) {
+                                        def = defaults[i].name;
+                                        val = defaults[i].value;
+                                        if(Defaults.hasOwnProperty(def) && Defaults[def] != val)
+                                            Defaults[def] = val;
+                                    }
+                                    // backwards compatibility
+                                    switch (Defaults.temporalization) {
+                                        case "mono":
+                                            Defaults.temporalization = "uni";
+                                            break;
+                                        case "bi":
+                                            Defaults.temporalization = "crt";
+                                            break;
+                                    }
+                                    Settings.storeSettings(window.localStorage);
+                                    Settings.loadSettings(window.localStorage);
                                 }
-                                // backwards compatibility
-                                switch (Defaults.temporalization) {
-                                    case "mono":
-                                        Defaults.temporalization = "uni";
-                                        break;
-                                    case "bi":
-                                        Defaults.temporalization = "crt";
-                                        break;
-                                }
-                                Settings.storeSettings(window.localStorage);
-                                Settings.loadSettings(window.localStorage);
                             }
                         }
                     }
