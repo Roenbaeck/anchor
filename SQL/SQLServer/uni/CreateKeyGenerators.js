@@ -76,7 +76,7 @@ BEGIN
                 FROM
                     idGenerator
                 WHERE
-                    idNumber > @requestedNumberOfIdentities
+                    idNumber < @requestedNumberOfIdentities
             )
             INSERT INTO [$anchor.capsule].[$anchor.name] (
                 $anchor.dummyColumnName
