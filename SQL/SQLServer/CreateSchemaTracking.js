@@ -23,7 +23,7 @@ INSERT INTO [$schema.metadata.defaultCapsule].[_Schema] (
 )
 SELECT
    current_timestamp,
-   N'$schema._serialization';
+   N'$schema.serialization._serialization';
 GO
 -- Anchor view --------------------------------------------------------------------------------------------------------
 -- The anchor view shows information about all the anchors in a schema
