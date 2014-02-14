@@ -5677,11 +5677,8 @@
             objectify: function(xml, map) {
                 var listSuffix = 's';
                 function objectifier(xmlFragment, map, object) {
-                    // element
+                    // element node
                     if(xmlFragment.nodeType === 1) {
-                        // add content with underscore naming
-                        if(xmlFragment.lastChild && xmlFragment.lastChild.nodeValue)
-                            object['_' + xmlFragment.nodeName] = xmlFragment.lastChild.nodeValue;
                         // if there are children or attributes we need a container
                         if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
                             if(!object[xmlFragment.nodeName])
@@ -5712,6 +5709,12 @@
                             var child = xmlFragment.firstChild;
                             if(child) objectifier(child, map, partialObject);
                         }
+                    }
+                    // text node
+                    else if(xmlFragment.nodeType === 3) {
+                        // add content with underscore naming
+                        if(xmlFragment.nodeValue)
+                            object['_' + xmlFragment.parentNode.nodeName] = xmlFragment.nodeValue;
                     }
                     // process siblings
                     var sibling = xmlFragment.nextSibling;
