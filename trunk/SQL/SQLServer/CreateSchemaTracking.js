@@ -386,5 +386,6 @@ BEGIN
       [ordinal]
    FOR XML PATH('');
 END
+GO
 ~*/
 }
