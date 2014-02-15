@@ -17,4 +17,4 @@ SQL/SQLServer/uni/CreateTiePerspectives.js
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.js
 SQL/SQLServer/uni/CreateTieTriggers.js
 SQL/SQLServer/CreateSchemaTracking.js
-SQL/SQLServer/AddDescriptions.js
+SQL/SQLServer/uni/AddDescriptions.js

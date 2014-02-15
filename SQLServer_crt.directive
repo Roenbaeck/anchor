@@ -22,3 +22,4 @@ SQL/SQLServer/crt/CreateTiePerspectives.js
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.js
 SQL/SQLServer/crt/CreateTieTriggers.js
 SQL/SQLServer/CreateSchemaTracking.js
+SQL/SQLServer/crt/AddDescriptions.js
