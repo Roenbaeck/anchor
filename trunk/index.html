@@ -4040,8 +4040,17 @@
             },
             contextualName: function() {
                 var name, edge;
-                if(Settings.showMnemonics)
+                if(Settings.showMnemonics) {
                     name = this.toString();
+                    if(this.historized && (this.restatable || this.idempotent)) {
+                        name += ' (';
+                        if(this.restatable)
+                            name += 'r';
+                        if(this.idempotent)
+                            name += 'i';
+                        name += ')';
+                    }
+                }
                 else
                     name = null;
                 if(this.imploded) {

@@ -369,6 +369,8 @@ BEGIN
         AND
             v.$tie.statementTypeColumnName in ($statementTypes);
     END
+END
+GO
 ~*/
         }
         else {
@@ -417,9 +419,7 @@ BEGIN
 /*~
     WHERE
         tie.$anyRole.columnName is null;
-~*/
-        }
-/*~
+
     INSERT INTO [$tie.capsule].[$tie.annexName] (
         $(METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
@@ -457,6 +457,7 @@ BEGIN
 END
 GO
 ~*/
+        }
     if(tie.isHistorized() && tie.hasMoreValues()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
@@ -696,7 +697,7 @@ BEGIN
         $(METADATA)? d.$tie.metadataColumnName,
         d.$tie.identityColumnName,
         d.$tie.positorColumnName,
-        d.$tie.positingColumnName,
+        $schema.metadata.now,
         $schema.metadata.deleteReliability
     FROM
         deleted d;

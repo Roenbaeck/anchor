@@ -187,6 +187,10 @@ BEGIN
         'X'
     FROM
         @inserted i
+    LEFT JOIN
+        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+    ON
+        [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
@@ -196,16 +200,19 @@ BEGIN
     ON
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     WHERE
-        ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
+        ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
 ~*/
                 }
                 else {
 /*~
     WHERE
-        i.$attribute.valueColumnName is not null;
+        i.$attribute.valueColumnName is not null
 ~*/
                 }
 /*~
+    AND
+        [$attribute.mnemonic].$attribute.anchorReferenceName is null;
+
     SELECT
         @maxVersion = max($attribute.versionColumnName),
         @currentVersion = 0
@@ -358,11 +365,15 @@ BEGIN
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
  ~*/
                 }
+                else {
 /*~
-    $(attribute.knotRange)? AND : WHERE
-        [$attribute.mnemonic].$attribute.anchorReferenceName is null
+    WHERE
+        i.$attribute.valueColumnName is not null
+~*/
+                }
+/*~
     AND
-        $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null; : i.$attribute.valueColumnName is not null;
+        [$attribute.mnemonic].$attribute.anchorReferenceName is null;
 
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $(METADATA)? $attribute.metadataColumnName,
@@ -379,6 +390,26 @@ BEGIN
         i.$attribute.reliabilityColumnName
     FROM
         @inserted i
+~*/
+                if(attribute.isKnotted()) {
+                    knot = attribute.knot;
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
+    ON
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+    JOIN
+        [$attribute.capsule].[$attribute.positName] p
+    ON
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
+    AND
+        p.$attribute.valueColumnName = ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName);
+ ~*/
+                }
+                else {
+/*~
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
@@ -388,6 +419,7 @@ BEGIN
     AND
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName; : p.$attribute.valueColumnName = i.$attribute.valueColumnName;
 ~*/
+                }
             }
         }
 /*~
@@ -604,7 +636,7 @@ BEGIN
         $(METADATA)? p.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.positorColumnName,
-        p.$attribute.positingColumnName,
+        $schema.metadata.now,
         $schema.metadata.deleteReliability
     FROM
         deleted d
