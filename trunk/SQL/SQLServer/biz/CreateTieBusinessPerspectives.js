@@ -1,4 +1,4 @@
-if(BUSINESS_VIEWS) {
+if(schema.BUSINESS_VIEWS) {
 /*~
 -- TIE TEMPORAL BUSINESS PERSPECTIVES ---------------------------------------------------------------------------------
 --

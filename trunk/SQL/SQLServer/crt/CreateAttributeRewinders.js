@@ -25,7 +25,7 @@ IF Object_ID('r$attribute.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.positName] (
-        @changingTimepoint $attribute.timeRange = '$EOT'
+        @changingTimepoint $attribute.timeRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -48,11 +48,11 @@ IF Object_ID('r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positingColumnName,
         $attribute.positorColumnName,
@@ -73,12 +73,12 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
         @positor $schema.metadata.positorRange = 0,
-        @changingTimepoint $attribute.timeRange = '$EOT',
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        @changingTimepoint $attribute.timeRange = '$schema.EOT',
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? a.$attribute.metadataColumnName,
+        $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,
@@ -123,11 +123,11 @@ IF Object_ID('r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positingColumnName,
         $attribute.positorColumnName,
@@ -148,11 +148,11 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
         @positor $schema.metadata.positorRange = 0,
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? a.$attribute.metadataColumnName,
+        $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,

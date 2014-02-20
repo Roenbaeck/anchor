@@ -52,20 +52,20 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
     @positor $schema.metadata.positorRange = 0,
-    @changingTimepoint $schema.metadata.chronon = $EOT,
-    @positingTimepoint $schema.metadata.positingRange = $EOT,
+    @changingTimepoint $schema.metadata.chronon = $schema.EOT,
+    @positingTimepoint $schema.metadata.positingRange = $schema.EOT,
     @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName,
-    $(METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
-    $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     [$attribute.mnemonic].$attribute.identityColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
     [$attribute.mnemonic].$attribute.positingColumnName,
@@ -78,7 +78,7 @@ SELECT
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~

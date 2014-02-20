@@ -10,7 +10,7 @@
 ~*/
 var tie;
 while (tie = schema.nextTie()) {
-    if(METADATA)
+    if(schema.METADATA)
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
     if(tie.isHistorized() && tie.isKnotted()) {
 /*~
@@ -46,7 +46,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     }
 /*~
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
-    $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
     while (role = tie.nextRole()) {
 /*~

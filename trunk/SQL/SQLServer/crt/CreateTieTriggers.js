@@ -27,7 +27,7 @@ BEGIN
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @inserted TABLE (
-        $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
         $(tie.isHistorized())? $tie.versionColumnName bigint not null,
         $(tie.isHistorized())? $tie.statementTypeColumnName char(1) not null,
@@ -72,7 +72,7 @@ BEGIN
     );
     INSERT INTO @inserted
     SELECT
-        $(METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
+        $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
 ~*/
         if(tie.isHistorized()) {
 /*~
@@ -328,14 +328,14 @@ BEGIN
             $tie.statementTypeColumnName in ($statementTypes);
 
         INSERT INTO [$tie.capsule].[$tie.annexName] (
-            $(METADATA)? $tie.metadataColumnName,
+            $(schema.METADATA)? $tie.metadataColumnName,
             $tie.identityColumnName,
             $tie.positorColumnName,
             $tie.positingColumnName,
             $tie.reliabilityColumnName
         )
         SELECT
-            $(METADATA)? v.$tie.metadataColumnName,
+            $(schema.METADATA)? v.$tie.metadataColumnName,
             p.$tie.identityColumnName,
             v.$tie.positorColumnName,
             v.$tie.positingColumnName,
@@ -421,14 +421,14 @@ GO
         tie.$anyRole.columnName is null;
 
     INSERT INTO [$tie.capsule].[$tie.annexName] (
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
         $tie.positorColumnName,
         $tie.positingColumnName,
         $tie.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? v.$tie.metadataColumnName,
+        $(schema.METADATA)? v.$tie.metadataColumnName,
         p.$tie.identityColumnName,
         v.$tie.positorColumnName,
         v.$tie.positingColumnName,
@@ -638,14 +638,14 @@ BEGIN
         }
 /*~;
     INSERT INTO [$tie.capsule].[$tie.annexName] (
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
         $tie.positorColumnName,
         $tie.positingColumnName,
         $tie.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? v.$tie.metadataColumnName,
+        $(schema.METADATA)? v.$tie.metadataColumnName,
         p.$tie.identityColumnName,
         v.$tie.positorColumnName,
         v.$tie.positingColumnName,
@@ -687,14 +687,14 @@ AS
 BEGIN
     SET NOCOUNT ON;
     INSERT INTO [$tie.capsule].[$tie.annexName] (
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
         $tie.positorColumnName,
         $tie.positingColumnName,
         $tie.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? d.$tie.metadataColumnName,
+        $(schema.METADATA)? d.$tie.metadataColumnName,
         d.$tie.identityColumnName,
         d.$tie.positorColumnName,
         $schema.metadata.now,

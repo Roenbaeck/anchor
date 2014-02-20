@@ -20,7 +20,7 @@ while (anchor = schema.nextAnchor()) {
 IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
-    $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName asc
     )
@@ -40,7 +40,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $attribute.changingColumnName $attribute.timeRange not null,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -63,7 +63,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -88,7 +88,7 @@ IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
@@ -112,7 +112,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),

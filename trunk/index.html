@@ -5630,6 +5630,19 @@
                 var fragment = this.transform(Model.toXML(false), 'xml2documentation.xsl', html);
                 // alert(new XMLSerializer().serializeToString(fragment));
                 html.body.appendChild(fragment);
+            },
+            jsonify: function(xml) {
+                var object = Sisulator.objectify(xml, Sisulator.MAP);
+                // jsonify the object
+                return JSON.stringify(object, null, 3);
+            },
+            // creates a preformatted document fragment from the given text
+            preformat: function(text) {
+                var fragment = document.createDocumentFragment();
+                var pre = document.createElement('pre');
+                pre.appendChild(document.createTextNode(text));
+                fragment.appendChild(pre);
+                return fragment;
             }
         };
 
@@ -5786,21 +5799,7 @@
                 _sisula_ = _sisula_.replace(/§QUOTED§/g, '"'); // unescaping double quotes
                 _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
                 _sisula_ = _sisula_.replace(/(\S+[^\S\n])(?:[^\S\n]+)/gm, '$1'); // consume multiple spaces, but not indentation
-                return Sisulator.preformat(_sisula_);
-            },
-            jsonify: function(xml) {
-                var object = Sisulator.objectify(xml, Sisulator.MAP);
-                // jsonify the object
-                var json = JSON.stringify(object, null, 3);
-                return Sisulator.preformat(json);
-            },
-            // creates a preformatted document fragment from the given text
-            preformat: function(text) {
-                var fragment = document.createDocumentFragment();
-                var pre = document.createElement('pre');
-                pre.appendChild(document.createTextNode(text));
-                fragment.appendChild(pre);
-                return fragment;
+                return _sisula_;
             }
         };
 
@@ -6745,9 +6744,9 @@
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document), true)"> SQL code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
-                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Sisulator.jsonify(Model.toXML(false)), true)"> JSON string</li>
+                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"> PNG screenshot</li>

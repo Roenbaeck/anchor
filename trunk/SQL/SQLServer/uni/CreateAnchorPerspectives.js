@@ -42,13 +42,13 @@ GO
 CREATE VIEW [$anchor.capsule].[l$anchor.name] WITH SCHEMABINDING AS
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName,
-    $(METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
-    $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
             if(attribute.isKnotted()) {
@@ -56,7 +56,7 @@ SELECT
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -109,12 +109,12 @@ CREATE FUNCTION [$anchor.capsule].[p$anchor.name] ﻿(
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
     [$anchor.mnemonic].$anchor.identityColumnName,
-    $(METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
-    $(METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
             if(attribute.isKnotted()) {
@@ -122,7 +122,7 @@ SELECT
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~

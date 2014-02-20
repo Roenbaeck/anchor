@@ -32,27 +32,27 @@ BEGIN
         $anchor.identityColumnName $anchor.identity not null
     );
     INSERT INTO [$anchor.capsule].[$anchor.name] (
-        $(METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
+        $(schema.METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
     )
     OUTPUT
         inserted.$anchor.identityColumnName
     INTO
         @$anchor.mnemonic
     SELECT
-        $(METADATA)? $anchor.metadataColumnName : null
+        $(schema.METADATA)? $anchor.metadataColumnName : null
     FROM
         inserted
     WHERE
         inserted.$anchor.identityColumnName is null;
     DECLARE @inserted TABLE (
         $anchor.identityColumnName $anchor.identity not null,
-        $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
+        $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
 ~*/
             if(attribute.isKnotted()) {
@@ -60,7 +60,7 @@ BEGIN
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
-        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
+        $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -76,12 +76,12 @@ BEGIN
     INSERT INTO @inserted
     SELECT
         ISNULL(i.$anchor.identityColumnName, a.$anchor.identityColumnName),
-        $(METADATA)? i.$anchor.metadataColumnName,
+        $(schema.METADATA)? i.$anchor.metadataColumnName,
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
-        $(METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
+        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
 ~*/
             if(attribute.isKnotted()) {
@@ -89,7 +89,7 @@ BEGIN
 /*~
         i.$attribute.knotValueColumnName,
         $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))),
-        $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
             }
 /*~
@@ -101,12 +101,12 @@ BEGIN
     FROM (
         SELECT
             $anchor.identityColumnName,
-            $(METADATA)? $anchor.metadataColumnName,
+            $(schema.METADATA)? $anchor.metadataColumnName,
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(IMPROVED)? $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
+            $(schema.IMPROVED)? $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.timeRange)? $attribute.changingColumnName,
 ~*/
             if(attribute.isKnotted()) {
@@ -114,7 +114,7 @@ BEGIN
 /*~
             $attribute.knotValueColumnName,
             $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
-            $(METADATA)? $attribute.knotMetadataColumnName,
+            $(schema.METADATA)? $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -141,7 +141,7 @@ BEGIN
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
@@ -155,7 +155,7 @@ BEGIN
     INSERT INTO @$attribute.name
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? i.$attribute.metadataColumnName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.changingColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
@@ -223,13 +223,13 @@ BEGIN
             v.$attribute.versionColumnName = @currentVersion;
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         FROM
@@ -245,12 +245,12 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? i.$attribute.metadataColumnName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
     FROM
         @inserted i
@@ -304,13 +304,13 @@ BEGIN
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
+        $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
         CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
     FROM
@@ -345,13 +345,13 @@ BEGIN
     IF(UPDATE($attribute.valueColumnName))
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName,
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
+        $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
         i.$attribute.valueColumnName
     FROM

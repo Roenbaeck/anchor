@@ -23,7 +23,7 @@ IF Object_ID('r$tie.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.positName] (
-        @changingTimepoint $tie.timeRange = '$EOT'
+        @changingTimepoint $tie.timeRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
@@ -53,11 +53,11 @@ IF Object_ID('r$tie.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.annexName] (
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
         $tie.positingColumnName,
         $tie.positorColumnName,
@@ -78,12 +78,12 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.name] (
         @positor $schema.metadata.positorRange = 0,
-        $(tie.isHistorized())? @changingTimepoint $tie.timeRange = '$EOT',
-        @positingTimepoint $schema.metadata.positingRange = '$EOT'
+        $(tie.isHistorized())? @changingTimepoint $tie.timeRange = '$schema.EOT',
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? a.$tie.metadataColumnName,
+        $(schema.METADATA)? a.$tie.metadataColumnName,
         p.$tie.identityColumnName,
 ~*/
         while (role = tie.nextRole()) {

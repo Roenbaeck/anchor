@@ -8,7 +8,7 @@
 ~*/
 var tie;
 while (tie = schema.nextTie()) {
-    if(METADATA)
+    if(schema.METADATA)
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
 /*~
 -- Tie assembled view -------------------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ BEGIN
     CREATE VIEW [$tie.capsule].[$tie.name]
     WITH SCHEMABINDING AS
     SELECT
-        $(METADATA)? a.$tie.metadataColumnName,
+        $(schema.METADATA)? a.$tie.metadataColumnName,
         p.$tie.identityColumnName,
 ~*/
     var role;
@@ -44,8 +44,8 @@ BEGIN
         a.$tie.identityColumnName = p.$tie.identityColumnName;
     ');
 ~*/
-    if(INTEGRITY) {
-        var scheme = PARTITIONING ? ' ON PositorScheme(' + tie.positorColumnName + ')' : '';
+    if(schema.INTEGRITY) {
+        var scheme = schema.PARTITIONING ? ' ON PositorScheme(' + tie.positorColumnName + ')' : '';
 /*~
     -- Constraint ensuring that recorded and erased posits are temporally consistent
     EXEC('

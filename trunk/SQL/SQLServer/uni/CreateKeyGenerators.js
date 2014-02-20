@@ -8,7 +8,7 @@
 var anchor;
 while (anchor = schema.nextAnchor()) {
     if(anchor.isGenerator()) {
-        if(METADATA) {
+        if(schema.METADATA) {
 /*~
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure

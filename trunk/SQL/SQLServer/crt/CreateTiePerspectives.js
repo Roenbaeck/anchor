@@ -45,14 +45,14 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 CREATE FUNCTION [$tie.capsule].[t$tie.name] (
     @positor $schema.metadata.positorRange = 0,
-    @changingTimepoint $schema.metadata.chronon = $EOT,
-    @positingTimepoint $schema.metadata.positingRange = $EOT,
+    @changingTimepoint $schema.metadata.chronon = $schema.EOT,
+    @positingTimepoint $schema.metadata.positingRange = $schema.EOT,
     @reliable tinyint = 1
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
     tie.$tie.identityColumnName,
-    $(METADATA)? tie.$tie.metadataColumnName,
+    $(schema.METADATA)? tie.$tie.metadataColumnName,
     tie.$tie.positorColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
     tie.$tie.positingColumnName,
@@ -64,7 +64,7 @@ SELECT
                 knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
-    $(METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -195,7 +195,7 @@ CREATE FUNCTION [$tie.capsule].[d$tie.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    $(METADATA)? tie.$tie.metadataColumnName,
+    $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
@@ -203,7 +203,7 @@ SELECT
                 knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
-    $(METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~

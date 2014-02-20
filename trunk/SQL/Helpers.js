@@ -217,11 +217,11 @@ while (tie = schema.nextTie()) {
         role.isIdentifier = function() {
             return this.identifier == 'true';
         };
-        if(role.type.length == 3) {
+        if(schema.knot[role.type]) {
             role.knot = schema.knot[role.type];
             tie.knotRoles.push(role.id);
         }
-        if(role.type.length == 2) {
+        else if(schema.anchor[role.type]) {
             role.anchor = schema.anchor[role.type];
             tie.anchorRoles.push(role.id);
         }
@@ -299,12 +299,10 @@ while (tie = schema.nextTie()) {
     };
 }
 
-// global variables
-window.METADATA = schema.metadata.metadataUsage == 'true';
-window.IMPROVED = schema.metadata.naming == 'improved';
-window.PARTITIONING = schema.metadata.partitioning == 'true';
-window.INTEGRITY = schema.metadata.entityIntegrity == 'true';
-window.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
-window.EOT = '\'9999-12-31\'';
-
-
+// "global" variables
+schema.METADATA = schema.metadata.metadataUsage == 'true';
+schema.IMPROVED = schema.metadata.naming == 'improved';
+schema.PARTITIONING = schema.metadata.partitioning == 'true';
+schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
+schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
+schema.EOT = '\'9999-12-31\'';
