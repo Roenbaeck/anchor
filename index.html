@@ -1277,6 +1277,8 @@
                 this.visibleNodes.length = 0;
                 var node;
                 for(var i = 0; node = this.nodes[i]; i++) {
+                    // reset all incompleteness
+                    node.updateIncompleteness();
                     if(node.visible)
                         this.visibleNodes.push(node);
                 }
@@ -2809,12 +2811,12 @@
             this.moving = true;
             this.fixed = false;
             this.visible = true;
+            this.incomplete = true;
             this.shadowColor = UniqueColor.reserveUniqueColor();
             this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.editables = [];
             this.operations = ['erase', 'connect'];
-            this.incomplete = true;
         }
         AbstractNode.prototype = {
             description: '',
@@ -2827,12 +2829,12 @@
             moving: true,
             shadowColor: Color.scheme.defaultShadowColor,
             editables: null,
-            incomplete: true,
             operations: null,
             type: 'Node',
             id: null,
             fixed: false,
             visible: true,
+            incomplete: true,
             postCreationInitialization: function() {
                 this.editables.push(Editables.descriptionEdit);
             },
@@ -2876,19 +2878,19 @@
                 return typeof value === "undefined" || value == null ||
                         value.toString().replace(/^[^\S]+/,'').replace(/[^\S]+$/,'') === '';
             },
-            isIncomplete: function() {
+            updateIncompleteness: function() {
+                this.incomplete = false;
                 var editable;
                 for(var i = 0; editable = this.editables[i]; i++) {
                     // only those that are supposed to contain text (i.e. not checkboxes, select lists, ...)
                     // and is not switched off from editing
                     if(editable.pattern && editable.editable) {
                         if(this.isEmpty(editable.getMember(this)))
-                            return true;
+                            this.incomplete =  true;
                         if(!editable.getMember(this).toString().match(new RegExp('^' + editable.pattern + '$')))
-                            return true;
+                            this.incomplete =  true;
                     }
                 }
-                return false;
             },
             // override in order to check conditions under which the node breaks the model
             isConforming: function() {
@@ -3246,7 +3248,6 @@
                         }
                     }
                 }
-                attribute.incomplete = attribute.isIncomplete();
                 return attribute;
             },
             addXML: function(element, schema) {
@@ -3506,7 +3507,6 @@
                 anchor.identity = identity;
                 anchor.generator = generator;
                 anchor.encapsulation = capsule;
-                anchor.incomplete = anchor.isIncomplete();
                 return anchor;
             },
             toXML: function(schema) {
@@ -3679,7 +3679,6 @@
                 knot.generator = generator;
                 knot.encapsulation = capsule;
                 knot.checksum = checksum;
-                knot.incomplete = knot.isIncomplete();
                 return knot;
             },
             toXML: function(schema) {
@@ -3758,7 +3757,6 @@
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
-            this.incomplete = this.isIncomplete();
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
@@ -3886,10 +3884,6 @@
             getKnotted: function() {
                 return this.knotted;
             },
-            isIncomplete: function() {
-                return AbstractNode.prototype.isIncomplete.apply(this, arguments) ||
-                        !this.toString().match(/^(_?[A-Z]+_[a-zA-Z]+)+$/);
-            },
             fromXML: function(element) {
                 var x, y, fixed, i, layout, imploded;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3996,7 +3990,6 @@
                         }
                     }
                 }
-                tie.incomplete = tie.isIncomplete();
                 return tie;
             },
             toXML: function(schema) {
@@ -4205,7 +4198,6 @@
             this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
-            this.incomplete = false;
             this.type = 'Edge';
             this.postCreationInitialization();
         }
@@ -4965,8 +4957,10 @@
                         element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
                         element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
                         element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
+                        /*
                         if(editable.pattern)
                             element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
+                            */
                         tr = document.createElement('tr');
                         tr.setAttribute('valign', 'top');
                         tr.setAttribute('title', editable.description);
@@ -5043,20 +5037,13 @@
             dragging: false,
             operate: function(button, nodes) {
                 Model[button.method](nodes);
-                for(var i = 0; i < nodes.length; i++)
-                    nodes[i].incomplete = nodes[i].isIncomplete();
                 CanvasEventHandler.closeContextMenu();
             },
             edit: function(element, node) {
                 if(element && node) {
                     element.editable.setMember(element, node);
-                    if(node.node instanceof Tie)
-                        node.node.incomplete = node.node.isIncomplete();
                     element.checkValidity();
                 }
-            },
-            invalid: function(element, node) {
-                node.incomplete = true;
             },
             mousedown: function(event) {
                 var self = this;
@@ -5131,7 +5118,6 @@
                     this.modalBackground.close();
                     this.modalBackground = null;
                 }
-                this.hoveredNode.incomplete = this.hoveredNode.isIncomplete();
             },
             close: function() {
                 this.unmodal();
@@ -5203,7 +5189,7 @@
                 for(var i = 0; node = nodes[i]; i++) {
                     if(node.toString() && !(node instanceof Edge)) {
                         var fullName = node.encapsulation + '.' + node.toString();
-                        if(node.isIncomplete())
+                        if(node.incomplete)
                             fullName = "* " + fullName;
                         var option = new Option(fullName, node.shadowColor);
                         if(searchString && searchString.trim() !== '') {
