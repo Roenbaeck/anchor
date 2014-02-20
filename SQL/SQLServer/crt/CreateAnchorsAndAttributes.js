@@ -20,7 +20,7 @@ while (anchor = schema.nextAnchor()) {
 IF Object_ID('$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
-    $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName asc
     )
@@ -141,7 +141,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
 GO
 ~*/
     }
-    var scheme = PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
+    var scheme = schema.PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
 /*~
 -- Attribute annex table ----------------------------------------------------------------------------------------------
 -- $attribute.annexName table (of $attribute.positName on $anchor.name)
@@ -158,7 +158,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
             else 1
         end
     as tinyint), 1) persisted,
-    $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName
     ) references [$attribute.capsule].[$attribute.positName]($attribute.identityColumnName),

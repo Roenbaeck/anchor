@@ -35,7 +35,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 CREATE VIEW [$tie.capsule].[l$tie.name] WITH SCHEMABINDING AS
 SELECT
-    $(METADATA)? tie.$tie.metadataColumnName,
+    $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
@@ -43,7 +43,7 @@ SELECT
                 knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
-    $(METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -100,7 +100,7 @@ CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
-    $(METADATA)? tie.$tie.metadataColumnName,
+    $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
@@ -108,7 +108,7 @@ SELECT
                 knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
-    $(METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -187,7 +187,7 @@ CREATE FUNCTION [$tie.capsule].[d$tie.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    $(METADATA)? tie.$tie.metadataColumnName,
+    $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {
@@ -195,7 +195,7 @@ SELECT
                 knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
-    $(METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~

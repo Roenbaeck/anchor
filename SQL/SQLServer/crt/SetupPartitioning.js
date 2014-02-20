@@ -1,6 +1,6 @@
-if(PARTITIONING) {
+if(schema.PARTITIONING) {
 /*~
--- PARTITIONING -------------------------------------------------------------------------------------------------------
+-- schema.PARTITIONING -------------------------------------------------------------------------------------------------------
 --
 -- Partitioning can be used on some versions of SQL Server to speed up querying.
 -- Extend the partition function with more numbers if you have more than one hundred positors.

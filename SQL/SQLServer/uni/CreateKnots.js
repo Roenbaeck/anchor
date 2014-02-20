@@ -12,7 +12,7 @@ var knot;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
         knot.identityGenerator = 'IDENTITY(1,1)';
-    if(METADATA)
+    if(schema.METADATA)
         knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------

@@ -10,7 +10,7 @@
 ~*/
 var tie;
 while (tie = schema.nextTie()) {
-    if(METADATA)
+    if(schema.METADATA)
         tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
     if(tie.isGenerator())
         tie.identityGenerator = 'IDENTITY(1,1)';
@@ -108,7 +108,7 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
     )
 );
 ~*/
-    var scheme = PARTITIONING ? ' ON PositorScheme(' + tie.positorColumnName + ')' : '';
+    var scheme = schema.PARTITIONING ? ' ON PositorScheme(' + tie.positorColumnName + ')' : '';
 /*~
 -- Tie annex table ----------------------------------------------------------------------------------------------------
 -- $tie.annexName table
@@ -125,7 +125,7 @@ CREATE TABLE [$tie.capsule].[$tie.annexName] (
             else 1
         end
     as tinyint), 1) persisted,
-    $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
     ) references [$tie.capsule].[$tie.positName]($tie.identityColumnName),

@@ -21,7 +21,7 @@ BEGIN
     CREATE VIEW [$attribute.capsule].[$attribute.name]
     WITH SCHEMABINDING AS
     SELECT
-        $(METADATA)? a.$attribute.metadataColumnName,
+        $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.anchorReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
@@ -39,8 +39,8 @@ BEGIN
         a.$attribute.identityColumnName = p.$attribute.identityColumnName;
     ');
 ~*/
-        if(INTEGRITY) {
-            var scheme = PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
+        if(schema.INTEGRITY) {
+            var scheme = schema.PARTITIONING ? ' ON PositorScheme(' + attribute.positorColumnName + ')' : '';
 /*~
     -- Constraint ensuring that recorded and erased posits are temporally consistent
     EXEC('

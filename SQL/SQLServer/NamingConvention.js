@@ -24,7 +24,7 @@ while (knot = schema.nextKnot()) {
 }
 
 // warn about naming clashes for business names
-if(BUSINESS_VIEWS) {
+if(schema.BUSINESS_VIEWS) {
     var knots = {};
     while (knot = schema.nextKnot()) {
         if(!knots[knot.businessName])
@@ -67,7 +67,7 @@ while (anchor = schema.nextAnchor()) {
         attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliabilitySuffix;
         attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliableSuffix;
         attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
-        if(IMPROVED) {
+        if(schema.IMPROVED) {
             attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -97,7 +97,7 @@ while (anchor = schema.nextAnchor()) {
 }
 
 // warn about naming clashes for business names
-if(BUSINESS_VIEWS) {
+if(schema.BUSINESS_VIEWS) {
     var anchors = {};
     while (anchor = schema.nextAnchor()) {
         if(!anchors[anchor.businessName])
@@ -143,7 +143,7 @@ while (tie = schema.nextTie()) {
         role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;
         if(role.knot) {
             knot = role.knot;
-            if(IMPROVED) {
+            if(schema.IMPROVED) {
                 role.knotValueColumnName = role.role + D + knot.valueColumnName;
                 role.knotMetadataColumnName = role.role + D + knot.metadataColumnName;
             }
@@ -179,7 +179,7 @@ while (tie = schema.nextTie()) {
 }
 
 // warn about naming clashes for business names
-if(BUSINESS_VIEWS) {
+if(schema.BUSINESS_VIEWS) {
     var ties = {};
     while (tie = schema.nextTie()) {
         if(!ties[tie.businessName])

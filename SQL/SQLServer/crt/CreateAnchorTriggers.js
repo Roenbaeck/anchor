@@ -32,27 +32,27 @@ BEGIN
         $anchor.identityColumnName $anchor.identity not null
     );
     INSERT INTO [$anchor.capsule].[$anchor.name] (
-        $(METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
+        $(schema.METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
     )
     OUTPUT
         inserted.$anchor.identityColumnName
     INTO
         @$anchor.mnemonic
     SELECT
-        $(METADATA)? $anchor.metadataColumnName : null
+        $(schema.METADATA)? $anchor.metadataColumnName : null
     FROM
         inserted
     WHERE
         inserted.$anchor.identityColumnName is null;
     DECLARE @inserted TABLE (
         $anchor.identityColumnName $anchor.identity not null,
-        $(METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
+        $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
         $attribute.positorColumnName $schema.metadata.positorRange null,
         $attribute.positingColumnName $schema.metadata.positingRange null,
@@ -63,7 +63,7 @@ BEGIN
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
-        $(METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
+        $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -79,12 +79,12 @@ BEGIN
     INSERT INTO @inserted
     SELECT
         ISNULL(i.$anchor.identityColumnName, a.$anchor.identityColumnName),
-        $(METADATA)? i.$anchor.metadataColumnName,
+        $(schema.METADATA)? i.$anchor.metadataColumnName,
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
-        $(METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
+        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
         ISNULL(i.$attribute.positorColumnName, 0),
         ISNULL(i.$attribute.positingColumnName, @now),
@@ -95,7 +95,7 @@ BEGIN
 /*~
         i.$attribute.knotValueColumnName,
         $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))),
-        $(METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
             }
 /*~
@@ -107,12 +107,12 @@ BEGIN
     FROM (
         SELECT
             $anchor.identityColumnName,
-            $(METADATA)? $anchor.metadataColumnName,
+            $(schema.METADATA)? $anchor.metadataColumnName,
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(IMPROVED)? $attribute.anchorReferenceName,
-            $(METADATA)? $attribute.metadataColumnName,
+            $(schema.IMPROVED)? $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.timeRange)? $attribute.changingColumnName,
             $attribute.positorColumnName,
             $attribute.positingColumnName,
@@ -123,7 +123,7 @@ BEGIN
 /*~
             $attribute.knotValueColumnName,
             $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
-            $(METADATA)? $attribute.knotMetadataColumnName,
+            $(schema.METADATA)? $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -150,7 +150,7 @@ BEGIN
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
-        $(METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positorColumnName $schema.metadata.positorRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -168,7 +168,7 @@ BEGIN
     INSERT INTO @$attribute.name
     SELECT
         i.$attribute.anchorReferenceName,
-        $(METADATA)? i.$attribute.metadataColumnName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.changingColumnName,
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
@@ -309,14 +309,14 @@ BEGIN
             $attribute.statementTypeColumnName in ($statementTypes);
 
         INSERT INTO [$attribute.capsule].[$attribute.annexName] (
-            $(METADATA)? $attribute.metadataColumnName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.identityColumnName,
             $attribute.positorColumnName,
             $attribute.positingColumnName,
             $attribute.reliabilityColumnName
         )
         SELECT
-            $(METADATA)? v.$attribute.metadataColumnName,
+            $(schema.METADATA)? v.$attribute.metadataColumnName,
             p.$attribute.identityColumnName,
             v.$attribute.positorColumnName,
             v.$attribute.positingColumnName,
@@ -376,14 +376,14 @@ BEGIN
         [$attribute.mnemonic].$attribute.anchorReferenceName is null;
 
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? i.$attribute.metadataColumnName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
@@ -586,14 +586,14 @@ BEGIN
             }
             /*~;
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? i.$attribute.metadataColumnName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
@@ -626,14 +626,14 @@ BEGIN
         while (attribute = anchor.nextAttribute()) {
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(METADATA)? p.$attribute.metadataColumnName,
+        $(schema.METADATA)? p.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.positorColumnName,
         $schema.metadata.now,

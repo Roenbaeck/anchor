@@ -27,7 +27,7 @@ BEGIN
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
@@ -54,7 +54,7 @@ BEGIN
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $(METADATA)? $attribute.metadataColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
         $attribute.knotReferenceName,
         $attribute.changingColumnName

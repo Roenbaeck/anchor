@@ -27,7 +27,7 @@ BEGIN
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @inserted TABLE (
-        $(METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
         $(tie.isHistorized())? $tie.versionColumnName bigint not null,
         $(tie.isHistorized())? $tie.statementTypeColumnName char(1) not null,
@@ -69,7 +69,7 @@ BEGIN
     );
     INSERT INTO @inserted
     SELECT
-        $(METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
+        $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
 ~*/
         if(tie.isHistorized()) {
 /*~
@@ -196,7 +196,7 @@ BEGIN
             v.$tie.versionColumnName = @currentVersion;
 
         INSERT INTO [$tie.capsule].[$tie.name] (
-            $(METADATA)? $tie.metadataColumnName,
+            $(schema.METADATA)? $tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -207,7 +207,7 @@ BEGIN
             $tie.changingColumnName
         )
         SELECT
-            $(METADATA)? $tie.metadataColumnName,
+            $(schema.METADATA)? $tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -228,7 +228,7 @@ BEGIN
         else {
 /*~
     INSERT INTO [$tie.capsule].[$tie.name] (
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -238,7 +238,7 @@ BEGIN
 /*~
     )
     SELECT
-        $(METADATA)? i.$tie.metadataColumnName,
+        $(schema.METADATA)? i.$tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -301,7 +301,7 @@ BEGIN
         }
 /*~
     INSERT INTO [$tie.capsule].[$tie.name] (
-        $(METADATA)? $tie.metadataColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -312,7 +312,7 @@ BEGIN
         $tie.changingColumnName
     )
     SELECT
-        $(METADATA)? i.$tie.metadataColumnName,
+        $(schema.METADATA)? i.$tie.metadataColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
