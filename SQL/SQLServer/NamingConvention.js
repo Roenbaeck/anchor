@@ -75,6 +75,7 @@ while (anchor = schema.nextAnchor()) {
                 attribute.knotValueColumnName = attribute.uniqueMnemonic + D + knot.name;
                 attribute.knotChecksumColumnName = attribute.uniqueMnemonic + D + knot.checksumColumnName;
                 attribute.knotMetadataColumnName = attribute.uniqueMnemonic + D + knot.metadataColumnName;
+                attribute.knotBusinessName = attribute.businessName + D + knot.businessName;
             }
         }
         else {
@@ -135,11 +136,14 @@ while (tie = schema.nextTie()) {
     var role;
     while (role = tie.nextRole()) {
         role.name = role.type + D + role.role;
-        if(role.knot)
-            role.businessName = role.knot.descriptor + D + role.role;
-        else
+        if(role.knot) {
+            role.businessName = role.role + D + role.knot.descriptor;
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else {
             role.businessName = role.anchor.descriptor + D + role.role;
-        role.businessColumnName = role.businessName + D + businessIdentity;
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
         role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;
         if(role.knot) {
             knot = role.knot;
