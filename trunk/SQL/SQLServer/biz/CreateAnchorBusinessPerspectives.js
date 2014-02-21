@@ -30,6 +30,7 @@ while (anchor = schema.nextAnchor()) {
 -----------------------------------------------------------------------------------------------------------------------
 CREATE VIEW [$anchor.capsule].[Latest_$anchor.businessName] AS
 SELECT
+    $(schema.CRT)? [$anchor.mnemonic].Positor,
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/
         var knot, attribute;
@@ -37,7 +38,7 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.businessName]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
@@ -58,13 +59,14 @@ CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] ﻿(
 )
 RETURNS TABLE AS RETURN
 SELECT
+    $(schema.CRT)? [$anchor.mnemonic].Positor,
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knot.businessName]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {

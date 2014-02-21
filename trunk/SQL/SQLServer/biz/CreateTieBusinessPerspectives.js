@@ -26,12 +26,13 @@ while (tie = schema.nextTie()) {
 -----------------------------------------------------------------------------------------------------------------------
 CREATE VIEW [$tie.capsule].[Latest_$tie.businessName] AS
 SELECT
+    $(schema.CRT)? tie.Positor,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    tie.$role.knotValueColumnName AS [$knot.businessName]$(tie.hasMoreRoles())?,
+    tie.$role.knotValueColumnName AS [$role.businessName]$(tie.hasMoreRoles())?,
 ~*/
             }
             else {
@@ -52,12 +53,13 @@ CREATE FUNCTION [$tie.capsule].[Point_$tie.businessName] ﻿(
 )
 RETURNS TABLE AS RETURN
 SELECT
+    $(schema.CRT)? tie.Positor,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    tie.$role.knotValueColumnName AS [$knot.descriptor]$(tie.hasMoreRoles())?,
+    tie.$role.knotValueColumnName AS [$role.businessName]$(tie.hasMoreRoles())?,
 ~*/
             }
             else {
@@ -92,13 +94,14 @@ CREATE FUNCTION [$tie.capsule].[Difference_$tie.businessName] (
 )
 RETURNS TABLE AS RETURN
 SELECT
+    $(schema.CRT)? tie.Positor,
     $(tie.isHistorized())? tie.$tie.changingColumnName as [Time_of_Change],
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    tie.$role.knotValueColumnName AS [$knot.descriptor]$(tie.hasMoreRoles())?,
+    tie.$role.knotValueColumnName AS [$role.businessName]$(tie.hasMoreRoles())?,
 ~*/
             }
             else {
