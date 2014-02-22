@@ -1,0 +1,13 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>JS1k Demo</title>
+		<meta charset="utf-8"/>
+	</head>
+	<body>
+		<canvas id="c"></canvas>
+		<script>
+        window.onload=function(){r=3;N=100;with(Math){A=abs;R=random;P=2*PI}c=document.body.children[0];c.width=w=innerWidth-42;c.height=h=innerHeight-42;c.addEventListener('click',function(e){open(c.toDataURL('image/png'),'_newtab')},false);d=(w+h)/10;g=c.getContext('2d');n=[];for(i=N;i;)n[--i]={x:w*R(),y:h*R(),v:0,w:0};g.fillRect(0,0,w,h);g.globalCompositeOperation='lighter';g.globalAlpha=0.1;g.fillStyle='#fa3';setInterval(function(){with(g){for(i=0;k=n[i++];){for(j=0;o=n[j++];)if(A(k.x-o.x)<d&&A(k.y-o.y)<d&&i!=j){t=A(k.x-o.x)+A(k.y-o.y);t*=t;k.v+=(k.x-o.x)/t;k.w+=(k.y-o.y)/t;}k.x+=k.v;k.y+=k.w;if(k.x>w||k.x<0)k.v*=-1;if(k.y>h||k.y<0)k.w*=-1;beginPath();arc(k.x,k.y,r,0,P);fill()}}},1);}
+        </script>
+	</body>
+</html>
