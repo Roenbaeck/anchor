@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript">
+
+//http://hacks.mozilla.org/2010/05/formdata-interface-coming-to-firefox/
+
+(function(){
+  XMLHttpRequest.prototype.sendMultiPart = function(params) {
+    var BOUNDARY = "---------------------------1966284435497298061834782736";
+    var rn = "\r\n";
+
+    var req = "--" + BOUNDARY;
+
+    for (var i in params) {
+      req += rn + "Content-Disposition: form-data; name=\"" + i + "\"";
+      if (typeof params[i] != "string") {
+        /*var canvas = params[i];
+        var url = canvas.toDataURL("image/png");
+        var base64 = url.substr(url.indexOf(",") + 1);
+        var bin = window.atob(base64);
+        req += "; filename=\"fromcanvas.png\"" + rn + "Content-type: image/png";
+        req += rn + rn + bin + rn + "--" + BOUNDARY;*/
+      } else {
+        req += rn + rn + params[i] + rn + "--" + BOUNDARY;
+      }
+    }
+    req += "--";
+
+    this.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+    this.sendAsBinary(req);
+  };
+})();
+
+
+        window.onload = init;
+
+//http://code.google.com/p/googleappengine/issues/detail?id=2994
+
+
+/*
+server: anchormodeler
+
+list
+  scope "public","private","public/private"
+  filterBy "keyword"
+  filterValue "lkslejg"
+  maxItemsReturned 20
+
+  returnerar i xmlformat
+    modelId, modelName, icon, domain, keyword, authorName
+
+save
+  scope "public","private"
+  modelName
+  modelId  (om nytt dokument så slopar man detta, annars overwrite model med detta id)
+  keywords
+  icon     (textencoded png-image)
+  modelXml
+
+  returnerar ok/error
+
+load
+  modelId
+
+  returnerar modelXml
+
+obs anropare måste testa på eventuell redirect till google login account
+
+todo:
+  delete
+
+ */
+function init() {
+
+            var xmlhttp = new window.XMLHttpRequest();
+			//var url = "http://localhost:8888/anchormodeler";
+            var url = "http://anchormodeler.appspot.com/anchormodeler";
+            xmlhttp.open("POST", url, true);
+            xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                if(xmlhttp.readyState == 4) {
+                    alert(xmlhttp.responseText);
+                    document.getElementById("response").innerHTML = xmlhttp.responseText;
+
+                    //alert(xmlhttp.getAllResponseHeaders());
+                    //alert(xmlhttp.statusText);
+                }
+            };
+
+            if(window.FormData) {
+                var formData = new FormData();
+
+                formData.append("action", "list");
+
+                xmlhttp.send(formData);            }
+            else if (XMLHttpRequest && XMLHttpRequest.prototype.sendAsBinary) {
+                var params = new Array();
+
+                //LIST
+                params.action='list';
+
+                //LOAD
+                //params.action='load';
+                //params.modelId='ag1hbmNob3Jtb2RlbGVycgwLEgVNb2RlbBjZNgw';
+
+                //SAVE
+                params.action='save';
+                params.modelName='testmultipart';
+                params.modelXml='<xml>testar med xml</xml>';
+                params.icon='icon';
+                params.scope='public';
+                params.keywords='test';
+
+
+                //xmlhttp.send(params);
+                xmlhttp.sendMultiPart(params);
+
+            }
+            else {
+                alert("cloud connection not supported");
+            }
+
+        }
+    </script>
+    <title>Test H - Remote access</title>
+</head>
+<body id="body">
+    <!-- trying to fill dynamically -->
+
+  <table border=1><div id="response">response will go here</div></table>
+
+</body>
+</html>

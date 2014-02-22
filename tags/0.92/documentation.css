@@ -1,0 +1,99 @@
+body {
+    font-family: sans-serif;;
+    color: black;
+    background: white;
+}
+table {
+    border-collapse: collapse;
+    border-spacing: 0 0;
+    table-layout: fixed;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+th {
+    font-size: small;
+    text-align: left;
+    color: white;
+    background: black;
+    padding-left: 3px;
+}
+td {
+    padding: 3px;
+}
+.legend {
+    text-align: center;
+}
+.header {
+    font-size: small;
+    text-align: center;
+    color: white;
+    background: black;
+    font-weight: bold;
+}
+.knot {
+    border: 1px solid #f66;
+    padding-left: 2px;
+}
+.anchor {
+    border: 1px solid #f66;
+    background: #f66;
+    padding-left: 2px;
+}
+.attribute {
+    border: 1px solid #f66;
+    padding-left: 2px;
+}
+.tie {
+    border: 1px solid #c0c0c0;
+    background: #c0c0c0;
+    padding-left: 2px;
+}
+.anchorlight {
+    background: #fcc;
+    padding-left: 2px;
+}
+.even {
+    background: #f0f0f0;
+    padding-left: 2px;
+}
+.odd {
+    background: white;
+    padding-left: 2px;
+}
+.derived {
+    font-style: italic;
+    color: #a88;
+}
+.mnemonic .type {
+    width: 5em;
+    overflow: hidden;
+}
+.descriptor {
+    width: 30%;
+    overflow: hidden;
+}
+.role {
+    width: 30%;
+    overflow: hidden;
+}
+.capsule {
+    width: 10%;
+    overflow: hidden;
+    padding-left: 2px;
+}
+.identity .dataRange .timeRange .knotRange .identifier .generator {
+    width: 10%;
+    overflow: hidden;
+}
+.generator {
+    text-align: center;
+}
+.identifier {
+    text-align: right;
+    padding-right: 10px;
+}
+.filler {
+    width: 40%;
+    overflow: hidden;
+}

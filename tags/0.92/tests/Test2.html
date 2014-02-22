@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Test 2</title>
+    <script type="text/javascript">
+        <!--
+        // globally accessible variables
+        var canvas = null;
+        var context = null;
+        var drawId = null;
+
+        // frames per second - set low when debugging
+        const FPS = 30;
+
+        // constants used in the calculations of repelling and attracting forces
+        var Dn = 50; // normal distance in pixels
+
+        var Kr = 1;
+        var Ka = Kr/Math.pow(Dn, 3);
+
+        var damping = 0.92; // 8 percent damping (friction)
+        var stoppingVelocity = 0.1;
+        var startingVelocity = 1;
+
+        function Point(x, y) {
+            this.xPos = x;
+            this.yPos = y;
+            this.xVel = 0;
+            this.yVel = 0;
+            this.moving = true;
+        }
+
+        // use the taxi cab metric for measuring distances
+        function d(p1, p2) {
+            return Math.abs(p2.xPos - p1.xPos) + Math.abs(p2.yPos - p1.yPos);
+        }
+
+        // x component of the repelling force formula
+        function Frx(p1, p2) {
+            return Kr * (p1.xPos - p2.xPos)/Math.pow(d(p1, p2), 2);
+        }
+
+        // y component of the repelling force formula
+        function Fry(p1, p2) {
+            return Kr * (p1.yPos - p2.yPos)/Math.pow(d(p1, p2), 2);
+        }
+
+        // x component of the attracting force formula
+        function Fax(p1, p2) {
+            return Ka * (p2.xPos - p1.xPos) * d(p1, p2);
+        }
+
+        // y component of the attracting force formula
+        function Fay(p1, p2) {
+            return Ka * (p2.yPos - p1.yPos) * d(p1, p2);
+        }
+
+        var points = [
+            new Point(200, 300),
+            new Point(300, 200)
+        ];
+
+        window.onload = init;
+
+        function init() {
+            // Get the canvas element.
+            canvas = document.getElementById('myCanvas');
+            if (!canvas || !canvas.getContext) {
+                return;
+            }
+
+            // Get the canvas 2d context.
+            context = canvas.getContext('2d');
+            if (!context) {
+                return;
+            }
+
+            // Start a new "thread".
+            drawId = setInterval(draw, 1000 / FPS);
+        }
+
+        function draw() {
+
+            var dxVel = Frx(points[0], points[1]) + Fax(points[0], points[1]);
+            var dyVel = Fry(points[0], points[1]) + Fay(points[0], points[1]);
+
+            points[0].xVel += dxVel;
+            points[0].yVel += dyVel;
+
+            points[0].xVel *= damping;
+            points[0].yVel *= damping;
+
+            if(Math.abs(points[0].xVel) + Math.abs(points[0].yVel) <= stoppingVelocity)
+                points[0].moving = false;
+            if(Math.abs(points[0].xVel) + Math.abs(points[0].yVel) >= startingVelocity)
+                points[0].moving = true;
+
+            if(points[0].moving) {
+                points[0].xPos += points[0].xVel;
+                points[0].yPos += points[0].yVel;
+            }
+
+            // should iterate over points instead
+
+            dxVel = Frx(points[1], points[0]) + Fax(points[1], points[0]);
+            dyVel = Fry(points[1], points[0]) + Fay(points[1], points[0]);
+
+            points[1].xVel += dxVel;
+            points[1].yVel += dyVel;
+
+            points[1].xVel *= damping;
+            points[1].yVel *= damping;
+
+            if(Math.abs(points[1].xVel) + Math.abs(points[1].yVel) <= stoppingVelocity)
+                points[1].moving = false;
+            if(Math.abs(points[1].xVel) + Math.abs(points[1].yVel) >= startingVelocity)
+                points[1].moving = true;
+
+            if(points[1].moving) {
+                points[1].xPos += points[1].xVel;
+                points[1].yPos += points[1].yVel;
+            }
+
+            // start the drawing
+
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            context.fillStyle = '#888888';
+            context.fillText("Point 0 moving = " + points[0].moving, 2, 10);
+            context.fillText("position (" + points[0].xPos.toFixed(0) + ", " + points[0].yPos.toFixed(0) + ")", 2, 20);
+            context.fillText("velocity (" + points[0].xVel.toFixed(4) + ", " + points[0].yVel.toFixed(4) + ")", 2, 30);
+
+            context.fillText("Point 1 moving = " + points[1].moving, 2, 50);
+            context.fillText("position (" + points[1].xPos.toFixed(0) + ", " + points[1].yPos.toFixed(0) + ")", 2, 60);
+            context.fillText("velocity (" + points[1].xVel.toFixed(4) + ", " + points[1].yVel.toFixed(4) + ")", 2, 70);
+
+
+            context.fillText("d = " + d(points[0], points[1]), 2, 90);
+
+            context.strokeStyle = '#000000';
+            context.beginPath();
+            context.moveTo(points[0].xPos, points[0].yPos)
+            context.lineTo(points[1].xPos, points[1].yPos);
+            context.stroke();
+
+            context.fillStyle = '#ff5555';
+            context.beginPath();
+            context.arc(points[0].xPos, points[0].yPos, 8, 0, 2*Math.PI, false);
+            context.fill();
+
+            context.fillStyle = '#55ff55';
+            context.beginPath();
+            context.arc(points[1].xPos, points[1].yPos, 8, 0, 2*Math.PI, false);
+            context.fill();
+
+            if(!points[0].moving && !points[1].moving) {
+                alert("Layout complete");
+                clearInterval(drawId);
+            }
+        }
+        // -->
+    </script>
+</head>
+<body bgcolor="#f0f0f0">
+This is a canvas<br/>
+<canvas id="myCanvas" width="500" height="500">
+    Your browser does not support HTML5 canvas!
+</canvas>
+</body>
+</html>
