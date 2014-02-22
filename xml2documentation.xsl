@@ -5,6 +5,7 @@
     <!-- lookup hash tables -->
     <xsl:key name="knotLookup" match="//knot[@mnemonic]" use="@mnemonic"/>
     <xsl:key name="anchorLookup" match="//anchor[@mnemonic]" use="@mnemonic"/>
+    <xsl:variable name="historization" select="'H'"/>
     <xsl:template match="/schema">
         <table class="legend">
             <tr>
@@ -24,17 +25,14 @@
         </table>
         <table>
             <tr>
-                <th class="capsule">capsule</th>
                 <th class="mnemonic">mnemonic</th>
                 <th class="descriptor">descriptor</th>
                 <th class="identity">identity</th>
                 <th class="dataRange">dataRange</th>
                 <th class="timeRange"/>
                 <th class="knotRange"/>
-                <th class="generator">generator</th>
             </tr>
             <xsl:for-each select="knot">
-                <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="metadata[1]/@capsule"/>
                 <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
                 <xsl:variable name="n" select="position()"/>
                 <xsl:variable name="style">
@@ -51,9 +49,6 @@
                     <xsl:value-of select="$n"/>
                 </xsl:comment>
                 <tr>
-                    <td class="knot capsule">
-                        <xsl:value-of select="metadata[1]/@capsule"/>
-                    </td>
                     <td class="knot">
                         <a name="{@mnemonic}">
                             <xsl:value-of select="@mnemonic"/>
@@ -70,30 +65,20 @@
                     <td class="{$style}" colspan="3">
                         <xsl:value-of select="@dataRange"/>
                     </td>
-                    <td class="{$style}">
-                        <xsl:if test="metadata[1]/@generator = 'true'">
-                            <xsl:text>•</xsl:text>
-                        </xsl:if>
-                    </td>
                 </tr>
             </xsl:for-each>
             <tr>
-                <th class="capsule">capsule</th>
                 <th class="mnemonic">mnemonic</th>
                 <th class="descriptor">descriptor</th>
                 <th class="identity">identity</th>
                 <th class="dataRange">dataRange</th>
                 <th class="timeRange">timeRange</th>
                 <th class="knotRange">knotRange</th>
-                <th class="generator">generator</th>
             </tr>
             <xsl:for-each select="anchor">
                 <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="@mnemonic"/>
                 <xsl:variable name="identity" select="@identity"/>
                 <tr>
-                    <td class="anchorlight capsule">
-                        <xsl:value-of select="metadata[1]/@capsule"/>
-                    </td>
                     <td class="anchor">
                         <a name="{@mnemonic}">
                             <xsl:value-of select="@mnemonic"/>
@@ -106,11 +91,6 @@
                     </td>
                     <td class="anchorlight" colspan="4">
                         <xsl:value-of select="$identity"/>
-                    </td>
-                    <td class="anchorlight generator">
-                        <xsl:if test="metadata[1]/@generator = 'true'">
-                            <xsl:text>•</xsl:text>
-                        </xsl:if>
                     </td>
                 </tr>
                 <xsl:for-each select="attribute">
@@ -130,9 +110,6 @@
                         <xsl:value-of select="$n"/>
                     </xsl:comment>
                     <tr>
-                        <td class="attribute capsule">
-                            <xsl:value-of select="metadata[1]/@capsule"/>
-                        </td>
                         <td class="attribute">
                             <xsl:value-of select="@mnemonic"/>
                         </td>
@@ -162,21 +139,17 @@
                                 <xsl:value-of select="@knotRange"/>
                             </a>
                         </td>
-                        <td class="{$style}"/>
                     </tr>
                 </xsl:for-each>
             </xsl:for-each>
         </table>
         <table>
             <tr>
-                <th class="capsule">capsule (id)</th>
                 <th class="role">tie/role</th>
                 <th class="type">type</th>
-                <th class="timeRange">timeRange</th>
-                <th class="filler"/>
+                <th class="identifier">identifier</th>
             </tr>
             <xsl:for-each select="tie">
-                <xsl:sort data-type="text" case-order="upper-first" order="ascending" select="concat(*[1]/@type, '_', *[1]/@role, '_', *[2]/@type, '_', *[2]/@role)"/>
                 <xsl:variable name="tieName">
                     <xsl:for-each select="anchorRole|knotRole">
                         <xsl:value-of select="concat(@type, '_', @role)"/>
@@ -186,16 +159,8 @@
                     </xsl:for-each>
                 </xsl:variable>
                 <tr>
-                    <td class="tie capsule">
-                        <xsl:value-of select="metadata[1]/@capsule"/>
-                    </td>
-                    <td class="tie" colspan="2">
+                    <td class="tie" colspan="3">
                         <b><xsl:value-of select="$tieName"/></b>
-                    </td>
-                    <td class="tie" colspan="2">
-                        <xsl:if test="@timeRange">
-                            <xsl:value-of select="@timeRange"/>
-                        </xsl:if>
                     </td>
                 </tr>
                 <xsl:for-each select="anchorRole|knotRole">
@@ -214,11 +179,6 @@
                         <xsl:value-of select="$n"/>
                     </xsl:comment>
                     <tr>
-                        <td class="{$style} identifier">
-                            <xsl:if test="@identifier = 'true'">
-                                <xsl:text>•</xsl:text>
-                            </xsl:if>
-                        </td>
                         <td class="{$style}">
                             <xsl:value-of select="@role"/>
                         </td>
@@ -227,7 +187,9 @@
                                 <xsl:value-of select="@type"/>
                             </a>
                         </td>
-                        <td class="{$style}" colspan="2"/>
+                        <td class="{$style}">
+                            <xsl:value-of select="@identifier"/>
+                        </td>
                     </tr>
                 </xsl:for-each>
             </xsl:for-each>
