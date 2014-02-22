@@ -1,10 +1,8 @@
 package anchormodeler;
 
-import java.util.ArrayList;
-import java.util.Date;
-
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
+import com.google.appengine.api.datastore.Email;
 
 import javax.jdo.annotations.IdGeneratorStrategy;
 import javax.jdo.annotations.NullValue;
@@ -33,24 +31,11 @@ public class Model {
     @Persistent(nullValue=NullValue.NONE)
     private boolean isPublic;
 
-    //Deprecated, use keywordList instead
     @Persistent(nullValue=NullValue.NONE)
     private String keywords;
     
     @Persistent(nullValue=NullValue.NONE)
     private String email;
-
-    @Persistent(nullValue=NullValue.NONE)
-    private ArrayList<String> keywordList;
-    
-    @Persistent(nullValue=NullValue.NONE)
-    private Text description;
-
-    @Persistent(nullValue=NullValue.NONE)
-    private Integer loadCount;
-
-    @Persistent(nullValue=NullValue.NONE)
-    private Date lastLoaded;
 
     public Key getKey() {
         return key;
@@ -89,29 +74,11 @@ public class Model {
 	}
 
 	public void setKeywords(String keywords) {
-		if(keywords==null)
-			keywords="";
-		keywords = keywords.toLowerCase();
-		
-		String[] list = keywords.split(" ");
-		if(keywordList==null)
-			keywordList=new ArrayList<String>();
-		for(String s : list) {
-			s=s.trim();
-			if(!keywordList.contains(s))
-				keywordList.add(s);
-		}
-		
 		this.keywords = keywords;
 	}
 
 	public String getKeywords() {
-		if((keywordList==null) || keywordList.isEmpty())
-			return this.keywords;
-		String result="";
-		for(String s : keywordList)
-			result += s + " ";
-		return result;
+		return keywords;
 	}
 
 	public void setPublic(boolean isPublic) {
@@ -128,30 +95,6 @@ public class Model {
 
 	public String getEmail() {
 		return email;
-	}
-
-	public void setDescription(Text description) {
-		this.description = description;
-	}
-
-	public Text getDescription() {
-		return description;
-	}
-
-	public void setLastLoaded(Date lastLoaded) {
-		this.lastLoaded = lastLoaded;
-	}
-
-	public Date getLastLoaded() {
-		return (lastLoaded==null) ? new Date() : lastLoaded;
-	}
-
-	public void setLoadCount(Integer loadCount) {
-		this.loadCount = loadCount;
-	}
-
-	public Integer getLoadCount() {
-		return (loadCount==null) ? new Integer(0) : loadCount;
 	}
 
 
