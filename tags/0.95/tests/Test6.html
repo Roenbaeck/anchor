@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Test 6 - Inheritance</title>
+    <script type="text/javascript">
+        <!--
+
+        var ResizeHandler = {
+            resizeCanvas: function(canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        };
+
+        var UniqueColor = {
+            // note that #000000 is reserved and never assigned
+            red: 0,
+            green: 0,
+            blue: 0,
+            formatColor: function(red, green, blue) {
+                return '#' +
+                        ('0' + red.toString(16)).slice(-2) +
+                        ('0' + green.toString(16)).slice(-2) +
+                        ('0' + blue.toString(16)).slice(-2);
+            },
+            getUniqueColor: function() {
+                if(this.red != 255) {
+                    if(this.green != 255) {
+                        if(this.blue != 255) {
+                            this.blue++;
+                            return this.formatColor(this.red, this.green, this.blue);
+                        }
+                        this.blue = 0;
+                        this.green++;
+                        return this.formatColor(this.red, this.green, this.blue);
+                    }
+                    this.blue = 0;
+                    this.green = 0;
+                    this.red++;
+                    return this.formatColor(this.red, this.green, this.blue);
+                }
+                this.blue = 0;
+                this.green = 0;
+                this.red = 0;
+                return this.getUniqueColor();
+            }
+        };
+        
+        function Node(x, y, name) {
+            this.name = name;
+            this.xPos = x;
+            this.yPos = y;
+            this.xVel = 0;
+            this.yVel = 0;
+            this.moving = true;
+            this.fixed = false;
+            this.shadowColor = UniqueColor.getUniqueColor();
+        }
+        Node.prototype = {
+            name: null,
+            xPos: null,
+            yPos: null,
+            xVel: null,
+            yVel: null,
+            moving: true,
+            fixed: false,
+            shadowColor: '#ffffff',
+            // override toString in order to provide a unique identifier to be used when emulating hash maps
+            toString: function() {
+                return this.name.toString();
+            },
+            // this is how a node draws itself on the visible context, should be overridden by subclasses
+            draw: function(context) {
+                context.beginPath();
+                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                if(this.moving && !this.fixed)
+                    context.fillStyle = '#55bb55';
+                else
+                    context.fillStyle = '#bb5555';
+                context.fill();
+                if(this.fixed) {
+                    context.fillStyle = 'rgba(0, 0, 0, 1)';
+                    context.fillRect(this.xPos - 1, this.yPos - 1, 3, 3);
+                }
+            },
+            // this is how a node draws itself on the shadow context, should be overridden by subclasses
+            drawShadow: function(context) {
+                context.beginPath();
+                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                context.fillStyle = this.shadowColor;
+                context.fill();
+            }
+        };
+
+        function Attribute(x, y, name, historized) {
+            Node.call(this, x, y, name);
+            this.historized = historized;
+        }
+        Attribute.prototype = {
+            historized: false,
+            toString: function() {
+                return Node.prototype.toString.apply(this, arguments) + " (historized: " + this.historized + ")";
+            },
+            draw: function(context) {
+                context.beginPath();
+                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                context.fillStyle = '#ffffff';
+                context.fill();
+                context.strokeStyle = '#ff8888';
+                context.stroke();
+                if(this.historized) {
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, 6, 0, 2*Math.PI, false);
+                    context.stroke();
+                }
+                if(this.fixed) {
+                    context.fillStyle = 'rgba(0, 0, 0, 1)';
+                    context.fillRect(this.xPos - 1, this.yPos - 1, 3, 3);
+                }                
+            }
+        };
+
+        extend(Attribute, Node);
+
+        function extend(child, supertype){
+           child.prototype.__proto__ = supertype.prototype;
+        }
+
+        // make sure our init function is called when the page is loaded
+        window.onload = init;
+
+        // implementation of our init function
+        function init() {
+            var canvas, context;
+
+            // get the canvas element
+            canvas = document.getElementById('canvas');
+            if (!canvas || !canvas.getContext) {
+                alert("Cannot find the canvas!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(canvas);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas) }, false);
+
+            // get the canvas 2d context
+            context = canvas.getContext('2d');
+            if (!context) {
+                alert("The canvas has no 2d context!");
+                return;
+            }
+
+            var node = new Node(300, 300, "Node");
+            var staticAttribute = new Attribute(400, 300, "Attribute", false);
+            var historizedAttribute = new Attribute(500, 300, "Attribute", true);
+
+            node.draw(context);
+            staticAttribute.draw(context);
+            historizedAttribute.draw(context);
+
+            alert("Node: " + node + '\n' + "Static Attribute: " + staticAttribute + '\n' + "Historized Attribute: " + historizedAttribute);
+        }
+
+        // -->
+    </script>
+</head>
+<body style="background: #f0f0f0; overflow: hidden;">
+Simple test of inheritance and polymorphism
+<div id="dynamic"/>
+<canvas id="canvas" style="position:absolute; top:0; left:0;">
+    Your browser does not support HTML5 canvas!
+</canvas>
+</body>
+</html>
