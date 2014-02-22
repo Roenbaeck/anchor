@@ -1,0 +1,705 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>Test 9</title>
+    <style type="text/css">
+    html {
+        margin:             0;
+        padding:            0;
+    }
+    body {
+        font:               75% georgia, sans-serif;
+        line-height:        1.88889;
+        color:              #000000;
+        background:         #f9f8f7;
+        overflow:           hidden;
+        margin:             0;
+        padding:            0;
+    }
+    p {
+        margin-top:         0;
+        text-align:         justify;
+    }
+
+    /* visible canvas - at the bottom of the visible layers */
+    #canvas {
+        position:           absolute;
+        top:                0;
+        left:               0;
+        z-index:            1;
+    }
+
+    /* invisible canvas - at the very bottom */
+    #shadow {
+        position:           absolute;
+        top:                0;
+        left:               0;
+        visibility:         hidden;
+        z-index:            0;
+    }
+
+    /* the leftmost part of the header - on top of the background */
+    #header {
+        position:           absolute;
+        top:                0;
+        left:               0;
+        width:              100%;
+        border-bottom:      1px dotted;
+        background-color:   rgba(255, 255, 255, 0.7);
+        color:              black;
+        padding:            5px 10px;
+        margin:             0;
+        text-align:         left;
+        z-index:            3;
+    }
+
+    #menu {
+        position:           absolute;
+        top:                0;
+        left:               0;
+        visibility:         hidden;
+        background-color:   rgba(255, 255, 255, 0.7);
+        color:              black;
+        padding:            5px 10px;
+        margin:             0;
+        text-align:         left;
+        border:             1px dotted;
+        z-index:            3;
+    }        
+    </style>
+
+    <script type="text/javascript">
+        <!--
+        // frames per second - set low when debugging
+        const FPS = 1000;
+
+        // create a singleton
+        var LayoutEngine = {
+            // normal distance in pixels
+            normalDistance: 50,
+            // 3 percent damping (simulated friction)
+            damping: 0.97,
+            // stopping velocity is one tenth of a pixel per second
+            stoppingVelocity: 0.1,
+            // starting velocity is a whole pixel
+            startingVelocity: 1,
+            // calculated as 1/normalDistance^3, assuming that the repelling factor is -1
+            attractionConstant: 0.000008,
+            // adjusts the size of the influence square by this factor
+            influenceConstant: 2,
+            // used to store the corners of the influence square
+            xMin: 0,
+            xMax: 0,
+            yMin: 0,
+            yMax: 0,
+            // when the layout has reached equilibrium
+            equilibrium: true,
+
+            // for some reason Math.abs is slower than this
+            absolute: function(value) {
+                return value < 0 ? -value : value;
+            },
+
+            // use our own squaring algorithm rather than Math.pow
+            square: function(value) {
+                return value * value;
+            },
+
+            // use the taxi cab metric for measuring distances
+            distance: function(node, otherNode) {
+                var d = this.absolute(otherNode.xPos - node.xPos) + this.absolute(otherNode.yPos - node.yPos);
+                if(d > 0)
+                    return d;
+                // move one node a pixel to the right if both nodes overlap
+                node.xPos +=1;
+                return 1;
+            },
+            // x component of the repelling force formula
+            xRepelling: function(node, otherNode) {
+                return (node.xPos - otherNode.xPos)/this.square(this.distance(node, otherNode));
+            },
+
+            // y component of the repelling force formula
+            yRepelling: function(node, otherNode) {
+                return (node.yPos - otherNode.yPos)/this.square(this.distance(node, otherNode));
+            },
+
+            // x component of the attracting force formula
+            xAttracting: function (node, otherNode) {
+                return this.attractionConstant * (otherNode.xPos - node.xPos) * this.distance(node, otherNode);
+            },
+
+            // y component of the attracting force formula
+            yAttracting: function (node, otherNode) {
+                return this.attractionConstant * (otherNode.yPos - node.yPos) * this.distance(node, otherNode);
+            },
+
+            findSquareCorners: function(node) {
+                this.xMin = node.xPos - this.influenceConstant * this.normalDistance;
+                this.xMax = node.xPos + this.influenceConstant * this.normalDistance;
+                this.yMin = node.yPos - this.influenceConstant * this.normalDistance;
+                this.yMax = node.yPos + this.influenceConstant * this.normalDistance;
+            },
+
+            withinSquare: function(otherNode) {
+                return  otherNode.xPos >= this.xMin &&
+                        otherNode.xPos <= this.xMax &&
+                        otherNode.yPos >= this.yMin &&
+                        otherNode.yPos <= this.yMax;
+            },
+
+            // calculate all forces and change the velocity and position of the node
+            layout: function(nodes, edges) {
+                var nodeName, node, otherNodeName, otherNode, nodeEdges;
+                this.equilibrium = true;
+
+                for(nodeName in nodes) {
+                    node = nodes[nodeName];
+                    this.findSquareCorners(node);
+                    for(otherNodeName in nodes) {
+                        // not the same node
+                        if(nodeName != otherNodeName) {
+                            otherNode = nodes[otherNodeName];
+                            // for nodes within range, add the repelling velocity
+                            if(this.withinSquare(otherNode)) {
+                                node.xVel += this.xRepelling(node, otherNode);
+                                node.yVel += this.yRepelling(node, otherNode);
+                            }
+                        }
+                    }
+                    nodeEdges = edges[node];
+                    // for all edges, add the attracting velocity
+                    for(otherNodeName in nodeEdges) {
+                        otherNode = nodeEdges[otherNodeName]
+                        node.xVel += this.xAttracting(node, otherNode);
+                        node.yVel += this.yAttracting(node, otherNode);
+                    }
+                    // apply damping
+                    node.xVel *= this.damping;
+                    node.yVel *= this.damping;
+                    // check to see if the node has stopped/started moving
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) <= this.stoppingVelocity)
+                        node.moving = false;
+                    if(this.absolute(node.xVel) + this.absolute(node.yVel) >= this.startingVelocity)
+                        node.moving = true;
+                    // if the node is moving and not fixed then calculate the new position
+                    if(node.moving && !node.fixed) {
+                        this.equilibrium = false;
+                        node.xPos += node.xVel;
+                        node.yPos += node.yVel;
+                    }
+                }
+            }
+        };
+
+        var UniqueColor = {
+            // note that #000000 is reserved and never assigned
+            red: 0,
+            green: 0,
+            blue: 0,
+            formatColor: function(red, green, blue) {
+                return '#' +
+                        ('0' + red.toString(16)).slice(-2) +
+                        ('0' + green.toString(16)).slice(-2) +
+                        ('0' + blue.toString(16)).slice(-2);
+            },
+            getUniqueColor: function() {
+                if(this.red != 255) {
+                    if(this.green != 255) {
+                        if(this.blue != 255) {
+                            this.blue++;
+                            return this.formatColor(this.red, this.green, this.blue);
+                        }
+                        this.blue = 0;
+                        this.green++;
+                        return this.formatColor(this.red, this.green, this.blue);
+                    }
+                    this.blue = 0;
+                    this.green = 0;
+                    this.red++;
+                    return this.formatColor(this.red, this.green, this.blue);
+                }
+                this.blue = 0;
+                this.green = 0;
+                this.red = 0;
+                return this.getUniqueColor();
+            }
+        };
+
+        var Model = {
+            nodes: {},
+            shadows: {},
+            edges: {},
+            addNode: function(node) {
+                this.nodes[node] = node;
+                this.shadows[node.shadowColor] = node;
+            },
+            addEdge: function(nodeName, otherNodeName) {
+                var nodeEdges = this.edges[nodeName];
+                if(!nodeEdges)
+                    nodeEdges = {};
+                if(!nodeEdges[otherNodeName])
+                    nodeEdges[otherNodeName] = this.nodes[otherNodeName];
+                else
+                    return;
+                this.edges[nodeName] = nodeEdges;
+                this.addEdge(otherNodeName, nodeName);
+            }
+        };
+
+        var DrawingEngine = {
+            // holds the "thread" id when the drawing engine is running
+            drawId: null,
+            canvas: null,
+            shadowCanvas: null,
+            context: null,
+            shadowContext: null,
+            running: false,
+            init: function(canvas, shadowCanvas, context, shadowContext) {
+                this.canvas = canvas;
+                this.shadowCanvas = shadowCanvas;
+                this.context = context;
+                this.shadowContext = shadowContext;
+            },
+            getNodeAt: function(x, y) {
+                // clear the shadow context
+                this.shadowContext.fillStyle = '#000000';
+                this.shadowContext.fillRect(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+
+                var nodeName;
+                // draw all nodes on the shadow context
+                for(nodeName in Model.nodes)
+                    Model.nodes[nodeName].drawShadow(this.shadowContext);
+
+                var data = this.shadowContext.getImageData(x, y, 1, 1).data;
+                return Model.shadows[UniqueColor.formatColor(data[0], data[1], data[2])];
+            },
+            start: function() {
+                if(!this.running) {
+                    this.running = true;
+                    this.drawId = setInterval(function() { DrawingEngine.draw(); }, 1000 / FPS);
+                }
+            },
+            draw: function() {
+                // layout nodes
+                LayoutEngine.layout(Model.nodes, Model.edges);
+
+                // clear the visible context
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                var nodeName, node, otherNodeName, otherNode, nodeEdges;
+                var drawnEdges = {};
+
+                // draw all edges on the visible context
+                this.context.strokeStyle = '#000000';
+                this.context.lineWidth = 1;
+                for(nodeName in Model.nodes) {
+                    node = Model.nodes[nodeName];
+                    nodeEdges = Model.edges[nodeName];
+                    for(otherNodeName in nodeEdges) {
+                        // no need to draw edges twice
+                        if(drawnEdges[nodeName] != otherNodeName) {
+                            otherNode = nodeEdges[otherNodeName];
+                            this.context.beginPath();
+                            this.context.moveTo(node.xPos, node.yPos);
+                            this.context.lineTo(otherNode.xPos, otherNode.yPos);
+                            this.context.lineWidth = 1;
+                            this.context.stroke();
+                            drawnEdges[nodeName] = otherNodeName;
+                            drawnEdges[otherNodeName] = nodeName;
+                        }
+                    }
+                }
+
+                // draw all nodes on the visible context
+                for(nodeName in Model.nodes)
+                    Model.nodes[nodeName].draw(this.context);
+
+                // check if all nodes have stopped moving and that we may stop
+                if(LayoutEngine.equilibrium) {
+                    clearInterval(this.drawId);
+                    this.running = false;
+                }
+            }
+        };
+
+        var ResizeHandler = {
+            resizeCanvas: function(canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        };
+
+        var MouseHandler = {
+            dragging: false,
+            menu: false,
+            focusedNode: null,
+            mousedown: function(event) {
+                this.focusedNode = DrawingEngine.getNodeAt(event._x, event._y);
+                if(event.altKey) {
+                    this.focusedNode.fixed = !this.focusedNode.fixed;
+                    DrawingEngine.start();
+                }
+                else if(event.shiftKey) {
+                    MenuHandler.show("The name of this node is: " + this.focusedNode.name, this.focusedNode.xPos, this.focusedNode.yPos);
+                    this.menu = true;
+                }
+                else {
+                    this.dragging = true;
+                }
+                window.status = "Node: " + this.focusedNode.toString();
+            },
+            mousemove: function(event) {
+                if (this.dragging) {
+                    this.focusedNode.xPos = event._x;
+                    this.focusedNode.yPos = event._y;
+                    this.focusedNode.fixed = true;
+                    this.focusedNode.moving = true;
+                    DrawingEngine.start();
+                }
+            },
+            mouseup: function(event) {
+                if (this.menu) {
+                    MenuHandler.hide();
+                }
+                if (this.dragging) {
+                    this.dragging = false;
+                }
+            },
+            handleEvent: function(event) {
+                // note that "this" refers to the object on which we attached the event handler
+                event._x = event.clientX
+                        + document.body.scrollLeft
+                        + document.documentElement.scrollLeft
+                        - this.offsetLeft;
+                event._y = event.clientY
+                        + document.body.scrollTop
+                        + document.documentElement.scrollTop
+                        - this.offsetTop;
+
+                if(this.mouseHandler[event.type])
+                    this.mouseHandler[event.type](event);
+            }
+        };
+
+        var MenuHandler = {
+            menu: null,
+            init: function () {
+                menu = document.getElementById('menu');
+                this.hide();
+            },
+            show: function(message, x, y) {
+                menu.textContent = message;
+                menu.style.left = x + 'px';
+                menu.style.top = y + 'px';
+                // show the menu
+                menu.style.visibility = 'visible';
+            },
+            hide: function() {
+                menu.style.visibility = 'hidden';
+            }
+        };
+
+
+        function Node(x, y, name) {
+            this.name = name;
+            this.xPos = x;
+            this.yPos = y;
+            this.xVel = 0;
+            this.yVel = 0;
+            this.moving = true;
+            this.fixed = false;
+            this.shadowColor = UniqueColor.getUniqueColor();
+            this.movingColor = '#ff0000';
+        }
+        Node.prototype = {
+            name: null,
+            xPos: null,
+            yPos: null,
+            xVel: null,
+            yVel: null,
+            moving: true,
+            fixed: false,
+            shadowColor: '#ffffff',
+            // override toString in order to provide a unique identifier to be used when emulating hash maps
+            toString: function() {
+                return this.name.toString();
+            },
+            // this is how a node draws itself on the visible context, should be overridden by subclasses
+            draw: function(context) {
+                if(this.moving) {
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, 16, 0, 2*Math.PI, false);
+                    context.fillStyle = this.movingColor;
+                    context.fill();
+                }
+                context.beginPath();
+                context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                context.fillStyle = '#bb5555';
+                context.fill();
+            },
+            // this is how a node draws itself on the shadow context (just a rectangle)
+            drawShadow: function(context) {
+                context.fillStyle = this.shadowColor;
+                context.fillRect(this.xPos - 15, this.yPos - 15, 30, 30);
+            },
+            drawMoving: function(context, radius) {
+                if(this.moving && !this.fixed) {
+                    var velocity = LayoutEngine.absolute(this.xVel) + LayoutEngine.absolute(this.yVel);
+                    var radgrad = context.createRadialGradient(this.xPos, this.yPos, 0, this.xPos - this.xVel, this.yPos - this.yVel, radius);
+                    radgrad.addColorStop(0, 'rgba(255, 255, 255, ' + velocity + ')');
+                    radgrad.addColorStop(1, 'rgba(64, 64, 64, 0)');
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, radius, 0, 2*Math.PI, false);
+                    context.fillStyle = radgrad;
+                    context.fill();
+                }
+                else {
+
+                }
+            },
+            drawFixed: function(context) {
+                if(this.fixed) {
+                    context.fillStyle = '#000000';
+                    context.fillRect(this.xPos - 1, this.yPos - 1, 2, 2);
+                }
+            }
+        };
+
+        function Attribute(x, y, name, historized) {
+            Node.call(this, x, y, name);
+            this.historized = historized;
+        }
+        Attribute.prototype = {
+            historized: false,
+            draw: function(context) {
+                if(this.historized) {
+                    this.drawMoving(context, 20);
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, 12, 0, 2*Math.PI, false);
+                    context.fillStyle = '#ffffff';
+                    context.fill();
+                    context.strokeStyle = '#ff8888';
+                    context.lineWidth = 1.5;
+                    context.stroke();
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, 7, 0, 2*Math.PI, false);
+                    context.stroke();
+                }
+                else {
+                    this.drawMoving(context, 18);
+                    context.beginPath();
+                    context.arc(this.xPos, this.yPos, 10, 0, 2*Math.PI, false);
+                    context.fillStyle = '#ffffff';
+                    context.fill();
+                    context.strokeStyle = '#ff8888';
+                    context.lineWidth = 1.5;
+                    context.stroke();
+                }
+                this.drawFixed(context);
+            }
+        };
+
+        // inheritance
+        extend(Attribute, Node);
+
+        function Anchor(x, y, name) {
+            Node.call(this, x, y, name);
+        }
+        Anchor.prototype = {
+            draw: function(context) {
+                this.drawMoving(context, 18);
+                context.fillStyle = '#bb5555';
+                context.fillRect(this.xPos - 10, this.yPos - 10, 20, 20);
+                this.drawFixed(context);
+            }
+        };
+
+        // inheritance
+        extend(Anchor, Node);
+
+        function Knot(x, y, name) {
+            Node.call(this, x, y, name);
+        }
+        Knot.prototype = {
+            draw: function(context) {
+                this.drawMoving(context, 17);
+                context.fillStyle = '#ffffff';
+                context.fillRect(this.xPos - 9, this.yPos - 9, 18, 18);
+                context.strokeStyle = '#ff8888';
+                context.lineWidth = 1.5;
+                context.strokeRect(this.xPos - 9, this.yPos - 9, 18, 18);
+                this.drawFixed(context);
+            }
+        };
+
+        // inheritance
+        extend(Knot, Node);
+
+        function Tie(x, y, name, historized) {
+            Node.call(this, x, y, name);
+            this.historized = historized;
+        }
+        Tie.prototype = {
+            historized: false,
+            draw: function(context) {
+                if(this.historized) {
+                    this.drawMoving(context, 20);
+                    context.beginPath();
+                    context.moveTo(this.xPos - 18, this.yPos);
+                    context.lineTo(this.xPos, this.yPos + 17);
+                    context.lineTo(this.xPos + 18, this.yPos);
+                    context.lineTo(this.xPos, this.yPos - 17);
+                    context.lineTo(this.xPos - 18, this.yPos);
+                    context.fillStyle = '#ffffff';
+                    context.fill();
+                    context.strokeStyle = '#a8a8a8';
+                    context.lineWidth = 1.5;
+                    context.stroke();
+                    context.beginPath();
+                    context.moveTo(this.xPos - 12, this.yPos);
+                    context.lineTo(this.xPos, this.yPos + 11);
+                    context.lineTo(this.xPos + 12, this.yPos);
+                    context.lineTo(this.xPos, this.yPos - 11);
+                    context.fillStyle = '#a8a8a8';
+                    context.fill();
+                }
+                else {
+                    this.drawMoving(context, 17);
+                    context.beginPath();
+                    context.moveTo(this.xPos - 15, this.yPos);
+                    context.lineTo(this.xPos, this.yPos + 14);
+                    context.lineTo(this.xPos + 15, this.yPos);
+                    context.lineTo(this.xPos, this.yPos - 14);
+                    context.lineTo(this.xPos - 15, this.yPos);
+                    context.fillStyle = '#a8a8a8';
+                    context.fill();
+                }
+                this.drawFixed(context);
+            }
+        };
+
+        // inheritance
+        extend(Tie, Node);
+
+
+        // global function providing inheritance
+        function extend(child, supertype){
+           child.prototype.__proto__ = supertype.prototype;
+        }
+
+        // make sure our init function is called when the page is loaded
+        window.onload = init;
+
+        // implementation of our init function
+        function init() {
+            // create some nodes (that do not overlap)
+            Model.addNode(new Anchor(200, 300, "A1"));
+            Model.addNode(new Attribute(300, 200, "A1B1", true));
+            Model.addNode(new Attribute(250, 300, "A1B2", false));
+            Model.addNode(new Attribute(300, 250, "A1B3", true));
+            Model.addNode(new Anchor(400, 300, "A2"));
+            Model.addNode(new Attribute(300, 400, "A2B1", true));
+            Model.addNode(new Attribute(450, 300, "A2B2", false));
+            Model.addNode(new Attribute(300, 450, "A2B3", true));
+            Model.addNode(new Attribute(300, 500, "A2B4", false));
+            Model.addNode(new Anchor(400, 350, "A3"));
+            Model.addNode(new Attribute(350, 400, "A3B1", true));
+            Model.addNode(new Attribute(450, 350, "A3B2", false));
+            Model.addNode(new Attribute(350, 450, "A3B3", true));
+            Model.addNode(new Attribute(350, 500, "A3B4", false));
+            Model.addNode(new Attribute(350, 550, "A3B5", true));
+            Model.addNode(new Knot(350, 600, "A3B5C1"));
+            // overlap should be ok now
+            Model.addNode(new Knot(350, 600, "A3B5C2"));
+            Model.addNode(new Tie(350, 600, "A1A2", true));
+            Model.addNode(new Tie(350, 600, "A2A3", false));
+            Model.addNode(new Tie(350, 600, "A1A3", false));
+
+            // define the edges
+            Model.addEdge("A1", "A1B1");
+            Model.addEdge("A1", "A1B2");
+            Model.addEdge("A1", "A1B3");
+            Model.addEdge("A1", "A1A2");
+            Model.addEdge("A2", "A1A2");
+            Model.addEdge("A2", "A2B1");
+            Model.addEdge("A2", "A2B2");
+            Model.addEdge("A2", "A2B3");
+            Model.addEdge("A2", "A2B4");
+            Model.addEdge("A2", "A2A3");
+            Model.addEdge("A3", "A2A3");
+            Model.addEdge("A3", "A3B1");
+            Model.addEdge("A3", "A3B2");
+            Model.addEdge("A3", "A3B3");
+            Model.addEdge("A3", "A3B4");
+            Model.addEdge("A3", "A3B5");
+            Model.addEdge("A1", "A1A3");
+            Model.addEdge("A3", "A1A3");
+            Model.addEdge("A3B5", "A3B5C1");
+            Model.addEdge("A3B5", "A3B5C2");
+
+            var canvas, shadowCanvas, context, shadowContext;
+
+            // get the canvas element
+            canvas = document.getElementById('canvas');
+            if (!canvas || !canvas.getContext) {
+                alert("Cannot find the canvas!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(canvas);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(canvas) }, false);
+
+            shadowCanvas = document.getElementById('shadow');
+            if (!shadowCanvas || !shadowCanvas.getContext) {
+                alert("Cannot find the shadow canvas!");
+                return;
+            }
+            // make this a full screen canvas, that can be resized
+            ResizeHandler.resizeCanvas(shadowCanvas);
+            window.addEventListener('resize', function() { ResizeHandler.resizeCanvas(shadowCanvas) }, false);
+
+            // get the canvas 2d context
+            context = canvas.getContext('2d');
+            if (!context) {
+                alert("The canvas has no 2d context!");
+                return;
+            }
+            // get the shadow canvas 2d context
+            shadowContext = shadowCanvas.getContext('2d');
+            if (!shadowContext) {
+                alert("The shadow canvas has no 2d context!");
+                return;
+            }
+
+            DrawingEngine.init(canvas, shadowCanvas, context, shadowContext);
+
+            canvas.mouseHandler = MouseHandler;
+            // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
+            canvas.addEventListener('mousedown', MouseHandler.handleEvent, false);
+            canvas.addEventListener('mousemove', MouseHandler.handleEvent, false);
+            canvas.addEventListener('mouseup',   MouseHandler.handleEvent, false);
+
+            MenuHandler.init();
+            DrawingEngine.start();
+        }
+
+        // -->
+    </script>
+</head>
+<body id="body" width="100%" height="100%">
+<canvas id="canvas">
+    Your browser does not support HTML5 canvas!
+</canvas>
+<canvas id="shadow">
+    <!-- nothing to see here -->
+</canvas>
+<div id="header">
+    Anchor Modeler: Click and hold to drag nodes, Alt + click to fixate or release a node, Shift + click to bring up a context menu
+</div>
+<div id="menu">
+    <!-- this will be filled and shown dynamically -->
+</div>
+</body>
+</html>
