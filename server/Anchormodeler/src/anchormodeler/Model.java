@@ -143,7 +143,7 @@ public class Model {
 	}
 
 	public Date getLastLoaded() {
-		return (lastLoaded==null) ? new Date() : lastLoaded;
+		return lastLoaded;
 	}
 
 	public void setLoadCount(Integer loadCount) {
