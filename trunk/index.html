@@ -112,6 +112,7 @@
 
     /* shows a beta disclaimer */
     #disclaimer {
+        display:            none;
         position:           absolute;
         font:               bold 64pt sans-serif;
         color:              white;
@@ -675,6 +676,9 @@
         "use strict"; // be safe!
 
         var VERSION = 0.97;
+
+        // change to false in beta
+        var RELEASE = true;
 
         // set to true to show debugging information
         var DEBUG = false;
@@ -6527,16 +6531,18 @@
         // implementation of our init function
         function init(window) {
             // another disclaimer for the testing versions
-            alert(
-                '----------- DISCLAIMER -----------\n' +
-                'Please note that this is a test version.\n' +
-                'It should not be used for production \n' +
-                'work. Report bugs found in our issue \n' +
-                'tracking system, to which a link can \n' +
-                'be found under the Help/About menu.\n' +
-                '----------- DISCLAIMER -----------'
-            );
-
+            if(!RELEASE) {
+                alert(
+                    '----------- DISCLAIMER -----------\n' +
+                    'Please note that this is a test version.\n' +
+                    'It should not be used for production \n' +
+                    'work. Report bugs found in our issue \n' +
+                    'tracking system, to which a link can \n' +
+                    'be found under the Help/About menu.\n' +
+                    '----------- DISCLAIMER -----------'
+                );
+                document.getElementById("disclaimer").style.display = "block";
+            }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
 
