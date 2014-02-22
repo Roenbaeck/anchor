@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <script type="text/javascript">
+        window.onload = init;
+
+        var Defaults = {
+            changingRange: 'datetime',
+            encapsulation: 'dbo',
+            identity: 'int',
+            metadataPrefix: 'Metadata',
+            metadataType: 'int',
+            metadataUsage: 'true',
+            changingSuffix: 'ChangedAt',
+            identitySuffix: 'ID',
+            recordingRange: 'datetime',
+            recordingSuffix: 'RecordedAt',
+            erasingSuffix: 'ErasedAt',
+            partitioning: 'false',
+            entityIntegrity: 'true',
+            restatability: 'true',
+            idempotency: 'false',
+            naming: 'improved'
+        };
+
+
+        // the map defines 'keys' for elements that may occur more than once
+        // on the same level in the XML document
+        var MAP = {
+            knot: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            anchor: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            attribute: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            tie: function(xml, fragment) {
+                var role, roles = xml.evaluate(
+                        '*[@role]',
+                        fragment,
+                        null,
+                        XPathResult.ORDERED_NODE_ITERATOR_TYPE, // document order
+                        null
+                );
+                var key = '', role = roles.iterateNext();
+                while(role) {
+                    key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                    role = roles.iterateNext();
+                    if(role) key += '_';
+                }
+                return key;
+            },
+            anchorRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            },
+            knotRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            }
+        };
+
+        // this function will recursively traverse the XML document and
+        // create a 'hash' object that mimics the structure using the given map
+        // to handle siblings using the same tag
+        function objectify(xml, map) {
+            function objectifier(xmlFragment, map, object, position) {
+                // element
+                if(xmlFragment.nodeType == 1) {
+                    if(!object[xmlFragment.nodeName])
+                        object[xmlFragment.nodeName] = [];
+                    var partialObject = object[xmlFragment.nodeName];
+                    if(typeof map[xmlFragment.nodeName] == 'function') {
+                        var key = map[xmlFragment.nodeName](xml, xmlFragment);
+                        if(key) {
+                            partialObject = partialObject[key] = {};
+                            // reference the object from the array
+                            object[xmlFragment.nodeName].push(partialObject);
+                        }
+                    }
+                    // process attributes
+                    if (xmlFragment.attributes.length > 0) {
+                        for (var j = 0; j < xmlFragment.attributes.length; j++) {
+                            var attribute = xmlFragment.attributes.item(j);
+                            partialObject[attribute.nodeName] = attribute.nodeValue;
+                        }
+                    }
+                    // set the position
+                    partialObject.position = ++position;
+                    // process children
+                    var child = xmlFragment.firstChild;
+                    if(child) objectifier(child, map, partialObject, 0);
+                }
+                // process siblings
+                var sibling = xmlFragment.nextSibling;
+                if(sibling) objectifier(sibling, map, object, position);
+                return object;
+            }
+            // just initialize and return the result
+            return objectifier(xml.documentElement, map, {}, 0);
+        }
+
+        function init() {
+
+            var xmlhttp = new window.XMLHttpRequest();
+            xmlhttp.open("GET", "../example.xml", false);
+            xmlhttp.send(null);
+            var example = xmlhttp.responseXML;
+
+            var xmlhttp = new window.XMLHttpRequest();
+            xmlhttp.open("GET", "TestJ.sisula", false);
+            xmlhttp.send(null);
+            var sisula = xmlhttp.responseText;
+
+            // alert(sisula);
+
+            var splitter = /~([\s\S]*?)~/g;
+            var sisulets = sisula.split(splitter);
+
+            for(var i = 1; i < sisulets.length; i+=2) {
+                sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "');
+                sisulets[i] = sisulets[i].replace(/[$]([\S\s]*?)\s/g, '" + $1 + " ');
+                sisulets[i] = sisulets[i].replace(/\n/g, '\\n" +\n');
+                sisulets[i] = sisulets[i].replace(/^/gm, '"');
+                sisulets[i] = '_sisula_+=' + sisulets[i] + '"';
+            }
+
+            sisula = sisulets.join('');
+            // alert(sisula);
+            var _sisula_ = '';
+            var schema = objectify(example, MAP).schema;
+            eval(sisula);
+
+            console.log(schema);
+            // just for testing that it won't give an error
+            var json = JSON.stringify(schema, null, '\t');
+
+            console.log(_sisula_);
+        }
+    </script>
+    <title>Test J - sisula</title>
+</head>
+<body id="body">
+    <!-- trying to fill dynamically -->
+</body>
+</html>

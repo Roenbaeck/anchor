@@ -1,0 +1,66 @@
+// delimiter that is used in the naming convention
+var D = '_';
+
+// the following builds the naming convention of Anchor Modeling, change if you want something else
+for(var k in schema.knots) {
+    var knot = schema.knot[k];
+    knot.name = knot.mnemonic + D + knot.descriptor;
+}
+
+var anchor;
+for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+    if(a == 0) anchor.first = true;
+    if(a == schema.anchors.length - 1) anchor.last = true;
+    anchor.name = anchor.mnemonic + D + anchor.descriptor;
+    var attribute;
+    for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+        if(b == 0) attribute.first = true;
+        if(b == anchor.attributes.length - 1) attribute.last = true;
+        attribute.name = anchor.mnemonic + D + attribute.mnemonic + D + anchor.descriptor + D + attribute.descriptor;
+    }
+}
+
+for(var t in schema.ties) {
+    var tie = schema.tie[t];
+    var name = '';
+    for(var ar in tie.anchorRole) {
+        var anchorRole = tie.anchorRole[ar];
+        name += anchorRole.type + D + anchorRole.role;
+    }
+    for(var kr in tie.knotRole) {
+        var knotRole = tie.knotRole[kr];
+        name += knotRole.type + D + knotRole.role;
+    }
+    tie.name = name;
+}
+
+// this makes the defaults from the tool available in the schema object
+for(var d in Defaults) {
+    schema[d] = Defaults[d];
+}
+
+var anchor;
+for(var a = 0; anchor = schema.anchor[schema.anchors[a]]; a++) {
+// tilde delimits the sisula code
+~
+CREATE TABLE $anchor.name (
+  col1 int
+);
+
+~
+var attribute;
+for(var b = 0; attribute = anchor.attribute[anchor.attributes[b]]; b++) {
+// inner sisula code
+~
+
+CREATE TABLE ${attribute.name}$
+    col int not null,
+~
+}}
+
+var tie;
+for(var t = 0; tie = schema.tie[t]; t++) {
+~
+CREATE TABLE $tie.name (
+~
+}
