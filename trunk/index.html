@@ -731,6 +731,9 @@
             statementTypeSuffix: 'StatementType',
             checksumSuffix: 'Checksum',
             businessViews: 'false',
+            equivalence: 'false',
+            equivalentSuffix: 'EQ',
+            equivalentRange: 'tinyint',
             databaseTarget: 'SQLServer',
             temporalization: 'uni'
         };
@@ -5255,7 +5258,8 @@
             getDirective: function() {
                 var database = Defaults.databaseTarget;
                 var temporalization = Defaults.temporalization;
-                var directive = database + '_' + temporalization + '.directive';
+                var equivalence = Defaults.equivalence === 'true' ? '_eq' : '';
+                var directive = database + '_' + temporalization + equivalence + '.directive';
                 return directive;
             },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
@@ -5757,13 +5761,13 @@
                     xmlhttp.open("GET", script + cacheDisabler, false);
                     xmlhttp.send(null);
                     var sisula = xmlhttp.responseText;
-                    // honor escaped dollar signs
-                    sisula = sisula.replace(/[$]{2}/g, '§DOLLAR§'); // escaping dollar signs
-                    sisula = sisula.replace(/["]{2}/g, '§QUOTED§'); // escaping double quotes
                     // split language into JavaScript and SQL template components
                     var sisulets = sisula.split(splitter);
                     // substitute from SQL template to JavaScript
                     for(var i = 1; i < sisulets.length; i+=2) {
+                        // honor escaped dollar signs
+                        sisulets[i] = sisulets[i].replace(/[$]{2}/g, '§DOLLAR§'); // escaping dollar signs
+                        sisulets[i] = sisulets[i].replace(/["]{2}/g, '§QUOTED§'); // escaping double quotes
                         sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
                         sisulets[i] = sisulets[i].replace(/[$]\(([\S\s]*?)\)\?[^\S\n]*([^:\n]*)[:]?[^\S\n]*(.*)/g, '" + ($1 ? "$2" : "$3") + "'); // conditional
                         sisulets[i] = sisulets[i].replace(/[\$]([\w.]*?)(?:([\$])|([^\w.]|$))/g, '" + ($1 ? $1 : "") + "$3'); // single
@@ -5821,6 +5825,7 @@
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
+                document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('checksumSuffix').value = Defaults.checksumSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
@@ -5838,10 +5843,13 @@
                     this.setDefaultChangingRange('datetime');
                     this.setMetadataPrefix('Metadata');
                     this.setMetadataType('int');
+                    this.setEquivalentSuffix('EQ');
+                    this.setEquivalentRange('tinyint');
                     this.setRestatability('true');
                     this.setIdempotency('false');
                     this.setMetadataUsage('true');
                     this.setBusinessViews('false');
+                    this.setEquivalence('false');
                     this.setChangingSuffix('ChangedAt');
                     this.setIdentitySuffix('ID');
                     this.setPositIdentityRange('int');
@@ -5912,8 +5920,11 @@
                 storage.setItem("defaultChangingRange", Defaults.changingRange);
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
+                storage.setItem("equivalentSuffix", Defaults.equivalentSuffix);
+                storage.setItem("equivalentRange", Defaults.equivalentRange);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
+                storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("restatability", Defaults.restatability);
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
@@ -5963,8 +5974,11 @@
                 this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
                 this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                 this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
+                this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                 this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                 this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
+                this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
                 this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                 this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                 this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
@@ -6053,6 +6067,8 @@
             entityIntegrity: null,
             metadataPrefix: null,
             metadataType: null,
+            equivalentSuffix: null,
+            equivalentRange: null,
             addTextItem: function(item, destination, before, label, title, listener) {
                 if(!this[item]) {
                     this[item] = {
@@ -6097,11 +6113,13 @@
                 }
             },
             setTemporalization: function(value) {
+                Defaults.temporalization = value;
                 var temporalizationSelect = document.getElementById('temporalization');
                 temporalizationSelect.value = value;
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var beforeItem = document.getElementById('crtSettingsBeforeHere');
                 if(value === 'crt') {
+                    this.addOrRemovePartitioning();
                     this.addTextItem(
                             'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
                             "The 'data type' for identities of posits used throughout the implementation.",
@@ -6162,12 +6180,6 @@
                             "with respect to recording time.",
                             function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }
                     );
-                    this.addBoolItem(
-                            'partitioning', listOfDefaults, beforeItem, ' Use partitioning',
-                            "Partitioning will put currently recorded information in a separate partition " +
-                            "from erased information, greatly speeding up querying in the bitemporal implementation.",
-                            function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
-                    );
                     Editables.setEditability(Editables.positIdentityEdit, true);
                     Editables.setEditability(Editables.positGeneratorEdit, true);
                 }
@@ -6183,11 +6195,26 @@
                     this.removeItem('deleteReliability', listOfDefaults);
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
-                    this.removeItem('partitioning', listOfDefaults);
+                    this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
                 }
-                Defaults.temporalization = value;
+            },
+            addOrRemovePartitioning: function() {
+                var listOfDefaults = document.getElementById('listOfDefaults');
+                var beforeItem = document.getElementById('crtSettingsBeforeHere');
+                if(Defaults.temporalization === 'crt' || Defaults.equivalence === 'true') {
+                    if(!this.partitioning) {
+                        this.addBoolItem(
+                                'partitioning', listOfDefaults, beforeItem, ' Use partitioning',
+                                "Partitioning will put currently recorded information in a separate partition " +
+                                "from erased information, greatly speeding up querying in the bitemporal implementation.",
+                                function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
+                        );
+                    }
+                }
+                else
+                    this.removeItem('partitioning', listOfDefaults);
             },
             setMetadataPrefix: function(value) {
                 Defaults.metadataPrefix = value;
@@ -6195,7 +6222,14 @@
             setMetadataType: function(value) {
                 Defaults.metadataType = value;
             },
+            setEquivalentSuffix: function(value) {
+                Defaults.equivalentSuffix = value;
+            },
+            setEquivalentRange: function(value) {
+                Defaults.equivalentRange = value;
+            },
             setMetadataUsage: function(value) {
+                Defaults.metadataUsage = value;
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var beforeItem = document.getElementById('metadataSettingsBeforeHere');
                 if(value === 'true') {
@@ -6214,16 +6248,38 @@
                     this.removeItem('metadataPrefix', listOfDefaults);
                     this.removeItem('metadataType', listOfDefaults);
                 }
-                Defaults.metadataUsage = value;
             },
             setBusinessViews: function(value, userToggle) {
+                Defaults.businessViews = value;
                 if(userToggle && value === 'true')
                     alert(
                             "Please note that when business views are used " +
                             "descriptors must follow the same rules of uniqueness as mnemonics do, " +
                             "otherwise naming clashes may occur."
                     );
-                Defaults.businessViews = value;
+            },
+            setEquivalence: function(value) {
+                Defaults.equivalence = value;
+                var listOfDefaults = document.getElementById('listOfDefaults');
+                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
+                if(value === 'true') {
+                    this.addTextItem(
+                            'equivalentSuffix', listOfDefaults, beforeItem, ' Equivalents suffix',
+                            "The suffix used for the columns that store equivalents.",
+                            function() { Settings.setEquivalentSuffix(this.value); }
+                    );
+                    this.addTextItem(
+                            'equivalentRange', listOfDefaults, beforeItem, ' Equivalents range',
+                            "The 'data type' of the equivalents column.",
+                            function() { Settings.setEquivalentRange(this.value); }
+                    );
+                    this.addOrRemovePartitioning();
+                }
+                else {
+                    this.removeItem('equivalentSuffix', listOfDefaults);
+                    this.removeItem('equivalentRange', listOfDefaults);
+                    this.addOrRemovePartitioning();
+                }
             },
             setRestatability: function(value) {
                 Defaults.restatability = value;
@@ -6736,6 +6792,7 @@
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
+                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
