@@ -1,0 +1,27 @@
+# This is the processing directive for crt-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/Unsupported.js
+#SQL/SQLServer/NamingConvention.js
+#SQL/SQLServer/crt/SetupPartitioning.js
+#SQL/SQLServer/crt/CreateEquivalentAndDefault.js
+#SQL/SQLServer/crt/CreatePositorAndDefault.js
+#SQL/SQLServer/crt/CreateKnots.js
+#SQL/SQLServer/crt/CreateAnchorsAndAttributes.js
+#SQL/SQLServer/crt/CreateAttributeAssembledViews.js
+#SQL/SQLServer/crt/CreateAttributeRewinders.js
+#SQL/SQLServer/crt/AddAttributeRestatementConstraints.js
+#SQL/SQLServer/biz/DropAnchorBusinessPerspectives.js
+#SQL/SQLServer/crt/CreateAnchorPerspectives.js
+#SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.js
+#SQL/SQLServer/crt/CreateKeyGenerators.js
+#SQL/SQLServer/crt/CreateAnchorTriggers.js
+#SQL/SQLServer/crt/CreateTies.js
+#SQL/SQLServer/crt/CreateTieAssembledViews.js
+#SQL/SQLServer/crt/AddTieRestatementConstraints.js
+#SQL/SQLServer/crt/CreateTieRewinders.js
+#SQL/SQLServer/biz/DropTieBusinessPerspectives.js
+#SQL/SQLServer/crt/CreateTiePerspectives.js
+#SQL/SQLServer/biz/CreateTieBusinessPerspectives.js
+#SQL/SQLServer/crt/CreateTieTriggers.js
+#SQL/SQLServer/CreateSchemaTracking.js
+#SQL/SQLServer/crt/AddDescriptions.js
