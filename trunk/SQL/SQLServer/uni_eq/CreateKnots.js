@@ -14,6 +14,7 @@ while (knot = schema.nextKnot()) {
         knot.identityGenerator = 'IDENTITY(1,1)';
     if(schema.METADATA)
         knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
+    var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + knot.equivalentColumnName + ')' : '';
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
@@ -26,14 +27,14 @@ CREATE TABLE [$knot.capsule].[$knot.name] (
     $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $knot.metadataDefinition
     constraint pk$knot.name primary key (
-        $knot.identityColumnName asc,
-        $knot.equivalentColumnName asc
+        $knot.equivalentColumnName asc,
+        $knot.identityColumnName asc
     ),
     constraint uq$knot.name unique (
-        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName,
-        $knot.equivalentColumnName
+        $knot.equivalentColumnName,
+        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
-);
+)$scheme;
 GO
 ~*/
 }
