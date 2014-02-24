@@ -5831,11 +5831,16 @@
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
                 document.getElementById('naming').value = Defaults.naming;
             },
-            resetDefaults: function() {
-                if(confirm(
-                        "Are you sure you want to reset to default values? " +
-                        "This will overwrite any changes you have made."
-                )) {
+            resetDefaults: function(warn) {
+                var reset = false;
+                if(warn)
+                    reset = confirm(
+                            "Are you sure you want to reset to default values? " +
+                            "This will overwrite any changes you have made."
+                    );
+                else
+                    reset = true;
+                if(reset) {
                     this.setDefaultCapsule('dbo');
                     this.setDefaultIdentity('int');
                     this.setDefaultChronon('datetime2(7)');
@@ -5870,11 +5875,16 @@
                     this.init();
                 }
             },
-            resetSettings: function() {
-                if(confirm(
-                        "Are you sure you want to reset to default values? " +
-                        "This will overwrite any changes you have made."
-                )) {
+            resetSettings: function(warn) {
+                var reset = false;
+                if(warn)
+                    reset = confirm(
+                            "Are you sure you want to reset to default values? " +
+                            "This will overwrite any changes you have made."
+                    );
+                else
+                    reset = true;
+                if(reset) {
                     this.setDamping(4);
                     this.setLongRangeEffect(25);
                     this.setFuzziness(10);
@@ -5900,6 +5910,7 @@
                 }
             },
             storeSettings: function(storage) {
+                storage.setItem("version", VERSION);
                 storage.setItem("damping", (1 - LayoutEngine.damping) * 100);
                 storage.setItem("longRangeEffect", LayoutEngine.longRangeEffect * 100);
                 storage.setItem("fuzziness", LayoutEngine.fuzziness * 100);
@@ -5955,60 +5966,66 @@
                 storage.setItem("edgeCharge", Edge.charge);
             },
             loadSettings: function(storage) {
-                this.setDamping(storage.getItem('damping') || 4);
-                this.setLongRangeEffect(storage.getItem('longRangeEffect') || 25);
-                this.setFuzziness(storage.getItem('fuzziness') || 10);
-                this.setNormalDistance(storage.getItem('normalDistance') || 30);
-                this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
-                this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
-                this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
-                this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
-                this.setStiffness(storage.getItem('stiffness') || 1);
-                this.setDatabase(storage.getItem('database') || 'SQLServer');
-                this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
-                this.setCalculations(storage.getItem('calculations') || 'simple');
-                this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
-                this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
-                this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
-                this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
-                this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
-                this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
-                this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
-                this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
-                this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
-                this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
-                this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
-                this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
-                this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
-                this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
-                this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
-                this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
-                this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
-                this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
-                this.setPositorSuffix(storage.getItem('positorSuffix') || Defaults.positorSuffix);
-                this.setChecksumSuffix(storage.getItem('checksumSuffix') || Defaults.checksumSuffix);
-                this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
-                this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
-                this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
-                this.setDeleteReliability(storage.getItem('deleteReliability') || Defaults.deleteReliability);
-                this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
-                this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
-                this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
-                this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
-                this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
-                this.setNaming(storage.getItem('naming') || Defaults.naming);
-                Knot.mass = 1 * storage.getItem('knotMass') || 1;
-                Knot.charge = 1 * storage.getItem('knotCharge') || 1;
-                Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
-                Anchor.charge = 1 * storage.getItem('anchorCharge') || 1;
-                Attribute.mass = 1 * storage.getItem('attributeMass') || 1;
-                Attribute.charge = 1 * storage.getItem('attributeCharge') || 1;
-                Tie.mass = 1 * storage.getItem('tieMass') || 1;
-                Tie.charge = 1 * storage.getItem('tieCharge') || 1;
-                Edge.mass = 1 * storage.getItem('edgeMass') || 1;
-                Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
-                // must be done after Defaults have been populated with previously stored values
-                this.setTemporalization(storage.getItem('temporalization') || 'uni');
+                if(storage.getItem("version") != VERSION) {
+                    this.resetDefaults(false);
+                    this.resetSettings(false);
+                }
+                else {
+                    this.setDamping(storage.getItem('damping') || 4);
+                    this.setLongRangeEffect(storage.getItem('longRangeEffect') || 25);
+                    this.setFuzziness(storage.getItem('fuzziness') || 10);
+                    this.setNormalDistance(storage.getItem('normalDistance') || 30);
+                    this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
+                    this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
+                    this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
+                    this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
+                    this.setStiffness(storage.getItem('stiffness') || 1);
+                    this.setDatabase(storage.getItem('database') || 'SQLServer');
+                    this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
+                    this.setCalculations(storage.getItem('calculations') || 'simple');
+                    this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
+                    this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
+                    this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
+                    this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
+                    this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
+                    this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
+                    this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                    this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
+                    this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
+                    this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
+                    this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
+                    this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
+                    this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
+                    this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
+                    this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
+                    this.setPositingRange(storage.getItem('positingRange') || Defaults.positingRange);
+                    this.setPositingSuffix(storage.getItem('positingSuffix') || Defaults.positingSuffix);
+                    this.setPositorRange(storage.getItem('positorRange') || Defaults.positorRange);
+                    this.setPositorSuffix(storage.getItem('positorSuffix') || Defaults.positorSuffix);
+                    this.setChecksumSuffix(storage.getItem('checksumSuffix') || Defaults.checksumSuffix);
+                    this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
+                    this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
+                    this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
+                    this.setDeleteReliability(storage.getItem('deleteReliability') || Defaults.deleteReliability);
+                    this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
+                    this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
+                    this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
+                    this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
+                    this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
+                    this.setNaming(storage.getItem('naming') || Defaults.naming);
+                    Knot.mass = 1 * storage.getItem('knotMass') || 1;
+                    Knot.charge = 1 * storage.getItem('knotCharge') || 1;
+                    Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
+                    Anchor.charge = 1 * storage.getItem('anchorCharge') || 1;
+                    Attribute.mass = 1 * storage.getItem('attributeMass') || 1;
+                    Attribute.charge = 1 * storage.getItem('attributeCharge') || 1;
+                    Tie.mass = 1 * storage.getItem('tieMass') || 1;
+                    Tie.charge = 1 * storage.getItem('tieCharge') || 1;
+                    Edge.mass = 1 * storage.getItem('edgeMass') || 1;
+                    Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
+                    // must be done after Defaults have been populated with previously stored values
+                    this.setTemporalization(storage.getItem('temporalization') || 'uni');
+                }
                 this.init();
             },
             setPositIdentityRange: function(value) {
@@ -6838,7 +6855,7 @@
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
                 <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults()">Reset defaults to their default values</li>
+                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
 
@@ -6861,7 +6878,7 @@
                         <option value="complex">Adjustable</option>
                     </select> &nbsp;Calculations
                 </li>
-                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings()">Reset settings to their default values</li>
+                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings(true)">Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
             </ul>
         </div>
