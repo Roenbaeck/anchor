@@ -29,6 +29,7 @@ GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
+        var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + attribute.equivalentColumnName + ')' : '';
         if(attribute.isHistorized() && !attribute.isKnotted()) {
 /*~
 -- Historized attribute table -----------------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -45,10 +47,11 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
+        $attribute.equivalentColumnName asc,
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
     )
-);
+)$scheme;
 GO
 ~*/
     }
@@ -67,9 +70,6 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
-    constraint fk_K_$attribute.name foreign key (
-        $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
@@ -92,9 +92,6 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
-    constraint fk_K_$attribute.name foreign key (
-        $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc
     )
@@ -110,6 +107,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -117,9 +115,10 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
+        $attribute.equivalentColumnName asc,
         $attribute.anchorReferenceName asc
     )
-);
+)$scheme;
 GO
 ~*/
     }
