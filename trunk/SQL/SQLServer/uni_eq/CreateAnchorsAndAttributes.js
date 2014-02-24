@@ -70,6 +70,9 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    constraint fk_K_$attribute.name foreign key (
+        $attribute.knotReferenceName
+    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
@@ -92,6 +95,9 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    constraint fk_K_$attribute.name foreign key (
+        $attribute.knotReferenceName
+    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc
     )
