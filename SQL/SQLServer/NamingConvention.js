@@ -14,6 +14,7 @@ schema.metadata.chronon = schema.metadata.chronon || 'datetime';
 var knot;
 while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
+    knot.unfoldedName = knot.name + D + schema.metadata.equivalentSuffix;
     knot.businessName = knot.descriptor;
     knot.valueColumnName = knot.name;
     knot.identityColumnName = knot.mnemonic + D + schema.metadata.identitySuffix;
