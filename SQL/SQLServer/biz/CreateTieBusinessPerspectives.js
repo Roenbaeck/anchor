@@ -94,7 +94,7 @@ CREATE FUNCTION [$tie.capsule].[Difference_$tie.businessName] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    $(schema.CRT)? tie.positorColumnName as [Positor],
+    $(schema.CRT)? tie.$tie.positorColumnName as [Positor],
     $(tie.isHistorized())? tie.$tie.changingColumnName as [Time_of_Change],
 ~*/
         while (role = tie.nextRole()) {
