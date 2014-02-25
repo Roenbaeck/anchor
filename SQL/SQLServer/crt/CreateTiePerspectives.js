@@ -150,7 +150,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[p$tie.name] (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
@@ -195,19 +195,13 @@ CREATE FUNCTION [$tie.capsule].[d$tie.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    $(schema.METADATA)? tie.$tie.metadataColumnName,
-    $(tie.isHistorized())? tie.$tie.changingColumnName,
+    tie.*$(tie.hasMoreKnotRoles())?,
 ~*/
-        while (role = tie.nextRole()) {
-            if(role.knot) {
-                knot = role.knot;
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
 /*~
     [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
     $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
-~*/
-            }
-/*~
-    tie.$role.columnName$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
