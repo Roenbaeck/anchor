@@ -48,7 +48,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- Point_$tie.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[Point_$tie.businessName] ﻿(
+CREATE FUNCTION [$tie.capsule].[Point_$tie.businessName] (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
@@ -94,7 +94,7 @@ CREATE FUNCTION [$tie.capsule].[Difference_$tie.businessName] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    $(schema.CRT)? tie.Positor,
+    $(schema.CRT)? tie.$tie.positorColumnName as [Positor],
     $(tie.isHistorized())? tie.$tie.changingColumnName as [Time_of_Change],
 ~*/
         while (role = tie.nextRole()) {
