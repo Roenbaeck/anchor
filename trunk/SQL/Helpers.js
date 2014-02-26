@@ -95,6 +95,9 @@ while (anchor = schema.nextAnchor()) {
         attribute.isIdempotent = function() {
             return this.metadata.idempotent == 'true';
         };
+        attribute.isAssertive = function() {
+            return this.metadata.assertive == 'true';
+        };
         attribute.isRestatable = function() {
             return this.metadata.restatable == 'true';
         };
@@ -166,6 +169,9 @@ while(tie = schema.nextTie()) {
     };
     tie.isIdempotent = function() {
         return this.metadata.idempotent == 'true';
+    };
+    tie.isAssertive = function() {
+        return this.metadata.assertive == 'true';
     };
     if(tie.isHistorized())
         schema.historizedTies.push(tie.id);
