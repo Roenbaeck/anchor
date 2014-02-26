@@ -233,8 +233,8 @@ BEGIN
                             a.$attribute.identityColumnName = p.$attribute.identityColumnName
                         AND
                             a.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        $(!attribute.isIdempotent())? AND
-                            $(!attribute.isIdempotent())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
+                        $(attribute.isAssertive())? AND
+                            $(attribute.isAssertive())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
                         AND
                             a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
                     ) 
@@ -419,8 +419,8 @@ BEGIN
                             a.$attribute.identityColumnName = p.$attribute.identityColumnName
                         AND
                             a.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        $(!attribute.isIdempotent())? AND
-                            $(!attribute.isIdempotent())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
+                        $(attribute.isAssertive())? AND
+                            $(attribute.isAssertive())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
                         AND
                             a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
                     ) 
@@ -656,19 +656,32 @@ BEGIN
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
-        CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
-        CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END,
-        CASE 
-            WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
-            WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
-                CASE i.$schema.metadata.reliableSuffix
-                    WHEN 0 THEN $schema.metadata.deleteReliability
-                    ELSE $schema.metadata.reliableCutoff
-                END
-            ELSE i.$attribute.reliabilityColumnName 
-        END
-    FROM
-        inserted i
+        i._Positor,
+        i._PositedAt,
+        i._Reliability
+    FROM (
+        SELECT
+            *,
+            CASE 
+                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
+                ELSE i.$attribute.positorColumnName 
+            END as _Positor,
+            CASE 
+                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName 
+                ELSE @now 
+            END as _PositedAt,
+            CASE 
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
+                WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
+                    CASE i.$schema.metadata.reliableSuffix
+                        WHEN 0 THEN $schema.metadata.deleteReliability
+                        ELSE $schema.metadata.reliableCutoff
+                    END
+                ELSE i.$attribute.reliabilityColumnName 
+            END as _Reliability           
+        FROM
+            inserted 
+    ) i
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
@@ -676,7 +689,21 @@ BEGIN
     AND
         p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName; : p.$attribute.valueColumnName = i.$attribute.valueColumnName;
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName; : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+    AND NOT EXISTS (
+        SELECT TOP 1
+            $attribute.identityColumnName
+        FROM
+            [$attribute.capsule].[$attribute.annexName] a
+        WHERE
+            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+        AND
+            a.$attribute.positorColumnName = i._Positor
+        $(attribute.isAssertive())? AND
+            $(attribute.isAssertive())? a.$attribute.positingColumnName = i._PositedAt
+        AND
+            a.$attribute.reliabilityColumnName = i._Reliability                           
+    );
     END
 ~*/
 		} // end of while loop over attributes

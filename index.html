@@ -721,6 +721,7 @@
             entityIntegrity: 'true',
             restatability: 'true',
             idempotency: 'false',
+            assertiveness: 'true',
             naming: 'improved',
             positSuffix: 'Posit',
             annexSuffix: 'Annex',
@@ -2732,6 +2733,21 @@
                 event: 'click',
                 attributes: ['type', 'checkbox']
             },
+            assertivenssEdit: {
+                name: 'Assertive',
+                description:
+                       'Checking this modifies the insert and update triggers such that the annex will ' +
+                       'get new rows everytime a posit is made with a different positing time. Otherwise ' +
+                       'the annex will only get new rows if the reliability changes as well.',
+                setMember: function (element, node) { node.assertive = element.checked; },
+                getMember: function (node) { return node.assertive; },
+                setElement: function (element, node) { element.checked = node.assertive; },
+                getElement: function (element) { return element.checked; },
+                editable: true,
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox']
+            },
             checksumEdit: {
                 name: 'Checksum',
                 description:
@@ -3079,11 +3095,13 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
+            this.editables.push(Editables.assertivenssEdit);
             this.editables.push(Editables.checksumEdit);
             this.knotted = false;
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
+            this.assertive = Defaults.assertiveness === 'true';
             this.checksum = false;
             this.encapsulation = Defaults.encapsulation;
             this.positIdentity = Defaults.positIdentity;
@@ -3102,6 +3120,7 @@
             historized: false,
             restatable: true,
             idempotent: false,
+            assertive: true,
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
@@ -3190,6 +3209,7 @@
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
+                var assertive = Defaults.assertiveness === 'true';
                 var checksum = false;
                 var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3205,6 +3225,8 @@
                     checksum = _checksum ? _checksum === 'true' : checksum;
                     var _generator = metadata.getAttribute("generator");
                     generator = _generator ? _generator === 'true' : generator;
+                    var _assertive = metadata.getAttribute("assertive");
+                    assertive = _assertive ? _assertive === 'true' : assertive;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3231,6 +3253,7 @@
                 attribute.encapsulation = capsule;
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
+                attribute.assertive = assertive;
                 attribute.checksum = checksum;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
@@ -3280,8 +3303,10 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
-                if(Defaults.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt') {
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
+                    metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
+                }
                 if(this.checksum) {
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
                             false : this.checksum);
@@ -3309,6 +3334,8 @@
                         name += 'r';
                     if(this.idempotent)
                         name += 'i';
+                    if(Defaults.temporalization === 'crt' && this.assertive)
+                        name += 'a';
                     name += ')';
                 }
                 return name;
@@ -3764,9 +3791,11 @@
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
+            this.assertive = Defaults.assertiveness === 'true';
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
+            this.editables.push(Editables.assertivenssEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
@@ -3779,6 +3808,7 @@
             historized: false,
             restatable: true,
             idempotent: false,
+            assertive: true,
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
@@ -3910,6 +3940,7 @@
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
+                var assertive = Defaults.assertiveness === 'true';
                 var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
@@ -3922,6 +3953,8 @@
                     idempotent = _idempotent ? _idempotent === 'true' : idempotent;
                     var _generator = metadata.getAttribute("generator");
                     generator = _generator ? _generator === 'true' : generator;
+                    var _assertive = metadata.getAttribute("assertive");
+                    assertive = _assertive ? _assertive === 'true' : assertive;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3938,6 +3971,7 @@
                 tie.encapsulation = capsule;
                 tie.restatable = restatable;
                 tie.idempotent = idempotent;
+                tie.assertive = assertive;
                 tie.positIdentity = identity;
                 tie.positGenerator = generator;
                 tie.description = description ? description.firstChild.nodeValue : '';
@@ -4024,8 +4058,10 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                if(Defaults.temporalization === 'crt')
-                    metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator)
+                if(Defaults.temporalization === 'crt') {
+                    metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
+                    metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
+                }
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
@@ -4048,6 +4084,8 @@
                             name += 'r';
                         if(this.idempotent)
                             name += 'i';
+                        if(Defaults.temporalization === 'crt' && this.assertive)
+                            name += 'a';
                         name += ')';
                     }
                 }
@@ -5823,6 +5861,7 @@
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('restatability').checked = Defaults.restatability === 'true';
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
+                document.getElementById('assertiveness').checked = Defaults.assertiveness === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -5852,6 +5891,7 @@
                     this.setEquivalentRange('tinyint');
                     this.setRestatability('true');
                     this.setIdempotency('false');
+                    this.setAssertiveness('true');
                     this.setMetadataUsage('true');
                     this.setBusinessViews('false');
                     this.setEquivalence('false');
@@ -5938,6 +5978,7 @@
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("restatability", Defaults.restatability);
                 storage.setItem("idempotency", Defaults.idempotency);
+                storage.setItem("assertiveness", Defaults.assertiveness);
                 storage.setItem("changingSuffix", Defaults.changingSuffix);
                 storage.setItem("identitySuffix", Defaults.identitySuffix);
                 storage.setItem("positIdentity", Defaults.positIdentity);
@@ -6012,6 +6053,7 @@
                     this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                     this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
                     this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
+                    this.setAssertivenss(storage.getItem('assertiveness') || Defaults.assertiveness);
                     this.setNaming(storage.getItem('naming') || Defaults.naming);
                     Knot.mass = 1 * storage.getItem('knotMass') || 1;
                     Knot.charge = 1 * storage.getItem('knotCharge') || 1;
@@ -6199,6 +6241,7 @@
                     );
                     Editables.setEditability(Editables.positIdentityEdit, true);
                     Editables.setEditability(Editables.positGeneratorEdit, true);
+                    Editables.setEditability(Editables.assertivenssEdit, true);
                 }
                 else {
                     this.removeItem('positIdentity', listOfDefaults);
@@ -6215,6 +6258,7 @@
                     this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
+                    Editables.setEditability(Editables.assertivenssEdit, false);
                 }
             },
             addOrRemovePartitioning: function() {
@@ -6303,6 +6347,9 @@
             },
             setIdempotency: function(value) {
                 Defaults.idempotency = value;
+            },
+            setAssertiveness: function(value) {
+                Defaults.assertiveness = value;
             },
             setChangingSuffix: function(value) {
                 Defaults.changingSuffix = value;
@@ -6854,7 +6901,8 @@
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
                 <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
-                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
+                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
+                <li title="Default for new items. Assertive items get new annex rows everytime a posit is made with a differnt positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" onchange="Settings.setAssertiveness(this.checked ? 'true' : 'false')"/> Assertiveness</li>
                 <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
