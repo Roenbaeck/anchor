@@ -90,7 +90,7 @@ BEGIN
         ISNULL(i.$attribute.positingColumnName, @now),
         ISNULL(i.$attribute.reliabilityColumnName, 
         CASE i.$schema.metadata.reliableSuffix
-            WHEN 0 THEN $schema.metadata.deleteReliability,
+            WHEN 0 THEN $schema.metadata.deleteReliability
             ELSE $schema.metadata.reliableCutoff
         END),
 ~*/
@@ -607,7 +607,7 @@ BEGIN
             WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
             WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
                 CASE i.$schema.metadata.reliableSuffix
-                    WHEN 0 THEN $schema.metadata.deleteReliability,
+                    WHEN 0 THEN $schema.metadata.deleteReliability
                     ELSE $schema.metadata.reliableCutoff
                 END
             ELSE i.$attribute.reliabilityColumnName 
