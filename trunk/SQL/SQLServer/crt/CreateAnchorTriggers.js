@@ -149,8 +149,8 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
             knot = attribute.knot;
+            var statementTypes = "'N'";
             if(attribute.isHistorized()) {
-                var statementTypes = "'N'";
                 if(!attribute.isIdempotent())
                     statementTypes += ",'R'";
 /*~
@@ -689,7 +689,7 @@ BEGIN
     AND
         p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName; : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND NOT EXISTS (
         SELECT TOP 1
             $attribute.identityColumnName
