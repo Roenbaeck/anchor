@@ -86,9 +86,13 @@ BEGIN
         $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
-        ISNULL(i.$attribute.positorColumnName, 0),
+        ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
         ISNULL(i.$attribute.positingColumnName, @now),
-        ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.reliableCutoff),
+        ISNULL(i.$attribute.reliabilityColumnName, 
+        CASE i.$schema.metadata.reliableSuffix
+            WHEN 0 THEN $schema.metadata.deleteReliability,
+            ELSE $schema.metadata.reliableCutoff
+        END),
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -106,6 +110,8 @@ BEGIN
 /*~
     FROM (
         SELECT
+            $schema.metadata.positorSuffix,
+            $schema.metadata.reliableSuffix,
             $anchor.identityColumnName,
             $(schema.METADATA)? $anchor.metadataColumnName,
  ~*/
@@ -490,7 +496,7 @@ BEGIN
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                pre.$attribute.positorColumnName = i.$attribute.positorColumnName
+                pre.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
             AND
                 pre.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
@@ -508,7 +514,7 @@ BEGIN
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                fol.$attribute.positorColumnName = i.$attribute.positorColumnName
+                fol.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
             AND
                 fol.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
@@ -557,7 +563,7 @@ BEGIN
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                pre.$attribute.positorColumnName = i.$attribute.positorColumnName
+                pre.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
             AND
                 pre.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
@@ -575,7 +581,7 @@ BEGIN
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                fol.$attribute.positorColumnName = i.$attribute.positorColumnName
+                fol.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
             AND
                 fol.$attribute.reliabilityColumnName = $schema.metadata.reliableCutoff
             ORDER BY
@@ -595,9 +601,17 @@ BEGIN
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
-        i.$attribute.positorColumnName,
-        i.$attribute.positingColumnName,
-        i.$attribute.reliabilityColumnName
+        CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+        CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END,
+        CASE 
+            WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
+            WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
+                CASE i.$schema.metadata.reliableSuffix
+                    WHEN 0 THEN $schema.metadata.deleteReliability,
+                    ELSE $schema.metadata.reliableCutoff
+                END
+            ELSE i.$attribute.reliabilityColumnName 
+        END
     FROM
         inserted i
     JOIN
@@ -622,7 +636,8 @@ INSTEAD OF DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
- ~*/
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
@@ -636,7 +651,7 @@ BEGIN
         $(schema.METADATA)? p.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         p.$attribute.positorColumnName,
-        $schema.metadata.now,
+        @now,
         $schema.metadata.deleteReliability
     FROM
         deleted d
