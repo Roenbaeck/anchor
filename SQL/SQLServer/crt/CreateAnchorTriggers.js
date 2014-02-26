@@ -224,7 +224,20 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN a.$attribute.identityColumnName is not null
+                    WHEN EXISTS (
+                        SELECT TOP 1
+                            $attribute.identityColumnName
+                        FROM
+                            [$attribute.capsule].[$attribute.annexName] a
+                        WHERE
+                            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+                        AND
+                            a.$attribute.positorColumnName = v.$attribute.positorColumnName
+                        $(!attribute.isIdempotent())? AND
+                            $(!attribute.isIdempotent())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
+                        AND
+                            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
+                    ) 
                     THEN 'D' -- identical duplicate
                     WHEN $(attribute.hasChecksum())? v.$attribute.checksumColumnName in (( : v.$attribute.valueColumnName in ((
                         SELECT TOP 1
@@ -278,16 +291,6 @@ BEGIN
             p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = v.$attribute.checksumColumnName : p.$attribute.valueColumnName = v.$attribute.valueColumnName
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.annexName] a
-        ON
-            a.$attribute.identityColumnName = p.$attribute.identityColumnName
-        AND
-            a.$attribute.positorColumnName = v.$attribute.positorColumnName
-        AND
-            a.$attribute.positingColumnName = v.$attribute.positingColumnName
-        AND
-            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
@@ -407,7 +410,20 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN a.$attribute.identityColumnName is not null
+                    WHEN EXISTS (
+                        SELECT TOP 1
+                            $attribute.identityColumnName
+                        FROM
+                            [$attribute.capsule].[$attribute.annexName] a
+                        WHERE
+                            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+                        AND
+                            a.$attribute.positorColumnName = v.$attribute.positorColumnName
+                        $(!attribute.isIdempotent())? AND
+                            $(!attribute.isIdempotent())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
+                        AND
+                            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
+                    ) 
                     THEN 'D' -- identical duplicate
                     WHEN p.$attribute.anchorReferenceName is not null
                     THEN 'S' -- duplicate statement
@@ -421,16 +437,6 @@ BEGIN
             p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = v.$attribute.checksumColumnName : p.$attribute.valueColumnName = v.$attribute.valueColumnName
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.annexName] a
-        ON
-            a.$attribute.identityColumnName = p.$attribute.identityColumnName
-        AND
-            a.$attribute.positorColumnName = v.$attribute.positorColumnName
-        AND
-            a.$attribute.positingColumnName = v.$attribute.positingColumnName
-        AND
-            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
