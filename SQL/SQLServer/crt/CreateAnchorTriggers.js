@@ -475,13 +475,14 @@ BEGIN
             $attribute.statementTypeColumnName in ('S',$statementTypes);
     END
     ~*/
-        }
+			}
+		}
 /*~
 END
 GO
 ~*/
-    }
-    if(anchor.hasMoreHistorizedAttributes()) {
+	}
+	if(anchor.hasMoreHistorizedAttributes()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
 -- ut$anchor.name instead of UPDATE trigger on l$anchor.name
@@ -495,9 +496,9 @@ BEGIN
     IF(UPDATE($anchor.identityColumnName))
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/
-        while (attribute = anchor.nextHistorizedAttribute()) {
-            if(attribute.isKnotted()) {
-                knot = attribute.knot;
+		while (attribute = anchor.nextHistorizedAttribute()) {
+			if(attribute.isKnotted()) {
+				knot = attribute.knot;
 /*~
     IF(UPDATE($attribute.identityColumnName))
         RAISERROR('The identity column $attribute.identityColumnName is not updatable.', 16, 1);
@@ -519,7 +520,7 @@ BEGIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
-                if(attribute.isIdempotent()) {
+				if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
         [$attribute.capsule].[$attribute.positName] p
@@ -569,9 +570,9 @@ BEGIN
                 fol.$attribute.changingColumnName asc,
                 fol.$attribute.positingColumnName desc
         ))~*/
-                }
-            }
-            else {
+				}
+			}
+			else { // not knotted
 /*~
     IF(UPDATE($attribute.valueColumnName))
     BEGIN
@@ -586,7 +587,7 @@ BEGIN
         i.$attribute.valueColumnName
     FROM
         inserted i~*/
-                if(attribute.isIdempotent()) {
+				if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
         [$attribute.capsule].[$attribute.name] b
@@ -636,8 +637,8 @@ BEGIN
                 fol.$attribute.changingColumnName asc,
                 fol.$attribute.positingColumnName desc
         ))~*/
-                }
-            }
+				}
+			}
 /*~;
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $(schema.METADATA)? $attribute.metadataColumnName,
@@ -672,11 +673,14 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName; : p.$attribute.valueColumnName = i.$attribute.valueColumnName;
     END
 ~*/
-        }
-    }
+		} // end of while loop over attributes
 /*~
 END
 GO
+~*/
+	} // end of if historized attributes exist
+	if(anchor.hasMoreAttributes()) {
+/*~
 -- DELETE trigger -----------------------------------------------------------------------------------------------------
 -- dt$anchor.name instead of DELETE trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
@@ -714,4 +718,5 @@ BEGIN
 END
 GO
 ~*/
+	}
 }
