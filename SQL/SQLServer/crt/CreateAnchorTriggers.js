@@ -663,21 +663,21 @@ BEGIN
         SELECT
             *,
             CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                ELSE i.$attribute.positorColumnName 
+                WHEN UPDATE($schema.metadata.positorSuffix) THEN $schema.metadata.positorSuffix 
+                ELSE $attribute.positorColumnName 
             END as _Positor,
             CASE 
-                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName 
+                WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName 
                 ELSE @now 
             END as _PositedAt,
             CASE 
-                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN $attribute.reliabilityColumnName 
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
-                    CASE i.$schema.metadata.reliableSuffix
+                    CASE $schema.metadata.reliableSuffix
                         WHEN 0 THEN $schema.metadata.deleteReliability
                         ELSE $schema.metadata.reliableCutoff
                     END
-                ELSE i.$attribute.reliabilityColumnName 
+                ELSE $attribute.reliabilityColumnName 
             END as _Reliability           
         FROM
             inserted 
