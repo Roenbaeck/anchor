@@ -150,6 +150,8 @@ BEGIN
         while (attribute = anchor.nextAttribute()) {
             knot = attribute.knot;
             var statementTypes = "'N'";
+            if(attribute.isAssertive())
+                statementTypes += ",'D'";
             if(attribute.isHistorized()) {
                 if(!attribute.isIdempotent())
                     statementTypes += ",'R'";
@@ -224,21 +226,19 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN EXISTS (
+                    WHEN v.$attribute.reliabilityColumnName = (
                         SELECT TOP 1
-                            $attribute.identityColumnName
+                            a.$attribute.reliabilityColumnName
                         FROM
                             [$attribute.capsule].[$attribute.annexName] a
                         WHERE
                             a.$attribute.identityColumnName = p.$attribute.identityColumnName
                         AND
                             a.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        $(attribute.isAssertive())? AND
-                            $(attribute.isAssertive())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
-                        AND
-                            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
+                        ORDER BY
+                            a.$attribute.positingColumnName desc
                     ) 
-                    THEN 'D' -- identical duplicate
+                    THEN 'D' -- duplicate assertion
                     WHEN $(attribute.hasChecksum())? v.$attribute.checksumColumnName in (( : v.$attribute.valueColumnName in ((
                         SELECT TOP 1
                             $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
@@ -410,21 +410,19 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN EXISTS (
+                    WHEN v.$attribute.reliabilityColumnName = (
                         SELECT TOP 1
-                            $attribute.identityColumnName
+                            a.$attribute.reliabilityColumnName
                         FROM
                             [$attribute.capsule].[$attribute.annexName] a
                         WHERE
                             a.$attribute.identityColumnName = p.$attribute.identityColumnName
                         AND
                             a.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        $(attribute.isAssertive())? AND
-                            $(attribute.isAssertive())? a.$attribute.positingColumnName = v.$attribute.positingColumnName
-                        AND
-                            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName                            
+                        ORDER BY
+                            a.$attribute.positingColumnName desc
                     ) 
-                    THEN 'D' -- identical duplicate
+                    THEN 'D' -- duplicate assertion
                     WHEN p.$attribute.anchorReferenceName is not null
                     THEN 'S' -- duplicate statement
                     ELSE 'N' -- new statement
@@ -689,21 +687,23 @@ BEGIN
     AND
         p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
-    AND NOT EXISTS (
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
+            if(!attribute.isAssertive()) {
+/*~
+    AND i._Reliability <> (
         SELECT TOP 1
-            $attribute.identityColumnName
+            a.$attribute.reliabilityColumnName
         FROM
             [$attribute.capsule].[$attribute.annexName] a
         WHERE
             a.$attribute.identityColumnName = p.$attribute.identityColumnName
         AND
             a.$attribute.positorColumnName = i._Positor
-        $(attribute.isAssertive())? AND
-            $(attribute.isAssertive())? a.$attribute.positingColumnName = i._PositedAt
-        AND
-            a.$attribute.reliabilityColumnName = i._Reliability                           
-    );
+        ORDER BY
+            a.$attribute.positingColumnName desc
+    )~*/
+            }
+/*~;
     END
 ~*/
 		} // end of while loop over attributes
