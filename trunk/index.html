@@ -2733,7 +2733,7 @@
                 event: 'click',
                 attributes: ['type', 'checkbox']
             },
-            assertivenssEdit: {
+            assertivnessEdit: {
                 name: 'Assertive',
                 description:
                        'Checking this modifies the insert and update triggers such that the annex will ' +
@@ -3095,7 +3095,7 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
-            this.editables.push(Editables.assertivenssEdit);
+            this.editables.push(Editables.assertivnessEdit);
             this.editables.push(Editables.checksumEdit);
             this.knotted = false;
             this.historized = historized;
@@ -3795,7 +3795,7 @@
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
-            this.editables.push(Editables.assertivenssEdit);
+            this.editables.push(Editables.assertivnessEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
@@ -5861,7 +5861,6 @@
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
                 document.getElementById('restatability').checked = Defaults.restatability === 'true';
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
-                document.getElementById('assertiveness').checked = Defaults.assertiveness === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -6128,6 +6127,7 @@
             metadataType: null,
             equivalentSuffix: null,
             equivalentRange: null,
+            assertiveness: null,
             addTextItem: function(item, destination, before, label, title, listener) {
                 if(!this[item]) {
                     this[item] = {
@@ -6239,9 +6239,16 @@
                             "with respect to recording time.",
                             function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }
                     );
+                    this.addBoolItem(
+                            'assertiveness', listOfDefaults, beforeItem, ' Assertiveness',
+                            "Default for new items. Assertive items get new annex rows everytime a posit " +
+                            "is made with a differnt positing time. Non-assertive items must also have a " +
+                            "different reliability.",
+                            function() { Settings.setAssertiveness(this.checked ? 'true' : 'false'); }
+                    );
                     Editables.setEditability(Editables.positIdentityEdit, true);
                     Editables.setEditability(Editables.positGeneratorEdit, true);
-                    Editables.setEditability(Editables.assertivenssEdit, true);
+                    Editables.setEditability(Editables.assertivnessEdit, true);
                 }
                 else {
                     this.removeItem('positIdentity', listOfDefaults);
@@ -6255,10 +6262,11 @@
                     this.removeItem('deleteReliability', listOfDefaults);
                     this.removeItem('reliableSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
+                    this.removeItem('assertiveness', listOfDefaults);
                     this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
-                    Editables.setEditability(Editables.assertivenssEdit, false);
+                    Editables.setEditability(Editables.assertivnessEdit, false);
                 }
             },
             addOrRemovePartitioning: function() {
@@ -6902,7 +6910,6 @@
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
                 <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li title="Default for new items. Assertive items get new annex rows everytime a posit is made with a differnt positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" onchange="Settings.setAssertiveness(this.checked ? 'true' : 'false')"/> Assertiveness</li>
                 <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
