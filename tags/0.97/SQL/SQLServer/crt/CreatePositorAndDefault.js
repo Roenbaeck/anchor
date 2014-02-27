@@ -1,5 +1,5 @@
 /*~
--- POSITOR schema.METADATA ---------------------------------------------------------------------------------------------------
+-- POSITOR METADATA ---------------------------------------------------------------------------------------------------
 --
 -- Sets up a table containing the list of available positors. Since at least one positor
 -- must be available the table is set up with a default positor with identity 0.

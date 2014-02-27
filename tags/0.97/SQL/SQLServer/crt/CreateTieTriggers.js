@@ -648,7 +648,7 @@ BEGIN
         $(schema.METADATA)? v.$tie.metadataColumnName,
         p.$tie.identityColumnName,
         v.$tie.positorColumnName,
-        v.$tie.positingColumnName,
+        CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END,
         v.$tie.reliabilityColumnName
     FROM
         inserted v
