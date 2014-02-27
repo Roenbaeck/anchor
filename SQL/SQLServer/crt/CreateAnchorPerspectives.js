@@ -137,7 +137,9 @@ GO
 CREATE VIEW [$anchor.capsule].[l$anchor.name]
 AS
 SELECT
-    *
+    p.*, 
+    1 as $schema.metadata.reliableSuffix,
+    [$anchor.mnemonic].*
 FROM
     [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
@@ -156,7 +158,9 @@ CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    *
+    p.*, 
+    1 as $schema.metadata.reliableSuffix,
+    [$anchor.mnemonic].*
 FROM
     [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
@@ -173,7 +177,9 @@ GO
 CREATE VIEW [$anchor.capsule].[n$anchor.name]
 AS
 SELECT
-    *
+    p.*, 
+    1 as $schema.metadata.reliableSuffix,
+    [$anchor.mnemonic].*
 FROM
     [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
 CROSS APPLY

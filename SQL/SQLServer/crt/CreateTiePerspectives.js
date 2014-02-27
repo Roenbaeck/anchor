@@ -195,7 +195,6 @@ CREATE FUNCTION [$tie.capsule].[d$tie.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    tie.*$(tie.hasMoreKnotRoles())?,
 ~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
@@ -205,6 +204,7 @@ SELECT
 ~*/
         }
 /*~
+    tie.*$(tie.hasMoreKnotRoles())?
 FROM
     [$tie.capsule].[$tie.name] tie
 ~*/
