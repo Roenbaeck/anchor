@@ -3332,7 +3332,8 @@
                 AbstractNode.prototype.draw.apply(this, arguments);
                 this.drawFixed(context);
                 */
-                this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition.toFixed(2) + ',' + this.yPosition.toFixed(2) + ')');
+                var svgTransform = this.svg.transform.baseVal.getItem(0);
+                svgTransform.setTranslate(this.xPosition, this.yPosition);
             }
         };
 
@@ -4079,9 +4080,19 @@
                     }
                 }
                 */
+                var moveTo = this.svg.pathSegList.getItem(0);
+                var curveTo = this.svg.pathSegList.getItem(1);
+                moveTo.x = this.node.xPosition;
+                moveTo.y = this.node.yPosition;
+                curveTo.x1 = this.controlPoint.xPosition;
+                curveTo.y1 = this.controlPoint.yPosition;
+                curveTo.x = this.otherNode.xPosition;
+                curveTo.y = this.otherNode.yPosition;
+                /*
                 this.svg.setAttribute('d', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                         ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+                        */
                 //AbstractNode.prototype.draw.apply(this, arguments);
             },
             drawMoving: function(context) {
