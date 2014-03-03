@@ -2004,11 +2004,9 @@
                 }
 
                 // draw the miniature every minirate frames
-                /*
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 if(this.miniCounter == 1)
                     this.drawMiniature(Model);
-                */
                 var i, node;
                 // draw focus rings around hovered and selected nodes
                 /*
@@ -2046,6 +2044,22 @@
                     */
             },
             drawMiniature: function(model) {
+                var img = document.getElementById("miniature");
+                var graph = document.getElementById("graph").cloneNode(true);
+                graph.setAttribute("width", "200px");
+                graph.setAttribute("height", "200px");
+                var boundingBox =
+                        model.leftmostNode.xPosition + " " +
+                        model.topmostNode.yPosition + " " +
+                        model.rightmostNode.xPosition + " " +
+                        model.bottommostNode.yPosition;
+                graph.setAttribute("viewBox", boundingBox);
+                graph.setAttribute("preserveAspectRatio", "none");
+                var svg = (new XMLSerializer()).serializeToString(graph);
+                img.style.width = '200px';
+                img.style.heigth = '200px';
+                img.src = "data:image/svg+xml;base64," + btoa(svg);
+                /*
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
                 do {
@@ -2057,6 +2071,9 @@
                     this.miniatureCanvas.height = this.miniScale * this.miniHeight;
                 }
                 while(this.resizeMiniature());
+                this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
+                this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
+
 
                 this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
                 this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
@@ -2068,8 +2085,10 @@
                 this.miniatureContext.strokeStyle = Color.scheme.viewport;
                 this.miniatureContext.lineWidth = 1/this.miniScale;
                 this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
+                */
             },
             resizeMiniature: function() {
+                /*
                 if(this.miniatureCanvas.width + this.miniatureCanvas.height <
                         (window.innerWidth + window.innerHeight) / 6) {
                     this.miniScale *= 1.05;
@@ -2080,6 +2099,7 @@
                     this.miniScale *= 0.95;
                     return true;
                 }
+                */
                 return false;
             },
             drawHovered: function(x, y) {
@@ -5968,7 +5988,7 @@
             }, false);
 
             miniatureCanvas = document.getElementById('miniature');
-            miniatureContext = miniatureCanvas.getContext('2d');
+            miniatureContext = null; // miniatureCanvas.getContext('2d');
 
             DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
 
@@ -6053,7 +6073,11 @@
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
 
-    <svg id="graph" class="unselectable" xmlns="http://www.w3.org/2000/svg" version="1.1">
+    <svg id="graph"
+         class="unselectable"
+         xmlns="http://www.w3.org/2000/svg"
+         version="1.1"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>
             <style type="text/css">
                 .anchor {
@@ -6250,9 +6274,12 @@
     <canvas id="maxiature" class="unselectable">
     </canvas>
     -->
+    <!--
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window. It will always show the whole model with the current viewport shown by a red outline. Click and drag to move the viewport.">
-        <!-- shows a navigatable miniature of the model -->
     </canvas>
+    -->
+    <img id="miniature" src="?"/>
+    <!-- shows a navigatable miniature of the model -->
 
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
