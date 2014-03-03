@@ -1310,15 +1310,6 @@
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
-                var graph = document.getElementById('graph');
-                edge.svg = document.createElementNS(SVGNS, 'path');
-                edge.svg.setAttributeNS(null, 'id', edge.id);
-                edge.svg.setAttributeNS(null, 'class', 'edge');
-                edge.svg.setAttributeNS(null, 'd', 'M' + edge.node.xPosition.toFixed(2) + ',' + edge.node.yPosition.toFixed(2) +
-                        ' Q' + edge.controlPoint.xPosition.toFixed(2) + ',' + edge.controlPoint.yPosition.toFixed(2) +
-                        ' ' + edge.otherNode.xPosition.toFixed(2) + ',' + edge.otherNode.yPosition.toFixed(2));
-                graph.appendChild(edge.svg);
-
                 // the edge is also a node
                 if(edge)
                     this.addNode(edge);
@@ -2858,15 +2849,32 @@
                 }
             },
             highlight: null,
+            contextMenu: null,
             mouseover: function() {
                 if(!this.highlight) {
+                    var self = this;
                     this.highlight = document.createElementNS(SVGNS, 'use');
                     this.highlight.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#highlight');
+                    this.highlight.addEventListener('mouseout', function(evt) { self.mouseoutHighlight(evt); }, false);
+                    this.highlight.addEventListener('click', function(evt) { self.clickHighlight(evt); }, false);
                     this.svg.insertBefore(this.highlight, this.svg.firstChild);
-                    new ContextMenu(this,[this]);
+                }
+                if(!this.contextMenu) {
+                    this.contextMenu = new ContextMenu(this,[this]);
                 }
             },
-            mouseout: function() {
+            click: function(evt) {
+                this.setFixed(!this.getFixed());
+            },
+            clickHighlight: function(evt) {
+                alert("clicked highlight");
+                evt.stopPropagation();
+            },
+            mouseoutHighlight: function(evt) {
+                if(this.contextMenu) {
+                    this.contextMenu.close();
+                    this.contextMenu = null;
+                }
                 if(this.highlight) {
                     this.svg.removeChild(this.highlight);
                     this.highlight = null;
@@ -3180,6 +3188,16 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
+            var anchor = this;
+            var nodeLayer = document.getElementById('nodes');
+            anchor.svg = document.createElementNS(SVGNS, 'g');
+            anchor.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            anchor.svg.addEventListener('mouseover', function(evt) { anchor.mouseover(evt); }, false);
+            anchor.svg.addEventListener('click', function(evt) { anchor.click(evt); }, false);
+            var use = document.createElementNS(SVGNS, 'use');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#anchor');
+            anchor.svg.appendChild(use);
+            nodeLayer.appendChild(anchor.svg);
         }
         Anchor.prototype = {
             mnemonic: '',
@@ -3189,6 +3207,11 @@
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 10,
+            removeSVG: function() {
+                var nodeLayer = document.getElementById('nodes');
+                nodeLayer.removeChild(this.svg);
+                this.svg = null;
+            },
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -3291,16 +3314,6 @@
                 anchor.generator = generator;
                 anchor.encapsulation = capsule;
                 anchor.incomplete = anchor.isIncomplete();
-                var graph = document.getElementById('graph');
-                anchor.svg = document.createElementNS(SVGNS, 'g');
-                anchor.svg.setAttributeNS(null, 'id', mnemonic);
-                anchor.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-                anchor.svg.addEventListener('mouseover', function() { anchor.mouseover(); }, false);
-                anchor.svg.addEventListener('mouseout', function() { anchor.mouseout(); }, false);
-                var use = document.createElementNS(SVGNS, 'use');
-                use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#anchor');
-                anchor.svg.appendChild(use);
-                graph.appendChild(anchor.svg);
                 return anchor;
             },
             toXML: function(schema) {
@@ -3944,6 +3957,14 @@
             this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.incomplete = false;
             this.type = 'Edge';
+            var edgeLayer = document.getElementById('edges');
+            this.svg = document.createElementNS(SVGNS, 'path');
+            this.svg.setAttributeNS(null, 'id', this.id);
+            this.svg.setAttributeNS(null, 'class', 'edge');
+            this.svg.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
+                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            edgeLayer.appendChild(this.svg);
         }
         Edge.prototype = {
             role: null,
@@ -6106,6 +6127,9 @@
                     stroke-width:   10px;
                     fill:           #fff;
                 }
+                .highlightAction {
+                    stroke:         #b55;
+                }
             </style>
             <g id="anchor">
                 <rect class="anchor" width="20" height="20" transform="translate(-10, -10)"/>
@@ -6128,23 +6152,12 @@
                 <circle class="attribute" r="7"/>
             </g>
         </defs>
-        <g id="test" transform="translate(100, 100)">
-            <use xlink:href="#highlight"/>
-            <use xlink:href="#anchor"/>
-        </g>
-        <g id="test" transform="translate(200, 200)">
-            <use xlink:href="#tie"/>
-        </g>
-        <path d="M 100,100 Q 150,200 200,200" class="edge"/>
-        <g id="test" transform="translate(250, 200)">
-            <use xlink:href="#tie_historized"/>
-        </g>
-        <g id="test" transform="translate(300, 200)">
-            <use xlink:href="#attribute"/>
-        </g>
-        <g id="test" style="-webkit-transform: translate3d(350px,200px,0px);" transform="translate(350, 200)">
-            <use xlink:href="#attribute_historized"/>
-        </g>
+        <!-- defines the drawing order -->
+        <g id="bottom"/>
+        <g id="edges"/>
+        <g id="nodes"/>
+        <g id="names"/>
+        <g id="top"/>
     </svg>
 
     <div id="header" class="unselectable">
@@ -6185,7 +6198,7 @@
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
                 <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)">SVG code</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(document.getElementById('graph'), 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
@@ -6278,8 +6291,9 @@
     <canvas id="miniature" class="unselectable" title="This is the Navigation Window. It will always show the whole model with the current viewport shown by a red outline. Click and drag to move the viewport.">
     </canvas>
     -->
-    <img id="miniature" src="?"/>
-    <!-- shows a navigatable miniature of the model -->
+
+    <!-- shows a navigatable miniature of the model, the Anchor.svg is just a placeholder -->
+    <img id="miniature" class="unselectable" src="Anchor.svg"/>
 
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
