@@ -320,9 +320,15 @@ BEGIN
 ~*/
             }
 /*~
-        CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END
+        u.$tie.changingColumnName
     FROM
-        inserted i~*/
+        inserted i
+    CROSS APPLY (
+        SELECT
+            CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END
+    ) u (
+        $tie.changingColumnName
+    )~*/
         if(tie.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -359,7 +365,7 @@ BEGIN
 ~*/
             }
 /*~
-            i.$tie.changingColumnName
+            u.$tie.changingColumnName
         ) = 0~*/
         }
 /*~;

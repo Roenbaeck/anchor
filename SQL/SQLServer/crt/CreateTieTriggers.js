@@ -367,7 +367,23 @@ BEGIN
         WHERE
             v.$tie.versionColumnName = @currentVersion
         AND
-            v.$tie.statementTypeColumnName in ($statementTypes);
+            v.$tie.statementTypeColumnName in ($statementTypes)~*/
+            if(!tie.isAssertive()) {
+/*~
+        AND v.$tie.reliabilityColumnName <> (
+            SELECT TOP 1
+                a.$tie.reliabilityColumnName
+            FROM
+                [$tie.capsule].[$tie.annexName] a
+            WHERE
+                a.$tie.identityColumnName = p.$tie.identityColumnName
+            AND
+                a.$tie.positorColumnName = v.$tie.positorColumnName
+            ORDER BY
+                a.$tie.positingColumnName desc
+        )~*/
+            }
+/*~;
     END
 END
 GO
@@ -442,18 +458,33 @@ GO
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-        p.$role.columnName = v.$role.columnName$(!tie.hasMoreIdentifiers())?;
+        p.$role.columnName = v.$role.columnName
     $(tie.hasMoreIdentifiers())? AND~*/
                 }
             }
             else {
                 while(role = tie.nextValue()) {
 /*~
-        p.$role.columnName = v.$role.columnName$(!tie.hasMoreValues())?;
+        p.$role.columnName = v.$role.columnName
     $(tie.hasMoreValues())? AND~*/
                 }
             }
+            if(!tie.isAssertive()) {
 /*~
+    AND v.$tie.reliabilityColumnName <> (
+        SELECT TOP 1
+            a.$tie.reliabilityColumnName
+        FROM
+            [$tie.capsule].[$tie.annexName] a
+        WHERE
+            a.$tie.identityColumnName = p.$tie.identityColumnName
+        AND
+            a.$tie.positorColumnName = v.$tie.positorColumnName
+        ORDER BY
+            a.$tie.positingColumnName desc
+    )~*/
+            }
+/*~;
 END
 GO
 ~*/
@@ -499,12 +530,22 @@ BEGIN
 /*~
         CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END
     FROM
-        inserted i~*/
+        inserted i
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
+            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange)
+    ) u (
+        $tie.changingColumnName,
+        $tie.positingColumnName
+    )~*/
         if(tie.isIdempotent()) {
 /*~
     LEFT JOIN
         [$tie.capsule].[$tie.name] tie
     ON
+        tie.$tie.changingColumnName = u.$tie.changingColumnName
+    AND
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
@@ -528,26 +569,26 @@ BEGIN
     WHERE
         tie.$anyRole.columnName is null
     AND (
-                        SELECT
-                            COUNT(*)
-                        FROM (
-                            SELECT TOP 1
+        SELECT
+            COUNT(*)
+        FROM (
+            SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                                pre.$role.columnName$(tie.hasMoreValues())?,
+                pre.$role.columnName$(tie.hasMoreValues())?,
 ~*/
             }
 /*~
-                        FROM
-                            [$tie.capsule].[$tie.name] pre
-                        WHERE
+            FROM
+                [$tie.capsule].[$tie.name] pre
+            WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                            pre.$role.columnName = i.$role.columnName
-                        AND
+                pre.$role.columnName = i.$role.columnName
+            AND
 ~*/
                 }
             }
@@ -557,44 +598,44 @@ BEGIN
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                pre.$role.columnName = i.$role.columnName
-                            $(tie.hasMoreValues())? OR
+                    pre.$role.columnName = i.$role.columnName
+                $(tie.hasMoreValues())? OR
 ~*/
                 }
 /*~
-                        )
-                        AND
+            )
+            AND
 ~*/
             }
 /*~
-                            pre.$tie.changingColumnName < i.$tie.changingColumnName
-                        AND
-                            pre.$tie.positingColumnName <= i.$tie.positingColumnName
-                        AND
-                            pre.$tie.positorColumnName = i.$tie.positorColumnName
-                        AND
-                            pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
-                        ORDER BY
-                            pre.$tie.changingColumnName DESC,
-                            pre.$tie.positingColumnName DESC
-                        UNION
-                        SELECT TOP 1
+                pre.$tie.changingColumnName < u.$tie.changingColumnName
+            AND
+                pre.$tie.positingColumnName <= u.$tie.positingColumnName
+            AND
+                pre.$tie.positorColumnName = i.$tie.positorColumnName
+            AND
+                pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+            ORDER BY
+                pre.$tie.changingColumnName DESC,
+                pre.$tie.positingColumnName DESC
+            UNION
+            SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                            fol.$role.columnName$(tie.hasMoreValues())?,
+                fol.$role.columnName$(tie.hasMoreValues())?,
 ~*/
             }
 /*~
-                        FROM
-                            [$tie.capsule].[$tie.name] fol
-                        WHERE
+            FROM
+                [$tie.capsule].[$tie.name] fol
+            WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                            fol.$role.columnName = i.$role.columnName
-                        AND
+                fol.$role.columnName = i.$role.columnName
+            AND
 ~*/
                 }
             }
@@ -604,37 +645,37 @@ BEGIN
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                fol.$role.columnName = i.$role.columnName
-                            $(tie.hasMoreValues())? OR
+                    fol.$role.columnName = i.$role.columnName
+                $(tie.hasMoreValues())? OR
 ~*/
                 }
 /*~
-                        )
-                        AND
+            )
+            AND
 ~*/
             }
 /*~
-                            fol.$tie.changingColumnName > i.$tie.changingColumnName
-                        AND
-                            fol.$tie.positingColumnName <= i.$tie.positingColumnName
-                        AND
-                            fol.$tie.positorColumnName = i.$tie.positorColumnName
-                        AND
-                            fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
-                        ORDER BY
-                            fol.$tie.changingColumnName ASC,
-                            fol.$tie.positingColumnName DESC
-                    ) s
-                    WHERE
+                fol.$tie.changingColumnName > u.$tie.changingColumnName
+            AND
+                fol.$tie.positingColumnName <= u.$tie.positingColumnName
+            AND
+                fol.$tie.positorColumnName = i.$tie.positorColumnName
+            AND
+                fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+            ORDER BY
+                fol.$tie.changingColumnName ASC,
+                fol.$tie.positingColumnName DESC
+        ) s
+        WHERE
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                        s.$role.columnName = i.$role.columnName
-                    $(tie.hasMoreValues())? AND
+            s.$role.columnName = i.$role.columnName
+        $(tie.hasMoreValues())? AND
 ~*/
             }
 /*~
-                    ) > 0~*/
+        ) = 0~*/
         }
 /*~;
     INSERT INTO [$tie.capsule].[$tie.annexName] (
@@ -648,29 +689,42 @@ BEGIN
         $(schema.METADATA)? v.$tie.metadataColumnName,
         p.$tie.identityColumnName,
         v.$tie.positorColumnName,
-        CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END,
+        u.$tie.positingColumnName,
         v.$tie.reliabilityColumnName
     FROM
         inserted v
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName ELSE @now END as $tie.timeRange),
+            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $tie.timeRange)
+    ) u (
+        $tie.changingColumnName,
+        $tie.positingColumnName
+    )
     JOIN
         [$tie.capsule].[$tie.positName] p
     ON
-        p.$tie.changingColumnName = v.$tie.changingColumnName
+        p.$tie.changingColumnName = u.$tie.changingColumnName
 ~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-    AND
-        p.$role.columnName = v.$role.columnName
-~*/
-                }
-            }
-            else {
-                while(role = tie.nextValue()) {
+            while(role = tie.nextRole()) {
 /*~
     AND
         p.$role.columnName = v.$role.columnName~*/
-                }
+            }
+            if(!tie.isAssertive()) {
+/*~
+    AND v.$tie.reliabilityColumnName <> (
+        SELECT TOP 1
+            a.$tie.reliabilityColumnName
+        FROM
+            [$tie.capsule].[$tie.annexName] a
+        WHERE
+            a.$tie.identityColumnName = p.$tie.identityColumnName
+        AND
+            a.$tie.positorColumnName = v.$tie.positorColumnName
+        ORDER BY
+            a.$tie.positingColumnName desc
+    )~*/
             }
 /*~;
 END
