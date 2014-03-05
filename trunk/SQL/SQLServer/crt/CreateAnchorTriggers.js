@@ -516,10 +516,22 @@ BEGIN
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
-        CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        u.$attribute.changingColumnName,
+        u.$attribute.valueColumnName
     FROM
         inserted i
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
+    ) u (
+        $attribute.changingColumnName, 
+        $attribute.valueColumnName, 
+        $attribute.positorColumnName, 
+        $attribute.positingColumnName
+    )
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
@@ -531,9 +543,9 @@ BEGIN
     ON
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        p.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        p.$attribute.valueColumnName = u.$attribute.valueColumnName
     AND
-        p.$attribute.changingColumnName = i.$attribute.changingColumnName
+        p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
         p.$attribute.anchorReferenceName is null
     AND
@@ -543,13 +555,13 @@ BEGIN
             FROM
                 [$attribute.capsule].[$attribute.name] pre
             WHERE
-                pre.$attribute.changingColumnName < i.$attribute.changingColumnName
+                pre.$attribute.changingColumnName < u.$attribute.changingColumnName
             AND
-                pre.$attribute.positingColumnName <= i.$attribute.positingColumnName
+                pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                pre.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
+                pre.$attribute.positorColumnName = u.$attribute.positorColumnName
             AND
                 pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -561,13 +573,13 @@ BEGIN
             FROM
                 [$attribute.capsule].[$attribute.name] fol
             WHERE
-                fol.$attribute.changingColumnName > i.$attribute.changingColumnName
+                fol.$attribute.changingColumnName > u.$attribute.changingColumnName
             AND
-                fol.$attribute.positingColumnName <= i.$attribute.positingColumnName
+                fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                fol.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
+                fol.$attribute.positorColumnName = u.$attribute.positorColumnName
             AND
                 fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -587,10 +599,22 @@ BEGIN
     )
     SELECT
         i.$attribute.anchorReferenceName,
-        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
+        u.$attribute.changingColumnName,
         i.$attribute.valueColumnName
     FROM
-        inserted i~*/
+        inserted i
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
+    ) u (
+        $attribute.changingColumnName, 
+        $attribute.valueColumnName, 
+        $attribute.positorColumnName, 
+        $attribute.positingColumnName
+    )~*/
 				if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -610,13 +634,13 @@ BEGIN
             FROM
                 [$attribute.capsule].[$attribute.name] pre
             WHERE
-                pre.$attribute.changingColumnName < i.$attribute.changingColumnName
+                pre.$attribute.changingColumnName < u.$attribute.changingColumnName
             AND
-                pre.$attribute.positingColumnName <= i.$attribute.positingColumnName
+                pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
             AND
                 pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                pre.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
+                pre.$attribute.positorColumnName = u.$attribute.positorColumnName
             AND
                 pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -628,13 +652,13 @@ BEGIN
             FROM
                 [$attribute.capsule].[$attribute.name] fol
             WHERE
-                fol.$attribute.changingColumnName > i.$attribute.changingColumnName
+                fol.$attribute.changingColumnName > u.$attribute.changingColumnName
             AND
-                fol.$attribute.positingColumnName <= i.$attribute.positingColumnName
+                fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
             AND
                 fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
-                fol.$attribute.positorColumnName = CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END
+                fol.$attribute.positorColumnName = u.$attribute.positorColumnName
             AND
                 fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -654,20 +678,16 @@ BEGIN
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
-        i._Positor,
-        i._PositedAt,
-        i._Reliability
-    FROM (
+        u.$attribute.positorColumnName,
+        u.$attribute.positingColumnName,
+        u.$attribute.reliabilityColumnName
+    FROM 
+        inserted i
+    CROSS APPLY (
         SELECT
-            *,
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN $schema.metadata.positorSuffix 
-                ELSE $attribute.positorColumnName 
-            END as _Positor,
-            CASE 
-                WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName 
-                ELSE @now 
-            END as _PositedAt,
+            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN $schema.metadata.positorSuffix ELSE $attribute.positorColumnName END,
+            cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN $attribute.reliabilityColumnName 
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
@@ -676,16 +696,19 @@ BEGIN
                         ELSE $schema.metadata.reliableCutoff
                     END
                 ELSE $attribute.reliabilityColumnName 
-            END as _Reliability           
-        FROM
-            inserted 
-    ) i
+            END            
+    ) u (
+        $attribute.changingColumnName,
+        $attribute.positorColumnName,
+        $attribute.positingColumnName,
+        $attribute.reliabilityColumnName
+    )
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        p.$attribute.changingColumnName = i.$attribute.changingColumnName
+        p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
             if(!attribute.isAssertive()) {
@@ -698,7 +721,7 @@ BEGIN
         WHERE
             a.$attribute.identityColumnName = p.$attribute.identityColumnName
         AND
-            a.$attribute.positorColumnName = i._Positor
+            a.$attribute.positorColumnName = u.$attribute.positorColumnName
         ORDER BY
             a.$attribute.positingColumnName desc
     )~*/
