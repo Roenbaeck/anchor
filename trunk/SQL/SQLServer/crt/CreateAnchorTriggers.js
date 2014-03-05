@@ -520,6 +520,10 @@ BEGIN
         u.$attribute.valueColumnName
     FROM
         inserted i
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
+    ON
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
@@ -527,15 +531,11 @@ BEGIN
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
-        $attribute.changingColumnName, 
-        $attribute.valueColumnName, 
-        $attribute.positorColumnName, 
+        $attribute.changingColumnName,
+        $attribute.valueColumnName,
+        $attribute.positorColumnName,
         $attribute.positingColumnName
-    )
-    LEFT JOIN
-        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
-    ON
-        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
+    )~*/
 				if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -606,13 +606,11 @@ BEGIN
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN $attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
         $attribute.changingColumnName, 
-        $attribute.valueColumnName, 
-        $attribute.positorColumnName, 
+        $attribute.positorColumnName,
         $attribute.positingColumnName
     )~*/
 				if(attribute.isIdempotent()) {
@@ -713,7 +711,7 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
             if(!attribute.isAssertive()) {
 /*~
-    AND i._Reliability <> (
+    AND u.$attribute.reliabilityColumnName <> (
         SELECT TOP 1
             a.$attribute.reliabilityColumnName
         FROM

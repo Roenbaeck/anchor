@@ -311,14 +311,22 @@ BEGIN
     SELECT
         i.$attribute.anchorReferenceName,
         $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
-        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
-        CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        u.$attribute.changingColumnName,
+        u.$attribute.valueColumnName
     FROM
         inserted i
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName~*/
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+    ) u (
+        $attribute.changingColumnName,
+        $attribute.valueColumnName
+    )~*/
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -326,16 +334,16 @@ BEGIN
     ON
         b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        b.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        b.$attribute.valueColumnName = u.$attribute.valueColumnName
     AND
-        b.$attribute.changingColumnName = i.$attribute.changingColumnName
+        b.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
         [$attribute.capsule].[rf$attribute.name](
             i.$attribute.anchorReferenceName,
-            i.$attribute.valueColumnName,
-            i.$attribute.changingColumnName
+            u.$attribute.valueColumnName,
+            u.$attribute.changingColumnName
         ) = 0~*/
                 }
             /*~;~*/
@@ -352,10 +360,16 @@ BEGIN
     SELECT
         i.$attribute.anchorReferenceName,
         $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
-        CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END,
+        u.$attribute.changingColumnName,
         i.$attribute.valueColumnName
     FROM
-        inserted i~*/
+        inserted i
+    CROSS APPLY (
+        SELECT
+            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange)
+    ) u (
+        $attribute.changingColumnName
+    )~*/
                 if(attribute.isIdempotent()) {
 /*~
     LEFT JOIN
@@ -365,14 +379,14 @@ BEGIN
     AND
         $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
-        b.$attribute.changingColumnName = i.$attribute.changingColumnName
+        b.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
         [$attribute.capsule].[rf$attribute.name](
             i.$attribute.anchorReferenceName,
             $(attribute.hasChecksum())? i.$attribute.checksumColumnName, : i.$attribute.valueColumnName,
-            i.$attribute.changingColumnName
+            u.$attribute.changingColumnName
         ) = 0~*/
                 }
             /*~;~*/
@@ -381,6 +395,10 @@ BEGIN
 /*~
 END
 GO
+~*/
+    }
+    if(anchor.hasMoreAttributes()) {
+/*~
 -- DELETE trigger -----------------------------------------------------------------------------------------------------
 -- dt$anchor.name instead of DELETE trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
