@@ -654,6 +654,8 @@
 
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
+        // the graph svg root element
+        var GRAPH;
 
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
@@ -2036,7 +2038,7 @@
             },
             drawMiniature: function(model) {
                 var img = document.getElementById("miniature");
-                var graph = document.getElementById("graph").cloneNode(true);
+                var graph = GRAPH.cloneNode(true);
                 graph.setAttribute("width", "200px");
                 graph.setAttribute("height", "200px");
                 var boundingBox =
@@ -2129,6 +2131,7 @@
                 DrawingEngine.start(false);
             }
         };
+
 
         var CanvasEventHandler = {
             dragging: false,
@@ -2850,34 +2853,154 @@
             },
             highlight: null,
             contextMenu: null,
-            mouseover: function() {
-                if(!this.highlight) {
-                    var self = this;
+            mouseover: function(event) {
+                var self = this;
+                this.svg.addEventListener('mousedown', function(e) { self.mousedown(e); }, false);
+                if(!EventHandler.isSelected(this)) {
+                    EventHandler.addNodeToSelection(this);
                     this.highlight = document.createElementNS(SVGNS, 'use');
                     this.highlight.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#highlight');
-                    this.highlight.addEventListener('mouseout', function(evt) { self.mouseoutHighlight(evt); }, false);
-                    this.highlight.addEventListener('click', function(evt) { self.clickHighlight(evt); }, false);
+                    this.highlight.addEventListener('click', function(e) { self.clickHighlight(e); }, false);
+                    window.addEventListener('keypress', function(e) { EventHandler.keypress(e); }, false);
+                    GRAPH.addEventListener('mouseover', function(e) { self.removeHighlight(e); }, false);
                     this.svg.insertBefore(this.highlight, this.svg.firstChild);
-                }
-                if(!this.contextMenu) {
                     this.contextMenu = new ContextMenu(this,[this]);
                 }
             },
-            click: function(evt) {
+            mousedown: function(event) {
+                var self = this;
+                if(event.shiftKey) {
+                    if(EventHandler.isSelected(this))
+                        EventHandler.removeNodeFromSelection(this);
+                    else
+                        EventHandler.addNodeToSelection(this);
+                }
+                this.dragging = true;
+                this.svg.addEventListener('mousemove', function(e) { self.mousemove(e); }, false);
+                this.svg.addEventListener('mouseup', function(e) { self.mouseup(e); }, false);
+            },
+            mousemove: function(event) {
+                var self = this;
+                if(this.dragging) {
+                    // this.hasMoved = true;
+                    if(this.isInteractive()) {
+                        this.xPosition = DrawingEngine.xContext(event.clientX);
+                        this.yPosition = DrawingEngine.yContext(event.clientY);
+                        this.setFixed(true);
+                        if(this.contextMenu != null && this.contextMenu.collapsed) {
+                            this.contextMenu.close();
+                            this.contextMenu = null;
+                        }
+                        Model.invalidateNode(this);
+                        DrawingEngine.start(true);
+                    }
+                }
+                // this.xLastKnown = event.xScreen;
+                // this.yLastKnown = event.yScreen;
+            },
+            mouseup: function(event) {
+                this.dragging = false;
+                this.svg.removeEventListener('mousemove', function(e) { self.mousemove(e); }, false);
+                this.svg.removeEventListener('mouseup', function(e) { self.mouseup(e); }, false);
+            },
+            click: function(event) {
                 this.setFixed(!this.getFixed());
             },
-            clickHighlight: function(evt) {
+            clickHighlight: function(event) {
                 alert("clicked highlight");
-                evt.stopPropagation();
+                event.stopPropagation();
             },
-            mouseoutHighlight: function(evt) {
-                if(this.contextMenu) {
-                    this.contextMenu.close();
-                    this.contextMenu = null;
+            removeHighlight: function(event) {
+                if(event.toElement === GRAPH) {
+                    if(EventHandler.isSelected(this)) {
+                        this.contextMenu.close();
+                        this.contextMenu = null;
+                        this.svg.removeChild(this.highlight);
+                        GRAPH.removeEventListener('mouseover', function(e) { self.removeHighlight(e); }, false);
+                        window.removeEventListener('keypress', function(e) { EventHandler.keypress(e); }, false);
+                        EventHandler.removeNodeFromSelection(this);
+                    }
                 }
-                if(this.highlight) {
-                    this.svg.removeChild(this.highlight);
-                    this.highlight = null;
+            }
+        };
+
+        var EventHandler = {
+            selectedNodes: [],
+            addNodeToSelection: function(node) {
+                if(this.selectedNodes.indexOf(node) < 0)
+                    this.selectedNodes.push(node);
+            },
+            removeNodeFromSelection: function(node) {
+                this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
+            },
+            clearSelection: function() {
+                this.selectedNodes = [];
+            },
+            isSelected: function(node) {
+                return this.selectedNodes.indexOf(node) >= 0;
+            },
+            keypress: function(event) {
+                if(this.selectedNodes.length > 0) {
+                    var allNodes = this.selectedNodes.slice(0);
+                    switch(String.fromCharCode(event.which)) {
+                        case "e":
+                            if(!this.contextMenu)
+                                this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
+                            this.contextMenu.toggle();
+                            break;
+                        case "a":
+                            if(Operations.isSupported("addAttribute", allNodes))
+                                Model.addAttribute(allNodes);
+                            else if(Operations.isSupported("addAnchor", allNodes))
+                                Model.addAnchor(allNodes);
+                            break;
+                        case "t":
+                            if(Operations.isSupported("addTie", allNodes) && this.selectedNodes.length > 0)
+                                Model.addTie(allNodes);
+                            else if(Operations.isSupported("addTieAndAnchor", allNodes))
+                                Model.addTieAndAnchor(allNodes);
+                            break;
+                        case "c":
+                            if(Operations.isSupported("connect", allNodes)) {
+                                var i, operation, validator;
+                                for(i = 0; operation = Operations.list[i]; i++)
+                                    if(operation[0] == "connect")
+                                        validator = operation[3];
+                                if(validator(allNodes))
+                                    Model.connect(allNodes);
+                            }
+                            break;
+                        case "h":
+                            if(Operations.isSupported("toggleHistorized", allNodes))
+                                Model.toggleHistorized(allNodes);
+                            break;
+                        case "k":
+                            if(Operations.isSupported("toggleKnotted", allNodes))
+                                Model.toggleKnotted(allNodes);
+                            else if(Operations.isSupported("addKnot", allNodes))
+                                Model.addKnot(allNodes);
+                            break;
+                        case "i":
+                            if(Operations.isSupported("toggleIdentifier", allNodes))
+                                Model.toggleIdentifier(allNodes);
+                            break;
+                        case "f":
+                            if(Operations.isSupported("makeFirstRole", allNodes))
+                                Model.makeFirstRole(allNodes);
+                            break;
+                        case "x":
+                            if(Operations.isSupported("explode", allNodes))
+                                Model.explode(allNodes);
+                            break;
+                        case "d":
+                            if(Operations.isSupported("erase", allNodes))
+                                Model.erase(allNodes);
+                            break;
+                    }
+                    if(event.stopPropagation)
+                        event.stopPropagation();
+                    if(event.preventDefault)
+                        event.preventDefault();
                 }
             }
         };
@@ -6014,20 +6137,26 @@
             DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
 
             canvas.CanvasEventHandler = CanvasEventHandler;
+            /*
             // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
             canvas.addEventListener('mousedown', CanvasEventHandler.handleEvent, false);
             canvas.addEventListener('mousemove', CanvasEventHandler.handleEvent, false);
             canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
             canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
             canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
+            */
 
             // setting a listener on the canvas did not work, so this is a workaround
-            window.onkeypress = CanvasEventHandler.handleEvent;
-
+            // window.onkeypress = CanvasEventHandler.handleEvent;
+            /*
             miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
             miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
+            */
+
+            // set the global graph variable
+            GRAPH = document.getElementById("graph");
 
             // load url or previous model, if any
             var model;
@@ -6102,33 +6231,38 @@
         <defs>
             <style type="text/css">
                 .anchor {
-                    fill:           #b55;
+                    fill:               #b55;
                 }
                 .tie {
-                    fill:           #a8a8a8;
+                    fill:               #a8a8a8;
                 }
                 .tie_outline {
-                    fill:           #fff;
-                    stroke:         #a8a8a8;
-                    stroke-width:   2px;
+                    fill:               #fff;
+                    stroke:             #a8a8a8;
+                    stroke-width:       2px;
                 }
                 .attribute {
-                    fill:           #fff;
-                    stroke:         #f88;
-                    stroke-width:   2px;
+                    fill:               #fff;
+                    stroke:             #f88;
+                    stroke-width:       2px;
                 }
                 .edge {
-                    fill:           none;
-                    stroke:         #544;
-                    stroke-width:   1px;
+                    fill:               none;
+                    stroke:             #544;
+                    stroke-width:       1px;
                 }
                 .highlight {
-                    stroke:         #ede5e5;
-                    stroke-width:   10px;
-                    fill:           #fff;
+                    stroke:             #ede5e5;
+                    stroke-width:       10px;
+                    fill:               #fff;
                 }
-                .highlightAction {
-                    stroke:         #b55;
+                .label {
+                    font-size:          10pt;
+                    font-family:        "Open Sans", "Helvetica Neue", sans-serif;
+                    font-weight:        bold;
+                    text-anchor:        middle;
+                    dominant-baseline:  middle;
+                    color:              #fff;
                 }
             </style>
             <g id="anchor">
@@ -6198,7 +6332,7 @@
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
                 <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(document.getElementById('graph'), 'xml2html.xsl', document), false)">SVG code</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(GRAPH, 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
