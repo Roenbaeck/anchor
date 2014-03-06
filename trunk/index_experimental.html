@@ -2864,13 +2864,35 @@
             getFixed: function() {
                 return this.fixed;
             },
-            contextMenu: null
+            setHighlight: function(highlight) {
+                this.hasHighlight = highlight;
+                if(highlight && this.svg && !this.svg.contains(this.highlight)) {
+                    this.highlight.addEventListener('click', EventHandler.clickHighlight, false);
+                    this.svg.insertBefore(this.highlight, this.svg.firstChild);
+                }
+                else if (!highlight && this.svg && this.svg.contains(this.highlight)) {
+                    this.svg.removeChild(this.highlight);
+                    this.highlight.removeEventListener('click', EventHandler.clickHighlight, false);
+                }
+            },
+            contextMenu: null,
+            showContextMenu: function(hovered, selection) {
+                if(!this.contextMenu)
+                    this.contextMenu = new ContextMenu(hovered, selection);
+            },
+            hideContextMenu: function() {
+                if(this.contextMenu) {
+                    this.contextMenu.close();
+                    this.contextMenu = null;
+                }
+            }
         };
 
         var EventHandler = {
             selectedNodes: [], // may be larger than interacted with SHIFT clicks
             interactedNodes: [], // currently "touched" nodes
-            dragging: false,
+            interaction: null,
+            previousInteraction: null,
             addNodeToSelection: function(node) {
                 if(this.selectedNodes.indexOf(node) < 0)
                     this.selectedNodes.push(node);
@@ -2885,6 +2907,16 @@
             isSelected: function(node) {
                 return this.selectedNodes.indexOf(node) >= 0;
             },
+            setInteraction: function(interaction) {
+                if(this.interaction) this.previousInteraction = this.interaction;
+                this.interaction = interaction;
+            },
+            getInteraction: function() {
+                return this.interaction;
+            },
+            getPreviousInteraction: function() {
+                return this.previousInteraction;
+            },
             addNodeToInteraction: function(node) {
                 if(this.interactedNodes.indexOf(node) < 0)
                     this.interactedNodes.push(node);
@@ -2895,92 +2927,126 @@
             },
             clearInteraction: function() {
                 this.interactedNodes = [];
+                this.setInteraction(null);
             },
             isInteracted: function(node) {
                 return this.interactedNodes.indexOf(node) >= 0;
             },
             hasOngoingInteractions: function() {
-                return this.interactedNodes.length > 0;
+                return this.interaction != null;
             },
-            mouseover: function(event) {
+            beginInteraction: function(event) {
+                event.preventDefault();
                 if(!EventHandler.hasOngoingInteractions()) {
+                    EventHandler.setInteraction("beginInteraction");
                     var component = this.component; // note that _this_ refers to the SVG element here
                     if(!EventHandler.isInteracted(component))
                         EventHandler.addNodeToInteraction(component);
                     if(!EventHandler.isSelected(component))
                         EventHandler.addNodeToSelection(component);
-                    component.highlight.addEventListener('click', EventHandler.clickHighlight, false);
                     window.addEventListener('keypress', EventHandler.keypress, false);
-                    GRAPH.addEventListener('mouseover', EventHandler.removeHighlight, false);
-                    component.svg.addEventListener('mousedown', EventHandler.mousedown, false);
-                    component.svg.insertBefore(component.highlight, component.svg.firstChild);
-                    component.hasHighlight = true;
-                    component.contextMenu = new ContextMenu(component, EventHandler.selectedNodes);
+                    GRAPH.addEventListener('mouseover', EventHandler.endInteraction, false);
+                    component.svg.addEventListener('mousedown', EventHandler.prepareDragging, false);
+                    component.svg.addEventListener('click', EventHandler.clickComponent, false);
+                    component.setHighlight(true);
+                    component.showContextMenu(component, EventHandler.selectedNodes);
                 }
+                event.stopPropagation();
             },
-            mousedown: function(event) {
-                var component = EventHandler.interactedNodes[0];
-                if(event.shiftKey) {
-                    if(EventHandler.isSelected(component))
-                        EventHandler.removeNodeFromSelection(component);
-                    else
-                        EventHandler.addNodeToSelection(component);
+            prepareDragging: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "beginInteraction") {
+                    EventHandler.setInteraction("prepareDragging");
+                    var component, i;
+                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                        if(event.shiftKey) {
+                            if(EventHandler.isSelected(component))
+                                EventHandler.removeNodeFromSelection(component);
+                            else
+                                EventHandler.addNodeToSelection(component);
+                        }
+                        component.hideContextMenu();
+                        component.svg.removeEventListener('mousedown', EventHandler.prepareDragging, false);
+                    }
+                    GRAPH.addEventListener('mousemove', EventHandler.whileDragging, false);
+                    GRAPH.addEventListener('mouseup', EventHandler.completeDragging, false);
                 }
-                EventHandler.dragging = true;
-                component.svg.removeEventListener('mousedown', EventHandler.mousedown, false);
-                GRAPH.addEventListener('mousemove', EventHandler.mousemove, false);
-                GRAPH.addEventListener('mouseup', EventHandler.mouseup, false);
+                event.stopPropagation();
             },
-            mousemove: function(event) {
-                var component, i;
-                for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
-                    if(EventHandler.dragging) {
+            whileDragging: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whileDragging" ||
+                   EventHandler.getInteraction() === "prepareDragging") {
+                    var component, i;
+                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         if(component.isInteractive()) {
-                            component.xPosition = DrawingEngine.xContext(event.clientX);
-                            component.yPosition = DrawingEngine.yContext(event.clientY);
-                            if(component.hasHighlight) {
+                            if(EventHandler.getInteraction() === "whileDragging") {
+                                component.xPosition = event.clientX;
+                                component.yPosition = event.clientY;
                                 component.setFixed(true);
-                                EventHandler.removeHighlight({toElement: GRAPH});
+                                component.setHighlight(false);
+                                Model.invalidateNode(this);
+                                DrawingEngine.start(true);
                             }
-                            Model.invalidateNode(this);
-                            DrawingEngine.start(true);
+                            else if(EventHandler.getInteraction() === "prepareDragging") {
+                                if(LayoutEngine.manhattanDistance(component, {
+                                    xPosition: event.clientX,
+                                    yPosition: event.clientY
+                                }) > 10) {
+                                    EventHandler.setInteraction("whileDragging");
+                                }
+                            } // switch behavior if we actually move the thing a fair distance
                         }
                     }
                 }
-                // this.xLastKnown = event.xScreen;
-                // this.yLastKnown = event.yScreen;
-            },
-            mouseup: function(event) {
-                EventHandler.clearInteraction();
-                EventHandler.dragging = false;
-                GRAPH.removeEventListener('mousemove', EventHandler.mousemove, false);
-                GRAPH.removeEventListener('mouseup', EventHandler.mouseup, false);
-            },
-            click: function(event) {
-                var component, i;
-                for(i = 0; component = EventHandler.interactedNodes[i]; i++)
-                    component.setFixed(!component.getFixed());
-            },
-            clickHighlight: function(event) {
-                alert("clicked highlight");
                 event.stopPropagation();
             },
-            removeHighlight: function(event) {
-                if(event.toElement === GRAPH) {
+            completeDragging: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whileDragging") {
+                    EventHandler.setInteraction("completeDragging");
+                    EventHandler.clearInteraction();
+                    GRAPH.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    GRAPH.removeEventListener('mouseup', EventHandler.completeDragging, false);
+                }
+                event.stopPropagation();
+            },
+            clickComponent: function(event) {
+                event.preventDefault();
+                var component, i;
+                for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                    component.svg.removeEventListener('click', EventHandler.clickComponent, false);
+                    if(EventHandler.getPreviousInteraction() !== "completeDragging")
+                        component.setFixed(!component.getFixed());
+                }
+                EventHandler.clearInteraction();
+                event.stopPropagation();
+            },
+            clickHighlight: function(event) {
+                event.preventDefault();
+                alert("clicked highlight");
+                EventHandler.clearInteraction();
+                event.stopPropagation();
+            },
+            endInteraction: function(event) {
+                event.preventDefault();
+                if(event.toElement === GRAPH && (
+                        !EventHandler.hasOngoingInteractions() ||
+                        EventHandler.getInteraction() === "beginInteraction")) {
                     var component, i;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         if(EventHandler.isSelected(component))
                             EventHandler.removeNodeFromSelection(component);
-                        if(component.contextMenu) {
-                            component.contextMenu.close();
-                            component.contextMenu = null;
-                        }
-                        component.hasHighlight = false;
-                        component.svg.removeChild(component.highlight);
-                        GRAPH.removeEventListener('mouseover', EventHandler.removeHighlight, false);
-                        window.removeEventListener('keypress', EventHandler.keypress, false);
+                        component.hideContextMenu();
+                        component.setHighlight(false);
                     }
+                    EventHandler.clearInteraction();
+                    GRAPH.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    GRAPH.removeEventListener('mouseup', EventHandler.completeDragging, false);
+                    GRAPH.removeEventListener('mouseover', EventHandler.endInteraction, false);
+                    window.removeEventListener('keypress', EventHandler.keypress, false);
                 }
+                event.stopPropagation();
             },
             keypress: function(event) {
                 if(this.selectedNodes.length > 0) {
@@ -3361,8 +3427,7 @@
             use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#anchor');
             this.svg.appendChild(use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            this.svg.addEventListener('mouseover', EventHandler.mouseover, false);
-            this.svg.addEventListener('click', EventHandler.click, false);
+            this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
             nodeLayer.appendChild(this.svg);
         }
         Anchor.prototype = {
@@ -4850,13 +4915,13 @@
             this.toggler = document.createElement('div');
             this.toggler.setAttribute('class', 'toggler collapsed');
             this.toggler.setAttribute('title', 'Click to open the context menu.');
-            this.toggler.addEventListener('click', function(event) { self.toggle() }, false);
+            this.toggler.addEventListener('click', function(e) { self.toggle() }, false);
             contextMenu.appendChild(this.toggler);
             this.contextMenu = contextMenu;
 
             this.topper = document.createElement('div');
             this.topper.setAttribute('class', 'topper unselectable');
-            this.topper.addEventListener('mousedown', function(event) { self.mousedown(event); }, false);
+            this.topper.addEventListener('mousedown', function(e) { self.mousedown(e); }, false);
 
             var editable;
             this.editsHaveBeenMade = false;
@@ -4881,11 +4946,11 @@
                     }
                     editable.setElement(element, hoveredNode);
                     element.editable = editable;
-                    element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
-                    element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
-                    element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
+                    element.addEventListener(editable.event, function(e) { self.edit(this, hoveredNode); }, false);
+                    element.addEventListener('change', function(e) { self.editsHaveBeenMade = true; }, false);
+                    element.addEventListener('keypress', function(e) { self.keypress(self, e); }, false);
                     if(editable.pattern)
-                        element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
+                        element.addEventListener('invalid', function(e) { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
                     tr.setAttribute('valign', 'top');
                     tr.setAttribute('title', editable.description);
@@ -4978,8 +5043,8 @@
             },
             mousedown: function(event) {
                 var self = this;
-                window.addEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
-                window.addEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
+                window.addEventListener('mousemove', function(e) { self.mousemove(self, e); }, false);
+                window.addEventListener('mouseup', function(e) { self.mouseup(self, e); }, false);
                 this.dragging = true;
             },
             mousemove: function(self, event) {
@@ -4998,12 +5063,16 @@
             },
             mouseup: function(self, event) {
                 this.dragging = false;
+                // TODO: This does not remove the listener!
                 window.removeEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
                 window.removeEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
             },
             updatePosition: function(x, y) {
-                x = x ? x : DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
-                y = y ? y : DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
+                //x = x ? x : DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
+                //y = y ? y : DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
+
+                x = x ? x : this.hoveredNode.xPosition + 15; // inside the highlight ring with radius 30
+                y = y ? y : this.hoveredNode.yPosition + 15;
 
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
