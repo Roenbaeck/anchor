@@ -2618,6 +2618,10 @@
             //this.editables = [['Description','description','textarea','rows','5','cols','20']];
             this.operations = ['erase', 'connect'];
             this.incomplete = true;
+            this.highlight = document.createElementNS(SVGNS, 'use');
+            this.highlight.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#highlight');
+            this.fixation = document.createElementNS(SVGNS, 'use');
+            this.fixation.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#fixation');
         }
         AbstractNode.prototype = {
             description: '',
@@ -2637,6 +2641,8 @@
             fixed: false,
             visible: true,
             svg: null,
+            highlight: null,
+            fixation: null,
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -2651,12 +2657,6 @@
             // override to change behavior
             isInteractive: function() {
                 return false;
-            },
-            setFixed: function(fixed) {
-                this.fixed = fixed;
-            },
-            getFixed: function() {
-                return this.fixed;
             },
             // subclasses must override these
             getMass: function() {
@@ -2851,46 +2851,80 @@
                     context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
                 }
             },
-            highlight: null,
-            contextMenu: null,
+            setFixed: function(fixed) {
+                this.fixed = fixed;
+                if(fixed && this.svg && !this.svg.contains(this.fixation)) {
+                    this.svg.appendChild(this.fixation);
+                }
+                else if (!fixed && this.svg && this.svg.contains(this.fixation)) {
+                    this.svg.removeChild(this.fixation);
+                }
+            },
+            getFixed: function() {
+                return this.fixed;
+            },
+            contextMenu: null
+        };
+
+        var EventHandler = {
+            selectedNodes: [],
+            dragging: false,
+            hovering: false,
+            component: null,
+            addNodeToSelection: function(node) {
+                if(this.selectedNodes.indexOf(node) < 0)
+                    this.selectedNodes.push(node);
+            },
+            removeNodeFromSelection: function(node) {
+                if(this.selectedNodes.indexOf(node) >= 0)
+                    this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
+            },
+            clearSelection: function() {
+                this.selectedNodes = [];
+            },
+            isSelected: function(node) {
+                return this.selectedNodes.indexOf(node) >= 0;
+            },
             mouseover: function(event) {
-                var self = this;
-                this.svg.addEventListener('mousedown', function(e) { self.mousedown(e); }, false);
-                if(!EventHandler.isSelected(this)) {
-                    EventHandler.addNodeToSelection(this);
-                    this.highlight = document.createElementNS(SVGNS, 'use');
-                    this.highlight.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#highlight');
-                    this.highlight.addEventListener('click', function(e) { self.clickHighlight(e); }, false);
-                    window.addEventListener('keypress', function(e) { EventHandler.keypress(e); }, false);
-                    GRAPH.addEventListener('mouseover', function(e) { self.removeHighlight(e); }, false);
-                    this.svg.insertBefore(this.highlight, this.svg.firstChild);
-                    this.contextMenu = new ContextMenu(this,[this]);
+                if(!EventHandler.hovering) {
+                    EventHandler.hovering = true;
+                    var component = this.component; // note that _this_ refers to the SVG element here
+                    EventHandler.component = component;
+                    if(!EventHandler.dragging) {
+                        if(!EventHandler.isSelected(component)) {
+                            EventHandler.addNodeToSelection(component);
+                            component.highlight.addEventListener('click', EventHandler.clickHighlight, false);
+                            window.addEventListener('keypress', EventHandler.keypress, false);
+                            GRAPH.addEventListener('mouseover', EventHandler.removeHighlight, false);
+                            component.svg.addEventListener('mousedown', EventHandler.mousedown, false);
+                            component.svg.insertBefore(component.highlight, component.svg.firstChild);
+                            component.contextMenu = new ContextMenu(component, EventHandler.selectedNodes);
+                        }
+                    }
                 }
             },
             mousedown: function(event) {
-                var self = this;
+                var component = EventHandler.component;
                 if(event.shiftKey) {
-                    if(EventHandler.isSelected(this))
-                        EventHandler.removeNodeFromSelection(this);
+                    if(EventHandler.isSelected(component))
+                        EventHandler.removeNodeFromSelection(component);
                     else
-                        EventHandler.addNodeToSelection(this);
+                        EventHandler.addNodeToSelection(component);
                 }
-                this.dragging = true;
-                this.svg.addEventListener('mousemove', function(e) { self.mousemove(e); }, false);
-                this.svg.addEventListener('mouseup', function(e) { self.mouseup(e); }, false);
+                EventHandler.dragging = true;
+                component.svg.removeEventListener('mousedown', EventHandler.mousedown, false);
+                GRAPH.addEventListener('mousemove', EventHandler.mousemove, false);
+                GRAPH.addEventListener('mouseup', EventHandler.mouseup, false);
             },
             mousemove: function(event) {
-                var self = this;
-                if(this.dragging) {
+                var component = EventHandler.component;
+                if(EventHandler.dragging) {
                     // this.hasMoved = true;
-                    if(this.isInteractive()) {
-                        this.xPosition = DrawingEngine.xContext(event.clientX);
-                        this.yPosition = DrawingEngine.yContext(event.clientY);
-                        this.setFixed(true);
-                        if(this.contextMenu != null && this.contextMenu.collapsed) {
-                            this.contextMenu.close();
-                            this.contextMenu = null;
-                        }
+                    if(component.isInteractive()) {
+                        component.xPosition = DrawingEngine.xContext(event.clientX);
+                        component.yPosition = DrawingEngine.yContext(event.clientY);
+                        component.setFixed(true);
+                        EventHandler.removeHighlight({toElement: GRAPH});
                         Model.invalidateNode(this);
                         DrawingEngine.start(true);
                     }
@@ -2899,45 +2933,35 @@
                 // this.yLastKnown = event.yScreen;
             },
             mouseup: function(event) {
-                this.dragging = false;
-                this.svg.removeEventListener('mousemove', function(e) { self.mousemove(e); }, false);
-                this.svg.removeEventListener('mouseup', function(e) { self.mouseup(e); }, false);
+                var component = EventHandler.component;
+                EventHandler.dragging = false;
+                EventHandler.hovering = false;
+                GRAPH.removeEventListener('mousemove', EventHandler.mousemove, false);
+                GRAPH.removeEventListener('mouseup', EventHandler.mouseup, false);
             },
             click: function(event) {
-                this.setFixed(!this.getFixed());
+                var component = EventHandler.component;
+                component.setFixed(!component.getFixed());
             },
             clickHighlight: function(event) {
                 alert("clicked highlight");
                 event.stopPropagation();
             },
             removeHighlight: function(event) {
+                var component = EventHandler.component;
                 if(event.toElement === GRAPH) {
-                    if(EventHandler.isSelected(this)) {
-                        this.contextMenu.close();
-                        this.contextMenu = null;
-                        this.svg.removeChild(this.highlight);
-                        GRAPH.removeEventListener('mouseover', function(e) { self.removeHighlight(e); }, false);
-                        window.removeEventListener('keypress', function(e) { EventHandler.keypress(e); }, false);
-                        EventHandler.removeNodeFromSelection(this);
+                    if(EventHandler.isSelected(component)) {
+                        if(component.contextMenu) {
+                            component.contextMenu.close();
+                            component.contextMenu = null;
+                        }
+                        component.svg.removeChild(component.highlight);
+                        GRAPH.removeEventListener('mouseover', EventHandler.removeHighlight, false);
+                        window.removeEventListener('keypress', EventHandler.keypress, false);
+                        EventHandler.removeNodeFromSelection(component);
                     }
                 }
-            }
-        };
-
-        var EventHandler = {
-            selectedNodes: [],
-            addNodeToSelection: function(node) {
-                if(this.selectedNodes.indexOf(node) < 0)
-                    this.selectedNodes.push(node);
-            },
-            removeNodeFromSelection: function(node) {
-                this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
-            },
-            clearSelection: function() {
-                this.selectedNodes = [];
-            },
-            isSelected: function(node) {
-                return this.selectedNodes.indexOf(node) >= 0;
+                EventHandler.hovering = false;
             },
             keypress: function(event) {
                 if(this.selectedNodes.length > 0) {
@@ -3311,16 +3335,16 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
-            var anchor = this;
             var nodeLayer = document.getElementById('nodes');
-            anchor.svg = document.createElementNS(SVGNS, 'g');
-            anchor.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            anchor.svg.addEventListener('mouseover', function(evt) { anchor.mouseover(evt); }, false);
-            anchor.svg.addEventListener('click', function(evt) { anchor.click(evt); }, false);
+            this.svg = document.createElementNS(SVGNS, 'g');
+            this.svg.component = this;
             var use = document.createElementNS(SVGNS, 'use');
             use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#anchor');
-            anchor.svg.appendChild(use);
-            nodeLayer.appendChild(anchor.svg);
+            this.svg.appendChild(use);
+            this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.addEventListener('mouseover', EventHandler.mouseover, false);
+            this.svg.addEventListener('click', EventHandler.click, false);
+            nodeLayer.appendChild(this.svg);
         }
         Anchor.prototype = {
             mnemonic: '',
@@ -3330,7 +3354,7 @@
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 10,
-            removeSVG: function() {
+            destroy: function() {
                 var nodeLayer = document.getElementById('nodes');
                 nodeLayer.removeChild(this.svg);
                 this.svg = null;
@@ -6094,7 +6118,7 @@
         };
 
         // make sure our init function is called when the page is loaded
-        window.onload = function() { try { init(this); } catch(e) { alert(e); } };
+        window.onload = function() { try { init(this); } catch(e) { alert(e); throw e; } };
 
         // implementation of our init function
         function init(window) {
@@ -6192,7 +6216,7 @@
                 ASKBEFOREUNLOAD = true;
         };
 
-        window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
+        window.onunload = function() { try { exit(this); } catch(e) { alert(e); throw e; } };
 
         function exit(window) {
             window.localStorage.clear();
@@ -6256,6 +6280,9 @@
                     stroke-width:       10px;
                     fill:               #fff;
                 }
+                .fixation {
+                    fill:               #000;
+                }
                 .label {
                     font-size:          10pt;
                     font-family:        "Open Sans", "Helvetica Neue", sans-serif;
@@ -6284,6 +6311,9 @@
             <g id="attribute_historized">
                 <circle class="attribute" r="12"/>
                 <circle class="attribute" r="7"/>
+            </g>
+            <g id="fixation">
+                <rect class="fixation" width="2" height="2" transform="translate(-1, -1)"/>
             </g>
         </defs>
         <!-- defines the drawing order -->
