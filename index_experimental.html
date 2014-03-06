@@ -4233,12 +4233,27 @@
             this.type = 'Edge';
             var edgeLayer = document.getElementById('edges');
             this.svg = document.createElementNS(SVGNS, 'path');
-            this.svg.setAttributeNS(null, 'id', this.id);
             this.svg.setAttributeNS(null, 'class', 'edge');
             this.svg.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.svgControl = {
+                m: this.svg.pathSegList.getItem(0),
+                q: this.svg.pathSegList.getItem(1)
+            };
             edgeLayer.appendChild(this.svg);
+            this.cardinality = document.createElementNS(SVGNS, 'g');
+            this.use = document.createElementNS(SVGNS, 'use');
+            this.use.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+            this.cardinality.appendChild(this.use);
+            this.cardinality.setAttributeNS(null, 'transform', '' +
+                    'translate(' + this.xPosition + ',' + this.yPosition + ') ' +
+                    'rotate(45)'
+            );
+            this.cardinality.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            edgeLayer.appendChild(this.cardinality);
+            // this.svgControl = this.svg.transform.baseVal.getItem(0);
+
         }
         Edge.prototype = {
             role: null,
@@ -4247,6 +4262,8 @@
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
+            cardinality: null,
+            use: null,
             getMass: function() {
                 return Edge.mass;
             },
@@ -4395,14 +4412,12 @@
                     }
                 }
                 */
-                var moveTo = this.svg.pathSegList.getItem(0);
-                var curveTo = this.svg.pathSegList.getItem(1);
-                moveTo.x = this.node.xPosition;
-                moveTo.y = this.node.yPosition;
-                curveTo.x1 = this.controlPoint.xPosition;
-                curveTo.y1 = this.controlPoint.yPosition;
-                curveTo.x = this.otherNode.xPosition;
-                curveTo.y = this.otherNode.yPosition;
+                this.svgControl.m.x = this.node.xPosition;
+                this.svgControl.m.y = this.node.yPosition;
+                this.svgControl.q.x1 = this.controlPoint.xPosition;
+                this.svgControl.q.y1 = this.controlPoint.yPosition;
+                this.svgControl.q.x = this.otherNode.xPosition;
+                this.svgControl.q.y = this.otherNode.yPosition;
                 /*
                 this.svg.setAttribute('d', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                         ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
@@ -6396,12 +6411,12 @@
                     stroke:             #a8a8a8;
                     stroke-width:       2px;
                 }
-                .attribute {
+                .attribute, .knot {
                     fill:               #fff;
                     stroke:             #f88;
                     stroke-width:       2px;
                 }
-                .edge {
+                .edge, .cardinality {
                     fill:               none;
                     stroke:             #544;
                     stroke-width:       1px;
@@ -6414,15 +6429,23 @@
                 .fixation {
                     fill:               #000;
                 }
-                .label {
+                .small {
+                    font-size:          7pt;
+                }
+                .big {
                     font-size:          10pt;
+                }
+                .label {
                     font-family:        "Open Sans", "Helvetica Neue", sans-serif;
-                    font-weight:        bold;
+                    font-weight:        normal;
                     text-anchor:        middle;
                     dominant-baseline:  middle;
-                    color:              #fff;
+                    color:              #000;
                 }
             </style>
+            <g id="knot">
+                <rect class="knot" width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
+            </g>
             <g id="anchor">
                 <rect class="anchor" width="20" height="20" transform="translate(-10, -10)"/>
             </g>
@@ -6445,6 +6468,14 @@
             </g>
             <g id="fixation">
                 <rect class="fixation" width="2" height="2" transform="translate(-1, -1)"/>
+            </g>
+            <g id="one">
+                <line class="cardinality" x1="-3" y1="0" x2="3" y2="0"/>
+            </g>
+            <g id="many">
+                <line class="cardinality" x1="-3" y1="-3" x2="3" y2="-3"/>
+                <line class="cardinality" x1="-3" y1="0" x2="3" y2="0"/>
+                <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
             </g>
         </defs>
         <!-- defines the drawing order -->
