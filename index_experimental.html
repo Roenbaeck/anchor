@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
     <title>Anchor Modeler</title>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
     <style type="text/css">
     body {
         font:               75% georgia, sans-serif;
@@ -2028,31 +2029,32 @@
                     //if(this.miniCounter == 1)
                       //  node.draw(this.miniatureContext, 1);
                 }
-                /*
                 if(this.showNames) {
                     for(i = 0; node = Model.visibleNodes[i]; i++)
                         node.drawName(this.context);
                 }
+                /*
                 else if (node = CanvasEventHandler.hoveredNode)
                     node.drawName(this.context);
                     */
             },
             drawMiniature: function(model) {
-                var img = document.getElementById("miniature");
                 var graph = GRAPH.cloneNode(true);
+                var names = graph.getElementById('names');
+                if(names) graph.removeChild(names);
+                graph.setAttribute("id", "minigraph");
                 graph.setAttribute("width", "200px");
                 graph.setAttribute("height", "200px");
+                var pad = 50;
                 var boundingBox =
-                        model.leftmostNode.xPosition + " " +
-                        model.topmostNode.yPosition + " " +
-                        model.rightmostNode.xPosition + " " +
-                        model.bottommostNode.yPosition;
+                        (Model.leftmostNode.xPosition - pad) + " " +
+                        (Model.topmostNode.yPosition - pad) + " " +
+                        (Model.rightmostNode.xPosition + pad) + " " +
+                        (Model.bottommostNode.yPosition + pad);
                 graph.setAttribute("viewBox", boundingBox);
                 graph.setAttribute("preserveAspectRatio", "none");
-                var svg = (new XMLSerializer()).serializeToString(graph);
-                img.style.width = '200px';
-                img.style.heigth = '200px';
-                img.src = "data:image/svg+xml;base64," + btoa(svg);
+                var miniature = document.getElementById("miniature");
+                miniature.replaceChild(graph, document.getElementById("minigraph"));
                 /*
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
@@ -2615,8 +2617,6 @@
             this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.editables = [];
-            // TODO: descriptions have to be handled separately
-            //this.editables = [['Description','description','textarea','rows','5','cols','20']];
             this.operations = ['erase', 'connect'];
             this.incomplete = true;
             this.highlight = document.createElementNS(SVGNS, 'use');
@@ -2643,6 +2643,9 @@
             visible: true,
             svg: null,
             svgControl: null,
+            svgName: null,
+            svgNameText: null,
+            nameable: false,
             highlight: null,
             fixation: null,
             hasHighlight: false,
@@ -2656,6 +2659,18 @@
                 if (!this.id)
                     this.id = UniqueIdentity.nextId();
                 return this.id;
+            },
+            setNameable: function(nameable) {
+                if(nameable && !this.svgName) {
+                    this.svgName = document.createElementNS(SVGNS, 'text');
+                    this.svgName.setAttributeNS(null, 'class', 'label');
+                    this.svgName.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
+                    this.svgName.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
+                    this.svgNameText = document.createTextNode('I am a placeholder');
+                    this.svgName.appendChild(this.svgNameText);
+                    Layer.names.appendChild(this.svgName);
+                }
+                this.nameable = nameable;
             },
             // override to change behavior
             isInteractive: function() {
@@ -2730,51 +2745,9 @@
                 for(var i = 0; i < this.edges.length; i++)
                     this.edges[i].start();
             },
-            nameXOffset: function() {
-                return 20;
-            },
-            toSVGName: function(svg, g) {
-                var name = this.contextualName();
-                if(name && this.visible) {
-                    var text = svg.createElementNS(SVGNS, 'text');
-                    text.setAttributeNS(null, 'font-size', 10);
-                    text.setAttributeNS(null, 'font-family', 'sans-serif');
-                    text.appendChild(svg.createTextNode(name));
-                    var i, edge, xAverage = 0;
-                    for(i = 0; edge = this.edges[i]; i++)
-                        xAverage += edge.xPosition;
-                    xAverage /= this.edges.length;
-                    var currentDistance, smallestDistance, yClosest;
-                    for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
-                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
-                                        (currentDistance < smallestDistance))) {
-                            smallestDistance = currentDistance;
-                            yClosest = edge.yPosition;
-                        }
-                    }
-                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                    if(this.xPosition < xAverage) {
-                        text.setAttributeNS(null, 'x', (this.xPosition - this.nameXOffset()).toFixed(2));
-                        text.setAttributeNS(null, 'text-anchor', 'end');
-                    }
-                    else {
-                        text.setAttributeNS(null, 'text-anchor', 'start');
-                        text.setAttributeNS(null, 'x', (this.xPosition + this.nameXOffset()).toFixed(2));
-                    }
-                    text.setAttributeNS(null, 'y', (this.yPosition - nameYOffset).toFixed(2));
-                    text.setAttributeNS(null, 'alignment-baseline', 'middle');
-                    if(this.incomplete)
-                        text.setAttributeNS(null, 'fill', Color.scheme.textIncomplete);
-                    else
-                        text.setAttributeNS(null, 'fill', Color.scheme.textComplete);
-                    g.appendChild(text);
-                }
-            },
             drawName: function(context) {
-                var name = this.contextualName();
-                if(name) {
+                if(this.svgName) {
+                    this.svgNameText.nodeValue = this.contextualName();
                     var i, edge, xAverage = 0;
                     for(i = 0; edge = this.edges[i]; i++)
                         xAverage += edge.xPosition;
@@ -2790,19 +2763,16 @@
                         }
                     }
                     var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                    context.save();
-                    var nameWidth = context.measureText(name).width;
+                    var nameXOffset = this.svg.getBBox().width;
+                    var nameWidth = this.svgName.getBBox().width;
                     if(this.xPosition < xAverage)
-                        context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
-                    else
-                        context.translate(this.nameXOffset(), nameYOffset);
-                    context.textBaseline = 'middle';
+                        nameXOffset = -nameWidth - nameXOffset;
                     if(this.incomplete)
-                        context.fillStyle = Color.scheme.textIncomplete;
+                        this.svgName.classList.add('bad');
                     else
-                        context.fillStyle = Color.scheme.textComplete;
-                    context.fillText(name, this.xPosition, this.yPosition);
-                    context.restore();
+                        this.svgName.classList.remove('bad');
+                    this.svgName.x.baseVal.getItem(0).value = this.xPosition + nameXOffset;
+                    this.svgName.y.baseVal.getItem(0).value = this.yPosition + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -2828,31 +2798,6 @@
                 this.drawOutline(context);
                 context.fillStyle = this.shadowColor;
                 context.fill();
-            },
-            // this is used to draw the outline of a node, used in the shadow context
-            drawOutline: function(context) {
-                // subclasses implements this
-            },
-            // this is how to draw a graphical representation of the fact that a node is moving
-            drawMoving: function(context) {
-                if(this.moving && !this.getFixed()) {
-                    var shadowOffsetX = 4 * ((this.velocity > 2) ? 2 : this.velocity);
-                    var shadowOffsetY = 4 * ((this.velocity > 3) ? 3 : this.velocity);
-                    context.save();
-                    context.translate(-shadowOffsetX, shadowOffsetY);
-                    this.drawOutline(context);
-                    var color = Math.floor(96 + 128 * (1 - 1/(1 + this.velocity)));
-                    // shift the color slightly towards red
-                    context.fillStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
-                    context.fill();
-                    context.restore();
-                }
-            },
-            drawFixed: function(context) {
-                if(this.getFixed()) {
-                    context.fillStyle = Color.scheme.fixed;
-                    context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
-                }
             },
             setFixed: function(fixed) {
                 this.fixed = fixed;
@@ -3116,6 +3061,30 @@
             }
         };
 
+        var Layer = {
+            layers: [],
+            addLayer: function(name) {
+                var layer = document.createElementNS(SVGNS, 'g');
+                layer.setAttributeNS(null, 'id', name);
+                GRAPH.appendChild(layer);
+                this.layers.push(name);
+                this[name] = layer;
+            },
+            show: function(name) {
+                var i = this.layers.indexOf(name) + 1;
+                if(i < this.layers.length) {
+                    var after = this.layers[i];
+                    GRAPH.insertBefore(this[name], this[after]);
+                }
+                else {
+                    GRAPH.appendChild(this[name]);
+                }
+            },
+            hide: function(name) {
+                GRAPH.removeChild(this[name]);
+            }
+       }
+
         function Attribute(x, y, historized) {
             // call the parent constructor
             AbstractNode.call(this, x, y);
@@ -3136,17 +3105,17 @@
             this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
-            var nodeLayer = document.getElementById('nodes');
             this.svg = document.createElementNS(SVGNS, 'g');
             this.svg.component = this;
-            this.use = document.createElementNS(SVGNS, 'use');
+            this.svgUse = document.createElementNS(SVGNS, 'use');
             var ref = historized ? '#attribute_historized' : '#attribute';
-            this.use.setAttributeNS(XLINKNS, 'xlink:href', ref);
-            this.svg.appendChild(this.use);
+            this.svgUse.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.appendChild(this.svgUse);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            nodeLayer.appendChild(this.svg);
+            Layer.nodes.appendChild(this.svg);
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.setNameable(true);
         }
         Attribute.prototype = {
             mnemonic: '',
@@ -3158,7 +3127,7 @@
             idempotent: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
-            use: null,
+            svgUse: null,
             getMass: function() {
                 return Attribute.mass;
             },
@@ -3205,7 +3174,7 @@
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#attribute_historized' : '#attribute';
-                this.use.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.svgUse.setAttributeNS(XLINKNS, 'xlink:href', ref);
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -3351,12 +3320,6 @@
                         anchor = edge.otherNode;
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
-            nameXOffset: function() {
-                if(this.historized)
-                    return 22;
-                else
-                    return 20;
-            },
             draw: function(context, detailLevel) {
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
@@ -3381,7 +3344,6 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
-            var nodeLayer = document.getElementById('nodes');
             this.svg = document.createElementNS(SVGNS, 'g');
             this.svg.component = this;
             var use = document.createElementNS(SVGNS, 'use');
@@ -3389,8 +3351,9 @@
             this.svg.appendChild(use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            nodeLayer.appendChild(this.svg);
+            Layer.nodes.appendChild(this.svg);
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.setNameable(true);
         }
         Anchor.prototype = {
             mnemonic: '',
@@ -3401,8 +3364,7 @@
             imploded: false,
             size: 10,
             destroy: function() {
-                var nodeLayer = document.getElementById('nodes');
-                nodeLayer.removeChild(this.svg);
+                Layer.nodes.removeChild(this.svg);
                 this.svg = null;
             },
             setImploded: function(imploded) {
@@ -3438,9 +3400,6 @@
             },
             toString: function() {
                 return this.mnemonic + "_" + this.descriptor;
-            },
-            nameXOffset: function() {
-                return 20;
             },
             isConforming: function() {
                 var i, node, anchor, anchors = [];
@@ -3553,7 +3512,6 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Knot';
-            var nodeLayer = document.getElementById('nodes');
             this.svg = document.createElementNS(SVGNS, 'g');
             this.svg.component = this;
             var use = document.createElementNS(SVGNS, 'use');
@@ -3561,8 +3519,9 @@
             this.svg.appendChild(use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            nodeLayer.appendChild(this.svg);
+            Layer.nodes.appendChild(this.svg);
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.setNameable(true);
         }
         Knot.prototype = {
             mnemonic: '',
@@ -3590,9 +3549,6 @@
             },
             toString: function() {
                 return this.mnemonic + "_" + this.descriptor;
-            },
-            nameXOffset: function() {
-                return 18;
             },
             isConforming: function() {
                 var i, node, knot, knots = [];
@@ -3699,7 +3655,6 @@
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
-            var nodeLayer = document.getElementById('nodes');
             this.svg = document.createElementNS(SVGNS, 'g');
             this.svg.component = this;
             this.use = document.createElementNS(SVGNS, 'use');
@@ -3708,8 +3663,9 @@
             this.svg.appendChild(this.use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            nodeLayer.appendChild(this.svg);
+            Layer.nodes.appendChild(this.svg);
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.setNameable(true);
         }
         Tie.prototype = {
             changingRange: Defaults.changingRange,
@@ -3977,12 +3933,6 @@
                 }
                 return name;
             },
-            nameXOffset: function() {
-                if(this.historized)
-                    return 26;
-                else
-                    return 24;
-            },
             draw: function(context, detailLevel) {
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
@@ -4030,7 +3980,6 @@
             this.incomplete = false;
             this.tied = node.type === "Tie" || otherNode.type === "Tie";
             this.type = 'Edge';
-            var edgeLayer = document.getElementById('edges');
             this.path = document.createElementNS(SVGNS, 'path');
             this.path.setAttributeNS(null, 'class', 'edge');
             this.path.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
@@ -4040,7 +3989,7 @@
                 m: this.path.pathSegList.getItem(0),
                 q: this.path.pathSegList.getItem(1)
             };
-            edgeLayer.appendChild(this.path);
+            Layer.edges.appendChild(this.path);
             if(this.tied) {
                 this.svg = document.createElementNS(SVGNS, 'g');
                 this.svg.component = this;
@@ -4052,8 +4001,9 @@
                 this.svg.appendChild(this.use);
                 this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
                 this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-                edgeLayer.appendChild(this.svg);
+                Layer.edges.appendChild(this.svg);
                 this.svgControl = this.svg.transform.baseVal.getItem(0);
+                this.setNameable(true);
             }
         }
         Edge.prototype = {
@@ -4905,6 +4855,27 @@
                 }
                 selector.value = selected;
             },
+            getMiniatureImage: function() {
+                var img = new Image();
+                var graph = GRAPH.cloneNode(true);
+                var names = graph.getElementById('names');
+                if(names) graph.removeChild(names);
+                graph.setAttribute("width", "200px");
+                graph.setAttribute("height", "200px");
+                var pad = 50;
+                var boundingBox =
+                        (Model.leftmostNode.xPosition - pad) + " " +
+                        (Model.topmostNode.yPosition - pad) + " " +
+                        (Model.rightmostNode.xPosition + pad) + " " +
+                        (Model.bottommostNode.yPosition + pad);
+                graph.setAttribute("viewBox", boundingBox);
+                graph.setAttribute("preserveAspectRatio", "none");
+                var svg = (new XMLSerializer()).serializeToString(graph);
+                img.style.width = '200px';
+                img.style.heigth = '200px';
+                img.src = "data:image/svg+xml;base64," + btoa(svg);
+                return img;
+            },
             stopKeyboardEvents: function() {
                 window.onkeypress = null;
             },
@@ -5256,6 +5227,10 @@
             },
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
+                if(DrawingEngine.showNames)
+                    Layer.show('names');
+                else
+                    Layer.hide('names');
                 DrawingEngine.start(false);
             },
             toggleMnemonics: function () {
@@ -5926,6 +5901,14 @@
             ControlButtons.init();
             LayoutEngine.init();
 
+            // set the global graph variable
+            GRAPH = document.getElementById("graph");
+            // add layers to the SVG
+            Layer.addLayer('edges');
+            Layer.addLayer('nodes');
+            Layer.addLayer('names');
+            Layer.hide('names');
+
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
             // get the canvas element
@@ -5970,9 +5953,6 @@
             miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
             miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
             */
-
-            // set the global graph variable
-            GRAPH = document.getElementById("graph");
 
             // load url or previous model, if any
             var model;
@@ -6079,18 +6059,16 @@
                 .fixation {
                     fill:               #000;
                 }
-                .small {
-                    font-size:          7pt;
-                }
-                .big {
-                    font-size:          10pt;
-                }
                 .label {
+                    font-size:          8pt;
                     font-family:        "Open Sans", "Helvetica Neue", sans-serif;
                     font-weight:        normal;
-                    text-anchor:        middle;
+                    text-anchor:        left;
                     dominant-baseline:  middle;
-                    color:              #000;
+                    fill:               #000;
+                }
+                .bad {
+                    fill:               #e00;
                 }
             </style>
             <g id="knot">
@@ -6131,12 +6109,7 @@
                 <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
             </g>
         </defs>
-        <!-- defines the drawing order -->
-        <g id="bottom"/>
-        <g id="edges"/>
-        <g id="nodes"/>
-        <g id="names"/>
-        <g id="top"/>
+        <!-- layers are appended here -->
     </svg>
 
     <div id="header" class="unselectable">
@@ -6272,7 +6245,15 @@
     -->
 
     <!-- shows a navigatable miniature of the model, the Anchor.svg is just a placeholder -->
-    <img id="miniature" class="unselectable" src="Anchor.svg"/>
+    <div id="miniature">
+        <svg id="minigraph"
+             class="unselectable"
+             xmlns="http://www.w3.org/2000/svg"
+             version="1.1"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             width="200"
+             height="200"/>
+    </div>
 
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
