@@ -72,7 +72,7 @@
         z-index:            1;
     }
 
-    #graph {
+    #vectorization {
         position:           absolute;
         top:                0px;
         left:               0px;
@@ -656,7 +656,8 @@
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
         var XLINKNS = "http://www.w3.org/1999/xlink";
-        // the graph svg root element
+        // the svg root and graph elements
+        var SVG;
         var GRAPH;
 
         // global variables for the cloud stuff
@@ -2029,32 +2030,31 @@
                     //if(this.miniCounter == 1)
                       //  node.draw(this.miniatureContext, 1);
                 }
-                if(this.showNames) {
                     for(i = 0; node = Model.visibleNodes[i]; i++)
                         node.drawName(this.context);
-                }
                 /*
                 else if (node = CanvasEventHandler.hoveredNode)
                     node.drawName(this.context);
                     */
             },
             drawMiniature: function(model) {
-                var graph = GRAPH.cloneNode(true);
-                var names = graph.getElementById('names');
+                var svg = SVG.cloneNode(true);
+                var graph = svg.getElementById('graph');
+                var names = svg.getElementById('names');
                 if(names) graph.removeChild(names);
-                graph.setAttribute("id", "minigraph");
-                graph.setAttribute("width", "200px");
-                graph.setAttribute("height", "200px");
+                svg.setAttribute("id", "minigraph");
+                svg.setAttribute("width", "200px");
+                svg.setAttribute("height", "200px");
                 var pad = 50;
                 var boundingBox =
                         (Model.leftmostNode.xPosition - pad) + " " +
                         (Model.topmostNode.yPosition - pad) + " " +
                         (Model.rightmostNode.xPosition + pad) + " " +
                         (Model.bottommostNode.yPosition + pad);
-                graph.setAttribute("viewBox", boundingBox);
-                graph.setAttribute("preserveAspectRatio", "none");
+                svg.setAttribute("viewBox", boundingBox);
+                svg.setAttribute("preserveAspectRatio", "none");
                 var miniature = document.getElementById("miniature");
-                miniature.replaceChild(graph, document.getElementById("minigraph"));
+                miniature.replaceChild(svg, document.getElementById("minigraph"));
                 /*
                 // check current size first and adjust scale accordingly
                 if(!model.rightmostNode) return;
@@ -2892,7 +2892,7 @@
                     if(!EventHandler.isSelected(component))
                         EventHandler.addNodeToSelection(component);
                     window.addEventListener('keypress', EventHandler.keypress, false);
-                    GRAPH.addEventListener('mouseover', EventHandler.endInteraction, false);
+                    SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.addEventListener('click', EventHandler.clickComponent, false);
                     component.setHighlight(true);
@@ -2915,8 +2915,8 @@
                         component.hideContextMenu();
                         component.svg.removeEventListener('mousedown', EventHandler.prepareDragging, false);
                     }
-                    GRAPH.addEventListener('mousemove', EventHandler.whileDragging, false);
-                    GRAPH.addEventListener('mouseup', EventHandler.completeDragging, false);
+                    SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
+                    SVG.addEventListener('mouseup', EventHandler.completeDragging, false);
                 }
                 event.stopPropagation();
             },
@@ -2924,12 +2924,13 @@
                 event.preventDefault();
                 if(EventHandler.getInteraction() === "whileDragging" ||
                    EventHandler.getInteraction() === "prepareDragging") {
-                    var component, i;
+                    var component, i, svgPoint;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         if(component.isInteractive()) {
+                            svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY)
                             if(EventHandler.getInteraction() === "whileDragging") {
-                                component.xPosition = event.clientX;
-                                component.yPosition = event.clientY;
+                                component.xPosition = svgPoint.x;
+                                component.yPosition = svgPoint.y;
                                 component.setFixed(true);
                                 component.setHighlight(false);
                                 Model.invalidateNode(this);
@@ -2937,8 +2938,8 @@
                             }
                             else if(EventHandler.getInteraction() === "prepareDragging") {
                                 if(LayoutEngine.manhattanDistance(component, {
-                                    xPosition: event.clientX,
-                                    yPosition: event.clientY
+                                    xPosition: svgPoint.x,
+                                    yPosition: svgPoint.y
                                 }) > 10) {
                                     EventHandler.setInteraction("whileDragging");
                                 }
@@ -2953,8 +2954,8 @@
                 if(EventHandler.getInteraction() === "whileDragging") {
                     EventHandler.setInteraction("completeDragging");
                     EventHandler.clearInteraction();
-                    GRAPH.removeEventListener('mousemove', EventHandler.whileDragging, false);
-                    GRAPH.removeEventListener('mouseup', EventHandler.completeDragging, false);
+                    SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    SVG.removeEventListener('mouseup', EventHandler.completeDragging, false);
                 }
                 event.stopPropagation();
             },
@@ -2977,7 +2978,7 @@
             },
             endInteraction: function(event) {
                 event.preventDefault();
-                if(event.toElement === GRAPH && (
+                if(event.toElement === SVG && (
                         !EventHandler.hasOngoingInteractions() ||
                         EventHandler.getInteraction() === "beginInteraction")) {
                     var component, i;
@@ -2988,12 +2989,58 @@
                         component.setHighlight(false);
                     }
                     EventHandler.clearInteraction();
-                    GRAPH.removeEventListener('mousemove', EventHandler.whileDragging, false);
-                    GRAPH.removeEventListener('mouseup', EventHandler.completeDragging, false);
-                    GRAPH.removeEventListener('mouseover', EventHandler.endInteraction, false);
+                    SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    SVG.removeEventListener('mouseup', EventHandler.completeDragging, false);
+                    SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
                 }
                 event.stopPropagation();
+            },
+
+/* TODO remove later
+            xContext: function(xScreen) {
+                return (xScreen - this.xTranslation) / this.xyScale;
+            },
+            yContext: function(yScreen) {
+                return (yScreen - this.yTranslation) / this.xyScale;
+            },
+            xScreen: function(xContext) {
+                return xContext * this.xyScale + this.xTranslation;
+            },
+            yScreen: function(yContext) {
+                return yContext * this.xyScale + this.yTranslation;
+*/
+
+
+            zoom: function(event) {
+                event.preventDefault();
+                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * 0.01;
+                var translateTransform = GRAPH.transform.baseVal.getItem(0);
+                var scaleTransform = GRAPH.transform.baseVal.getItem(1);
+                var scale = scaleTransform.matrix.a * zoom;
+                if(scale > 0.1 && scale < 10) {
+                    var svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY);
+                    var tx = translateTransform.matrix.e;
+                    var ty = translateTransform.matrix.f;
+                    translateTransform.setTranslate(tx + (svgPoint.x * (1 - zoom)), ty + (svgPoint.y * (1 - zoom)));
+                    scaleTransform.setScale(scale, scale);
+                    DrawingEngine.start(false);
+                }
+                event.stopPropagation();
+            },
+            screenToSVG: function(x, y) {
+                var screenPoint = SVG.createSVGPoint();
+                screenPoint.x = x;
+                screenPoint.y = y;
+                var matrix = GRAPH.getScreenCTM();
+                return screenPoint.matrixTransform( matrix.inverse() );
+            },
+            svgToScreen: function(x, y) {
+                var svgPoint = SVG.createSVGPoint();
+                svgPoint.x = x;
+                svgPoint.y = y;
+                var matrix = GRAPH.getScreenCTM();
+                return svgPoint.matrixTransform( matrix );
             },
             keypress: function(event) {
                 if(this.selectedNodes.length > 0) {
@@ -3081,7 +3128,8 @@
                 }
             },
             hide: function(name) {
-                GRAPH.removeChild(this[name]);
+                if(GRAPH.contains(this[name]))
+                    GRAPH.removeChild(this[name]);
             }
        }
 
@@ -4857,7 +4905,7 @@
             },
             getMiniatureImage: function() {
                 var img = new Image();
-                var graph = GRAPH.cloneNode(true);
+                var graph = SVG.cloneNode(true);
                 var names = graph.getElementById('names');
                 if(names) graph.removeChild(names);
                 graph.setAttribute("width", "200px");
@@ -5901,13 +5949,17 @@
             ControlButtons.init();
             LayoutEngine.init();
 
-            // set the global graph variable
+            // set the global svg and graph variable
+            SVG = document.getElementById("vectorization");
             GRAPH = document.getElementById("graph");
             // add layers to the SVG
             Layer.addLayer('edges');
             Layer.addLayer('nodes');
             Layer.addLayer('names');
             Layer.hide('names');
+
+            // set up "global" event handlers
+            SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
 
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
@@ -6019,7 +6071,7 @@
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
 
-    <svg id="graph"
+    <svg id="vectorization"
          class="unselectable"
          xmlns="http://www.w3.org/2000/svg"
          version="1.1"
@@ -6109,7 +6161,9 @@
                 <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
             </g>
         </defs>
-        <!-- layers are appended here -->
+        <g id="graph" transform="translate(0,0) scale(1,1)">
+            <!-- layers are appended here -->
+        </g>
     </svg>
 
     <div id="header" class="unselectable">
@@ -6150,7 +6204,7 @@
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
                 <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(GRAPH, 'xml2html.xsl', document), false)">SVG code</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(SVG, 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
