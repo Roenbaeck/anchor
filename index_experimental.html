@@ -3357,65 +3357,9 @@
                 else
                     return 20;
             },
-            drawOutline: function(context) {
-                // the outermost path
-                context.beginPath();
-                if(this.historized)
-                    context.arc(this.xPosition, this.yPosition, 12, 0, 2*Math.PI, false);
-                else
-                    context.arc(this.xPosition, this.yPosition, 10, 0, 2*Math.PI, false);
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var circle = svg.createElementNS(SVGNS, 'circle');
-                circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
-                circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                circle.setAttributeNS(null, 'stroke-width', 1.5);
-                circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                if(this.historized)
-                    circle.setAttributeNS(null, 'r', 12);
-                else
-                    circle.setAttributeNS(null, 'r', 10);
-                group.appendChild(circle);
-                if(this.historized) {
-                    circle = svg.createElementNS(SVGNS, 'circle');
-                    circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
-                    circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                    circle.setAttributeNS(null, 'stroke-width', 1.5);
-                    circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', 7);
-                    group.appendChild(circle);
-                }
-                g.appendChild(group);
-            },
             draw: function(context, detailLevel) {
-                /*
-                this.drawOutline(context);
-                if(this.historized) {
-                    // then we get back to drawing the actual symbol
-                    context.fillStyle = Color.scheme.attributeFill;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.attributeOutline;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 7, 0, 2*Math.PI, false);
-                    context.fill();
-                    context.stroke();
-                }
-                else {
-                    context.fillStyle = Color.scheme.attributeFill;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.attributeOutline;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                }
-                AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
-                */
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
+                // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3586,35 +3530,9 @@
                 this.addLayoutXML(anchor, schema);
                 return anchor;
             },
-            drawOutline: function(context) {
-                context.beginPath();
-                context.moveTo(this.xPosition - this.size, this.yPosition - this.size);
-                context.lineTo(this.xPosition + this.size, this.yPosition - this.size);
-                context.lineTo(this.xPosition + this.size, this.yPosition + this.size);
-                context.lineTo(this.xPosition - this.size, this.yPosition + this.size);
-                context.lineTo(this.xPosition - this.size, this.yPosition - this.size);
-                context.closePath();
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', Color.scheme.anchorFill);
-                rect.setAttributeNS(null, 'x', (this.xPosition - this.size).toFixed(2));
-                rect.setAttributeNS(null, 'y', (this.yPosition - this.size).toFixed(2));
-                rect.setAttributeNS(null, 'width', 2 * this.size);
-                rect.setAttributeNS(null, 'height', 2 * this.size);
-                group.appendChild(rect);
-                g.appendChild(group);
-            },
             draw: function(context, detailLevel) {
-                /*
-                this.drawOutline(context);
-                context.fillStyle = Color.scheme.anchorFill;
-                context.fill();
-                AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
-                */
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
+                // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3760,49 +3678,9 @@
                 this.addLayoutXML(knot, schema);
                 return knot;
             },
-            drawOutline: function(context) {
-                context.beginPath();
-                context.moveTo(this.xPosition - 6, this.yPosition - 9);
-                context.lineTo(this.xPosition + 6, this.yPosition - 9);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition - 9,
-                        this.xPosition + 9, this.yPosition - 6);
-                context.lineTo(this.xPosition + 9, this.yPosition + 6);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition + 9,
-                        this.xPosition + 6, this.yPosition + 9);
-                context.lineTo(this.xPosition - 6, this.yPosition + 9);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition + 9,
-                        this.xPosition - 9, this.yPosition + 6);
-                context.lineTo(this.xPosition - 9, this.yPosition - 6);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition - 9,
-                        this.xPosition - 6, this.yPosition - 9);
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', Color.scheme.knotFill);
-                rect.setAttributeNS(null, 'stroke', Color.scheme.knotOutline);
-                rect.setAttributeNS(null, 'stroke-width', 1.5);
-                rect.setAttributeNS(null, 'x', (this.xPosition - 9).toFixed(2));
-                rect.setAttributeNS(null, 'y', (this.yPosition - 9).toFixed(2));
-                rect.setAttributeNS(null, 'rx', 3);
-                rect.setAttributeNS(null, 'ry', 3);
-                rect.setAttributeNS(null, 'width', 18);
-                rect.setAttributeNS(null, 'height', 18);
-                group.appendChild(rect);
-                g.appendChild(group);
-            },
             draw: function(context, detailLevel) {
-                /*
-                this.drawOutline(context);
-                context.fillStyle = Color.scheme.knotFill;
-                context.fill();
-                context.strokeStyle = Color.scheme.knotOutline;
-                context.lineWidth = 1.5;
-                context.stroke();
-                AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
-                */
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
+                // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -4105,89 +3983,9 @@
                 else
                     return 24;
             },
-            drawOutline: function(context) {
-                if(this.historized) {
-                    context.beginPath();
-                    context.moveTo(this.xPosition - (this.size + 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size + 2));
-                    context.lineTo(this.xPosition + (this.size + 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size + 2));
-                    context.lineTo(this.xPosition - (this.size + 3), this.yPosition);
-                    context.closePath();
-                }
-                else {
-                    context.beginPath();
-                    context.moveTo(this.xPosition - this.size, this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size - 1));
-                    context.lineTo(this.xPosition + this.size, this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size - 1));
-                    context.lineTo(this.xPosition - this.size, this.yPosition);
-                    context.closePath();
-                }
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var path;
-                if(this.historized) {
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieOutline);
-                    path.setAttributeNS(null, 'stroke', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'stroke-width', 1.5);
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size + 2)).toFixed(2) +
-                            ' ' + (this.xPosition + (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size + 2)).toFixed(2) +
-                            ' ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 4)).toFixed(2) +
-                            ' ' + (this.xPosition + (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 4)).toFixed(2) +
-                            ' ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                }
-                else {
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 1)).toFixed(2) +
-                            ' ' + (this.xPosition + this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 1)).toFixed(2) +
-                            ' ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                }
-                g.appendChild(group);
-            },
             draw: function(context, detailLevel) {
-                /*
-                this.drawOutline(context);
-                if(this.historized) {
-                    context.fillStyle = Color.scheme.tieOutline;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.tieFill;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                    context.beginPath();
-                    context.moveTo(this.xPosition - (this.size - 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size - 4));
-                    context.lineTo(this.xPosition + (this.size - 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size - 4));
-                    context.fillStyle = Color.scheme.tieFill;
-                    context.fill();
-                }
-                else {
-                    context.fillStyle = Color.scheme.tieFill;
-                    context.fill();
-                }
-                AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
-                */
                 this.svgControl.setTranslate(this.xPosition, this.yPosition);
+                // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -4230,30 +4028,33 @@
             this.editables.push(Editables.roleEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.incomplete = false;
+            this.tied = node.type === "Tie" || otherNode.type === "Tie";
             this.type = 'Edge';
             var edgeLayer = document.getElementById('edges');
-            this.svg = document.createElementNS(SVGNS, 'path');
-            this.svg.setAttributeNS(null, 'class', 'edge');
-            this.svg.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+            this.path = document.createElementNS(SVGNS, 'path');
+            this.path.setAttributeNS(null, 'class', 'edge');
+            this.path.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
-            this.svgControl = {
-                m: this.svg.pathSegList.getItem(0),
-                q: this.svg.pathSegList.getItem(1)
+            this.pathControl = {
+                m: this.path.pathSegList.getItem(0),
+                q: this.path.pathSegList.getItem(1)
             };
-            edgeLayer.appendChild(this.svg);
-            this.cardinality = document.createElementNS(SVGNS, 'g');
-            this.use = document.createElementNS(SVGNS, 'use');
-            this.use.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
-            this.cardinality.appendChild(this.use);
-            this.cardinality.setAttributeNS(null, 'transform', '' +
-                    'translate(' + this.xPosition + ',' + this.yPosition + ') ' +
-                    'rotate(45)'
-            );
-            this.cardinality.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            edgeLayer.appendChild(this.cardinality);
-            // this.svgControl = this.svg.transform.baseVal.getItem(0);
-
+            edgeLayer.appendChild(this.path);
+            if(this.tied) {
+                this.svg = document.createElementNS(SVGNS, 'g');
+                this.svg.component = this;
+                var bubble = document.createElementNS(SVGNS, 'use');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                this.svg.appendChild(bubble);
+                this.use = document.createElementNS(SVGNS, 'use');
+                this.use.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                this.svg.appendChild(this.use);
+                this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
+                this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                edgeLayer.appendChild(this.svg);
+                this.svgControl = this.svg.transform.baseVal.getItem(0);
+            }
         }
         Edge.prototype = {
             role: null,
@@ -4262,8 +4063,10 @@
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
-            cardinality: null,
+            path: null,
+            pathControl: null,
             use: null,
+            tied: false,
             getMass: function() {
                 return Edge.mass;
             },
@@ -4271,7 +4074,7 @@
                 return Edge.charge;
             },
             isInteractive: function() {
-                return this.node instanceof Tie || this.otherNode instanceof Tie;
+                return this.tied;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -4299,177 +4102,17 @@
             toString: function() {
                 return this.role;
             },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var path = svg.createElementNS(SVGNS, 'path');
-                path.setAttributeNS(null, 'fill', 'none');
-                path.setAttributeNS(null, 'stroke', Color.scheme.edge);
-                path.setAttributeNS(null, 'd',
-                        'M ' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
-                        ' Q ' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
-                        ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
-                group.appendChild(path);
-                var tie;
-                if(this.node instanceof Tie)
-                    tie = this.node;
-                else if(this.otherNode instanceof Tie)
-                    tie = this.otherNode;
-                if(tie && !tie.imploded) {
-                    var     cardinality,
-                            strokeStyle = Color.scheme.identifierOutline,
-                            fillStyle = Color.scheme.identifierSelectedFill;
-                    var circle = svg.createElementNS(SVGNS, 'circle');
-                    if(this.identifier) {
-                        fillStyle = Color.scheme.identifierSelectedFill;
-                        cardinality = 'm';
-                    }
-                    else {
-                        fillStyle = Color.scheme.identifierUnselectedFill;
-                        cardinality = '1';
-                    }
-                    if(Settings.showCardinalities) {
-                        strokeStyle = fillStyle = Color.scheme.svgBackground;
-                    }
-                    circle.setAttributeNS(null, 'fill', fillStyle);
-                    circle.setAttributeNS(null, 'stroke', strokeStyle);
-                    circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', 6);
-                    group.appendChild(circle);
-                    if(Settings.showCardinalities) {
-                        var text = svg.createElementNS(SVGNS, 'text');
-                        text.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
-                        text.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
-                        text.setAttributeNS(null, 'font-size', 8);
-                        text.setAttributeNS(null, 'font-family', 'sans-serif');
-                        text.setAttributeNS(null, 'font-weight', 'bold');
-                        text.setAttributeNS(null, 'text-anchor', 'middle');
-                        text.setAttributeNS(null, 'alignment-baseline', 'middle');
-                        text.setAttributeNS(null, 'fill', Color.scheme.cardinality);
-                        text.appendChild(svg.createTextNode(cardinality));
-                        group.appendChild(text);
-                    }
-                }
-                g.appendChild(group);
-            },
             draw: function(context, detailLevel) {
-                /*
-                context.beginPath();
-                context.moveTo(this.node.xPosition, this.node.yPosition);
-                if(DrawingEngine.drawCurves) {
-                    context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition,
-                            this.otherNode.xPosition, this.otherNode.yPosition);
+                this.pathControl.m.x = this.node.xPosition;
+                this.pathControl.m.y = this.node.yPosition;
+                this.pathControl.q.x1 = this.controlPoint.xPosition;
+                this.pathControl.q.y1 = this.controlPoint.yPosition;
+                this.pathControl.q.x = this.otherNode.xPosition;
+                this.pathControl.q.y = this.otherNode.yPosition;
+                if(this.tied) {
+                    this.svgControl.setTranslate(this.xPosition, this.yPosition);
                 }
-                else {
-                    context.lineTo(this.xPosition, this.yPosition);
-                    context.lineTo(this.otherNode.xPosition, this.otherNode.yPosition);
-                }
-                context.strokeStyle = Color.scheme.edge;
-                context.lineWidth = 1.0;
-                context.stroke();
-                if(DEBUG) {
-                    context.beginPath();
-                    context.arc(this.controlPoint.xPosition, this.controlPoint.yPosition, 4, 0, 2*Math.PI, false);
-                    context.fillStyle = Color.scheme.forceVector;
-                    context.fill();
-                    context.stroke();
-                }
-                // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
-                var tie;
-                if(this.node instanceof Tie)
-                    tie = this.node;
-                else if(this.otherNode instanceof Tie)
-                    tie = this.otherNode;
-                if(detailLevel == 0 && tie && !tie.imploded) {
-                    var     cardinality,
-                            strokeStyle = Color.scheme.identifierOutline,
-                            fillStyle = Color.scheme.identifierSelectedFill;
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
-                    if(this.identifier) {
-                        fillStyle = Color.scheme.identifierSelectedFill;
-                        cardinality = 'm';
-                    }
-                    else {
-                        fillStyle = Color.scheme.identifierUnselectedFill;
-                        cardinality = '1';
-                    }
-                    if(Settings.showCardinalities) {
-                        strokeStyle = fillStyle = Color.scheme.canvasBackground;
-                    }
-                    context.strokeStyle = strokeStyle;
-                    context.fillStyle = fillStyle;
-                    context.stroke();
-                    context.fill();
-                    if(Settings.showCardinalities) {
-                        context.save();
-                        context.fillStyle = Color.scheme.cardinality;
-                        context.textBaseline = 'middle';
-                        context.textAlign = 'center';
-                        context.font = 'bold 6pt sans-serif';
-                        context.fillText(cardinality, this.xPosition, this.yPosition);
-                        context.restore();
-                    }
-                }
-                */
-                this.svgControl.m.x = this.node.xPosition;
-                this.svgControl.m.y = this.node.yPosition;
-                this.svgControl.q.x1 = this.controlPoint.xPosition;
-                this.svgControl.q.y1 = this.controlPoint.yPosition;
-                this.svgControl.q.x = this.otherNode.xPosition;
-                this.svgControl.q.y = this.otherNode.yPosition;
-                /*
-                this.svg.setAttribute('d', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
-                        ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
-                        ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
-                        */
                 //AbstractNode.prototype.draw.apply(this, arguments);
-            },
-            drawMoving: function(context) {
-                if((this.node.moving && !this.node.getFixed()) ||
-                        (this.otherNode.moving && !this.otherNode.getFixed())) {
-                    var nodeShadowOffsetX = 0;
-                    var nodeShadowOffsetY = 0;
-                    if(this.node.moving && !this.node.getFixed()) {
-                        nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
-                        nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
-                    }
-                    var otherNodeShadowOffsetX = 0;
-                    var otherNodeShadowOffsetY = 0;
-                    if(this.otherNode.moving && !this.otherNode.getFixed()) {
-                        otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
-                        otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
-                    }
-                    var averageVelocity = (this.node.velocity + this.otherNode.velocity)/2;
-                    var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
-                    var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
-                    context.beginPath();
-                    context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
-                    if(DrawingEngine.drawCurves) {
-                        context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX,
-                                this.controlPoint.yPosition + controlOffsetY,
-                                this.otherNode.xPosition - otherNodeShadowOffsetX,
-                                this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    }
-                    else {
-                        context.lineTo(this.xPosition - controlOffsetX, this.yPosition + controlOffsetY);
-                        context.lineTo(this.otherNode.xPosition - otherNodeShadowOffsetX,
-                                this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    }
-                    var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
-                    // shift the color slightly towards red
-                    context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
-                    context.lineWidth = 1.0;
-                    context.stroke();
-                }
-            },
-            drawShadow: function(context) {
-                if(this.node instanceof Tie || this.otherNode instanceof Tie) {
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
-                    context.fillStyle = this.shadowColor;
-                    context.fill();
-                }
             }
         };
 
@@ -5216,6 +4859,7 @@
                 }
                 catch(exception) {
                     alert(exception);
+                    throw exception;
                 }
                 CanvasEventHandler.clearSelection();
                 Model.uncloud();
@@ -5337,6 +4981,7 @@
                 }
                 catch(exception){
                     alert(exception);
+                    throw exception;
                 }
                 return result;
             },
@@ -5365,6 +5010,7 @@
                 }
                 catch(exception){
                     alert(exception);
+                    throw exception;
                 }
             },
             modelStatusText: null,
@@ -6409,12 +6055,12 @@
                 .tie_outline {
                     fill:               #fff;
                     stroke:             #a8a8a8;
-                    stroke-width:       2px;
+                    stroke-width:       1.5px;
                 }
                 .attribute, .knot {
                     fill:               #fff;
                     stroke:             #f88;
-                    stroke-width:       2px;
+                    stroke-width:       1.5px;
                 }
                 .edge, .cardinality {
                     fill:               none;
@@ -6425,6 +6071,10 @@
                     stroke:             #ede5e5;
                     stroke-width:       10px;
                     fill:               #fff;
+                }
+                .bubble {
+                    fill:               #f9f8f7;
+                    stroke:             none;
                 }
                 .fixation {
                     fill:               #000;
@@ -6469,8 +6119,11 @@
             <g id="fixation">
                 <rect class="fixation" width="2" height="2" transform="translate(-1, -1)"/>
             </g>
+            <g id="bubble">
+                <circle class="bubble" r="8"/>
+            </g>
             <g id="one">
-                <line class="cardinality" x1="-3" y1="0" x2="3" y2="0"/>
+                <line class="cardinality" x1="0" y1="-3" x2="0" y2="3"/>
             </g>
             <g id="many">
                 <line class="cardinality" x1="-3" y1="-3" x2="3" y2="-3"/>
