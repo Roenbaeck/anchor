@@ -7,7 +7,7 @@
     <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
     <style type="text/css">
     body {
-        font:               75% georgia, sans-serif;
+        font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
         line-height:        1.88889;
         color:              #000000;
         background:         #f9f8f7;
@@ -72,7 +72,7 @@
         z-index:            1;
     }
 
-    #vectorization {
+    #graph {
         position:           absolute;
         top:                0px;
         left:               0px;
@@ -466,7 +466,7 @@
     }
 
     #header {
-        font:               10pt georgia, sans-serif;
+        font:               10pt "Open Sans", "Helvetica Neue", sans-serif;
         position:           relative;
         margin:             0;
         padding:            0;
@@ -474,7 +474,7 @@
         left:               0;
         height:             32px;
         display:            block;
-        background-color:   rgba(212, 212, 212, 0.9);
+        background-color:   rgba(236, 234, 234, 0.9);
         color:              black;
         border-bottom:      2px solid #fff;
         box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
@@ -525,7 +525,6 @@
         width:              200px;
     }
     .menu {
-        font:               10pt georgia, sans-serif;
         margin:             0;
         cursor:             pointer;
         list-style:         none;
@@ -540,7 +539,7 @@
     .submenu {
         display:            none;
         position:           relative;
-        background-color:   rgba(212, 212, 212, 0.9);
+        background-color:   rgba(236, 234, 234, 0.9);
         white-space:        nowrap;
         border:             2px solid #fff;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
@@ -658,7 +657,6 @@
         var XLINKNS = "http://www.w3.org/1999/xlink";
         // the svg root and graph elements
         var SVG;
-        var GRAPH;
 
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
@@ -2039,9 +2037,8 @@
             },
             drawMiniature: function(model) {
                 var svg = SVG.cloneNode(true);
-                var graph = svg.getElementById('graph');
                 var names = svg.getElementById('names');
-                if(names) graph.removeChild(names);
+                if(names) svg.removeChild(names);
                 svg.setAttribute("id", "minigraph");
                 svg.setAttribute("width", "200px");
                 svg.setAttribute("height", "200px");
@@ -2996,50 +2993,33 @@
                 }
                 event.stopPropagation();
             },
-
-/* TODO remove later
-            xContext: function(xScreen) {
-                return (xScreen - this.xTranslation) / this.xyScale;
-            },
-            yContext: function(yScreen) {
-                return (yScreen - this.yTranslation) / this.xyScale;
-            },
-            xScreen: function(xContext) {
-                return xContext * this.xyScale + this.xTranslation;
-            },
-            yScreen: function(yContext) {
-                return yContext * this.xyScale + this.yTranslation;
-*/
-
-
+            scaling: 0.03,
             zoom: function(event) {
                 event.preventDefault();
-                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * 0.01;
-                var translateTransform = GRAPH.transform.baseVal.getItem(0);
-                var scaleTransform = GRAPH.transform.baseVal.getItem(1);
-                var scale = scaleTransform.matrix.a * zoom;
-                if(scale > 0.1 && scale < 10) {
-                    var svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY);
-                    var tx = translateTransform.matrix.e;
-                    var ty = translateTransform.matrix.f;
-                    translateTransform.setTranslate(tx + (svgPoint.x * (1 - zoom)), ty + (svgPoint.y * (1 - zoom)));
-                    scaleTransform.setScale(scale, scale);
-                    DrawingEngine.start(false);
-                }
+                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * EventHandler.scaling;
+                var width = SVG.viewBox.baseVal.width || SVG.width.baseVal.value;
+                var height = SVG.viewBox.baseVal.height || SVG.height.baseVal.value;
+                var x = SVG.viewBox.baseVal.x;
+                var y = SVG.viewBox.baseVal.y;
+                var svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY);
+                SVG.viewBox.baseVal.width = width * zoom;
+                SVG.viewBox.baseVal.height = height * zoom;
+                SVG.viewBox.baseVal.x = x + (1 - zoom) * (svgPoint.x - x);
+                SVG.viewBox.baseVal.y = y + (1 - zoom) * (svgPoint.y - y);
                 event.stopPropagation();
             },
             screenToSVG: function(x, y) {
                 var screenPoint = SVG.createSVGPoint();
                 screenPoint.x = x;
                 screenPoint.y = y;
-                var matrix = GRAPH.getScreenCTM();
+                var matrix = SVG.getScreenCTM();
                 return screenPoint.matrixTransform( matrix.inverse() );
             },
             svgToScreen: function(x, y) {
                 var svgPoint = SVG.createSVGPoint();
                 svgPoint.x = x;
                 svgPoint.y = y;
-                var matrix = GRAPH.getScreenCTM();
+                var matrix = SVG.getScreenCTM();
                 return svgPoint.matrixTransform( matrix );
             },
             keypress: function(event) {
@@ -3113,7 +3093,7 @@
             addLayer: function(name) {
                 var layer = document.createElementNS(SVGNS, 'g');
                 layer.setAttributeNS(null, 'id', name);
-                GRAPH.appendChild(layer);
+                SVG.appendChild(layer);
                 this.layers.push(name);
                 this[name] = layer;
             },
@@ -3121,15 +3101,15 @@
                 var i = this.layers.indexOf(name) + 1;
                 if(i < this.layers.length) {
                     var after = this.layers[i];
-                    GRAPH.insertBefore(this[name], this[after]);
+                    SVG.insertBefore(this[name], this[after]);
                 }
                 else {
-                    GRAPH.appendChild(this[name]);
+                    SVG.appendChild(this[name]);
                 }
             },
             hide: function(name) {
-                if(GRAPH.contains(this[name]))
-                    GRAPH.removeChild(this[name]);
+                if(SVG.contains(this[name]))
+                    SVG.removeChild(this[name]);
             }
        }
 
@@ -4750,12 +4730,8 @@
                 if(self.dragging) {
                     var xScreen, yScreen;
                     xScreen = event.clientX
-                            + document.body.scrollLeft
-                            + document.documentElement.scrollLeft
                             - self.contextMenu.offsetWidth / 2;
                     yScreen = event.clientY
-                            + document.body.scrollTop
-                            + document.documentElement.scrollTop
                             - self.topper.offsetHeight / 2;
                     this.updatePosition(xScreen, yScreen);
                 }
@@ -4767,12 +4743,12 @@
                 window.removeEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
             },
             updatePosition: function(x, y) {
-                //x = x ? x : DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
-                //y = y ? y : DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
-
-                x = x ? x : this.hoveredNode.xPosition + 15; // inside the highlight ring with radius 30
-                y = y ? y : this.hoveredNode.yPosition + 15;
-
+                var point = EventHandler.svgToScreen(
+                        this.hoveredNode.xPosition + 15, // inside the highlight ring with radius 30
+                        this.hoveredNode.yPosition + 15
+                );
+                x = x ? x : point.x;
+                y = y ? y : point.y;
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
             },
@@ -5950,13 +5926,13 @@
             LayoutEngine.init();
 
             // set the global svg and graph variable
-            SVG = document.getElementById("vectorization");
-            GRAPH = document.getElementById("graph");
+            SVG = document.getElementById("graph");
             // add layers to the SVG
             Layer.addLayer('edges');
             Layer.addLayer('nodes');
             Layer.addLayer('names');
             Layer.hide('names');
+
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
@@ -6071,7 +6047,7 @@
         <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
     </canvas>
 
-    <svg id="vectorization"
+    <svg id="graph"
          class="unselectable"
          xmlns="http://www.w3.org/2000/svg"
          version="1.1"
@@ -6161,9 +6137,7 @@
                 <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
             </g>
         </defs>
-        <g id="graph" transform="translate(0,0) scale(1,1)">
-            <!-- layers are appended here -->
-        </g>
+        <!-- layers are appended here -->
     </svg>
 
     <div id="header" class="unselectable">
@@ -6185,8 +6159,6 @@
                 <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
                 <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                 <li title="Toggle style of the cardinalities in ties, dots or letters." onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
-                <li title="Toggle if shadows should be drawn under moving objects for a 'lift off the paper' effect." onclick="Actions.toggleShadows()">Toggle shadows</li>
-                <li title="Toggle if edges should be curved or drawn using straight lines (for better performance)." onclick="Actions.toggleCurves()">Toggle curves</li>
                 <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
                 <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
@@ -6211,7 +6183,7 @@
         <div id="controls">
             <div id="playpause">Pause</div>
             <div id="zoomin">Zoom+</div>
-            <div id="zoomout">Zoom-</div>
+            <div id="zoomout">Zoom–</div>
             <div id="redo">Redo</div>
             <div id="undo">Undo</div>
         </div>
