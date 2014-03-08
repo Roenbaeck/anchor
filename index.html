@@ -1392,12 +1392,17 @@
                 this.nodes.sort(function(a, b) {
                     if (a.type === NodeType.EDGE)
                         return -1;
-                    if (a instanceof Knot && !(b instanceof Edge))
+                    if (a.type === NodeType.KNOT &&
+                            !(b.type === NodeType.EDGE))
                         return -1;
-                    if (a instanceof Anchor && !(b instanceof Edge) && !(b instanceof Knot))
+                    if (a.type === NodeType.ANCHOR &&
+                            !(b.type === NodeType.EDGE) &&
+                            !(b.type === NodeType.KNOT))
                         return -1;
-                    if (a instanceof Attribute && !(b instanceof Anchor) && !(b instanceof Edge) &&
-                            !(b instanceof Knot))
+                    if (a.type === NodeType.ATTRIBUTE &&
+                            !(b.type === NodeType.ANCHOR) &&
+                            !(b.type === NodeType.EDGE) &&
+                            !(b.type === NodeType.KNOT))
                         return -1;
                     return 1;
                 });
@@ -1420,10 +1425,10 @@
                 }
             },
             removeNode: function(node) {
-                if(node instanceof Knot) {
+                if(node.type === NodeType.KNOT) {
                     var edge = node.edges[0];
                     var otherNode = edge.node === this ? edge.otherNode : edge.node;
-                    if(otherNode instanceof Attribute)
+                    if(otherNode.type === NodeType.ATTRIBUTE)
                         otherNode.setKnotted(false);
                 }
                 UniqueColor.releaseUniqueColor(node.shadowColor);
@@ -1584,19 +1589,21 @@
                 DrawingEngine.stop();
                 var i, j, node, otherNode, edge, affectedNodes = [], affectedEdges = [];
                 for(i = 0; node = nodes[i]; i++) {
-                    if(node instanceof Edge && affectedEdges.indexOf(node) < 0)
+                    if(node.type === NodeType.EDGE && affectedEdges.indexOf(node) < 0)
                         affectedEdges.push(node);
-                    else if (node instanceof Anchor && affectedNodes.indexOf(node) < 0) {
+                    else if (node.type === NodeType.ANCHOR && affectedNodes.indexOf(node) < 0) {
                         affectedNodes.push(node);
                         for(j = 0; edge = node.edges[j]; j++) {
                             if(affectedEdges.indexOf(edge) < 0)
                                 affectedEdges.push(edge);
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
-                            if(otherNode instanceof Attribute && affectedNodes.indexOf(otherNode) < 0)
+                            if(otherNode.type === NodeType.ATTRIBUTE && affectedNodes.indexOf(otherNode) < 0)
                                 affectedNodes.push(otherNode);
                         }
                     }
-                    else if ((node instanceof Tie || node instanceof Attribute || node instanceof Knot) &&
+                    else if ((node.type === NodeType.TIE ||
+                            node.type === NodeType.ATTRIBUTE ||
+                            node.type === NodeType.KNOT) &&
                             affectedNodes.indexOf(node) < 0) {
                         affectedNodes.push(node);
                         for(j = 0; edge = node.edges[j]; j++) {
@@ -1607,12 +1614,12 @@
                 }
                 // check for ties in violation
                 for(i = 0; node = this.nodes[i]; i++) {
-                    if(node instanceof Tie) {
+                    if(node.type === NodeType.TIE) {
                         var anchors = 0;
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             if(affectedNodes.indexOf(otherNode) < 0 && affectedEdges.indexOf(edge) < 0)
-                                if(otherNode instanceof Anchor)
+                                if(otherNode.type === NodeType.ANCHOR)
                                     anchors++;
                         }
                         if(anchors < 2 && affectedNodes.indexOf(node) < 0) {
@@ -1626,7 +1633,7 @@
                 }
                 // check for dangling knots
                 for(i = 0; node = this.nodes[i]; i++) {
-                    if(node instanceof Knot) {
+                    if(node.type === NodeType.KNOT) {
                         var dangling = true;
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
@@ -1657,13 +1664,13 @@
             connect: function(nodes) {
                 var anchor, attribute, tie, knot;
                 for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i] instanceof Anchor)
+                    if(nodes[i].type === NodeType.ANCHOR)
                         anchor = nodes[i];
-                    else if(nodes[i] instanceof Attribute)
+                    else if(nodes[i].type === NodeType.ATTRIBUTE)
                         attribute = nodes[i];
-                    else if(nodes[i] instanceof Tie)
+                    else if(nodes[i].type === NodeType.TIE)
                         tie = nodes[i];
-                    else if(nodes[i] instanceof Knot)
+                    else if(nodes[i].type === NodeType.KNOT)
                         knot = nodes[i];
                 }
                 if(anchor && tie) {
@@ -1685,7 +1692,7 @@
                     var knot, edge;
                     if(nodes[i].getKnotted()) {
                         for(var j = 0; edge = nodes[i].edges[j]; j++) {
-                            if(edge.otherNode instanceof Knot) {
+                            if(edge.otherNode.type === NodeType.KNOT) {
                                 if(edge.otherNode.edges.length === 1) {
                                     if(!confirm("This will also delete the knot: " + edge.otherNode +
                                             ".\nDo you still want to un-knot the attribute?"))
@@ -1716,7 +1723,7 @@
             toggleHistorized: function(nodes) {
                 for(var i = 0; i < nodes.length; i++) {
                     nodes[i].setHistorized(!nodes[i].getHistorized());
-                    if(nodes[i] instanceof Tie)
+                    if(nodes[i].type === NodeType.TIE)
                         nodes[i].checkIdentifiers();
                 }
                 this.recordState();
@@ -1725,11 +1732,11 @@
             toggleIdentifier: function(nodes) {
                 var ties = [];
                 for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i] instanceof Edge) {
+                    if(nodes[i].type === NodeType.EDGE) {
                         nodes[i].identifier = !nodes[i].identifier;
-                        if(nodes[i].node instanceof Tie && ties.indexOf(nodes[i].node) < 0)
+                        if(nodes[i].node.type === NodeType.TIE && ties.indexOf(nodes[i].node) < 0)
                             ties.push(nodes[i].node);
-                        if(nodes[i].otherNode instanceof Tie && ties.indexOf(nodes[i].otherNode) < 0)
+                        if(nodes[i].otherNode.type === NodeType.TIE && ties.indexOf(nodes[i].otherNode) < 0)
                             ties.push(nodes[i].otherNode);
                     }
                 }
@@ -1741,9 +1748,9 @@
             makeFirstRole: function(nodes) {
                 var tie;
                 for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i] instanceof Edge) {
-                        if(tie = nodes[i].node instanceof Tie ? nodes[i].node :
-                                nodes[i].otherNode instanceof Tie ? nodes[i].otherNode : null) {
+                    if(nodes[i].type === NodeType.EDGE) {
+                        if(tie = nodes[i].node.type === NodeType.TIE ? nodes[i].node :
+                                nodes[i].otherNode.type === NodeType.TIE ? nodes[i].otherNode : null) {
                             tie.setFirstRole(nodes[i]);
                         }
                     }
@@ -1845,15 +1852,15 @@
             explode: function(nodes, startEngine) {
                 var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
-                    if(node instanceof Anchor) {
+                    if(node.type === NodeType.ANCHOR) {
                         if(node.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode instanceof Attribute) {
+                                if(otherNode.type === NodeType.ATTRIBUTE) {
                                     if(otherNode.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
-                                            if(knot instanceof Knot) {
+                                            if(knot.type === NodeType.KNOT) {
                                                 break;
                                             }
                                         }
@@ -1880,11 +1887,11 @@
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode instanceof Attribute) {
+                                if(otherNode.type === NodeType.ATTRIBUTE) {
                                     if(otherNode.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
-                                            if(knot instanceof Knot) {
+                                            if(knot.type === NodeType.KNOT) {
                                                 break;
                                             }
                                         }
@@ -1906,11 +1913,11 @@
                         }
                         node.setImploded(!node.imploded);
                     }
-                    else if(node instanceof Tie) {
+                    else if(node.type === NodeType.TIE) {
                         if(node.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode instanceof Knot) {
+                                if(otherNode.type === NodeType.KNOT) {
                                     if(!otherNode.visible) {
                                         otherNode.xPosition = node.xPosition + j + 1;
                                         otherNode.yPosition = node.yPosition + j + 1;
@@ -1926,7 +1933,7 @@
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode instanceof Knot) {
+                                if(otherNode.type === NodeType.KNOT) {
                                     edge.visible = false;
                                     visibleEdges = 0;
                                     for(k = 0; knotEdge = otherNode.edges[k]; k++)
@@ -3181,7 +3188,7 @@
                 // first find the anchor
                 for(i = 0; edge = this.edges[i]; i++) {
                     otherNode = (edge.node === this ? edge.otherNode : edge.node);
-                    if(otherNode instanceof Anchor) {
+                    if(otherNode.type === NodeType.ANCHOR) {
                         anchor = otherNode;
                         break;
                     }
@@ -3189,7 +3196,7 @@
                 // then check mnemonic uniqueness
                 for(i = 0; edge = anchor.edges[i]; i++) {
                     otherNode = (edge.node === anchor ? edge.otherNode : edge.node);
-                    if(otherNode instanceof Attribute && otherNode !== this && otherNode.mnemonic === this.mnemonic) {
+                    if(otherNode.type === NodeType.ATTRIBUTE && otherNode !== this && otherNode.mnemonic === this.mnemonic) {
                         return !confirm("The mnemonic '" + this.mnemonic +
                                 "' is not unique among other attributes on the '" + anchor +
                                 "' anchor. Please change to a different mnemonic in order to continue.");
@@ -3302,11 +3309,11 @@
                 attribute.positGenerator = generator;
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i] instanceof Anchor)
+                    if(Model.nodes[i].type === NodeType.ANCHOR)
                         anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var knotLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i] instanceof Knot)
+                    if(Model.nodes[i].type === NodeType.KNOT)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 Model.addEdge(new Edge(attribute, anchor, true));
@@ -3336,7 +3343,7 @@
                 if(this.knotted) {
                     var knot, edge;
                     for(var i = 0; edge = this.edges[i]; i++)
-                        if(edge.otherNode instanceof Knot)
+                        if(edge.otherNode.type === NodeType.KNOT)
                             knot = edge.otherNode;
                     attribute.setAttribute("knotRange", this.isEmpty(knot.mnemonic) ? '' : knot.mnemonic);
                 }
@@ -3386,7 +3393,7 @@
             toString: function() {
                 var anchor, edge;
                 for(var i = 0; edge = this.edges[i]; i++)
-                    if(edge.otherNode instanceof Anchor)
+                    if(edge.otherNode.type === NodeType.ANCHOR)
                         anchor = edge.otherNode;
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
@@ -3524,7 +3531,7 @@
                 var i, node, anchor, anchors = [];
                 // first find the anchors
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node instanceof Anchor) {
+                    if(node.type === NodeType.ANCHOR) {
                         anchors.push(node);
                     }
                 }
@@ -3602,7 +3609,7 @@
 
                 var edge;
                 for(var i = 0; edge = this.edges[i]; i++)
-                    if(edge.node instanceof Attribute)
+                    if(edge.node.type === NodeType.ATTRIBUTE)
                         edge.node.addXML(anchor, schema);
                 this.addLayoutXML(anchor, schema);
                 this.addDescriptionXML(anchor, schema, this.description);
@@ -3693,7 +3700,7 @@
                 var i, node, knot, knots = [];
                 // first find the knots
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node instanceof Knot) {
+                    if(node.type === NodeType.KNOT) {
                         knots.push(node);
                     }
                 }
@@ -3923,7 +3930,7 @@
                 }
                 // then find all other ties of the same cardinality
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node instanceof Tie && node !== this && node.edges.length === this.edges.length) {
+                    if(node.type === NodeType.TIE && node !== this && node.edges.length === this.edges.length) {
                         identical = true;
                         for(j = 0; edge = node.edges[j]; j++) {
                             role = edge.role + "_" + (edge.node === node ? edge.otherNode : edge.node);
@@ -4020,11 +4027,11 @@
                 tie.description = description ? description.firstChild.nodeValue : '';
                 var anchorLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i] instanceof Anchor)
+                    if(Model.nodes[i].type === NodeType.ANCHOR)
                         anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var knotLookup = {};
                 for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i] instanceof Knot)
+                    if(Model.nodes[i].type === NodeType.KNOT)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
                 var grandparent = element.parentNode.parentNode;
                 var j, d, type, edge, role, identifier, coloring, anchor;
@@ -4085,9 +4092,9 @@
                 for(var i = 0; i < this.edges.length; i++) {
                     var role;
                     var node = this.edges[i].otherNode;
-                    if(this.edges[i].otherNode instanceof Anchor)
+                    if(this.edges[i].otherNode.type === NodeType.ANCHOR)
                         role = schema.createElement("anchorRole");
-                    else if(this.edges[i].otherNode instanceof Knot)
+                    else if(this.edges[i].otherNode.type === NodeType.KNOT)
                         role = schema.createElement("knotRole");
                     role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!role" + UniqueIdentity.nextId() + "!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
@@ -4304,7 +4311,7 @@
                 return Edge.charge;
             },
             isInteractive: function() {
-                return this.node instanceof Tie || this.otherNode instanceof Tie;
+                return this.node.type === NodeType.TIE || this.otherNode.type === NodeType.TIE;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -4321,9 +4328,9 @@
                 else
                     name = this.toString();
                 var tie;
-                if(this.node instanceof Tie)
+                if(this.node.type === NodeType.TIE)
                     tie = this.node;
-                else if(this.otherNode instanceof Tie)
+                else if(this.otherNode.type === NodeType.TIE)
                     tie = this.otherNode;
                 if(tie && tie.imploded)
                     return null;
@@ -4344,9 +4351,9 @@
                         ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
                 group.appendChild(path);
                 var tie;
-                if(this.node instanceof Tie)
+                if(this.node.type === NodeType.TIE)
                     tie = this.node;
-                else if(this.otherNode instanceof Tie)
+                else if(this.otherNode.type === NodeType.TIE)
                     tie = this.otherNode;
                 if(tie && !tie.imploded) {
                     var     cardinality,
@@ -4424,9 +4431,9 @@
                 }
                 // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
                 var tie;
-                if(this.node instanceof Tie)
+                if(this.node.type === NodeType.TIE)
                     tie = this.node;
-                else if(this.otherNode instanceof Tie)
+                else if(this.otherNode.type === NodeType.TIE)
                     tie = this.otherNode;
                 if(detailLevel === 0 && tie && !tie.imploded) {
                     var     cardinality,
@@ -4500,7 +4507,7 @@
                 }
             },
             drawShadow: function(context) {
-                if(this.node instanceof Tie || this.otherNode instanceof Tie) {
+                if(this.node.type === NodeType.TIE || this.otherNode.type === NodeType.TIE) {
                     context.beginPath();
                     context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
                     context.fillStyle = this.shadowColor;
@@ -4975,13 +4982,13 @@
                             return false;
                         var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
                         for(var i = 0; node = allNodes[i]; i++) {
-                            if(node instanceof Anchor)
+                            if(node.type === NodeType.ANCHOR)
                                 anchors++;
-                            else if(node instanceof Tie)
+                            else if(node.type === NodeType.TIE)
                                 ties++;
-                            else if(node instanceof Knot)
+                            else if(node.type === NodeType.KNOT)
                                 knots++;
-                            else if(node instanceof Attribute) {
+                            else if(node.type === NodeType.ATTRIBUTE) {
                                 attributes++;
                                 knotted = node.getKnotted();
                             }
@@ -5275,7 +5282,7 @@
                     }
                 );
                 for(var i = 0; node = nodes[i]; i++) {
-                    if(node.toString() && !(node instanceof Edge)) {
+                    if(node.toString() && !(node.type === NodeType.EDGE)) {
                         var fullName = node.encapsulation + '.' + node.toString();
                         if(node.incomplete)
                             fullName = "* " + fullName;
@@ -5301,7 +5308,7 @@
                 var edge, otherNode;
                 for(var i = 0; edge = node.edges[i]; i++) {
                     otherNode = edge.node === node ? edge.otherNode : edge.node;
-                    if((otherNode instanceof Anchor || otherNode instanceof Tie) && otherNode.imploded) {
+                    if((otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.TIE) && otherNode.imploded) {
                         Model.explode([otherNode]);
                         break;
                     }
@@ -5312,14 +5319,14 @@
                     var i, edge, otherNode, node = Model.getNodeFromShadow(shadowColor);
                     // find the closest imploded node and explode it
                     if(!node.visible) {
-                        if(node instanceof Attribute)
+                        if(node.type === NodeType.ATTRIBUTE)
                             this.findNodeToExplode(node);
-                        else if(node instanceof Knot) {
+                        else if(node.type === NodeType.KNOT) {
                             this.findNodeToExplode(node);
                             if(!node.visible) {
                                 for(i = 0; edge = node.edges[i]; i++) {
                                     otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                    if(otherNode instanceof Attribute) {
+                                    if(otherNode.type === NodeType.ATTRIBUTE) {
                                         this.findNodeToExplode(otherNode);
                                         break;
                                     }
@@ -5664,7 +5671,7 @@
             implodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node instanceof Anchor || node instanceof Tie) && !node.imploded)
+                    if((node.type === NodeType.ANCHOR || node.type === NodeType.TIE) && !node.imploded)
                         allNodes.push(node);
                 }
                 CanvasEventHandler.clearSelection();
@@ -5673,7 +5680,7 @@
             explodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node instanceof Anchor || node instanceof Tie) && node.imploded)
+                    if((node.type === NodeType.ANCHOR || node.type === NodeType.TIE) && node.imploded)
                         allNodes.push(node);
                 }
                 Model.explode(allNodes);
