@@ -1859,8 +1859,6 @@
                 this.xyScale = 1 * storage.getItem("xyScale") || 1;
                 this.xTranslation = 1 * storage.getItem("xTranslation") || 0;
                 this.yTranslation = 1 * storage.getItem("yTranslation") || 0;
-                ResizeHandler.resizeCanvas(this.canvas, this.context);
-                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
                 this.invalidateMiniature();
                 this.refreshViewportCoordinates();
             },
@@ -1869,8 +1867,6 @@
                 this.xTranslation = 0;
                 this.yTranslation = 0;
                 this.miniScale = 0.2;
-                ResizeHandler.resizeCanvas(this.canvas, this.context);
-                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
                 this.invalidateMiniature();
                 this.refreshViewportCoordinates();
             },
@@ -2119,19 +2115,6 @@
                 this.context.stroke();
             }
         };
-
-        var ResizeHandler = {
-            resizeCanvas: function(canvas, context) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                // apparently changing the canvas width or height resets the transform
-                context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale,
-                        DrawingEngine.xTranslation, DrawingEngine.yTranslation);
-                DrawingEngine.refreshViewportCoordinates();
-                DrawingEngine.start(false);
-            }
-        };
-
 
         var CanvasEventHandler = {
             dragging: false,
@@ -2990,6 +2973,56 @@
                     SVG.removeEventListener('mouseup', EventHandler.completeDragging, false);
                     SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
+                }
+                event.stopPropagation();
+            },
+            preparePanning: function(event) {
+                event.preventDefault();
+                if(event.shiftKey) {
+                    // we are shift clicking the canvas background
+                    EventHandler.clearInteraction();
+                    EventHandler.clearSelection();
+                }
+                else if(!EventHandler.hasOngoingInteractions()) {
+                    EventHandler.setInteraction("preparePanning");
+                    var screenWidth = SVG.width.baseVal.value;
+                    var screenHeight = SVG.height.baseVal.value;
+                    var viewBoxWidth = SVG.viewBox.baseVal.width || screenWidth;
+                    var viewBoxHeight = SVG.viewBox.baseVal.height || screenHeight;
+                    SVG.viewBox.baseVal.width = viewBoxWidth;
+                    SVG.viewBox.baseVal.height = viewBoxHeight;
+                    EventHandler.scaleX = viewBoxWidth / screenWidth;
+                    EventHandler.scaleY = viewBoxHeight / screenHeight;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                    SVG.addEventListener('mousemove', EventHandler.whilePanning, false);
+                    SVG.addEventListener('mouseup', EventHandler.completePanning, false);
+                }
+                event.stopPropagation();
+            },
+            lastX: null,
+            lastY: null,
+            scaleX: null,
+            scaleY: null,
+            whilePanning: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whilePanning" ||
+                   EventHandler.getInteraction() === "preparePanning") {
+                    EventHandler.setInteraction("whilePanning");
+                    SVG.viewBox.baseVal.x -= (event.clientX - EventHandler.lastX) * EventHandler.scaleX;
+                    SVG.viewBox.baseVal.y -= (event.clientY - EventHandler.lastY) * EventHandler.scaleY;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                }
+                event.stopPropagation();
+            },
+            completePanning: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whilePanning") {
+                    EventHandler.setInteraction("completePanning");
+                    EventHandler.clearInteraction();
+                    SVG.removeEventListener('mousemove', EventHandler.whilePanning, false);
+                    SVG.removeEventListener('mouseup', EventHandler.completePanning, false);
                 }
                 event.stopPropagation();
             },
@@ -5936,6 +5969,8 @@
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
+            SVG.addEventListener('DOMMouseScroll', EventHandler.zoom, false); // Firefox
+            SVG.addEventListener('mousedown', EventHandler.preparePanning, false); // Safari and Chrome
 
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
@@ -5944,19 +5979,10 @@
             context = canvas.getContext('2d');
 
             // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(canvas, context);
-            window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(canvas, context)
-            }, false);
 
             shadowCanvas = document.getElementById('shadow');
             shadowContext = shadowCanvas.getContext('2d');
 
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
-            window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(shadowCanvas, shadowContext)
-            }, false);
 
             miniatureCanvas = document.getElementById('miniature');
             miniatureContext = null; // miniatureCanvas.getContext('2d');
