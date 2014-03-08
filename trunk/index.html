@@ -739,6 +739,14 @@
             temporalization: 'uni'
         };
 
+        var NodeType = {
+            ANCHOR: 1,
+            ATTRIBUTE: 2,
+            TIE: 3,
+            KNOT: 4,
+            EDGE: 5
+        };
+
         // create a singleton
         var LayoutEngine = {
             // normal distance in pixels
@@ -880,7 +888,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, edge, curvature;
+                var i, j, k, node, otherNode, edge, curvature;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
 
@@ -889,13 +897,17 @@
                 this.fuzzing = (this.fuzzing + 1) % 3;
                 var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
                 size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
-                for(i = 0; node = model.visibleNodes[i]; i++) {
+                i = model.visibleNodes.length;
+                while(i--) {
+                    node = model.visibleNodes[i];
                     // count the number of stopped nodes
                     if(!node.moving || node.getFixed())
                         numberOfStoppedNodes++;
                     xPosition = Math.floor(node.xPosition / size);
                     yPosition = Math.floor(node.yPosition / size);
-                    key = xPosition.toString() + '|' + yPosition.toString();
+                    key = xPosition.toString();
+                    key += '|';
+                    key += yPosition.toString();
                     if(!this.partitions[key]) {
                          partition = {
                             nodes: [node],
@@ -930,10 +942,15 @@
                         partition.nodes.push(node);
                     }
                 }
+                var keys = Object.keys(this.partitions);
+                k = keys.length;
                 // calculate the velocity of the partitions
-                for(key in this.partitions) {
+                while(k--) {
+                    key = keys[k];
                     partition = this.partitions[key];
-                    for(otherKey in this.partitions) {
+                    j = keys.length;
+                    while(j--) {
+                        otherKey = keys[j];
                         if(key !== otherKey) {
                             otherPartition = this.partitions[otherKey];
                             partition.xVelocity +=
@@ -945,21 +962,27 @@
                         }
                     }
                 }
-                for(key in this.partitions) {
+                k = keys.length;
+                while(k--) {
+                    key = keys[k];
                     partition = this.partitions[key];
-                    for(i = 0; node = partition.nodes[i]; i++) {
+                    i = partition.nodes.length;
+                    while(i--) {
+                        node = partition.nodes[i];
                         // add the long range effect from other partitions, somewhat weakened
                         node.xVelocity += this.longRangeEffect * partition.xVelocity;
                         node.yVelocity += this.longRangeEffect * partition.yVelocity;
-                        for(j = 0; otherNode = partition.nodes[j]; j++) {
+                        j = partition.nodes.length;
+                        while(j--) {
                             if(i !== j) {
+                                otherNode = partition.nodes[j];
                                 // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xSimpleRepelling(node, otherNode);
                                 node.yVelocity += this.ySimpleRepelling(node, otherNode);
                             }
                         }
                         // bending force (straightens out edges)
-                        if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
+                        if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
                             // update the control and center points
                             node.controlPoint.xPosition = 2 * node.xPosition -
                                     node.node.xPosition / 2 - node.otherNode.xPosition / 2;
@@ -977,8 +1000,10 @@
                             node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
                             node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
+                        j = node.edges.length;
                         // for all edges, add the attracting velocity
-                        for(j = 0; edge = node.edges[j]; j++) {
+                        while(j--) {
+                            edge = node.edges[j];
                             if(edge.visible) {
                                 node.xVelocity += this.xSimpleAttracting(node, edge) / node.edges.length;
                                 node.yVelocity += this.ySimpleAttracting(node, edge) / node.edges.length;
@@ -1019,7 +1044,7 @@
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
-                var i, j, node, otherNode, edge, curvature;
+                var i, j, k, node, otherNode, edge, curvature;
                 var numberOfNodes = model.visibleNodes.length;
                 var numberOfStoppedNodes = 0;
 
@@ -1028,13 +1053,17 @@
                 this.fuzzing = (this.fuzzing + 1) % 3;
                 var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
                 size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
-                for(i = 0; node = model.visibleNodes[i]; i++) {
+                i = model.visibleNodes.length;
+                while(i--) {
+                    node = model.visibleNodes[i];
                     // count the number of stopped nodes
                     if(!node.moving || node.getFixed())
                         numberOfStoppedNodes++;
                     xPosition = Math.floor(node.xPosition / size);
                     yPosition = Math.floor(node.yPosition / size);
-                    key = xPosition.toString() + '|' + yPosition.toString();
+                    key = xPosition.toString();
+                    key += '|';
+                    key += yPosition.toString();
                     if(!this.partitions[key]) {
                         partition = {
                             nodes: [node],
@@ -1079,10 +1108,15 @@
                         partition.nodes.push(node);
                     }
                 }
+                var keys = Object.keys(this.partitions);
+                k = keys.length;
                 // calculate the velocity of the partitions
-                for(key in this.partitions) {
+                while(k--) {
+                    key = keys[k];
                     partition = this.partitions[key];
-                    for(otherKey in this.partitions) {
+                    j = keys.length;
+                    while(j--) {
+                        otherKey = keys[j];
                         if(key !== otherKey) {
                             otherPartition = this.partitions[otherKey];
                             partition.xVelocity +=
@@ -1094,21 +1128,27 @@
                         }
                     }
                 }
-                for(key in this.partitions) {
+                k = keys.length;
+                while(k--) {
+                    key = keys[k];
                     partition = this.partitions[key];
-                    for(i = 0; node = partition.nodes[i]; i++) {
+                    i = partition.nodes.length;
+                    while(i--) {
+                        node = partition.nodes[i];
                         // add the long range effect from other partitions, somewhat weakened
                         node.xVelocity += this.longRangeEffect * partition.xVelocity;
                         node.yVelocity += this.longRangeEffect * partition.yVelocity;
-                        for(j = 0; otherNode = partition.nodes[j]; j++) {
+                        j = partition.nodes.length;
+                        while(j--) {
                             if(i !== j) {
+                                otherNode = partition.nodes[j];
                                 // for nodes in the same partition add the repelling velocity
                                 node.xVelocity += this.xComplexRepelling(node, otherNode);
                                 node.yVelocity += this.yComplexRepelling(node, otherNode);
                             }
                         }
                         // bending force (straightens out edges)
-                        if(node instanceof Edge && node.otherNode.visible && node.node.visible) {
+                        if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
                             // update the control and center points
                             node.controlPoint.xPosition = 2 * node.xPosition -
                                     node.node.xPosition / 2 - node.otherNode.xPosition / 2;
@@ -1126,8 +1166,10 @@
                             node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
                             node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
+                        j = node.edges.length;
                         // for all edges, add the attracting velocity
-                        for(j = 0; edge = node.edges[j]; j++) {
+                        while(j--) {
+                            edge = node.edges[j];
                             if(edge.visible) {
                                 node.xVelocity += this.xComplexAttracting(node, edge) / node.edges.length;
                                 node.yVelocity += this.yComplexAttracting(node, edge) / node.edges.length;
@@ -1348,7 +1390,7 @@
             },
             sort: function() {
                 this.nodes.sort(function(a, b) {
-                    if (a instanceof Edge)
+                    if (a.type === NodeType.EDGE)
                         return -1;
                     if (a instanceof Knot && !(b instanceof Edge))
                         return -1;
@@ -3107,7 +3149,7 @@
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
-            this.type = 'Attribute';
+            this.type = NodeType.ATTRIBUTE;
             this.postCreationInitialization();
         }
         Attribute.prototype = {
@@ -3430,7 +3472,7 @@
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
-            this.type = 'Anchor';
+            this.type = NodeType.ANCHOR;
             this.postCreationInitialization();
         }
         Anchor.prototype = {
@@ -3613,7 +3655,7 @@
             this.editables.push(Editables.checksumEdit);
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
-            this.type = 'Knot';
+            this.type = NodeType.KNOT;
             this.postCreationInitialization();
         }
         Knot.prototype = {
@@ -3801,7 +3843,7 @@
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
-            this.type = 'Tie';
+            this.type = NodeType.TIE;
             this.postCreationInitialization();
         }
         Tie.prototype = {
@@ -4244,7 +4286,7 @@
             this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
-            this.type = 'Edge';
+            this.type = NodeType.EDGE;
             this.postCreationInitialization();
         }
         Edge.prototype = {
