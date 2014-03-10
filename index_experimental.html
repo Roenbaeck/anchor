@@ -101,6 +101,9 @@
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     }
+    #minigraph {
+        display:            block;
+    }
 
     #search {
         position:           absolute;
@@ -935,14 +938,6 @@
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
-                        if(node.yPosition < model.topmostNode.yPosition)
-                            model.topmostNode = node;
-                        else if(node.yPosition > model.bottommostNode.yPosition)
-                            model.bottommostNode = node;
-                        if(node.xPosition < model.leftmostNode.xPosition)
-                            model.leftmostNode = node;
-                        else if(node.xPosition > model.rightmostNode.xPosition)
-                            model.rightmostNode = node;
                     }
                 }
             },
@@ -1078,14 +1073,6 @@
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
-                        if(node.yPosition < model.topmostNode.yPosition)
-                            model.topmostNode = node;
-                        else if(node.yPosition > model.bottommostNode.yPosition)
-                            model.bottommostNode = node;
-                        if(node.xPosition < model.leftmostNode.xPosition)
-                            model.leftmostNode = node;
-                        else if(node.xPosition > model.rightmostNode.xPosition)
-                            model.rightmostNode = node;
                     }
                 }
             }
@@ -1183,10 +1170,6 @@
             nodes: [],
             visibleNodes: [],
             shadowToNode: {},
-            topmostNode: null,
-            rightmostNode: null,
-            bottommostNode: null,
-            leftmostNode: null,
             version: -1,
             versions: [],
             uncloud: function() {
@@ -1201,10 +1184,6 @@
             empty: function() {
                 this.nodes = [];
                 this.shadowToNode = {};
-                this.topmostNode = null;
-                this.rightmostNode = null;
-                this.bottommostNode = null;
-                this.leftmostNode = null;
             },
             refresh: function() {
                 // copy visible nodes
@@ -1290,14 +1269,6 @@
                     this.nodes[this.nodes.length] = node;
                     this.sort();
                     this.shadowToNode[node.shadowColor] = node;
-                    if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
-                        this.topmostNode = node;
-                    if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
-                        this.rightmostNode = node;
-                    if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
-                        this.bottommostNode = node;
-                    if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
-                        this.leftmostNode = node;
                     this.invalidateNode(node);
                 }
             },
@@ -1669,6 +1640,7 @@
                 this.recordState();
                 DrawingEngine.start(true);
             },
+            /*
             switchEdgeNodes: function(oldNode, newNode) {
                 if(oldNode == Model.topmostNode)
                     Model.topmostNode = newNode;
@@ -1679,6 +1651,7 @@
                 if(oldNode == Model.rightmostNode)
                     Model.rightmostNode = newNode;
             },
+            */
             explode: function(nodes, startEngine) {
                 var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
@@ -1731,11 +1704,11 @@
                                             if(knotEdge.visible)
                                                 visibleEdges++;
                                         if(visibleEdges == 0) {
-                                            this.switchEdgeNodes(knot, node);
+                                            //this.switchEdgeNodes(knot, node);
                                             knot.visible = false;
                                         }
                                     }
-                                    this.switchEdgeNodes(otherNode, node);
+                                    //this.switchEdgeNodes(otherNode, node);
                                     otherNode.visible = false;
                                     edge.visible = false;
                                 }
@@ -1770,7 +1743,7 @@
                                         if(knotEdge.visible)
                                             visibleEdges++;
                                     if(visibleEdges == 0) {
-                                        this.switchEdgeNodes(otherNode, node);
+                                        // this.switchEdgeNodes(otherNode, node);
                                         otherNode.visible = false;
                                     }
                                 }
@@ -1847,6 +1820,13 @@
                 this.shadowContext = shadowContext;
                 this.miniatureContext = miniatureContext;
                 this.context.font = '10px sans-serif';
+                this.viewport = document.createElementNS(SVGNS, 'rect');
+                this.viewport.setAttributeNS(null, 'id', 'viewport');
+                this.viewport.setAttributeNS(null, 'x', SVG.viewBox.baseVal.x);
+                this.viewport.setAttributeNS(null, 'y', SVG.viewBox.baseVal.y);
+                this.viewport.setAttributeNS(null, 'width', SVG.viewBox.baseVal.width);
+                this.viewport.setAttributeNS(null, 'height', SVG.viewBox.baseVal.height);
+                this.viewport.setAttributeNS(null, 'style', 'stroke: red; stroke-width: 2px; fill: none;');
                 this.initialized = true;
                 this.refreshViewportCoordinates();
             },
@@ -1995,7 +1975,7 @@
 
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                if(this.miniCounter == 1)
+                if(this.miniCounter === 1)
                     this.drawMiniature(Model);
                 var i, node;
                 // draw focus rings around hovered and selected nodes
@@ -2031,88 +2011,45 @@
                     node.drawName(this.context);
                     */
             },
+            viewport: null,
+            screenCircumference: 0,
             drawMiniature: function(model) {
                 var svg = SVG.cloneNode(true);
+                svg.setAttribute("id", "minigraph");
                 var names = svg.getElementById('names');
                 if(names) svg.removeChild(names);
-                svg.setAttribute("id", "minigraph");
-                svg.setAttribute("width", "200px");
-                svg.setAttribute("height", "200px");
+                var viewportLayer = svg.getElementById('viewport');
+                viewportLayer.appendChild(this.viewport);
+                this.viewport.x.baseVal.value = SVG.viewBox.baseVal.x;
+                this.viewport.y.baseVal.value = SVG.viewBox.baseVal.y;
+                this.viewport.width.baseVal.value = SVG.viewBox.baseVal.width || window.innerWidth;
+                this.viewport.height.baseVal.value = SVG.viewBox.baseVal.height || window.innerHeight;
+                var nodeBox = SVG.getElementById('nodes').getBBox();
                 var pad = 50;
-                var boundingBox =
-                        (Model.leftmostNode.xPosition - pad) + " " +
-                        (Model.topmostNode.yPosition - pad) + " " +
-                        (Model.rightmostNode.xPosition + pad) + " " +
-                        (Model.bottommostNode.yPosition + pad);
-                svg.setAttribute("viewBox", boundingBox);
+                var width = nodeBox.width + 2 * pad;
+                var height = nodeBox.height + 2 * pad;
+                var screenCircumference = window.innerWidth + window.innerHeight;
+                var viewportCircumference = width + height;
+                var scale;
+                if(viewportCircumference < screenCircumference/6) {
+                    scale = screenCircumference/6/viewportCircumference;
+                    width *= scale;
+                    height *= scale;
+                }
+                else if(viewportCircumference > screenCircumference/4) {
+                    scale = screenCircumference/4/viewportCircumference;
+                    height *= scale;
+                    width *= scale;
+                }
+                svg.style.width = width + 'px';
+                svg.style.height = height + 'px';
+                svg.viewBox.baseVal.x = nodeBox.x - pad;
+                svg.viewBox.baseVal.y = nodeBox.y - pad;
+                svg.viewBox.baseVal.width = nodeBox.width + 2 * pad;
+                svg.viewBox.baseVal.height = nodeBox.height + 2 * pad;
                 svg.setAttribute("preserveAspectRatio", "none");
                 var miniature = document.getElementById("miniature");
                 miniature.replaceChild(svg, document.getElementById("minigraph"));
-                /*
-                // check current size first and adjust scale accordingly
-                if(!model.rightmostNode) return;
-                do {
-                    this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition +
-                            2 * this.miniPadding;
-                    this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition +
-                            2 * this.miniPadding;
-                    this.miniatureCanvas.width = this.miniScale * this.miniWidth;
-                    this.miniatureCanvas.height = this.miniScale * this.miniHeight;
-                }
-                while(this.resizeMiniature());
-                this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
-                this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
-
-
-                this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
-                this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
-                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale *
-                        (this.miniPadding - model.leftmostNode.xPosition), this.miniScale *
-                        (this.miniPadding - model.topmostNode.yPosition));
-
-                // show the viewport on the miniature
-                this.miniatureContext.strokeStyle = Color.scheme.viewport;
-                this.miniatureContext.lineWidth = 1/this.miniScale;
-                this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
-                */
-            },
-            resizeMiniature: function() {
-                /*
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height <
-                        (window.innerWidth + window.innerHeight) / 6) {
-                    this.miniScale *= 1.05;
-                    return true;
-                }
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height >
-                        (window.innerWidth + window.innerHeight) / 4) {
-                    this.miniScale *= 0.95;
-                    return true;
-                }
-                */
-                return false;
-            },
-            drawHovered: function(x, y) {
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = Color.scheme.outerHovered;
-                this.context.fill();
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance - 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = Color.scheme.innerHovered;
-                this.context.fill();
-            },
-            drawSelected: function(x, y, isHovered) {
-                if(!isHovered) {
-                    this.context.beginPath();
-                    this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                    this.context.fillStyle = Color.scheme.outerSelected;
-                    this.context.fill();
-                }
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.strokeStyle = Color.scheme.innerSelected;
-                this.context.lineWidth = 1.0;
-                this.context.stroke();
             }
         };
 
@@ -3014,6 +2951,8 @@
                     EventHandler.lastX = event.clientX;
                     EventHandler.lastY = event.clientY;
                 }
+                DrawingEngine.invalidateMiniature();
+                DrawingEngine.start(false);
                 event.stopPropagation();
             },
             completePanning: function(event) {
@@ -3039,6 +2978,8 @@
                 SVG.viewBox.baseVal.height = height * zoom;
                 SVG.viewBox.baseVal.x = x + (1 - zoom) * (svgPoint.x - x);
                 SVG.viewBox.baseVal.y = y + (1 - zoom) * (svgPoint.y - y);
+                DrawingEngine.invalidateMiniature();
+                DrawingEngine.start(false);
                 event.stopPropagation();
             },
             screenToSVG: function(x, y) {
@@ -5964,6 +5905,7 @@
             Layer.addLayer('edges');
             Layer.addLayer('nodes');
             Layer.addLayer('names');
+            Layer.addLayer('viewport');
             Layer.hide('names');
 
 
