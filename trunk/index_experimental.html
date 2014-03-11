@@ -2047,7 +2047,7 @@
                 svg.viewBox.baseVal.y = nodeBox.y - pad;
                 svg.viewBox.baseVal.width = nodeBox.width + 2 * pad;
                 svg.viewBox.baseVal.height = nodeBox.height + 2 * pad;
-                svg.setAttribute("preserveAspectRatio", "none");
+                svg.setAttribute("preserveAspectRatio", "xMinYMin slice");
                 var miniature = document.getElementById("miniature");
                 miniature.replaceChild(svg, document.getElementById("minigraph"));
             }
@@ -4867,7 +4867,7 @@
                         (Model.rightmostNode.xPosition + pad) + " " +
                         (Model.bottommostNode.yPosition + pad);
                 graph.setAttribute("viewBox", boundingBox);
-                graph.setAttribute("preserveAspectRatio", "none");
+                graph.setAttribute("preserveAspectRatio", "xMinYMin slice");
                 var svg = (new XMLSerializer()).serializeToString(graph);
                 img.style.width = '200px';
                 img.style.heigth = '200px';
@@ -6238,7 +6238,7 @@
     </canvas>
     -->
 
-    <!-- shows a navigatable miniature of the model, the Anchor.svg is just a placeholder -->
+    <!-- shows a navigatable miniature of the model -->
     <div id="miniature">
         <svg id="minigraph"
              class="unselectable"
@@ -6247,6 +6247,7 @@
              xmlns:xlink="http://www.w3.org/1999/xlink"
              width="200"
              height="200"/>
+        <!-- unfortunately using a "use" element here pointing to the original graph slows everything to a crawl -->
     </div>
 
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
