@@ -660,6 +660,8 @@
         var XLINKNS = "http://www.w3.org/1999/xlink";
         // the svg root and graph elements
         var SVG;
+        // the navigation miniature
+        var NAV;
 
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
@@ -1978,53 +1980,30 @@
                 if(this.miniCounter === 1)
                     this.drawMiniature(Model);
                 var i, node;
-                // draw focus rings around hovered and selected nodes
-                /*
-                if(node = CanvasEventHandler.hoveredNode)
-                    this.drawHovered(node.xPosition, node.yPosition);
-
-                for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++)
-                    this.drawSelected(node.xPosition, node.yPosition, node == CanvasEventHandler.hoveredNode);
-
-                // cast all shadows first
-                if(this.drawShadows)
-                    for(i = 0; node = Model.visibleNodes[i]; i++)
-                        node.drawMoving(this.context);
-                */
-                // draw all nodes and edges on the visible context
-                for(i = 0; node = Model.visibleNodes[i]; i++) {
-                    if(node.imploded) {
-                        Color.useScheme(Color.imploded);
-                        node.draw(this.context, 2);
-                    }
-                    else {
-                        Color.useScheme(Color.normal);
-                        node.draw(this.context, 0);
-                    }
-                    //if(this.miniCounter == 1)
-                      //  node.draw(this.miniatureContext, 1);
-                }
-                    for(i = 0; node = Model.visibleNodes[i]; i++)
+                i = Model.visibleNodes.length;
+                while(i--) {
+                    node = Model.visibleNodes[i];
+                    node.draw(this.context, 0);
+                    if(this.showNames)
                         node.drawName(this.context);
-                /*
-                else if (node = CanvasEventHandler.hoveredNode)
-                    node.drawName(this.context);
-                    */
+                }
             },
             viewport: null,
             screenCircumference: 0,
             drawMiniature: function(model) {
+                /*
                 var svg = SVG.cloneNode(true);
                 svg.setAttribute("id", "minigraph");
                 var names = svg.getElementById('names');
                 if(names) svg.removeChild(names);
-                var viewportLayer = svg.getElementById('viewport');
-                viewportLayer.appendChild(this.viewport);
+                */
+                if(!NAVLayer.viewport.contains(this.viewport))
+                    NAVLayer.viewport.appendChild(this.viewport);
                 this.viewport.x.baseVal.value = SVG.viewBox.baseVal.x;
                 this.viewport.y.baseVal.value = SVG.viewBox.baseVal.y;
                 this.viewport.width.baseVal.value = SVG.viewBox.baseVal.width || window.innerWidth;
                 this.viewport.height.baseVal.value = SVG.viewBox.baseVal.height || window.innerHeight;
-                var nodeBox = SVG.getElementById('nodes').getBBox();
+                var nodeBox = NAV.getElementById('nodes').getBBox();
                 var pad = 50;
                 var width = nodeBox.width + 2 * pad;
                 var height = nodeBox.height + 2 * pad;
@@ -2041,15 +2020,12 @@
                     height *= scale;
                     width *= scale;
                 }
-                svg.style.width = width + 'px';
-                svg.style.height = height + 'px';
-                svg.viewBox.baseVal.x = nodeBox.x - pad;
-                svg.viewBox.baseVal.y = nodeBox.y - pad;
-                svg.viewBox.baseVal.width = nodeBox.width + 2 * pad;
-                svg.viewBox.baseVal.height = nodeBox.height + 2 * pad;
-                svg.setAttribute("preserveAspectRatio", "xMinYMin slice");
-                var miniature = document.getElementById("miniature");
-                miniature.replaceChild(svg, document.getElementById("minigraph"));
+                NAV.style.width = width + 'px';
+                NAV.style.height = height + 'px';
+                NAV.viewBox.baseVal.x = nodeBox.x - pad;
+                NAV.viewBox.baseVal.y = nodeBox.y - pad;
+                NAV.viewBox.baseVal.width = nodeBox.width + 2 * pad;
+                NAV.viewBox.baseVal.height = nodeBox.height + 2 * pad;
             }
         };
 
@@ -2559,6 +2535,7 @@
             fixed: false,
             visible: true,
             svg: null,
+            svgBox: null,
             svgControl: null,
             svgName: null,
             svgNameText: null,
@@ -2566,6 +2543,7 @@
             highlight: null,
             fixation: null,
             hasHighlight: false,
+            lastName: '',
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -2585,9 +2563,18 @@
                     this.svgName.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
                     this.svgNameText = document.createTextNode('I am a placeholder');
                     this.svgName.appendChild(this.svgNameText);
-                    Layer.names.appendChild(this.svgName);
+                    SVGLayer.names.appendChild(this.svgName);
                 }
                 this.nameable = nameable;
+            },
+            updateName: function() {
+                if(this.nameable) {
+                    var name = this.contextualName();
+                    if(name != this.lastName) {
+                        this.lastName = name;
+                        this.svgNameText.nodeValue = name;
+                    }
+                }
             },
             // override to change behavior
             isInteractive: function() {
@@ -2664,26 +2651,28 @@
             },
             drawName: function(context) {
                 if(this.svgName) {
-                    this.svgNameText.nodeValue = this.contextualName();
-                    var i, edge, xAverage = 0;
-                    for(i = 0; edge = this.edges[i]; i++)
-                        xAverage += edge.xPosition;
-                    xAverage /= this.edges.length;
-                    var currentDistance, smallestDistance, yClosest;
-                    for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
-                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
-                                        (currentDistance < smallestDistance))) {
-                            smallestDistance = currentDistance;
-                            yClosest = edge.yPosition;
+                    this.updateName();
+                    var i, edge, xAverage = 0, closestEdge = this.edges[0];
+                    i = this.edges.length;
+                    while(i--) {
+                        xAverage += this.edges[i].xPosition;
+                        if(LayoutEngine.manhattanDistance(this, this.edges[i]) <
+                           LayoutEngine.manhattanDistance(this, closestEdge)) {
+                            closestEdge = this.edges[i];
                         }
                     }
-                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                    var nameXOffset = this.svg.getBBox().width;
-                    var nameWidth = this.svgName.getBBox().width;
-                    if(this.xPosition < xAverage)
-                        nameXOffset = -nameWidth - nameXOffset;
+                    xAverage /= this.edges.length;
+                    var quarter = this.svgBox.height / 4;
+                    var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
+                    var nameXOffset;
+                    if(this.xPosition < xAverage) {
+                        this.svgName.classList.add('end');
+                        nameXOffset = -this.svgBox.width;
+                    }
+                    else {
+                        this.svgName.classList.remove('end');
+                        nameXOffset = this.svgBox.width;
+                    }
                     if(this.incomplete)
                         this.svgName.classList.add('bad');
                     else
@@ -3062,12 +3051,16 @@
             }
         };
 
-        var Layer = {
+        function Layer(graph) {
+            this.graph = graph;
+        }
+        Layer.prototype = {
+            graph: null,
             layers: [],
             addLayer: function(name) {
                 var layer = document.createElementNS(SVGNS, 'g');
                 layer.setAttributeNS(null, 'id', name);
-                SVG.appendChild(layer);
+                this.graph.appendChild(layer);
                 this.layers.push(name);
                 this[name] = layer;
             },
@@ -3075,15 +3068,15 @@
                 var i = this.layers.indexOf(name) + 1;
                 if(i < this.layers.length) {
                     var after = this.layers[i];
-                    SVG.insertBefore(this[name], this[after]);
+                    this.graph.insertBefore(this[name], this[after]);
                 }
                 else {
-                    SVG.appendChild(this[name]);
+                    this.graph.appendChild(this[name]);
                 }
             },
             hide: function(name) {
-                if(SVG.contains(this[name]))
-                    SVG.removeChild(this[name]);
+                if(this.graph.contains(this[name]))
+                    this.graph.removeChild(this[name]);
             }
        }
 
@@ -3115,8 +3108,10 @@
             this.svg.appendChild(this.svgUse);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            Layer.nodes.appendChild(this.svg);
+            SVGLayer.nodes.appendChild(this.svg);
+            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.svgBox = this.svg.getBBox();
             this.setNameable(true);
         }
         Attribute.prototype = {
@@ -3266,6 +3261,7 @@
                     }
                 }
                 attribute.incomplete = attribute.isIncomplete();
+                attribute.updateName();
                 return attribute;
             },
             addXML: function(element, schema) {
@@ -3353,8 +3349,10 @@
             this.svg.appendChild(use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            Layer.nodes.appendChild(this.svg);
+            SVGLayer.nodes.appendChild(this.svg);
+            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.svgBox = this.svg.getBBox();
             this.setNameable(true);
         }
         Anchor.prototype = {
@@ -3366,7 +3364,7 @@
             imploded: false,
             size: 10,
             destroy: function() {
-                Layer.nodes.removeChild(this.svg);
+                SVGLayer.nodes.removeChild(this.svg);
                 this.svg = null;
             },
             setImploded: function(imploded) {
@@ -3468,6 +3466,7 @@
                 anchor.generator = generator;
                 anchor.encapsulation = capsule;
                 anchor.incomplete = anchor.isIncomplete();
+                anchor.updateName();
                 return anchor;
             },
             toXML: function(schema) {
@@ -3521,8 +3520,10 @@
             this.svg.appendChild(use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            Layer.nodes.appendChild(this.svg);
+            SVGLayer.nodes.appendChild(this.svg);
+            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.svgBox = this.svg.getBBox();
             this.setNameable(true);
         }
         Knot.prototype = {
@@ -3616,6 +3617,7 @@
                 knot.generator = generator;
                 knot.encapsulation = capsule;
                 knot.incomplete = knot.isIncomplete();
+                knot.updateName();
                 return knot;
             },
             toXML: function(schema) {
@@ -3665,8 +3667,10 @@
             this.svg.appendChild(this.use);
             this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            Layer.nodes.appendChild(this.svg);
+            SVGLayer.nodes.appendChild(this.svg);
+            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
             this.svgControl = this.svg.transform.baseVal.getItem(0);
+            this.svgBox= this.svg.getBBox();
             this.setNameable(true);
         }
         Tie.prototype = {
@@ -3850,6 +3854,7 @@
                             edge = new Edge(tie, anchor, (identifier == "true"));
                             edge.role = role;
                             Model.addEdge(edge);
+                            edge.updateName();
                             break; // only one should match
                         }
                     }
@@ -3866,11 +3871,13 @@
                             edge = new Edge(tie, knot, (identifier == "true"));
                             edge.role = role;
                             Model.addEdge(edge);
+                            edge.updateName();
                             break; // only one should match
                         }
                     }
                 }
                 tie.incomplete = tie.isIncomplete();
+                tie.updateName();
                 return tie;
             },
             toXML: function(schema) {
@@ -3991,7 +3998,8 @@
                 m: this.path.pathSegList.getItem(0),
                 q: this.path.pathSegList.getItem(1)
             };
-            Layer.edges.appendChild(this.path);
+            SVGLayer.edges.appendChild(this.path);
+            NAVLayer.edges.appendChild(this.path.cloneNode(true));
             if(this.tied) {
                 this.svg = document.createElementNS(SVGNS, 'g');
                 this.svg.component = this;
@@ -4003,8 +4011,9 @@
                 this.svg.appendChild(this.use);
                 this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
                 this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-                Layer.edges.appendChild(this.svg);
+                SVGLayer.edges.appendChild(this.svg);
                 this.svgControl = this.svg.transform.baseVal.getItem(0);
+                this.svgBox = this.svg.getBBox();
                 this.setNameable(true);
             }
         }
@@ -5226,9 +5235,9 @@
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
                 if(DrawingEngine.showNames)
-                    Layer.show('names');
+                    SVGLayer.show('names');
                 else
-                    Layer.hide('names');
+                    SVGLayer.hide('names');
                 DrawingEngine.start(false);
             },
             toggleMnemonics: function () {
@@ -5901,18 +5910,29 @@
 
             // set the global svg and graph variable
             SVG = document.getElementById("graph");
-            // add layers to the SVG
-            Layer.addLayer('edges');
-            Layer.addLayer('nodes');
-            Layer.addLayer('names');
-            Layer.addLayer('viewport');
-            Layer.hide('names');
 
+            // add layers to the SVG
+            SVGLayer = new Layer(SVG);
+            SVGLayer.addLayer('edges');
+            SVGLayer.addLayer('nodes');
+            SVGLayer.addLayer('names');
+            SVGLayer.addLayer('viewport');
+            SVGLayer.hide('names');
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
             SVG.addEventListener('DOMMouseScroll', EventHandler.zoom, false); // Firefox
             SVG.addEventListener('mousedown', EventHandler.preparePanning, false); // Safari and Chrome
+
+            // set up the miniature navigation
+            NAV = document.getElementById("minigraph");
+
+            // add layers to the NAV
+            NAVLayer = new Layer(NAV);
+            NAVLayer.addLayer('edges');
+            NAVLayer.addLayer('nodes');
+            NAVLayer.addLayer('viewport');
+
 
             var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
 
@@ -6065,6 +6085,9 @@
                 }
                 .bad {
                     fill:               #e00;
+                }
+                .end {
+                    text-anchor:        end;
                 }
             </style>
             <g id="knot">
@@ -6245,8 +6268,8 @@
              xmlns="http://www.w3.org/2000/svg"
              version="1.1"
              xmlns:xlink="http://www.w3.org/1999/xlink"
-             width="200"
-             height="200"/>
+             viewBox="0 0 1 1"
+             preserveAspectRatio="xMinYMin slice"/>
         <!-- unfortunately using a "use" element here pointing to the original graph slows everything to a crawl -->
     </div>
 
