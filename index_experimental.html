@@ -2517,6 +2517,7 @@
                 control: null,
                 nameElement: null,
                 nameText: null,
+                nameControl: null,
                 highlightElement: null,
                 fixationElement: null,
                 pathElement: null,
@@ -2576,6 +2577,11 @@
                     this.svg.nameText = document.createTextNode('I am a placeholder');
                     this.svg.nameElement.appendChild(this.svg.nameText);
                     SVGLayer.names.appendChild(this.svg.nameElement);
+                    this.svg.nameControl = {
+                        x: this.svg.nameElement.x.baseVal.getItem(0),
+                        y: this.svg.nameElement.y.baseVal.getItem(0)
+                    };
+
                 }
                 this.nameable = nameable;
             },
@@ -2661,6 +2667,8 @@
                 for(var i = 0; i < this.edges.length; i++)
                     this.edges[i].start();
             },
+            bad: false,
+            end: false,
             drawName: function(context) {
                 if(this.svg.nameElement) {
                     this.updateName();
@@ -2678,18 +2686,32 @@
                     var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
                     var nameXOffset = this.svg.xOffset + this.svg.boundingBox.width / 2;
                     if(this.xPosition < xAverage) {
-                        this.svg.nameElement.classList.add('end');
+                        if(!this.end) {
+                            this.svg.nameElement.classList.add('end');
+                        }
                         nameXOffset = -nameXOffset;
+                        this.end = true;
                     }
                     else {
-                        this.svg.nameElement.classList.remove('end');
+                        if(this.end) {
+                            this.svg.nameElement.classList.remove('end');
+                        }
+                        this.end = false;
                     }
-                    if(this.incomplete)
-                        this.svg.nameElement.classList.add('bad');
-                    else
-                        this.svg.nameElement.classList.remove('bad');
-                    this.svg.nameElement.x.baseVal.getItem(0).value = this.xPosition + nameXOffset;
-                    this.svg.nameElement.y.baseVal.getItem(0).value = this.yPosition + nameYOffset;
+                    if(this.incomplete) {
+                        if(!this.bad) {
+                            this.svg.nameElement.classList.add('bad');
+                        }
+                        this.bad = true;
+                    }
+                    else {
+                        if(this.bad) {
+                            this.svg.nameElement.classList.remove('bad');
+                        }
+                        this.bad = false;
+                    }
+                    this.svg.nameControl.x.value = this.xPosition + nameXOffset;
+                    this.svg.nameControl.y.value = this.yPosition + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -3102,8 +3124,8 @@
                 }
             },
             clearAll: function() {
+                var l = this.layers.length;
                 while(l--) {
-                    console.log(this.layers[l]);
                     this.clear(this.layers[l]);
                 }
             }
@@ -5291,16 +5313,16 @@
             },
             centerModel: function() {
                 var boundingBox = SVGLayer.nodes.getBBox();
-                var xCenter = boundingBox.width/2;
-                var yCenter = boundingBox.height/2;
+                var xCenter = boundingBox.x + boundingBox.width/2;
+                var yCenter = boundingBox.y + boundingBox.height/2;
                 this.centerModelAt(xCenter, yCenter);
             },
             centerModelOn: function(node) {
                 this.centerModelAt(node.xPosition, node.yPosition);
             },
             centerModelAt: function(x, y) {
-                SVG.viewBox.baseVal.x = x;
-                SVG.viewBox.baseVal.y = y;
+                SVG.viewBox.baseVal.x = x - SVG.viewBox.baseVal.width/2;
+                SVG.viewBox.baseVal.y = y - SVG.viewBox.baseVal.height/2;
                 DrawingEngine.invalidateMiniature();
                 DrawingEngine.start(false);
             },
@@ -6001,6 +6023,10 @@
 
             // set the global svg and graph variable
             SVG = document.getElementById("graph");
+            SVG.viewBox.baseVal.x = 0;
+            SVG.viewBox.baseVal.y = 0;
+            SVG.viewBox.baseVal.width = window.innerWidth;
+            SVG.viewBox.baseVal.height = window.innerHeight;
 
             // add layers to the SVG
             SVGLayer = new Layer(SVG);
@@ -6073,6 +6099,7 @@
                 Model.scope = window.localStorage.getItem("modelScope");
                 Model.keywords = window.localStorage.getItem("modelKeywords");
                 Model.description = window.localStorage.getItem("modelDescription");
+                Actions.centerModel();
             }
             else
                 Actions.loadFromURL('example.xml');
