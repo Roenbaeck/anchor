@@ -2512,6 +2512,8 @@
                 graphicsElement: null,
                 useElement: null,
                 boundingBox: null,
+                xOffset: null,
+                yOffset: null,
                 control: null,
                 nameElement: null,
                 nameText: null,
@@ -2672,16 +2674,15 @@
                         }
                     }
                     xAverage /= this.edges.length;
-                    var quarter = this.svg.boundingBox.height / 4;
+                    var quarter = this.svg.yOffset + this.svg.boundingBox.height / 4;
                     var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
-                    var nameXOffset;
+                    var nameXOffset = this.svg.xOffset + this.svg.boundingBox.width / 2;
                     if(this.xPosition < xAverage) {
                         this.svg.nameElement.classList.add('end');
-                        nameXOffset = -this.svg.boundingBox.width;
+                        nameXOffset = -nameXOffset;
                     }
                     else {
                         this.svg.nameElement.classList.remove('end');
-                        nameXOffset = this.svg.boundingBox.width;
                     }
                     if(this.incomplete)
                         this.svg.nameElement.classList.add('bad');
@@ -3128,6 +3129,8 @@
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
             this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 5;
+            this.svg.yOffset = 2;
             // set up NAV graphics
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
@@ -3378,6 +3381,8 @@
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
             this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
             // set up NAV graphics
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
@@ -3558,6 +3563,8 @@
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
             this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
             // NAV
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
@@ -3714,6 +3721,8 @@
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
             this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 2;
+            this.svg.yOffset = 2;
             // NAV
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
@@ -4067,6 +4076,8 @@
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
                 this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
                 this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
                 this.setNameable(true);
             }
             // NAV
