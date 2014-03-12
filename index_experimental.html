@@ -3566,7 +3566,7 @@
             this.nav.graphicsElement.appendChild(this.nav.useElement);
             this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-            this.nav.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
             this.setNameable(true);
         }
         Knot.prototype = {
