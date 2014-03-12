@@ -4501,7 +4501,7 @@
             content.setAttribute("id", "content");
 
             var icon = document.createElement('img');
-            icon.setAttribute('src', DrawingEngine.miniatureCanvas.toDataURL());
+            icon.setAttribute('src', Actions.toDataURL(NAV));
             content.appendChild(icon);
 
             var table = document.createElement('table');
@@ -4972,26 +4972,27 @@
                 }
                 selector.value = selected;
             },
-            getMiniatureImage: function() {
-                var img = new Image();
-                var graph = SVG.cloneNode(true);
-                var names = graph.getElementById('names');
-                if(names) graph.removeChild(names);
-                graph.setAttribute("width", "200px");
-                graph.setAttribute("height", "200px");
-                var pad = 50;
-                var boundingBox =
-                        (Model.leftmostNode.xPosition - pad) + " " +
-                        (Model.topmostNode.yPosition - pad) + " " +
-                        (Model.rightmostNode.xPosition + pad) + " " +
-                        (Model.bottommostNode.yPosition + pad);
-                graph.setAttribute("viewBox", boundingBox);
-                graph.setAttribute("preserveAspectRatio", "xMinYMin slice");
+            toSVGDataURL: function(image) {
+                var graph = image.cloneNode(true);
+                var viewport = graph.getElementById('viewport');
+                if(viewport) graph.removeChild(viewport);
+                var graphics = SVG.getElementById('graphics');
+                if(!graph.contains(graphics)) {
+                    graph.appendChild(graphics.cloneNode(true));
+                }
                 var svg = (new XMLSerializer()).serializeToString(graph);
-                img.style.width = '200px';
-                img.style.heigth = '200px';
-                img.src = "data:image/svg+xml;base64," + btoa(svg);
-                return img;
+                return "data:image/svg+xml;base64," + btoa(svg);
+            },
+            toPNGDataURL: function(image) {
+                var can = document.createElement('canvas');
+                var ctx = can.getContext('2d');
+                var img = new Image();
+                img.width = can.width = image.width.baseVal.value;
+                img.height = can.height = image.height.baseVal.value;
+                img.src = this.toSVGDataURL(image);
+                // TODO: seems to work synchronously
+                ctx.drawImage(img, 0, 0);
+                return can.toDataURL();
             },
             stopKeyboardEvents: function() {
                 window.onkeypress = null;
@@ -5248,7 +5249,7 @@
                     params.action = 'save';
                     params.modelName = Model.name;
                     params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
-                    params.icon = DrawingEngine.miniatureCanvas.toDataURL();
+                    params.icon = Actions.toPNGDataURL(NAV);
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
                     params.description = escape(Model.description);
@@ -6158,7 +6159,7 @@
          xmlns="http://www.w3.org/2000/svg"
          version="1.1"
          xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
+        <defs id="graphics">
             <style type="text/css">
                 .anchor {
                     fill:               #b55;
@@ -6283,8 +6284,8 @@
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.transform(Model.toXML(true), Settings.databaseTransform, document), true)">SQL code</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()">URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()">HTML documentation</li>
-                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')">PNG screenshot</li>
-                <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')">SVG graphics</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(Actions.toPNGDataURL(SVG), '_newtab')">PNG screenshot</li>
+                <li title="Generate a vector image of the entire model." onclick="window.open(Actions.toSVGDataURL(SVG), '_newtab')">SVG screenshot</li>
                 <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(SVG, 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
