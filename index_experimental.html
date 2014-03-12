@@ -2672,16 +2672,16 @@
                         }
                     }
                     xAverage /= this.edges.length;
-                    var quarter = this.svgBox.height / 4;
+                    var quarter = this.svg.boundingBox.height / 4;
                     var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
                     var nameXOffset;
                     if(this.xPosition < xAverage) {
                         this.svg.nameElement.classList.add('end');
-                        nameXOffset = -this.svgBox.width;
+                        nameXOffset = -this.svg.boundingBox.width;
                     }
                     else {
                         this.svg.nameElement.classList.remove('end');
-                        nameXOffset = this.svgBox.width;
+                        nameXOffset = this.svg.boundingBox.width;
                     }
                     if(this.incomplete)
                         this.svg.nameElement.classList.add('bad');
