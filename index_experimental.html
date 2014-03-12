@@ -3069,10 +3069,11 @@
 
         function Layer(graph) {
             this.graph = graph;
+            this.layers = [];
         }
         Layer.prototype = {
             graph: null,
-            layers: [],
+            layers: null,
             addLayer: function(name) {
                 var layer = document.createElementNS(SVGNS, 'g');
                 layer.setAttributeNS(null, 'id', name);
@@ -3093,6 +3094,18 @@
             hide: function(name) {
                 if(this.graph.contains(this[name]))
                     this.graph.removeChild(this[name]);
+            },
+            clear: function(name) {
+                var layer = this[name];
+                while(layer.firstChild) {
+                    layer.removeChild(layer.firstChild);
+                }
+            },
+            clearAll: function() {
+                while(l--) {
+                    console.log(this.layers[l]);
+                    this.clear(this.layers[l]);
+                }
             }
        }
 
@@ -5051,6 +5064,8 @@
                     var xmlhttp = new window.XMLHttpRequest();
                     xmlhttp.open("GET", url, false);
                     xmlhttp.send(null);
+                    SVGLayer.clearAll();
+                    NAVLayer.clearAll();
                     CanvasEventHandler.clearSelection();
                     Model.uncloud();
                     Model.clearStates();
@@ -5155,6 +5170,8 @@
                         else {
                             var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
                             CanvasEventHandler.clearSelection();
+                            SVGLayer.clearAll();
+                            NAVLayer.clearAll();
                             Model.uncloud();
                             Model.clearStates();
                             Model.fromXML(model);
@@ -5273,19 +5290,18 @@
                 DrawingEngine.start(false);
             },
             centerModel: function() {
-                var xCenter = Model.leftmostNode.xPosition +
-                        (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
-                var yCenter = Model.topmostNode.yPosition +
-                        (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
+                var boundingBox = SVGLayer.nodes.getBBox();
+                var xCenter = boundingBox.width/2;
+                var yCenter = boundingBox.height/2;
                 this.centerModelAt(xCenter, yCenter);
             },
             centerModelOn: function(node) {
                 this.centerModelAt(node.xPosition, node.yPosition);
             },
             centerModelAt: function(x, y) {
-                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - x;
-                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - y;
-                DrawingEngine.translate(xAdjust, yAdjust);
+                SVG.viewBox.baseVal.x = x;
+                SVG.viewBox.baseVal.y = y;
+                DrawingEngine.invalidateMiniature();
                 DrawingEngine.start(false);
             },
             randomizeLayout: function () {
