@@ -1977,26 +1977,22 @@
 
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                if(this.miniCounter === 1)
-                    this.drawMiniature(Model);
                 var i, node;
                 i = Model.visibleNodes.length;
                 while(i--) {
                     node = Model.visibleNodes[i];
-                    node.draw(this.context, 0);
+                    node.draw(node.svg);
+                    if(this.miniCounter === 1)
+                        node.draw(node.nav);
                     if(this.showNames)
-                        node.drawName(this.context);
+                        node.drawName(node.svg);
                 }
+                if(this.miniCounter === 1)
+                    this.updateMiniature();
             },
             viewport: null,
             screenCircumference: 0,
-            drawMiniature: function(model) {
-                /*
-                var svg = SVG.cloneNode(true);
-                svg.setAttribute("id", "minigraph");
-                var names = svg.getElementById('names');
-                if(names) svg.removeChild(names);
-                */
+            updateMiniature: function() {
                 if(!NAVLayer.viewport.contains(this.viewport))
                     NAVLayer.viewport.appendChild(this.viewport);
                 this.viewport.x.baseVal.value = SVG.viewBox.baseVal.x;
@@ -2512,10 +2508,29 @@
             this.editables = [];
             this.operations = ['erase', 'connect'];
             this.incomplete = true;
-            this.highlight = document.createElementNS(SVGNS, 'use');
-            this.highlight.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
-            this.fixation = document.createElementNS(SVGNS, 'use');
-            this.fixation.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
+            this.svg = {
+                graphicsElement: null,
+                useElement: null,
+                boundingBox: null,
+                control: null,
+                nameElement: null,
+                nameText: null,
+                highlightElement: null,
+                fixationElement: null,
+                pathElement: null,
+                pathControl: null
+            };
+            this.svg.highlightElement = document.createElementNS(SVGNS, 'use');
+            this.svg.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
+            this.svg.fixationElement = document.createElementNS(SVGNS, 'use');
+            this.svg.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
+            this.nav = {
+                graphicsElement: null,
+                useElement: null,
+                control: null,
+                pathElement: null,
+                pathControl: null
+            };
         }
         AbstractNode.prototype = {
             description: '',
@@ -2535,13 +2550,8 @@
             fixed: false,
             visible: true,
             svg: null,
-            svgBox: null,
-            svgControl: null,
-            svgName: null,
-            svgNameText: null,
+            nav: null,
             nameable: false,
-            highlight: null,
-            fixation: null,
             hasHighlight: false,
             lastName: '',
             setId: function(id)  {
@@ -2556,14 +2566,14 @@
                 return this.id;
             },
             setNameable: function(nameable) {
-                if(nameable && !this.svgName) {
-                    this.svgName = document.createElementNS(SVGNS, 'text');
-                    this.svgName.setAttributeNS(null, 'class', 'label');
-                    this.svgName.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
-                    this.svgName.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
-                    this.svgNameText = document.createTextNode('I am a placeholder');
-                    this.svgName.appendChild(this.svgNameText);
-                    SVGLayer.names.appendChild(this.svgName);
+                if(nameable && !this.svg.nameElement) {
+                    this.svg.nameElement = document.createElementNS(SVGNS, 'text');
+                    this.svg.nameElement.setAttributeNS(null, 'class', 'label');
+                    this.svg.nameElement.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
+                    this.svg.nameElement.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
+                    this.svg.nameText = document.createTextNode('I am a placeholder');
+                    this.svg.nameElement.appendChild(this.svg.nameText);
+                    SVGLayer.names.appendChild(this.svg.nameElement);
                 }
                 this.nameable = nameable;
             },
@@ -2572,7 +2582,7 @@
                     var name = this.contextualName();
                     if(name != this.lastName) {
                         this.lastName = name;
-                        this.svgNameText.nodeValue = name;
+                        this.svg.nameText.nodeValue = name;
                     }
                 }
             },
@@ -2650,7 +2660,7 @@
                     this.edges[i].start();
             },
             drawName: function(context) {
-                if(this.svgName) {
+                if(this.svg.nameElement) {
                     this.updateName();
                     var i, edge, xAverage = 0, closestEdge = this.edges[0];
                     i = this.edges.length;
@@ -2666,19 +2676,19 @@
                     var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
                     var nameXOffset;
                     if(this.xPosition < xAverage) {
-                        this.svgName.classList.add('end');
+                        this.svg.nameElement.classList.add('end');
                         nameXOffset = -this.svgBox.width;
                     }
                     else {
-                        this.svgName.classList.remove('end');
+                        this.svg.nameElement.classList.remove('end');
                         nameXOffset = this.svgBox.width;
                     }
                     if(this.incomplete)
-                        this.svgName.classList.add('bad');
+                        this.svg.nameElement.classList.add('bad');
                     else
-                        this.svgName.classList.remove('bad');
-                    this.svgName.x.baseVal.getItem(0).value = this.xPosition + nameXOffset;
-                    this.svgName.y.baseVal.getItem(0).value = this.yPosition + nameYOffset;
+                        this.svg.nameElement.classList.remove('bad');
+                    this.svg.nameElement.x.baseVal.getItem(0).value = this.xPosition + nameXOffset;
+                    this.svg.nameElement.y.baseVal.getItem(0).value = this.yPosition + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -2701,17 +2711,19 @@
             },
             // this is how a node draws itself on the shadow context
             drawShadow: function(context) {
+                /*
                 this.drawOutline(context);
                 context.fillStyle = this.shadowColor;
                 context.fill();
+                */
             },
             setFixed: function(fixed) {
                 this.fixed = fixed;
-                if(fixed && this.svg && !this.svg.contains(this.fixation)) {
-                    this.svg.appendChild(this.fixation);
+                if(fixed && !this.svg.graphicsElement.contains(this.svg.fixationElement)) {
+                    this.svg.graphicsElement.appendChild(this.svg.fixationElement);
                 }
-                else if (!fixed && this.svg && this.svg.contains(this.fixation)) {
-                    this.svg.removeChild(this.fixation);
+                else if (!fixed && this.svg.graphicsElement.contains(this.svg.fixationElement)) {
+                    this.svg.graphicsElement.removeChild(this.svg.fixationElement);
                 }
             },
             getFixed: function() {
@@ -2719,13 +2731,16 @@
             },
             setHighlight: function(highlight) {
                 this.hasHighlight = highlight;
-                if(highlight && this.svg && !this.svg.contains(this.highlight)) {
-                    this.highlight.addEventListener('click', EventHandler.clickHighlight, false);
-                    this.svg.insertBefore(this.highlight, this.svg.firstChild);
+                if(highlight && !this.svg.graphicsElement.contains(this.highlight)) {
+                    this.svg.highlightElement.addEventListener('click', EventHandler.clickHighlight, false);
+                    this.svg.graphicsElement.insertBefore(
+                            this.svg.highlightElement,
+                            this.svg.graphicsElement.firstChild
+                    );
                 }
-                else if (!highlight && this.svg && this.svg.contains(this.highlight)) {
-                    this.svg.removeChild(this.highlight);
-                    this.highlight.removeEventListener('click', EventHandler.clickHighlight, false);
+                else if (!highlight && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
+                    this.svg.graphicsElement.removeChild(this.svg.highlightElement);
+                    this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
                 }
             },
             contextMenu: null,
@@ -2799,8 +2814,8 @@
                         EventHandler.addNodeToSelection(component);
                     window.addEventListener('keypress', EventHandler.keypress, false);
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
-                    component.svg.addEventListener('mousedown', EventHandler.prepareDragging, false);
-                    component.svg.addEventListener('click', EventHandler.clickComponent, false);
+                    component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
+                    component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
                     component.setHighlight(true);
                     component.showContextMenu(component, EventHandler.selectedNodes);
                 }
@@ -2819,7 +2834,7 @@
                                 EventHandler.addNodeToSelection(component);
                         }
                         component.hideContextMenu();
-                        component.svg.removeEventListener('mousedown', EventHandler.prepareDragging, false);
+                        component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
                     }
                     SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
                     SVG.addEventListener('mouseup', EventHandler.completeDragging, false);
@@ -2869,7 +2884,7 @@
                 event.preventDefault();
                 var component, i;
                 for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
-                    component.svg.removeEventListener('click', EventHandler.clickComponent, false);
+                    component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     if(EventHandler.getPreviousInteraction() !== "completeDragging")
                         component.setFixed(!component.getFixed());
                 }
@@ -3100,18 +3115,27 @@
             this.encapsulation = Defaults.encapsulation;
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = 'Attribute';
-            this.svg = document.createElementNS(SVGNS, 'g');
-            this.svg.component = this;
-            this.svgUse = document.createElementNS(SVGNS, 'use');
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            // expando property as a reference back to the underlying component for use in event handlers
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
             var ref = historized ? '#attribute_historized' : '#attribute';
-            this.svgUse.setAttributeNS(XLINKNS, 'xlink:href', ref);
-            this.svg.appendChild(this.svgUse);
-            this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            SVGLayer.nodes.appendChild(this.svg);
-            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
-            this.svgControl = this.svg.transform.baseVal.getItem(0);
-            this.svgBox = this.svg.getBBox();
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
             this.setNameable(true);
         }
         Attribute.prototype = {
@@ -3124,7 +3148,6 @@
             idempotent: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
-            svgUse: null,
             getMass: function() {
                 return Attribute.mass;
             },
@@ -3171,7 +3194,9 @@
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#attribute_historized' : '#attribute';
-                this.svgUse.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -3318,8 +3343,8 @@
                         anchor = edge.otherNode;
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
-            draw: function(context, detailLevel) {
-                this.svgControl.setTranslate(this.xPosition, this.yPosition);
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
@@ -3342,17 +3367,26 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = 'Anchor';
-            this.svg = document.createElementNS(SVGNS, 'g');
-            this.svg.component = this;
-            var use = document.createElementNS(SVGNS, 'use');
-            use.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
-            this.svg.appendChild(use);
-            this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            SVGLayer.nodes.appendChild(this.svg);
-            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
-            this.svgControl = this.svg.transform.baseVal.getItem(0);
-            this.svgBox = this.svg.getBBox();
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
             this.setNameable(true);
         }
         Anchor.prototype = {
@@ -3490,8 +3524,8 @@
                 this.addLayoutXML(anchor, schema);
                 return anchor;
             },
-            draw: function(context, detailLevel) {
-                this.svgControl.setTranslate(this.xPosition, this.yPosition);
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
@@ -3513,17 +3547,26 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Knot';
-            this.svg = document.createElementNS(SVGNS, 'g');
-            this.svg.component = this;
-            var use = document.createElementNS(SVGNS, 'use');
-            use.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
-            this.svg.appendChild(use);
-            this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            SVGLayer.nodes.appendChild(this.svg);
-            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
-            this.svgControl = this.svg.transform.baseVal.getItem(0);
-            this.svgBox = this.svg.getBBox();
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
             this.setNameable(true);
         }
         Knot.prototype = {
@@ -3638,8 +3681,8 @@
                 this.addLayoutXML(knot, schema);
                 return knot;
             },
-            draw: function(context, detailLevel) {
-                this.svgControl.setTranslate(this.xPosition, this.yPosition);
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
@@ -3659,18 +3702,27 @@
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = 'Tie';
-            this.svg = document.createElementNS(SVGNS, 'g');
-            this.svg.component = this;
-            this.use = document.createElementNS(SVGNS, 'use');
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
             var ref = historized ? '#tie_historized' : '#tie';
-            this.use.setAttributeNS(XLINKNS, 'xlink:href', ref);
-            this.svg.appendChild(this.use);
-            this.svg.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
-            this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-            SVGLayer.nodes.appendChild(this.svg);
-            NAVLayer.nodes.appendChild(this.svg.cloneNode(true));
-            this.svgControl = this.svg.transform.baseVal.getItem(0);
-            this.svgBox= this.svg.getBBox();
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
             this.setNameable(true);
         }
         Tie.prototype = {
@@ -3681,7 +3733,6 @@
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 15,
-            use: null,
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -3773,7 +3824,9 @@
                 if(this.changingRange == '')
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#tie_historized' : '#tie';
-                this.use.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -3942,8 +3995,8 @@
                 }
                 return name;
             },
-            draw: function(context, detailLevel) {
-                this.svgControl.setTranslate(this.xPosition, this.yPosition);
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 // AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
@@ -3989,33 +4042,44 @@
             this.incomplete = false;
             this.tied = node.type === "Tie" || otherNode.type === "Tie";
             this.type = 'Edge';
-            this.path = document.createElementNS(SVGNS, 'path');
-            this.path.setAttributeNS(null, 'class', 'edge');
-            this.path.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+            // SVG
+            this.svg.pathElement = document.createElementNS(SVGNS, 'path');
+            this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
+            this.svg.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
-            this.pathControl = {
-                m: this.path.pathSegList.getItem(0),
-                q: this.path.pathSegList.getItem(1)
+            this.svg.pathControl = {
+                m: this.svg.pathElement.pathSegList.getItem(0),
+                q: this.svg.pathElement.pathSegList.getItem(1)
             };
-            SVGLayer.edges.appendChild(this.path);
-            NAVLayer.edges.appendChild(this.path.cloneNode(true));
             if(this.tied) {
-                this.svg = document.createElementNS(SVGNS, 'g');
-                this.svg.component = this;
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
                 var bubble = document.createElementNS(SVGNS, 'use');
                 bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
-                this.svg.appendChild(bubble);
-                this.use = document.createElementNS(SVGNS, 'use');
-                this.use.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
-                this.svg.appendChild(this.use);
-                this.svg.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
-                this.svg.addEventListener('mouseover', EventHandler.beginInteraction, false);
-                SVGLayer.edges.appendChild(this.svg);
-                this.svgControl = this.svg.transform.baseVal.getItem(0);
-                this.svgBox = this.svg.getBBox();
+                this.svg.graphicsElement.appendChild(bubble);
+                this.svg.useElement = document.createElementNS(SVGNS, 'use');
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                this.svg.graphicsElement.appendChild(this.svg.useElement);
+                this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
                 this.setNameable(true);
             }
+            SVGLayer.edges.appendChild(this.svg.pathElement);
+            // NAV
+            this.nav.pathElement = document.createElementNS(SVGNS, 'path');
+            this.nav.pathElement.setAttributeNS(null, 'class', 'edge');
+            this.nav.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
+                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.nav.pathControl = {
+                m: this.nav.pathElement.pathSegList.getItem(0),
+                q: this.nav.pathElement.pathSegList.getItem(1)
+            };
+            NAVLayer.edges.appendChild(this.nav.pathElement);
         }
         Edge.prototype = {
             role: null,
@@ -4063,15 +4127,15 @@
             toString: function() {
                 return this.role;
             },
-            draw: function(context, detailLevel) {
-                this.pathControl.m.x = this.node.xPosition;
-                this.pathControl.m.y = this.node.yPosition;
-                this.pathControl.q.x1 = this.controlPoint.xPosition;
-                this.pathControl.q.y1 = this.controlPoint.yPosition;
-                this.pathControl.q.x = this.otherNode.xPosition;
-                this.pathControl.q.y = this.otherNode.yPosition;
-                if(this.tied) {
-                    this.svgControl.setTranslate(this.xPosition, this.yPosition);
+            draw: function(image) {
+                image.pathControl.m.x = this.node.xPosition;
+                image.pathControl.m.y = this.node.yPosition;
+                image.pathControl.q.x1 = this.controlPoint.xPosition;
+                image.pathControl.q.y1 = this.controlPoint.yPosition;
+                image.pathControl.q.x = this.otherNode.xPosition;
+                image.pathControl.q.y = this.otherNode.yPosition;
+                if(this.tied && image.control) {
+                    image.control.setTranslate(this.xPosition, this.yPosition);
                 }
                 //AbstractNode.prototype.draw.apply(this, arguments);
             }
@@ -4972,7 +5036,7 @@
                 );
             },
             loadFromURL: function (url) {
-                try {
+//                try {
                     var xmlhttp = new window.XMLHttpRequest();
                     xmlhttp.open("GET", url, false);
                     xmlhttp.send(null);
@@ -4985,11 +5049,11 @@
                     Actions.resetZoom();
                     Actions.centerModel();
                     DrawingEngine.start(false);
-                }
+/*                }
                 catch(exception){
                     alert(exception);
                     throw exception;
-                }
+                }*/
             },
             modelStatusText: null,
             setModelStatus: function() {
