@@ -4052,6 +4052,7 @@
                 m: this.svg.pathElement.pathSegList.getItem(0),
                 q: this.svg.pathElement.pathSegList.getItem(1)
             };
+            SVGLayer.edges.appendChild(this.svg.pathElement);
             if(this.tied) {
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
                 this.svg.graphicsElement.component = this;
@@ -4068,7 +4069,6 @@
                 this.svg.boundingBox = this.svg.graphicsElement.getBBox();
                 this.setNameable(true);
             }
-            SVGLayer.edges.appendChild(this.svg.pathElement);
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
             this.nav.pathElement.setAttributeNS(null, 'class', 'edge');
