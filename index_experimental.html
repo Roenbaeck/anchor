@@ -2824,7 +2824,12 @@
                 if(this.interactedNodes.indexOf(node) >= 0)
                     this.interactedNodes.splice(this.interactedNodes.indexOf(node), 1);
             },
+            clearHighlights: function() {
+                var i = this.interactedNodes.length;
+                while(i--) this.interactedNodes[i].setHighlight(false);
+            },
             clearInteraction: function() {
+                this.clearHighlights();
                 this.interactedNodes = [];
                 this.setInteraction(null);
             },
@@ -2868,7 +2873,6 @@
                         component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
                     }
                     SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
-                    SVG.addEventListener('mouseup', EventHandler.completeDragging, false);
                 }
                 event.stopPropagation();
             },
@@ -2884,7 +2888,6 @@
                                 component.xPosition = svgPoint.x;
                                 component.yPosition = svgPoint.y;
                                 component.setFixed(true);
-                                component.setHighlight(false);
                                 Model.invalidateNode(this);
                                 DrawingEngine.start(true);
                             }
@@ -2901,48 +2904,38 @@
                 }
                 event.stopPropagation();
             },
-            completeDragging: function(event) {
-                event.preventDefault();
-                if(EventHandler.getInteraction() === "whileDragging") {
-                    EventHandler.setInteraction("completeDragging");
-                    EventHandler.clearInteraction();
-                    SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
-                    SVG.removeEventListener('mouseup', EventHandler.completeDragging, false);
-                }
-                event.stopPropagation();
-            },
             clickComponent: function(event) {
                 event.preventDefault();
-                var component, i;
-                for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
-                    component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
-                    if(EventHandler.getPreviousInteraction() !== "completeDragging")
+                if(EventHandler.getInteraction() !== "whileDragging") {
+                    var component, i = EventHandler.interactedNodes.length;
+                    while(i--) {
+                        component = EventHandler.interactedNodes[i];
                         component.setFixed(!component.getFixed());
+                    }
+                    EventHandler.setInteraction("toggledFixation");
                 }
-                EventHandler.clearInteraction();
+                else {
+                    EventHandler.setInteraction("completeDragging");
+                }
                 event.stopPropagation();
             },
             clickHighlight: function(event) {
                 event.preventDefault();
                 alert("clicked highlight");
-                EventHandler.clearInteraction();
                 event.stopPropagation();
             },
             endInteraction: function(event) {
                 event.preventDefault();
-                if(event.toElement === SVG && (
-                        !EventHandler.hasOngoingInteractions() ||
-                        EventHandler.getInteraction() === "beginInteraction")) {
+                if(event.toElement === SVG && EventHandler.getInteraction() !== "whileDragging") {
                     var component, i;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         if(EventHandler.isSelected(component))
                             EventHandler.removeNodeFromSelection(component);
                         component.hideContextMenu();
-                        component.setHighlight(false);
+                        component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     }
                     EventHandler.clearInteraction();
                     SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
-                    SVG.removeEventListener('mouseup', EventHandler.completeDragging, false);
                     SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
                 }
@@ -3032,13 +3025,13 @@
                 return svgPoint.matrixTransform( matrix );
             },
             keypress: function(event) {
-                if(this.selectedNodes.length > 0) {
-                    var allNodes = this.selectedNodes.slice(0);
+                if(EventHandler.selectedNodes.length > 0) {
+                    var allNodes = EventHandler.selectedNodes.slice(0);
+                    var component = allNodes[0];
                     switch(String.fromCharCode(event.which)) {
                         case "e":
-                            if(!this.contextMenu)
-                                this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
-                            this.contextMenu.toggle();
+                            component.showContextMenu(component, allNodes);
+                            component.contextMenu.toggle();
                             break;
                         case "a":
                             if(Operations.isSupported("addAttribute", allNodes))
@@ -3047,7 +3040,7 @@
                                 Model.addAnchor(allNodes);
                             break;
                         case "t":
-                            if(Operations.isSupported("addTie", allNodes) && this.selectedNodes.length > 0)
+                            if(Operations.isSupported("addTie", allNodes) && allNodes.length > 0)
                                 Model.addTie(allNodes);
                             else if(Operations.isSupported("addTieAndAnchor", allNodes))
                                 Model.addTieAndAnchor(allNodes);
@@ -4694,7 +4687,6 @@
 
         function ContextMenu(hoveredNode, selectedNodes) {
             var self = this;
-
             this.hoveredNode = hoveredNode;
             this.selectedNodes = selectedNodes;
             var contextMenu = document.createElement('div');
@@ -4733,9 +4725,10 @@
                     }
                     editable.setElement(element, hoveredNode);
                     element.editable = editable;
+                    element.contextMenu = self;
                     element.addEventListener(editable.event, function(e) { self.edit(this, hoveredNode); }, false);
                     element.addEventListener('change', function(e) { self.editsHaveBeenMade = true; }, false);
-                    element.addEventListener('keypress', function(e) { self.keypress(self, e); }, false);
+                    element.addEventListener('keypress', self.keypress, false);
                     if(editable.pattern)
                         element.addEventListener('invalid', function(e) { self.invalid(this, hoveredNode); }, false);
                     tr = document.createElement('tr');
@@ -4860,11 +4853,12 @@
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
             },
-            keypress: function(self, event) {
+            keypress: function(event) {
                 if(event.keyCode == 13) {
                     event.srcElement.blur();
-                    if(Model.isConforming())
-                        CanvasEventHandler.closeContextMenu();
+                    if(Model.isConforming() && event.srcElement.contextMenu)
+                        console.log(event); // TODO: fix this
+                        // event.srcElement.contextMenu.close();
                 }
             },
             toggle: function() {
@@ -4882,6 +4876,7 @@
                             editables[0].focus();
                     }
                     this.contextMenu.appendChild(this.operators);
+                    window.removeEventListener('keypress', EventHandler.keypress, false);
                 }
                 else {
                     if(this.editsHaveBeenMade && !Model.isConforming())
@@ -4895,6 +4890,7 @@
                     }
                     this.contextMenu.removeChild(this.topper);
                     this.unmodal();
+                    window.addEventListener('keypress', EventHandler.keypress, false);
                     DrawingEngine.start(false);
                 }
             },
@@ -4906,10 +4902,12 @@
                 this.hoveredNode.incomplete = this.hoveredNode.isIncomplete();
             },
             close: function() {
+                var self = this;
                 this.unmodal();
                 if(this.editsHaveBeenMade)
                     Model.recordState();
                 document.body.removeChild(this.contextMenu);
+                window.addEventListener('keypress', EventHandler.keypress, false);
             }
         };
 
