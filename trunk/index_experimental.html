@@ -1283,6 +1283,7 @@
                 }
                 UniqueColor.releaseUniqueColor(node.shadowColor);
                 delete this.shadowToNode[node.shadowColor];
+                node.destroy();
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
@@ -2557,6 +2558,13 @@
             nameable: false,
             hasHighlight: false,
             lastName: '',
+            // can be overridden by subclasses
+            destroy: function() {
+                if(SVGLayer.nodes.contains(this.svg.graphicsElement))
+                    SVGLayer.nodes.removeChild(this.svg.graphicsElement);
+                if(NAVLayer.nodes.contains(this.nav.graphicsElement))
+                    NAVLayer.nodes.removeChild(this.nav.graphicsElement);
+            },
             setId: function(id)  {
                 if(id) {
                     UniqueIdentity.takeId(id);
@@ -3437,10 +3445,6 @@
             encapsulation: Defaults.encapsulation,
             imploded: false,
             size: 10,
-            destroy: function() {
-                SVGLayer.nodes.removeChild(this.svg);
-                this.svg = null;
-            },
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -4138,6 +4142,17 @@
             pathControl: null,
             use: null,
             tied: false,
+            destroy: function() {
+                if(SVGLayer.edges.contains(this.svg.graphicsElement))
+                    SVGLayer.edges.removeChild(this.svg.graphicsElement);
+                if(NAVLayer.edges.contains(this.nav.graphicsElement))
+                    NAVLayer.edges.removeChild(this.nav.graphicsElement);
+                if(SVGLayer.edges.contains(this.svg.pathElement))
+                    SVGLayer.edges.removeChild(this.svg.pathElement);
+                if(NAVLayer.edges.contains(this.nav.pathElement))
+                    NAVLayer.edges.removeChild(this.nav.pathElement);
+                AbstractNode.prototype.destroy.apply(this, arguments);
+            },
             getMass: function() {
                 return Edge.mass;
             },
