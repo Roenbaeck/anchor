@@ -2412,8 +2412,8 @@
                 }
                 else if(!EventHandler.hasOngoingInteractions()) {
                     EventHandler.setInteraction("preparePanning");
-                    var screenWidth = SVG.width.baseVal.value;
-                    var screenHeight = SVG.height.baseVal.value;
+                    var screenWidth = window.innerWidth; //SVG.width.baseVal.value;
+                    var screenHeight = window.innerHeight; //SVG.height.baseVal.value;
                     var viewBoxWidth = SVG.viewBox.baseVal.width || screenWidth;
                     var viewBoxHeight = SVG.viewBox.baseVal.height || screenHeight;
                     SVG.viewBox.baseVal.width = viewBoxWidth;
@@ -3902,7 +3902,7 @@
             this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
-            this.tied = node.type === "Tie" || otherNode.type === "Tie";
+            this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
             this.type = NodeType.EDGE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
