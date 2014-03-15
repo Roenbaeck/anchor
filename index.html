@@ -4,9 +4,10 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
     <title>Anchor Modeler</title>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
     <style type="text/css">
     body {
-        font:               75% georgia, sans-serif;
+        font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
         line-height:        1.88889;
         color:              #000000;
         background:         #f9f8f7;
@@ -16,7 +17,7 @@
     }
 
     * {
-        target-new:         tab ! important
+        target-new:         tab ! important;
     }
     
     a:link, a:active, a:visited {
@@ -62,24 +63,17 @@
         background-image:   url(deleteButtonPressed.png);
     }
 
-    /* visible canvas - at the bottom of the visible layers */
-    #canvas {
+    /* the SVG graph used as the main interface */
+    #graph {
         position:           absolute;
         top:                0px;
         left:               0px;
+        width:              100%;
+        height:             100%;
         z-index:            1;
     }
 
-    /* invisible canvas - at the very z-bottom */
-    #shadow {
-        position:           absolute;
-        top:                0px;
-        left:               0px;
-        display:            none;
-        z-index:            0;
-    }
-
-    /* minature canvas - positioned in the southeast corner */
+    /* minature - positioned in the southeast corner */
     #miniature {
         position:           absolute;
         bottom:             40px;
@@ -89,6 +83,9 @@
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
         -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
         -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    }
+    #minigraph {
+        display:            block;
     }
 
     #search {
@@ -162,7 +159,7 @@
         top:                0;
         left:               0;
         display:            block;
-        background-color:   rgba(212, 212, 212, 0.8);
+        background-color:   rgba(236, 234, 234, 0.9);
         color:              black;
         padding:            0;
         margin:             0;
@@ -245,7 +242,7 @@
         position:           absolute;
         top:                0;
         left:               0;
-        background-color:   rgba(142, 128, 128, 0.5);
+        background-color:   rgba(128, 128, 128, 0.3);
         margin:             0;
         padding-top:        25%;
         overflow:           hidden;
@@ -478,7 +475,7 @@
     }
 
     #header {
-        font:               10pt georgia, sans-serif;
+        font:               10pt "Open Sans", "Helvetica Neue", sans-serif;
         position:           relative;
         margin:             0;
         padding:            0;
@@ -486,7 +483,7 @@
         left:               0;
         height:             32px;
         display:            block;
-        background-color:   rgba(212, 212, 212, 0.9);
+        background-color:   rgba(236, 234, 234, 0.9);
         color:              black;
         border-bottom:      2px solid #fff;
         box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
@@ -542,7 +539,6 @@
         width:              200px;
     }
     .menu {
-        font:               10pt georgia, sans-serif;
         margin:             0;
         cursor:             pointer;
         list-style:         none;
@@ -557,7 +553,7 @@
     .submenu {
         display:            none;
         position:           relative;
-        background-color:   rgba(212, 212, 212, 0.9);
+        background-color:   rgba(236, 234, 234, 0.9);
         white-space:        nowrap;
         border:             2px solid #fff;
         box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
@@ -653,12 +649,18 @@
     <!-- run some checks first -->
     <script type="text/javascript">
         <!--
-        var testingCanvas = document.createElement('canvas');
-        if (!testingCanvas || !testingCanvas.getContext)
+        // check low level management SVG support
+        var testElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        if (!testElement || !testElement.viewBox || !testElement.viewBox.baseVal)
             unsupported();
 
-        var testingContext = testingCanvas.getContext('2d');
-        if (!testingContext)
+        // check binding support
+        if(!Function.prototype.bind)
+            unsupported();
+
+        var browser = window.navigator.userAgent;
+        // check that it's not IE
+        if(browser.indexOf('MSIE ') >= 0 || browser.indexOf('Trident/') >= 0)
             unsupported();
 
         function unsupported() {
@@ -685,6 +687,11 @@
 
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
+        var XLINKNS = "http://www.w3.org/1999/xlink";
+        // the svg root and graph elements
+        var SVG, SVGLayer;
+        // the navigation miniature
+        var NAV, NAVLayer;
 
         // global variables for the cloud stuff
         var ASKBEFOREUNLOAD = true;
@@ -739,12 +746,13 @@
             temporalization: 'uni'
         };
 
+        // available node types enumeration with textual representation
         var NodeType = {
-            ANCHOR: 1,
-            ATTRIBUTE: 2,
-            TIE: 3,
-            KNOT: 4,
-            EDGE: 5
+            ANCHOR:     1, '1': "Anchor",
+            ATTRIBUTE:  2, '2': "Attribute",
+            TIE:        3, '3': "Tie",
+            KNOT:       4, '4': "Knot",
+            EDGE:       5, '5': "Edge"
         };
 
         // create a singleton
@@ -1028,14 +1036,6 @@
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
-                        if(node.yPosition < model.topmostNode.yPosition)
-                            model.topmostNode = node;
-                        else if(node.yPosition > model.bottommostNode.yPosition)
-                            model.bottommostNode = node;
-                        if(node.xPosition < model.leftmostNode.xPosition)
-                            model.leftmostNode = node;
-                        else if(node.xPosition > model.rightmostNode.xPosition)
-                            model.rightmostNode = node;
                     }
                 }
             },
@@ -1194,97 +1194,8 @@
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
-                        if(node.yPosition < model.topmostNode.yPosition)
-                            model.topmostNode = node;
-                        else if(node.yPosition > model.bottommostNode.yPosition)
-                            model.bottommostNode = node;
-                        if(node.xPosition < model.leftmostNode.xPosition)
-                            model.leftmostNode = node;
-                        else if(node.xPosition > model.rightmostNode.xPosition)
-                            model.rightmostNode = node;
                     }
                 }
-            }
-        };
-
-        var Color = {
-            normal: {
-                canvasBackground: '#f9f8f7',
-                shadowBackground: '#000',
-                svgBackground: '#fff',
-                viewport: '#b55',
-                outerHovered: '#ede5e5',
-                innerHovered: '#fff',
-                outerSelected: '#ede5e5',
-                innerSelected: '#b88',
-                defaultShadowColor: '#fff',
-                textIncomplete: '#e00',
-                textComplete: '#000',
-                forceVector: '#080',
-                forceEndpoint: '#fff',
-                partitionOutline: '#e9e8e7',
-                partitionForceVector: '#888',
-                partitionForceEndpoint: '#ccc',
-                attributeFill: '#fff',
-                attributeOutline: '#f88',
-                anchorFill: '#b55',
-                knotFill: '#fff',
-                knotOutline: '#f88',
-                tieFill: '#a8a8a8',
-                tieOutline: '#fff',
-                edge: '#544',
-                cardinality: '#544',
-                identifierOutline: '#544',
-                identifierSelectedFill: '#766',
-                identifierUnselectedFill: '#fff',
-                fixed: '#000'
-            },
-            imploded: {
-                anchorFill: '#633',
-/*                tieFill: '#e8e5e5',
-                tieOutline: '#fff',*/
-                fixed: '#fff'
-            },
-            schemes: ['imploded'],
-            scheme: null,
-            useScheme: function(scheme) {
-                this.scheme = scheme;
-            },
-            init: function() {
-                this.useScheme(this.normal);
-                var scheme;
-                for(var i = 0; scheme = this.schemes[i]; i++) {
-                    for(var color in this.normal) {
-                        if(!this[scheme][color])
-                            this[scheme][color] = this.normal[color];
-                    }
-                }
-            }
-        };
-
-        Color.init();
-
-        var UniqueColor = {
-            // note that #000000 is reserved for the background and never assigned
-            takenColors: {},
-            formatColor: function(red, green, blue) {
-                return '#' +
-                        ('0' + red.toString(16)).slice(-2) +
-                        ('0' + green.toString(16)).slice(-2) +
-                        ('0' + blue.toString(16)).slice(-2);
-            },
-            reserveUniqueColor: function() {
-                var r = Math.ceil(Math.random() * 255);
-                var g = Math.ceil(Math.random() * 255);
-                var b = Math.ceil(Math.random() * 255);
-                var color = this.formatColor(r, g, b);
-                if(this.takenColors[color] || (r + g + b) === 0)
-                    return this.reserveUniqueColor();
-                this.takenColors[color] = true;
-                return color;
-            },
-            releaseUniqueColor: function(color) {
-                delete this.takenColors[color];
             }
         };
 
@@ -1297,12 +1208,8 @@
             description:null,
             // other members
             nodes: [],
+            idToNode: {},
             visibleNodes: [],
-            shadowToNode: {},
-            topmostNode: null,
-            rightmostNode: null,
-            bottommostNode: null,
-            leftmostNode: null,
             version: -1,
             versions: [],
             uncloud: function() {
@@ -1316,11 +1223,9 @@
             },
             empty: function() {
                 this.nodes = [];
-                this.shadowToNode = {};
-                this.topmostNode = null;
-                this.rightmostNode = null;
-                this.bottommostNode = null;
-                this.leftmostNode = null;
+                this.idToNode = {};
+                SVGLayer.clearAll();
+                NAVLayer.clearAll();
             },
             refresh: function() {
                 // copy visible nodes
@@ -1340,7 +1245,6 @@
                 if(this.nodes.length) {
                     this.version++;
                     this.versions[this.version] = this.toXML(false);
-                    this.versions.length = this.version + 1;
                     ControlButtons.setUndoLevels(this.version);
                     ControlButtons.setRedoLevels(0);
                 }
@@ -1371,11 +1275,10 @@
                 if(go) {
                     this.uncloud();
                     this.empty();
-                    this.addNode(new Anchor(DrawingEngine.canvas.width/2, DrawingEngine.canvas.height/2));
+                    this.addNode(new Anchor(window.innerWidth/2, window.innerHeight/2));
                     this.refresh();
-                    CanvasEventHandler.clearSelection();
+                    EventHandler.clearSelection();
                     Actions.setModelStatus();
-                    DrawingEngine.reset();
                     Actions.resetZoom();
                     Actions.centerModel();
                     DrawingEngine.start(false);
@@ -1410,17 +1313,9 @@
             addNode: function(node) {
                 // add node at the end of the array
                 if(node) {
-                    this.nodes[this.nodes.length] = node;
+                    this.nodes.push(node);
+                    this.idToNode[node.id] = node;
                     this.sort();
-                    this.shadowToNode[node.shadowColor] = node;
-                    if(this.topmostNode == null || node.yPosition < this.topmostNode.yPosition)
-                        this.topmostNode = node;
-                    if(this.rightmostNode == null || node.xPosition > this.rightmostNode.xPosition)
-                        this.rightmostNode = node;
-                    if(this.bottommostNode == null || node.yPosition > this.bottommostNode.yPosition)
-                        this.bottommostNode = node;
-                    if(this.leftmostNode == null || node.xPosition < this.leftmostNode.xPosition)
-                        this.leftmostNode = node;
                     this.invalidateNode(node);
                 }
             },
@@ -1431,8 +1326,8 @@
                     if(otherNode.type === NodeType.ATTRIBUTE)
                         otherNode.setKnotted(false);
                 }
-                UniqueColor.releaseUniqueColor(node.shadowColor);
-                delete this.shadowToNode[node.shadowColor];
+                delete this.idToNode[node.id];
+                node.hide();
                 this.deleteElementFromArray(this.nodes, node);
             },
             addEdge: function(edge) {
@@ -1445,8 +1340,8 @@
                 this.deleteElementFromArray(edge.otherNode.edges, edge);
                 this.removeNode(edge);
             },
-            getNodeFromShadow: function(shadow) {
-                return this.shadowToNode[shadow];
+            getNodeFromId: function(id) {
+                return this.idToNode[id];
             },
             deleteElementFromArray: function(array, element) {
                 array.splice(array.indexOf(element), 1);
@@ -1493,28 +1388,6 @@
                     schemaElement.appendChild(serializationElement);
                 }
                 return schema;
-            },
-            toSVG: function() {
-                var type = document.implementation.createDocumentType(
-                        "svg",
-                        "-//W3C//DTD SVG 1.0//EN",
-                        "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd"
-                );
-                var svg = document.implementation.createDocument(SVGNS, "svg", type);
-                var g = svg.createElementNS(SVGNS, 'g');
-                for(var i = 0; i < this.visibleNodes.length; i++)
-                    this.visibleNodes[i].toSVG(svg, g);
-                var node;
-                if(DrawingEngine.showNames) {
-                    for(i = 0; node = this.nodes[i]; i++)
-                        if(node.toString())
-                            node.toSVGName(svg, g);
-                }
-                svg.documentElement.appendChild(g);
-                return svg;
-            },
-            toSVGURL: function() {
-                return 'data:image/svg+xml;base64,' + btoa(new XMLSerializer().serializeToString(this.toSVG()));
             },
             fromXML: function(xml) {
                 if(xml) {
@@ -1657,7 +1530,6 @@
                     for(i = 0; edge = affectedEdges[i]; i++)
                         this.removeEdge(edge);
                     this.recordState();
-                    CanvasEventHandler.clearSelection();
                     DrawingEngine.start(true);
                 }
             },
@@ -1839,16 +1711,6 @@
                 this.recordState();
                 DrawingEngine.start(true);
             },
-            switchEdgeNodes: function(oldNode, newNode) {
-                if(oldNode === Model.topmostNode)
-                    Model.topmostNode = newNode;
-                if(oldNode === Model.bottommostNode)
-                    Model.bottommostNode = newNode;
-                if(oldNode === Model.leftmostNode)
-                    Model.leftmostNode = newNode;
-                if(oldNode === Model.rightmostNode)
-                    Model.rightmostNode = newNode;
-            },
             explode: function(nodes, startEngine) {
                 var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
                 for(i = 0; node = nodes[i]; i++) {
@@ -1901,11 +1763,9 @@
                                             if(knotEdge.visible)
                                                 visibleEdges++;
                                         if(visibleEdges === 0) {
-                                            this.switchEdgeNodes(knot, node);
                                             knot.visible = false;
                                         }
                                     }
-                                    this.switchEdgeNodes(otherNode, node);
                                     otherNode.visible = false;
                                     edge.visible = false;
                                 }
@@ -1940,7 +1800,6 @@
                                         if(knotEdge.visible)
                                             visibleEdges++;
                                     if(visibleEdges === 0) {
-                                        this.switchEdgeNodes(otherNode, node);
                                         otherNode.visible = false;
                                     }
                                 }
@@ -1959,34 +1818,17 @@
             // holds the "thread" id when the drawing engine is running
             drawId: null,
             initialized: false,
-            canvas: null,
-            shadowCanvas: null,
-            miniatureCanvas: null,
-            context: null,
-            shadowContext: null,
-            miniatureContext: null,
             running: false,
-            xyScale: 1,
-            xTranslation: 0,
-            yTranslation: 0,
-            xVisible: 0,
-            yVisible: 0,
-            widthVisible: 0,
-            heightVisible: 0,
-            miniScale: 0.2, // one fifth of the large canvas
-            miniPadding: 50,
-            miniWidth: 0,
-            miniHeight: 0,
             miniCounter: 0,
             miniature: null,
             showNames: false,
-            drawShadows: false,
-            drawCurves: true,
             coloring: true,
             newState: true,
             miniatureFramesBetweenRefresh: 50,
             layout: false,
-            init: function(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext) {
+            viewport: null,
+            screenCircumference: 0,
+            init: function() {
                 var requestAnimationFrame =
                         window.requestAnimationFrame ||
                         window.webkitRequestAnimationFrame ||
@@ -2011,95 +1853,38 @@
                         return clearTimeout(id);
                     };
                 }
-                this.canvas = canvas;
-                this.shadowCanvas = shadowCanvas;
-                this.miniatureCanvas = miniatureCanvas;
-                this.context = context;
-                this.shadowContext = shadowContext;
-                this.miniatureContext = miniatureContext;
-                this.context.font = '10px sans-serif';
+                this.viewport = document.createElementNS(SVGNS, 'rect');
+                this.viewport.setAttributeNS(null, 'id', 'viewport');
+                this.viewport.setAttributeNS(null, 'x', SVG.viewBox.baseVal.x);
+                this.viewport.setAttributeNS(null, 'y', SVG.viewBox.baseVal.y);
+                this.viewport.setAttributeNS(null, 'width', SVG.viewBox.baseVal.width);
+                this.viewport.setAttributeNS(null, 'height', SVG.viewBox.baseVal.height);
+                this.viewport.setAttributeNS(null, 'style', 'stroke: red; stroke-width: 2px; fill: none;');
                 this.initialized = true;
-                this.refreshViewportCoordinates();
             },
             storeSettings: function(storage) {
-                storage.setItem("xyScale", this.xyScale);
-                storage.setItem("xTranslation", this.xTranslation);
-                storage.setItem("yTranslation", this.yTranslation);
+                storage.setItem("viewportX", SVG.viewBox.baseVal.x);
+                storage.setItem("viewportY", SVG.viewBox.baseVal.y);
+                storage.setItem("viewportWidth", SVG.viewBox.baseVal.width);
+                storage.setItem("viewportHeight", SVG.viewBox.baseVal.height);
             },
             loadSettings: function(storage) {
-                this.xyScale = 1 * storage.getItem("xyScale") || 1;
-                this.xTranslation = 1 * storage.getItem("xTranslation") || 0;
-                this.yTranslation = 1 * storage.getItem("yTranslation") || 0;
-                ResizeHandler.resizeCanvas(this.canvas, this.context);
-                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
+                SVG.viewBox.baseVal.x = 1 * storage.getItem("viewportX") || 0;
+                SVG.viewBox.baseVal.y = 1 * storage.getItem("viewportY") || 0;
+                SVG.viewBox.baseVal.width = 1 * storage.getItem("viewportWidth") || window.innerWidth;
+                SVG.viewBox.baseVal.height = 1 * storage.getItem("viewportHeight") || window.innerHeight;
                 this.invalidateMiniature();
-                this.refreshViewportCoordinates();
-            },
-            reset: function() {
-                this.xyScale = 1;
-                this.xTranslation = 0;
-                this.yTranslation = 0;
-                this.miniScale = 0.2;
-                ResizeHandler.resizeCanvas(this.canvas, this.context);
-                ResizeHandler.resizeCanvas(this.shadowCanvas, this.shadowContext);
-                this.invalidateMiniature();
-                this.refreshViewportCoordinates();
-            },
-            scale: function(scale) {
-                this.xyScale *= scale;
-                this.context.scale(scale, scale);
-                this.shadowContext.scale(scale, scale);
-                this.refreshViewportCoordinates();
-            },
-            translate: function(x, y) {
-                this.xTranslation += x * this.xyScale;
-                this.yTranslation += y * this.xyScale;
-                this.context.translate(x, y);
-                this.shadowContext.translate(x, y);
-                this.refreshViewportCoordinates();
-            },
-            refreshViewportCoordinates: function() {
-                if(this.initialized) {
-                    this.xVisible = -this.xTranslation/this.xyScale;
-                    this.yVisible = -this.yTranslation/this.xyScale;
-                    this.widthVisible = this.canvas.width/this.xyScale;
-                    this.heightVisible = this.canvas.height/this.xyScale;
-                }
-            },
-            xContext: function(xScreen) {
-                return (xScreen - this.xTranslation) / this.xyScale;
-            },
-            yContext: function(yScreen) {
-                return (yScreen - this.yTranslation) / this.xyScale;
-            },
-            xScreen: function(xContext) {
-                return xContext * this.xyScale + this.xTranslation;
-            },
-            yScreen: function(yContext) {
-                return yContext * this.xyScale + this.yTranslation;
+                this.start(false);
             },
             setCursor: function(cursor) {
-                this.canvas.style.cursor = cursor;
-            },
-            getNodeAt: function(x, y) {
-                // clear the shadow context
-                this.shadowContext.fillStyle = Color.scheme.shadowBackground;
-                this.shadowContext.fillRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
-
-                var i, node;
-                // draw all visible nodes on the shadow context
-                for(i = 0; node = Model.visibleNodes[i]; i++)
-                    node.drawShadow(this.shadowContext);
-
-                var data = this.shadowContext.getImageData(x, y, 1, 1).data;
-                return Model.getNodeFromShadow(UniqueColor.formatColor(data[0], data[1], data[2]));
+                SVG.style.cursor = cursor;
             },
             start: function(layoutModel) {
                 if(this.initialized) {
                     this.layout = layoutModel;
                     if(!this.running) {
                         this.running = true;
-                        this.drawId = window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
+                        this.drawId = window.requestAnimationFrame(DrawingEngine.engine, SVG);
                         if(this.layout)
                             ControlButtons.setPauseState();
                     }
@@ -2131,470 +1916,60 @@
                     ControlButtons.setPlayState();
                 }
                 else if(DrawingEngine.running) {
-                    window.requestAnimationFrame(DrawingEngine.engine, DrawingEngine.canvas);
+                    window.requestAnimationFrame(DrawingEngine.engine, SVG);
                 }
             },
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
             draw: function() {
-                // clear the visible context
-                this.context.clearRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
-
-                if(DEBUG) {
-                    var partition;
-                    for(var key in LayoutEngine.partitions) {
-                        partition =  LayoutEngine.partitions[key];
-                        this.context.lineWidth = 5;
-                        this.context.strokeStyle = Color.scheme.partitionOutline;
-                        this.context.strokeRect(
-                                partition.xMin - LayoutEngine.fuzz,
-                                partition.yMin - LayoutEngine.fuzz,
-                                partition.xMax - partition.xMin + 2 * LayoutEngine.fuzz,
-                                partition.yMax - partition.yMin + 2 * LayoutEngine.fuzz
-                        );
-                        this.context.fillStyle = Color.scheme.partitionForceEndpoint;
-                        this.context.fillRect(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity - 5,
-                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity - 5, 10, 10);
-                        this.context.beginPath();
-                        this.context.moveTo(partition.xPosition, partition.yPosition);
-                        // draw an exaggerated velocity vector
-                        this.context.lineTo(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity,
-                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity);
-                        this.context.strokeStyle = Color.scheme.partitionForceVector;
-                        this.context.lineWidth = 0.5;
-                        this.context.stroke();
-                    }
-                }
-
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                if(this.miniCounter === 1)
-                    this.drawMiniature(Model);
-
                 var i, node;
-                // draw focus rings around hovered and selected nodes
-                if(node = CanvasEventHandler.hoveredNode)
-                    this.drawHovered(node.xPosition, node.yPosition);
-
-                for(i = 0; node = CanvasEventHandler.selectedNodes[i]; i++)
-                    this.drawSelected(node.xPosition, node.yPosition, node === CanvasEventHandler.hoveredNode);
-
-                // cast all shadows first
-                if(this.drawShadows)
-                    for(i = 0; node = Model.visibleNodes[i]; i++)
-                        node.drawMoving(this.context);
-
-                // draw all nodes and edges on the visible context
-                for(i = 0; node = Model.visibleNodes[i]; i++) {
-                    if(node.imploded) {
-                        Color.useScheme(Color.imploded);
-                        node.draw(this.context, 2);
-                    }
-                    else {
-                        Color.useScheme(Color.normal);
-                        node.draw(this.context, 0);
-                    }
+                i = Model.visibleNodes.length;
+                while(i--) {
+                    node = Model.visibleNodes[i];
+                    node.draw(node.svg);
                     if(this.miniCounter === 1)
-                        node.draw(this.miniatureContext, 1);
+                        node.draw(node.nav);
+                    if(this.showNames)
+                        node.drawName(node.svg);
                 }
-                if(this.showNames) {
-                    for(i = 0; node = Model.visibleNodes[i]; i++)
-                        node.drawName(this.context);
-                }
-                else if (node = CanvasEventHandler.hoveredNode)
-                    node.drawName(this.context);
+                if(this.miniCounter === 1)
+                    this.updateMiniature();
             },
-            drawMiniature: function(model) {
-                // check current size first and adjust scale accordingly
-                if(!model.rightmostNode) return;
-                var maxResizes = 10;
-                do {
-                    this.miniWidth = model.rightmostNode.xPosition - model.leftmostNode.xPosition +
-                            2 * this.miniPadding;
-                    this.miniHeight = model.bottommostNode.yPosition - model.topmostNode.yPosition +
-                            2 * this.miniPadding;
-                    this.miniatureCanvas.width = this.miniScale * this.miniWidth;
-                    this.miniatureCanvas.height = this.miniScale * this.miniHeight;
+            updateMiniature: function() {
+                if(!NAVLayer.viewport.contains(this.viewport))
+                    NAVLayer.viewport.appendChild(this.viewport);
+                this.viewport.x.baseVal.value = SVG.viewBox.baseVal.x;
+                this.viewport.y.baseVal.value = SVG.viewBox.baseVal.y;
+                this.viewport.width.baseVal.value = SVG.viewBox.baseVal.width || window.innerWidth;
+                this.viewport.height.baseVal.value = SVG.viewBox.baseVal.height || window.innerHeight;
+                var nodeBox = NAV.getElementById('nodes').getBBox();
+                var pad = 50;
+                var width = nodeBox.width + 2 * pad;
+                var height = nodeBox.height + 2 * pad;
+                var screenCircumference = window.innerWidth + window.innerHeight;
+                var viewportCircumference = width + height;
+                var scale;
+                if(viewportCircumference < screenCircumference/6) {
+                    scale = screenCircumference/6/viewportCircumference;
+                    width *= scale;
+                    height *= scale;
                 }
-                while(this.resizeMiniature() && --maxResizes);
-
-                this.miniatureCanvas.style.width = this.miniatureCanvas.width + 'px';
-                this.miniatureCanvas.style.height = this.miniatureCanvas.height + 'px';
-                this.miniatureContext.setTransform(this.miniScale, 0, 0, this.miniScale, this.miniScale *
-                        (this.miniPadding - model.leftmostNode.xPosition), this.miniScale *
-                        (this.miniPadding - model.topmostNode.yPosition));
-
-                // show the viewport on the miniature
-                this.miniatureContext.strokeStyle = Color.scheme.viewport;
-                this.miniatureContext.lineWidth = 1/this.miniScale;
-                this.miniatureContext.strokeRect(this.xVisible, this.yVisible, this.widthVisible, this.heightVisible);
-            },
-            resizeMiniature: function() {
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height <
-                        (window.innerWidth + window.innerHeight) / 6) {
-                    this.miniScale *= 1.05;
-                    return true;
+                else if(viewportCircumference > screenCircumference/4) {
+                    scale = screenCircumference/4/viewportCircumference;
+                    height *= scale;
+                    width *= scale;
                 }
-                if(this.miniatureCanvas.width + this.miniatureCanvas.height >
-                        (window.innerWidth + window.innerHeight) / 4) {
-                    this.miniScale *= 0.95;
-                    return true;
-                }
-                return false;
-            },
-            drawHovered: function(x, y) {
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = Color.scheme.outerHovered;
-                this.context.fill();
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance - 5, 0, 2*Math.PI, false);
-                this.context.fillStyle = Color.scheme.innerHovered;
-                this.context.fill();
-            },
-            drawSelected: function(x, y, isHovered) {
-                if(!isHovered) {
-                    this.context.beginPath();
-                    this.context.arc(x, y, LayoutEngine.normalDistance + 5, 0, 2*Math.PI, false);
-                    this.context.fillStyle = Color.scheme.outerSelected;
-                    this.context.fill();
-                }
-                this.context.beginPath();
-                this.context.arc(x, y, LayoutEngine.normalDistance, 0, 2*Math.PI, false);
-                this.context.strokeStyle = Color.scheme.innerSelected;
-                this.context.lineWidth = 1.0;
-                this.context.stroke();
+                NAV.style.width = width + 'px';
+                NAV.style.height = height + 'px';
+                NAV.viewBox.baseVal.x = nodeBox.x - pad;
+                NAV.viewBox.baseVal.y = nodeBox.y - pad;
+                NAV.viewBox.baseVal.width = nodeBox.width + 2 * pad;
+                NAV.viewBox.baseVal.height = nodeBox.height + 2 * pad;
             }
         };
-
-        var ResizeHandler = {
-            resizeCanvas: function(canvas, context) {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                // apparently changing the canvas width or height resets the transform
-                context.setTransform(DrawingEngine.xyScale, 0, 0, DrawingEngine.xyScale,
-                        DrawingEngine.xTranslation, DrawingEngine.yTranslation);
-                DrawingEngine.refreshViewportCoordinates();
-                DrawingEngine.start(false);
-            }
-        };
-
-        var CanvasEventHandler = {
-            dragging: false,
-            hasMoved: false,
-            contextMenu: null,
-            focusedNode: null,
-            xLastKnown: 0,
-            yLastKnown: 0,
-            hoveringPrepared: false,
-            hoveringId: null,
-            hoveredNode: null,
-            selectedNodes: [],
-            keyboardShortcuts: true,
-            disableKeyboardShortcuts: function() {
-                this.keyboardShortcuts = false;
-            },
-            enableKeyboardShortcuts: function() {
-                this.keyboardShortcuts = true;
-            },
-            touchstart: function(event) {
-                var touches = event.changedTouches;
-                var touch;
-                for(var t = 0; touch = touches[t]; t++) {
-                    if(this.focusedNode = DrawingEngine.getNodeAt(touch.xScreen, touch.yScreen)) {
-                        if(this.selectedNodes.indexOf(this.focusedNode) < 0)
-                            this.addNodeToSelection(this.focusedNode);
-                    }
-                }
-            },
-            touchend: function(event) {
-                var touches = event.changedTouches;
-                var touch;
-                for(var t = 0; touch = touches[t]; t++) {
-                    if(this.focusedNode = DrawingEngine.getNodeAt(touch.xScreen, touch.yScreen)) {
-                        if(this.selectedNodes.indexOf(this.focusedNode) >= 0)
-                            this.removeNodeFromSelection(this.focusedNode);
-                    }
-                }
-            },
-            mousedown: function(event) {
-                if(this.focusedNode = DrawingEngine.getNodeAt(event.xScreen, event.yScreen)) {
-                    if(event.shiftKey) {
-                        if(this.selectedNodes.indexOf(this.focusedNode) >= 0)
-                            this.removeNodeFromSelection(this.focusedNode);
-                        else
-                            this.addNodeToSelection(this.focusedNode);
-                    }
-                }
-                else if(event.shiftKey) {
-                    // we are shift clicking the canvas background
-                    this.clearSelection();
-                }
-                this.dragging = true;
-                return false;
-            },
-            mousemove: function(event) {
-                if (this.dragging) {
-                    this.hasMoved = true;
-                    // if we are dragging a node, we must also be hovering over it
-                    if(this.focusedNode) {
-                        if(this.focusedNode.isInteractive()) {
-                            this.focusedNode.xPosition = DrawingEngine.xContext(event.xScreen);
-                            this.focusedNode.yPosition = DrawingEngine.yContext(event.yScreen);
-                            this.focusedNode.setFixed(true);
-                            if(this.contextMenu !== null && this.contextMenu.collapsed) {
-                                this.contextMenu.close();
-                                this.contextMenu = null;
-                            }
-                            Model.invalidateNode(this.focusedNode);
-                            DrawingEngine.start(true);
-                        }
-                    }
-                    // if the dragging started over an empty part of the canvas
-                    else {
-                        DrawingEngine.setCursor('move');
-                        DrawingEngine.translate((event.xScreen - this.xLastKnown)/DrawingEngine.xyScale,
-                                (event.yScreen - this.yLastKnown)/DrawingEngine.xyScale);
-                        DrawingEngine.start(false);
-                    }
-                }
-                else {
-                    // we are hovering, but not dragging
-                    if(this.hoveredNode) {
-                        var mouse = {
-                            xPosition: DrawingEngine.xContext(event.xScreen),
-                            yPosition: DrawingEngine.yContext(event.yScreen)
-                        };
-                        if(LayoutEngine.manhattanDistance(this.hoveredNode, mouse) >
-                                1.5 * LayoutEngine.normalDistance) {
-                            DrawingEngine.setCursor('default');
-                            this.hoveredNode = null;
-                            this.hoveringPrepared = false;
-                            if(this.contextMenu !== null && this.contextMenu.collapsed) {
-                                this.contextMenu.close();
-                                this.contextMenu = null;
-                            }
-                            DrawingEngine.start(false);
-                        }
-                    }
-                    // if we are not hovering, set up a check in half a second
-                    else if (!this.hoveringPrepared) {
-                        this.hoveringPrepared = true;
-                        this.hoveringId = setTimeout(function(self) { self.mousehover(event); }, 500, this);
-                    }
-                }
-                this.xLastKnown = event.xScreen;
-                this.yLastKnown = event.yScreen;
-                return false;
-            },
-            mousehover: function(event) {
-                // mouse pointer over node
-                if(this.hoveredNode = DrawingEngine.getNodeAt(this.xLastKnown, this.yLastKnown)) {
-                    if(this.contextMenu == null)
-                        this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
-                    else if (this.contextMenu.collapsed) {
-                        this.contextMenu.close();
-                        this.contextMenu = new ContextMenu(this.hoveredNode, this.selectedNodes);
-                    }
-                    DrawingEngine.setCursor('pointer');
-                    DrawingEngine.start(false);
-                }
-                // mouse pointer not over node, trigger a new check
-                else {
-                    this.hoveringPrepared = false;
-                }
-                return false;
-            },
-            closeContextMenu: function() {
-                if(this.contextMenu) {
-                    this.contextMenu.close();
-                    this.contextMenu = null;
-                }
-            },
-            keypress: function(event) {
-                if(this.keyboardShortcuts) {
-                    if(this.hoveredNode || this.selectedNodes.length > 0) {
-                        var allNodes = this.selectedNodes.slice(0);
-                        if(this.hoveredNode && allNodes.indexOf(this.hoveredNode) < 0)
-                            allNodes.push(this.hoveredNode);
-                        switch(String.fromCharCode(event.which)) {
-                            case "e":
-                                if(!this.contextMenu)
-                                    this.contextMenu = new ContextMenu(allNodes[0], this.selectedNodes);
-                                this.contextMenu.toggle();
-                                break;
-                            case "a":
-                                if(Operations.isSupported("addAttribute", allNodes))
-                                    Model.addAttribute(allNodes);
-                                else if(Operations.isSupported("addAnchor", allNodes))
-                                    Model.addAnchor(allNodes);
-                                break;
-                            case "t":
-                                if(Operations.isSupported("addTie", allNodes) && this.selectedNodes.length > 0)
-                                    Model.addTie(allNodes);
-                                else if(Operations.isSupported("addTieAndAnchor", allNodes))
-                                    Model.addTieAndAnchor(allNodes);
-                                break;
-                            case "c":
-                                if(Operations.isSupported("connect", allNodes)) {
-                                    var i, operation, validator;
-                                    for(i = 0; operation = Operations.list[i]; i++)
-                                        if(operation[0] === "connect")
-                                            validator = operation[3];
-                                    if(validator(allNodes))
-                                        Model.connect(allNodes);
-                                }
-                                break;
-                            case "h":
-                                if(Operations.isSupported("toggleHistorized", allNodes))
-                                    Model.toggleHistorized(allNodes);
-                                break;
-                            case "k":
-                                if(Operations.isSupported("toggleKnotted", allNodes))
-                                    Model.toggleKnotted(allNodes);
-                                else if(Operations.isSupported("addKnot", allNodes))
-                                    Model.addKnot(allNodes);
-                                break;
-                            case "i":
-                                if(Operations.isSupported("toggleIdentifier", allNodes))
-                                    Model.toggleIdentifier(allNodes);
-                                break;
-                            case "f":
-                                if(Operations.isSupported("makeFirstRole", allNodes))
-                                    Model.makeFirstRole(allNodes);
-                                break;
-                            case "x":
-                                if(Operations.isSupported("explode", allNodes))
-                                    Model.explode(allNodes);
-                                break;
-                            case "d":
-                                if(Operations.isSupported("erase", allNodes))
-                                    Model.erase(allNodes);
-                                break;
-                            case "p":
-                                if(this.hoveredNode)
-                                    this.hoveredNode.setFixed(!this.hoveredNode.fixed);
-                                    DrawingEngine.start(false);
-                                break;
-                        }
-                        if(event.stopPropagation)
-                            event.stopPropagation();
-                        if(event.preventDefault)
-                            event.preventDefault();
-                    }
-                }
-                return false;
-            },
-            // this is special Firefox handling
-            DOMMouseScroll: function(event) {
-                this.mousewheel(event);
-            },
-            mousewheel: function(event) {
-                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * 0.01;
-                var scale = DrawingEngine.xyScale * zoom;
-                if(scale > 0.1 && scale < 10) {
-                    DrawingEngine.scale(zoom);
-                    DrawingEngine.translate(DrawingEngine.xContext(event.xScreen) -
-                            DrawingEngine.xContext(event.xScreen) * zoom, DrawingEngine.yContext(event.yScreen) -
-                            DrawingEngine.yContext(event.yScreen) * zoom);
-                    DrawingEngine.start(false);
-                }
-                return false;
-            },
-            mouseup: function(event) {
-                var layout = false;
-                // the dragging started over a node
-                if(this.focusedNode && !this.hasMoved && !event.shiftKey) {
-                    this.focusedNode.setFixed(!this.focusedNode.getFixed());
-                    layout = true;
-                }
-                this.focusedNode = null;
-                this.dragging = false;
-                this.hasMoved = false;
-                DrawingEngine.setCursor('default');
-                DrawingEngine.start(layout);
-                return false;
-            },
-            handleEvent: function(event) {
-                // note that "this" refers to the object on which we attached the event handler
-                event.xScreen = event.clientX
-                        + document.documentElement.scrollLeft
-                        - this.offsetLeft;
-                event.yScreen = event.clientY
-                        + document.documentElement.scrollTop
-                        - this.offsetTop;
-
-                if(this.CanvasEventHandler[event.type])
-                    this.CanvasEventHandler[event.type](event);
-            },
-            addNodeToSelection: function(node) {
-                if(this.selectedNodes.indexOf(node) < 0)
-                    this.selectedNodes.push(node);
-            },
-            removeNodeFromSelection: function(node) {
-                this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
-            },
-            clearSelection: function() {
-                this.selectedNodes = [];
-                this.hoveredNode = null;
-                this.hoveringPrepared = false;
-                this.closeContextMenu();
-            }
-        };
-
-        var MiniatureEventHandler = {
-            dragging: false,
-            xLastKnown: 0,
-            yLastKnown: 0,
-            mousedown: function(event) {
-                var xCenter = DrawingEngine.xVisible + DrawingEngine.widthVisible/2;
-                var yCenter = DrawingEngine.yVisible + DrawingEngine.heightVisible/2;
-                // scale down
-                xCenter = xCenter * DrawingEngine.miniScale + DrawingEngine.miniScale *
-                        (DrawingEngine.miniPadding - Model.leftmostNode.xPosition);
-                yCenter = yCenter * DrawingEngine.miniScale + DrawingEngine.miniScale *
-                        (DrawingEngine.miniPadding - Model.topmostNode.yPosition);
-
-                var xTranslate = xCenter - event.xScreen;
-                var yTranslate = yCenter - event.yScreen;
-                // scale up
-                xTranslate /= DrawingEngine.miniScale;
-                yTranslate /= DrawingEngine.miniScale;
-
-                DrawingEngine.translate(xTranslate, yTranslate);
-                this.dragging = true;
-            },
-            mousemove: function(event) {
-                if (this.dragging) {
-                    DrawingEngine.translate(
-                            (this.xLastKnown - event.xScreen)/DrawingEngine.miniScale,
-                            (this.yLastKnown - event.yScreen)/DrawingEngine.miniScale
-                    );
-                    DrawingEngine.start(false);
-                }
-                this.xLastKnown = event.xScreen;
-                this.yLastKnown = event.yScreen;
-            },
-            mouseup: function(event) {
-                if (this.dragging)
-                    this.dragging = false;
-                DrawingEngine.start(false);
-            },
-            handleEvent: function(event) {
-                // note that "this" refers to the object on which we attached the event handler
-                event.xScreen = event.clientX
-                        + document.documentElement.scrollLeft
-                        - this.offsetLeft;
-                event.yScreen = event.clientY
-                        + document.documentElement.scrollTop
-                        - this.offsetTop;
-
-                if(this.MiniatureEventHandler[event.type])
-                    this.MiniatureEventHandler[event.type](event);
-            }
-        };
-
 
         var UniqueIdentity = {
             lastId: 0,
@@ -2874,6 +2249,309 @@
             }
         };
 
+        var EventHandler = {
+            selectedNodes: [], // may be larger than interacted with SHIFT clicks
+            interactedNodes: [], // currently "touched" nodes
+            interaction: null,
+            previousInteraction: null,
+            addNodeToSelection: function(node) {
+                if(this.selectedNodes.indexOf(node) < 0)
+                    this.selectedNodes.push(node);
+            },
+            removeNodeFromSelection: function(node) {
+                if(this.selectedNodes.indexOf(node) >= 0)
+                    this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
+            },
+            clearSelection: function() {
+                this.selectedNodes = [];
+            },
+            isSelected: function(node) {
+                return this.selectedNodes.indexOf(node) >= 0;
+            },
+            setInteraction: function(interaction) {
+                if(this.interaction) this.previousInteraction = this.interaction;
+                this.interaction = interaction;
+            },
+            getInteraction: function() {
+                return this.interaction;
+            },
+            getPreviousInteraction: function() {
+                return this.previousInteraction;
+            },
+            addNodeToInteraction: function(node) {
+                if(this.interactedNodes.indexOf(node) < 0)
+                    this.interactedNodes.push(node);
+            },
+            removeNodeFromInteraction: function(node) {
+                if(this.interactedNodes.indexOf(node) >= 0)
+                    this.interactedNodes.splice(this.interactedNodes.indexOf(node), 1);
+            },
+            clearHighlights: function() {
+                var i = this.interactedNodes.length;
+                while(i--) this.interactedNodes[i].setHighlight(false);
+            },
+            clearInteraction: function() {
+                this.clearHighlights();
+                this.interactedNodes = [];
+                this.setInteraction(null);
+            },
+            isInteracted: function(node) {
+                return this.interactedNodes.indexOf(node) >= 0;
+            },
+            hasOngoingInteractions: function() {
+                return this.interaction != null;
+            },
+            beginInteraction: function(event) {
+                event.preventDefault();
+                if(!EventHandler.hasOngoingInteractions()) {
+                    EventHandler.setInteraction("beginInteraction");
+                    var component = this.component; // note that _this_ refers to the SVG element here
+                    if(!EventHandler.isInteracted(component))
+                        EventHandler.addNodeToInteraction(component);
+                    if(!EventHandler.isSelected(component))
+                        EventHandler.addNodeToSelection(component);
+                    window.addEventListener('keypress', EventHandler.keypress, false);
+                    SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
+                    component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
+                    component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
+                    component.setHighlight(true);
+                    component.showContextMenu(component, EventHandler.selectedNodes);
+                }
+                event.stopPropagation();
+            },
+            prepareDragging: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "beginInteraction") {
+                    EventHandler.setInteraction("prepareDragging");
+                    var component, i;
+                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                        if(event.shiftKey) {
+                            if(EventHandler.isSelected(component))
+                                EventHandler.removeNodeFromSelection(component);
+                            else
+                                EventHandler.addNodeToSelection(component);
+                        }
+                        component.hideContextMenu();
+                        component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
+                    }
+                    SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
+                }
+                event.stopPropagation();
+            },
+            whileDragging: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whileDragging" ||
+                        EventHandler.getInteraction() === "prepareDragging") {
+                    var component, i, svgPoint;
+                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                        if(component.isInteractive()) {
+                            svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY)
+                            if(EventHandler.getInteraction() === "whileDragging") {
+                                component.xPosition = svgPoint.x;
+                                component.yPosition = svgPoint.y;
+                                component.setFixed(true);
+                                Model.invalidateNode(this);
+                                DrawingEngine.start(true);
+                            }
+                            else if(EventHandler.getInteraction() === "prepareDragging") {
+                                if(LayoutEngine.manhattanDistance(component, {
+                                    xPosition: svgPoint.x,
+                                    yPosition: svgPoint.y
+                                }) > 10) {
+                                    EventHandler.setInteraction("whileDragging");
+                                }
+                            } // switch behavior if we actually move the thing a fair distance
+                        }
+                    }
+                }
+                event.stopPropagation();
+            },
+            clickComponent: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() !== "whileDragging") {
+                    var component, i = EventHandler.interactedNodes.length;
+                    while(i--) {
+                        component = EventHandler.interactedNodes[i];
+                        component.setFixed(!component.getFixed());
+                    }
+                    EventHandler.setInteraction("toggledFixation");
+                }
+                else {
+                    EventHandler.setInteraction("completeDragging");
+                }
+                event.stopPropagation();
+            },
+            clickHighlight: function(event) {
+                event.preventDefault();
+                alert("clicked highlight");
+                event.stopPropagation();
+            },
+            endInteraction: function(event) {
+                event.preventDefault();
+                if(event.toElement === SVG && EventHandler.getInteraction() !== "whileDragging") {
+                    var component, i;
+                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                        if(EventHandler.isSelected(component))
+                            EventHandler.removeNodeFromSelection(component);
+                        component.hideContextMenu();
+                        component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
+                    }
+                    EventHandler.clearInteraction();
+                    SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
+                    window.removeEventListener('keypress', EventHandler.keypress, false);
+                }
+                event.stopPropagation();
+            },
+            preparePanning: function(event) {
+                event.preventDefault();
+                if(event.shiftKey) {
+                    // we are shift clicking the canvas background
+                    EventHandler.clearInteraction();
+                    EventHandler.clearSelection();
+                }
+                else if(!EventHandler.hasOngoingInteractions()) {
+                    EventHandler.setInteraction("preparePanning");
+                    var screenWidth = SVG.width.baseVal.value;
+                    var screenHeight = SVG.height.baseVal.value;
+                    var viewBoxWidth = SVG.viewBox.baseVal.width || screenWidth;
+                    var viewBoxHeight = SVG.viewBox.baseVal.height || screenHeight;
+                    SVG.viewBox.baseVal.width = viewBoxWidth;
+                    SVG.viewBox.baseVal.height = viewBoxHeight;
+                    EventHandler.scaleX = viewBoxWidth / screenWidth;
+                    EventHandler.scaleY = viewBoxHeight / screenHeight;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                    SVG.addEventListener('mousemove', EventHandler.whilePanning, false);
+                    SVG.addEventListener('mouseup', EventHandler.completePanning, false);
+                }
+                event.stopPropagation();
+            },
+            lastX: null,
+            lastY: null,
+            scaleX: null,
+            scaleY: null,
+            whilePanning: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whilePanning" ||
+                        EventHandler.getInteraction() === "preparePanning") {
+                    EventHandler.setInteraction("whilePanning");
+                    SVG.viewBox.baseVal.x -= (event.clientX - EventHandler.lastX) * EventHandler.scaleX;
+                    SVG.viewBox.baseVal.y -= (event.clientY - EventHandler.lastY) * EventHandler.scaleY;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                }
+                DrawingEngine.invalidateMiniature();
+                DrawingEngine.start(false);
+                event.stopPropagation();
+            },
+            completePanning: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whilePanning") {
+                    EventHandler.setInteraction("completePanning");
+                    EventHandler.clearInteraction();
+                    SVG.removeEventListener('mousemove', EventHandler.whilePanning, false);
+                    SVG.removeEventListener('mouseup', EventHandler.completePanning, false);
+                }
+                event.stopPropagation();
+            },
+            scaling: 0.03,
+            zoom: function(event) {
+                event.preventDefault();
+                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * EventHandler.scaling;
+                var width = SVG.viewBox.baseVal.width || SVG.width.baseVal.value;
+                var height = SVG.viewBox.baseVal.height || SVG.height.baseVal.value;
+                var x = SVG.viewBox.baseVal.x;
+                var y = SVG.viewBox.baseVal.y;
+                var svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY);
+                SVG.viewBox.baseVal.width = width * zoom;
+                SVG.viewBox.baseVal.height = height * zoom;
+                SVG.viewBox.baseVal.x = x + (1 - zoom) * (svgPoint.x - x);
+                SVG.viewBox.baseVal.y = y + (1 - zoom) * (svgPoint.y - y);
+                DrawingEngine.invalidateMiniature();
+                DrawingEngine.start(false);
+                event.stopPropagation();
+            },
+            screenToSVG: function(x, y) {
+                var screenPoint = SVG.createSVGPoint();
+                screenPoint.x = x;
+                screenPoint.y = y;
+                var matrix = SVG.getScreenCTM();
+                return screenPoint.matrixTransform( matrix.inverse() );
+            },
+            svgToScreen: function(x, y) {
+                var svgPoint = SVG.createSVGPoint();
+                svgPoint.x = x;
+                svgPoint.y = y;
+                var matrix = SVG.getScreenCTM();
+                return svgPoint.matrixTransform( matrix );
+            },
+            keypress: function(event) {
+                if(EventHandler.selectedNodes.length > 0) {
+                    var allNodes = EventHandler.selectedNodes.slice(0);
+                    var component = allNodes[0];
+                    switch(String.fromCharCode(event.which)) {
+                        case "e":
+                            component.showContextMenu(component, allNodes);
+                            component.contextMenu.toggle();
+                            break;
+                        case "a":
+                            if(Operations.isSupported("addAttribute", allNodes))
+                                Model.addAttribute(allNodes);
+                            else if(Operations.isSupported("addAnchor", allNodes))
+                                Model.addAnchor(allNodes);
+                            break;
+                        case "t":
+                            if(Operations.isSupported("addTie", allNodes) && allNodes.length > 0)
+                                Model.addTie(allNodes);
+                            else if(Operations.isSupported("addTieAndAnchor", allNodes))
+                                Model.addTieAndAnchor(allNodes);
+                            break;
+                        case "c":
+                            if(Operations.isSupported("connect", allNodes)) {
+                                var i, operation, validator;
+                                for(i = 0; operation = Operations.list[i]; i++)
+                                    if(operation[0] == "connect")
+                                        validator = operation[3];
+                                if(validator(allNodes))
+                                    Model.connect(allNodes);
+                            }
+                            break;
+                        case "h":
+                            if(Operations.isSupported("toggleHistorized", allNodes))
+                                Model.toggleHistorized(allNodes);
+                            break;
+                        case "k":
+                            if(Operations.isSupported("toggleKnotted", allNodes))
+                                Model.toggleKnotted(allNodes);
+                            else if(Operations.isSupported("addKnot", allNodes))
+                                Model.addKnot(allNodes);
+                            break;
+                        case "i":
+                            if(Operations.isSupported("toggleIdentifier", allNodes))
+                                Model.toggleIdentifier(allNodes);
+                            break;
+                        case "f":
+                            if(Operations.isSupported("makeFirstRole", allNodes))
+                                Model.makeFirstRole(allNodes);
+                            break;
+                        case "x":
+                            if(Operations.isSupported("explode", allNodes))
+                                Model.explode(allNodes);
+                            break;
+                        case "d":
+                            if(Operations.isSupported("erase", allNodes))
+                                Model.erase(allNodes);
+                            break;
+                    }
+                    if(event.stopPropagation)
+                        event.stopPropagation();
+                    if(event.preventDefault)
+                        event.preventDefault();
+                }
+            }
+        };
+
         function AbstractNode(x, y) {
             this.xPosition = x;
             this.yPosition = y;
@@ -2884,11 +2562,36 @@
             this.fixed = false;
             this.visible = true;
             this.incomplete = true;
-            this.shadowColor = UniqueColor.reserveUniqueColor();
             this.id = UniqueIdentity.nextId();
             this.edges = [];
             this.editables = [];
             this.operations = ['erase', 'connect'];
+            this.svg = {
+                graphicsElement: null,
+                useElement: null,
+                boundingBox: null,
+                xOffset: null,
+                yOffset: null,
+                control: null,
+                nameElement: null,
+                nameText: null,
+                nameControl: null,
+                highlightElement: null,
+                fixationElement: null,
+                pathElement: null,
+                pathControl: null
+            };
+            this.svg.highlightElement = document.createElementNS(SVGNS, 'use');
+            this.svg.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
+            this.svg.fixationElement = document.createElementNS(SVGNS, 'use');
+            this.svg.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
+            this.nav = {
+                graphicsElement: null,
+                useElement: null,
+                control: null,
+                pathElement: null,
+                pathControl: null
+            };
         }
         AbstractNode.prototype = {
             description: '',
@@ -2899,7 +2602,6 @@
             velocity: null,
             edges: null,
             moving: true,
-            shadowColor: Color.scheme.defaultShadowColor,
             editables: null,
             operations: null,
             type: 'Node',
@@ -2907,6 +2609,22 @@
             fixed: false,
             visible: true,
             incomplete: true,
+            svg: null,
+            nav: null,
+            nameable: false,
+            hasHighlight: false,
+            lastName: '',
+            // can be overridden by subclasses
+            hide: function() {
+                if(SVGLayer.nodes.contains(this.svg.graphicsElement))
+                    SVGLayer.nodes.removeChild(this.svg.graphicsElement);
+                if(NAVLayer.nodes.contains(this.nav.graphicsElement))
+                    NAVLayer.nodes.removeChild(this.nav.graphicsElement);
+            },
+            show: function() {
+                SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+                NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            },
             postCreationInitialization: function() {
                 this.editables.push(Editables.descriptionEdit);
             },
@@ -2921,15 +2639,35 @@
                     this.id = UniqueIdentity.nextId();
                 return this.id;
             },
+            setNameable: function(nameable) {
+                if(nameable && !this.svg.nameElement) {
+                    this.svg.nameElement = document.createElementNS(SVGNS, 'text');
+                    this.svg.nameElement.setAttributeNS(null, 'class', 'label');
+                    this.svg.nameElement.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
+                    this.svg.nameElement.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
+                    this.svg.nameText = document.createTextNode('I am a placeholder');
+                    this.svg.nameElement.appendChild(this.svg.nameText);
+                    SVGLayer.names.appendChild(this.svg.nameElement);
+                    this.svg.nameControl = {
+                        x: this.svg.nameElement.x.baseVal.getItem(0),
+                        y: this.svg.nameElement.y.baseVal.getItem(0)
+                    };
+
+                }
+                this.nameable = nameable;
+            },
+            updateName: function() {
+                if(this.nameable) {
+                    var name = this.contextualName();
+                    if(name != this.lastName) {
+                        this.lastName = name;
+                        this.svg.nameText.nodeValue = name;
+                    }
+                }
+            },
             // override to change behavior
             isInteractive: function() {
                 return false;
-            },
-            setFixed: function(fixed) {
-                this.fixed = fixed;
-            },
-            getFixed: function() {
-                return this.fixed;
             },
             // subclasses must override these
             getMass: function() {
@@ -3003,128 +2741,94 @@
                 for(var i = 0; i < this.edges.length; i++)
                     this.edges[i].start();
             },
-            nameXOffset: function() {
-                return 20;
-            },
-            toSVGName: function(svg, g) {
-                var name = this.contextualName();
-                if(name && this.visible) {
-                    var text = svg.createElementNS(SVGNS, 'text');
-                    text.setAttributeNS(null, 'font-size', '10');
-                    text.setAttributeNS(null, 'font-family', 'sans-serif');
-                    text.appendChild(svg.createTextNode(name));
-                    var i, edge, xAverage = 0;
-                    for(i = 0; edge = this.edges[i]; i++)
-                        xAverage += edge.xPosition;
-                    xAverage /= this.edges.length;
-                    var currentDistance, smallestDistance, yClosest;
-                    for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
-                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
-                                        (currentDistance < smallestDistance))) {
-                            smallestDistance = currentDistance;
-                            yClosest = edge.yPosition;
+            bad: false,
+            end: false,
+            drawName: function() {
+                if(this.svg.nameElement) {
+                    this.updateName();
+                    var i, edge, xAverage = 0, closestEdge = this.edges[0];
+                    i = this.edges.length;
+                    while(i--) {
+                        xAverage += this.edges[i].xPosition;
+                        if(LayoutEngine.manhattanDistance(this, this.edges[i]) <
+                                LayoutEngine.manhattanDistance(this, closestEdge)) {
+                            closestEdge = this.edges[i];
                         }
                     }
-                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
+                    xAverage /= this.edges.length;
+                    var quarter = this.svg.yOffset + this.svg.boundingBox.height / 4;
+                    var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
+                    var nameXOffset = this.svg.xOffset + this.svg.boundingBox.width / 2;
                     if(this.xPosition < xAverage) {
-                        text.setAttributeNS(null, 'x', (this.xPosition - this.nameXOffset()).toFixed(2));
-                        text.setAttributeNS(null, 'text-anchor', 'end');
+                        if(!this.end) {
+                            this.svg.nameElement.classList.add('end');
+                        }
+                        nameXOffset = -nameXOffset;
+                        this.end = true;
                     }
                     else {
-                        text.setAttributeNS(null, 'text-anchor', 'start');
-                        text.setAttributeNS(null, 'x', (this.xPosition + this.nameXOffset()).toFixed(2));
-                    }
-                    text.setAttributeNS(null, 'y', (this.yPosition - nameYOffset).toFixed(2));
-                    text.setAttributeNS(null, 'alignment-baseline', 'middle');
-                    if(this.incomplete)
-                        text.setAttributeNS(null, 'fill', Color.scheme.textIncomplete);
-                    else
-                        text.setAttributeNS(null, 'fill', Color.scheme.textComplete);
-                    g.appendChild(text);
-                }
-            },
-            drawName: function(context) {
-                var name = this.contextualName();
-                if(name) {
-                    var i, edge, xAverage = 0;
-                    for(i = 0; edge = this.edges[i]; i++)
-                        xAverage += edge.xPosition;
-                    xAverage /= this.edges.length;
-                    var currentDistance, smallestDistance, yClosest;
-                    for(i = 0; edge = this.edges[i]; i++) {
-                        currentDistance = Math.abs(this.yPosition - edge.yPosition);
-                        if(!i || ((this.xPosition < xAverage && edge.xPosition < this.xPosition) ||
-                                (this.xPosition >= xAverage && edge.xPosition >= this.xPosition) &&
-                                        (currentDistance < smallestDistance))) {
-                            smallestDistance = currentDistance;
-                            yClosest = edge.yPosition;
+                        if(this.end) {
+                            this.svg.nameElement.classList.remove('end');
                         }
+                        this.end = false;
                     }
-                    var nameYOffset = -7 + (yClosest ? (this.yPosition < yClosest ? -3 : 3) : 0);
-                    context.save();
-                    var nameWidth = context.measureText(name).width;
-                    if(this.xPosition < xAverage)
-                        context.translate(-nameWidth - this.nameXOffset(), nameYOffset);
-                    else
-                        context.translate(this.nameXOffset(), nameYOffset);
-                    context.textBaseline = 'middle';
-                    if(this.incomplete)
-                        context.fillStyle = Color.scheme.textIncomplete;
-                    else
-                        context.fillStyle = Color.scheme.textComplete;
-                    context.fillText(name, this.xPosition, this.yPosition);
-                    context.restore();
+                    if(this.incomplete) {
+                        if(!this.bad) {
+                            this.svg.nameElement.classList.add('bad');
+                        }
+                        this.bad = true;
+                    }
+                    else {
+                        if(this.bad) {
+                            this.svg.nameElement.classList.remove('bad');
+                        }
+                        this.bad = false;
+                    }
+                    this.svg.nameControl.x.value = this.xPosition + nameXOffset;
+                    this.svg.nameControl.y.value = this.yPosition + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
-            draw: function(context, detailLevel) {
+            draw: function(image) {
                 if(DEBUG) {
-                    context.beginPath();
-                    context.moveTo(this.xPosition, this.yPosition);
-                    // draw an exaggerated velocity vector
-                    context.lineTo(this.xPosition + LayoutEngine.normalDistance * this.xVelocity,
-                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity);
-                    context.strokeStyle = Color.scheme.forceVector;
-                    context.lineWidth = 0.5;
-                    context.stroke();
-                    context.fillStyle = Color.scheme.forceEndpoint;
-                    context.fillRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3,
-                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
-                    context.strokeRect(this.xPosition + LayoutEngine.normalDistance * this.xVelocity - 3,
-                            this.yPosition + LayoutEngine.normalDistance * this.yVelocity - 3, 6, 6);
+                    // draw more stuff
                 }
             },
-            // this is how a node draws itself on the shadow context
-            drawShadow: function(context) {
-                this.drawOutline(context);
-                context.fillStyle = this.shadowColor;
-                context.fill();
-            },
-            // this is used to draw the outline of a node, used in the shadow context
-            drawOutline: function(context) {
-                // subclasses implements this
-            },
-            // this is how to draw a graphical representation of the fact that a node is moving
-            drawMoving: function(context) {
-                if(this.moving && !this.getFixed()) {
-                    var shadowOffsetX = 4 * ((this.velocity > 2) ? 2 : this.velocity);
-                    var shadowOffsetY = 4 * ((this.velocity > 3) ? 3 : this.velocity);
-                    context.save();
-                    context.translate(-shadowOffsetX, shadowOffsetY);
-                    this.drawOutline(context);
-                    var color = Math.floor(96 + 128 * (1 - 1/(1 + this.velocity)));
-                    // shift the color slightly towards red
-                    context.fillStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
-                    context.fill();
-                    context.restore();
+            setFixed: function(fixed) {
+                this.fixed = fixed;
+                if(fixed && !this.svg.graphicsElement.contains(this.svg.fixationElement)) {
+                    this.svg.graphicsElement.appendChild(this.svg.fixationElement);
+                }
+                else if (!fixed && this.svg.graphicsElement.contains(this.svg.fixationElement)) {
+                    this.svg.graphicsElement.removeChild(this.svg.fixationElement);
                 }
             },
-            drawFixed: function(context) {
-                if(this.getFixed()) {
-                    context.fillStyle = Color.scheme.fixed;
-                    context.fillRect(this.xPosition - 1, this.yPosition - 1, 2, 2);
+            getFixed: function() {
+                return this.fixed;
+            },
+            setHighlight: function(highlight) {
+                this.hasHighlight = highlight;
+                if(highlight && !this.svg.graphicsElement.contains(this.highlight)) {
+                    this.svg.highlightElement.addEventListener('click', EventHandler.clickHighlight, false);
+                    this.svg.graphicsElement.insertBefore(
+                            this.svg.highlightElement,
+                            this.svg.graphicsElement.firstChild
+                    );
+                }
+                else if (!highlight && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
+                    this.svg.graphicsElement.removeChild(this.svg.highlightElement);
+                    this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
+                }
+            },
+            contextMenu: null,
+            showContextMenu: function(hovered, selection) {
+                if(!this.contextMenu)
+                    this.contextMenu = new ContextMenu(hovered, selection);
+            },
+            hideContextMenu: function() {
+                if(this.contextMenu) {
+                    this.contextMenu.close();
+                    this.contextMenu = null;
                 }
             }
         };
@@ -3157,6 +2861,30 @@
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
             this.type = NodeType.ATTRIBUTE;
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            // expando property as a reference back to the underlying component for use in event handlers
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            var ref = historized ? '#attribute_historized' : '#attribute';
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 5;
+            this.svg.yOffset = 2;
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.setNameable(true);
             this.postCreationInitialization();
         }
         Attribute.prototype = {
@@ -3219,6 +2947,10 @@
                     this.editables.splice(index, 2);
                 if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
+                var ref = historized ? '#attribute_historized' : '#attribute';
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -3328,6 +3060,7 @@
                         }
                     }
                 }
+                attribute.updateName();
                 return attribute;
             },
             addXML: function(element, schema) {
@@ -3397,68 +3130,9 @@
                         anchor = edge.otherNode;
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
-            nameXOffset: function() {
-                if(this.historized)
-                    return 22;
-                else
-                    return 20;
-            },
-            drawOutline: function(context) {
-                // the outermost path
-                context.beginPath();
-                if(this.historized)
-                    context.arc(this.xPosition, this.yPosition, 12, 0, 2*Math.PI, false);
-                else
-                    context.arc(this.xPosition, this.yPosition, 10, 0, 2*Math.PI, false);
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var circle = svg.createElementNS(SVGNS, 'circle');
-                circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
-                circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                circle.setAttributeNS(null, 'stroke-width', '1.5');
-                circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                if(this.historized)
-                    circle.setAttributeNS(null, 'r', '12');
-                else
-                    circle.setAttributeNS(null, 'r', '10');
-                group.appendChild(circle);
-                if(this.historized) {
-                    circle = svg.createElementNS(SVGNS, 'circle');
-                    circle.setAttributeNS(null, 'fill', Color.scheme.attributeFill);
-                    circle.setAttributeNS(null, 'stroke', Color.scheme.attributeOutline);
-                    circle.setAttributeNS(null, 'stroke-width', '1.5');
-                    circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', '7');
-                    group.appendChild(circle);
-                }
-                g.appendChild(group);
-            },
-            draw: function(context, detailLevel) {
-                this.drawOutline(context);
-                if(this.historized) {
-                    // then we get back to drawing the actual symbol
-                    context.fillStyle = Color.scheme.attributeFill;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.attributeOutline;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 7, 0, 2*Math.PI, false);
-                    context.fill();
-                    context.stroke();
-                }
-                else {
-                    context.fillStyle = Color.scheme.attributeFill;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.attributeOutline;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                }
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
             }
         };
 
@@ -3480,6 +3154,29 @@
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
             this.type = NodeType.ANCHOR;
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.setNameable(true);
             this.postCreationInitialization();
         }
         Anchor.prototype = {
@@ -3489,7 +3186,6 @@
             generator: true,
             encapsulation: Defaults.encapsulation,
             imploded: false,
-            size: 10,
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -3591,6 +3287,7 @@
                 anchor.identity = identity;
                 anchor.generator = generator;
                 anchor.encapsulation = capsule;
+                anchor.updateName();
                 return anchor;
             },
             toXML: function(schema) {
@@ -3615,32 +3312,9 @@
                 this.addDescriptionXML(anchor, schema, this.description);
                 return anchor;
             },
-            drawOutline: function(context) {
-                context.beginPath();
-                context.moveTo(this.xPosition - this.size, this.yPosition - this.size);
-                context.lineTo(this.xPosition + this.size, this.yPosition - this.size);
-                context.lineTo(this.xPosition + this.size, this.yPosition + this.size);
-                context.lineTo(this.xPosition - this.size, this.yPosition + this.size);
-                context.lineTo(this.xPosition - this.size, this.yPosition - this.size);
-                context.closePath();
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', Color.scheme.anchorFill);
-                rect.setAttributeNS(null, 'x', (this.xPosition - this.size).toFixed(2));
-                rect.setAttributeNS(null, 'y', (this.yPosition - this.size).toFixed(2));
-                rect.setAttributeNS(null, 'width', (2 * this.size).toFixed());
-                rect.setAttributeNS(null, 'height', (2 * this.size).toFixed());
-                group.appendChild(rect);
-                g.appendChild(group);
-            },
-            draw: function(context, detailLevel) {
-                this.drawOutline(context);
-                context.fillStyle = Color.scheme.anchorFill;
-                context.fill();
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
             }
         };
 
@@ -3663,6 +3337,29 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.type = NodeType.KNOT;
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.setNameable(true);
             this.postCreationInitialization();
         }
         Knot.prototype = {
@@ -3763,6 +3460,7 @@
                 knot.generator = generator;
                 knot.encapsulation = capsule;
                 knot.checksum = checksum;
+                knot.updateName();
                 return knot;
             },
             toXML: function(schema) {
@@ -3788,46 +3486,9 @@
                 this.addDescriptionXML(knot, schema, this.description);
                 return knot;
             },
-            drawOutline: function(context) {
-                context.beginPath();
-                context.moveTo(this.xPosition - 6, this.yPosition - 9);
-                context.lineTo(this.xPosition + 6, this.yPosition - 9);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition - 9,
-                        this.xPosition + 9, this.yPosition - 6);
-                context.lineTo(this.xPosition + 9, this.yPosition + 6);
-                context.quadraticCurveTo(this.xPosition + 9, this.yPosition + 9,
-                        this.xPosition + 6, this.yPosition + 9);
-                context.lineTo(this.xPosition - 6, this.yPosition + 9);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition + 9,
-                        this.xPosition - 9, this.yPosition + 6);
-                context.lineTo(this.xPosition - 9, this.yPosition - 6);
-                context.quadraticCurveTo(this.xPosition - 9, this.yPosition - 9,
-                        this.xPosition - 6, this.yPosition - 9);
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var rect = svg.createElementNS(SVGNS, 'rect');
-                rect.setAttributeNS(null, 'fill', Color.scheme.knotFill);
-                rect.setAttributeNS(null, 'stroke', Color.scheme.knotOutline);
-                rect.setAttributeNS(null, 'stroke-width', '1.5');
-                rect.setAttributeNS(null, 'x', (this.xPosition - 9).toFixed(2));
-                rect.setAttributeNS(null, 'y', (this.yPosition - 9).toFixed(2));
-                rect.setAttributeNS(null, 'rx', '3');
-                rect.setAttributeNS(null, 'ry', '3');
-                rect.setAttributeNS(null, 'width', '18');
-                rect.setAttributeNS(null, 'height', '18');
-                group.appendChild(rect);
-                g.appendChild(group);
-            },
-            draw: function(context, detailLevel) {
-                this.drawOutline(context);
-                context.fillStyle = Color.scheme.knotFill;
-                context.fill();
-                context.strokeStyle = Color.scheme.knotOutline;
-                context.lineWidth = 1.5;
-                context.stroke();
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
             }
         };
 
@@ -3851,6 +3512,30 @@
             this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
             this.encapsulation = Defaults.encapsulation;
             this.type = NodeType.TIE;
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            var ref = historized ? '#tie_historized' : '#tie';
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 2;
+            this.svg.yOffset = 2;
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.setNameable(true);
             this.postCreationInitialization();
         }
         Tie.prototype = {
@@ -3863,7 +3548,6 @@
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
             imploded: false,
-            size: 15,
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -3960,6 +3644,10 @@
                     this.editables.splice(index, 2);
                 if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
+                var ref = historized ? '#tie_historized' : '#tie';
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
             getHistorized: function() {
@@ -4054,6 +3742,7 @@
                             edge.coloring = coloring;
                             edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
+                            edge.updateName();
                             break; // only one should match
                         }
                     }
@@ -4077,10 +3766,12 @@
                             edge.coloring = coloring;
                             edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
+                            edge.updateName();
                             break; // only one should match
                         }
                     }
                 }
+                tie.updateName();
                 return tie;
             },
             toXML: function(schema) {
@@ -4166,92 +3857,9 @@
                 }
                 return name;
             },
-            nameXOffset: function() {
-                if(this.historized)
-                    return 26;
-                else
-                    return 24;
-            },
-            drawOutline: function(context) {
-                if(this.historized) {
-                    context.beginPath();
-                    context.moveTo(this.xPosition - (this.size + 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size + 2));
-                    context.lineTo(this.xPosition + (this.size + 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size + 2));
-                    context.lineTo(this.xPosition - (this.size + 3), this.yPosition);
-                    context.closePath();
-                }
-                else {
-                    context.beginPath();
-                    context.moveTo(this.xPosition - this.size, this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size - 1));
-                    context.lineTo(this.xPosition + this.size, this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size - 1));
-                    context.lineTo(this.xPosition - this.size, this.yPosition);
-                    context.closePath();
-                }
-            },
-            toSVG: function(svg, g) {
-                var group = svg.createElementNS(SVGNS, 'g');
-                var path;
-                if(this.historized) {
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieOutline);
-                    path.setAttributeNS(null, 'stroke', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'stroke-width', '1.5');
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size + 2)).toFixed(2) +
-                            ' ' + (this.xPosition + (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size + 2)).toFixed(2) +
-                            ' ' + (this.xPosition - (this.size + 3)).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 4)).toFixed(2) +
-                            ' ' + (this.xPosition + (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 4)).toFixed(2) +
-                            ' ' + (this.xPosition - (this.size - 3)).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                }
-                else {
-                    path = svg.createElementNS(SVGNS, 'path');
-                    path.setAttributeNS(null, 'fill', Color.scheme.tieFill);
-                    path.setAttributeNS(null, 'd',
-                            'M ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' L ' + this.xPosition.toFixed(2) + ',' + (this.yPosition + (this.size - 1)).toFixed(2) +
-                            ' ' + (this.xPosition + this.size).toFixed(2) + ',' + this.yPosition.toFixed(2) +
-                            ' ' + this.xPosition.toFixed(2) + ',' + (this.yPosition - (this.size - 1)).toFixed(2) +
-                            ' ' + (this.xPosition - this.size).toFixed(2) + ',' + this.yPosition.toFixed(2));
-                    group.appendChild(path);
-                }
-                g.appendChild(group);
-            },
-            draw: function(context, detailLevel) {
-                this.drawOutline(context);
-                if(this.historized) {
-                    context.fillStyle = Color.scheme.tieOutline;
-                    context.fill();
-                    context.strokeStyle = Color.scheme.tieFill;
-                    context.lineWidth = 1.5;
-                    context.stroke();
-                    context.beginPath();
-                    context.moveTo(this.xPosition - (this.size - 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition + (this.size - 4));
-                    context.lineTo(this.xPosition + (this.size - 3), this.yPosition);
-                    context.lineTo(this.xPosition, this.yPosition - (this.size - 4));
-                    context.fillStyle = Color.scheme.tieFill;
-                    context.fill();
-                }
-                else {
-                    context.fillStyle = Color.scheme.tieFill;
-                    context.fill();
-                }
+            draw: function(image) {
+                image.control.setTranslate(this.xPosition, this.yPosition);
                 AbstractNode.prototype.draw.apply(this, arguments);
-                this.drawFixed(context);
             }
         };
 
@@ -4282,6 +3890,7 @@
                     return Edge.charge;
                 }
             };
+            // TODO: test with center instead of control?
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
             this.role = '';
             this.node = node;
@@ -4293,7 +3902,48 @@
             this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
+            this.tied = node.type === "Tie" || otherNode.type === "Tie";
             this.type = NodeType.EDGE;
+            // SVG
+            this.svg.pathElement = document.createElementNS(SVGNS, 'path');
+            this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
+            this.svg.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
+                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.svg.pathControl = {
+                m: this.svg.pathElement.pathSegList.getItem(0),
+                q: this.svg.pathElement.pathSegList.getItem(1)
+            };
+            SVGLayer.edges.appendChild(this.svg.pathElement);
+            if(this.tied) {
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
+                var bubble = document.createElementNS(SVGNS, 'use');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                this.svg.graphicsElement.appendChild(bubble);
+                this.svg.useElement = document.createElementNS(SVGNS, 'use');
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                this.svg.graphicsElement.appendChild(this.svg.useElement);
+                this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
+                this.setNameable(true);
+            }
+            // NAV
+            this.nav.pathElement = document.createElementNS(SVGNS, 'path');
+            this.nav.pathElement.setAttributeNS(null, 'class', 'edge');
+            this.nav.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
+                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
+                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.nav.pathControl = {
+                m: this.nav.pathElement.pathSegList.getItem(0),
+                q: this.nav.pathElement.pathSegList.getItem(1)
+            };
+            NAVLayer.edges.appendChild(this.nav.pathElement);
             this.postCreationInitialization();
         }
         Edge.prototype = {
@@ -4304,6 +3954,25 @@
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
             coloring: '#ffffff',
+            tied: false,
+            hide: function() {
+                if(SVGLayer.edges.contains(this.svg.graphicsElement))
+                    SVGLayer.edges.removeChild(this.svg.graphicsElement);
+                if(NAVLayer.edges.contains(this.nav.graphicsElement))
+                    NAVLayer.edges.removeChild(this.nav.graphicsElement);
+                if(SVGLayer.edges.contains(this.svg.pathElement))
+                    SVGLayer.edges.removeChild(this.svg.pathElement);
+                if(NAVLayer.edges.contains(this.nav.pathElement))
+                    NAVLayer.edges.removeChild(this.nav.pathElement);
+                AbstractNode.prototype.hide.apply(this, arguments);
+            },
+            show: function() {
+                SVGLayer.edges.appendChild(this.svg.pathElement);
+                NAVLayer.edges.appendChild(this.nav.pathElement);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                NAVLayer.edges.appendChild(this.nav.graphicsElement);
+                AbstractNode.prototype.show.apply(this, arguments);
+            },
             getMass: function() {
                 return Edge.mass;
             },
@@ -4311,7 +3980,7 @@
                 return Edge.charge;
             },
             isInteractive: function() {
-                return this.node.type === NodeType.TIE || this.otherNode.type === NodeType.TIE;
+                return this.tied;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -4339,180 +4008,17 @@
             toString: function() {
                 return this.role;
             },
-            toSVG: function(svg, g) {
-                // TODO: Add coloring here also
-                var group = svg.createElementNS(SVGNS, 'g');
-                var path = svg.createElementNS(SVGNS, 'path');
-                path.setAttributeNS(null, 'fill', 'none');
-                path.setAttributeNS(null, 'stroke', Color.scheme.edge);
-                path.setAttributeNS(null, 'd',
-                        'M ' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
-                        ' Q ' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
-                        ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
-                group.appendChild(path);
-                var tie;
-                if(this.node.type === NodeType.TIE)
-                    tie = this.node;
-                else if(this.otherNode.type === NodeType.TIE)
-                    tie = this.otherNode;
-                if(tie && !tie.imploded) {
-                    var     cardinality,
-                            strokeStyle = Color.scheme.identifierOutline,
-                            fillStyle = Color.scheme.identifierSelectedFill;
-                    var circle = svg.createElementNS(SVGNS, 'circle');
-                    if(this.identifier) {
-                        fillStyle = Color.scheme.identifierSelectedFill;
-                        cardinality = 'm';
-                    }
-                    else {
-                        fillStyle = Color.scheme.identifierUnselectedFill;
-                        cardinality = '1';
-                    }
-                    if(Settings.showCardinalities) {
-                        strokeStyle = fillStyle = Color.scheme.svgBackground;
-                    }
-                    circle.setAttributeNS(null, 'fill', fillStyle);
-                    circle.setAttributeNS(null, 'stroke', strokeStyle);
-                    circle.setAttributeNS(null, 'cx', this.xPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'cy', this.yPosition.toFixed(2));
-                    circle.setAttributeNS(null, 'r', '6');
-                    group.appendChild(circle);
-                    if(Settings.showCardinalities) {
-                        var text = svg.createElementNS(SVGNS, 'text');
-                        text.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
-                        text.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
-                        text.setAttributeNS(null, 'font-size', '8');
-                        text.setAttributeNS(null, 'font-family', 'sans-serif');
-                        text.setAttributeNS(null, 'font-weight', 'bold');
-                        text.setAttributeNS(null, 'text-anchor', 'middle');
-                        text.setAttributeNS(null, 'alignment-baseline', 'middle');
-                        text.setAttributeNS(null, 'fill', Color.scheme.cardinality);
-                        text.appendChild(svg.createTextNode(cardinality));
-                        group.appendChild(text);
-                    }
-                }
-                g.appendChild(group);
-            },
-            draw: function(context, detailLevel) {
-                if(DrawingEngine.coloring && this.coloring !== '#ffffff') {
-                    context.beginPath();
-                    context.moveTo(this.node.xPosition, this.node.yPosition);
-                    if(DrawingEngine.drawCurves) {
-                        context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition,
-                                this.otherNode.xPosition, this.otherNode.yPosition);
-                    }
-                    else {
-                        context.lineTo(this.xPosition, this.yPosition);
-                        context.lineTo(this.otherNode.xPosition, this.otherNode.yPosition);
-                    }
-                    context.strokeStyle = this.coloring;
-                    context.lineWidth = 7.0;
-                    context.stroke();
-                }
-                context.beginPath();
-                context.moveTo(this.node.xPosition, this.node.yPosition);
-                if(DrawingEngine.drawCurves) {
-                    context.quadraticCurveTo(this.controlPoint.xPosition, this.controlPoint.yPosition,
-                            this.otherNode.xPosition, this.otherNode.yPosition);
-                }
-                else {
-                    context.lineTo(this.xPosition, this.yPosition);
-                    context.lineTo(this.otherNode.xPosition, this.otherNode.yPosition);
-                }
-                context.strokeStyle = Color.scheme.edge;
-                context.lineWidth = 1.0;
-                context.stroke();
-                if(DEBUG) {
-                    context.beginPath();
-                    context.arc(this.controlPoint.xPosition, this.controlPoint.yPosition, 4, 0, 2*Math.PI, false);
-                    context.fillStyle = Color.scheme.forceVector;
-                    context.fill();
-                    context.stroke();
-                }
-                // show if edges on ties are identifiers or not by drawing a filled or empty circle (or cardinalities)
-                var tie;
-                if(this.node.type === NodeType.TIE)
-                    tie = this.node;
-                else if(this.otherNode.type === NodeType.TIE)
-                    tie = this.otherNode;
-                if(detailLevel === 0 && tie && !tie.imploded) {
-                    var     cardinality,
-                            strokeStyle = Color.scheme.identifierOutline,
-                            fillStyle = Color.scheme.identifierSelectedFill;
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
-                    if(this.identifier) {
-                        fillStyle = Color.scheme.identifierSelectedFill;
-                        cardinality = 'm';
-                    }
-                    else {
-                        fillStyle = Color.scheme.identifierUnselectedFill;
-                        cardinality = '1';
-                    }
-                    if(Settings.showCardinalities) {
-                        strokeStyle = fillStyle = Color.scheme.canvasBackground;
-                    }
-                    context.strokeStyle = strokeStyle;
-                    context.fillStyle = fillStyle;
-                    context.stroke();
-                    context.fill();
-                    if(Settings.showCardinalities) {
-                        context.save();
-                        context.fillStyle = Color.scheme.cardinality;
-                        context.textBaseline = 'middle';
-                        context.textAlign = 'center';
-                        context.font = 'bold 6pt sans-serif';
-                        context.fillText(cardinality, this.xPosition, this.yPosition);
-                        context.restore();
-                    }
+            draw: function(image) {
+                image.pathControl.m.x = this.node.xPosition;
+                image.pathControl.m.y = this.node.yPosition;
+                image.pathControl.q.x1 = this.controlPoint.xPosition;
+                image.pathControl.q.y1 = this.controlPoint.yPosition;
+                image.pathControl.q.x = this.otherNode.xPosition;
+                image.pathControl.q.y = this.otherNode.yPosition;
+                if(this.tied && image.control) {
+                    image.control.setTranslate(this.xPosition, this.yPosition);
                 }
                 AbstractNode.prototype.draw.apply(this, arguments);
-            },
-            drawMoving: function(context) {
-                if((this.node.moving && !this.node.getFixed()) ||
-                        (this.otherNode.moving && !this.otherNode.getFixed())) {
-                    var nodeShadowOffsetX = 0;
-                    var nodeShadowOffsetY = 0;
-                    if(this.node.moving && !this.node.getFixed()) {
-                        nodeShadowOffsetX = 4 * ((this.node.velocity > 2) ? 2 : this.node.velocity);
-                        nodeShadowOffsetY = 4 * ((this.node.velocity > 3) ? 3 : this.node.velocity);
-                    }
-                    var otherNodeShadowOffsetX = 0;
-                    var otherNodeShadowOffsetY = 0;
-                    if(this.otherNode.moving && !this.otherNode.getFixed()) {
-                        otherNodeShadowOffsetX = 4 * ((this.otherNode.velocity > 2) ? 2 : this.otherNode.velocity);
-                        otherNodeShadowOffsetY = 4 * ((this.otherNode.velocity > 3) ? 3 : this.otherNode.velocity);
-                    }
-                    var averageVelocity = (this.node.velocity + this.otherNode.velocity)/2;
-                    var controlOffsetX = (nodeShadowOffsetX + otherNodeShadowOffsetX)/2;
-                    var controlOffsetY = (nodeShadowOffsetY + otherNodeShadowOffsetY)/2;
-                    context.beginPath();
-                    context.moveTo(this.node.xPosition - nodeShadowOffsetX, this.node.yPosition + nodeShadowOffsetY);
-                    if(DrawingEngine.drawCurves) {
-                        context.quadraticCurveTo(this.controlPoint.xPosition - controlOffsetX,
-                                this.controlPoint.yPosition + controlOffsetY,
-                                this.otherNode.xPosition - otherNodeShadowOffsetX,
-                                this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    }
-                    else {
-                        context.lineTo(this.xPosition - controlOffsetX, this.yPosition + controlOffsetY);
-                        context.lineTo(this.otherNode.xPosition - otherNodeShadowOffsetX,
-                                this.otherNode.yPosition + otherNodeShadowOffsetY);
-                    }
-                    var color = Math.floor(96 + 128 * (1 - 1/(1 + averageVelocity)));
-                    // shift the color slightly towards red
-                    context.strokeStyle = 'rgb(' + (color + 8) + ',' + (color + 4) + ',' + color + ')';
-                    context.lineWidth = 1.0;
-                    context.stroke();
-                }
-            },
-            drawShadow: function(context) {
-                if(this.node.type === NodeType.TIE || this.otherNode.type === NodeType.TIE) {
-                    context.beginPath();
-                    context.arc(this.xPosition, this.yPosition, 6, 0, 2*Math.PI, false);
-                    context.fillStyle = this.shadowColor;
-                    context.fill();
-                }
             }
         };
 
@@ -4533,7 +4039,6 @@
         }
 
         function ModalBackground(message) {
-            CanvasEventHandler.disableKeyboardShortcuts();
             var modalBackground = document.createElement('div');
             modalBackground.setAttribute("id", "modalBackground");
             modalBackground.style.width = window.innerWidth + 'px';
@@ -4550,7 +4055,6 @@
             modalBackground: null,
             close: function(event) {
                 document.body.removeChild(this.modalBackground);
-                CanvasEventHandler.enableKeyboardShortcuts();
             }
         };
 
@@ -4831,7 +4335,7 @@
             content.setAttribute("id", "content");
 
             var icon = document.createElement('img');
-            icon.setAttribute('src', DrawingEngine.miniatureCanvas.toDataURL());
+            icon.setAttribute('src', Actions.toPNGDataURL(NAV));
             content.appendChild(icon);
 
             var table = document.createElement('table');
@@ -5034,7 +4538,7 @@
             var i, j, tr;
             // if we are operating a single node, show its editable fields
             if(selectedNodes.length === 0 || (selectedNodes.length === 1 && selectedNodes[0] === hoveredNode)) {
-                this.topper.appendChild(document.createTextNode("Edit " + hoveredNode.type));
+                this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredNode.type]));
                 for(i = 0; editable = hoveredNode.editables[i]; i++) {
                     if(editable.editable) {
                         this.showEditables = true;
@@ -5051,7 +4555,8 @@
                         element.editable = editable;
                         element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
                         element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
-                        element.addEventListener('keypress', function(event) { self.keypress(self, event); }, false);
+                        this.keypress = this.keypress.bind(this);
+                        element.addEventListener('keypress', this.keypress, false);
                         /*
                         if(editable.pattern)
                             element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
@@ -5113,7 +4618,7 @@
             }
 
             this.updatePosition();
-            document.body.appendChild(contextMenu);
+            document.body.appendChild(this.contextMenu);
             return this;
         }
         ContextMenu.prototype = {
@@ -5132,7 +4637,6 @@
             dragging: false,
             operate: function(button, nodes) {
                 Model[button.method](nodes);
-                CanvasEventHandler.closeContextMenu();
             },
             edit: function(element, node) {
                 if(element && node) {
@@ -5141,40 +4645,42 @@
                 }
             },
             mousedown: function(event) {
-                var self = this;
-                window.addEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
-                window.addEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
+                this.mousemove = this.mousemove.bind(this);
+                this.mouseup = this.mouseup.bind(this);
+                window.addEventListener('mousemove', this.mousemove, false);
+                window.addEventListener('mouseup', this.mouseup, false);
                 this.dragging = true;
             },
-            mousemove: function(self, event) {
-                if(self.dragging) {
+            mousemove: function(event) {
+                if(this.dragging) {
                     var xScreen, yScreen;
                     xScreen = event.clientX
-                            + document.documentElement.scrollLeft
-                            - self.contextMenu.offsetWidth / 2;
+                            - this.contextMenu.offsetWidth / 2;
                     yScreen = event.clientY
-                            + document.documentElement.scrollTop
-                            - self.topper.offsetHeight / 2;
+                            - this.topper.offsetHeight / 2;
                     this.updatePosition(xScreen, yScreen);
                 }
             },
-            mouseup: function(self, event) {
+            mouseup: function(event) {
                 this.dragging = false;
-                window.removeEventListener('mousemove', function(event) { self.mousemove(self, event); }, false);
-                window.removeEventListener('mouseup', function(event) { self.mouseup(self, event); }, false);
+                window.removeEventListener('mousemove', this.mousemove, false);
+                window.removeEventListener('mouseup', this.mouseup, false);
             },
             updatePosition: function(x, y) {
-                x = x ? x : DrawingEngine.xScreen(this.hoveredNode.xPosition + LayoutEngine.normalDistance/2);
-                y = y ? y : DrawingEngine.yScreen(this.hoveredNode.yPosition + LayoutEngine.normalDistance/2);
-
+                var point = EventHandler.svgToScreen(
+                        this.hoveredNode.xPosition + 15, // inside the highlight ring with radius 30
+                        this.hoveredNode.yPosition + 15
+                );
+                x = x ? x : point.x;
+                y = y ? y : point.y;
                 this.contextMenu.style.left = x + 'px';
                 this.contextMenu.style.top = y + 'px';
             },
-            keypress: function(self, event) {
+            keypress: function(event) {
                 if(event.keyCode === 13) {
                     event.srcElement.blur();
                     if(Model.isConforming())
-                        CanvasEventHandler.closeContextMenu();
+                        this.close();
                 }
             },
             toggle: function() {
@@ -5191,6 +4697,7 @@
                         if(editables.length > 0)
                             editables[0].focus();
                     }
+                    window.removeEventListener('keypress', EventHandler.keypress, false);
                     this.contextMenu.appendChild(this.operators);
                 }
                 else {
@@ -5205,6 +4712,7 @@
                     }
                     this.contextMenu.removeChild(this.topper);
                     this.unmodal();
+                    window.addEventListener('keypress', EventHandler.keypress, false);
                     DrawingEngine.start(false);
                 }
             },
@@ -5218,7 +4726,9 @@
                 this.unmodal();
                 if(this.editsHaveBeenMade)
                     Model.recordState();
-                document.body.removeChild(this.contextMenu);
+                if(document.body.contains(this.contextMenu))
+                    document.body.removeChild(this.contextMenu);
+                window.addEventListener('keypress', EventHandler.keypress, false);
             }
         };
 
@@ -5253,12 +4763,10 @@
                 catch(exception) {
                     alert(exception);
                 }
-                CanvasEventHandler.clearSelection();
                 Model.uncloud();
                 Model.clearStates();
                 Model.fromXML(xml);
                 Actions.setModelStatus();
-                DrawingEngine.reset();
                 Actions.resetZoom();
                 Actions.centerModel();
                 DrawingEngine.start(false);
@@ -5266,6 +4774,12 @@
         };
 
         var Actions = {
+            startKeyboardEvents: function() {
+                window.addEventListener('keypress', EventHandler.keypress, false);
+            },
+            stopKeyboardEvents: function() {
+                window.removeEventListener('keypress', EventHandler.keypress, false);
+            },
             populateSelector: function(selector, searchString) {
                 this.startKeyboardEvents();
                 var node;
@@ -5286,7 +4800,7 @@
                         var fullName = node.encapsulation + '.' + node.toString();
                         if(node.incomplete)
                             fullName = "* " + fullName;
-                        var option = new Option(fullName, node.shadowColor);
+                        var option = new Option(fullName, node.id);
                         if(searchString && searchString.trim() !== '') {
                             if(fullName.indexOf(searchString) >= 0)
                                 selector.options.add(option);
@@ -5298,11 +4812,27 @@
                 }
                 selector.value = selected;
             },
-            stopKeyboardEvents: function() {
-                window.onkeypress = null;
+            toSVGDataURL: function(image) {
+                var graph = image.cloneNode(true);
+                var viewport = graph.getElementById('viewport');
+                if(viewport) graph.removeChild(viewport);
+                var graphics = SVG.getElementById('graphics');
+                if(!graph.contains(graphics)) {
+                    graph.appendChild(graphics.cloneNode(true));
+                }
+                var svg = (new XMLSerializer()).serializeToString(graph);
+                return "data:image/svg+xml;base64," + btoa(svg);
             },
-            startKeyboardEvents: function() {
-                window.onkeypress = CanvasEventHandler.handleEvent;
+            toPNGDataURL: function(image) {
+                var can = document.createElement('canvas');
+                var ctx = can.getContext('2d');
+                var img = new Image();
+                img.width = can.width = image.width.baseVal.value;
+                img.height = can.height = image.height.baseVal.value;
+                img.src = this.toSVGDataURL(image);
+                // TODO: seems to work synchronously
+                ctx.drawImage(img, 0, 0);
+                return can.toDataURL();
             },
             findNodeToExplode: function(node) {
                 var edge, otherNode;
@@ -5314,9 +4844,9 @@
                     }
                 }
             },
-            selectNode: function(shadowColor) {
-                if(shadowColor !== 'none') {
-                    var i, edge, otherNode, node = Model.getNodeFromShadow(shadowColor);
+            selectNode: function(id) {
+                if(id !== 'none') {
+                    var i, edge, otherNode, node = Model.getNodeFromId(id);
                     // find the closest imploded node and explode it
                     if(!node.visible) {
                         if(node.type === NodeType.ATTRIBUTE)
@@ -5334,13 +4864,12 @@
                             }
                         }
                     }
-                    CanvasEventHandler.clearSelection();
-                    CanvasEventHandler.addNodeToSelection(node);
+                    EventHandler.clearSelection();
+                    EventHandler.addNodeToSelection(node);
                     Actions.centerModelOn(node);
                 }
                 else {
-                    CanvasEventHandler.clearSelection();
-                    DrawingEngine.start(false);
+                    EventHandler.clearSelection();
                 }
             },
             getDirective: function() {
@@ -5352,24 +4881,19 @@
             },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
-                try {
-                    var xmlhttp = new window.XMLHttpRequest();
-                    // Added random parameter to prevent caching...
-                    xmlhttp.open("GET", transformationURL + '?r=' + Math.random(), false);
-                    xmlhttp.send(null);
-                    var processor = new XSLTProcessor();
-                    if(xmlhttp.responseXML) {
-                        processor.importStylesheet(xmlhttp.responseXML.documentElement);
-                    }
-                    else {
-                        var xml = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
-                        processor.importStylesheet(xml.documentElement);
-                    }
-                    result = processor.transformToFragment(xmlDocument, ownerDocument);
+                var xmlhttp = new window.XMLHttpRequest();
+                // Added random parameter to prevent caching...
+                xmlhttp.open("GET", transformationURL + '?r=' + Math.random(), false);
+                xmlhttp.send(null);
+                var processor = new XSLTProcessor();
+                if(xmlhttp.responseXML) {
+                    processor.importStylesheet(xmlhttp.responseXML.documentElement);
                 }
-                catch(exception){
-                    alert(exception);
+                else {
+                    var xml = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                    processor.importStylesheet(xml.documentElement);
                 }
+                result = processor.transformToFragment(xmlDocument, ownerDocument);
                 return result;
             },
             createEmail: function(aTag) {
@@ -5387,23 +4911,19 @@
             },
             loadFromURL: function (url, layout) {
                 layout = typeof layout !== 'undefined' ? layout : false;
-                try {
-                    var xmlhttp = new window.XMLHttpRequest();
-                    xmlhttp.open("GET", url, false);
-                    xmlhttp.send(null);
-                    CanvasEventHandler.clearSelection();
-                    Model.uncloud();
-                    Model.clearStates();
-                    Model.fromXML(xmlhttp.responseXML);
-                    Actions.setModelStatus();
-                    DrawingEngine.reset();
-                    Actions.resetZoom();
-                    Actions.centerModel();
-                    DrawingEngine.start(layout);
-                }
-                catch(exception){
-                    alert(exception);
-                }
+                var xmlhttp = new window.XMLHttpRequest();
+                xmlhttp.open("GET", url, false);
+                xmlhttp.send(null);
+                EventHandler.clearSelection();
+                SVGLayer.clearAll();
+                NAVLayer.clearAll();
+                Model.uncloud();
+                Model.clearStates();
+                Model.fromXML(xmlhttp.responseXML);
+                Actions.setModelStatus();
+                Actions.resetZoom();
+                Actions.centerModel();
+                DrawingEngine.start(layout);
             },
             modelStatusText: null,
             setModelStatus: function() {
@@ -5493,7 +5013,9 @@
                         }
                         else {
                             var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
-                            CanvasEventHandler.clearSelection();
+                            EventHandler.clearSelection();
+                            SVGLayer.clearAll();
+                            NAVLayer.clearAll();
                             Model.uncloud();
                             Model.clearStates();
                             Model.fromXML(model);
@@ -5503,7 +5025,6 @@
                             Model.keywords = modelKeywords;
                             Model.description = modelDescription;
                             Actions.setModelStatus();
-                            DrawingEngine.reset();
                             Actions.resetZoom();
                             Actions.centerModel();
                             DrawingEngine.start(false);
@@ -5548,7 +5069,7 @@
                     params.action = 'save';
                     params.modelName = Model.name;
                     params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
-                    params.icon = DrawingEngine.miniatureCanvas.toDataURL();
+                    params.icon = Actions.toPNGDataURL(NAV);
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
                     params.description = escape(Model.description);
@@ -5608,23 +5129,24 @@
             },
 
             resetZoom: function() {
-                ControlButtons.doZoom(1/DrawingEngine.xyScale);
+                SVG.viewBox.baseVal.width = window.innerWidth;
+                SVG.viewBox.baseVal.height = window.innerHeight;
+                DrawingEngine.invalidateMiniature();
                 DrawingEngine.start(false);
             },
             centerModel: function() {
-                var xCenter = Model.leftmostNode.xPosition +
-                        (Model.rightmostNode.xPosition - Model.leftmostNode.xPosition)/2;
-                var yCenter = Model.topmostNode.yPosition +
-                        (Model.bottommostNode.yPosition - Model.topmostNode.yPosition)/2;
+                var boundingBox = SVGLayer.nodes.getBBox();
+                var xCenter = boundingBox.x + boundingBox.width/2;
+                var yCenter = boundingBox.y + boundingBox.height/2;
                 this.centerModelAt(xCenter, yCenter);
             },
             centerModelOn: function(node) {
                 this.centerModelAt(node.xPosition, node.yPosition);
             },
             centerModelAt: function(x, y) {
-                var xAdjust = DrawingEngine.xContext(DrawingEngine.canvas.width/2) - x;
-                var yAdjust = DrawingEngine.yContext(DrawingEngine.canvas.height/2) - y;
-                DrawingEngine.translate(xAdjust, yAdjust);
+                SVG.viewBox.baseVal.x = x - SVG.viewBox.baseVal.width/2;
+                SVG.viewBox.baseVal.y = y - SVG.viewBox.baseVal.height/2;
+                DrawingEngine.invalidateMiniature();
                 DrawingEngine.start(false);
             },
             randomizeLayout: function () {
@@ -5648,6 +5170,10 @@
             },
             toggleNames: function () {
                 DrawingEngine.showNames = !DrawingEngine.showNames;
+                if(DrawingEngine.showNames)
+                    SVGLayer.show('names');
+                else
+                    SVGLayer.hide('names');
                 DrawingEngine.start(false);
             },
             toggleMnemonics: function () {
@@ -5657,12 +5183,6 @@
             toggleCardinalities: function () {
                 Settings.showCardinalities = !Settings.showCardinalities;
                 DrawingEngine.start(false);
-            },
-            toggleShadows: function() {
-                DrawingEngine.drawShadows = !DrawingEngine.drawShadows;
-            },
-            toggleCurves: function() {
-                DrawingEngine.drawCurves = !DrawingEngine.drawCurves;
             },
             toggleColoring: function() {
                 DrawingEngine.coloring = !DrawingEngine.coloring;
@@ -5674,7 +5194,7 @@
                     if((node.type === NodeType.ANCHOR || node.type === NodeType.TIE) && !node.imploded)
                         allNodes.push(node);
                 }
-                CanvasEventHandler.clearSelection();
+                EventHandler.clearSelection();
                 Model.explode(allNodes);
             },
             explodeAll: function() {
@@ -6623,34 +6143,30 @@
                 this.zoomInButton = document.getElementById('zoomin');
                 this.zoomOutButton = document.getElementById('zoomout');
 
-                // voodoo
-                var self = this;
+                // rebinding
+                this.togglePlayPause = this.togglePlayPause.bind(this);
+                this.undo = this.undo.bind(this);
+                this.redo = this.redo.bind(this);
+                this.zoomIn = this.zoomIn.bind(this);
+                this.zoomOut = this.zoomOut.bind(this);
 
-                this.playPauseButton.addEventListener('click', function(event) {
-                    return self.togglePlayPause(event);
-                }, false);
-                this.undoButton.addEventListener('click', function(event) {
-                    return self.undo(event);
-                }, false);
-                this.redoButton.addEventListener('click', function(event) {
-                    return self.redo(event);
-                }, false);
-                this.zoomInButton.addEventListener('click', function(event) {
-                    return self.zoomIn(event);
-                }, false);
-                this.zoomOutButton.addEventListener('click', function(event) {
-                    return self.zoomOut(event);
-                }, false);
+                this.playPauseButton.addEventListener('click', this.togglePlayPause, false);
+                this.undoButton.addEventListener('click', this.undo, false);
+                this.redoButton.addEventListener('click', this.redo, false);
+                this.zoomInButton.addEventListener('click', this.zoomIn, false);
+                this.zoomOutButton.addEventListener('click', this.zoomOut, false);
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
                     DrawingEngine.stop();
+                    this.setPlayState();
                 }
                 else if (LayoutEngine.equilibrium) {
                     this.invalidateLayout();
                 }
                 else {
                     DrawingEngine.start(false);
+                    this.setPauseState();
                 }
             },
             setUndoLevels: function(numberOfLevels) {
@@ -6688,18 +6204,63 @@
                 DrawingEngine.start(true);
             },
             doZoom: function (zoom) {
-                DrawingEngine.scale(zoom);
-                var xx = window.innerWidth/2;
-                var yy = window.innerHeight/2;
-                DrawingEngine.translate(DrawingEngine.xContext(xx) - DrawingEngine.xContext(xx) * zoom,
-                        DrawingEngine.yContext(yy) - DrawingEngine.yContext(yy) * zoom);
+                var w = SVG.viewBox.baseVal.width;
+                var h = SVG.viewBox.baseVal.height;
+                var dx = w * (1-zoom)/2;
+                var dy = h * (1-zoom)/2;
+                SVG.viewBox.baseVal.x += dx;
+                SVG.viewBox.baseVal.y += dy;
+                SVG.viewBox.baseVal.width = w * zoom;
+                SVG.viewBox.baseVal.height = h * zoom;
                 DrawingEngine.start(false);
             },
             zoomIn: function (event) {
-                this.doZoom(this.zoomFactor);
+                this.doZoom(1/this.zoomFactor);
             },
             zoomOut: function (event) {
-                this.doZoom(1/this.zoomFactor);
+                this.doZoom(this.zoomFactor);
+            }
+        };
+
+        function Layer(graph) {
+            this.graph = graph;
+            this.layers = [];
+        }
+        Layer.prototype = {
+            graph: null,
+            layers: null,
+            addLayer: function(name) {
+                var layer = document.createElementNS(SVGNS, 'g');
+                layer.setAttributeNS(null, 'id', name);
+                this.graph.appendChild(layer);
+                this.layers.push(name);
+                this[name] = layer;
+            },
+            show: function(name) {
+                var i = this.layers.indexOf(name) + 1;
+                if(i < this.layers.length) {
+                    var after = this.layers[i];
+                    this.graph.insertBefore(this[name], this[after]);
+                }
+                else {
+                    this.graph.appendChild(this[name]);
+                }
+            },
+            hide: function(name) {
+                if(this.graph.contains(this[name]))
+                    this.graph.removeChild(this[name]);
+            },
+            clear: function(name) {
+                var layer = this[name];
+                while(layer.firstChild) {
+                    layer.removeChild(layer.firstChild);
+                }
+            },
+            clearAll: function() {
+                var l = this.layers.length;
+                while(l--) {
+                    this.clear(this.layers[l]);
+                }
             }
         };
 
@@ -6736,55 +6297,40 @@
             ControlButtons.init();
             LayoutEngine.init();
 
-            var canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext;
+            // set the global svg and graph variable
+            SVG = document.getElementById("graph");
+            SVG.viewBox.baseVal.x = 0;
+            SVG.viewBox.baseVal.y = 0;
+            SVG.viewBox.baseVal.width = window.innerWidth;
+            SVG.viewBox.baseVal.height = window.innerHeight;
 
-            // get the canvas element
-            canvas = document.getElementById('canvas');
-            context = canvas.getContext('2d');
+            // add layers to the SVG
+            SVGLayer = new Layer(SVG);
+            SVGLayer.addLayer('edges');
+            SVGLayer.addLayer('nodes');
+            SVGLayer.addLayer('names');
+            SVGLayer.addLayer('viewport');
+            SVGLayer.hide('names');
 
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(canvas, context);
-            window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(canvas, context);
-            }, false);
+            // set up "global" event handlers
+            SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
+            SVG.addEventListener('DOMMouseScroll', EventHandler.zoom, false); // Firefox
+            SVG.addEventListener('mousedown', EventHandler.preparePanning, false); // Safari and Chrome
 
-            shadowCanvas = document.getElementById('shadow');
-            shadowContext = shadowCanvas.getContext('2d');
+            // set up the miniature navigation
+            NAV = document.getElementById("minigraph");
 
-            // make this a full screen canvas, that can be resized
-            ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
-            window.addEventListener('resize', function() {
-                ResizeHandler.resizeCanvas(shadowCanvas, shadowContext);
-            }, false);
+            // add layers to the NAV
+            NAVLayer = new Layer(NAV);
+            NAVLayer.addLayer('edges');
+            NAVLayer.addLayer('nodes');
+            NAVLayer.addLayer('viewport');
 
-            miniatureCanvas = document.getElementById('miniature');
-            miniatureContext = miniatureCanvas.getContext('2d');
 
-            DrawingEngine.init(canvas, shadowCanvas, miniatureCanvas, context, shadowContext, miniatureContext);
+            DrawingEngine.init();
             // load previous scale and transform
             DrawingEngine.loadSettings(window.localStorage);
 
-            canvas.CanvasEventHandler = CanvasEventHandler;
-            // attach the mousedown, mousemove and mouseup event listeners to the visible canvas
-            canvas.addEventListener('mousedown', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mousemove', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mouseup', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('mousewheel', CanvasEventHandler.handleEvent, false); // Safari and Chrome
-            canvas.addEventListener('DOMMouseScroll', CanvasEventHandler.handleEvent, false); // Firefox
-            // add touch events
-            canvas.addEventListener('touchstart', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('touchend', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('touchcancel', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('touchleave', CanvasEventHandler.handleEvent, false);
-            canvas.addEventListener('touchmove', CanvasEventHandler.handleEvent, false);
-
-            // setting a listener on the canvas did not work, so this is a workaround
-            window.onkeypress = CanvasEventHandler.handleEvent;
-
-            miniatureCanvas.MiniatureEventHandler = MiniatureEventHandler;
-            miniatureCanvas.addEventListener('mousedown', MiniatureEventHandler.handleEvent, false);
-            miniatureCanvas.addEventListener('mousemove', MiniatureEventHandler.handleEvent, false);
-            miniatureCanvas.addEventListener('mouseup', MiniatureEventHandler.handleEvent, false);
 
             // load url or previous model, if any
             var model;
@@ -6840,12 +6386,102 @@
     </script>
 </head>
 <body>
-    <canvas id="canvas" class="unselectable">
-        <!-- this is the main drawing area -->
-    </canvas>
-    <canvas id="shadow" class="unselectable">
-        <!-- we paint objects in "false" colors on this canvas and use that to identify them with mouse clicks -->
-    </canvas>
+    <svg id="graph"
+         class="unselectable"
+         xmlns="http://www.w3.org/2000/svg"
+         version="1.1"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs id="graphics">
+            <style type="text/css">
+                .anchor {
+                    fill:               #b55;
+                }
+                .tie {
+                    fill:               #a8a8a8;
+                }
+                .tie_outline {
+                    fill:               #fff;
+                    stroke:             #a8a8a8;
+                    stroke-width:       1.5px;
+                }
+                .attribute, .knot {
+                    fill:               #fff;
+                    stroke:             #f88;
+                    stroke-width:       1.5px;
+                }
+                .edge, .cardinality {
+                    fill:               none;
+                    stroke:             #544;
+                    stroke-width:       1px;
+                }
+                .highlight {
+                    stroke:             #ede5e5;
+                    stroke-width:       10px;
+                    fill:               #fff;
+                }
+                .bubble {
+                    fill:               #f9f8f7;
+                    stroke:             none;
+                }
+                .fixation {
+                    fill:               #000;
+                }
+                .label {
+                    font-size:          8pt;
+                    font-family:        "Open Sans", "Helvetica Neue", sans-serif;
+                    font-weight:        normal;
+                    text-anchor:        left;
+                    dominant-baseline:  middle;
+                    fill:               #000;
+                }
+                .bad {
+                    fill:               #e00;
+                }
+                .end {
+                    text-anchor:        end;
+                }
+            </style>
+            <g id="knot">
+                <rect class="knot" width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
+            </g>
+            <g id="anchor">
+                <rect class="anchor" width="20" height="20" transform="translate(-10, -10)"/>
+            </g>
+            <g id="highlight">
+                <circle class="highlight" r="30"/>
+            </g>
+            <g id="tie">
+                <rect class="tie" width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
+            </g>
+            <g id="tie_historized">
+                <rect class="tie_outline" width="22" height="22" transform="rotate(45) translate(-11, -11)"/>
+                <rect class="tie" width="14" height="14" transform="rotate(45) translate(-7, -7)"/>
+            </g>
+            <g id="attribute">
+                <circle class="attribute" r="10"/>
+            </g>
+            <g id="attribute_historized">
+                <circle class="attribute" r="12"/>
+                <circle class="attribute" r="7"/>
+            </g>
+            <g id="fixation">
+                <rect class="fixation" width="2" height="2" transform="translate(-1, -1)"/>
+            </g>
+            <g id="bubble">
+                <circle class="bubble" r="8"/>
+            </g>
+            <g id="one">
+                <line class="cardinality" x1="0" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="many">
+                <line class="cardinality" x1="-3" y1="-3" x2="3" y2="-3"/>
+                <line class="cardinality" x1="-3" y1="0" x2="3" y2="0"/>
+                <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
+            </g>
+        </defs>
+        <!-- layers are appended here -->
+    </svg>
+
     <div id="disclaimer" class="unselectable">
         THIS<br/>
         IS A<br/>
@@ -6876,8 +6512,6 @@
                 <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                 <li title="Toggle style of the cardinalities in ties, dots or letters." onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
                 <li title="Toggle whether coloring of edges should be visible or not." onclick="Actions.toggleColoring()">Toggle coloring</li>
-                <li title="Toggle if shadows should be drawn under moving objects for a 'lift off the paper' effect." onclick="Actions.toggleShadows()">Toggle shadows</li>
-                <li title="Toggle if edges should be curved or drawn using straight lines (for better performance)." onclick="Actions.toggleCurves()">Toggle curves</li>
                 <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
                 <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
@@ -6920,9 +6554,9 @@
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
-                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(DrawingEngine.canvas.toDataURL('image/png'), '_newtab')"> PNG screenshot</li>
-                <li title="Generate a vector image of the entire model." onclick="window.open(Model.toSVGURL(), '_newtab')"> SVG graphics</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(Model.toSVG(), 'xml2html.xsl', document), false)"> SVG code</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(Actions.toPNGDataURL(SVG), '_newtab')">PNG screenshot</li>
+                <li title="Generate a vector image of the entire model." onclick="window.open(Actions.toSVGDataURL(SVG), '_newtab')">SVG screenshot</li>
+                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(SVG, 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
@@ -6989,13 +6623,18 @@
         </div>
     </div>
 
-    <!-- Removed due to memory issues
-    <canvas id="maxiature" class="unselectable">
-    </canvas>
-    -->
-    <canvas id="miniature" class="unselectable" title="This is the Navigation Window. It will always show the whole model with the current viewport shown by a red outline. Click and drag to move the viewport.">
-        <!-- shows a navigatable miniature of the model -->
-    </canvas>
+    <!-- shows a navigatable miniature of the model -->
+    <div id="miniature">
+        <svg id="minigraph"
+             class="unselectable"
+             xmlns="http://www.w3.org/2000/svg"
+             version="1.1"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             viewBox="0 0 1 1"
+             preserveAspectRatio="xMinYMin slice"/>
+        <!-- unfortunately using a "use" element here pointing to the original graph slows everything to a crawl -->
+    </div>
+
     <div id="logotype" class="unselectable">
         <img width="100%" src="Anchor.svg" type="image/svg+xml"/>
     </div>

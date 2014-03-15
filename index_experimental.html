@@ -90,7 +90,7 @@
         z-index:            0;
     }
 
-    /* minature canvas - positioned in the southeast corner */
+    /* minature - positioned in the southeast corner */
     #miniature {
         position:           absolute;
         bottom:             40px;
@@ -1834,9 +1834,10 @@
                 this.refreshViewportCoordinates();
             },
             storeSettings: function(storage) {
-                storage.setItem("xyScale", this.xyScale);
-                storage.setItem("xTranslation", this.xTranslation);
-                storage.setItem("yTranslation", this.yTranslation);
+                storage.setItem("viewportX", this.viewport.x.baseVal.value);
+                storage.setItem("viewportY", this.viewport.y.baseVal.value);
+                storage.setItem("viewportWidth", this.viewport.width.baseVal.value);
+                storage.setItem("viewportHeight", this.viewport.height.baseVal.value);
             },
             loadSettings: function(storage) {
                 this.xyScale = 1 * storage.getItem("xyScale") || 1;
@@ -2677,7 +2678,7 @@
             },
             bad: false,
             end: false,
-            drawName: function(context) {
+            drawName: function() {
                 if(this.svg.nameElement) {
                     this.updateName();
                     var i, edge, xAverage = 0, closestEdge = this.edges[0];
@@ -3384,7 +3385,7 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.xPosition, this.yPosition);
-                // AbstractNode.prototype.draw.apply(this, arguments);
+                AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -5938,34 +5939,30 @@
                 this.zoomInButton = document.getElementById('zoomin');
                 this.zoomOutButton = document.getElementById('zoomout');
 
-                // voodoo
-                var self = this;
+                // rebinding
+                this.togglePlayPause = this.togglePlayPause.bind(this);
+                this.undo = this.undo.bind(this);
+                this.redo = this.redo.bind(this);
+                this.zoomIn = this.zoomIn.bind(this);
+                this.zoomOut = this.zoomOut.bind(this);
 
-                this.playPauseButton.addEventListener('click', function(event) {
-                    return self.togglePlayPause(event)
-                }, false);
-                this.undoButton.addEventListener('click', function(event) {
-                    return self.undo(event)
-                }, false);
-                this.redoButton.addEventListener('click', function(event) {
-                    return self.redo(event)
-                }, false);
-                this.zoomInButton.addEventListener('click', function(event) {
-                    return self.zoomIn(event)
-                }, false);
-                this.zoomOutButton.addEventListener('click', function(event) {
-                    return self.zoomOut(event)
-                }, false);
+                this.playPauseButton.addEventListener('click', this.togglePlayPause, false);
+                this.undoButton.addEventListener('click', this.undo, false);
+                this.redoButton.addEventListener('click', this.redo, false);
+                this.zoomInButton.addEventListener('click', this.zoomIn, false);
+                this.zoomOutButton.addEventListener('click', this.zoomOut, false);
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
                     DrawingEngine.stop();
+                    this.setPlayState();
                 }
                 else if (LayoutEngine.equilibrium) {
                     this.invalidateLayout();
                 }
                 else {
                     DrawingEngine.start(false);
+                    this.setPauseState();
                 }
             },
             setUndoLevels: function(numberOfLevels) {
