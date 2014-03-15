@@ -4,647 +4,8 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
     <title>Anchor Modeler</title>
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
-    <style type="text/css">
-    body {
-        font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
-        line-height:        1.88889;
-        color:              #000000;
-        background:         #f9f8f7;
-        overflow:           hidden;
-        margin:             0;
-        padding:            0;
-    }
-
-    * {
-        target-new:         tab ! important;
-    }
-    
-    a:link, a:active, a:visited {
-        color:              #b55;
-        text-decoration:    none;
-    }
-    a:hover {
-        color:              #633;
-        text-decoration:    underline;
-    }
-
-    .unselectable {
-        user-select:        none;
-        -moz-user-select:   none;
-        -khtml-user-select: none;
-        -webkit-user-select: none;
-        -ms-user-select:    none;
-    }
-
-    .invisible {
-        opacity:            0;
-        filter:             alpha(opacity=0);
-        z-index:            1000;
-        position:           absolute;
-        left:               0;
-    }
-
-    .editable:invalid {
-        background-color:   #fbb;
-    }
-
-    .closebutton {
-        display:            none;
-        background-image:   url(deleteButton.png);
-        position:           absolute;
-        left:               -15px;
-        top:                -15px;
-        height:             30px;
-        width:              30px;
-        z-index:            14;
-    }
-    .closebutton:active {
-        background-image:   url(deleteButtonPressed.png);
-    }
-
-    /* the SVG graph used as the main interface */
-    #graph {
-        position:           absolute;
-        top:                0px;
-        left:               0px;
-        width:              100%;
-        height:             100%;
-        z-index:            1;
-    }
-
-    /* minature - positioned in the southeast corner */
-    #miniature {
-        position:           absolute;
-        bottom:             40px;
-        right:              42px;
-        background-color:   #fff;
-        z-index:            2;
-        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
-    }
-    #minigraph {
-        display:            block;
-    }
-
-    #search {
-        position:           absolute;
-        top:                42px;
-        left:               50%;
-        margin-left:        -150px; /* half of the actual width */
-        display:            block;
-        z-index:            9;
-    }
-    #search input {
-        width:              150px;
-        text-align:         left;
-        background-color:   rgba(255, 255, 255, 0.9);
-    }
-    #search select {
-        width:              150px;
-        text-align:         left;
-        background-color:   rgba(255, 255, 255, 0.9);
-    }
-
-    /* shows a beta disclaimer */
-    #disclaimer {
-        display:            none;
-        position:           absolute;
-        font:               bold 64pt sans-serif;
-        color:              white;
-        top:                42px;
-        left:               16px;
-        z-index:            0;
-    }
-
-    /* the logotype 'ANCHOR' */
-    #logotype {
-        position:           absolute;
-        z-index:            1;
-        display:            block;
-        left:               12px;
-        bottom:             6px;
-        width:              142px;
-    }
-
-    /* shows login status to the cloud (google app engine) */
-    #cloud {
-        font:               8pt sans-serif;
-        position:           absolute;
-        color:              black;
-        text-align:         left;
-        bottom:             40px;
-        left:               12px;
-        cursor:             pointer;
-        display:            block;
-        z-index:            10;
-    }
-
-    /* shows model name if cloud based or local */
-    #model {
-        font:               8pt sans-serif;
-        position:           absolute;
-        color:              black;
-        text-align:         left;
-        bottom:             54px;
-        left:               12px;
-        display:            block;
-        z-index:            10;
-    }
-
-    /* context menu that pops up when editing */
-    #contextMenu {
-        position:           absolute;
-        top:                0;
-        left:               0;
-        display:            block;
-        background-color:   rgba(236, 234, 234, 0.9);
-        color:              black;
-        padding:            0;
-        margin:             0;
-        text-align:         left;
-        border:             2px solid #fff;
-        z-index:            11;
-        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
-    }
-    #contextMenu .items {
-        margin:             10px 10px 5px 10px;
-    }
-    #contextMenu .topper {
-        font:               10px sans-serif;
-        cursor:             move;
-        color:              #333;
-        height:             15px;
-        padding-top:        2px;
-        padding-left:       24px;
-        border-bottom:      1px solid #888;
-        background-color:   rgba(255, 255, 255, 0.8);
-    }
-
-    .toggler {
-        position:           absolute;
-        color:              #555;
-        margin:             0;
-        padding:            0;
-        border:             1px solid #555;
-        width:              16px;
-        height:             16px;
-        z-index:            12;
-    }
-    .expanded {
-        cursor:             nw-resize;
-        background-color:   #f55;
-    }
-    .collapsed {
-        cursor:             se-resize;
-        left:               -3px;
-        top:                -3px;
-        background-color:   #fff;
-        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
-    }
-    .collapsed:hover {
-        background-color:   #fa5;
-    }
-
-    .operators {
-        position:           relative;
-        margin:             0px 5px 5px 5px;
-        top:                0;
-        left:               0;
-    }
-
-    .operator {
-        margin:             0;
-        line-height:        25px;
-        text-align:         left;
-        cursor:             pointer;
-        white-space:        nowrap;
-        padding-right:      10px;
-        padding-left:       10px;
-        z-index:            8;
-    }
-
-    .operator:hover {
-        color:              white;
-        background-color:   rgba(128, 128, 128, 0.8);
-        text-decoration:    none;
-        text-shadow:        0px 0px 6px #555;
-    }
-
-
-    /* is used in the code popover */
-    #modalBackground {
-        position:           absolute;
-        top:                0;
-        left:               0;
-        background-color:   rgba(128, 128, 128, 0.3);
-        margin:             0;
-        padding-top:        25%;
-        overflow:           hidden;
-        z-index:            10;
-        text-align:         center;
-        color:              white;
-        font-family:        sans-serif;
-        font-size:          25pt;
-        font-weight:        bold;
-        text-shadow:        0px 3px 5px rgba(0, 0, 0, 0.5);
-    }
-
-    #urlPopover {
-        position:           relative;
-        border:             2px solid white;
-        top:                5%;
-        margin:             auto;
-        display:            table;
-        background-color:   rgba(249, 248, 247, 0.95);
-        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-        z-index:            11;
-    }
-    #urlPopover .closebutton {
-        display:            inherit;
-        position:           relative;
-    }
-    #urlPopover #content {
-        margin-top:         -30px;
-        padding:            0;
-    }
-
-
-    #cloudBrowserPopover {
-        position:           relative;
-        border:             2px solid white;
-        top:                5%;
-        margin:             auto;
-        display:            table;
-        background-color:   rgba(249, 248, 247, 0.95);
-        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-        z-index:            11;
-    }
-    #cloudBrowserPopover .closebutton {
-        display:            inherit;
-        position:           relative;
-    }
-    #cloudBrowserPopover #content {
-        margin:             -10px 10px 20px 10px;
-        padding:            0;
-    }
-    .modelContainer {
-        text-align:         left;
-        color:              black;
-        border-width:       medium;
-        border-style:       inset;
-        margin:             0px 5px 10px 5px;
-        padding:            8px;
-        cursor:             pointer;
-        height:             140px;
-    }
-    .modelIcon {
-        background:         #fff;
-        border:             1px solid black;
-        width:              140px;
-        max-height:         140px;
-        clip:               rect(0px,140px,140px,0px);
-        float:              left;
-        clear:              both;
-        margin-right:       10px;
-        box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-    }
-    .externalLink {
-        margin-left:        0.5em;
-    }
-    .modelName {
-        font:               100% georgia, sans-serif;
-    }
-    .modelKeywords {
-        font:               italic 75% georgia, sans-serif;
-    }
-    .modelDescription {
-        margin-top:         8pt;
-        font:               90% georgia, sans-serif;
-    }
-    .twitter {
-        margin-top:         8pt;
-        font:               italic 90% georgia, sans-serif;
-    }
-    #keywordFilter {
-        position:           relative;
-        text-align:         center;
-        top:                -20px;
-        font:               10pt georgia, sans-serif;
-    }
-    .modelDeleteButton  {
-        border-style: hidden;
-        display: block;
-        margin: -8px -2px -20px;
-        padding: 0;
-        background-image:   url(deleteButton.png);
-        position:           relative;
-        left:               -15px;
-        top:                -15px;
-        height:             30px;
-        width:              30px;
-        z-index:            14;
-    }
-
-    #cloudSaverPopover {
-        position:           relative;
-        border:             2px solid white;
-        top:                5%;
-        margin:             auto;
-        display:            table;
-        background-color:   rgba(249, 248, 247, 0.95);
-        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-        z-index:            11;
-    }
-    #cloudSaverPopover .closebutton {
-        display:            inherit;
-        position:           relative;
-    }
-    #cloudSaverPopover #content {
-        margin:             -10px 10px 10px 10px;
-        padding:            0;
-        text-align:         center;
-    }
-    #cloudSaverPopover #content table {
-        margin-top:         20px;
-        margin-bottom:      20px;
-    }
-    #cloudSaverPopover #content td {
-        font:               84% georgia, sans-serif;
-        color:              black;
-        padding-top:        5px;
-        text-align:         left;
-    }
-    #cloudSaverPopover #content img {
-        background:         #fff;
-        border:             1px solid black;
-        box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-    }
-
-
-    /* these classes style the xml representation */
-    #codePopover {
-        position:           relative;
-        border:             2px solid black;
-        top:                5%;
-        margin:             auto;
-        display:            table;
-        background-color:   rgba(8, 0, 0, 0.8);
-        box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-        z-index:            11;
-    }
-    #codePopover .closebutton {
-        display:            inherit;
-        position:           relative;
-    }
-
-    #content {
-        position:           relative;
-        margin-top:         -30px;
-        text-align:         left;
-        font:               125% Andale Mono, Consolas, monospace;
-        color:              white;
-        padding:            15px 20px;
-        overflow:           auto;
-        background-color:   transparent;
-        z-index:            12;
-    }
-    #content .tabs {
-        visibility:         hidden;
-    }
-    #content .texts {
-        color:              #f55;
-        font-weight:        bold;
-    }
-    #content .brackets {
-        color:              white;
-    }
-    #content .elements {
-        color:              #ffffc0;
-    }
-    #content .attributes {
-        color:              #c0c0c0;
-        font-weight:        bold;
-    }
-    #content .values {
-        color:              #ffc0c0;
-        font-style:         italic;
-    }
-    .preformatted, pre {
-        font:               100% Andale Mono, Consolas, monospace;
-        color:              white;
-        white-space:        pre;
-    }
-
-
-    /* Menus and control buttons */
-    ul, li, table, tr, td {
-		list-style-type:    none;
-		margin:             0;
-        padding:            0;
-        border:             0;
-        border-collapse:    collapse;
-	}
-
-    td {
-        padding:            0px 5px 2px 5px;
-    }
-
-    legend {
-        padding:            0.2em 0.5em;
-        color:              #555;
-        font-size:          90%;
-        text-align:         left;
-    }
-
-    #header {
-        font:               10pt "Open Sans", "Helvetica Neue", sans-serif;
-        position:           relative;
-        margin:             0;
-        padding:            0;
-        top:                0;
-        left:               0;
-        height:             32px;
-        display:            block;
-        background-color:   rgba(236, 234, 234, 0.9);
-        color:              black;
-        border-bottom:      2px solid #fff;
-        box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 0px 10px rgba(0, 0, 0, 0.5);
-        z-index:            7;
-    }
-
-    /* http://www.ie7nomore.com/fun/menu2/ */
-    /* TODO: position using relative instead */
-    #actions, #settings, #file, #generate, #about, #defaults, #generation {
-        position:           absolute;
-        display:            block;
-        top:                0px;
-        z-index:            42;
-    }
-    #file {
-        left:               8px;
-        text-align:         left;
-        z-index:            43;
-    }
-    #actions {
-        left:               50px;
-        text-align:         left;
-        z-index:            44;
-    }
-    #generate {
-        left:               110px;
-        text-align:         left;
-        z-index:            45;
-    }
-    #generation {
-        right:              200px;
-        text-align:         right;
-        z-index:            46;
-    }
-    #defaults {
-        right:              130px;
-        text-align:         right;
-        z-index:            45;
-    }
-    #settings {
-        right:              60px;
-        text-align:         right;
-        z-index:            44;
-    }
-    #about {
-        right:              8px;
-        text-align:         right;
-        z-index:            43;
-    }
-    #file .fileSelect {
-        width:              200px;
-    }
-    .menu {
-        margin:             0;
-        cursor:             pointer;
-        list-style:         none;
-        padding-left:       8px;
-        padding-right:      8px;
-        line-height:        32px;
-        display:            inline-block;
-    }
-    .menu:hover {
-        font-style:         italic;
-    }
-    .submenu {
-        display:            none;
-        position:           relative;
-        background-color:   rgba(236, 234, 234, 0.9);
-        white-space:        nowrap;
-        border:             2px solid #fff;
-        box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-        -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-        -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
-        z-index:            9;
-    }
-    .menu:hover > .submenu {
-        display:            block;
-    }
-    .submenu li {
-        height:             25px;
-        line-height:        25px;
-        list-style-type:    none;
-        margin:             0;
-        padding-right:      8px;
-        padding-left:       8px;
-        color:              black;
-        font-style:         normal;
-        text-decoration:    none !important;
-        text-shadow:        none;
-        text-align:         left;
-    }
-    .submenu a {
-        color:              black;
-    }
-    .submenu a:hover {
-        color:              white;
-        text-decoration:    none;
-        text-shadow:        0px 0px 6px #555;
-    }
-    .submenu li:hover {
-        color:              white;
-        background-color:   rgba(128, 128, 128, 0.8);
-        text-decoration:    none;
-        text-shadow:        0px 0px 6px #555;
-    }
-    .submenu select {
-        width:              108px;
-    }
-    .submenu input {
-        width:              45px;
-    }
-    .submenu .inputDefaults {
-        width:              104px;
-    }
-
-    #controls {
-        position:           absolute;
-        top:                0px;
-        left:               50%;
-        margin-left:        -200px; /* half of the actual width */
-        height:             32px;
-        display:            block;
-        z-index:            555;
-    }
-    #controls .playing {
-        background-color:   #fa5;
-    }
-    #controls .pausing {
-        /* just go back to normal */
-    }
-    #controls div {
-        cursor:             pointer;
-        position:           relative;
-        top:                0;
-        display:            inline-block;
-        width:              100px;
-        height:             16px;
-        padding:            8px 0 8px 20px;
-        margin:             0;
-        border:             0;
-        background:         #b55;
-        color:              #fff;
-        text-decoration:    none;
-        text-shadow:        0px 0px 6px #777;
-        -moz-border-radius: 10px 0 / 40px 0;
-        -webkit-border-radius: 10px 0 / 40px 0;
-        border-radius:      10px 0 / 40px 0;
-        -webkit-transition: .5s;
-        -moz-transition:    .5s;
-        transition:         .5s;
-    }
-    #controls div:hover {
-        background:         #f77;
-    }
-    #controls div + div {
-        margin-left:        -50px;
-    }
-
-    </style>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'/>
+    <link href='application.css' rel='stylesheet' type='text/css'/>
 
     <!-- run some checks first -->
     <script type="text/javascript">
@@ -2208,7 +1569,7 @@
                 description:
                         'Coloring can be used to create your own visual separation of the components in a model. It ' +
                         'has no effect on the implementation.',
-                setMember: function (element, node) { node.coloring = element.value; },
+                setMember: function (element, node) { node.setColoring(element.value); },
                 getMember: function (node) { return node.coloring; },
                 setElement: function (element, node) { element.value = node.coloring; },
                 getElement: function (element) { return element.value; },
@@ -2788,6 +2149,14 @@
                     this.svg.nameControl.y.value = this.yPosition + nameYOffset;
                 }
             },
+            debug: function(debug) {
+                if(debug) {
+                    // add debugging svg elements here
+                }
+                else {
+                    // remove debugging svg elements here
+                }
+            },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(image) {
                 if(DEBUG) {
@@ -2879,7 +2248,7 @@
             // set up NAV graphics
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
-            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
             this.nav.graphicsElement.appendChild(this.nav.useElement);
             this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
@@ -3171,7 +2540,7 @@
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
-            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_anchor');
             this.nav.graphicsElement.appendChild(this.nav.useElement);
             this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
@@ -3354,7 +2723,7 @@
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
-            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_knot');
             this.nav.graphicsElement.appendChild(this.nav.useElement);
             this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
@@ -3530,7 +2899,7 @@
             this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.nav.graphicsElement.component = this;
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
-            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
             this.nav.graphicsElement.appendChild(this.nav.useElement);
             this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
@@ -3729,7 +3098,7 @@
                     role = anchorRoles[i].getAttribute("role");
                     if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
-                    coloring = anchorRoles[i].getAttribute("coloring") || "#ffffff";
+                    coloring = anchorRoles[i].getAttribute("coloring") || "#000000";
                     for(d = 0; d < anchorRoles[i].childNodes.length; d++)
                         if(anchorRoles[i].childNodes.item(d).nodeName === 'description')
                             description = anchorRoles[i].childNodes.item(d);
@@ -3739,7 +3108,7 @@
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, anchor, (identifier === "true"));
                             edge.role = role;
-                            edge.coloring = coloring;
+                            edge.setColoring(coloring);
                             edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
                             edge.updateName();
@@ -3753,7 +3122,7 @@
                     role = knotRoles[i].getAttribute("role");
                     if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
-                    coloring = knotRoles[i].getAttribute("coloring") || "#ffffff";
+                    coloring = knotRoles[i].getAttribute("coloring") || "#000000";
                     for(d = 0; d < knotRoles[i].childNodes.length; d++)
                         if(knotRoles[i].childNodes.item(d).nodeName === 'description')
                             description = knotRoles[i].childNodes.item(d);
@@ -3763,7 +3132,7 @@
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
                             edge = new Edge(tie, knot, (identifier === "true"));
                             edge.role = role;
-                            edge.coloring = coloring;
+                            edge.setColoring(coloring);
                             edge.description = description ? description.firstChild.nodeValue : '';
                             Model.addEdge(edge);
                             edge.updateName();
@@ -3789,7 +3158,7 @@
                         role = schema.createElement("knotRole");
                     role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!role" + UniqueIdentity.nextId() + "!" : this.edges[i].role);
                     role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
-                    if(this.edges[i].coloring !== '#ffffff')
+                    if(this.edges[i].coloring !== '#000000')
                         role.setAttribute("coloring", this.edges[i].coloring);
                     role.setAttribute("identifier",
                             this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
@@ -3890,7 +3259,6 @@
                     return Edge.charge;
                 }
             };
-            // TODO: test with center instead of control?
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
             this.role = '';
             this.node = node;
@@ -3906,7 +3274,8 @@
             this.type = NodeType.EDGE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
-            this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
+            this.setColoring(this.coloring);
+            this.svg.pathElement.setAttributeNS(null, 'id', this.id);
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
@@ -3922,6 +3291,7 @@
                 bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
+                this.svg.useElement.style.stroke = '#544';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
@@ -3935,7 +3305,6 @@
             }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
-            this.nav.pathElement.setAttributeNS(null, 'class', 'edge');
             this.nav.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
@@ -3953,7 +3322,7 @@
             controlPoint: { xPosition: null, yPosition: null },
             centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
-            coloring: '#ffffff',
+            coloring: '#000000',
             tied: false,
             hide: function() {
                 if(SVGLayer.edges.contains(this.svg.graphicsElement))
@@ -3972,6 +3341,17 @@
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
                 NAVLayer.edges.appendChild(this.nav.graphicsElement);
                 AbstractNode.prototype.show.apply(this, arguments);
+            },
+            setColoring: function(coloring) {
+                this.coloring = coloring;
+                if(coloring === '#000' || coloring === '#000000') {
+                    this.svg.pathElement.style.stroke = null;
+                    this.svg.pathElement.style.strokeWidth = null;
+                }
+                else {
+                    this.svg.pathElement.style.stroke = this.coloring;
+                    this.svg.pathElement.style.strokeWidth = '10px';
+                }
             },
             getMass: function() {
                 return Edge.mass;
@@ -6309,8 +5689,14 @@
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
             SVGLayer.addLayer('names');
-            SVGLayer.addLayer('viewport');
+            SVGLayer.addLayer('debug');
             SVGLayer.hide('names');
+
+            // some inherited properties
+            SVGLayer.edges.style.stroke = '#000';
+            SVGLayer.edges.style.strokeWidth = '1px';
+            SVGLayer.edges.style.opacity = '0.7';
+            SVGLayer.edges.style.fill = 'none';
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
@@ -6326,6 +5712,10 @@
             NAVLayer.addLayer('nodes');
             NAVLayer.addLayer('viewport');
 
+            // some inherited properties
+            NAVLayer.edges.style.stroke = '#000';
+            NAVLayer.edges.style.strokeWidth = '1px';
+            NAVLayer.edges.style.fill = 'none';
 
             DrawingEngine.init();
             // load previous scale and transform
@@ -6393,39 +5783,6 @@
          xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs id="graphics">
             <style type="text/css">
-                .anchor {
-                    fill:               #b55;
-                }
-                .tie {
-                    fill:               #a8a8a8;
-                }
-                .tie_outline {
-                    fill:               #fff;
-                    stroke:             #a8a8a8;
-                    stroke-width:       1.5px;
-                }
-                .attribute, .knot {
-                    fill:               #fff;
-                    stroke:             #f88;
-                    stroke-width:       1.5px;
-                }
-                .edge, .cardinality {
-                    fill:               none;
-                    stroke:             #544;
-                    stroke-width:       1px;
-                }
-                .highlight {
-                    stroke:             #ede5e5;
-                    stroke-width:       10px;
-                    fill:               #fff;
-                }
-                .bubble {
-                    fill:               #f9f8f7;
-                    stroke:             none;
-                }
-                .fixation {
-                    fill:               #000;
-                }
                 .label {
                     font-size:          8pt;
                     font-family:        "Open Sans", "Helvetica Neue", sans-serif;
@@ -6441,42 +5798,42 @@
                     text-anchor:        end;
                 }
             </style>
-            <g id="knot">
-                <rect class="knot" width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
+            <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
             </g>
-            <g id="anchor">
-                <rect class="anchor" width="20" height="20" transform="translate(-10, -10)"/>
+            <g id="anchor" style="fill:#b55;">
+                <rect width="20" height="20" transform="translate(-10, -10)"/>
             </g>
-            <g id="highlight">
-                <circle class="highlight" r="30"/>
-            </g>
-            <g id="tie">
-                <rect class="tie" width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
+            <g id="tie" style="fill:#a8a8a8;">
+                <rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
             </g>
             <g id="tie_historized">
-                <rect class="tie_outline" width="22" height="22" transform="rotate(45) translate(-11, -11)"/>
-                <rect class="tie" width="14" height="14" transform="rotate(45) translate(-7, -7)"/>
+                <rect width="22" height="22" transform="rotate(45) translate(-11, -11)" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;"/>
+                <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#a8a8a8;"/>
             </g>
-            <g id="attribute">
-                <circle class="attribute" r="10"/>
+            <g id="attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <circle r="10"/>
             </g>
-            <g id="attribute_historized">
-                <circle class="attribute" r="12"/>
-                <circle class="attribute" r="7"/>
+            <g id="attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <circle r="12"/>
+                <circle r="7"/>
             </g>
-            <g id="fixation">
-                <rect class="fixation" width="2" height="2" transform="translate(-1, -1)"/>
+            <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
+                <circle r="30"/>
             </g>
-            <g id="bubble">
-                <circle class="bubble" r="8"/>
+            <g id="fixation" style="fill:#000;">
+                <rect width="2" height="2" transform="translate(-1, -1)"/>
             </g>
-            <g id="one">
-                <line class="cardinality" x1="0" y1="-3" x2="0" y2="3"/>
+            <g id="bubble" style="fill:#f9f8f7; stroke:none;">
+                <circle r="8"/>
             </g>
-            <g id="many">
-                <line class="cardinality" x1="-3" y1="-3" x2="3" y2="-3"/>
-                <line class="cardinality" x1="-3" y1="0" x2="3" y2="0"/>
-                <line class="cardinality" x1="-3" y1="3" x2="3" y2="3"/>
+            <g id="one" style="stroke:#544; stroke-width:1px;">
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="many" style="stroke:#544; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="3" y2="-3"/>
+                <line x1="-3" y1="0" x2="3" y2="0"/>
+                <line x1="-3" y1="3" x2="3" y2="3"/>
             </g>
         </defs>
         <!-- layers are appended here -->
@@ -6631,8 +5988,30 @@
              version="1.1"
              xmlns:xlink="http://www.w3.org/1999/xlink"
              viewBox="0 0 1 1"
-             preserveAspectRatio="xMinYMin slice"/>
-        <!-- unfortunately using a "use" element here pointing to the original graph slows everything to a crawl -->
+             preserveAspectRatio="xMinYMin slice">
+            <defs id="nav_graphics">
+                <g id="nav_knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                    <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
+                </g>
+                <g id="nav_anchor" style="fill:#b55;">
+                    <rect width="20" height="20" transform="translate(-10, -10)"/>
+                </g>
+                <g id="nav_tie" style="fill:#a8a8a8;">
+                    <rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
+                </g>
+                <g id="nav_tie_historized">
+                    <rect width="22" height="22" transform="rotate(45) translate(-11, -11)" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;"/>
+                    <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#a8a8a8;"/>
+                </g>
+                <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                    <circle r="10"/>
+                </g>
+                <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                    <circle r="12"/>
+                    <circle r="7"/>
+                </g>
+            </defs>
+        </svg>
     </div>
 
     <div id="logotype" class="unselectable">
