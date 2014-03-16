@@ -1654,13 +1654,19 @@
             addNodeToSelection: function(node) {
                 if(this.selectedNodes.indexOf(node) < 0)
                     this.selectedNodes.push(node);
+                node.setSelection(true);
             },
             removeNodeFromSelection: function(node) {
                 if(this.selectedNodes.indexOf(node) >= 0)
                     this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
+                node.setSelection(false);
             },
             clearSelection: function() {
-                this.selectedNodes = [];
+                var node;
+                while(node = this.selectedNodes.pop()) {
+                    this.removeNodeFromSelection(node);
+                }
+                this.setInteraction(null);
             },
             isSelected: function(node) {
                 return this.selectedNodes.indexOf(node) >= 0;
@@ -1678,18 +1684,18 @@
             addNodeToInteraction: function(node) {
                 if(this.interactedNodes.indexOf(node) < 0)
                     this.interactedNodes.push(node);
+                node.setHighlight(true);
             },
             removeNodeFromInteraction: function(node) {
                 if(this.interactedNodes.indexOf(node) >= 0)
                     this.interactedNodes.splice(this.interactedNodes.indexOf(node), 1);
-            },
-            clearHighlights: function() {
-                var i = this.interactedNodes.length;
-                while(i--) this.interactedNodes[i].setHighlight(false);
+                node.setHighlight(false);
             },
             clearInteraction: function() {
-                this.clearHighlights();
-                this.interactedNodes = [];
+                var node;
+                while(node = this.interactedNodes.pop()) {
+                    this.removeNodeFromInteraction(node);
+                }
                 this.setInteraction(null);
             },
             isInteracted: function(node) {
@@ -1700,18 +1706,15 @@
             },
             beginInteraction: function(event) {
                 event.preventDefault();
-                if(!EventHandler.hasOngoingInteractions()) {
+                var component = this.component; // note that _this_ refers to the SVG element here
+                if(!EventHandler.hasOngoingInteractions() && component.isInteractive()) {
                     EventHandler.setInteraction("beginInteraction");
-                    var component = this.component; // note that _this_ refers to the SVG element here
                     if(!EventHandler.isInteracted(component))
                         EventHandler.addNodeToInteraction(component);
-                    if(!EventHandler.isSelected(component))
-                        EventHandler.addNodeToSelection(component);
                     window.addEventListener('keypress', EventHandler.keypress, false);
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
-                    component.setHighlight(true);
                     component.showContextMenu(component, EventHandler.selectedNodes);
                 }
                 event.stopPropagation();
@@ -1723,10 +1726,14 @@
                     var component, i;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         if(event.shiftKey) {
-                            if(EventHandler.isSelected(component))
+                            if(EventHandler.isSelected(component)) {
                                 EventHandler.removeNodeFromSelection(component);
-                            else
+                                component.setHighlight(true);
+                            }
+                            else {
                                 EventHandler.addNodeToSelection(component);
+                                component.setHighlight(false);
+                            }
                         }
                         component.hideContextMenu();
                         component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
@@ -1741,7 +1748,7 @@
                         EventHandler.getInteraction() === "prepareDragging") {
                     var component, i, svgPoint;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
-                        if(component.isInteractive()) {
+                        if(component.isInteractive() && component.isDraggable()) {
                             svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY)
                             if(EventHandler.getInteraction() === "whileDragging") {
                                 component.xPosition = svgPoint.x;
@@ -1765,7 +1772,7 @@
             },
             clickComponent: function(event) {
                 event.preventDefault();
-                if(EventHandler.getInteraction() !== "whileDragging") {
+                if(EventHandler.getInteraction() !== "whileDragging" && !event.shiftKey) {
                     var component, i = EventHandler.interactedNodes.length;
                     while(i--) {
                         component = EventHandler.interactedNodes[i];
@@ -1779,17 +1786,14 @@
                 event.stopPropagation();
             },
             clickHighlight: function(event) {
-                event.preventDefault();
-                alert("clicked highlight");
-                event.stopPropagation();
+                // nothing assigned to this action right now
             },
+            clickSelection: this.clickHighlight,
             endInteraction: function(event) {
                 event.preventDefault();
                 if(event.toElement === SVG && EventHandler.getInteraction() !== "whileDragging") {
                     var component, i;
                     for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
-                        if(EventHandler.isSelected(component))
-                            EventHandler.removeNodeFromSelection(component);
                         component.hideContextMenu();
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     }
@@ -1804,7 +1808,6 @@
                 event.preventDefault();
                 if(event.shiftKey) {
                     // we are shift clicking the canvas background
-                    EventHandler.clearInteraction();
                     EventHandler.clearSelection();
                 }
                 else if(!EventHandler.hasOngoingInteractions()) {
@@ -1969,6 +1972,7 @@
             nameText: null,
             nameControl: null,
             highlightElement: null,
+            selectionElement: null,
             fixationElement: null,
             pathElement: null,
             pathControl: null,
@@ -1976,6 +1980,10 @@
             makeInteractive: function() {
                 this.highlightElement = document.createElementNS(SVGNS, 'use');
                 this.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
+                this.highlightElement.component = this.component;
+                this.selectionElement = document.createElementNS(SVGNS, 'use');
+                this.selectionElement.setAttributeNS(XLINKNS, 'xlink:href', '#selection');
+                this.selectionElement.component = this.component;
                 this.fixationElement = document.createElementNS(SVGNS, 'use');
                 this.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
             },
@@ -2041,6 +2049,7 @@
             nav: null,
             nameable: false,
             hasHighlight: false,
+            isSelected: false,
             lastName: '',
             // can be overridden by subclasses
             hide: function() {
@@ -2096,6 +2105,9 @@
             },
             // override to change behavior
             isInteractive: function() {
+                return false;
+            },
+            isDraggable: function() {
                 return false;
             },
             // subclasses must override these
@@ -2242,9 +2254,23 @@
             getFixed: function() {
                 return this.fixed;
             },
+            setSelection: function(selected) {
+                this.isSelected = selected;
+                if(selected && !this.svg.graphicsElement.contains(this.svg.selectionElement)) {
+                    this.svg.selectionElement.addEventListener('click', EventHandler.clickSelection, false);
+                    this.svg.graphicsElement.insertBefore(
+                            this.svg.selectionElement,
+                            this.svg.graphicsElement.firstChild
+                    );
+                }
+                else if (!selected && this.svg.graphicsElement.contains(this.svg.selectionElement)) {
+                    this.svg.graphicsElement.removeChild(this.svg.selectionElement);
+                    this.svg.selectionElement.removeEventListener('click', EventHandler.clickSelection, false);
+                }
+            },
             setHighlight: function(highlight) {
                 this.hasHighlight = highlight;
-                if(highlight && !this.svg.graphicsElement.contains(this.highlight)) {
+                if(highlight && !this.svg.graphicsElement.contains(this.svg.highlightElement)) {
                     this.svg.highlightElement.addEventListener('click', EventHandler.clickHighlight, false);
                     this.svg.graphicsElement.insertBefore(
                             this.svg.highlightElement,
@@ -2345,6 +2371,9 @@
                 return Attribute.charge;
             },
             isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
                 return true;
             },
             isConforming: function() {
@@ -2643,6 +2672,9 @@
             isInteractive: function() {
                 return true;
             },
+            isDraggable: function() {
+                return true;
+            },
             contextualName: function() {
                 var name;
                 if(Settings.showMnemonics)
@@ -2813,6 +2845,9 @@
                 return Knot.charge;
             },
             isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
                 return true;
             },
             contextualName: function() {
@@ -3003,6 +3038,9 @@
                 return Tie.charge;
             },
             isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
                 return true;
             },
             setFirstRole: function(edge) {
@@ -3409,6 +3447,9 @@
             },
             isInteractive: function() {
                 return this.tied;
+            },
+            isDraggable: function() {
+                return false;
             },
             // overload to remove propagation of movement
             start: function() {
@@ -5893,6 +5934,10 @@
             </g>
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
+            </g>
+            <g id="selection" style="fill:#ede5e5;">
+                <circle r="30"/>
+                <circle r="30" style="stroke:#000; stroke-width:1px;"/>
             </g>
             <g id="fixation" style="fill:#000;">
                 <rect width="2" height="2" transform="translate(-1, -1)"/>
