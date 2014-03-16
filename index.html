@@ -352,20 +352,14 @@
                         }
                         // bending force (straightens out edges)
                         if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
-                            // update the control and center points
+                            // update the control point
                             node.controlPoint.xPosition = 2 * node.xPosition -
                                     node.node.xPosition / 2 - node.otherNode.xPosition / 2;
                             node.controlPoint.yPosition = 2 * node.yPosition -
                                     node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                            node.centerPoint.xPosition = node.node.xPosition +
-                                    (node.otherNode.xPosition - node.node.xPosition) / 2;
-                            node.centerPoint.yPosition = node.node.yPosition +
-                                    (node.otherNode.yPosition - node.node.yPosition) / 2;
                             // curvature is higher for a very bent edge (nodes close together)
                             curvature = this.stiffness / this.manhattanDistance(node.node, node.otherNode);
-                            // attract the edge mid point to the center and control points
-                            node.xVelocity += this.xStiffness(node, node.centerPoint, curvature);
-                            node.yVelocity += this.yStiffness(node, node.centerPoint, curvature);
+                            // attract the edge mid point to the control point
                             node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
                             node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
@@ -510,20 +504,14 @@
                         }
                         // bending force (straightens out edges)
                         if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
-                            // update the control and center points
+                            // update the control point
                             node.controlPoint.xPosition = 2 * node.xPosition -
                                     node.node.xPosition / 2 - node.otherNode.xPosition / 2;
                             node.controlPoint.yPosition = 2 * node.yPosition -
                                     node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                            node.centerPoint.xPosition = node.node.xPosition +
-                                    (node.otherNode.xPosition - node.node.xPosition) / 2;
-                            node.centerPoint.yPosition = node.node.yPosition +
-                                    (node.otherNode.yPosition - node.node.yPosition) / 2;
                             // curvature is higher for a very bent edge (nodes close together)
-                            curvature = this.stiffness / this.manhattanDistance(node.node, node.otherNode);
-                            // attract the edge mid point to the center and control points
-                            node.xVelocity += this.xStiffness(node, node.centerPoint, curvature);
-                            node.yVelocity += this.yStiffness(node, node.centerPoint, curvature);
+                            curvature = this.stiffness / this.euclideanDistance(node.node, node.otherNode);
+                            // attract the edge mid point to the control point
                             node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
                             node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
@@ -1913,6 +1901,56 @@
             }
         };
 
+        function Symbol(component) {
+            this.component = component;
+        }
+        Symbol.prototype = {
+            component: null,
+            interactive: null,
+            graphicsElement: null,
+            useElement: null,
+            boundingBox: null,
+            xOffset: null,
+            yOffset: null,
+            control: null,
+            nameElement: null,
+            nameText: null,
+            nameControl: null,
+            highlightElement: null,
+            fixationElement: null,
+            pathElement: null,
+            pathControl: null,
+            forceElement: null,
+            partitionElement: null,
+            makeInteractive: function() {
+                this.highlightElement = document.createElementNS(SVGNS, 'use');
+                this.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
+                this.fixationElement = document.createElementNS(SVGNS, 'use');
+                this.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
+            },
+            makeDebuggable: function() {
+                this.forceElement = document.createElementNS(SVGNS, 'line');
+                this.forceElement.setAttributeNS(null, 'marker-end', 'url(#arrowhead)');
+                this.partitionElement = document.createElementNS(SVGNS, 'rect');
+            },
+            hideGraphics: function(imageLayer) {
+                if(this.graphicsElement && imageLayer.contains(this.graphicsElement))
+                    imageLayer.removeChild(this.graphicsElement);
+            },
+            showGraphics: function(imageLayer) {
+                if(this.graphicsElement)
+                    imageLayer.appendChild(this.graphicsElement);
+            },
+            hidePath: function(imageLayer) {
+                if(this.pathElement && imageLayer.contains(this.pathElement))
+                    imageLayer.removeChild(this.pathElement);
+            },
+            showPath: function(imageLayer) {
+                if(this.pathElement)
+                    imageLayer.appendChild(this.pathElement);
+            }
+        };
+
         function AbstractNode(x, y) {
             this.xPosition = x;
             this.yPosition = y;
@@ -1927,32 +1965,10 @@
             this.edges = [];
             this.editables = [];
             this.operations = ['erase', 'connect'];
-            this.svg = {
-                graphicsElement: null,
-                useElement: null,
-                boundingBox: null,
-                xOffset: null,
-                yOffset: null,
-                control: null,
-                nameElement: null,
-                nameText: null,
-                nameControl: null,
-                highlightElement: null,
-                fixationElement: null,
-                pathElement: null,
-                pathControl: null
-            };
-            this.svg.highlightElement = document.createElementNS(SVGNS, 'use');
-            this.svg.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
-            this.svg.fixationElement = document.createElementNS(SVGNS, 'use');
-            this.svg.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
-            this.nav = {
-                graphicsElement: null,
-                useElement: null,
-                control: null,
-                pathElement: null,
-                pathControl: null
-            };
+            this.svg = new Symbol(this);
+            this.svg.makeInteractive();
+            this.svg.makeDebuggable();
+            this.nav = new Symbol(this);
         }
         AbstractNode.prototype = {
             description: '',
@@ -1977,14 +1993,16 @@
             lastName: '',
             // can be overridden by subclasses
             hide: function() {
-                if(SVGLayer.nodes.contains(this.svg.graphicsElement))
-                    SVGLayer.nodes.removeChild(this.svg.graphicsElement);
-                if(NAVLayer.nodes.contains(this.nav.graphicsElement))
-                    NAVLayer.nodes.removeChild(this.nav.graphicsElement);
+                this.svg.hideGraphics(SVGLayer.nodes);
+                this.nav.hideGraphics(NAVLayer.nodes);
+                this.svg.hidePath(SVGLayer.edges);
+                this.nav.hidePath(NAVLayer.edges);
             },
             show: function() {
-                SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-                NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+                this.svg.showGraphics(SVGLayer.nodes);
+                this.nav.showGraphics(NAVLayer.nodes);
+                this.svg.showPath(SVGLayer.edges);
+                this.nav.showPath(NAVLayer.edges);
             },
             postCreationInitialization: function() {
                 this.editables.push(Editables.descriptionEdit);
@@ -2013,7 +2031,6 @@
                         x: this.svg.nameElement.x.baseVal.getItem(0),
                         y: this.svg.nameElement.y.baseVal.getItem(0)
                     };
-
                 }
                 this.nameable = nameable;
             },
@@ -2149,18 +2166,22 @@
                     this.svg.nameControl.y.value = this.yPosition + nameYOffset;
                 }
             },
-            debug: function(debug) {
-                if(debug) {
-                    // add debugging svg elements here
-                }
-                else {
-                    // remove debugging svg elements here
-                }
-            },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(image) {
+                // draw debug stuff
                 if(DEBUG) {
-                    // draw more stuff
+                    // TODO: prepare this in toggle debug instead
+                    if(!SVGLayer.debug.contains(this.svg.forceElement))
+                        SVGLayer.debug.appendChild(this.svg.forceElement);
+                    // draw forces
+                    this.svg.forceElement.x1.baseVal.value = this.xPosition;
+                    this.svg.forceElement.y1.baseVal.value = this.yPosition;
+                    // exaggerate the velocity so that forces become visible
+                    var e = 10*Math.log(1 + 10/(1 + this.velocity));
+                    this.svg.forceElement.x2.baseVal.value = this.xPosition + this.xVelocity *e;
+                    this.svg.forceElement.y2.baseVal.value = this.yPosition + this.yVelocity *e;
+                    // draw partitions
+                    // TODO
                 }
             },
             setFixed: function(fixed) {
@@ -2501,7 +2522,7 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.xPosition, this.yPosition);
-                AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -2683,7 +2704,7 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.xPosition, this.yPosition);
-                AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -2857,7 +2878,7 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.xPosition, this.yPosition);
-                AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3228,7 +3249,7 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.xPosition, this.yPosition);
-                AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3238,20 +3259,10 @@
         function Edge(node, otherNode, identifier) {
             Edge.mass = 1;
             Edge.charge = 1;
-            // assume that the control point and midway point coincide with the center point
-            this.centerPoint = {
+            // assume that the control point coincide with the center point
+            this.controlPoint = {
                 xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
                 yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2,
-                getMass: function() {
-                    return Edge.mass;
-                },
-                getCharge: function() {
-                    return Edge.charge;
-                }
-            };
-            this.controlPoint = {
-                xPosition: this.centerPoint.xPosition,
-                yPosition: this.centerPoint.yPosition,
                 getMass: function() {
                     return Edge.mass;
                 },
@@ -3320,26 +3331,17 @@
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
-            centerPoint: { xPosition: null, yPosition: null },
             identifier: true,
             coloring: '#000000',
             tied: false,
             hide: function() {
-                if(SVGLayer.edges.contains(this.svg.graphicsElement))
-                    SVGLayer.edges.removeChild(this.svg.graphicsElement);
-                if(NAVLayer.edges.contains(this.nav.graphicsElement))
-                    NAVLayer.edges.removeChild(this.nav.graphicsElement);
-                if(SVGLayer.edges.contains(this.svg.pathElement))
-                    SVGLayer.edges.removeChild(this.svg.pathElement);
-                if(NAVLayer.edges.contains(this.nav.pathElement))
-                    NAVLayer.edges.removeChild(this.nav.pathElement);
+                this.svg.hideGraphics(SVGLayer.edges);
+                this.nav.hideGraphics(NAVLayer.edges);
                 AbstractNode.prototype.hide.apply(this, arguments);
             },
             show: function() {
-                SVGLayer.edges.appendChild(this.svg.pathElement);
-                NAVLayer.edges.appendChild(this.nav.pathElement);
-                SVGLayer.edges.appendChild(this.svg.graphicsElement);
-                NAVLayer.edges.appendChild(this.nav.graphicsElement);
+                this.svg.showGraphics(SVGLayer.edges);
+                this.nav.showGraphics(NAVLayer.edges);
                 AbstractNode.prototype.show.apply(this, arguments);
             },
             setColoring: function(coloring) {
@@ -3396,9 +3398,12 @@
                 image.pathControl.q.x = this.otherNode.xPosition;
                 image.pathControl.q.y = this.otherNode.yPosition;
                 if(this.tied && image.control) {
+//                    var l = image.pathElement.getTotalLength();
+//                    var p = image.pathElement.getPointAtLength(l/4);
+//                    image.control.setTranslate(p.x, p.y);
                     image.control.setTranslate(this.xPosition, this.yPosition);
                 }
-                AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -5686,17 +5691,18 @@
 
             // add layers to the SVG
             SVGLayer = new Layer(SVG);
+            SVGLayer.addLayer('debug');
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
             SVGLayer.addLayer('names');
-            SVGLayer.addLayer('debug');
             SVGLayer.hide('names');
 
             // some inherited properties
             SVGLayer.edges.style.stroke = '#000';
             SVGLayer.edges.style.strokeWidth = '1px';
-            SVGLayer.edges.style.opacity = '0.7';
             SVGLayer.edges.style.fill = 'none';
+            SVGLayer.debug.style.stroke = '#fcc';
+            SVGLayer.debug.style.strokeWidth = '7px';
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
@@ -5798,6 +5804,13 @@
                     text-anchor:        end;
                 }
             </style>
+            <marker id="arrowhead"
+                    viewBox="0 0 10 10" refX="0" refY="5"
+                    markerUnits="strokeWidth"
+                    markerWidth="4" markerHeight="3"
+                    orient="auto" fill="#fcc">
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
             <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                 <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
             </g>
