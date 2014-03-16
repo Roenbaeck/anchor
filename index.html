@@ -1271,8 +1271,53 @@
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
+            partitionElements: [],
             draw: function() {
-                // draw the miniature every minirate frames
+                if(DEBUG) {
+                    // draw partitions
+                    var partition, partitionElement, k, key;
+                    var diff, keys = Object.keys(LayoutEngine.partitions);
+                    var lost = this.partitionElements.filter(function(i) {return !(keys.indexOf(i) > -1);});
+                    k = lost.length;
+                    while(k--) {
+                        key = lost[k];
+                        partitionElement = document.getElementById(key);
+                        SVGLayer.debugPartitions.removeChild(partitionElement);
+                        this.partitionElements.splice(this.partitionElements.indexOf(key),1);
+                    }
+                    k = keys.length;
+                    // calculate the velocity of the partitions
+                    while(k--) {
+                        key = keys[k];
+                        partition = LayoutEngine.partitions[key];
+                        partitionElement = document.getElementById(key);
+                        if(!partitionElement) {
+                            partitionElement = document.createElementNS(SVGNS, 'rect');
+                            partitionElement.setAttributeNS(null, 'id', key);
+                            partitionElement.style.strokeWidth = LayoutEngine.fuzz;
+                            SVGLayer.debugPartitions.appendChild(partitionElement);
+                            this.partitionElements.push(key);
+                        }
+                        partitionElement.x.baseVal.value = partition.xMin;
+                        partitionElement.y.baseVal.value = partition.yMin;
+                        partitionElement.width.baseVal.value = partition.xMax - partition.xMin;
+                        partitionElement.height.baseVal.value = partition.yMax - partition.yMin;
+//                        console.log(partitionElement);
+                        /*
+                        this.context.fillStyle = Color.scheme.partitionForceEndpoint;
+                        this.context.fillRect(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity - 5,
+                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity - 5, 10, 10);
+                        this.context.beginPath();
+                        this.context.moveTo(partition.xPosition, partition.yPosition);
+                        // draw an exaggerated velocity vector
+                        this.context.lineTo(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity,
+                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity);
+                        this.context.strokeStyle = Color.scheme.partitionForceVector;
+                        this.context.lineWidth = 0.5;
+                        this.context.stroke();
+                        */
+                    }
+                }                // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var i, node;
                 i = Model.visibleNodes.length;
@@ -1921,17 +1966,16 @@
             pathElement: null,
             pathControl: null,
             forceElement: null,
-            partitionElement: null,
             makeInteractive: function() {
                 this.highlightElement = document.createElementNS(SVGNS, 'use');
                 this.highlightElement.setAttributeNS(XLINKNS, 'xlink:href', '#highlight');
                 this.fixationElement = document.createElementNS(SVGNS, 'use');
                 this.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
             },
-            makeDebuggable: function() {
+            addDebug: function(imageLayer) {
                 this.forceElement = document.createElementNS(SVGNS, 'line');
                 this.forceElement.setAttributeNS(null, 'marker-end', 'url(#arrowhead)');
-                this.partitionElement = document.createElementNS(SVGNS, 'rect');
+                imageLayer.appendChild(this.forceElement);
             },
             hideGraphics: function(imageLayer) {
                 if(this.graphicsElement && imageLayer.contains(this.graphicsElement))
@@ -1967,7 +2011,7 @@
             this.operations = ['erase', 'connect'];
             this.svg = new Symbol(this);
             this.svg.makeInteractive();
-            this.svg.makeDebuggable();
+            this.svg.addDebug(SVGLayer.debug);
             this.nav = new Symbol(this);
         }
         AbstractNode.prototype = {
@@ -2170,9 +2214,6 @@
             draw: function(image) {
                 // draw debug stuff
                 if(DEBUG) {
-                    // TODO: prepare this in toggle debug instead
-                    if(!SVGLayer.debug.contains(this.svg.forceElement))
-                        SVGLayer.debug.appendChild(this.svg.forceElement);
                     // draw forces
                     this.svg.forceElement.x1.baseVal.value = this.xPosition;
                     this.svg.forceElement.y1.baseVal.value = this.yPosition;
@@ -2180,8 +2221,6 @@
                     var e = 10*Math.log(1 + 10/(1 + this.velocity));
                     this.svg.forceElement.x2.baseVal.value = this.xPosition + this.xVelocity *e;
                     this.svg.forceElement.y2.baseVal.value = this.yPosition + this.yVelocity *e;
-                    // draw partitions
-                    // TODO
                 }
             },
             setFixed: function(fixed) {
@@ -5379,6 +5418,14 @@
             },
             toggleDebug: function () {
                 DEBUG = !DEBUG;
+                if(DEBUG) {
+                    SVGLayer.show('debugPartitions');
+                    SVGLayer.show('debug');
+                }
+                else {
+                    SVGLayer.hide('debug');
+                    SVGLayer.hide('debugPartitions');
+                }
                 DrawingEngine.start(false);
             },
             knotMass: null,
@@ -5691,6 +5738,7 @@
 
             // add layers to the SVG
             SVGLayer = new Layer(SVG);
+            SVGLayer.addLayer('debugPartitions');
             SVGLayer.addLayer('debug');
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
@@ -5703,6 +5751,8 @@
             SVGLayer.edges.style.fill = 'none';
             SVGLayer.debug.style.stroke = '#fcc';
             SVGLayer.debug.style.strokeWidth = '7px';
+            SVGLayer.debugPartitions.style.fill = 'fff8f8';
+            SVGLayer.debugPartitions.style.stroke = 'f4ebeb';
 
             // set up "global" event handlers
             SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
