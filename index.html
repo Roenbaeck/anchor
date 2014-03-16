@@ -1177,6 +1177,7 @@
             layout: false,
             viewport: null,
             screenCircumference: 0,
+            partitionElements: [],
             init: function() {
                 var requestAnimationFrame =
                         window.requestAnimationFrame ||
@@ -1210,6 +1211,9 @@
                 this.viewport.setAttributeNS(null, 'height', SVG.viewBox.baseVal.height);
                 this.viewport.setAttributeNS(null, 'style', 'stroke: red; stroke-width: 2px; fill: none;');
                 this.initialized = true;
+            },
+            taint: function() {
+                this.partitionElements = [];
             },
             storeSettings: function(storage) {
                 storage.setItem("viewportX", SVG.viewBox.baseVal.x);
@@ -1271,7 +1275,6 @@
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
-            partitionElements: [],
             draw: function() {
                 if(DEBUG) {
                     // draw partitions
@@ -1936,6 +1939,10 @@
                         case "d":
                             if(Operations.isSupported("erase", allNodes))
                                 Model.erase(allNodes);
+                            break;
+                        case "p":
+                            component.setFixed(!component.fixed);
+                            DrawingEngine.start(false);
                             break;
                     }
                     if(event.stopPropagation)
@@ -4193,6 +4200,7 @@
                 Actions.setModelStatus();
                 Actions.resetZoom();
                 Actions.centerModel();
+                DrawingEngine.taint();
                 DrawingEngine.start(false);
             }
         };
@@ -4347,6 +4355,7 @@
                 Actions.setModelStatus();
                 Actions.resetZoom();
                 Actions.centerModel();
+                DrawingEngine.taint();
                 DrawingEngine.start(layout);
             },
             modelStatusText: null,
@@ -4451,6 +4460,7 @@
                             Actions.setModelStatus();
                             Actions.resetZoom();
                             Actions.centerModel();
+                            DrawingEngine.taint();
                             DrawingEngine.start(false);
                         }
                         modalBackground.close();
