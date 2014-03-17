@@ -3415,7 +3415,7 @@
                 }
             };
             AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
-            this.role = '';
+            this.role = '?' + this.getId();
             this.node = node;
             this.otherNode = otherNode;
             this.identifier = identifier;
@@ -3430,7 +3430,6 @@
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.setColoring(this.coloring);
-            this.svg.pathElement.setAttributeNS(null, 'id', this.id);
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
                     ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
                     ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
@@ -3446,7 +3445,6 @@
                 bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
-                this.svg.useElement.style.stroke = '#544';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
@@ -3471,7 +3469,7 @@
             this.postCreationInitialization();
         }
         Edge.prototype = {
-            role: null,
+            role: '',
             node: null,
             otherNode: null,
             controlPoint: { xPosition: null, yPosition: null },
@@ -4429,18 +4427,27 @@
                 result = processor.transformToFragment(xmlDocument, ownerDocument);
                 return result;
             },
-            createEmail: function(aTag) {
+            createEmail: function(str) {
                 ASKBEFOREUNLOAD = false; // prevent onbeforeunload behavior
                 var modelDescription = new XMLSerializer().serializeToString(Model.toXML());
-                var modelName = Model.name ? Model.name : 'Unnamed Model';
-                aTag.href = "mailto:?subject=" + modelName + "&body=" + modelDescription;
+                var save = document.createElement('a');
+                var modelName = Model.name || 'Model';
+                save.href = "mailto:?subject=" + modelName + "&body=" + str;
+                save.target = '_self';
+                var event = document.createEvent('Event');
+                event.initEvent('click', true, true);
+                save.dispatchEvent(event);
+                (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
-            saveToDisk: function (str) {
-                // while waiting for a working method
-                window.open(
-                        'data:text/xml,' +
-                        str, '_newtab'
-                );
+            saveToDisk: function (str, type) {
+                var save = document.createElement('a');
+                save.href = 'data:text/' + type + ',' + str;
+                save.target = '_blank';
+                save.download = (Model.name || 'Model') + '.' + type;
+                var event = document.createEvent('Event');
+                event.initEvent('click', true, true);
+                save.dispatchEvent(event);
+                (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
             loadFromURL: function (url, layout) {
                 layout = typeof layout !== 'undefined' ? layout : false;
@@ -6038,10 +6045,9 @@
                 <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                 <li><i>Load model from local file:</i></li>
                 <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
-                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)))">Save model to local file...</li>
-                <li title="Sends an email with the XML description of the model to a specified recipient.">
-                    <a id="email" href="mailto:" onclick="Actions.createEmail(this)">Send model by email...</a>
-                </li>
+                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
+                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
+                <li title="Sends an email with the XML description of the model to a specified recipient." onclick="Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)))">Send model by email...</li>
                 <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
             </ul>
         </div>
@@ -6096,7 +6102,6 @@
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(Actions.toPNGDataURL(SVG), '_newtab')">PNG screenshot</li>
                 <li title="Generate a vector image of the entire model." onclick="window.open(Actions.toSVGDataURL(SVG), '_newtab')">SVG screenshot</li>
-                <li title="Generate the SVG code for a vector image of the entire model." onclick="new CodePopover(Actions.transform(SVG, 'xml2html.xsl', document), false)">SVG code</li>
             </ul>
         </div>
 
