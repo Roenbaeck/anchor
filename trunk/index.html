@@ -1651,6 +1651,10 @@
             interactedNodes: [], // currently "touched" nodes
             interaction: null,
             previousInteraction: null,
+            lastX: null,
+            lastY: null,
+            scaleX: null,
+            scaleY: null,
             addNodeToSelection: function(node) {
                 if(this.selectedNodes.indexOf(node) < 0)
                     this.selectedNodes.push(node);
@@ -1812,12 +1816,10 @@
                 }
                 else if(!EventHandler.hasOngoingInteractions()) {
                     EventHandler.setInteraction("preparePanning");
-                    var screenWidth = window.innerWidth; //SVG.width.baseVal.value;
-                    var screenHeight = window.innerHeight; //SVG.height.baseVal.value;
+                    var screenWidth = window.innerWidth;
+                    var screenHeight = window.innerHeight;
                     var viewBoxWidth = SVG.viewBox.baseVal.width || screenWidth;
                     var viewBoxHeight = SVG.viewBox.baseVal.height || screenHeight;
-                    SVG.viewBox.baseVal.width = viewBoxWidth;
-                    SVG.viewBox.baseVal.height = viewBoxHeight;
                     EventHandler.scaleX = viewBoxWidth / screenWidth;
                     EventHandler.scaleY = viewBoxHeight / screenHeight;
                     EventHandler.lastX = event.clientX;
@@ -1827,10 +1829,6 @@
                 }
                 event.stopPropagation();
             },
-            lastX: null,
-            lastY: null,
-            scaleX: null,
-            scaleY: null,
             whilePanning: function(event) {
                 event.preventDefault();
                 if(EventHandler.getInteraction() === "whilePanning" ||
@@ -1885,6 +1883,68 @@
                 svgPoint.y = y;
                 var matrix = SVG.getScreenCTM();
                 return svgPoint.matrixTransform( matrix );
+            },
+            screenToMiniature: function(x, y) {
+                var screenPoint = NAV.createSVGPoint();
+                screenPoint.x = x;
+                screenPoint.y = y;
+                var matrix = NAV.getScreenCTM();
+                return screenPoint.matrixTransform( matrix.inverse() );
+            },
+            miniatureToScreen: function(x, y) {
+                var svgPoint = NAV.createSVGPoint();
+                svgPoint.x = x;
+                svgPoint.y = y;
+                var matrix = NAV.getScreenCTM();
+                return svgPoint.matrixTransform( matrix );
+            },
+            prepareNavigation: function(event) {
+                event.preventDefault();
+                if(!EventHandler.hasOngoingInteractions()) {
+                    EventHandler.setInteraction("prepareNavigation");
+                    var miniature = document.getElementById("miniature");
+                    var miniatureWidth = miniature.offsetWidth;
+                    var miniatureHeight = miniature.offsetHeight;
+                    var viewBoxWidth = NAV.viewBox.baseVal.width || miniatureWidth;
+                    var viewBoxHeight = NAV.viewBox.baseVal.height || miniatureHeight;
+                    EventHandler.scaleX = viewBoxWidth / miniatureWidth;
+                    EventHandler.scaleY = viewBoxHeight / miniatureHeight;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                    // move to the clicked point
+                    var svgPoint = EventHandler.screenToMiniature(event.clientX, event.clientY);
+                    Actions.centerModelAt(svgPoint.x, svgPoint.y);
+                    NAV.addEventListener('mousemove', EventHandler.whileNavigating, false);
+                    NAV.addEventListener('mouseup', EventHandler.completeNavigation, false);
+                    SVG.addEventListener('mouseover', EventHandler.completeNavigation, false);
+                }
+                event.stopPropagation();
+            },
+            whileNavigating: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whileNavigating" ||
+                        EventHandler.getInteraction() === "prepareNavigation") {
+                    EventHandler.setInteraction("whileNavigating");
+                    SVG.viewBox.baseVal.x += (event.clientX - EventHandler.lastX) * EventHandler.scaleX;
+                    SVG.viewBox.baseVal.y += (event.clientY - EventHandler.lastY) * EventHandler.scaleY;
+                    EventHandler.lastX = event.clientX;
+                    EventHandler.lastY = event.clientY;
+                }
+                DrawingEngine.invalidateMiniature();
+                DrawingEngine.start(false);
+                event.stopPropagation();
+            },
+            completeNavigation: function(event) {
+                event.preventDefault();
+                if(EventHandler.getInteraction() === "whileNavigating" ||
+                        EventHandler.getInteraction() === "prepareNavigation") {
+                    EventHandler.setInteraction("completeNavigation");
+                    EventHandler.clearInteraction();
+                    NAV.removeEventListener('mousemove', EventHandler.whileNavigating, false);
+                    NAV.removeEventListener('mouseup', EventHandler.completeNavigation, false);
+                    SVG.removeEventListener('mouseover', EventHandler.completeNavigation, false);
+                }
+                event.stopPropagation();
             },
             keypress: function(event) {
                 if(EventHandler.selectedNodes.length > 0) {
@@ -5795,6 +5855,8 @@
             SVGLayer.addLayer('nodes');
             SVGLayer.addLayer('names');
             SVGLayer.hide('names');
+            SVGLayer.hide('debug');
+            SVGLayer.hide('debugPartitions');
 
             // some inherited properties
             SVGLayer.edges.style.stroke = '#000';
@@ -5806,12 +5868,15 @@
             SVGLayer.debugPartitions.style.stroke = 'f4ebeb';
 
             // set up "global" event handlers
-            SVG.addEventListener('mousewheel', EventHandler.zoom, false); // Safari and Chrome
-            SVG.addEventListener('DOMMouseScroll', EventHandler.zoom, false); // Firefox
-            SVG.addEventListener('mousedown', EventHandler.preparePanning, false); // Safari and Chrome
+            var wheel = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
+                        document.onmousewheel !== undefined ? "mousewheel" :
+                        "DOMMouseScroll";
+            SVG.addEventListener(wheel, EventHandler.zoom, false);
+            SVG.addEventListener('mousedown', EventHandler.preparePanning, false);
 
             // set up the miniature navigation
             NAV = document.getElementById("minigraph");
+            NAV.addEventListener('mousedown', EventHandler.prepareNavigation, false);
 
             // add layers to the NAV
             NAVLayer = new Layer(NAV);
@@ -5889,6 +5954,13 @@
          version="1.1"
          xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs id="graphics">
+            <marker id="arrowhead"
+                    viewBox="0 0 10 10" refX="0" refY="5"
+                    markerUnits="strokeWidth"
+                    markerWidth="4" markerHeight="3"
+                    orient="auto" fill="#fcc">
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
             <style type="text/css">
                 .label {
                     font-size:          8pt;
@@ -5905,13 +5977,6 @@
                     text-anchor:        end;
                 }
             </style>
-            <marker id="arrowhead"
-                    viewBox="0 0 10 10" refX="0" refY="5"
-                    markerUnits="strokeWidth"
-                    markerWidth="4" markerHeight="3"
-                    orient="auto" fill="#fcc">
-                <path d="M 0 0 L 10 5 L 0 10 z" />
-            </marker>
             <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                 <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
             </g>
