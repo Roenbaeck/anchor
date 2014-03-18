@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
     <title>Anchor Modeler</title>
+    <!-- web fonts -->
     <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'/>
+    <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
+    <!-- styling -->
     <link href='application.css' rel='stylesheet' type='text/css'/>
 
     <!-- run some checks first -->
@@ -2052,6 +2055,14 @@
             showPath: function(imageLayer) {
                 if(this.pathElement)
                     imageLayer.appendChild(this.pathElement);
+            },
+            hideName: function(imageLayer) {
+                if(this.nameElement && imageLayer.contains(this.nameElement))
+                    imageLayer.removeChild(this.nameElement);
+            },
+            showName: function(imageLayer) {
+                if(this.nameElement)
+                    imageLayer.appendChild(this.nameElement);
             }
         };
 
@@ -2095,19 +2106,21 @@
             nameable: false,
             hasHighlight: false,
             isSelected: false,
-            lastName: '',
+            lastName: null,
             // can be overridden by subclasses
             hide: function() {
                 this.svg.hideGraphics(SVGLayer.nodes);
                 this.nav.hideGraphics(NAVLayer.nodes);
                 this.svg.hidePath(SVGLayer.edges);
                 this.nav.hidePath(NAVLayer.edges);
+                this.svg.hideName(SVGLayer.names);
             },
             show: function() {
                 this.svg.showGraphics(SVGLayer.nodes);
                 this.nav.showGraphics(NAVLayer.nodes);
                 this.svg.showPath(SVGLayer.edges);
                 this.nav.showPath(NAVLayer.edges);
+                this.svg.showName(SVGLayer.names);
             },
             postCreationInitialization: function() {
                 this.editables.push(Editables.descriptionEdit);
@@ -2142,10 +2155,23 @@
             updateName: function() {
                 if(this.nameable) {
                     var name = this.contextualName();
-                    if(name != this.lastName) {
+                    if(!name) {
+                        this.svg.hideName(SVGLayer.names);
+                        this.lastName = null;
+                        return false;
+                    }
+                    else if(name !== this.lastName) {
+                        if(!this.lastName) this.svg.showName(SVGLayer.names);
                         this.lastName = name;
                         this.svg.nameText.nodeValue = name;
+                        return true;
                     }
+                    else {
+                        return true;
+                    }
+                }
+                else {
+                    return false;
                 }
             },
             // override to change behavior
@@ -2230,9 +2256,8 @@
             bad: false,
             end: false,
             drawName: function() {
-                if(this.svg.nameElement) {
-                    this.updateName();
-                    var i, edge, xAverage = 0, closestEdge = this.edges[0];
+                if(this.svg.nameElement && this.updateName()) {
+                    var i, xAverage = 0, closestEdge = this.edges[0];
                     i = this.edges.length;
                     while(i--) {
                         xAverage += this.edges[i].xPosition;
@@ -2408,7 +2433,10 @@
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
-            keys: [{stop: "1", route: "natural", of: "PE"}], // TODO: this is just a test
+            keys: [
+                {stop: "1", route: "N", of: "PE"},
+                {stop: "3", route: "A", of: "PE"}
+            ], // TODO: this is just a test
             getMass: function() {
                 return Attribute.mass;
             },
@@ -2641,6 +2669,36 @@
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
+                if(!this.svg.stops) {
+                    this.svg.stops = document.createElementNS(SVGNS, 'g');
+                    // expando property as a reference back to the underlying component for use in event handlers
+                    this.svg.stops.component = this;
+                    var stop, route, of, i;
+                    for(i = 0; i < this.keys.length; i++) {
+                        stop = this.keys[i].stop;
+                        route = this.keys[i].route;
+                        of = this.keys[i].of;
+                        var stopElement = document.createElementNS(SVGNS, 'text');
+                        stopElement.appendChild(document.createTextNode(of + ' ' + route + stop));
+                        stopElement.setAttributeNS(null, 'class', 'stop');
+                        stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
+                        this.svg.graphicsElement.appendChild(stopElement);
+                        var box = stopElement.getBBox();
+                        var offset = -20 - box.height * i;
+                        stopElement.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
+                        var stopBox = document.createElementNS(SVGNS, 'rect');
+                        stopBox.setAttributeNS(null, 'x', box.x - 3);
+                        stopBox.setAttributeNS(null, 'y', box.y - 1);
+                        stopBox.setAttributeNS(null, 'rx', 3);
+                        stopBox.setAttributeNS(null, 'ry', 3);
+                        stopBox.setAttributeNS(null, 'width', box.width + 6);
+                        stopBox.setAttributeNS(null, 'height', box.height + 2);
+                        stopBox.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
+                        stopBox.style.fill = '#e44';
+                        this.svg.graphicsElement.insertBefore(stopBox, stopElement);
+                        // TODO: add a white line cutting the middle of the boxes
+                    }
+                }
                 image.control.setTranslate(this.xPosition, this.yPosition);
                 if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
@@ -5930,11 +5988,18 @@
             <style type="text/css">
                 .label {
                     font-size:          8pt;
-                    font-family:        "Open Sans", "Helvetica Neue", sans-serif;
+                    font-family:        "Open Sans", "Verdana", "Helvetica Neue", sans-serif;
                     font-weight:        normal;
                     text-anchor:        left;
                     dominant-baseline:  middle;
                     fill:               #000;
+                }
+                .stop {
+                    font-size:          6pt;
+                    font-family:        "Source Code Pro", "Consolas", "Andale Mono", sans-serif;
+                    font-weight:        bold;
+                    text-anchor:        middle;
+                    fill:               #fff;
                 }
                 .bad {
                     fill:               #e00;
