@@ -133,7 +133,7 @@
             // calculated as 1/normalDistance^3, assuming that the repelling factor is -1 [set by init]
             attractionConstant: 0.00003703703704,
             // size of partitions in number of normal distances
-            partitionFactor: 8,
+            partitionFactor: 15,
             // the stiffness of the edges
             stiffness: 1,
             // when the layout has reached equilibrium
@@ -909,6 +909,7 @@
                 DrawingEngine.start(true);
             },
             toggleKnotted: function(nodes) {
+                var dx, dy;
                 for(var i = 0; i < nodes.length; i++) {
                     var knot, edge;
                     if(nodes[i].getKnotted()) {
@@ -928,9 +929,10 @@
                         }
                     }
                     else {
-                        knot = new Knot(nodes[i].xPosition +
-                                2 * LayoutEngine.normalDistance, nodes[i].yPosition -
-                                2 * LayoutEngine.normalDistance);
+                        this.lastAngle = (this.lastAngle + 0.5) % 14;
+                        dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                        dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                        knot = new Knot(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
                         if(nodes[i].dataRange)
                             knot.dataRange = nodes[i].dataRange;
                         this.addNode(knot);
@@ -979,10 +981,14 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            lastAngle: 0,
             addAttribute: function(nodes) {
+                var dx, dy;
                 for(var i = 0; i < nodes.length; i++) {
-                    var attribute = new Attribute(nodes[i].xPosition + 2 * LayoutEngine.normalDistance,
-                            nodes[i].yPosition - 3 * LayoutEngine.normalDistance, false);
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var attribute = new Attribute(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
                     this.addNode(attribute);
                     this.addEdge(new Edge(attribute, nodes[i], true));
                 }
@@ -1008,9 +1014,10 @@
                 // single anchor selected
                 else {
                     var anchor = nodes[0];
-                    tie = new Tie(anchor.xPosition +
-                            2 * LayoutEngine.normalDistance, anchor.yPosition -
-                            3 * LayoutEngine.normalDistance, false);
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    var dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    var dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    tie = new Tie(anchor.xPosition + dx, anchor.yPosition + dy, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, anchor, true);
                     this.addEdge(edge);
@@ -1021,10 +1028,12 @@
                 DrawingEngine.start(true);
             },
             addAnchor: function(nodes) {
+                var dx, dy;
                 for(var i = 0; i < nodes.length; i++) {
-                    var anchor = new Anchor(nodes[i].xPosition +
-                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
-                            3 * LayoutEngine.normalDistance);
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var anchor = new Anchor(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
                     this.addNode(anchor);
                     this.addEdge(new Edge(nodes[i], anchor, true));
                 }
@@ -1032,16 +1041,16 @@
                 DrawingEngine.start(true);
             },
             addTieAndAnchor: function(nodes) {
+                var dx, dy;
                 for(var i = 0; i < nodes.length; i++) {
-                    var tie = new Tie(nodes[i].xPosition +
-                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
-                            3 * LayoutEngine.normalDistance, false);
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var tie = new Tie(nodes[i].xPosition + dx, nodes[i].yPosition + dy, false);
                     this.addNode(tie);
                     var edge = new Edge(tie, nodes[i], true);
                     this.addEdge(edge);
-                    var anchor = new Anchor(nodes[i].xPosition +
-                            4 * LayoutEngine.normalDistance, nodes[i].yPosition -
-                            6 * LayoutEngine.normalDistance);
+                    var anchor = new Anchor(nodes[i].xPosition + 2*dx, nodes[i].yPosition + 2*dy);
                     this.addNode(anchor);
                     edge = new Edge(tie, anchor, true);
                     this.addEdge(edge);
@@ -1050,10 +1059,12 @@
                 DrawingEngine.start(true);
             },
             addKnot: function(nodes) {
+                var dx, dy;
                 for(var i = 0; i < nodes.length; i++) {
-                    var knot = new Knot(nodes[i].xPosition +
-                            2 * LayoutEngine.normalDistance, nodes[i].yPosition -
-                            3 * LayoutEngine.normalDistance);
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var knot = new Knot(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
                     this.addNode(knot);
                     this.addEdge(new Edge(nodes[i], knot, true));
                 }
@@ -1068,6 +1079,8 @@
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode.type === NodeType.ATTRIBUTE) {
+                                    var dx = 2 * LayoutEngine.normalDistance * Math.cos(j);
+                                    var dy = 2 * LayoutEngine.normalDistance * Math.sin(j);
                                     if(otherNode.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
@@ -1076,21 +1089,25 @@
                                             }
                                         }
                                         if(!knot.visible) {
-                                            knot.xPosition = node.xPosition + j + 1;
-                                            knot.yPosition = node.yPosition + j + 1;
+                                            knot.xPosition = node.xPosition + 2*dx;
+                                            knot.yPosition = node.yPosition + 2*dy;
                                             knot.start();
                                             knot.setFixed(false);
+                                            knot.show();
                                             knot.visible = true;
                                         }
                                         knotEdge.start();
+                                        knotEdge.show();
                                         knotEdge.visible = true;
                                     }
-                                    otherNode.xPosition = node.xPosition + j + 2;
-                                    otherNode.yPosition = node.yPosition + j + 2;
+                                    otherNode.xPosition = node.xPosition + dx;
+                                    otherNode.yPosition = node.yPosition + dy;
                                     otherNode.start();
                                     otherNode.setFixed(false);
+                                    otherNode.show();
                                     otherNode.visible = true;
                                     edge.start();
+                                    edge.show();
                                     edge.visible = true;
                                 }
                             }
@@ -1106,51 +1123,25 @@
                                                 break;
                                             }
                                         }
+                                        knotEdge.hide();
+                                        knotEdge.stop();
                                         knotEdge.visible = false;
                                         visibleEdges = 0;
                                         for(k = 0; knotEdge = knot.edges[k]; k++)
                                             if(knotEdge.visible)
                                                 visibleEdges++;
                                         if(visibleEdges === 0) {
+                                            knot.hide();
+                                            knot.stop();
                                             knot.visible = false;
                                         }
                                     }
+                                    otherNode.hide();
+                                    otherNode.stop();
                                     otherNode.visible = false;
+                                    edge.hide();
+                                    edge.stop();
                                     edge.visible = false;
-                                }
-                            }
-                        }
-                        node.setImploded(!node.imploded);
-                    }
-                    else if(node.type === NodeType.TIE) {
-                        if(node.imploded) {
-                            for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.KNOT) {
-                                    if(!otherNode.visible) {
-                                        otherNode.xPosition = node.xPosition + j + 1;
-                                        otherNode.yPosition = node.yPosition + j + 1;
-                                        otherNode.start();
-                                        otherNode.setFixed(false);
-                                        otherNode.visible = true;
-                                    }
-                                    edge.start();
-                                    edge.visible = true;
-                                }
-                            }
-                        }
-                        else {
-                            for(j = 0; edge = node.edges[j]; j++) {
-                                otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.KNOT) {
-                                    edge.visible = false;
-                                    visibleEdges = 0;
-                                    for(k = 0; knotEdge = otherNode.edges[k]; k++)
-                                        if(knotEdge.visible)
-                                            visibleEdges++;
-                                    if(visibleEdges === 0) {
-                                        otherNode.visible = false;
-                                    }
                                 }
                             }
                         }
@@ -1275,52 +1266,47 @@
             invalidateMiniature: function() {
                 this.miniCounter = 0;
             },
+            drawPartitions: function() {
+                var partition, partitionElement, centerElement, k, key;
+                var keys = Object.keys(LayoutEngine.partitions);
+                var lost = this.partitionElements.filter(function(i) {return !(keys.indexOf(i) > -1);});
+                k = lost.length;
+                while(k--) {
+                    key = lost[k];
+                    partitionElement = document.getElementById(key);
+                    SVGLayer.debugPartitions.removeChild(partitionElement);
+                    this.partitionElements.splice(this.partitionElements.indexOf(key),1);
+                    centerElement = document.getElementById('c' + key);
+                    SVGLayer.debugPartitions.removeChild(centerElement);
+                }
+                k = keys.length;
+                while(k--) {
+                    key = keys[k];
+                    partition = LayoutEngine.partitions[key];
+                    partitionElement = document.getElementById(key);
+                    centerElement = document.getElementById('c' + key);
+                    if(!partitionElement) {
+                        partitionElement = document.createElementNS(SVGNS, 'rect');
+                        partitionElement.setAttributeNS(null, 'id', key);
+                        SVGLayer.debugPartitions.appendChild(partitionElement);
+                        this.partitionElements.push(key);
+                        centerElement = document.createElementNS(SVGNS, 'circle');
+                        centerElement.setAttributeNS(null, 'id', 'c' + key);
+                        centerElement.style.strokeWidth = 2;
+                        SVGLayer.debugPartitions.appendChild(centerElement);
+                    }
+                    partitionElement.x.baseVal.value = partition.xMin;
+                    partitionElement.y.baseVal.value = partition.yMin;
+                    partitionElement.width.baseVal.value = partition.xMax - partition.xMin;
+                    partitionElement.height.baseVal.value = partition.yMax - partition.yMin;
+                    centerElement.cx.baseVal.value = partition.xPosition;
+                    centerElement.cy.baseVal.value = partition.yPosition;
+                    centerElement.r.baseVal.value = 100*(Math.abs(partition.xVelocity) + Math.abs(partition.yVelocity));
+                }
+            },
             draw: function() {
-                if(DEBUG) {
-                    // draw partitions
-                    var partition, partitionElement, k, key;
-                    var diff, keys = Object.keys(LayoutEngine.partitions);
-                    var lost = this.partitionElements.filter(function(i) {return !(keys.indexOf(i) > -1);});
-                    k = lost.length;
-                    while(k--) {
-                        key = lost[k];
-                        partitionElement = document.getElementById(key);
-                        SVGLayer.debugPartitions.removeChild(partitionElement);
-                        this.partitionElements.splice(this.partitionElements.indexOf(key),1);
-                    }
-                    k = keys.length;
-                    // calculate the velocity of the partitions
-                    while(k--) {
-                        key = keys[k];
-                        partition = LayoutEngine.partitions[key];
-                        partitionElement = document.getElementById(key);
-                        if(!partitionElement) {
-                            partitionElement = document.createElementNS(SVGNS, 'rect');
-                            partitionElement.setAttributeNS(null, 'id', key);
-                            partitionElement.style.strokeWidth = LayoutEngine.fuzz;
-                            SVGLayer.debugPartitions.appendChild(partitionElement);
-                            this.partitionElements.push(key);
-                        }
-                        partitionElement.x.baseVal.value = partition.xMin;
-                        partitionElement.y.baseVal.value = partition.yMin;
-                        partitionElement.width.baseVal.value = partition.xMax - partition.xMin;
-                        partitionElement.height.baseVal.value = partition.yMax - partition.yMin;
-//                        console.log(partitionElement);
-                        /*
-                        this.context.fillStyle = Color.scheme.partitionForceEndpoint;
-                        this.context.fillRect(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity - 5,
-                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity - 5, 10, 10);
-                        this.context.beginPath();
-                        this.context.moveTo(partition.xPosition, partition.yPosition);
-                        // draw an exaggerated velocity vector
-                        this.context.lineTo(partition.xPosition + LayoutEngine.normalDistance * partition.xVelocity,
-                                partition.yPosition + LayoutEngine.normalDistance * partition.yVelocity);
-                        this.context.strokeStyle = Color.scheme.partitionForceVector;
-                        this.context.lineWidth = 0.5;
-                        this.context.stroke();
-                        */
-                    }
-                }                // draw the miniature every minirate frames
+                if(DEBUG) this.drawPartitions();
+                // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var i, node;
                 i = Model.visibleNodes.length;
@@ -1795,9 +1781,10 @@
             clickSelection: this.clickHighlight,
             endInteraction: function(event) {
                 event.preventDefault();
-                if(event.toElement === SVG && EventHandler.getInteraction() !== "whileDragging") {
-                    var component, i;
-                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                var component = EventHandler.interactedNodes[EventHandler.interactedNodes.length - 1];
+                if(event.toElement !== component.svg.graphicsElement &&
+                        EventHandler.getInteraction() !== "whileDragging") {
+                    for(var i = 0; component = EventHandler.interactedNodes[i]; i++) {
                         component.hideContextMenu();
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     }
@@ -1947,72 +1934,70 @@
                 event.stopPropagation();
             },
             keypress: function(event) {
-                if(EventHandler.selectedNodes.length > 0) {
-                    var allNodes = EventHandler.selectedNodes.slice(0);
-                    var component = allNodes[0];
-                    switch(String.fromCharCode(event.which)) {
-                        case "e":
-                            component.showContextMenu(component, allNodes);
-                            component.contextMenu.toggle();
-                            break;
-                        case "a":
-                            if(Operations.isSupported("addAttribute", allNodes))
-                                Model.addAttribute(allNodes);
-                            else if(Operations.isSupported("addAnchor", allNodes))
-                                Model.addAnchor(allNodes);
-                            break;
-                        case "t":
-                            if(Operations.isSupported("addTie", allNodes) && allNodes.length > 0)
-                                Model.addTie(allNodes);
-                            else if(Operations.isSupported("addTieAndAnchor", allNodes))
-                                Model.addTieAndAnchor(allNodes);
-                            break;
-                        case "c":
-                            if(Operations.isSupported("connect", allNodes)) {
-                                var i, operation, validator;
-                                for(i = 0; operation = Operations.list[i]; i++)
-                                    if(operation[0] == "connect")
-                                        validator = operation[3];
-                                if(validator(allNodes))
-                                    Model.connect(allNodes);
-                            }
-                            break;
-                        case "h":
-                            if(Operations.isSupported("toggleHistorized", allNodes))
-                                Model.toggleHistorized(allNodes);
-                            break;
-                        case "k":
-                            if(Operations.isSupported("toggleKnotted", allNodes))
-                                Model.toggleKnotted(allNodes);
-                            else if(Operations.isSupported("addKnot", allNodes))
-                                Model.addKnot(allNodes);
-                            break;
-                        case "i":
-                            if(Operations.isSupported("toggleIdentifier", allNodes))
-                                Model.toggleIdentifier(allNodes);
-                            break;
-                        case "f":
-                            if(Operations.isSupported("makeFirstRole", allNodes))
-                                Model.makeFirstRole(allNodes);
-                            break;
-                        case "x":
-                            if(Operations.isSupported("explode", allNodes))
-                                Model.explode(allNodes);
-                            break;
-                        case "d":
-                            if(Operations.isSupported("erase", allNodes))
-                                Model.erase(allNodes);
-                            break;
-                        case "p":
-                            component.setFixed(!component.fixed);
-                            DrawingEngine.start(false);
-                            break;
-                    }
-                    if(event.stopPropagation)
-                        event.stopPropagation();
-                    if(event.preventDefault)
-                        event.preventDefault();
+                event.preventDefault();
+                console.log(String.fromCharCode(event.charCode || event.which));
+                var allNodes = EventHandler.selectedNodes.concat(EventHandler.interactedNodes);
+                var component = EventHandler.interactedNodes.pop();
+                switch(String.fromCharCode(event.charCode || event.which)) {
+                    case "e":
+                        component.showContextMenu(component, allNodes);
+                        component.contextMenu.toggle();
+                        break;
+                    case "a":
+                        if(Operations.isSupported("addAttribute", allNodes))
+                            Model.addAttribute(allNodes);
+                        else if(Operations.isSupported("addAnchor", allNodes))
+                            Model.addAnchor(allNodes);
+                        break;
+                    case "t":
+                        if(Operations.isSupported("addTie", allNodes) && allNodes.length > 0)
+                            Model.addTie(allNodes);
+                        else if(Operations.isSupported("addTieAndAnchor", allNodes))
+                            Model.addTieAndAnchor(allNodes);
+                        break;
+                    case "c":
+                        if(Operations.isSupported("connect", allNodes)) {
+                            var i, operation, validator;
+                            for(i = 0; operation = Operations.list[i]; i++)
+                                if(operation[0] == "connect")
+                                    validator = operation[3];
+                            if(validator(allNodes))
+                                Model.connect(allNodes);
+                        }
+                        break;
+                    case "h":
+                        if(Operations.isSupported("toggleHistorized", allNodes))
+                            Model.toggleHistorized(allNodes);
+                        break;
+                    case "k":
+                        if(Operations.isSupported("toggleKnotted", allNodes))
+                            Model.toggleKnotted(allNodes);
+                        else if(Operations.isSupported("addKnot", allNodes))
+                            Model.addKnot(allNodes);
+                        break;
+                    case "i":
+                        if(Operations.isSupported("toggleIdentifier", allNodes))
+                            Model.toggleIdentifier(allNodes);
+                        break;
+                    case "f":
+                        if(Operations.isSupported("makeFirstRole", allNodes))
+                            Model.makeFirstRole(allNodes);
+                        break;
+                    case "x":
+                        if(Operations.isSupported("explode", allNodes))
+                            Model.explode(allNodes);
+                        break;
+                    case "d":
+                        if(Operations.isSupported("erase", allNodes))
+                            Model.erase(allNodes);
+                        break;
+                    case "p":
+                        component.setFixed(!component.fixed);
+                        DrawingEngine.start(false);
+                        break;
                 }
+                EventHandler.interactedNodes.push(component);
+                event.stopPropagation();
             }
         };
 
@@ -2716,11 +2701,11 @@
                 if(imploded) {
                     if(this.operations.indexOf('addAttribute') >= 0)
                         this.operations.splice(this.operations.indexOf('addAttribute'), 1);
-                    this.size = 9;
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor_imploded');
                 }
                 else {
                     this.operations.push('addAttribute');
-                    this.size = 10;
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
                 }
             },
             getMass: function() {
@@ -3040,7 +3025,7 @@
             this.editables.push(Editables.assertivnessEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleHistorized','addKnot','addAnchor','explode');
+            this.operations.push('toggleHistorized','addKnot','addAnchor');
             this.encapsulation = Defaults.encapsulation;
             this.type = NodeType.TIE;
             // SVG
@@ -3078,19 +3063,6 @@
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
-            imploded: false,
-            setImploded: function(imploded) {
-                this.imploded = imploded;
-                if(imploded) {
-                    if(this.operations.indexOf('addKnot') >= 0)
-                        this.operations.splice(this.operations.indexOf('addKnot'), 1);
-                    this.size = 12;
-                }
-                else {
-                    this.operations.push('addKnot');
-                    this.size = 15;
-                }
-            },
             getMass: function() {
                 return Tie.mass;
             },
@@ -3194,7 +3166,7 @@
                 return this.knotted;
             },
             fromXML: function(element) {
-                var x, y, fixed, i, layout, imploded;
+                var x, y, fixed, i, layout;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'layout')
                         layout = element.childNodes.item(i);
@@ -3202,12 +3174,10 @@
                     x = layout.getAttribute("x");
                     y = layout.getAttribute("y");
                     fixed = layout.getAttribute("fixed");
-                    imploded = layout.getAttribute("imploded");
                 }
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed === 'true' : false;
-                imploded = imploded ? imploded === 'true' : false;
                 var metadata;
                 var capsule = Defaults.encapsulation;
                 var restatable = Defaults.restatability === 'true';
@@ -3238,7 +3208,6 @@
                 var tie = new Tie(x, y, historized);
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
-                tie.setImploded(imploded);
                 tie.changingRange = changingRange;
                 tie.encapsulation = capsule;
                 tie.restatable = restatable;
@@ -3366,20 +3335,6 @@
                 }
                 else
                     name = null;
-                if(this.imploded) {
-                    if(name) {
-                        name = "(" + name + ")";
-                    }
-                    else {
-                        name = "(";
-                        for(var i = 0; edge = this.edges[i]; i++) {
-                            if(i > 0)
-                                name += " ";
-                            name += edge.role;
-                        }
-                        name += ")";
-                    }
-                }
                 return name;
             },
             toString: function() {
@@ -3528,8 +3483,6 @@
                     tie = this.node;
                 else if(this.otherNode.type === NodeType.TIE)
                     tie = this.otherNode;
-                if(tie && tie.imploded)
-                    return null;
                 return name;
             },
             toString: function() {
@@ -4369,7 +4322,7 @@
                 var edge, otherNode;
                 for(var i = 0; edge = node.edges[i]; i++) {
                     otherNode = edge.node === node ? edge.otherNode : edge.node;
-                    if((otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.TIE) && otherNode.imploded) {
+                    if((otherNode.type === NodeType.ANCHOR) && otherNode.imploded) {
                         Model.explode([otherNode]);
                         break;
                     }
@@ -4733,7 +4686,7 @@
             implodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node.type === NodeType.ANCHOR || node.type === NodeType.TIE) && !node.imploded)
+                    if((node.type === NodeType.ANCHOR) && !node.imploded)
                         allNodes.push(node);
                 }
                 EventHandler.clearSelection();
@@ -4742,7 +4695,7 @@
             explodeAll: function() {
                 var i, node, allNodes = [];
                 for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node.type === NodeType.ANCHOR || node.type === NodeType.TIE) && node.imploded)
+                    if((node.type === NodeType.ANCHOR) && node.imploded)
                         allNodes.push(node);
                 }
                 Model.explode(allNodes);
@@ -5043,7 +4996,7 @@
                     this.setStoppingVelocity(0.1);
                     this.setMinimumStartingVelocity(1);
                     this.setMaximumStartingVelocity(5);
-                    this.setPartitionFactor(8);
+                    this.setPartitionFactor(15);
                     this.setStiffness(1);
                     this.setMiniRate(50);
                     this.setCalculations('simple');
@@ -5130,7 +5083,7 @@
                     this.setStoppingVelocity(storage.getItem('stoppingVelocity') || 0.1);
                     this.setMinimumStartingVelocity(storage.getItem('minimumStartingVelocity') || 1);
                     this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
-                    this.setPartitionFactor(storage.getItem('partitionFactor') || 8);
+                    this.setPartitionFactor(storage.getItem('partitionFactor') || 15);
                     this.setStiffness(storage.getItem('stiffness') || 1);
                     this.setDatabase(storage.getItem('database') || 'SQLServer');
                     this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
@@ -5787,9 +5740,13 @@
                 this[name] = layer;
             },
             show: function(name) {
-                var i = this.layers.indexOf(name) + 1;
+                var after;
+                for(var i = this.layers.indexOf(name) + 1; i < this.layers.length; i++) {
+                    after = this.layers[i];
+                    if(this.graph.contains(this[after]))
+                        break;
+                }
                 if(i < this.layers.length) {
-                    var after = this.layers[i];
                     this.graph.insertBefore(this[name], this[after]);
                 }
                 else {
@@ -5871,8 +5828,10 @@
             SVGLayer.edges.style.fill = 'none';
             SVGLayer.debug.style.stroke = '#fcc';
             SVGLayer.debug.style.strokeWidth = '7px';
+            SVGLayer.debug.style.strokeLinecap = 'round';
             SVGLayer.debugPartitions.style.fill = 'fff8f8';
             SVGLayer.debugPartitions.style.stroke = 'f4ebeb';
+            SVGLayer.debugPartitions.style.strokeWidth = LayoutEngine.fuzz;
 
             // set up "global" event handlers
             var wheel = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
@@ -5990,6 +5949,9 @@
             <g id="anchor" style="fill:#b55;">
                 <rect width="20" height="20" transform="translate(-10, -10)"/>
             </g>
+            <g id="anchor_imploded" style="fill:#633;">
+                <path d="M 0 0 Q 12 4 24 0 Q 20 12 24 24 Q 12 20 0 24 Q 4 12 0 0" transform="translate(-12, -12)"/>
+            </g>
             <g id="tie" style="fill:#a8a8a8;">
                 <rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
             </g>
@@ -6012,7 +5974,7 @@
                 <circle r="30" style="stroke:#000; stroke-width:1px;"/>
             </g>
             <g id="fixation" style="fill:#000;">
-                <rect width="2" height="2" transform="translate(-1, -1)"/>
+                <circle r="1.5"/>
             </g>
             <g id="bubble" style="fill:#f9f8f7; stroke:none;">
                 <circle r="8"/>
@@ -6151,7 +6113,7 @@
                 <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
                 <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
                 <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="10" step="1" onblur="Settings.setPartitionFactor(this.value)"/> Partition size</li>
+                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="100" step="1" onblur="Settings.setPartitionFactor(this.value)"/> Partition size</li>
                 <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" onblur="Settings.setFuzziness(this.value)"/> % Fuzziness</li>
                 <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" onblur="Settings.setLongRangeEffect(this.value)"/> % Long range effect</li>
                 <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
