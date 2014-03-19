@@ -4682,7 +4682,6 @@
                     this.sendMultiPart(xmlhttp, params);
                 }
             },
-
             resetZoom: function() {
                 SVG.viewBox.baseVal.width = window.innerWidth;
                 SVG.viewBox.baseVal.height = window.innerHeight;
@@ -4733,10 +4732,6 @@
             },
             toggleMnemonics: function () {
                 Settings.showMnemonics = !Settings.showMnemonics;
-                DrawingEngine.start(false);
-            },
-            toggleCardinalities: function () {
-                Settings.showCardinalities = !Settings.showCardinalities;
                 DrawingEngine.start(false);
             },
             toggleColoring: function() {
@@ -6086,7 +6081,6 @@
             <ul class="submenu">
                 <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
                 <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
-                <li title="Toggle style of the cardinalities in ties, dots or letters." onclick="Actions.toggleCardinalities()">Toggle cardinalities</li>
                 <li title="Toggle whether coloring of edges should be visible or not." onclick="Actions.toggleColoring()">Toggle coloring</li>
                 <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
