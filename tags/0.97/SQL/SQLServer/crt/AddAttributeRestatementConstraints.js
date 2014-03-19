@@ -75,11 +75,11 @@ BEGIN
             SELECT TOP 1
                 pre.$valueColumn
             FROM
-                 [$attribute.capsule].[r$attribute.name](
-                     @positor,
-                     DEFAULT,
-                     @posited
-                 ) pre
+                [$attribute.capsule].[r$attribute.name](
+                    @positor,
+                    DEFAULT,
+                    @posited
+                ) pre
             WHERE
                 pre.$attribute.anchorReferenceName = @id
             AND
@@ -93,11 +93,11 @@ BEGIN
             SELECT TOP 1
                 fol.$valueColumn
             FROM
-                 [$attribute.capsule].[r$attribute.name](
-                     @positor,
-                     DEFAULT,
-                     @posited
-                 ) fol
+                [$attribute.capsule].[r$attribute.name](
+                    @positor,
+                    DEFAULT,
+                    @posited
+                ) fol
             WHERE
                 fol.$attribute.anchorReferenceName = @id
             AND
