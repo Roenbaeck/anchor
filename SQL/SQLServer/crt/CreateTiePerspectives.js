@@ -204,7 +204,7 @@ SELECT
 ~*/
         }
 /*~
-    tie.*$(tie.hasMoreKnotRoles())?
+    tie.*
 FROM
     [$tie.capsule].[$tie.name] tie
 ~*/
