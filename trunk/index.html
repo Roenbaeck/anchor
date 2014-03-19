@@ -2669,36 +2669,38 @@
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
+                /* TODO: later
                 if(!this.svg.stops) {
                     this.svg.stops = document.createElementNS(SVGNS, 'g');
                     // expando property as a reference back to the underlying component for use in event handlers
                     this.svg.stops.component = this;
-                    var stop, route, of, i;
+                    var stop, route, of, i, box;
+                    // TODO: speed up, clicking, editing, layering, route paths?
                     for(i = 0; i < this.keys.length; i++) {
                         stop = this.keys[i].stop;
                         route = this.keys[i].route;
                         of = this.keys[i].of;
                         var stopElement = document.createElementNS(SVGNS, 'text');
-                        stopElement.appendChild(document.createTextNode(of + ' ' + route + stop));
+                        stopElement.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
                         stopElement.setAttributeNS(null, 'class', 'stop');
                         stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
                         this.svg.graphicsElement.appendChild(stopElement);
-                        var box = stopElement.getBBox();
-                        var offset = -20 - box.height * i;
+                        box = stopElement.getBBox();
+                        var offset = -20 - (box.height + 3) * i;
                         stopElement.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
                         var stopBox = document.createElementNS(SVGNS, 'rect');
                         stopBox.setAttributeNS(null, 'x', box.x - 3);
                         stopBox.setAttributeNS(null, 'y', box.y - 1);
-                        stopBox.setAttributeNS(null, 'rx', 3);
-                        stopBox.setAttributeNS(null, 'ry', 3);
+                        stopBox.setAttributeNS(null, 'rx', 4);
+                        stopBox.setAttributeNS(null, 'ry', 4);
                         stopBox.setAttributeNS(null, 'width', box.width + 6);
                         stopBox.setAttributeNS(null, 'height', box.height + 2);
                         stopBox.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
-                        stopBox.style.fill = '#e44';
+                        stopBox.style.fill = '#d33';
                         this.svg.graphicsElement.insertBefore(stopBox, stopElement);
-                        // TODO: add a white line cutting the middle of the boxes
                     }
                 }
+                */
                 image.control.setTranslate(this.xPosition, this.yPosition);
                 if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
             }
@@ -5999,6 +6001,7 @@
                     font-family:        "Source Code Pro", "Consolas", "Andale Mono", sans-serif;
                     font-weight:        bold;
                     text-anchor:        middle;
+                    dominant-baseline:  bottom;
                     fill:               #fff;
                 }
                 .bad {
