@@ -959,7 +959,7 @@
                 var ties = [];
                 for(var i = 0; i < nodes.length; i++) {
                     if(nodes[i].type === NodeType.EDGE) {
-                        nodes[i].identifier = !nodes[i].identifier;
+                        nodes[i].setIdentifier(!nodes[i].identifier);
                         if(nodes[i].node.type === NodeType.TIE && ties.indexOf(nodes[i].node) < 0)
                             ties.push(nodes[i].node);
                         if(nodes[i].otherNode.type === NodeType.TIE && ties.indexOf(nodes[i].otherNode) < 0)
@@ -1938,7 +1938,6 @@
             },
             keypress: function(event) {
                 event.preventDefault();
-                console.log(String.fromCharCode(event.charCode || event.which));
                 var allNodes = EventHandler.selectedNodes.concat(EventHandler.interactedNodes);
                 var component = EventHandler.interactedNodes.pop();
                 switch(String.fromCharCode(event.charCode || event.which)) {
@@ -1953,7 +1952,7 @@
                             Model.addAnchor(allNodes);
                         break;
                     case "t":
-                        if(Operations.isSupported("addTie", allNodes) && allNodes.length > 0)
+                        if(Operations.isSupported("addTie", allNodes) && allNodes.length > 1)
                             Model.addTie(allNodes);
                         else if(Operations.isSupported("addTieAndAnchor", allNodes))
                             Model.addTieAndAnchor(allNodes);
@@ -2257,7 +2256,7 @@
             end: false,
             drawName: function() {
                 if(this.svg.nameElement && this.updateName()) {
-                    var i, xAverage = 0, closestEdge = this.edges[0];
+                    var i, xAverage = 0, closestEdge = this.edges[0] || this;
                     i = this.edges.length;
                     while(i--) {
                         xAverage += this.edges[i].xPosition;
@@ -3501,6 +3500,10 @@
                 this.nav.showGraphics(NAVLayer.edges);
                 AbstractNode.prototype.show.apply(this, arguments);
             },
+            setIdentifier: function(identifier) {
+                this.identifier = identifier;
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+            },
             setColoring: function(coloring) {
                 this.coloring = coloring;
                 if(coloring === '#000' || coloring === '#000000') {
@@ -4272,6 +4275,7 @@
                 if(document.body.contains(this.contextMenu))
                     document.body.removeChild(this.contextMenu);
                 window.addEventListener('keypress', EventHandler.keypress, false);
+                DrawingEngine.start(false);
             }
         };
 
