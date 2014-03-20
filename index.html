@@ -1319,7 +1319,7 @@
                     if(this.miniCounter === 1)
                         node.draw(node.nav);
                     if(this.showNames)
-                        node.drawName(node.svg);
+                        node.drawName(node.xPosition, node.yPosition);
                 }
                 if(this.miniCounter === 1)
                     this.updateMiniature();
@@ -2254,7 +2254,7 @@
             },
             bad: false,
             end: false,
-            drawName: function() {
+            drawName: function(x, y) {
                 if(this.svg.nameElement && this.updateName()) {
                     var i, xAverage = 0, closestEdge = this.edges[0] || this;
                     i = this.edges.length;
@@ -2294,8 +2294,8 @@
                         }
                         this.bad = false;
                     }
-                    this.svg.nameControl.x.value = this.xPosition + nameXOffset;
-                    this.svg.nameControl.y.value = this.yPosition + nameYOffset;
+                    this.svg.nameControl.x.value = x + nameXOffset;
+                    this.svg.nameControl.y.value = y + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
@@ -2345,10 +2345,15 @@
                             this.svg.highlightElement,
                             this.svg.graphicsElement.firstChild
                     );
+                    if(!SVGLayer.isShowing('names')) {
+                        this.drawName(0, 0);
+                        this.svg.graphicsElement.appendChild(this.svg.nameElement);
+                    }
                 }
                 else if (!highlight && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
                     this.svg.graphicsElement.removeChild(this.svg.highlightElement);
                     this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
+                    SVGLayer.names.appendChild(this.svg.nameElement);
                 }
             },
             contextMenu: null,
@@ -5802,7 +5807,7 @@
                 var after;
                 for(var i = this.layers.indexOf(name) + 1; i < this.layers.length; i++) {
                     after = this.layers[i];
-                    if(this.graph.contains(this[after]))
+                    if(this.isShowing(after))
                         break;
                 }
                 if(i < this.layers.length) {
@@ -5812,8 +5817,11 @@
                     this.graph.appendChild(this[name]);
                 }
             },
+            isShowing: function(name) {
+                return this.graph.contains(this[name]);
+            },
             hide: function(name) {
-                if(this.graph.contains(this[name]))
+                if(this.isShowing(name))
                     this.graph.removeChild(this[name]);
             },
             clear: function(name) {
