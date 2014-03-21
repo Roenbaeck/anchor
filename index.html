@@ -2145,7 +2145,6 @@
             setNameable: function(nameable) {
                 if(nameable && !this.svg.nameElement) {
                     this.svg.nameElement = document.createElementNS(SVGNS, 'text');
-                    this.svg.nameElement.setAttributeNS(null, 'class', 'label');
                     this.svg.nameElement.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
                     this.svg.nameElement.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
                     this.svg.nameText = document.createTextNode('I am a placeholder');
@@ -2353,14 +2352,17 @@
                             this.svg.graphicsElement.firstChild
                     );
                     if(!SVGLayer.isShowing('names')) {
+                        this.svg.hideName(SVGLayer.names);
                         this.drawName(0, 0);
-                        this.svg.graphicsElement.appendChild(this.svg.nameElement);
+                        this.svg.showName(this.svg.graphicsElement);
                     }
                 }
                 else if (!highlight && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
                     this.svg.graphicsElement.removeChild(this.svg.highlightElement);
                     this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
-                    SVGLayer.names.appendChild(this.svg.nameElement);
+                    this.svg.hideName(this.svg.graphicsElement);
+                    this.drawName(this.xPosition, this.yPosition);
+                    this.svg.showName(SVGLayer.names);
                 }
             },
             contextMenu: null,
@@ -3481,6 +3483,7 @@
                 this.svg.xOffset = 2;
                 this.svg.yOffset = 2;
                 this.setNameable(true);
+                this.svg.nameElement.setAttributeNS(null, 'class', 'role');
             }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
@@ -5906,6 +5909,7 @@
             SVGLayer.debugPartitions.style.fill = 'fff8f8';
             SVGLayer.debugPartitions.style.stroke = 'f4ebeb';
             SVGLayer.debugPartitions.style.strokeWidth = LayoutEngine.fuzz;
+            SVGLayer.names.setAttributeNS(null, 'class', 'label');
 
             // set up "global" event handlers
             var wheel = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
@@ -6009,6 +6013,9 @@
                     text-anchor:        left;
                     dominant-baseline:  middle;
                     fill:               #000;
+                }
+                .role {
+                    font-style:         italic;
                 }
                 .stop {
                     font-size:          6pt;
