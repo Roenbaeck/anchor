@@ -1224,7 +1224,7 @@
                 this.start(false);
             },
             setCursor: function(cursor) {
-                SVG.style.cursor = cursor;
+                document.body.style.cursor = cursor;
             },
             start: function(layoutModel) {
                 if(this.initialized) {
@@ -1709,6 +1709,7 @@
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
                     component.showContextMenu(component, EventHandler.selectedNodes);
+                    DrawingEngine.setCursor('pointer');
                 }
                 event.stopPropagation();
             },
@@ -1756,6 +1757,7 @@
                                     yPosition: svgPoint.y
                                 }) > 10) {
                                     EventHandler.setInteraction("whileDragging");
+                                    DrawingEngine.setCursor('move');
                                 }
                             } // switch behavior if we actually move the thing a fair distance
                         }
@@ -1795,6 +1797,7 @@
                     SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
                     SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
+                    DrawingEngine.setCursor('default');
                 }
                 event.stopPropagation();
             },
@@ -1816,6 +1819,7 @@
                     EventHandler.lastY = event.clientY;
                     SVG.addEventListener('mousemove', EventHandler.whilePanning, false);
                     SVG.addEventListener('mouseup', EventHandler.completePanning, false);
+                    DrawingEngine.setCursor('move');
                 }
                 event.stopPropagation();
             },
@@ -1840,6 +1844,7 @@
                     EventHandler.clearInteraction();
                     SVG.removeEventListener('mousemove', EventHandler.whilePanning, false);
                     SVG.removeEventListener('mouseup', EventHandler.completePanning, false);
+                    DrawingEngine.setCursor('default');
                 }
                 event.stopPropagation();
             },
@@ -1907,6 +1912,7 @@
                     NAV.addEventListener('mousemove', EventHandler.whileNavigating, false);
                     NAV.addEventListener('mouseup', EventHandler.completeNavigation, false);
                     SVG.addEventListener('mouseover', EventHandler.completeNavigation, false);
+                    DrawingEngine.setCursor('move');
                 }
                 event.stopPropagation();
             },
@@ -1933,6 +1939,7 @@
                     NAV.removeEventListener('mousemove', EventHandler.whileNavigating, false);
                     NAV.removeEventListener('mouseup', EventHandler.completeNavigation, false);
                     SVG.removeEventListener('mouseover', EventHandler.completeNavigation, false);
+                    DrawingEngine.setCursor('default');
                 }
                 event.stopPropagation();
             },
