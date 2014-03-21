@@ -2493,7 +2493,7 @@
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#attribute_historized' : '#attribute';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
                 DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
@@ -3218,7 +3218,7 @@
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#tie_historized' : '#tie';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
                 DrawingEngine.invalidateMiniature();
                 this.historized = historized;
             },
@@ -4362,10 +4362,6 @@
                 var graph = image.cloneNode(true);
                 var viewport = graph.getElementById('viewport');
                 if(viewport) graph.removeChild(viewport);
-                var graphics = SVG.getElementById('graphics');
-                if(!graph.contains(graphics)) {
-                    graph.appendChild(graphics.cloneNode(true));
-                }
                 var svg = (new XMLSerializer()).serializeToString(graph);
                 return "data:image/svg+xml;base64," + btoa(svg);
             },
