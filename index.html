@@ -1181,7 +1181,7 @@
                         window.oRequestAnimationFrame;
                 window.requestAnimationFrame = requestAnimationFrame;
                 if(!window.requestAnimationFrame) {
-                    window.requestAnimationFrame = function(callback, canvas) {
+                    window.requestAnimationFrame = function(callback, image) {
                         return setTimeout(callback, 10);
                     };
                 }
@@ -1804,7 +1804,7 @@
             preparePanning: function(event) {
                 event.preventDefault();
                 if(event.shiftKey) {
-                    // we are shift clicking the canvas background
+                    // we are shift clicking the background
                     EventHandler.clearSelection();
                 }
                 else if(!EventHandler.hasOngoingInteractions()) {
@@ -2160,23 +2160,15 @@
             updateName: function() {
                 if(this.nameable) {
                     var name = this.contextualName();
-                    if(!name) {
+                    if(!name || this.isEmpty(name)) {
                         this.svg.hideName(SVGLayer.names);
                         this.lastName = null;
-                        return false;
                     }
                     else if(name !== this.lastName) {
                         if(!this.lastName) this.svg.showName(SVGLayer.names);
                         this.lastName = name;
                         this.svg.nameText.nodeValue = name;
-                        return true;
                     }
-                    else {
-                        return true;
-                    }
-                }
-                else {
-                    return false;
                 }
             },
             // override to change behavior
@@ -2261,7 +2253,8 @@
             bad: false,
             end: false,
             drawName: function(x, y) {
-                if(this.svg.nameElement && this.updateName()) {
+                if(this.svg.nameElement) {
+                    this.updateName();
                     var i, xAverage = 0, closestEdge = this.edges[0] || this;
                     i = this.edges.length;
                     while(i--) {
@@ -3407,7 +3400,7 @@
                     }
                 }
                 else
-                    name = null;
+                    name = '';
                 return name;
             },
             toString: function() {
@@ -3551,17 +3544,7 @@
                 this.fixed = false;
             },
             contextualName: function() {
-                var name;
-                if(Settings.showMnemonics)
-                    name = null;
-                else
-                    name = this.toString();
-                var tie;
-                if(this.node.type === NodeType.TIE)
-                    tie = this.node;
-                else if(this.otherNode.type === NodeType.TIE)
-                    tie = this.otherNode;
-                return name;
+                return this.toString();
             },
             toString: function() {
                 return this.role;
@@ -6016,6 +5999,8 @@
                 }
                 .role {
                     font-style:         italic;
+                    stroke:             none;
+                    fill:               #000;
                 }
                 .stop {
                     font-size:          6pt;
@@ -6205,7 +6190,7 @@
                 <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" onblur="Settings.setFuzziness(this.value)"/> % Fuzziness</li>
                 <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" onblur="Settings.setLongRangeEffect(this.value)"/> % Long range effect</li>
                 <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
-                <li title="The number of frame redraws needed in the large canvas to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                <li title="The number of frame redraws needed in the large SVG to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
                 <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
                     <select id="calculations" onchange="Settings.setCalculations(this.value)">
                         <option value="simple" selected="selected">Simplified</option>
