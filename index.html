@@ -1865,6 +1865,14 @@
                 DrawingEngine.start(false);
                 event.stopPropagation();
             },
+            resize: function(event) {
+                var northwest = EventHandler.screenToSVG(0, 0);
+                var southeast = EventHandler.screenToSVG(window.innerWidth, window.innerHeight);
+                SVG.viewBox.baseVal.x = northwest.x;
+                SVG.viewBox.baseVal.y = northwest.y;
+                SVG.viewBox.baseVal.width = southeast.x - northwest.x;
+                SVG.viewBox.baseVal.height = southeast.y - northwest.y;
+            },
             screenToSVG: function(x, y) {
                 var screenPoint = SVG.createSVGPoint();
                 screenPoint.x = x;
@@ -3582,6 +3590,57 @@
             //child.prototype.__proto__ = supertype.prototype;
         }
 
+        var DataTypeConverter = {
+            MATCH: 0,
+            REPLACE: 1,
+            SQLServer_to_Oracle: [
+                // exact numbers
+                [/"tinyint"/ig,                         '"NUMBER(3)"'],
+                [/"smallint"/ig,                        '"NUMBER(5)"'],
+                [/"int"|"integer"/ig,                   '"NUMBER(10)"'],
+                [/"bigint"/ig,                          '"NUMBER(19)"'],
+                [/"decimal\(([0-9]+),\s*([0-9]+)\)"/ig, '"NUMBER($1,$2)"'],
+                [/"numeric\(([0-9]+),\s*([0-9]+)\)"/ig, '"NUMBER($1,$2)"'],
+                [/"smallmoney"/ig,                      '"NUMBER(10,4)"'],
+                [/"money"/ig,                           '"NUMBER(19,4)"'],
+                // approximate numbers
+                [/"real"/ig,                            '"BINARY_FLOAT"'],
+                [/"float"/ig,                           '"BINARY_DOUBLE"'],
+                // time types
+                [/"smalldatetime"/ig,                   '"TIMESTAMP(3)"'],
+                [/"datetime"/ig,                        '"TIMESTAMP(3)"'],
+                [/"datetime2\(([0-9]+)\)"/ig,           '"TIMESTAMP($1)"'],
+                [/"datetimeoffset\(([0-9]+)\)"/ig,      '"TIMESTAMP($1) WITH TIME ZONE"'],
+                // strings
+                [/"varchar\(([0-9]+)\)"/ig,             '"VARCHAR2($1)"'],
+                [/"varchar\(max\)"/ig,                  '"CLOB"'],
+                [/"text"/ig,                            '"LONG"'],
+                // binaries
+                [/"binary\(([0-9]+)\)"/ig,              '"RAW($1)"'],
+                [/"varbinary\(([0-9]+)\)"/ig,           '"LONG RAW"'],
+                [/"varbinary\(max\)"/ig,                '"BLOB"'],
+                [/"image"/ig,                           '"LONG RAW"'],
+                // other
+                [/"xml"/ig,                             '"XMLTYPE"'],
+                [/"bit"/ig,                             '"NUMBER(1)"'],
+                [/"uniqueidentifier"/ig,                '"RAW(16)"']
+            ],
+            convert: function(xml, source, target) {
+                var ruleset = this[source + '_to_' + target];
+                if(!ruleset) {
+                    alert('Conversion between ' + source + ' and ' + target + ' is not supported.');
+                    return xml;
+                }
+                var str = (new XMLSerializer()).serializeToString(xml);
+                var rule;
+                for(var i = 0; rule = ruleset[i]; i++) {
+                    str = str.replace(rule[this.MATCH], rule[this.REPLACE]);
+                }
+                xml = (new DOMParser()).parseFromString(str, 'text/xml');
+                return xml;
+            }
+        };
+
         function ModalBackground(message) {
             var modalBackground = document.createElement('div');
             modalBackground.setAttribute("id", "modalBackground");
@@ -4101,10 +4160,6 @@
                         element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
                         this.keypress = this.keypress.bind(this);
                         element.addEventListener('keypress', this.keypress, false);
-                        /*
-                        if(editable.pattern)
-                            element.addEventListener('invalid', function() { self.invalid(this, hoveredNode); }, false);
-                            */
                         tr = document.createElement('tr');
                         tr.setAttribute('valign', 'top');
                         tr.setAttribute('title', editable.description);
@@ -4908,8 +4963,9 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 xmlhttp.open("GET", directive + cacheDisabler, false);
                 xmlhttp.send(null);
+                var response = xmlhttp.responseText.replace(/\r/g, ''); // unify line breaks
                 // only non-empty lines that are not comments (starts with #)
-                var scripts = xmlhttp.responseText.match(/^[^#].+/gm);
+                var scripts = response.match(/^[^#].+/gm);
                 var script;
                 var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
                 // process every sisula
@@ -5027,7 +5083,7 @@
                     this.setPartitioning('false');
                     this.setEntityIntegrity('true');
                     this.setTemporalization('uni');
-                    this.setDatabase('SQLServer');
+                    this.setDatabase('SQLServer', false);
                     this.setNaming('improved');
                     this.init();
                 }
@@ -5138,7 +5194,7 @@
                     this.setMaximumStartingVelocity(storage.getItem('maximumStartingVelocity') || 5);
                     this.setPartitionFactor(storage.getItem('partitionFactor') || 15);
                     this.setStiffness(storage.getItem('stiffness') || 1);
-                    this.setDatabase(storage.getItem('database') || 'SQLServer');
+                    this.setDatabase(storage.getItem('database') || 'SQLServer', false);
                     this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                     this.setCalculations(storage.getItem('calculations') || 'simple');
                     this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
@@ -5534,7 +5590,13 @@
                 LayoutEngine.stiffness = 1 * value;
                 LayoutEngine.init();
             },
-            setDatabase: function(value) {
+            setDatabase: function(value, convert) {
+                if(convert && confirm("Would you like to convert data types to " + value + "?")) {
+                    var original = Defaults.databaseTarget;
+                    Defaults.databaseTarget = value;
+                    var xml = DataTypeConverter.convert(Model.toXML(false), original, value);
+                    Model.fromXML(xml);
+                }
                 Defaults.databaseTarget = value;
             },
             setMiniRate: function(value) {
@@ -5916,6 +5978,8 @@
             // load previous scale and transform
             DrawingEngine.loadSettings(window.localStorage);
 
+            // handle resizing
+            window.addEventListener('resize', EventHandler.resize, false);
 
             // load url or previous model, if any
             var model;
@@ -6000,7 +6064,7 @@
                 }
                 .stop {
                     font-size:          6pt;
-                    font-family:        "Source Code Pro", "Consolas", "Andale Mono", sans-serif;
+                    font-family:        "Source Code Pro", "Consolas", "Andale Mono", monospace;
                     font-weight:        bold;
                     text-anchor:        middle;
                     dominant-baseline:  bottom;
@@ -6101,11 +6165,9 @@
         <div id="generate" class="menu">Generate
             <ul class="submenu">
                 <li title="Selects the target database for the generated SQL code.">
-                    <select id="database" onchange="Settings.setDatabase(this.value)">
+                    <select id="database" onchange="Settings.setDatabase(this.value, true)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
-                        <!-- hidden until someone writes the generator
                         <option value="Oracle">Oracle</option>
-                        -->
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
