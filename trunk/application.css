@@ -411,7 +411,7 @@ a:hover {
     position:           relative;
     margin-top:         -30px;
     text-align:         left;
-    font:               125% Andale Mono, Consolas, monospace;
+    font:               125% "Source Code Pro", "Consolas", "Andale Mono", monospace;
     color:              white;
     padding:            15px 20px;
     overflow:           auto;

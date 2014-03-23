@@ -223,11 +223,11 @@ while (tie = schema.nextTie()) {
         role.isIdentifier = function() {
             return this.identifier == 'true';
         };
-        if(schema.knot[role.type]) {
+        if(schema.hasMoreKnots() && schema.knot[role.type]) {
             role.knot = schema.knot[role.type];
             tie.knotRoles.push(role.id);
         }
-        else if(schema.anchor[role.type]) {
+        else if(schema.hasMoreAnchors() && schema.anchor[role.type]) {
             role.anchor = schema.anchor[role.type];
             tie.anchorRoles.push(role.id);
         }
@@ -313,4 +313,4 @@ schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
 schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
 schema.UNI = schema.metadata.temporalization == 'uni';
 schema.CRT = schema.metadata.temporalization == 'crt';
-schema.EOT = '\'9999-12-31\'';
+schema.EOT = '\'9999-12-31\''; // End Of Time
