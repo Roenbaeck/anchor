@@ -1,4 +1,4 @@
-if(schema.PARTITIONING) {
+if(schema.PARTITIONING && schema.EQUIVALENCE) {
 /*~
 -- schema.PARTITIONING -------------------------------------------------------------------------------------------------------
 --
