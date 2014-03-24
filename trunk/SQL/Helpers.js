@@ -34,6 +34,9 @@ while(knot = schema.nextKnot()) {
     knot.isGenerator = function() {
         return this.metadata.generator == 'true';
     };
+    knot.isEquivalent = function() {
+        return this.metadata.equivalent == 'true';
+    };
     knot.hasChecksum = function() {
         return this.metadata.checksum == 'true';
     };
@@ -97,6 +100,9 @@ while (anchor = schema.nextAnchor()) {
         };
         attribute.isAssertive = function() {
             return this.metadata.assertive == 'true';
+        };
+        attribute.isEquivalent = function() {
+            return this.metadata.equivalent == 'true';
         };
         attribute.isRestatable = function() {
             return this.metadata.restatable == 'true';
@@ -311,6 +317,7 @@ schema.IMPROVED = schema.metadata.naming == 'improved';
 schema.PARTITIONING = schema.metadata.partitioning == 'true';
 schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
 schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
+schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
 schema.UNI = schema.metadata.temporalization == 'uni';
 schema.CRT = schema.metadata.temporalization == 'crt';
 schema.EOT = '\'9999-12-31\''; // End Of Time

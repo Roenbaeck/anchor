@@ -29,6 +29,7 @@ GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
+        var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + attribute.equivalentColumnName + ')' : '';
         if(attribute.isHistorized() && !attribute.isKnotted()) {
 /*~
 -- Historized attribute table -----------------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -45,10 +47,11 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
     )
-);
+)$(attribute.isEquivalent())? $scheme; : ;
 GO
 ~*/
     }
@@ -110,6 +113,7 @@ GO
 IF Object_ID('$attribute.name', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -117,9 +121,10 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
         $attribute.anchorReferenceName asc
     )
-);
+)$(attribute.isEquivalent())? $scheme; : ;
 GO
 ~*/
     }

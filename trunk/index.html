@@ -1543,7 +1543,7 @@
                 event: 'click',
                 attributes: ['type', 'checkbox']
             },
-            assertivnessEdit: {
+            assertivenessEdit: {
                 name: 'Assertive',
                 description:
                        'Checking this modifies the insert and update triggers such that the annex will ' +
@@ -1552,6 +1552,20 @@
                 setMember: function (element, node) { node.assertive = element.checked; },
                 getMember: function (node) { return node.assertive; },
                 setElement: function (element, node) { element.checked = node.assertive; },
+                getElement: function (element) { return element.checked; },
+                editable: true,
+                type: 'input',
+                event: 'click',
+                attributes: ['type', 'checkbox']
+            },
+            equivalenceEdit: {
+                name: 'Equivalent',
+                description:
+                        'Checking this makes it possible to store several equivalent values, ' +
+                        'which for example is useful when multilingualism or multitenancy is desired.',
+                setMember: function (element, node) { node.equivalent = element.checked; },
+                getMember: function (node) { return node.equivalent; },
+                setElement: function (element, node) { element.checked = node.equivalent; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -2394,13 +2408,15 @@
             this.editables.push(Editables.dataRangeEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
-            this.editables.push(Editables.assertivnessEdit);
+            this.editables.push(Editables.assertivenessEdit);
             this.editables.push(Editables.checksumEdit);
+            this.editables.push(Editables.equivalenceEdit);
             this.knotted = false;
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
             this.assertive = Defaults.assertiveness === 'true';
+            this.equivalent = Defaults.equivalence === 'true';
             this.checksum = false;
             this.encapsulation = Defaults.encapsulation;
             this.positIdentity = Defaults.positIdentity;
@@ -2444,6 +2460,7 @@
             restatable: true,
             idempotent: false,
             assertive: true,
+            equivalent: false,
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
@@ -2544,6 +2561,7 @@
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
                 var assertive = Defaults.assertiveness === 'true';
+                var equivalent = Defaults.equivalence === 'true';
                 var checksum = false;
                 var generator = Defaults.positGenerator === 'true';
                 for(i = 0; i < element.childNodes.length; i++)
@@ -2561,6 +2579,8 @@
                     generator = _generator ? _generator === 'true' : generator;
                     var _assertive = metadata.getAttribute("assertive");
                     assertive = _assertive ? _assertive === 'true' : assertive;
+                    var _equivalent = metadata.getAttribute("equivalent");
+                    equivalent = _equivalent ? _equivalent === 'true' : equivalent;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -2588,6 +2608,7 @@
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
                 attribute.assertive = assertive;
+                attribute.equivalent = equivalent;
                 attribute.checksum = checksum;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
@@ -2638,6 +2659,9 @@
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
+                if(Defaults.equivalence === 'true') {
+                    metadata.setAttribute("equivalent", this.isEmpty(this.equivalent) ? '' : this.equivalent);
+                }
                 if(Defaults.temporalization === 'crt') {
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
                     metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
@@ -2921,8 +2945,10 @@
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
             this.editables.push(Editables.checksumEdit);
+            this.editables.push(Editables.equivalenceEdit);
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
+            this.equivalent = Defaults.equivalence === 'true';
             this.type = NodeType.KNOT;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -2956,6 +2982,7 @@
             dataRange: '',
             generator: false,
             checksum: false,
+            equivalent: false,
             encapsulation: Defaults.encapsulation,
             getMass: function() {
                 return Knot.mass;
@@ -3018,13 +3045,16 @@
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
-                var checksum;
+                var checksum = false;
+                var equivalent = Defaults.equivalence === 'true';
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
                     var _generator = metadata.getAttribute("generator");
                     generator = _generator ? _generator === 'true' : generator;
                     var _checksum = metadata.getAttribute("checksum");
                     checksum = _checksum ? _checksum === 'true' : checksum;
+                    var _equivalent = metadata.getAttribute("equivalent");
+                    equivalent = _equivalent ? _equivalent === 'true' : equivalent;
                 }
                 // Begin - handling obsolete XML spec
                 var idElement;
@@ -3048,6 +3078,7 @@
                 knot.identity = identity;
                 knot.dataRange = dataRange;
                 knot.generator = generator;
+                knot.equivalent = equivalent;
                 knot.encapsulation = capsule;
                 knot.checksum = checksum;
                 knot.updateName();
@@ -3069,6 +3100,9 @@
                 if(this.checksum) {
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
                             false : this.checksum);
+                }
+                if(Defaults.equivalence === 'true') {
+                    metadata.setAttribute("equivalent", this.isEmpty(this.equivalent) ? '' : this.equivalent);
                 }
                 knot.appendChild(metadata);
 
@@ -3096,7 +3130,7 @@
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
-            this.editables.push(Editables.assertivnessEdit);
+            this.editables.push(Editables.assertivenessEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor');
@@ -4472,8 +4506,7 @@
             getDirective: function() {
                 var database = Defaults.databaseTarget;
                 var temporalization = Defaults.temporalization;
-                var equivalence = Defaults.equivalence === 'true' ? '_eq' : '';
-                var directive = database + '_' + temporalization + equivalence + '.directive';
+                var directive = database + '_' + temporalization + '.directive';
                 return directive;
             },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
@@ -5422,7 +5455,7 @@
                     );
                     Editables.setEditability(Editables.positIdentityEdit, true);
                     Editables.setEditability(Editables.positGeneratorEdit, true);
-                    Editables.setEditability(Editables.assertivnessEdit, true);
+                    Editables.setEditability(Editables.assertivenessEdit, true);
                 }
                 else {
                     this.removeItem('positIdentity', listOfDefaults);
@@ -5440,7 +5473,7 @@
                     this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
-                    Editables.setEditability(Editables.assertivnessEdit, false);
+                    Editables.setEditability(Editables.assertivenessEdit, false);
                 }
             },
             addOrRemovePartitioning: function() {
@@ -5517,11 +5550,13 @@
                             function() { Settings.setEquivalentRange(this.value); }
                     );
                     this.addOrRemovePartitioning();
+                    Editables.setEditability(Editables.equivalenceEdit, true);
                 }
                 else {
                     this.removeItem('equivalentSuffix', listOfDefaults);
                     this.removeItem('equivalentRange', listOfDefaults);
                     this.addOrRemovePartitioning();
+                    Editables.setEditability(Editables.equivalenceEdit, false);
                 }
             },
             setRestatability: function(value) {
