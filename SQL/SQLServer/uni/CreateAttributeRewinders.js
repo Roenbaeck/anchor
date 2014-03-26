@@ -11,10 +11,9 @@
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
-    var knot, attribute;
+    var attribute;
     while (attribute = anchor.nextAttribute()) {
         if(attribute.isHistorized()) {
-            if(!attribute.isKnotted()) {
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
@@ -23,50 +22,24 @@ IF Object_ID('r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
+        $(attribute.isEquivalent())? @equivalent $schema.metadata.equivalentRange,
         @changingTimepoint $attribute.timeRange
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
-        $(attribute.hasChecksum())? $attribute.checksumColumnName,
+        $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
-        [$attribute.capsule].[$attribute.name]
+        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@equivalent) : [$attribute.capsule].[$attribute.name]
     WHERE
         $attribute.changingColumnName <= @changingTimepoint;
     ');
 END
 GO
 ~*/
-            }
-            else {
-/*~
--- Attribute rewinder -------------------------------------------------------------------------------------------------
--- r$attribute.name rewinding over changing time function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @changingTimepoint $attribute.timeRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
-    SELECT
-        $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
-        $attribute.knotReferenceName,
-        $attribute.changingColumnName
-    FROM
-        [$attribute.capsule].[$attribute.name]
-    WHERE
-        $attribute.changingColumnName <= @changingTimepoint;
-    ');
-END
-GO
-~*/
-            }
         }
     }
 }

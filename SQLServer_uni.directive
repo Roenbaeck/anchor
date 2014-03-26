@@ -6,6 +6,8 @@ SQL/SQLServer/uni/CreateEquivalentAndDefault.js
 SQL/SQLServer/uni/CreateKnots.js
 SQL/SQLServer/uni/CreateAnchorsAndAttributes.js
 SQL/SQLServer/uni/CreateTies.js
+SQL/SQLServer/uni/CreateKnotEquivalenceViews.js
+SQL/SQLServer/uni/CreateAttributeEquivalenceViews.js
 SQL/SQLServer/uni/AddAttributeRestatementConstraints.js
 SQL/SQLServer/uni/CreateKeyGenerators.js
 SQL/SQLServer/uni/CreateAttributeRewinders.js

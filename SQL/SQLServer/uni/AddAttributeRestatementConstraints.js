@@ -15,6 +15,7 @@ if(restatements) {
 -- returns      1 for at least one equal surrounding value, 0 for different surrounding values
 --
 -- @id          the identity of the anchored entity
+-- @eq          the equivalent (when applicable)
 -- @value       the value of the attribute
 -- @changed     the point in time from which this value shall represent a change
 --
@@ -48,6 +49,7 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
         @id $anchor.identity,
+        $(attribute.isEquivalent())? @eq $schema.metadata.equivalentRange,
         @value $valueType,
         @changed $attribute.timeRange
     )
@@ -57,7 +59,7 @@ BEGIN
             SELECT TOP 1
                 pre.$valueColumn
             FROM
-                [$attribute.capsule].[$attribute.name] pre
+                $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) pre : [$attribute.capsule].[$attribute.name] pre
             WHERE
                 pre.$attribute.anchorReferenceName = @id
             AND
@@ -68,7 +70,7 @@ BEGIN
             SELECT TOP 1
                 fol.$valueColumn
             FROM
-                [$attribute.capsule].[$attribute.name] fol
+                $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) fol : [$attribute.capsule].[$attribute.name] fol
             WHERE
                 fol.$attribute.anchorReferenceName = @id
             AND
@@ -89,6 +91,7 @@ BEGIN
     ADD CONSTRAINT [rc$attribute.name] CHECK (
         [$attribute.capsule].[rf$attribute.name] (
             $attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $valueColumn,
             $attribute.changingColumnName
         ) = 0
