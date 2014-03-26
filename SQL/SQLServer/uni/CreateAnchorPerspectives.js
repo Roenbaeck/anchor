@@ -68,11 +68,13 @@ SELECT
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
+    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -154,11 +156,13 @@ SELECT
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
+    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -312,11 +316,13 @@ SELECT
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
+    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -399,11 +405,13 @@ SELECT
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
+    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/

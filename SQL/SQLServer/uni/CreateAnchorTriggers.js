@@ -54,12 +54,14 @@ BEGIN
         $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange null,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
         $attribute.knotValueColumnName $knot.dataRange null,
         $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
+        $(knot.isEquivalent())? $knot.equivalentColumnName $schema.metadata.equivalentRange null,
         $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
         $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
@@ -83,12 +85,14 @@ BEGIN
         $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
+        $(attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
         i.$attribute.knotValueColumnName,
         $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))),
+        $(knot.isEquivalent())? ISNULL(i.$knot.equivalentColumnName, 0),
         $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
             }
@@ -108,12 +112,14 @@ BEGIN
             $(schema.IMPROVED)? $attribute.anchorReferenceName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.timeRange)? $attribute.changingColumnName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
             $attribute.knotValueColumnName,
             $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
+            $(knot.isEquivalent())? $knot.equivalentColumnName,
             $(schema.METADATA)? $attribute.knotMetadataColumnName,
 ~*/
             }
@@ -141,6 +147,7 @@ BEGIN
 /*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
@@ -155,12 +162,14 @@ BEGIN
     INSERT INTO @$attribute.name
     SELECT
         i.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.changingColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
         DENSE_RANK() OVER (
             PARTITION BY
+                $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
                 i.$attribute.anchorReferenceName
             ORDER BY
                 i.$attribute.changingColumnName ASC
@@ -176,6 +185,14 @@ BEGIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+~*/
+                    if(knot.isEquivalent()) {
+/*~
+    AND
+        [k$knot.mnemonic].$knot.equivalentColumnName = i.$knot.equivalentColumnName
+~*/
+                    }
+/*~
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
 ~*/
@@ -201,6 +218,7 @@ BEGIN
                 CASE
                     WHEN [$attribute.capsule].[rf$attribute.name](
                         v.$attribute.anchorReferenceName,
+                        $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
                         $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
                         v.$attribute.changingColumnName
                     ) = 1
@@ -219,16 +237,20 @@ BEGIN
             [$attribute.mnemonic].$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
             $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName = v.$attribute.checksumColumnName : [$attribute.mnemonic].$attribute.valueColumnName = v.$attribute.valueColumnName
+        $(attribute.isEquivalent())? AND
+            $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName = v.$attribute.equivalentColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.changingColumnName,
             $attribute.valueColumnName
@@ -245,11 +267,13 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
     FROM
@@ -259,6 +283,12 @@ BEGIN
     ON
         [$attribute.mnemonic].$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
 ~*/
+                if(attribute.isEquivalent()) {
+/*~
+    AND
+        [$attribute.mnemonic].$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+~*/
+                }
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
@@ -266,6 +296,14 @@ BEGIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+~*/
+                    if(knot.isEquivalent()) {
+/*~
+    AND
+        [k$knot.mnemonic].$knot.equivalentColumnName = i.$knot.equivalentColumnName
+~*/
+                    }
+/*~
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
  ~*/
@@ -319,6 +357,8 @@ BEGIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+    $(knot.isEquivalent())? AND
+        $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$knot.equivalentColumnName
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
@@ -348,17 +388,19 @@ BEGIN
                 }
             /*~;~*/
             }
-            else {
+            else { // not knotted
 /*~
     IF(UPDATE($attribute.valueColumnName))
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         i.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         u.$attribute.changingColumnName,
         i.$attribute.valueColumnName
@@ -380,11 +422,14 @@ BEGIN
         $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
         b.$attribute.changingColumnName = u.$attribute.changingColumnName
+    $(attribute.isEquivalent())? AND
+        $(attribute.isEquivalent())? b.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
         [$attribute.capsule].[rf$attribute.name](
             i.$attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
             $(attribute.hasChecksum())? i.$attribute.checksumColumnName, : i.$attribute.valueColumnName,
             u.$attribute.changingColumnName
         ) = 0~*/
@@ -419,6 +464,8 @@ BEGIN
         d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
     $(attribute.timeRange)? AND
         $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName;
+    $(attribute.isEquivalent())? AND
+        $(attribute.isEquivalent())? d.$attribute.equivalentColumnName = [$attribute.mnemonic].$attribute.equivalentColumnName
 ~*/
         }
 /*~
