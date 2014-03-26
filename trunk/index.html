@@ -2536,8 +2536,15 @@
                     this.editables.push(Editables.checksumEdit);
                 else if (knotted && index >= 0)
                     this.editables.splice(index, 1);
+                index = this.editables.indexOf(Editables.equivalenceEdit);
+                if(!knotted && index < 0)
+                    this.editables.push(Editables.equivalenceEdit);
+                else if (knotted && index >= 0)
+                    this.editables.splice(index, 1);
                 if(this.checksum && knotted)
                     this.checksum = false; // knotted cannot be checksummed
+                if(this.equivalent && knotted)
+                    this.equivalent = false; // knotted cannot be equivalent
                 this.knotted = knotted;
             },
             getKnotted: function() {

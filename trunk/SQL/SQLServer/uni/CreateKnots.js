@@ -13,8 +13,6 @@ var knot;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
         knot.identityGenerator = 'IDENTITY(1,1)';
-    if(schema.METADATA)
-        knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
         var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + knot.equivalentColumnName + ')' : '';
 /*~
@@ -24,7 +22,7 @@ while (knot = schema.nextKnot()) {
 IF Object_ID('$knot.identityName', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.identityName] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
-    $knot.metadataDefinition
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
         $knot.identityColumnName asc
     )
@@ -42,7 +40,7 @@ CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
     $knot.metadataDefinition
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
+    ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),
     constraint pk$knot.equivalentName primary key (
         $knot.equivalentColumnName asc,
         $knot.identityColumnName asc
@@ -66,7 +64,7 @@ CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
     $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
-    $knot.metadataDefinition
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
         $knot.identityColumnName asc
     ),
