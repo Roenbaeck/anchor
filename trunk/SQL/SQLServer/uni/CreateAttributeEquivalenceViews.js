@@ -19,11 +19,16 @@ IF Object_ID('e$attribute.name', 'IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[e$attribute.name] (
-        @equivalent $schema.equivalentRange
+        @equivalent $schema.metadata.equivalentRange
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        *
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $attribute.valueColumnName
     FROM
         [$attribute.capsule].[$attribute.name]
     WHERE

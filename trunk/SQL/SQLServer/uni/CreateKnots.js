@@ -37,7 +37,7 @@ CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
     $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
-    $knot.metadataDefinition
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
     ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),

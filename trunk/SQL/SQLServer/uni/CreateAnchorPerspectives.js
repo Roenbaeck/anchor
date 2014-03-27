@@ -499,7 +499,7 @@ GO
 CREATE FUNCTION [$anchor.capsule].[en$anchor.name] ﻿(
     @equivalent $schema.metadata.equivalentRange
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     *
 FROM

@@ -440,7 +440,7 @@ a:hover {
     font-style:         italic;
 }
 .preformatted, pre {
-    font:               100% Andale Mono, Consolas, monospace;
+    font:               100% "Source Code Pro", "Consolas", "Andale Mono", monospace;
     color:              white;
     white-space:        pre;
 }

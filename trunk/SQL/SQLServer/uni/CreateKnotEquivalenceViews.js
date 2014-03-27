@@ -18,7 +18,7 @@ while (knot = schema.nextKnot()) {
 IF Object_ID('$knot.name', 'V') IS NULL
 BEGIN
     EXEC('
-    CREATE VIEW [$knot.capsule].[$knot.name]
+    CREATE VIEW [$knot.capsule].[$knot.name] WITH SCHEMABINDING
     AS
     SELECT
         $(schema.METADATA)? v.$knot.metadataColumnName,
@@ -39,11 +39,15 @@ IF Object_ID('e$knot.name', 'IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$knot.capsule].[e$knot.name] (
-        @equivalent $schema.equivalentRange
+        @equivalent $schema.metadata.equivalentRange
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        *
+        $(schema.METADATA)? $knot.metadataColumnName,
+        $knot.identityColumnName,
+        $knot.equivalentColumnName,
+        $(knot.hasChecksum())? $knot.checksumColumnName,
+        $knot.valueColumnName
     FROM
         [$knot.capsule].[$knot.name]
     WHERE
