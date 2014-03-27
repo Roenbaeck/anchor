@@ -57,6 +57,7 @@ GO
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
         knot = attribute.knot;
+        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
 /*~
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
@@ -72,7 +73,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
+    ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc,
         $attribute.changingColumnName desc
@@ -83,6 +84,8 @@ GO
     }
     else if(attribute.isKnotted()) {
         knot = attribute.knot;
+        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
+
 /*~
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
@@ -97,7 +100,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.name] (
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knot.name]($knot.identityColumnName),
+    ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName asc
     )

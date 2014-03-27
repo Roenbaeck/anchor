@@ -3757,6 +3757,7 @@
             var content = document.createElement('div');
             content.setAttribute("id", "content");
             content.setAttribute("contenteditable", "true");
+            content.setAttribute("spellcheck", "false");
             if(preformatted)
                 content.setAttribute("class", "preformatted");
             content.style.width = (window.innerWidth - 2 * wPadding) + 'px';

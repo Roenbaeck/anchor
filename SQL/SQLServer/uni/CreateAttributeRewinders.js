@@ -29,6 +29,7 @@ BEGIN
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName

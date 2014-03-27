@@ -462,13 +462,12 @@ BEGIN
         deleted d
     ON
         d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
-    $(attribute.timeRange)? AND
-        $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName;
     $(attribute.isEquivalent())? AND
         $(attribute.isEquivalent())? d.$attribute.equivalentColumnName = [$attribute.mnemonic].$attribute.equivalentColumnName
-~*/
+    $(attribute.timeRange)? AND
+        $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName~*/
         }
-/*~
+/*~;
     DELETE [$anchor.mnemonic]
     FROM
         [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]~*/
