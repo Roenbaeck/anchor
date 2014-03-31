@@ -1,6 +1,8 @@
 <schema>
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)"/>
-    <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)"/>
+    <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)">
+        <metadata equivalent="true"/>
+    </knot>
     <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(max)">
         <metadata checksum="true"/>
     </knot>
@@ -15,7 +17,9 @@
     </anchor>
     <anchor mnemonic="EV" descriptor="Event" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
-        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
+        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+            <metadata equivalent="true"/>
+        </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
             <key stop="1" route="natural" of="PE"/>
             <metadata checksum="true"/>
@@ -27,7 +31,9 @@
         <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
-        <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)"/>
+        <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
+            <metadata equivalent="true"/>
+        </attribute>
     </anchor>
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
@@ -65,8 +71,8 @@
         <knotRole role="having" type="PAT" identifier="true"/>
     </tie>
     <tie>
-        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
-        <anchorRole role="wasHeld" type="ST" identifier="false"/>
-        <anchorRole role="at" type="PE" identifier="true"/>
+        <anchorRole role="content" type="PR" identifier="false"/>
+        <anchorRole role="location" type="ST" identifier="false"/>
+        <anchorRole role="of" type="PE" identifier="true"/>
     </tie>
 </schema>

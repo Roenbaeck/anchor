@@ -265,7 +265,7 @@
                 var numberOfStoppedNodes = 0;
 
                 // set up partitions
-                this.partitions = {};
+                this.partitions = Object.create(null);
                 this.fuzzing = (this.fuzzing + 1) % 3;
                 var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
                 size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
@@ -407,7 +407,7 @@
                 var numberOfStoppedNodes = 0;
 
                 // set up partitions
-                this.partitions = {};
+                this.partitions = Object.create(null);
                 this.fuzzing = (this.fuzzing + 1) % 3;
                 var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
                 size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
@@ -575,7 +575,7 @@
             },
             empty: function() {
                 this.nodes = [];
-                this.idToNode = {};
+                this.idToNode = Object.create(null);
                 SVGLayer.clearAll();
                 NAVLayer.clearAll();
             },
@@ -724,9 +724,9 @@
                 schemaElement.setAttribute('date', this.formatDate(new Date(), 'd'));
                 schemaElement.setAttribute('time', this.formatDate(new Date(), 't'));
                 var metadata = schema.createElement('metadata');
-                for(var d in Defaults)
-                    if(Defaults.hasOwnProperty(d) && Defaults[d])
-                        metadata.setAttribute(d, Defaults[d]);
+                for(var def in Defaults)
+                    if(Defaults.hasOwnProperty(def) && Defaults[def])
+                        metadata.setAttribute(def, Defaults[def]);
                 schemaElement.appendChild(metadata);
                 for(var i = 0; i < this.nodes.length; i++) {
                     var node = this.nodes[i].toXML(schema);
@@ -2619,11 +2619,11 @@
                 attribute.checksum = checksum;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
-                var anchorLookup = {};
+                var anchorLookup = Object.create(null);
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i].type === NodeType.ANCHOR)
                         anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
-                var knotLookup = {};
+                var knotLookup = Object.create(null);
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i].type === NodeType.KNOT)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
@@ -3214,7 +3214,8 @@
                 }
             },
             isConforming: function() {
-                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, role, roles = {}, identical;
+                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, role, identical;
+                var roles = Object.create(null);
                 // check that no roles are identical in the tie
                 for(i = 0; edge = this.edges[i]; i++) {
                     for(j = 0; otherEdge = this.edges[j]; j++) {
@@ -3331,11 +3332,11 @@
                 tie.positIdentity = identity;
                 tie.positGenerator = generator;
                 tie.description = description ? description.firstChild.nodeValue : '';
-                var anchorLookup = {};
+                var anchorLookup = Object.create(null);
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i].type === NodeType.ANCHOR)
                         anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
-                var knotLookup = {};
+                var knotLookup = Object.create(null);
                 for(i = 0; i < Model.nodes.length; i++)
                     if(Model.nodes[i].type === NodeType.KNOT)
                         knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
@@ -3628,7 +3629,7 @@
                 else
                     child.prototype.supertype[member] = supertype.prototype[member];
             /* moving away from this type of inheritance, as it has worse performance, and not supported in IE9 */
-            //child.prototype.__proto__ = supertype.prototype;
+            // child.prototype.__proto__ = supertype.prototype;
         }
 
         var DataTypeConverter = {
@@ -4950,12 +4951,12 @@
                         // if there are children or attributes we need a container
                         if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
                             if(!object[xmlFragment.nodeName])
-                                object[xmlFragment.nodeName] = {};
+                                object[xmlFragment.nodeName] = Object.create(null);
                             var partialObject = object[xmlFragment.nodeName];
                             if(typeof map[xmlFragment.nodeName] === 'function') {
                                 var key = map[xmlFragment.nodeName](xml, xmlFragment);
                                 if(key) {
-                                    partialObject = partialObject[key] = {};
+                                    partialObject = partialObject[key] = Object.create(null);
                                     partialObject.id = key;
                                     var name = Sisulator.replacer(
                                             xmlFragment.nodeName + listSuffix
