@@ -67,7 +67,6 @@
         var LOWER = '[a-z0-9\u00E0-\u00F6\u00F8-\u00FF]';
         var UPPER = '[A-Z\u00C0-\u00D6\u00D8-\u00DF]';
 
-
         var Defaults = {
             changingRange: 'datetime',
             encapsulation: 'dbo',
@@ -110,14 +109,91 @@
             temporalization: 'uni'
         };
 
+        // global function providing inheritance
+        function extend(type, supertype){
+            for(var member in supertype.prototype)
+                if(!type.prototype[member])
+                    type.prototype[member] = supertype.prototype[member];
+        }
+
         // available node types enumeration with textual representation
         var NodeType = {
+            UNKNOWN:    0, '0': "Unknown",
             ANCHOR:     1, '1': "Anchor",
             ATTRIBUTE:  2, '2': "Attribute",
             TIE:        3, '3': "Tie",
             KNOT:       4, '4': "Knot",
-            EDGE:       5, '5': "Edge"
+            EDGE:       5, '5': "Edge",
+            // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
+            mass:       [1, 1, 1, 1, 1, 1],
+            charge:     [1, 1, 1, 1, 1, 1]
         };
+
+        // the node type that the layout algorithm expects
+        function Node(id, x, y, type) {
+            this.id = id;
+            this.type = NodeType[type] ? type : 0; // check that the type is defined in NodeType
+            this.xPosition = x;
+            this.yPosition = y;
+            this.edges = [];
+        }
+        Node.prototype = {
+            id: null,
+            type: null,
+            xPosition: null,
+            yPosition: null,
+            xVelocity: 0,
+            yVelocity: 0,
+            velocity: 0,
+            moving: true,
+            fixed: false,
+            visible: true,
+            edges: null,
+            stop: function() {
+                this.moving = false;
+            },
+            // movement is propagated to the edges of a node
+            start: function() {
+                this.moving = true;
+                var i = this.edges.length;
+                while(i--) this.edges[i].start();
+            },
+            // "static variables"
+            getMass: function() {
+                return NodeType.mass(this.type);
+            },
+            getCharge: function() {
+                return NodeType.charge(this.type);
+            }
+        };
+
+        // an edge connects two nodes
+        function Edge(id, node, otherNode) {
+            // assume that the control point coincide with the center point
+            this.controlPoint = new Node(
+                id,
+                node.xPosition + (otherNode.xPosition - node.xPosition) / 2,
+                node.yPosition + (otherNode.yPosition - node.yPosition) / 2
+            );
+            Node.call(this, id, this.controlPoint.xPosition, this.controlPoint.yPosition, NodeType.EDGE);
+            this.node = node;
+            this.otherNode = otherNode;
+            if(node.edges.indexOf(this) < 0) node.edges.push(this);
+            if(otherNode.edges.indexOf(this) < 0) otherNode.edges.push(this);
+            this.edges.push(node);
+            this.edges.push(otherNode);
+        }
+        Edge.prototype = {
+            node: null,
+            otherNode: null,
+            // overload
+            start: function() {
+                this.moving = true;
+            }
+        };
+
+        // let the edge inherit from Node
+        extend(Edge, Node);
 
         // create a singleton
         var LayoutEngine = {
@@ -255,25 +331,25 @@
                         otherNode.yPosition <= square.yMax;
             },
 
-            // calculate all forces and change the velocity and position of the node
-            simpleLayout: function(model) {
+            // calculate all forces and change the velocity and position of the nodes in the array
+            simpleLayout: function(nodes) {
                 // assume equilibrium - set to false below if a node moves
                 this.equilibrium = true;
 
                 var i, j, k, node, otherNode, edge, curvature;
-                var numberOfNodes = model.visibleNodes.length;
+                var numberOfNodes = nodes.length;
                 var numberOfStoppedNodes = 0;
 
                 // set up partitions
-                this.partitions = Object.create(null);
+                this.partitions = {}; // faster than Object.create(null) for some reason
                 this.fuzzing = (this.fuzzing + 1) % 3;
                 var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
                 size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
-                i = model.visibleNodes.length;
+                i = numberOfNodes;
                 while(i--) {
-                    node = model.visibleNodes[i];
+                    node = nodes[i];
                     // count the number of stopped nodes
-                    if(!node.moving || node.getFixed())
+                    if(!node.moving || node.fixed)
                         numberOfStoppedNodes++;
                     xPosition = Math.floor(node.xPosition / size);
                     yPosition = Math.floor(node.yPosition / size);
@@ -353,7 +429,7 @@
                                 node.yVelocity += this.ySimpleRepelling(node, otherNode);
                             }
                         }
-                        // bending force (straightens out edges)
+                        // for edges apply bending force (straightens out edges)
                         if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
                             // update the control point
                             node.controlPoint.xPosition = 2 * node.xPosition -
@@ -366,11 +442,11 @@
                             node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
                             node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
                         }
+                        // for nodes, add the attracting velocity from all edges
                         j = node.edges.length;
-                        // for all edges, add the attracting velocity
-                        while(j--) {
+                        while (j--) {
                             edge = node.edges[j];
-                            if(edge.visible) {
+                            if (edge.visible) {
                                 node.xVelocity += this.xSimpleAttracting(node, edge) / node.edges.length;
                                 node.yVelocity += this.ySimpleAttracting(node, edge) / node.edges.length;
                             }
@@ -389,7 +465,7 @@
                                 this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                             node.start();
                         // if the node is moving and not fixed then calculate the new position
-                        if(node.moving && !node.getFixed()) {
+                        if(node.moving && !node.fixed) {
                             this.equilibrium = false;
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
@@ -559,11 +635,34 @@
             id: null,
             description:null,
             // other members
-            nodes: [],
-            idToNode: {},
+            components: [],
             visibleNodes: [],
+            idToComponent: {}, 
             version: -1,
             versions: [],
+            getAnchorLookup: function() {
+                var anchorLookup = Object.create(null);
+                var component;
+                for(var i = 0; i < this.components.length; i++) {
+                    component = this.components[i];
+                    if(component instanceof Anchor)
+                        anchorLookup[component.mnemonic] = component;
+                }
+                return anchorLookup;
+            },
+            getKnotLookup: function() {
+                var knotLookup = Object.create(null);
+                var component;
+                for(var i = 0; i < this.components.length; i++) {
+                    component = this.components[i];
+                    if(component instanceof Knot)
+                        knotLookup[component.mnemonic] = component;
+                }
+                return knotLookup;
+            },
+            nodeToComponent: function(node) {
+                return this.idToComponent[node.id];
+            },
             uncloud: function() {
                 this.name = null;
                 this.scope = 'private';
@@ -571,30 +670,31 @@
                 this.id = null;
             },
             isEmpty: function() {
-                return this.nodes.length === 0;
+                return this.components.length === 0;
             },
             empty: function() {
-                this.nodes = [];
-                this.idToNode = Object.create(null);
+                this.components = [];
+                this.visibleNodes = [];
+                this.idToComponent = Object.create(null);
                 SVGLayer.clearAll();
                 NAVLayer.clearAll();
             },
             refresh: function() {
-                // copy visible nodes
-                this.visibleNodes.length = 0;
-                var node;
-                for(var i = 0; node = this.nodes[i]; i++) {
+                // create a new visibleNodes
+                this.visibleNodes = [];
+                var component;
+                for(var i = 0; component = this.components[i]; i++) {
                     // reset all incompleteness
-                    node.updateIncompleteness();
-                    if(node.visible)
-                        this.visibleNodes.push(node);
+                    component.updateIncompleteness();
+                    if(component.node.visible)
+                        this.visibleNodes.push(component.node);
                 }
             },
             // TODO: We probably should have a maximum number of versions
             recordState: function() {
                 this.refresh();
                 // only record if there is something to record
-                if(this.nodes.length) {
+                if(this.components.length) {
                     this.version++;
                     this.versions[this.version] = this.toXML(false);
                     ControlButtons.setUndoLevels(this.version);
@@ -627,7 +727,7 @@
                 if(go) {
                     this.uncloud();
                     this.empty();
-                    this.addNode(new Anchor(window.innerWidth/2, window.innerHeight/2));
+                    this.addComponent(new Anchor(window.innerWidth/2, window.innerHeight/2));
                     this.refresh();
                     EventHandler.clearSelection();
                     Actions.setModelStatus();
@@ -637,12 +737,13 @@
                 }
             },
             isConforming: function() {
-                var i, node;
-                for(i = 0; node = Model.nodes[i]; i++)
-                    if(!node.isConforming())
+                var i, component;
+                for(i = 0; component = Model.components[i]; i++)
+                    if(!component.isConforming())
                         return false;
                 return true;
             },
+            /*
             sort: function() {
                 this.nodes.sort(function(a, b) {
                     if (a.type === NodeType.EDGE)
@@ -662,47 +763,44 @@
                     return 1;
                 });
             },
-            addNode: function(node) {
+            */
+            addComponent: function(component) {
                 // add node at the end of the array
-                if(node) {
-                    this.nodes.push(node);
-                    this.idToNode[node.id] = node;
-                    this.sort();
-                    this.invalidateNode(node);
+                if(component) {
+                    this.components.push(component);
+                    this.idToComponent[component.id] = component;
+                    // this.sort();
+                    this.invalidateComponent(component);
+                    this.refresh();
                 }
             },
-            removeNode: function(node) {
-                if(node.type === NodeType.KNOT) {
-                    var edge = node.edges[0];
+            removeComponent: function(component) {
+                if(component.node.type === NodeType.KNOT) {
+                    var edge = component.node.edges[0];
                     var otherNode = edge.node === this ? edge.otherNode : edge.node;
-                    if(otherNode.type === NodeType.ATTRIBUTE)
-                        otherNode.setKnotted(false);
+                    if(otherNode.type === NodeType.ATTRIBUTE) {
+                        var attribute = this.nodeToComponent(otherNode);
+                        attribute.setKnotted(false);
+                    }
                 }
-                delete this.idToNode[node.id];
-                node.hide();
-                this.deleteElementFromArray(this.nodes, node);
-            },
-            addEdge: function(edge) {
-                // the edge is also a node
-                if(edge)
-                    this.addNode(edge);
-            },
-            removeEdge: function(edge) {
-                this.deleteElementFromArray(edge.node.edges, edge);
-                this.deleteElementFromArray(edge.otherNode.edges, edge);
-                this.removeNode(edge);
-            },
-            getNodeFromId: function(id) {
-                return this.idToNode[id];
+                else if (component.node.type === NodeType.EDGE) {
+                    var edge = component.node;
+                    this.deleteElementFromArray(edge.node.edges, edge);
+                    this.deleteElementFromArray(edge.otherNode.edges, edge);
+                }
+                delete this.idToComponent[component.id];
+                component.hide();
+                this.deleteElementFromArray(this.components, component);
+                this.refresh();
             },
             deleteElementFromArray: function(array, element) {
                 array.splice(array.indexOf(element), 1);
             },
-            invalidateNode: function(node) {
-                var square = LayoutEngine.createSquare(node, LayoutEngine.normalDistance);
-                for(var i = 0; i < this.nodes.length; i++)
-                    if(LayoutEngine.withinSquare(this.nodes[i], square))
-                        this.nodes[i].start();
+            invalidateComponent: function(component) {
+                var square = LayoutEngine.createSquare(component.node, LayoutEngine.normalDistance);
+                for(var i = 0; i < this.visibleNodes.length; i++)
+                    if(LayoutEngine.withinSquare(this.visibleNodes[i], square))
+                        this.visibleNodes[i].start();
             },
             formatDate: function(date, dateOrTime) {
                 function z(str) {
@@ -728,10 +826,10 @@
                     if(Defaults.hasOwnProperty(def) && Defaults[def])
                         metadata.setAttribute(def, Defaults[def]);
                 schemaElement.appendChild(metadata);
-                for(var i = 0; i < this.nodes.length; i++) {
-                    var node = this.nodes[i].toXML(schema);
-                    if(node !== null)
-                        schemaElement.appendChild(node);
+                for(var i = 0; i < this.components.length; i++) {
+                    var componentElement = this.components[i].toXML(schema);
+                    if(componentElement !== null)
+                        schemaElement.appendChild(componentElement);
                 }
                 if(serialize) {
                     var serializationElement = schema.createElement('serialization');
@@ -788,146 +886,160 @@
                     // the order in which we add these are important (attributes create edges to anchors)
                     var knots = xml.getElementsByTagName('knot');
                     for (i = 0; i < knots.length; i++)
-                        this.addNode(Knot.prototype.fromXML(knots[i]));
+                        this.addComponent(Knot.prototype.fromXML(knots[i]));
                     var anchors = xml.getElementsByTagName('anchor');
                     for (i = 0; i < anchors.length; i++)
-                        this.addNode(Anchor.prototype.fromXML(anchors[i]));
+                        this.addComponent(Anchor.prototype.fromXML(anchors[i]));
                     var attributes = xml.getElementsByTagName('attribute');
                     for (i = 0; i < attributes.length; i++)
-                        this.addNode(Attribute.prototype.fromXML(attributes[i]));
+                        this.addComponent(Attribute.prototype.fromXML(attributes[i]));
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
-                        this.addNode(Tie.prototype.fromXML(ties[i]));
+                        this.addComponent(Tie.prototype.fromXML(ties[i]));
                     // implode nodes
-                    var node, allNodes = [];
-                    for(i = 0; node = this.nodes[i]; i++) {
-                        if(node.imploded) {
-                            node.imploded = false;
-                            allNodes.push(node);
+                    var component, allComponents = [];
+                    for(i = 0; component = this.components[i]; i++) {
+                        if(component.imploded) {
+                            component.imploded = false;
+                            allComponents.push(component);
                         }
                     }
-                    this.explode(allNodes, false);
+                    this.explode(allComponents, false);
                     this.refresh();
                 }
             },
-            erase: function(nodes) {
+            erase: function(components) {
                 DrawingEngine.stop();
-                var i, j, node, otherNode, edge, affectedNodes = [], affectedEdges = [];
-                for(i = 0; node = nodes[i]; i++) {
-                    if(node.type === NodeType.EDGE && affectedEdges.indexOf(node) < 0)
-                        affectedEdges.push(node);
-                    else if (node.type === NodeType.ANCHOR && affectedNodes.indexOf(node) < 0) {
-                        affectedNodes.push(node);
+                var i, j, component, role, node, otherNode, otherComponent, edge, affectedComponents = [];
+                for(i = 0; component = components[i]; i++) {
+                    node = component.node;
+                    if(node.type === NodeType.EDGE && affectedComponents.indexOf(component) < 0)
+                        affectedComponents.push(component);
+                    else if (node.type === NodeType.ANCHOR && affectedComponents.indexOf(component) < 0) {
+                        affectedComponents.push(component);
                         for(j = 0; edge = node.edges[j]; j++) {
-                            if(affectedEdges.indexOf(edge) < 0)
-                                affectedEdges.push(edge);
+                            role = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(role) < 0)
+                                affectedComponents.push(role);
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
-                            if(otherNode.type === NodeType.ATTRIBUTE && affectedNodes.indexOf(otherNode) < 0)
-                                affectedNodes.push(otherNode);
+                            otherComponent = this.nodeToComponent(otherNode);
+                            if(otherNode.type === NodeType.ATTRIBUTE && affectedComponents.indexOf(otherComponent) < 0)
+                                affectedComponents.push(otherComponent);
                         }
                     }
                     else if ((node.type === NodeType.TIE ||
                             node.type === NodeType.ATTRIBUTE ||
                             node.type === NodeType.KNOT) &&
-                            affectedNodes.indexOf(node) < 0) {
-                        affectedNodes.push(node);
+                            affectedComponents.indexOf(component) < 0) {
+                        affectedComponents.push(component);
                         for(j = 0; edge = node.edges[j]; j++) {
-                            if(affectedEdges.indexOf(edge) < 0)
-                                affectedEdges.push(edge);
+                            role = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(role) < 0)
+                                affectedComponents.push(role);
                         }
                     }
                 }
                 // check for ties in violation
-                for(i = 0; node = this.nodes[i]; i++) {
+                for(i = 0; component = this.components[i]; i++) {
+                    node = component.node;
                     if(node.type === NodeType.TIE) {
                         var anchors = 0;
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
-                            if(affectedNodes.indexOf(otherNode) < 0 && affectedEdges.indexOf(edge) < 0)
+                            otherComponent = this.nodeToComponent(otherNode);
+                            role = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(otherComponent) < 0 && affectedComponents.indexOf(role) < 0)
                                 if(otherNode.type === NodeType.ANCHOR)
                                     anchors++;
                         }
-                        if(anchors < 2 && affectedNodes.indexOf(node) < 0) {
-                            affectedNodes.push(node);
+                        if(anchors < 2 && affectedComponents.indexOf(component) < 0) {
+                            affectedComponents.push(component);
                             for(j = 0; edge = node.edges[j]; j++) {
-                                if(affectedEdges.indexOf(edge) < 0)
-                                    affectedEdges.push(edge);
+                                role = this.nodeToComponent(edge);
+                                if(affectedComponents.indexOf(role) < 0)
+                                    affectedComponents.push(role);
                             }
                         }
                     }
                 }
                 // check for dangling knots
-                for(i = 0; node = this.nodes[i]; i++) {
+                for(i = 0; component = this.components[i]; i++) {
+                    node = component.node;
                     if(node.type === NodeType.KNOT) {
                         var dangling = true;
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
-                            if(affectedNodes.indexOf(otherNode) < 0)
+                            otherComponent = this.nodeToComponent(otherNode);
+                            if(affectedComponents.indexOf(otherComponent) < 0)
                                 dangling = false;
                         }
                         if(dangling) {
-                            affectedNodes.push(node);
+                            affectedComponents.push(component);
                             for(j = 0; edge = node.edges[j]; j++) {
-                                if(affectedEdges.indexOf(edge) < 0)
-                                    affectedEdges.push(edge);
+                                role = this.nodeToComponent(edge);
+                                if(affectedComponents.indexOf(role) < 0)
+                                    affectedComponents.push(role);
                             }
                         }
                     }
                 }
                 if(confirm("Are you sure you want to delete the following?\n-- " +
-                        affectedNodes.length + " nodes (listed below) and " +
-                        affectedEdges.length + " edges --\n" + affectedNodes.join('\n'))) {
-                    for(i = 0; node = affectedNodes[i]; i++)
-                        this.removeNode(node);
-                    for(i = 0; edge = affectedEdges[i]; i++)
-                        this.removeEdge(edge);
+                        affectedComponents.length + " nodes and  edges --\n" + affectedComponents.join('\n'))) {
+                    for(i = 0; component = affectedComponents[i]; i++)
+                        this.removeComponent(component);
                     this.recordState();
+                    this.refresh();
                     DrawingEngine.start(true);
                 }
             },
-            connect: function(nodes) {
-                var anchor, attribute, tie, knot;
-                for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i].type === NodeType.ANCHOR)
-                        anchor = nodes[i];
-                    else if(nodes[i].type === NodeType.ATTRIBUTE)
-                        attribute = nodes[i];
-                    else if(nodes[i].type === NodeType.TIE)
-                        tie = nodes[i];
-                    else if(nodes[i].type === NodeType.KNOT)
-                        knot = nodes[i];
+            connect: function(components) {
+                var node, anchor, attribute, tie, knot;
+                for(var i = 0; i < components.length; i++) {
+                    node = components[i].node;
+                    if(node.type === NodeType.ANCHOR)
+                        anchor = components[i];
+                    else if(node.type === NodeType.ATTRIBUTE)
+                        attribute = components[i];
+                    else if(node.type === NodeType.TIE)
+                        tie = components[i];
+                    else if(node.type === NodeType.KNOT)
+                        knot = components[i];
                 }
                 if(anchor && tie) {
-                    this.addEdge(new Edge(tie, anchor, false));
+                    this.addComponent(new Role(tie, anchor, false));
                 }
                 else if (attribute && knot) {
                     attribute.setKnotted(true);
-                    this.addEdge(new Edge(attribute, knot, false));
+                    this.addComponent(new Role(attribute, knot, false));
                 }
                 else if (tie && knot) {
                     tie.setKnotted(true);
-                    this.addEdge(new Edge(tie, knot, false));
+                    this.addComponent(new Role(tie, knot, false));
                 }
                 this.recordState();
                 DrawingEngine.start(true);
             },
-            toggleKnotted: function(nodes) {
+            toggleKnotted: function(components) {
                 var dx, dy;
-                for(var i = 0; i < nodes.length; i++) {
-                    var knot, edge;
-                    if(nodes[i].getKnotted()) {
-                        for(var j = 0; edge = nodes[i].edges[j]; j++) {
+                for(var i = 0; i < components.length; i++) {
+                    var knot, role, edge;
+                    var component = components[i];
+                    var node = component.node;
+                    if(component.getKnotted()) {
+                        for(var j = 0; edge = node.edges[j]; j++) {
                             if(edge.otherNode.type === NodeType.KNOT) {
+                                knot = this.nodeToComponent(edge.otherNode);
                                 if(edge.otherNode.edges.length === 1) {
-                                    if(!confirm("This will also delete the knot: " + edge.otherNode +
+                                    if(!confirm("This will also delete the knot: " + knot +
                                             ".\nDo you still want to un-knot the attribute?"))
                                         break;
                                 }
-                                this.removeNode(edge.otherNode);
-                                this.removeEdge(edge);
-                                if(edge.otherNode.dataRange)
-                                    nodes[i].dataRange = edge.otherNode.dataRange;
-                                nodes[i].setKnotted(false);
+                                this.removeComponent(knot);
+                                role = this.nodeToComponent(edge);
+                                this.removeComponent(role);
+                                if(knot.dataRange)
+                                    component.dataRange = knot.dataRange;
+                                component.setKnotted(false);
                             }
                         }
                     }
@@ -935,35 +1047,42 @@
                         this.lastAngle = (this.lastAngle + 0.5) % 14;
                         dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                         dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                        knot = new Knot(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
-                        if(nodes[i].dataRange)
-                            knot.dataRange = nodes[i].dataRange;
-                        this.addNode(knot);
-                        this.addEdge(new Edge(nodes[i], knot, true));
-                        nodes[i].setKnotted(true);
+                        knot = new Knot(node.xPosition + dx, node.yPosition + dy);
+                        if(component.dataRange)
+                            knot.dataRange = component.dataRange;
+                        this.addComponent(knot);
+                        this.addComponent(new Role(component, knot, true));
+                        component.setKnotted(true);
                     }
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            toggleHistorized: function(nodes) {
-                for(var i = 0; i < nodes.length; i++) {
-                    nodes[i].setHistorized(!nodes[i].getHistorized());
-                    if(nodes[i].type === NodeType.TIE)
-                        nodes[i].checkIdentifiers();
+            toggleHistorized: function(components) {
+                var component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    component.setHistorized(!component.getHistorized());
+                    node = component.node;
+                    if(node.type === NodeType.TIE)
+                        component.checkIdentifiers();
                 }
                 this.recordState();
                 DrawingEngine.start(false);
             },
-            toggleIdentifier: function(nodes) {
-                var ties = [];
-                for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i].type === NodeType.EDGE) {
-                        nodes[i].setIdentifier(!nodes[i].identifier);
-                        if(nodes[i].node.type === NodeType.TIE && ties.indexOf(nodes[i].node) < 0)
-                            ties.push(nodes[i].node);
-                        if(nodes[i].otherNode.type === NodeType.TIE && ties.indexOf(nodes[i].otherNode) < 0)
-                            ties.push(nodes[i].otherNode);
+            toggleIdentifier: function(components) {
+                var ties = [], component, node, edge;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    if(node.type === NodeType.EDGE) {
+                        edge = node;
+                        component.setIdentifier(!component.identifier);
+                        if(edge.node.type === NodeType.TIE && ties.indexOf(edge.node) < 0)
+                            ties.push(this.nodeToComponent(edge.node));
+                        if(edge.otherNode.type === NodeType.TIE && ties.indexOf(edge.otherNode) < 0)
+                            ties.push(this.nodeToComponent(edge.otherNode));
                     }
                 }
                 for(i = 0; i < ties.length; i++)
@@ -971,13 +1090,16 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
-            makeFirstRole: function(nodes) {
-                var tie;
-                for(var i = 0; i < nodes.length; i++) {
-                    if(nodes[i].type === NodeType.EDGE) {
-                        if(tie = nodes[i].node.type === NodeType.TIE ? nodes[i].node :
-                                nodes[i].otherNode.type === NodeType.TIE ? nodes[i].otherNode : null) {
-                            tie.setFirstRole(nodes[i]);
+            makeFirstRole: function(components) {
+                var tie, component, node, edge;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    if(node.type === NodeType.EDGE) {
+                        edge = node;
+                        if(tie = edge.node.type === NodeType.TIE ? edge.node :
+                                        edge.otherNode.type === NodeType.TIE ? edge.otherNode : null) {
+                            tie.setFirstRole(component);
                         }
                     }
                 }
@@ -985,132 +1107,153 @@
                 DrawingEngine.start(false);
             },
             lastAngle: 0,
-            addAttribute: function(nodes) {
-                var dx, dy;
-                for(var i = 0; i < nodes.length; i++) {
+            addAttribute: function(components) {
+                var dx, dy, node, component;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
                     this.lastAngle = (this.lastAngle + 0.5) % 14;
                     dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                    var attribute = new Attribute(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
-                    this.addNode(attribute);
-                    this.addEdge(new Edge(attribute, nodes[i], true));
+                    var attribute = new Attribute(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(attribute);
+                    this.addComponent(new Role(attribute, component, true));
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            addTie: function(nodes) {
-                var tie;
+            addTie: function(components) {
+                var tie, component, node;
                 // multiple anchors selected
-                if(nodes.length > 1) {
+                if(components.length > 1) {
                     var i, xAverage = 0, yAverage = 0;
-                    for(i = 0; i < nodes.length; i++) {
-                        xAverage += nodes[i].xPosition;
-                        yAverage += nodes[i].yPosition;
+                    for(i = 0; i < components.length; i++) {
+                        node = components[i].node;
+                        xAverage += node.xPosition;
+                        yAverage += node.yPosition;
                     }
-                    xAverage /= nodes.length;
-                    yAverage /= nodes.length;
+                    xAverage /= components.length;
+                    yAverage /= components.length;
                     tie = new Tie(xAverage, yAverage, false);
-                    this.addNode(tie);
-                    for(i = 0; i < nodes.length; i++)
-                        this.addEdge(new Edge(tie, nodes[i], true));
+                    this.addComponent(tie);
+                    for(i = 0; i < components.length; i++)
+                        this.addComponent(new Role(tie, components[i], true));
                 }
                 // single anchor selected
                 else {
-                    var anchor = nodes[0];
+                    var anchor = components[0];
                     this.lastAngle = (this.lastAngle + 0.5) % 14;
                     var dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                     var dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                    tie = new Tie(anchor.xPosition + dx, anchor.yPosition + dy, false);
-                    this.addNode(tie);
-                    var edge = new Edge(tie, anchor, true);
-                    this.addEdge(edge);
-                    edge = new Edge(tie, anchor, true);
-                    this.addEdge(edge);
+                    tie = new Tie(anchor.node.xPosition + dx, anchor.node.yPosition + dy, false);
+                    this.addComponent(tie);
+                    var role = new Role(tie, anchor, true);
+                    this.addComponent(role);
+                    role = new Role(tie, anchor, true);
+                    this.addComponent(role);
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            addAnchor: function(nodes) {
-                var dx, dy;
-                for(var i = 0; i < nodes.length; i++) {
+            addAnchor: function(components) {
+                var dx, dy, component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
                     this.lastAngle = (this.lastAngle + 0.5) % 14;
                     dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                    var anchor = new Anchor(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
-                    this.addNode(anchor);
-                    this.addEdge(new Edge(nodes[i], anchor, true));
+                    var anchor = new Anchor(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(anchor);
+                    this.addComponent(new Edge(component, anchor, true));
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            addTieAndAnchor: function(nodes) {
-                var dx, dy;
-                for(var i = 0; i < nodes.length; i++) {
+            addTieAndAnchor: function(components) {
+                var dx, dy, component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
                     this.lastAngle = (this.lastAngle + 0.5) % 14;
                     dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                    var tie = new Tie(nodes[i].xPosition + dx, nodes[i].yPosition + dy, false);
-                    this.addNode(tie);
-                    var edge = new Edge(tie, nodes[i], true);
-                    this.addEdge(edge);
-                    var anchor = new Anchor(nodes[i].xPosition + 2*dx, nodes[i].yPosition + 2*dy);
-                    this.addNode(anchor);
-                    edge = new Edge(tie, anchor, true);
-                    this.addEdge(edge);
+                    var tie = new Tie(node.xPosition + dx, node.yPosition + dy, false);
+                    this.addComponent(tie);
+                    var role = new Role(tie, component, true);
+                    this.addComponent(role);
+                    var anchor = new Anchor(node.xPosition + 2*dx, node.yPosition + 2*dy);
+                    this.addComponent(anchor);
+                    role = new Role(tie, anchor, true);
+                    this.addComponent(role);
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            addKnot: function(nodes) {
-                var dx, dy;
-                for(var i = 0; i < nodes.length; i++) {
+            addKnot: function(components) {
+                var dx, dy, component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
                     this.lastAngle = (this.lastAngle + 0.5) % 14;
                     dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                    var knot = new Knot(nodes[i].xPosition + dx, nodes[i].yPosition + dy);
-                    this.addNode(knot);
-                    this.addEdge(new Edge(nodes[i], knot, true));
+                    var knot = new Knot(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(knot);
+                    this.addComponent(new Edge(component, knot, true));
                 }
                 this.recordState();
+                this.refresh();
                 DrawingEngine.start(true);
             },
-            explode: function(nodes, startEngine) {
-                var node, i, j, k, edge, otherNode, knot, knotEdge, visibleEdges;
-                for(i = 0; node = nodes[i]; i++) {
+            explode: function(components, startEngine) {
+                var node, component, i, j, k, edge, otherNode, otherComponent;
+                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges;
+                for(i = 0; component = components[i]; i++) {
+                    node = component.node;
                     if(node.type === NodeType.ANCHOR) {
-                        if(node.imploded) {
+                        if(component.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode.type === NodeType.ATTRIBUTE) {
                                     var dx = 2 * LayoutEngine.normalDistance * Math.cos(j);
                                     var dy = 2 * LayoutEngine.normalDistance * Math.sin(j);
-                                    if(otherNode.knotted) {
+                                    otherComponent = this.nodeToComponent(otherNode);
+                                    if(otherComponent.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
                                             if(knot.type === NodeType.KNOT) {
                                                 break;
                                             }
                                         }
+                                        knotComponent = this.nodeToComponent(knot);
                                         if(!knot.visible) {
                                             knot.xPosition = node.xPosition + 2*dx;
                                             knot.yPosition = node.yPosition + 2*dy;
                                             knot.start();
-                                            knot.setFixed(false);
-                                            knot.show();
                                             knot.visible = true;
+                                            knotComponent.setFixed(false);
+                                            knotComponent.show();
                                         }
+                                        knotEdgeComponent = this.nodeToComponent(knotEdge);
                                         knotEdge.start();
-                                        knotEdge.show();
                                         knotEdge.visible = true;
+                                        knotEdgeComponent.show();
                                     }
+                                    otherComponent = this.nodeToComponent(otherNode);
                                     otherNode.xPosition = node.xPosition + dx;
                                     otherNode.yPosition = node.yPosition + dy;
                                     otherNode.start();
-                                    otherNode.setFixed(false);
-                                    otherNode.show();
+                                    otherComponent.setFixed(false);
+                                    otherComponent.show();
                                     otherNode.visible = true;
+                                    role = this.nodeToComponent(edge);
                                     edge.start();
-                                    edge.show();
+                                    role.show();
                                     edge.visible = true;
                                 }
                             }
@@ -1119,14 +1262,16 @@
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
                                 if(otherNode.type === NodeType.ATTRIBUTE) {
-                                    if(otherNode.knotted) {
+                                    otherComponent = this.nodeToComponent(otherNode);
+                                    if(otherComponent.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
                                             knot = knotEdge.node === otherNode ? knotEdge.otherNode : knotEdge.node;
                                             if(knot.type === NodeType.KNOT) {
                                                 break;
                                             }
                                         }
-                                        knotEdge.hide();
+                                        knotEdgeComponent = this.nodeToComponent(knotEdge);
+                                        knotEdgeComponent.hide();
                                         knotEdge.stop();
                                         knotEdge.visible = false;
                                         visibleEdges = 0;
@@ -1134,21 +1279,22 @@
                                             if(knotEdge.visible)
                                                 visibleEdges++;
                                         if(visibleEdges === 0) {
-                                            knot.hide();
+                                            knotEdgeComponent.hide();
                                             knot.stop();
                                             knot.visible = false;
                                         }
                                     }
-                                    otherNode.hide();
+                                    otherComponent.hide();
                                     otherNode.stop();
                                     otherNode.visible = false;
-                                    edge.hide();
+                                    role = this.nodeToComponent(edge);
+                                    role.hide();
                                     edge.stop();
                                     edge.visible = false;
                                 }
                             }
                         }
-                        node.setImploded(!node.imploded);
+                        component.setImploded(!component.imploded);
                     }
                 }
                 this.refresh();
@@ -1247,7 +1393,7 @@
             engine: function() {
                 // layout nodes
                 if(DrawingEngine.layout || !LayoutEngine.equilibrium) {
-                    LayoutEngine.layout(Model);
+                    LayoutEngine.layout(Model.visibleNodes);
                     DrawingEngine.newState = true;
                 }
                 DrawingEngine.draw();
@@ -1311,15 +1457,17 @@
                 if(DEBUG) this.drawPartitions();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                var i, node;
-                i = Model.visibleNodes.length;
+                var i, component;
+                i = Model.components.length;
                 while(i--) {
-                    node = Model.visibleNodes[i];
-                    node.draw(node.svg);
-                    if(this.miniCounter === 1)
-                        node.draw(node.nav);
-                    if(this.showNames)
-                        node.drawName(node.xPosition, node.yPosition);
+                    component = Model.components[i];
+                    if(component.node.visible) {
+                        component.draw(component.svg);
+                        if(this.miniCounter === 1)
+                            component.draw(component.nav);
+                        if(this.showNames)
+                            component.drawName(component.node.xPosition, component.node.yPosition);
+                    }
                 }
                 if(this.miniCounter === 1)
                     this.updateMiniature();
@@ -1379,9 +1527,9 @@
                        'Should be a descriptive name of that which you are creating. ' +
                        'An understandable description of something found in the domain ' +
                        'you are modeling, for example "CoffeeMachine".',
-                setMember: function (element, node) { node.descriptor = element.value; },
-                getMember: function (node) { return node.descriptor; },
-                setElement: function (element, node) { element.value = node.descriptor; },
+                setMember: function (element, component) { component.descriptor = element.value; },
+                getMember: function (component) { return component.descriptor; },
+                setElement: function (element, component) { element.value = component.descriptor; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1395,9 +1543,9 @@
                        'A two letter mnemonic, that needs to be unique within the entire ' +
                        'model. If an anchor is named "CoffeeMachine" for example, then ' +
                        '"CM" is a suitable mnemonic.',
-                setMember: function (element, node) { node.mnemonic = element.value; },
-                getMember: function (node) { return node.mnemonic; },
-                setElement: function (element, node) { element.value = node.mnemonic; },
+                setMember: function (element, component) { component.mnemonic = element.value; },
+                getMember: function (component) { return component.mnemonic; },
+                setElement: function (element, component) { element.value = component.mnemonic; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1412,9 +1560,9 @@
                        'model for knots, but only within the anchor for attributes. If an ' +
                        'attribute is named "Capacity" for example, then "CAP" is a ' +
                        'suitable mnemonic.',
-                setMember: function (element, node) { node.mnemonic = element.value; },
-                getMember: function (node) { return node.mnemonic; },
-                setElement: function (element, node) { element.value = node.mnemonic; },
+                setMember: function (element, component) { component.mnemonic = element.value; },
+                getMember: function (component) { return component.mnemonic; },
+                setElement: function (element, component) { element.value = component.mnemonic; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1425,9 +1573,9 @@
             dataRangeEdit: {
                 name: 'Data range',
                 description: 'The data type of the column in the resulting implementation.',
-                setMember: function (element, node) { node.dataRange = element.value; },
-                getMember: function (node) { return node.dataRange; },
-                setElement: function (element, node) { element.value = node.dataRange; },
+                setMember: function (element, component) { component.dataRange = element.value; },
+                getMember: function (component) { return component.dataRange; },
+                setElement: function (element, component) { element.value = component.dataRange; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1441,9 +1589,9 @@
                        'Changing time data type. Versions of data are stored over changing time ' +
                        'and this data type should be granular enough to handle the expected ' +
                        'update frequency.',
-                setMember: function (element, node) { node.changingRange = element.value; },
-                getMember: function (node) { return node.changingRange; },
-                setElement: function (element, node) { element.value = node.changingRange; },
+                setMember: function (element, component) { component.changingRange = element.value; },
+                getMember: function (component) { return component.changingRange; },
+                setElement: function (element, component) { element.value = component.changingRange; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1457,9 +1605,9 @@
                         'Posit identity data type. This should be at large enough to be able to give ' +
                         'identities to all posits that will be stored. With rapidly changing ' +
                         'data this may be much larger than the other involved identities.',
-                setMember: function (element, node) { node.positIdentity = element.value; },
-                getMember: function (node) { return node.positIdentity; },
-                setElement: function (element, node) { element.value = node.positIdentity; },
+                setMember: function (element, component) { component.positIdentity = element.value; },
+                getMember: function (component) { return component.positIdentity; },
+                setElement: function (element, component) { element.value = component.positIdentity; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1473,9 +1621,9 @@
                        'Identity data type. The identity is an abstract and immutable property ' +
                        'that uniquely identifies an entity. If you expect to store very many ' +
                        'entities you also need an appropriately large data type.',
-                setMember: function (element, node) { node.identity = element.value; },
-                getMember: function (node) { return node.identity; },
-                setElement: function (element, node) { element.value = node.identity; },
+                setMember: function (element, component) { component.identity = element.value; },
+                getMember: function (component) { return component.identity; },
+                setElement: function (element, component) { element.value = component.identity; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1489,9 +1637,9 @@
                         'Posit identity generator. Check this if you would like the database to generate ' +
                         ' posit identities for you through some auto incremented sequence. Uncheck if you ' +
                         'intend to manage your identities somewhere else.',
-                setMember: function (element, node) { node.positGenerator = element.checked; },
-                getMember: function (node) { return node.positGenerator; },
-                setElement: function (element, node) { element.checked = node.positGenerator; },
+                setMember: function (element, component) { component.positGenerator = element.checked; },
+                getMember: function (component) { return component.positGenerator; },
+                setElement: function (element, component) { element.checked = component.positGenerator; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1504,9 +1652,9 @@
                        'Identity generator. Check this if you would like the database to generate ' +
                        'identities for you through some auto incremented sequence. Uncheck if you ' +
                        'intend to manage your identities somewhere else.',
-                setMember: function (element, node) { node.generator = element.checked; },
-                getMember: function (node) { return node.generator; },
-                setElement: function (element, node) { element.checked = node.generator; },
+                setMember: function (element, component) { component.generator = element.checked; },
+                getMember: function (component) { return component.generator; },
+                setElement: function (element, component) { element.checked = component.generator; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1519,9 +1667,9 @@
                        'Check this if you want to allow temporal restatements. A temporal restatement ' +
                        'is when two consecutive values over changing time are identical. Uncheck this ' +
                        'to introduce a constraint preventing restatements from being made.',
-                setMember: function (element, node) { node.restatable = element.checked; },
-                getMember: function (node) { return node.restatable; },
-                setElement: function (element, node) { element.checked = node.restatable; },
+                setMember: function (element, component) { component.restatable = element.checked; },
+                getMember: function (component) { return component.restatable; },
+                setElement: function (element, component) { element.checked = component.restatable; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1534,9 +1682,9 @@
                        'Checking this modifies the insert and update triggers such that changed values ' +
                        'must be different in order to be recorded. Idempotency is not recommended when ' +
                        'data can arrive asynchronously with respect to changing time.',
-                setMember: function (element, node) { node.idempotent = element.checked; },
-                getMember: function (node) { return node.idempotent; },
-                setElement: function (element, node) { element.checked = node.idempotent; },
+                setMember: function (element, component) { component.idempotent = element.checked; },
+                getMember: function (component) { return component.idempotent; },
+                setElement: function (element, component) { element.checked = component.idempotent; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1549,9 +1697,9 @@
                        'Checking this modifies the insert and update triggers such that the annex will ' +
                        'get new rows everytime a posit is made with a different positing time. Otherwise ' +
                        'the annex will only get new rows if the reliability changes as well.',
-                setMember: function (element, node) { node.assertive = element.checked; },
-                getMember: function (node) { return node.assertive; },
-                setElement: function (element, node) { element.checked = node.assertive; },
+                setMember: function (element, component) { component.assertive = element.checked; },
+                getMember: function (component) { return component.assertive; },
+                setElement: function (element, component) { element.checked = component.assertive; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1563,9 +1711,9 @@
                 description:
                         'Checking this makes it possible to store several equivalent values, ' +
                         'which for example is useful when multilingualism or multitenancy is desired.',
-                setMember: function (element, node) { node.equivalent = element.checked; },
-                getMember: function (node) { return node.equivalent; },
-                setElement: function (element, node) { element.checked = node.equivalent; },
+                setMember: function (element, component) { component.equivalent = element.checked; },
+                getMember: function (component) { return component.equivalent; },
+                setElement: function (element, component) { element.checked = component.equivalent; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1578,9 +1726,9 @@
                         'Checking this indicates that your data type is too large to fit in ' +
                         'indexes, and a calculated checksum column will be added that can be  ' +
                         'used instead.',
-                setMember: function (element, node) { node.checksum = element.checked; },
-                getMember: function (node) { return node.checksum; },
-                setElement: function (element, node) { element.checked = node.checksum; },
+                setMember: function (element, component) { component.checksum = element.checked; },
+                getMember: function (component) { return component.checksum; },
+                setElement: function (element, component) { element.checked = component.checksum; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -1593,9 +1741,9 @@
                        'The role of the connected entity in the relationship. The same entity may, for example ' +
                        'participate more than once in the same relationship and must therefore be distinguished ' +
                        'through which role it plays. Because of this, roles must be unique within a tie.',
-                setMember: function (element, node) { node.role = element.value; },
-                getMember: function (node) { return node.role; },
-                setElement: function (element, node) { element.value = node.role; },
+                setMember: function (element, component) { component.role = element.value; },
+                getMember: function (component) { return component.role; },
+                setElement: function (element, component) { element.value = component.role; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1608,9 +1756,9 @@
                 description:
                         'Coloring can be used to create your own visual separation of the components in a model. It ' +
                         'has no effect on the implementation.',
-                setMember: function (element, node) { node.setColoring(element.value); },
-                getMember: function (node) { return node.coloring; },
-                setElement: function (element, node) { element.value = node.coloring; },
+                setMember: function (element, component) { component.setColoring(element.value); },
+                getMember: function (component) { return component.coloring; },
+                setElement: function (element, component) { element.value = component.coloring; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1623,9 +1771,9 @@
                 description:
                        'In order to achieve separation of concerns, different parts of the model can be encapsulated ' +
                        'in different "capsules", which translate to schemas in the relational database implementation.',
-                setMember: function (element, node) { node.encapsulation = element.value; },
-                getMember: function (node) { return node.encapsulation; },
-                setElement: function (element, node) { element.value = node.encapsulation; },
+                setMember: function (element, component) { component.encapsulation = element.value; },
+                getMember: function (component) { return component.encapsulation; },
+                setElement: function (element, component) { element.value = component.encapsulation; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'input',
@@ -1637,9 +1785,9 @@
                 name: 'Description',
                 description:
                         'A textual description of this item.',
-                setMember: function (element, node) { node.description = element.value; },
-                getMember: function (node) { return node.description; },
-                setElement: function (element, node) { element.value = node.description; },
+                setMember: function (element, component) { component.description = element.value; },
+                getMember: function (component) { return component.description; },
+                setElement: function (element, component) { element.value = component.description; },
                 getElement: function (element) { return element.value; },
                 editable: true,
                 type: 'textarea',
@@ -1650,33 +1798,33 @@
         };
 
         var EventHandler = {
-            selectedNodes: [], // may be larger than interacted with SHIFT clicks
-            interactedNodes: [], // currently "touched" nodes
+            selectedComponents: [], // may be larger than interacted with SHIFT clicks
+            interactedComponents: [], // currently "touched" components
             interaction: null,
             previousInteraction: null,
             lastX: null,
             lastY: null,
             scaleX: null,
             scaleY: null,
-            addNodeToSelection: function(node) {
-                if(this.selectedNodes.indexOf(node) < 0)
-                    this.selectedNodes.push(node);
-                node.setSelection(true);
+            addComponentToSelection: function(component) {
+                if(this.selectedComponents.indexOf(component) < 0)
+                    this.selectedComponents.push(component);
+                component.setSelection(true);
             },
-            removeNodeFromSelection: function(node) {
-                if(this.selectedNodes.indexOf(node) >= 0)
-                    this.selectedNodes.splice(this.selectedNodes.indexOf(node), 1);
-                node.setSelection(false);
+            removeComponentFromSelection: function(component) {
+                if(this.selectedComponents.indexOf(component) >= 0)
+                    this.selectedComponents.splice(this.selectedComponents.indexOf(component), 1);
+                component.setSelection(false);
             },
             clearSelection: function() {
-                var node;
-                while(node = this.selectedNodes.pop()) {
-                    this.removeNodeFromSelection(node);
+                var component;
+                while(component = this.selectedComponents.pop()) {
+                    this.removeComponentFromSelection(component);
                 }
                 this.setInteraction(null);
             },
-            isSelected: function(node) {
-                return this.selectedNodes.indexOf(node) >= 0;
+            isSelected: function(component) {
+                return this.selectedComponents.indexOf(component) >= 0;
             },
             setInteraction: function(interaction) {
                 if(this.interaction) this.previousInteraction = this.interaction;
@@ -1688,25 +1836,25 @@
             getPreviousInteraction: function() {
                 return this.previousInteraction;
             },
-            addNodeToInteraction: function(node) {
-                if(this.interactedNodes.indexOf(node) < 0)
-                    this.interactedNodes.push(node);
-                node.setHighlight(true);
+            addComponentToInteraction: function(component) {
+                if(this.interactedComponents.indexOf(component) < 0)
+                    this.interactedComponents.push(component);
+                component.setHighlight(true);
             },
-            removeNodeFromInteraction: function(node) {
-                if(this.interactedNodes.indexOf(node) >= 0)
-                    this.interactedNodes.splice(this.interactedNodes.indexOf(node), 1);
-                node.setHighlight(false);
+            removeComponentFromInteraction: function(component) {
+                if(this.interactedComponents.indexOf(component) >= 0)
+                    this.interactedComponents.splice(this.interactedComponents.indexOf(component), 1);
+                component.setHighlight(false);
             },
             clearInteraction: function() {
-                var node;
-                while(node = this.interactedNodes.pop()) {
-                    this.removeNodeFromInteraction(node);
+                var component;
+                while(component = this.interactedComponents.pop()) {
+                    this.removeComponentFromInteraction(component);
                 }
                 this.setInteraction(null);
             },
-            isInteracted: function(node) {
-                return this.interactedNodes.indexOf(node) >= 0;
+            isInteracted: function(component) {
+                return this.interactedComponents.indexOf(component) >= 0;
             },
             hasOngoingInteractions: function() {
                 return this.interaction != null;
@@ -1717,12 +1865,12 @@
                 if(!EventHandler.hasOngoingInteractions() && component.isInteractive()) {
                     EventHandler.setInteraction("beginInteraction");
                     if(!EventHandler.isInteracted(component))
-                        EventHandler.addNodeToInteraction(component);
+                        EventHandler.addComponentToInteraction(component);
                     window.addEventListener('keypress', EventHandler.keypress, false);
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
-                    component.showContextMenu(component, EventHandler.selectedNodes);
+                    component.showContextMenu(component, EventHandler.selectedComponents);
                     DrawingEngine.setCursor('pointer');
                 }
                 event.stopPropagation();
@@ -1732,14 +1880,14 @@
                 if(EventHandler.getInteraction() === "beginInteraction") {
                     EventHandler.setInteraction("prepareDragging");
                     var component, i;
-                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                    for(i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         if(event.shiftKey) {
                             if(EventHandler.isSelected(component)) {
-                                EventHandler.removeNodeFromSelection(component);
+                                EventHandler.removeComponentFromSelection(component);
                                 component.setHighlight(true);
                             }
                             else {
-                                EventHandler.addNodeToSelection(component);
+                                EventHandler.addComponentToSelection(component);
                                 component.setHighlight(false);
                             }
                         }
@@ -1755,18 +1903,18 @@
                 if(EventHandler.getInteraction() === "whileDragging" ||
                         EventHandler.getInteraction() === "prepareDragging") {
                     var component, i, svgPoint;
-                    for(i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                    for(i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         if(component.isInteractive() && component.isDraggable()) {
                             svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY)
                             if(EventHandler.getInteraction() === "whileDragging") {
-                                component.xPosition = svgPoint.x;
-                                component.yPosition = svgPoint.y;
+                                component.node.xPosition = svgPoint.x;
+                                component.node.yPosition = svgPoint.y;
                                 component.setFixed(true);
-                                Model.invalidateNode(this);
+                                Model.invalidateComponent(component);
                                 DrawingEngine.start(true);
                             }
                             else if(EventHandler.getInteraction() === "prepareDragging") {
-                                if(LayoutEngine.manhattanDistance(component, {
+                                if(LayoutEngine.manhattanDistance(component.node, {
                                     xPosition: svgPoint.x,
                                     yPosition: svgPoint.y
                                 }) > 10) {
@@ -1782,9 +1930,9 @@
             clickComponent: function(event) {
                 event.preventDefault();
                 if(EventHandler.getInteraction() !== "whileDragging" && !event.shiftKey) {
-                    var component, i = EventHandler.interactedNodes.length;
+                    var component, i = EventHandler.interactedComponents.length;
                     while(i--) {
-                        component = EventHandler.interactedNodes[i];
+                        component = EventHandler.interactedComponents[i];
                         component.setFixed(!component.getFixed());
                     }
                     EventHandler.setInteraction("toggledFixation");
@@ -1800,10 +1948,10 @@
             clickSelection: this.clickHighlight,
             endInteraction: function(event) {
                 event.preventDefault();
-                var component = EventHandler.interactedNodes[EventHandler.interactedNodes.length - 1];
+                var component = EventHandler.interactedComponents[EventHandler.interactedComponents.length - 1];
                 if(event.toElement !== component.svg.graphicsElement &&
                         EventHandler.getInteraction() !== "whileDragging") {
-                    for(var i = 0; component = EventHandler.interactedNodes[i]; i++) {
+                    for(var i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         component.hideContextMenu();
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     }
@@ -1965,69 +2113,82 @@
                 }
                 event.stopPropagation();
             },
+            reduce: function(array, fromArray) {
+                var i = array.length, reduced = [];
+                while(i--) {
+                    if(fromArray.indexOf(array[i]) < 0) {
+                        reduced.push(array[i]);
+                    }
+                }
+                return reduced;
+            },
             keypress: function(event) {
                 event.preventDefault();
-                var allNodes = EventHandler.selectedNodes.concat(EventHandler.interactedNodes);
-                var component = EventHandler.interactedNodes.pop();
+                var allComponents = EventHandler.selectedComponents.concat(
+                        EventHandler.reduce(
+                                EventHandler.interactedComponents,
+                                EventHandler.selectedComponents
+                        ));
+                var component = EventHandler.interactedComponents.pop();
                 switch(String.fromCharCode(event.charCode || event.which)) {
                     case "e":
-                        component.showContextMenu(component, allNodes);
+                        component.showContextMenu(component, allComponents);
                         component.contextMenu.toggle();
                         break;
                     case "a":
-                        if(Operations.isSupported("addAttribute", allNodes))
-                            Model.addAttribute(allNodes);
-                        else if(Operations.isSupported("addAnchor", allNodes))
-                            Model.addAnchor(allNodes);
+                        if(Operations.isSupported("addAttribute", allComponents))
+                            Model.addAttribute(allComponents);
+                        else if(Operations.isSupported("addAnchor", allComponents))
+                            Model.addAnchor(allComponents);
                         break;
                     case "t":
-                        if(Operations.isSupported("addTie", allNodes) && allNodes.length > 1)
-                            Model.addTie(allNodes);
-                        else if(Operations.isSupported("addTieAndAnchor", allNodes))
-                            Model.addTieAndAnchor(allNodes);
+                        if(Operations.isSupported("addTie", allComponents) && allComponents.length > 1)
+                            Model.addTie(allComponents);
+                        else if(Operations.isSupported("addTieAndAnchor", allComponents))
+                            Model.addTieAndAnchor(allComponents);
                         break;
                     case "c":
-                        if(Operations.isSupported("connect", allNodes)) {
+                        if(Operations.isSupported("connect", allComponents)) {
                             var i, operation, validator;
                             for(i = 0; operation = Operations.list[i]; i++)
                                 if(operation[0] == "connect")
                                     validator = operation[3];
-                            if(validator(allNodes))
-                                Model.connect(allNodes);
+                            if(validator(allComponents))
+                                Model.connect(allComponents);
                         }
                         break;
                     case "h":
-                        if(Operations.isSupported("toggleHistorized", allNodes))
-                            Model.toggleHistorized(allNodes);
+                        if(Operations.isSupported("toggleHistorized", allComponents))
+                            Model.toggleHistorized(allComponents);
                         break;
                     case "k":
-                        if(Operations.isSupported("toggleKnotted", allNodes))
-                            Model.toggleKnotted(allNodes);
-                        else if(Operations.isSupported("addKnot", allNodes))
-                            Model.addKnot(allNodes);
+                        if(Operations.isSupported("toggleKnotted", allComponents))
+                            Model.toggleKnotted(allComponents);
+                        else if(Operations.isSupported("addKnot", allComponents))
+                            Model.addKnot(allComponents);
                         break;
                     case "i":
-                        if(Operations.isSupported("toggleIdentifier", allNodes))
-                            Model.toggleIdentifier(allNodes);
+                        if(Operations.isSupported("toggleIdentifier", allComponents))
+                            Model.toggleIdentifier(allComponents);
                         break;
                     case "f":
-                        if(Operations.isSupported("makeFirstRole", allNodes))
-                            Model.makeFirstRole(allNodes);
+                        if(Operations.isSupported("makeFirstRole", allComponents))
+                            Model.makeFirstRole(allComponents);
                         break;
                     case "x":
-                        if(Operations.isSupported("explode", allNodes))
-                            Model.explode(allNodes);
+                        if(Operations.isSupported("explode", allComponents))
+                            Model.explode(allComponents);
                         break;
                     case "d":
-                        if(Operations.isSupported("erase", allNodes))
-                            Model.erase(allNodes);
+                        if(Operations.isSupported("erase", allComponents))
+                            Model.erase(allComponents);
                         break;
                     case "p":
                         component.setFixed(!component.fixed);
                         DrawingEngine.start(false);
                         break;
                 }
-                EventHandler.interactedNodes.push(component);
+                EventHandler.interactedComponents.push(component);
                 event.stopPropagation();
             }
         };
@@ -2094,18 +2255,9 @@
             }
         };
 
-        function AbstractNode(x, y) {
-            this.xPosition = x;
-            this.yPosition = y;
-            this.xVelocity = 0;
-            this.yVelocity = 0;
-            this.velocity = 0;
-            this.moving = true;
-            this.fixed = false;
-            this.visible = true;
-            this.incomplete = true;
-            this.id = UniqueIdentity.nextId();
-            this.edges = [];
+        // "Abstract" type that other components subclass
+        function Component(node) {
+            this.node = node;
             this.editables = [];
             this.operations = ['erase', 'connect'];
             this.svg = new Symbol(this);
@@ -2113,21 +2265,12 @@
             this.svg.addDebug(SVGLayer.debug);
             this.nav = new Symbol(this);
         }
-        AbstractNode.prototype = {
+        Component.prototype = {
+            node: null,
             description: '',
-            xPosition: null,
-            yPosition: null,
-            xVelocity: null,
-            yVelocity: null,
-            velocity: null,
-            edges: null,
-            moving: true,
             editables: null,
             operations: null,
-            type: 'Node',
             id: null,
-            fixed: false,
-            visible: true,
             incomplete: true,
             svg: null,
             nav: null,
@@ -2135,6 +2278,7 @@
             hasHighlight: false,
             isSelected: false,
             lastName: null,
+            imploded: false,
             // can be overridden by subclasses
             hide: function() {
                 this.svg.hideGraphics(SVGLayer.nodes);
@@ -2167,8 +2311,8 @@
             setNameable: function(nameable) {
                 if(nameable && !this.svg.nameElement) {
                     this.svg.nameElement = document.createElementNS(SVGNS, 'text');
-                    this.svg.nameElement.setAttributeNS(null, 'x', this.xPosition.toFixed(2));
-                    this.svg.nameElement.setAttributeNS(null, 'y', this.yPosition.toFixed(2));
+                    this.svg.nameElement.setAttributeNS(null, 'x', 0);
+                    this.svg.nameElement.setAttributeNS(null, 'y', 0);
                     this.svg.nameText = document.createTextNode('I am a placeholder');
                     this.svg.nameElement.appendChild(this.svg.nameText);
                     SVGLayer.names.appendChild(this.svg.nameElement);
@@ -2199,13 +2343,6 @@
             },
             isDraggable: function() {
                 return false;
-            },
-            // subclasses must override these
-            getMass: function() {
-                return null;
-            },
-            getCharge: function() {
-                return null;
             },
             // this should always return the name according to the naming conventions
             toString: function() {
@@ -2255,85 +2392,81 @@
                 }
             },
             addLayoutXML: function(element, schema) {
+                var node = this.node;
                 var layout = schema.createElement("layout");
-                layout.setAttribute("x", this.xPosition.toFixed(2));
-                layout.setAttribute("y", this.yPosition.toFixed(2));
-                layout.setAttribute("fixed", this.getFixed());
+                layout.setAttribute("x", node.xPosition.toFixed(2));
+                layout.setAttribute("y", node.yPosition.toFixed(2));
+                layout.setAttribute("fixed", node.fixed);
                 if(this.imploded)
                     layout.setAttribute("imploded", this.imploded);
                 element.appendChild(layout);
             },
-            stop: function() {
-                this.moving = false;
-            },
-            // movement is propagated to the edges of a node
-            start: function() {
-                this.moving = true;
-                for(var i = 0; i < this.edges.length; i++)
-                    this.edges[i].start();
-            },
             bad: false,
             end: false,
             drawName: function(x, y) {
-                if(this.svg.nameElement) {
+                var svg = this.svg;
+                if(svg.nameElement) {
+                    var node = this.node;
                     this.updateName();
-                    var i, xAverage = 0, closestEdge = this.edges[0] || this;
-                    i = this.edges.length;
+                    var i, xAverage = 0, closestEdge = node.edges[0] || node;
+                    i = node.edges.length;
                     while(i--) {
-                        xAverage += this.edges[i].xPosition;
-                        if(LayoutEngine.manhattanDistance(this, this.edges[i]) <
-                                LayoutEngine.manhattanDistance(this, closestEdge)) {
-                            closestEdge = this.edges[i];
+                        xAverage += node.edges[i].xPosition;
+                        if(LayoutEngine.manhattanDistance(node, node.edges[i]) <
+                                LayoutEngine.manhattanDistance(node, closestEdge)) {
+                            closestEdge = node.edges[i];
                         }
                     }
-                    xAverage /= this.edges.length;
-                    var quarter = this.svg.yOffset + this.svg.boundingBox.height / 4;
-                    var nameYOffset = this.yPosition < closestEdge.yPosition ? -quarter : quarter;
-                    var nameXOffset = this.svg.xOffset + this.svg.boundingBox.width / 2;
-                    if(this.xPosition < xAverage) {
+                    xAverage /= node.edges.length;
+                    var quarter = svg.yOffset + svg.boundingBox.height / 4;
+                    var nameYOffset = svg.yPosition < closestEdge.yPosition ? -quarter : quarter;
+                    var nameXOffset = svg.xOffset + svg.boundingBox.width / 2;
+                    if(node.xPosition < xAverage) {
                         if(!this.end) {
-                            this.svg.nameElement.classList.add('end');
+                            svg.nameElement.classList.add('end');
                         }
                         nameXOffset = -nameXOffset;
                         this.end = true;
                     }
                     else {
                         if(this.end) {
-                            this.svg.nameElement.classList.remove('end');
+                            svg.nameElement.classList.remove('end');
                         }
                         this.end = false;
                     }
                     if(this.incomplete) {
                         if(!this.bad) {
-                            this.svg.nameElement.classList.add('bad');
+                            svg.nameElement.classList.add('bad');
                         }
                         this.bad = true;
                     }
                     else {
                         if(this.bad) {
-                            this.svg.nameElement.classList.remove('bad');
+                            svg.nameElement.classList.remove('bad');
                         }
                         this.bad = false;
                     }
-                    this.svg.nameControl.x.value = x + nameXOffset;
-                    this.svg.nameControl.y.value = y + nameYOffset;
+                    svg.nameControl.x.value = x + nameXOffset;
+                    svg.nameControl.y.value = y + nameYOffset;
                 }
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(image) {
                 // draw debug stuff
                 if(DEBUG) {
+                    var node = this.node;
+                    var element = this.svg.forceElement;
                     // draw forces
-                    this.svg.forceElement.x1.baseVal.value = this.xPosition;
-                    this.svg.forceElement.y1.baseVal.value = this.yPosition;
+                    element.x1.baseVal.value = node.xPosition;
+                    element.y1.baseVal.value = node.yPosition;
                     // exaggerate the velocity so that forces become visible
-                    var e = 10*Math.log(1 + 10/(1 + this.velocity));
-                    this.svg.forceElement.x2.baseVal.value = this.xPosition + this.xVelocity *e;
-                    this.svg.forceElement.y2.baseVal.value = this.yPosition + this.yVelocity *e;
+                    var e = 10*Math.log(1 + 10/(1 + node.velocity));
+                    element.x2.baseVal.value = node.xPosition + node.xVelocity *e;
+                    element.y2.baseVal.value = node.yPosition + node.yVelocity *e;
                 }
             },
             setFixed: function(fixed) {
-                this.fixed = fixed;
+                this.node.fixed = fixed;
                 if(fixed && !this.svg.graphicsElement.contains(this.svg.fixationElement)) {
                     this.svg.graphicsElement.appendChild(this.svg.fixationElement);
                 }
@@ -2342,7 +2475,7 @@
                 }
             },
             getFixed: function() {
-                return this.fixed;
+                return this.node.fixed;
             },
             setSelection: function(selected) {
                 this.isSelected = selected;
@@ -2376,14 +2509,14 @@
                     this.svg.graphicsElement.removeChild(this.svg.highlightElement);
                     this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
                     this.svg.hideName(this.svg.graphicsElement);
-                    this.drawName(this.xPosition, this.yPosition);
+                    this.drawName(this.node.xPosition, this.node.yPosition);
                     this.svg.showName(SVGLayer.names);
                 }
             },
             contextMenu: null,
-            showContextMenu: function(hovered, selection) {
+            showContextMenu: function(hoveredComponent, selectedComponents) {
                 if(!this.contextMenu)
-                    this.contextMenu = new ContextMenu(hovered, selection);
+                    this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents);
             },
             hideContextMenu: function() {
                 if(this.contextMenu) {
@@ -2394,11 +2527,9 @@
         };
 
         function Attribute(x, y, historized) {
+            this.id = UniqueIdentity.nextId();
             // call the parent constructor
-            AbstractNode.call(this, x, y);
-            // set static variables
-            Attribute.mass = 1;
-            Attribute.charge = 1;
+            Component.call(this, new Node(this.id, x, y, NodeType.ATTRIBUTE));
             // set members
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
@@ -2422,7 +2553,6 @@
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
-            this.type = NodeType.ATTRIBUTE;
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -2468,12 +2598,6 @@
                 {stop: "1", route: "N", of: "PE"},
                 {stop: "3", route: "A", of: "PE"}
             ], // TODO: this is just a test
-            getMass: function() {
-                return Attribute.mass;
-            },
-            getCharge: function() {
-                return Attribute.charge;
-            },
             isInteractive: function() {
                 return true;
             },
@@ -2481,19 +2605,20 @@
                 return true;
             },
             isConforming: function() {
-                var i, edge, anchor, otherNode;
+                var i, edge, anchor, otherNode, otherComponent;
                 // first find the anchor
-                for(i = 0; edge = this.edges[i]; i++) {
-                    otherNode = (edge.node === this ? edge.otherNode : edge.node);
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
                     if(otherNode.type === NodeType.ANCHOR) {
-                        anchor = otherNode;
+                        anchor = Model.nodeToComponent(otherNode);
                         break;
                     }
                 }
                 // then check mnemonic uniqueness
-                for(i = 0; edge = anchor.edges[i]; i++) {
-                    otherNode = (edge.node === anchor ? edge.otherNode : edge.node);
-                    if(otherNode.type === NodeType.ATTRIBUTE && otherNode !== this && otherNode.mnemonic === this.mnemonic) {
+                for(i = 0; edge = anchor.node.edges[i]; i++) {
+                    otherNode = (edge.node === anchor.node ? edge.otherNode : edge.node);
+                    otherComponent = Model.nodeToComponent(otherNode);
+                    if(otherNode.type === NodeType.ATTRIBUTE && otherNode !== this.node && otherComponent.mnemonic === this.mnemonic) {
                         return !confirm("The mnemonic '" + this.mnemonic +
                                 "' is not unique among other attributes on the '" + anchor +
                                 "' anchor. Please change to a different mnemonic in order to continue.");
@@ -2619,23 +2744,17 @@
                 attribute.checksum = checksum;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
-                var anchorLookup = Object.create(null);
-                for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i].type === NodeType.ANCHOR)
-                        anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
-                var knotLookup = Object.create(null);
-                for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i].type === NodeType.KNOT)
-                        knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
+                var anchorLookup = Model.getAnchorLookup();
+                var knotLookup = Model.getKnotLookup();
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
-                Model.addEdge(new Edge(attribute, anchor, true));
+                Model.addComponent(new Role(attribute, anchor, true));
                 if(knotted) {
                     var grandparent = parent.parentNode;
                     var knots = grandparent.getElementsByTagName("knot");
                     for(i = 0; i < knots.length; i++) {
                         if(knots[i].getAttribute("mnemonic") === knotRange) {
                             var knot = knotLookup[knots[i].getAttribute("mnemonic")];
-                            Model.addEdge(new Edge(attribute, knot, false));
+                            Model.addComponent(new Role(attribute, knot, false));
                             break; // only one should match
                         }
                     }
@@ -2655,9 +2774,9 @@
                     attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 if(this.knotted) {
                     var knot, edge;
-                    for(var i = 0; edge = this.edges[i]; i++)
+                    for(var i = 0; edge = this.node.edges[i]; i++)
                         if(edge.otherNode.type === NodeType.KNOT)
-                            knot = edge.otherNode;
+                            knot = Model.nodeToComponent(edge.otherNode);
                     attribute.setAttribute("knotRange", this.isEmpty(knot.mnemonic) ? '' : knot.mnemonic);
                 }
                 else {
@@ -2708,9 +2827,9 @@
             },
             toString: function() {
                 var anchor, edge;
-                for(var i = 0; edge = this.edges[i]; i++)
+                for(var i = 0; edge = this.node.edges[i]; i++)
                     if(edge.otherNode.type === NodeType.ANCHOR)
-                        anchor = edge.otherNode;
+                        anchor = Model.nodeToComponent(edge.otherNode);
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
@@ -2746,18 +2865,18 @@
                     }
                 }
                 */
-                image.control.setTranslate(this.xPosition, this.yPosition);
-                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
         // inheritance
-        extend(Attribute, AbstractNode);
+        extend(Attribute, Component);
 
         function Anchor(x, y) {
-            AbstractNode.call(this, x, y);
-            Anchor.mass = 1;
-            Anchor.charge = 1;
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.ANCHOR));
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
@@ -2768,7 +2887,6 @@
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
             this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
-            this.type = NodeType.ANCHOR;
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -2800,7 +2918,6 @@
             identity: Defaults.identity,
             generator: true,
             encapsulation: Defaults.encapsulation,
-            imploded: false,
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -2812,12 +2929,6 @@
                     this.operations.push('addAttribute');
                     this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
                 }
-            },
-            getMass: function() {
-                return Anchor.mass;
-            },
-            getCharge: function() {
-                return Anchor.charge;
             },
             isInteractive: function() {
                 return true;
@@ -2838,15 +2949,12 @@
             toString: function() {
                 return this.mnemonic + "_" + this.descriptor;
             },
-            nameXOffset: function() {
-                return 20;
-            },
             isConforming: function() {
-                var i, node, anchor, anchors = [];
+                var i, component, anchor, anchors = [];
                 // first find the anchors
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node.type === NodeType.ANCHOR) {
-                        anchors.push(node);
+                for(i = 0; component = Model.components[i]; i++) {
+                    if(component.node.type === NodeType.ANCHOR) {
+                        anchors.push(component);
                     }
                 }
                 // then check mnemonic uniqueness
@@ -2923,26 +3031,29 @@
                 anchor.appendChild(metadata);
 
                 var edge;
-                for(var i = 0; edge = this.edges[i]; i++)
-                    if(edge.node.type === NodeType.ATTRIBUTE)
-                        edge.node.addXML(anchor, schema);
+                for(var i = 0; edge = this.node.edges[i]; i++) {
+                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                        var role = Model.nodeToComponent(edge.node);
+                        role.addXML(anchor, schema);
+                    }
+                }
                 this.addLayoutXML(anchor, schema);
                 this.addDescriptionXML(anchor, schema, this.description);
                 return anchor;
             },
             draw: function(image) {
-                image.control.setTranslate(this.xPosition, this.yPosition);
-                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
         // inheritance
-        extend(Anchor, AbstractNode);
+        extend(Anchor, Component);
 
         function Knot(x, y) {
-            AbstractNode.call(this, x, y);
-            Knot.mass = 1;
-            Knot.charge = 1;
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.KNOT));
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
@@ -2956,7 +3067,6 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.equivalent = Defaults.equivalence === 'true';
-            this.type = NodeType.KNOT;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -2991,12 +3101,6 @@
             checksum: false,
             equivalent: false,
             encapsulation: Defaults.encapsulation,
-            getMass: function() {
-                return Knot.mass;
-            },
-            getCharge: function() {
-                return Knot.charge;
-            },
             isInteractive: function() {
                 return true;
             },
@@ -3014,15 +3118,12 @@
             toString: function() {
                 return this.mnemonic + "_" + this.descriptor;
             },
-            nameXOffset: function() {
-                return 18;
-            },
             isConforming: function() {
-                var i, node, knot, knots = [];
+                var i, component, knot, knots = [];
                 // first find the knots
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node.type === NodeType.KNOT) {
-                        knots.push(node);
+                for(i = 0; component = Model.components[i]; i++) {
+                    if(component.node.type === NodeType.KNOT) {
+                        knots.push(component);
                     }
                 }
                 // then check mnemonic uniqueness
@@ -3118,18 +3219,18 @@
                 return knot;
             },
             draw: function(image) {
-                image.control.setTranslate(this.xPosition, this.yPosition);
-                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
         // inheritance
-        extend(Knot, AbstractNode);
+        extend(Knot, Component);
 
         function Tie(x, y, historized) {
-            AbstractNode.call(this, x, y);
-            Tie.mass = 1;
-            Tie.charge = 1;
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.TIE));
             this.historized = historized;
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
@@ -3142,7 +3243,6 @@
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor');
             this.encapsulation = Defaults.encapsulation;
-            this.type = NodeType.TIE;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3178,12 +3278,6 @@
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
-            getMass: function() {
-                return Tie.mass;
-            },
-            getCharge: function() {
-                return Tie.charge;
-            },
             isInteractive: function() {
                 return true;
             },
@@ -3191,15 +3285,15 @@
                 return true;
             },
             setFirstRole: function(edge) {
-                this.edges.splice(this.edges.indexOf(edge), 1);
-                this.edges.splice(0, 0, edge);
+                this.node.edges.splice(this.node.edges.indexOf(edge), 1);
+                this.node.edges.splice(0, 0, edge);
             },
             checkIdentifiers: function() {
                 if(this.historized) {
                     var outside = 0, inside = 0;
-                    for(var i = 0; i < this.edges.length; i++) {
-                        outside += this.edges[i].identifier ? 0 : 1;
-                        inside += this.edges[i].identifier ? 1 : 0;
+                    for(var i = 0; i < this.node.edges.length; i++) {
+                        outside += this.node.edges[i].identifier ? 0 : 1;
+                        inside += this.node.edges[i].identifier ? 1 : 0;
                     }
                     if(outside > 1)
                         alert("The tie " + this + " has " + outside +
@@ -3214,38 +3308,50 @@
                 }
             },
             isConforming: function() {
-                var i, j, edge, otherEdge, mnemonic, otherMnemonic, node, role, identical;
-                var roles = Object.create(null);
+                var edge, otherEdge, role, otherRole, component, otherComponent;
+                var i, j, identical, relation, related;
+                var relations = Object.create(null);
                 // check that no roles are identical in the tie
-                for(i = 0; edge = this.edges[i]; i++) {
-                    for(j = 0; otherEdge = this.edges[j]; j++) {
-                        if(i !== j && edge.role === otherEdge.role) {
-                            mnemonic = (edge.node === this ? edge.otherNode : edge.node).toString();
-                            otherMnemonic = (otherEdge.node === this ? otherEdge.otherNode : otherEdge.node).toString();
-                            if(mnemonic === otherMnemonic)
-                                return !confirm("The roles named '" + edge.role + "' for the anchor '" +
-                                        mnemonic + "' cannot be identical in this tie. " +
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    for(j = 0; otherEdge = this.node.edges[j]; j++) {
+                        role = Model.nodeToComponent(edge);
+                        otherRole = Model.nodeToComponent(otherEdge);
+                        if(i !== j && role.role === otherRole.role) {
+                            component = Model.nodeToComponent(
+                                            edge.node === this.node ? edge.otherNode : edge.node
+                            );
+                            otherComponent = Model.nodeToComponent(
+                                            otherEdge.node === this.node ? otherEdge.otherNode : otherEdge.node)
+                            ;
+                            if(component.mnemonic === otherComponent.mnemonic)
+                                return !confirm("The roles named '" + role.role + "' for '" +
+                                        component + "' cannot be identical in this tie. " +
                                         "Please give the roles different and distinguishing names.");
                         }
                     }
                 }
-                // first find the anchors and knots connected to this tie
-                for(i = 0; edge = this.edges[i]; i++) {
-                    role = edge.role + "_" + (edge.node === this ? edge.otherNode : edge.node);
-                    roles[role] = true;
+                // build the relations lookup
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    related = Model.nodeToComponent(edge.node === this.node ? edge.otherNode : edge.node);
+                    role = Model.nodeToComponent(edge);
+                    relation = role.role + "_" + related.mnemonic;
+                    relations[relation] = true;
                 }
                 // then find all other ties of the same cardinality
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    if(node.type === NodeType.TIE && node !== this && node.edges.length === this.edges.length) {
+                for(i = 0; component = Model.components[i]; i++) {
+                    if(component.node.type === NodeType.TIE && component !== this &&
+                            component.node.edges.length === this.node.edges.length) {
                         identical = true;
-                        for(j = 0; edge = node.edges[j]; j++) {
-                            role = edge.role + "_" + (edge.node === node ? edge.otherNode : edge.node);
-                            identical &= roles[role];
-                            if(roles[role]) delete roles[role]; // so that it cannot be matched twice
+                        for(j = 0; edge = component.node.edges[j]; j++) {
+                            related = Model.nodeToComponent(edge.node === component.node ? edge.otherNode : edge.node);
+                            role = Model.nodeToComponent(edge);
+                            relation = role.role + "_" + related.mnemonic;
+                            identical &= relations[relation];
+                            if(relations[relation]) delete relations[relation]; // so that it cannot be matched twice
                         }
                         if(identical) {
                             return !confirm("This tie will become identical to the already existing tie named " +
-                                    node + ". Please rename the role.");
+                                    component + ". Please rename the role.");
                         }
                     }
                 }
@@ -3332,21 +3438,15 @@
                 tie.positIdentity = identity;
                 tie.positGenerator = generator;
                 tie.description = description ? description.firstChild.nodeValue : '';
-                var anchorLookup = Object.create(null);
-                for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i].type === NodeType.ANCHOR)
-                        anchorLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
-                var knotLookup = Object.create(null);
-                for(i = 0; i < Model.nodes.length; i++)
-                    if(Model.nodes[i].type === NodeType.KNOT)
-                        knotLookup[Model.nodes[i].mnemonic] = Model.nodes[i];
+                var anchorLookup = Model.getAnchorLookup();
+                var knotLookup = Model.getKnotLookup();
                 var grandparent = element.parentNode.parentNode;
-                var j, d, type, edge, role, identifier, coloring, anchor;
+                var j, d, type, role, roleName, identifier, coloring, anchor;
                 var anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
                     type = anchorRoles[i].getAttribute("type") || "??";
-                    role = anchorRoles[i].getAttribute("role");
-                    if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
+                    roleName = anchorRoles[i].getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = anchorRoles[i].getAttribute("identifier") || false;
                     coloring = anchorRoles[i].getAttribute("coloring") || "#000000";
                     for(d = 0; d < anchorRoles[i].childNodes.length; d++)
@@ -3356,12 +3456,12 @@
                     for(j = 0; j < anchors.length; j++) {
                         if(anchors[j].getAttribute("mnemonic") === type) {
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
-                            edge = new Edge(tie, anchor, (identifier === "true"));
-                            edge.role = role;
-                            edge.setColoring(coloring);
-                            edge.description = description ? description.firstChild.nodeValue : '';
-                            Model.addEdge(edge);
-                            edge.updateName();
+                            role = new Role(tie, anchor, (identifier === "true"));
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = description ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
                             break; // only one should match
                         }
                     }
@@ -3369,23 +3469,23 @@
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
                     type = knotRoles[i].getAttribute("type") || "???";
-                    role = knotRoles[i].getAttribute("role");
-                    if(!role || role.match(/![^role].*!/)) role = "!role" + UniqueIdentity.nextId() + "!";
+                    roleName = knotRoles[i].getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
                     identifier = knotRoles[i].getAttribute("identifier") || false;
                     coloring = knotRoles[i].getAttribute("coloring") || "#000000";
                     for(d = 0; d < knotRoles[i].childNodes.length; d++)
                         if(knotRoles[i].childNodes.item(d).nodeName === 'description')
                             description = knotRoles[i].childNodes.item(d);
                     var knots = grandparent.getElementsByTagName("knot");
-                    for(j = 0; i < knots.length; j++) {
+                    for(j = 0; j < knots.length; j++) {
                         if(knots[j].getAttribute("mnemonic") === type) {
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
-                            edge = new Edge(tie, knot, (identifier === "true"));
-                            edge.role = role;
-                            edge.setColoring(coloring);
-                            edge.description = description ? description.firstChild.nodeValue : '';
-                            Model.addEdge(edge);
-                            edge.updateName();
+                            role = new Role(tie, knot, (identifier === "true"));
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = description ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
                             break; // only one should match
                         }
                     }
@@ -3399,21 +3499,24 @@
                     tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
-                for(var i = 0; i < this.edges.length; i++) {
-                    var role;
-                    var node = this.edges[i].otherNode;
-                    if(this.edges[i].otherNode.type === NodeType.ANCHOR)
-                        role = schema.createElement("anchorRole");
-                    else if(this.edges[i].otherNode.type === NodeType.KNOT)
-                        role = schema.createElement("knotRole");
-                    role.setAttribute("role", this.isEmpty(this.edges[i].role) ? "!role" + UniqueIdentity.nextId() + "!" : this.edges[i].role);
-                    role.setAttribute("type", this.isEmpty(node.mnemonic) ? "???" : node.mnemonic);
-                    if(this.edges[i].coloring !== '#000000')
-                        role.setAttribute("coloring", this.edges[i].coloring);
-                    role.setAttribute("identifier",
-                            this.isEmpty(this.edges[i].identifier) ? false : this.edges[i].identifier);
-                    this.addDescriptionXML(role, schema, this.edges[i].description);
-                    tie.appendChild(role);
+                var edges = this.node.edges;
+                for(var i = 0; i < edges.length; i++) {
+                    var roleElement;
+                    var node = edges[i].otherNode;
+                    var role = Model.nodeToComponent(edges[i]);
+                    var component = Model.nodeToComponent(edges[i].otherNode);
+                    if(edges[i].otherNode.type === NodeType.ANCHOR)
+                        roleElement = schema.createElement("anchorRole");
+                    else if(edges[i].otherNode.type === NodeType.KNOT)
+                        roleElement = schema.createElement("knotRole");
+                    roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
+                    roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
+                    if(role.coloring !== '#000000')
+                        roleElement.setAttribute("coloring", role.coloring);
+                    roleElement.setAttribute("identifier",
+                            this.isEmpty(component.identifier) ? false : component.identifier);
+                    this.addDescriptionXML(roleElement, schema, component.description);
+                    tie.appendChild(roleElement);
                 }
 
                 var metadata = schema.createElement("metadata");
@@ -3435,7 +3538,7 @@
                 return tie;
             },
             contextualName: function() {
-                var name, edge;
+                var name;
                 if(Settings.showMnemonics) {
                     name = this.toString();
                     if(this.historized && (this.restatable || this.idempotent)) {
@@ -3454,56 +3557,45 @@
                 return name;
             },
             toString: function() {
-                var i, edge, name="";
-                for(i = 0; edge = this.edges[i]; i++) {
+                var i, edge, component, role, name="";
+                for(i = 0; edge = this.node.edges[i]; i++) {
                     if(i > 0)
                         name += "_";
-                    name += edge.otherNode.mnemonic + "_" + edge.role;
+                    component = Model.nodeToComponent(edge.otherNode);
+                    role = Model.nodeToComponent(edge);
+                    name += component.mnemonic + "_" + role.role;
                 }
                 return name;
             },
             draw: function(image) {
-                image.control.setTranslate(this.xPosition, this.yPosition);
-                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
         // inheritance
-        extend(Tie, AbstractNode);
+        extend(Tie, Component);
 
-        function Edge(node, otherNode, identifier) {
-            Edge.mass = 1;
-            Edge.charge = 1;
-            // assume that the control point coincide with the center point
-            this.controlPoint = {
-                xPosition: node.xPosition + (otherNode.xPosition - node.xPosition)/2,
-                yPosition: node.yPosition + (otherNode.yPosition - node.yPosition)/2,
-                getMass: function() {
-                    return Edge.mass;
-                },
-                getCharge: function() {
-                    return Edge.charge;
-                }
-            };
-            AbstractNode.call(this, this.controlPoint.xPosition, this.controlPoint.yPosition);
-            this.role = '?' + this.getId();
-            this.node = node;
-            this.otherNode = otherNode;
+        function Role(component, otherComponent, identifier) {
+            this.id = UniqueIdentity.nextId();
+            var node = component.node;
+            var otherNode = otherComponent.node;
+            // call the parent constructor
+            Component.call(this, new Edge(this.id, node, otherNode));
+            var controlPoint = this.node.controlPoint;
+            this.role = '?' + this.id;
+            this.component = component;
+            this.otherComponent = otherComponent;
             this.identifier = identifier;
-            node.edges.push(this);
-            otherNode.edges.push(this);
-            this.edges.push(node);
-            this.edges.push(otherNode);
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
             this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
-            this.type = NodeType.EDGE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.setColoring(this.coloring);
-            this.svg.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
-                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
-                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
+                    ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
+                    ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
             this.svg.pathControl = {
                 m: this.svg.pathElement.pathSegList.getItem(0),
                 q: this.svg.pathElement.pathSegList.getItem(1)
@@ -3518,7 +3610,7 @@
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
-                this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + this.xPosition + ',' + this.yPosition + ')');
+                this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + controlPoint.xPosition + ',' + controlPoint.yPosition + ')');
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
                 this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
@@ -3530,9 +3622,9 @@
             }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
-            this.nav.pathElement.setAttributeNS(null, 'd', 'M' + this.node.xPosition.toFixed(2) + ',' + this.node.yPosition.toFixed(2) +
-                    ' Q' + this.controlPoint.xPosition.toFixed(2) + ',' + this.controlPoint.yPosition.toFixed(2) +
-                    ' ' + this.otherNode.xPosition.toFixed(2) + ',' + this.otherNode.yPosition.toFixed(2));
+            this.nav.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
+                    ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
+                    ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
             this.nav.pathControl = {
                 m: this.nav.pathElement.pathSegList.getItem(0),
                 q: this.nav.pathElement.pathSegList.getItem(1)
@@ -3540,23 +3632,23 @@
             NAVLayer.edges.appendChild(this.nav.pathElement);
             this.postCreationInitialization();
         }
-        Edge.prototype = {
+        Role.prototype = {
             role: '',
-            node: null,
-            otherNode: null,
-            controlPoint: { xPosition: null, yPosition: null },
+            component: null,
+            otherComponent: null,
+            controlPoint: null,
             identifier: true,
             coloring: '#000000',
             tied: false,
             hide: function() {
                 this.svg.hideGraphics(SVGLayer.edges);
                 this.nav.hideGraphics(NAVLayer.edges);
-                AbstractNode.prototype.hide.apply(this, arguments);
+                Component.prototype.hide.apply(this, arguments);
             },
             show: function() {
                 this.svg.showGraphics(SVGLayer.edges);
                 this.nav.showGraphics(NAVLayer.edges);
-                AbstractNode.prototype.show.apply(this, arguments);
+                Component.prototype.show.apply(this, arguments);
             },
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
@@ -3573,21 +3665,11 @@
                     this.svg.pathElement.style.strokeWidth = '10px';
                 }
             },
-            getMass: function() {
-                return Edge.mass;
-            },
-            getCharge: function() {
-                return Edge.charge;
-            },
             isInteractive: function() {
                 return this.tied;
             },
             isDraggable: function() {
                 return false;
-            },
-            // overload to remove propagation of movement
-            start: function() {
-                this.moving = true;
             },
             // edges never fixate
             setFixed: function(fixed) {
@@ -3600,37 +3682,29 @@
                 return this.role;
             },
             draw: function(image) {
-                image.pathControl.m.x = this.node.xPosition;
-                image.pathControl.m.y = this.node.yPosition;
-                image.pathControl.q.x1 = this.controlPoint.xPosition;
-                image.pathControl.q.y1 = this.controlPoint.yPosition;
-                image.pathControl.q.x = this.otherNode.xPosition;
-                image.pathControl.q.y = this.otherNode.yPosition;
+                var node = this.node.node;
+                var otherNode = this.node.otherNode;
+                var controlPoint = this.node.controlPoint;
+                var role = this.node;
+                image.pathControl.m.x = node.xPosition;
+                image.pathControl.m.y = node.yPosition;
+                image.pathControl.q.x1 = controlPoint.xPosition;
+                image.pathControl.q.y1 = controlPoint.yPosition;
+                image.pathControl.q.x = otherNode.xPosition;
+                image.pathControl.q.y = otherNode.yPosition;
                 if(this.tied && image.control) {
+                    // experimenting with cardinality placement
 //                    var l = image.pathElement.getTotalLength();
 //                    var p = image.pathElement.getPointAtLength(l/4);
 //                    image.control.setTranslate(p.x, p.y);
-                    image.control.setTranslate(this.xPosition, this.yPosition);
+                    image.control.setTranslate(role.xPosition, role.yPosition);
                 }
-                if(DEBUG) AbstractNode.prototype.draw.apply(this, arguments);
+                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
         // inheritance
-        extend(Edge, AbstractNode);
-
-
-        // global function providing inheritance
-        function extend(child, supertype){
-            child.prototype.supertype = {};
-            for(var member in supertype.prototype)
-                if(!child.prototype[member])
-                    child.prototype[member] = supertype.prototype[member];
-                else
-                    child.prototype.supertype[member] = supertype.prototype[member];
-            /* moving away from this type of inheritance, as it has worse performance, and not supported in IE9 */
-            // child.prototype.__proto__ = supertype.prototype;
-        }
+        extend(Role, Component);
 
         var DataTypeConverter = {
             MATCH: 0,
@@ -4127,20 +4201,20 @@
                 ['connect',
                     'Connect',
                     'Connect the selected node(s).',
-                    function(allNodes) {
-                        if(allNodes.length !== 2)
+                    function(allComponents) {
+                        if(allComponents.length !== 2)
                             return false;
-                        var node, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
-                        for(var i = 0; node = allNodes[i]; i++) {
-                            if(node.type === NodeType.ANCHOR)
+                        var component, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                        for(var i = 0; component = allComponents[i]; i++) {
+                            if(component.node.type === NodeType.ANCHOR)
                                 anchors++;
-                            else if(node.type === NodeType.TIE)
+                            else if(component.node.type === NodeType.TIE)
                                 ties++;
-                            else if(node.type === NodeType.KNOT)
+                            else if(component.node.type === NodeType.KNOT)
                                 knots++;
-                            else if(node.type === NodeType.ATTRIBUTE) {
+                            else if(component.node.type === NodeType.ATTRIBUTE) {
                                 attributes++;
-                                knotted = node.getKnotted();
+                                knotted = component.getKnotted();
                             }
                         }
                         return anchors && ties || knots && ties || attributes && knots && !knotted;
@@ -4149,19 +4223,19 @@
                     'Explode/Implode',
                     'Change the level of detail for the selected item(s) in the model.']
             ],
-            isSupported: function(operation, nodes) {
-                for(var i = 0; i < nodes.length; i++)
-                    if(nodes[i].operations.indexOf(operation) < 0)
+            isSupported: function(operation, components) {
+                for(var i = 0; i < components.length; i++)
+                    if(components[i].operations.indexOf(operation) < 0)
                         return false;
                 return true;
             }
         };
 
-        function ContextMenu(hoveredNode, selectedNodes) {
+        function ContextMenu(hoveredComponent, selectedComponents) {
             var self = this;
 
-            this.hoveredNode = hoveredNode;
-            this.selectedNodes = selectedNodes;
+            this.hoveredComponent = hoveredComponent;
+            this.selectedComponents = selectedComponents;
             var contextMenu = document.createElement('div');
             contextMenu.setAttribute('id', 'contextMenu');
             this.toggler = document.createElement('div');
@@ -4183,9 +4257,9 @@
 
             var i, j, tr;
             // if we are operating a single node, show its editable fields
-            if(selectedNodes.length === 0 || (selectedNodes.length === 1 && selectedNodes[0] === hoveredNode)) {
-                this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredNode.type]));
-                for(i = 0; editable = hoveredNode.editables[i]; i++) {
+            if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
+                this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredComponent.node.type]));
+                for(i = 0; editable = hoveredComponent.editables[i]; i++) {
                     if(editable.editable) {
                         this.showEditables = true;
                         var element = document.createElement(editable.type);
@@ -4197,9 +4271,9 @@
                             var value = editable.attributes[j++];
                             element.setAttribute(attribute, value);
                         }
-                        editable.setElement(element, hoveredNode);
+                        editable.setElement(element, hoveredComponent);
                         element.editable = editable;
-                        element.addEventListener(editable.event, function() { self.edit(this, hoveredNode); }, false);
+                        element.addEventListener(editable.event, function() { self.edit(this, hoveredComponent); }, false);
                         element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
                         this.keypress = this.keypress.bind(this);
                         element.addEventListener('keypress', this.keypress, false);
@@ -4222,15 +4296,15 @@
 
             var supportedOperations = [];
 
-            var allNodes = selectedNodes.slice(0);
-            if(allNodes.indexOf(hoveredNode) < 0)
-                allNodes.push(hoveredNode);
+            var allComponents = selectedComponents.slice(0);
+            if(allComponents.indexOf(hoveredComponent) < 0)
+                allComponents.push(hoveredComponent);
 
             var validator;
             for(i = 0; i < Operations.list.length; i++) {
-                if(Operations.isSupported(Operations.list[i][0], allNodes)) {
+                if(Operations.isSupported(Operations.list[i][0], allComponents)) {
                     if(validator = Operations.list[i][3]) {
-                        if(validator(allNodes))
+                        if(validator(allComponents))
                             supportedOperations.push(Operations.list[i]);
                     }
                     else
@@ -4255,7 +4329,7 @@
                 operator.setAttribute('title', supportedOperations[i][2]);
                 operator.appendChild(document.createTextNode(supportedOperations[i][1]));
                 operator.method = supportedOperations[i][0];
-                operator.addEventListener('click', function() { self.operate(this, allNodes); }, false);
+                operator.addEventListener('click', function() { self.operate(this, allComponents); }, false);
                 this.operators.appendChild(operator);
             }
 
@@ -4265,8 +4339,8 @@
         }
         ContextMenu.prototype = {
             contextMenu: null,
-            hoveredNode: null,
-            selectedNodes: null,
+            hoveredComponent: null,
+            selectedComponents: null,
             showEditables: false,
             editables: null,
             operators: null,
@@ -4277,12 +4351,12 @@
             modalBackground: null,
             editsHaveBeenMade: false,
             dragging: false,
-            operate: function(button, nodes) {
-                Model[button.method](nodes);
+            operate: function(button, components) {
+                Model[button.method](components);
             },
-            edit: function(element, node) {
-                if(element && node) {
-                    element.editable.setMember(element, node);
+            edit: function(element, component) {
+                if(element && component) {
+                    element.editable.setMember(element, component);
                     element.checkValidity();
                 }
             },
@@ -4310,8 +4384,8 @@
             },
             updatePosition: function(x, y) {
                 var point = EventHandler.svgToScreen(
-                        this.hoveredNode.xPosition + 15, // inside the highlight ring with radius 30
-                        this.hoveredNode.yPosition + 15
+                        this.hoveredComponent.node.xPosition + 15, // inside the highlight ring with radius 30
+                        this.hoveredComponent.node.yPosition + 15
                 );
                 x = x ? x : point.x;
                 y = y ? y : point.y;
@@ -4378,7 +4452,6 @@
         var FileHandler = {
             reader: null,
             handleFiles: function(files) {
-                // does not work in Safari, but works in Firefox 3.6 and Chrome 6.
                 this.reader = new FileReader();
                 this.reader.onload = function(e) { FileHandler.fileLoaded(e); };
                 this.reader.onerror = function(e) {
@@ -4426,25 +4499,26 @@
             },
             populateSelector: function(selector, searchString) {
                 this.startKeyboardEvents();
-                var node;
+                var node, component;
                 var selected = selector.value;
                 while(selector.options.length > 0)
                     selector.options.remove(0);
                 selector.options.add(new Option("None selected", "none"));
-                var nodes = Model.nodes.slice();
-                nodes.sort(
+                var components = Model.components.slice();
+                components.sort(
                     function(a, b) {
                         var nameA = a.encapsulation + '.' + a.toString();
                         var nameB = b.encapsulation + '.' + b.toString();
                         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
                     }
                 );
-                for(var i = 0; node = nodes[i]; i++) {
-                    if(node.toString() && !(node.type === NodeType.EDGE)) {
-                        var fullName = node.encapsulation + '.' + node.toString();
-                        if(node.incomplete)
+                for(var i = 0; component = components[i]; i++) {
+                    node = component.node;
+                    if(component.toString() && node.type !== NodeType.EDGE) {
+                        var fullName = component.encapsulation + '.' + component.toString();
+                        if(component.incomplete)
                             fullName = "* " + fullName;
-                        var option = new Option(fullName, node.id);
+                        var option = new Option(fullName, component.id);
                         if(searchString && searchString.trim() !== '') {
                             if(fullName.indexOf(searchString) >= 0)
                                 selector.options.add(option);
@@ -4479,14 +4553,16 @@
                 for(var i = 0; edge = node.edges[i]; i++) {
                     otherNode = edge.node === node ? edge.otherNode : edge.node;
                     if((otherNode.type === NodeType.ANCHOR) && otherNode.imploded) {
-                        Model.explode([otherNode]);
+                        Model.explode([Model.nodeToComponent(otherNode)]);
                         break;
                     }
                 }
             },
             selectNode: function(id) {
                 if(id !== 'none') {
-                    var i, edge, otherNode, node = Model.getNodeFromId(id);
+                    var i, edge, otherNode, node;
+                    var component = Model.idToComponent[id];
+                    var node = component.node;
                     // find the closest imploded node and explode it
                     if(!node.visible) {
                         if(node.type === NodeType.ATTRIBUTE)
@@ -4505,7 +4581,7 @@
                         }
                     }
                     EventHandler.clearSelection();
-                    EventHandler.addNodeToSelection(node);
+                    EventHandler.addComponentToSelection(component);
                     Actions.centerModelOn(node);
                 }
                 else {
@@ -4800,7 +4876,7 @@
             },
             randomizeLayout: function () {
                 for(var i = 0; i < Model.visibleNodes.length; i++) {
-                    if(!Model.visibleNodes[i].getFixed()) {
+                    if(!Model.visibleNodes[i].fixed) {
                         Model.visibleNodes[i].xPosition = Math.random() * window.innerWidth;
                         Model.visibleNodes[i].yPosition = Math.random() * window.innerHeight;
                     }
@@ -4808,13 +4884,13 @@
                 DrawingEngine.start(true);
             },
             toggleFixation: function () {
-                for(var i = 0; i < Model.nodes.length; i++)
-                    Model.nodes[i].setFixed(!Model.nodes[i].getFixed());
+                for(var i = 0; i < Model.components.length; i++)
+                    Model.components[i].setFixed(!Model.components[i].getFixed());
                 DrawingEngine.start(true);
             },
             releaseAll: function () {
-                for(var i = 0; i < Model.nodes.length; i++)
-                    Model.nodes[i].setFixed(false);
+                for(var i = 0; i < Model.components.length; i++)
+                    Model.components[i].setFixed(false);
                 DrawingEngine.start(true);
             },
             toggleNames: function () {
@@ -4834,21 +4910,21 @@
                 DrawingEngine.start(false);
             },
             implodeAll: function() {
-                var i, node, allNodes = [];
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node.type === NodeType.ANCHOR) && !node.imploded)
-                        allNodes.push(node);
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.ANCHOR) && !component.imploded)
+                        allComponents.push(component);
                 }
                 EventHandler.clearSelection();
-                Model.explode(allNodes);
+                Model.explode(allComponents);
             },
             explodeAll: function() {
-                var i, node, allNodes = [];
-                for(i = 0; node = Model.nodes[i]; i++) {
-                    if((node.type === NodeType.ANCHOR) && node.imploded)
-                        allNodes.push(node);
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.ANCHOR) && component.imploded)
+                        allComponents.push(component);
                 }
-                Model.explode(allNodes);
+                Model.explode(allComponents);
             },
             generateURL: function() {
                 if(Model.id) {
@@ -5151,16 +5227,16 @@
                     this.setStiffness(1);
                     this.setMiniRate(50);
                     this.setCalculations('simple');
-                    Knot.mass = 1;
-                    Knot.charge = 1;
-                    Anchor.mass = 1;
-                    Anchor.charge = 1;
-                    Attribute.mass = 1;
-                    Attribute.charge = 1;
-                    Tie.mass = 1;
-                    Tie.charge = 1;
-                    Edge.mass = 1;
-                    Edge.charge = 1;
+                    NodeType.mass[NodeType.KNOT] = 1;
+                    NodeType.charge[NodeType.KNOT] = 1;
+                    NodeType.mass[NodeType.ANCHOR] = 1;
+                    NodeType.charge[NodeType.ANCHOR] = 1;
+                    NodeType.mass[NodeType.ATTRIBUTE] = 1;
+                    NodeType.charge[NodeType.ATTRIBUTE] = 1;
+                    NodeType.mass[NodeType.TIE] = 1;
+                    NodeType.charge[NodeType.TIE] = 1;
+                    NodeType.mass[NodeType.EDGE] = 1;
+                    NodeType.charge[NodeType.EDGE] = 1;
                     this.init();
                 }
             },
@@ -5210,16 +5286,16 @@
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
                 storage.setItem("naming", Defaults.naming);
-                storage.setItem("knotMass", Knot.mass);
-                storage.setItem("knotCharge", Knot.charge);
-                storage.setItem("anchorMass", Anchor.mass);
-                storage.setItem("anchorCharge", Anchor.charge);
-                storage.setItem("attributeMass", Attribute.mass);
-                storage.setItem("attributeCharge", Attribute.charge);
-                storage.setItem("tieMass", Tie.mass);
-                storage.setItem("tieCharge", Tie.charge);
-                storage.setItem("edgeMass", Edge.mass);
-                storage.setItem("edgeCharge", Edge.charge);
+                storage.setItem("knotMass", NodeType.mass[NodeType.KNOT]);
+                storage.setItem("knotCharge", NodeType.charge[NodeType.KNOT]);
+                storage.setItem("anchorMass", NodeType.mass[NodeType.ANCHOR]);
+                storage.setItem("anchorCharge", NodeType.charge[NodeType.ANCHOR]);
+                storage.setItem("attributeMass", NodeType.mass[NodeType.ATTRIBUTE]);
+                storage.setItem("attributeCharge", NodeType.charge[NodeType.ATTRIBUTE]);
+                storage.setItem("tieMass", NodeType.mass[NodeType.TIE]);
+                storage.setItem("tieCharge", NodeType.charge[NodeType.TIE]);
+                storage.setItem("edgeMass", NodeType.mass[NodeType.EDGE]);
+                storage.setItem("edgeCharge", NodeType.charge[NodeType.EDGE]);
             },
             loadSettings: function(storage) {
                 if(storage.getItem("version") != VERSION) {
@@ -5270,16 +5346,16 @@
                     this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
                     this.setAssertiveness(storage.getItem('assertiveness') || Defaults.assertiveness);
                     this.setNaming(storage.getItem('naming') || Defaults.naming);
-                    Knot.mass = 1 * storage.getItem('knotMass') || 1;
-                    Knot.charge = 1 * storage.getItem('knotCharge') || 1;
-                    Anchor.mass = 1 * storage.getItem('anchorMass') || 1;
-                    Anchor.charge = 1 * storage.getItem('anchorCharge') || 1;
-                    Attribute.mass = 1 * storage.getItem('attributeMass') || 1;
-                    Attribute.charge = 1 * storage.getItem('attributeCharge') || 1;
-                    Tie.mass = 1 * storage.getItem('tieMass') || 1;
-                    Tie.charge = 1 * storage.getItem('tieCharge') || 1;
-                    Edge.mass = 1 * storage.getItem('edgeMass') || 1;
-                    Edge.charge = 1 * storage.getItem('edgeCharge') || 1;
+                    NodeType.mass[NodeType.KNOT] = 1 * storage.getItem('knotMass') || 1;
+                    NodeType.charge[NodeType.KNOT] = 1 * storage.getItem('knotCharge') || 1;
+                    NodeType.mass[NodeType.ANCHOR] = 1 * storage.getItem('anchorMass') || 1;
+                    NodeType.charge[NodeType.ANCHOR] = 1 * storage.getItem('anchorCharge') || 1;
+                    NodeType.mass[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeMass') || 1;
+                    NodeType.charge[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeCharge') || 1;
+                    NodeType.mass[NodeType.TIE] = 1 * storage.getItem('tieMass') || 1;
+                    NodeType.charge[NodeType.TIE] = 1 * storage.getItem('tieCharge') || 1;
+                    NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 1;
+                    NodeType.charge[NodeType.EDGE] = 1 * storage.getItem('edgeCharge') || 1;
                     // must be done after Defaults have been populated with previously stored values
                     this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 }
@@ -5736,26 +5812,26 @@
                     tieChargeInput.setAttribute('step', '0.1');
                     edgeMassInput.setAttribute('step', '0.1');
                     edgeChargeInput.setAttribute('step', '0.1');
-                    knotMassInput.value = Knot.mass;
-                    knotChargeInput.value = Knot.charge;
-                    anchorMassInput.value = Anchor.mass;
-                    anchorChargeInput.value = Anchor.charge;
-                    attributeMassInput.value = Attribute.mass;
-                    attributeChargeInput.value = Attribute.charge;
-                    tieMassInput.value = Tie.mass;
-                    tieChargeInput.value = Tie.charge;
-                    edgeMassInput.value = Edge.mass;
-                    edgeChargeInput.value = Edge.charge;
-                    knotMassInput.addEventListener('blur', function() { Knot.mass = 1 * this.value; }, false);
-                    knotChargeInput.addEventListener('blur', function() { Knot.charge = 1 * this.value; }, false);
-                    anchorMassInput.addEventListener('blur', function() { Anchor.mass = 1 * this.value; }, false);
-                    anchorChargeInput.addEventListener('blur', function() { Anchor.charge = 1 * this.value; }, false);
-                    attributeMassInput.addEventListener('blur', function() { Attribute.mass = 1 * this.value; }, false);
-                    attributeChargeInput.addEventListener('blur', function() { Attribute.charge = 1 * this.value; }, false);
-                    tieMassInput.addEventListener('blur', function() { Tie.mass = 1 * this.value; }, false);
-                    tieChargeInput.addEventListener('blur', function() { Tie.charge = 1 * this.value; }, false);
-                    edgeMassInput.addEventListener('blur', function() { Edge.mass = 1 * this.value; }, false);
-                    edgeChargeInput.addEventListener('blur', function() { Edge.charge = 1 * this.value; }, false);
+                    knotMassInput.value = NodeType.mass[NodeType.KNOT];
+                    knotChargeInput.value = NodeType.charge[NodeType.KNOT];
+                    anchorMassInput.value = NodeType.mass[NodeType.ANCHOR];
+                    anchorChargeInput.value = NodeType.charge[NodeType.ANCHOR];
+                    attributeMassInput.value = NodeType.mass[NodeType.ATTRIBUTE];
+                    attributeChargeInput.value = NodeType.charge[NodeType.ATTRIBUTE];
+                    tieMassInput.value = NodeType.mass[NodeType.TIE];
+                    tieChargeInput.value = NodeType.charge[NodeType.TIE];
+                    edgeMassInput.value = NodeType.mass[NodeType.EDGE];
+                    edgeChargeInput.value = NodeType.charge[NodeType.EDGE];
+                    knotMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.KNOT] = 1 * this.value; }, false);
+                    knotChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.KNOT] = 1 * this.value; }, false);
+                    anchorMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.ANCHOR] = 1 * this.value; }, false);
+                    anchorChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.ANCHOR] = 1 * this.value; }, false);
+                    attributeMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.ATTRIBUTE] = 1 * this.value; }, false);
+                    attributeChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.ATTRIBUTE] = 1 * this.value; }, false);
+                    tieMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.TIE] = 1 * this.value; }, false);
+                    tieChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.TIE] = 1 * this.value; }, false);
+                    edgeMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.EDGE] = 1 * this.value; }, false);
+                    edgeChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.EDGE] = 1 * this.value; }, false);
                     this.knotMass.appendChild(knotMassInput);
                     this.knotCharge.appendChild(knotChargeInput);
                     this.anchorMass.appendChild(anchorMassInput);
@@ -5934,7 +6010,9 @@
         };
 
         // make sure our init function is called when the page is loaded
-        window.onload = function() { try { init(this); } catch(e) { alert(e); throw e; } };
+        window.onload = function() {
+            init(this);
+        };
 
         // implementation of our init function
         function init(window) {
@@ -6055,12 +6133,15 @@
                 ASKBEFOREUNLOAD = true;
         };
 
-        window.onunload = function() { try { exit(this); } catch(e) { alert(e); } };
+        window.onunload = function() {
+            save(this, false);
+        };
 
-        function exit(window) {
+        function save(window, popup) {
             window.localStorage.clear();
-            if(Model.nodes.length)
-                window.localStorage.setItem("model", new XMLSerializer().serializeToString(Model.toXML(false)));
+            var xml = new XMLSerializer().serializeToString(Model.toXML(false));
+            if(xml)
+                window.localStorage.setItem("model", xml);
             if(Model.id)
                 window.localStorage.setItem("modelId", Model.id);
             if(Model.name)
@@ -6073,6 +6154,8 @@
                 window.localStorage.setItem("modelDescription", Model.description);
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
+            if(popup)
+                alert("The model and settings are now saved in the browser cache.");
         }
 
         // -->
@@ -6185,8 +6268,9 @@
                 <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                 <li><i>Load model from local file:</i></li>
                 <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
-                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
-                <li title="Browser security currently prevents models from being saved to disk. While waiting for policies to relax, this will generate some text that can be cut and pasted instead." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
+                <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
+                <li title="Save model XML definition to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
+                <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
                 <li title="Sends an email with the XML description of the model to a specified recipient." onclick="Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)))">Send model by email...</li>
                 <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
             </ul>
