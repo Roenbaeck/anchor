@@ -126,8 +126,8 @@
             EDGE:       5, '5': "Edge",
             PARTITION:  6, '6': "Partition",
             // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-            mass:       [1, 1, 1, 1, 1, 1, 0],
-            charge:     [1, 1, 1, 1, 1, 1, 0]
+            mass:       [null, 2, 3, 5, 5, 2, null],
+            charge:     [null, 1, 1, 1, 1, 4, null]
         };
 
         // the node type that the layout algorithm expects
@@ -5237,16 +5237,16 @@
                     this.setStiffness(1);
                     this.setMiniRate(50);
                     this.setCalculations('simple');
-                    NodeType.mass[NodeType.KNOT] = 1;
+                    NodeType.mass[NodeType.KNOT] = 5;
                     NodeType.charge[NodeType.KNOT] = 1;
-                    NodeType.mass[NodeType.ANCHOR] = 1;
+                    NodeType.mass[NodeType.ANCHOR] = 2;
                     NodeType.charge[NodeType.ANCHOR] = 1;
-                    NodeType.mass[NodeType.ATTRIBUTE] = 1;
+                    NodeType.mass[NodeType.ATTRIBUTE] = 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1;
-                    NodeType.mass[NodeType.TIE] = 1;
+                    NodeType.mass[NodeType.TIE] = 5;
                     NodeType.charge[NodeType.TIE] = 1;
-                    NodeType.mass[NodeType.EDGE] = 1;
-                    NodeType.charge[NodeType.EDGE] = 1;
+                    NodeType.mass[NodeType.EDGE] = 2;
+                    NodeType.charge[NodeType.EDGE] = 4;
                     this.init();
                 }
             },
@@ -5356,16 +5356,16 @@
                     this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
                     this.setAssertiveness(storage.getItem('assertiveness') || Defaults.assertiveness);
                     this.setNaming(storage.getItem('naming') || Defaults.naming);
-                    NodeType.mass[NodeType.KNOT] = 1 * storage.getItem('knotMass') || 1;
+                    NodeType.mass[NodeType.KNOT] = 1 * storage.getItem('knotMass') || 5;
                     NodeType.charge[NodeType.KNOT] = 1 * storage.getItem('knotCharge') || 1;
-                    NodeType.mass[NodeType.ANCHOR] = 1 * storage.getItem('anchorMass') || 1;
+                    NodeType.mass[NodeType.ANCHOR] = 1 * storage.getItem('anchorMass') || 2;
                     NodeType.charge[NodeType.ANCHOR] = 1 * storage.getItem('anchorCharge') || 1;
-                    NodeType.mass[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeMass') || 1;
+                    NodeType.mass[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeMass') || 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeCharge') || 1;
-                    NodeType.mass[NodeType.TIE] = 1 * storage.getItem('tieMass') || 1;
+                    NodeType.mass[NodeType.TIE] = 1 * storage.getItem('tieMass') || 5;
                     NodeType.charge[NodeType.TIE] = 1 * storage.getItem('tieCharge') || 1;
-                    NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 1;
-                    NodeType.charge[NodeType.EDGE] = 1 * storage.getItem('edgeCharge') || 1;
+                    NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 2;
+                    NodeType.charge[NodeType.EDGE] = 1 * storage.getItem('edgeCharge') || 4;
                     // must be done after Defaults have been populated with previously stored values
                     this.setTemporalization(storage.getItem('temporalization') || 'uni');
                 }
