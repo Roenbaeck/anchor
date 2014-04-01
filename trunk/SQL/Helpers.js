@@ -93,7 +93,7 @@ while (anchor = schema.nextAnchor()) {
             return this.metadata.generator == 'true';
         };
         attribute.isKnotted = function() {
-            return this.hasOwnProperty('knotRange');
+            return !!this['knotRange'];
         };
         attribute.isIdempotent = function() {
             return this.metadata.idempotent == 'true';
@@ -111,7 +111,7 @@ while (anchor = schema.nextAnchor()) {
             return this.metadata.checksum == 'true';
         };
         attribute.isHistorized = function() {
-            return this.hasOwnProperty('timeRange');
+            return !!this['timeRange'];
         };
         if(attribute.isHistorized())
             anchor.historizedAttributes.push(attribute.mnemonic);
@@ -165,10 +165,11 @@ while(tie = schema.nextTie()) {
         return this.metadata.generator == 'true';
     };
     tie.isKnotted = function() {
-        return this.hasOwnProperty('knotRole');
+        return !!this['knotRole'];
     };
     tie.isHistorized = function() {
-        return this.hasOwnProperty('timeRange');
+        console.log(!!this['timeRange']);
+        return !!this['timeRange'];
     };
     tie.isRestatable = function() {
         return this.metadata.restatable == 'true';
