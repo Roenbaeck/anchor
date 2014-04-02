@@ -15,19 +15,20 @@
         <!--
         // check low level management SVG support
         var testElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        if (!testElement || !testElement.viewBox || !testElement.viewBox.baseVal)
-            unsupported();
+        if (!testElement || !testElement.viewBox)
+            unsupported('No low level SVG API available.');
 
         // check binding support
         if(!Function.prototype.bind)
-            unsupported();
+            unsupported('Functions cannot be rebound with respect to "this".');
 
         var browser = window.navigator.userAgent;
         // check that it's not IE
         if(browser.indexOf('MSIE ') >= 0 || browser.indexOf('Trident/') >= 0)
-            unsupported();
+            unsupported('Internet Explorer is not supported.');
 
-        function unsupported() {
+        function unsupported(msg) {
+            console.error(msg)
             // disable handlers and leave
             window.init = null;
             window.onbeforeunload = null;
@@ -2023,7 +2024,7 @@
             scaling: 0.03,
             zoom: function(event) {
                 event.preventDefault();
-                var zoom = 1 + ((event.detail<0 || event.wheelDelta>0) ? 1 : -1) * EventHandler.scaling;
+                var zoom = 1 + ((event.deltaY > 0) ? 1 : -1) * EventHandler.scaling;
                 var width = SVG.viewBox.baseVal.width || SVG.width.baseVal.value;
                 var height = SVG.viewBox.baseVal.height || SVG.height.baseVal.value;
                 var x = SVG.viewBox.baseVal.x;
@@ -6085,10 +6086,7 @@
             SVGLayer.names.setAttributeNS(null, 'class', 'label');
 
             // set up "global" event handlers
-            var wheel = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
-                        document.onmousewheel !== undefined ? "mousewheel" :
-                        "DOMMouseScroll";
-            SVG.addEventListener(wheel, EventHandler.zoom, false);
+            SVG.addEventListener('wheel', EventHandler.zoom, false);
             SVG.addEventListener('mousedown', EventHandler.preparePanning, false);
 
             // set up the miniature navigation
@@ -6176,6 +6174,7 @@
          class="unselectable"
          xmlns="http://www.w3.org/2000/svg"
          version="1.1"
+         viewBox="0 0 1 1"
          xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs id="graphics">
             <marker id="arrowhead"
