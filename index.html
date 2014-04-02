@@ -28,7 +28,7 @@
             unsupported('Internet Explorer is not supported.');
 
         function unsupported(msg) {
-            console.error(msg)
+            console.error(msg);
             // disable handlers and leave
             window.init = null;
             window.onbeforeunload = null;
@@ -786,8 +786,9 @@
                 }
             },
             removeComponent: function(component) {
+                var edge;
                 if(component.node.type === NodeType.KNOT) {
-                    var edge = component.node.edges[0];
+                    edge = component.node.edges[0];
                     var otherNode = edge.node === this ? edge.otherNode : edge.node;
                     if(otherNode.type === NodeType.ATTRIBUTE) {
                         var attribute = this.nodeToComponent(otherNode);
@@ -795,7 +796,7 @@
                     }
                 }
                 else if (component.node.type === NodeType.EDGE) {
-                    var edge = component.node;
+                    edge = component.node;
                     this.deleteElementFromArray(edge.node.edges, edge);
                     this.deleteElementFromArray(edge.otherNode.edges, edge);
                 }
@@ -1135,7 +1136,7 @@
                 DrawingEngine.start(true);
             },
             addTie: function(components) {
-                var tie, component, node;
+                var tie, node;
                 // multiple anchors selected
                 if(components.length > 1) {
                     var i, xAverage = 0, yAverage = 0;
@@ -1916,7 +1917,7 @@
                     var component, i, svgPoint;
                     for(i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         if(component.isInteractive() && component.isDraggable()) {
-                            svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY)
+                            svgPoint = EventHandler.screenToSVG(event.clientX, event.clientY);
                             if(EventHandler.getInteraction() === "whileDragging") {
                                 component.node.xPosition = svgPoint.x;
                                 component.node.yPosition = svgPoint.y;
@@ -2322,8 +2323,8 @@
             setNameable: function(nameable) {
                 if(nameable && !this.svg.nameElement) {
                     this.svg.nameElement = document.createElementNS(SVGNS, 'text');
-                    this.svg.nameElement.setAttributeNS(null, 'x', 0);
-                    this.svg.nameElement.setAttributeNS(null, 'y', 0);
+                    this.svg.nameElement.setAttributeNS(null, 'x', '0');
+                    this.svg.nameElement.setAttributeNS(null, 'y', '0');
                     this.svg.nameText = document.createTextNode('I am a placeholder');
                     this.svg.nameElement.appendChild(this.svg.nameText);
                     SVGLayer.names.appendChild(this.svg.nameElement);
@@ -2409,7 +2410,7 @@
                 layout.setAttribute("y", node.yPosition.toFixed(2));
                 layout.setAttribute("fixed", node.fixed);
                 if(this.imploded)
-                    layout.setAttribute("imploded", this.imploded);
+                    layout.setAttribute("imploded", this.imploded.toString());
                 element.appendChild(layout);
             },
             bad: false,
@@ -3515,10 +3516,10 @@
                     var roleElement;
                     var node = edges[i].otherNode;
                     var role = Model.nodeToComponent(edges[i]);
-                    var component = Model.nodeToComponent(edges[i].otherNode);
-                    if(edges[i].otherNode.type === NodeType.ANCHOR)
+                    var component = Model.nodeToComponent(node);
+                    if(node.type === NodeType.ANCHOR)
                         roleElement = schema.createElement("anchorRole");
-                    else if(edges[i].otherNode.type === NodeType.KNOT)
+                    else if(node.type === NodeType.KNOT)
                         roleElement = schema.createElement("knotRole");
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
                     roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
@@ -4571,7 +4572,7 @@
             },
             selectNode: function(id) {
                 if(id !== 'none') {
-                    var i, edge, otherNode, node;
+                    var i, edge, otherNode;
                     var component = Model.idToComponent[id];
                     var node = component.node;
                     // find the closest imploded node and explode it
@@ -4624,7 +4625,6 @@
             },
             createEmail: function(str) {
                 ASKBEFOREUNLOAD = false; // prevent onbeforeunload behavior
-                var modelDescription = new XMLSerializer().serializeToString(Model.toXML());
                 var save = document.createElement('a');
                 var modelName = Model.name || 'Model';
                 save.href = "mailto:?subject=" + modelName + "&body=" + str;
@@ -4790,8 +4790,7 @@
                                 window.location = response.replace(/^LOGIN:/, '');
                             }
                             else if(response.match(/^OK:/)) {
-                                var modelId = response.replace(/^OK:/, '').replace(/^[^\S]+/,'').replace(/[^\S]+$/,'');
-                                Model.id = modelId;
+                                Model.id = response.replace(/^OK:/, '').replace(/^[^\S]+/,'').replace(/[^\S]+$/,'');
                                 Actions.setModelStatus();
                                 alert("Model saved in cloud as: " + Model.name);
                             }
@@ -5544,8 +5543,8 @@
                     );
                     this.addBoolItem(
                             'assertiveness', listOfDefaults, beforeItem, ' Assertiveness',
-                            "Default for new items. Assertive items get new annex rows everytime a posit " +
-                            "is made with a differnt positing time. Non-assertive items must also have a " +
+                            "Default for new items. Assertive items get new annex rows every time a posit " +
+                            "is made with a different positing time. Non-assertive items must also have a " +
                             "different reliability.",
                             function() { Settings.setAssertiveness(this.checked ? 'true' : 'false'); }
                     );
