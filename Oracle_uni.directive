@@ -17,7 +17,7 @@ SQL/Oracle/uni/CreateTies.js
 SQL/Oracle/uni/CreateAnchorPerspectives.js
 SQL/Oracle/uni/CreateAnchorTriggers.js
 #SQL/Oracle/uni/AddTieRestatementConstraints.js         #NOT YET CONVERTED TO ORACLE
-SQL/Oracle/uni/CreateTiePerspectives.js        
+SQL/Oracle/uni/CreateTiePerspectives.js
 SQL/Oracle/uni/CreateTieTriggers.js
 #SQL/Oracle/CreateSchemaTracking.js                     #NOT YET CONVERTED TO ORACLE
 SQL/Oracle/uni/CreateTestData.js

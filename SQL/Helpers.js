@@ -168,7 +168,6 @@ while(tie = schema.nextTie()) {
         return !!this['knotRole'];
     };
     tie.isHistorized = function() {
-        console.log(!!this['timeRange']);
         return !!this['timeRange'];
     };
     tie.isRestatable = function() {
