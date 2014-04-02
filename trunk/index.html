@@ -5099,7 +5099,7 @@
                 var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
                 // process every sisula
                 for(var s = 0; script = scripts[s]; s++) {
-                    xmlhttp.open("GET", script + cacheDisabler, false);
+                    xmlhttp.open("GET", script.trim() + cacheDisabler, false);
                     xmlhttp.send(null);
                     var sisula = xmlhttp.responseText;
                     // split language into JavaScript and SQL template components
