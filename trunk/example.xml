@@ -1,5 +1,7 @@
 <schema>
-    <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)"/>
+    <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
+        <metadata equivalent="true"/>
+    </knot>
     <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)">
         <metadata equivalent="true"/>
     </knot>
@@ -10,7 +12,7 @@
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <key route="natural"/>
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
-            <key stop="3" route="natural" of="PE"/>
+            <key stop="3" route="n" of="PE"/>
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
@@ -21,7 +23,7 @@
             <metadata equivalent="true"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
-            <key stop="1" route="natural" of="PE"/>
+            <key stop="1" route="n" of="PE"/>
             <metadata checksum="true"/>
         </attribute>
     </anchor>
@@ -48,7 +50,7 @@
         <anchorRole role="of" type="EV" identifier="false"/>
     </tie>
     <tie>
-        <key stop="2" route="natural" of="PE" from="PR" to="PE"/>
+        <key stop="2" route="n" of="PE" from="PR" to="PE"/>
         <anchorRole role="at" type="PE" identifier="true"/>
         <anchorRole role="wasPlayed" type="PR" identifier="false"/>
     </tie>

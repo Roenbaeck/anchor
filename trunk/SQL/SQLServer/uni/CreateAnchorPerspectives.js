@@ -27,17 +27,9 @@
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
+    if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
 -- Drop perspectives --------------------------------------------------------------------------------------------------
-IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('n$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[n$anchor.name];
-IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('l$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[l$anchor.name];
-GO
 ~*/
     if(schema.EQUIVALENCE) {
 /*~
@@ -49,11 +41,18 @@ IF Object_ID('ep$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[ep$anchor.name];
 IF Object_ID('el$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[el$anchor.name];
-GO
 ~*/
     }
-    if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
+IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
+DROP FUNCTION [$anchor.capsule].[d$anchor.name];
+IF Object_ID('n$anchor.name', 'V') IS NOT NULL
+DROP VIEW [$anchor.capsule].[n$anchor.name];
+IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
+DROP FUNCTION [$anchor.capsule].[p$anchor.name];
+IF Object_ID('l$anchor.name', 'V') IS NOT NULL
+DROP VIEW [$anchor.capsule].[l$anchor.name];
+GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$anchor.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
