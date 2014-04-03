@@ -49,10 +49,14 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
     while (role = tie.nextRole()) {
+        var knotReference = '';
+        if(role.knot) {
+            knotReference = role.knot.isEquivalent() ? role.knot.identityName : role.knot.name;
+        }
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
+    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
