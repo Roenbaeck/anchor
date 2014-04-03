@@ -191,6 +191,10 @@
             // overload
             start: function() {
                 this.moving = true;
+            },
+            // en edge cannot stop until its connected nodes have stopped
+            stop: function() {
+                this.moving = this.node.moving || this.otherNode.moving;
             }
         };
 
@@ -1469,16 +1473,19 @@
                 if(DEBUG) this.drawPartitions();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
-                var i, component;
-                i = Model.components.length;
+                var component, node;
+                var i = Model.components.length;
                 while(i--) {
                     component = Model.components[i];
-                    if(component.node.visible) {
+                    node = component.node;
+                    if(node.visible && node.moving) {
                         component.draw(component.svg);
+                        if(DEBUG)
+                            component.drawForce(component.svg);
                         if(this.miniCounter === 1)
                             component.draw(component.nav);
                         if(this.showNames)
-                            component.drawName(component.node.xPosition, component.node.yPosition);
+                            component.drawName(node.xPosition, node.yPosition);
                     }
                 }
                 if(this.miniCounter === 1)
@@ -2464,18 +2471,18 @@
             },
             // this is how a node draws itself on the visible context, should be overridden by subclasses
             draw: function(image) {
-                // draw debug stuff
-                if(DEBUG) {
-                    var node = this.node;
-                    var element = this.svg.forceElement;
-                    // draw forces
-                    element.x1.baseVal.value = node.xPosition;
-                    element.y1.baseVal.value = node.yPosition;
-                    // exaggerate the velocity so that forces become visible
-                    var e = 10*Math.log(1 + 10/(1 + node.velocity));
-                    element.x2.baseVal.value = node.xPosition + node.xVelocity *e;
-                    element.y2.baseVal.value = node.yPosition + node.yVelocity *e;
-                }
+                return;
+            },
+            drawForce: function(image) {
+                var node = this.node;
+                var element = image.forceElement;
+                // draw forces
+                element.x1.baseVal.value = node.xPosition;
+                element.y1.baseVal.value = node.yPosition;
+                // exaggerate the velocity so that forces become visible
+                var e = 10*Math.log(1 + 10/(1 + node.velocity));
+                element.x2.baseVal.value = node.xPosition + node.xVelocity *e;
+                element.y2.baseVal.value = node.yPosition + node.yVelocity *e;
             },
             setFixed: function(fixed) {
                 this.node.fixed = fixed;
@@ -2845,7 +2852,7 @@
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
-                /* TODO: later
+                /*
                 if(!this.svg.stops) {
                     this.svg.stops = document.createElementNS(SVGNS, 'g');
                     // expando property as a reference back to the underlying component for use in event handlers
@@ -2860,25 +2867,24 @@
                         stopElement.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
                         stopElement.setAttributeNS(null, 'class', 'stop');
                         stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
-                        this.svg.graphicsElement.appendChild(stopElement);
+                        this.svg.graphicsElement.insertBefore(stopElement, this.svg.graphicsElement.firstChild);
                         box = stopElement.getBBox();
                         var offset = -20 - (box.height + 3) * i;
                         stopElement.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
                         var stopBox = document.createElementNS(SVGNS, 'rect');
-                        stopBox.setAttributeNS(null, 'x', box.x - 3);
+                        stopBox.setAttributeNS(null, 'x', box.x - 2.5);
                         stopBox.setAttributeNS(null, 'y', box.y - 1);
-                        stopBox.setAttributeNS(null, 'rx', 4);
-                        stopBox.setAttributeNS(null, 'ry', 4);
-                        stopBox.setAttributeNS(null, 'width', box.width + 6);
+                        stopBox.setAttributeNS(null, 'rx', 2);
+                        stopBox.setAttributeNS(null, 'ry', 2);
+                        stopBox.setAttributeNS(null, 'width', box.width + 5);
                         stopBox.setAttributeNS(null, 'height', box.height + 2);
                         stopBox.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
-                        stopBox.style.fill = '#d33';
+                        stopBox.style.fill = '#708090';
                         this.svg.graphicsElement.insertBefore(stopBox, stopElement);
                     }
                 }
                 */
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3055,7 +3061,6 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3232,7 +3237,6 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3581,7 +3585,6 @@
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -3711,7 +3714,6 @@
 //                    image.control.setTranslate(p.x, p.y);
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
-                if(DEBUG) Component.prototype.draw.apply(this, arguments);
             }
         };
 
@@ -6199,8 +6201,7 @@
                 }
                 .stop {
                     font-size:          6pt;
-                    font-family:        "Source Code Pro", "Consolas", "Andale Mono", monospace;
-                    font-weight:        bold;
+                    font-family:        "Consolas", "Andale Mono", monospace;
                     text-anchor:        middle;
                     dominant-baseline:  bottom;
                     fill:               #fff;
