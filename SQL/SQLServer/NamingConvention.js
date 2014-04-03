@@ -154,10 +154,14 @@ while (tie = schema.nextTie()) {
             if(schema.IMPROVED) {
                 role.knotValueColumnName = role.role + D + knot.valueColumnName;
                 role.knotMetadataColumnName = role.role + D + knot.metadataColumnName;
+                role.knotEquivalentColumnName = role.role + D + knot.equivalentColumnName;
+                role.knotChecksumColumnName = role.role + D + knot.checksumColumnName;
             }
             else {
                 role.knotValueColumnName = knot.valueColumnName;
                 role.knotMetadataColumnName = knot.metadataColumnName;
+                role.knotEquivalentColumnName = knot.equivalentColumnName;
+                role.knotChecksumColumnName = knot.checksumColumnName;
             }
         }
         name += role.name;
