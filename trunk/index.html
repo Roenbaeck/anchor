@@ -1470,7 +1470,8 @@
                 }
             },
             draw: function() {
-                if(DEBUG) this.drawPartitions();
+                if(DEBUG)
+                    this.drawPartitions();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var component, node;
@@ -1478,8 +1479,9 @@
                 while(i--) {
                     component = Model.components[i];
                     node = component.node;
-                    if(node.visible && node.moving) {
-                        component.draw(component.svg);
+                    if(node.visible) {
+                        if(node.moving)
+                            component.draw(component.svg);
                         if(DEBUG)
                             component.drawForce(component.svg);
                         if(this.miniCounter === 1)
