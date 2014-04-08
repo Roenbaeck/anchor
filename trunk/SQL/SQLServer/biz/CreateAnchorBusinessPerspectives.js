@@ -145,7 +145,7 @@ GO
 CREATE FUNCTION [$anchor.capsule].[EQ_Latest_$anchor.businessName] ﻿(
     @equivalent $schema.metadata.equivalentRange
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     $(schema.CRT)? [$anchor.mnemonic].Positor,
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
@@ -203,7 +203,7 @@ GO
 CREATE FUNCTION [$anchor.capsule].[EQ_Current_$anchor.businessName] ﻿(
     @equivalent $schema.metadata.equivalentRange
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
@@ -215,7 +215,7 @@ GO
 -- Difference equivalence perspective ---------------------------------------------------------------------------------
 -- EQ_Difference_$anchor.businessName showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[Difference_$anchor.businessName] (
+CREATE FUNCTION [$anchor.capsule].[EQ_Difference_$anchor.businessName] (
     @equivalent $schema.metadata.equivalentRange,
     @intervalStart $schema.metadata.chronon,
     @intervalEnd $schema.metadata.chronon,

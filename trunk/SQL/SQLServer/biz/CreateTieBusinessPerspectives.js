@@ -130,7 +130,7 @@ GO
 CREATE FUNCTION [$tie.capsule].[EQ_Latest_$tie.businessName] ﻿(
     @equivalent $schema.metadata.equivalentRange
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     $(schema.CRT)? tie.Positor,
 ~*/
@@ -185,7 +185,7 @@ GO
 CREATE FUNCTION [$tie.capsule].[EQ_Current_$tie.businessName] (
     @equivalent $schema.metadata.equivalentRange
 )
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
+RETURNS TABLE AS RETURN
 SELECT
     *
 FROM

@@ -359,7 +359,7 @@ GO
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------------------
 -- ep$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[ep$tie.name] ﻿(
     @equivalent $schema.metadata.equivalentRange,
     @changingTimepoint $schema.metadata.chronon
 )
@@ -460,7 +460,7 @@ GO
 -- Difference equivalence perspective ---------------------------------------------------------------------------------
 -- ed$tie.name showing all differences between the given timepoints
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[d$tie.name] (
+CREATE FUNCTION [$tie.capsule].[ed$tie.name] (
     @equivalent $schema.metadata.equivalentRange,
     @intervalStart $schema.metadata.chronon,
     @intervalEnd $schema.metadata.chronon
