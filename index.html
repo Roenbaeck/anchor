@@ -413,8 +413,7 @@
 
             // calculate all forces and change the velocity and position of the nodes in the array
             simpleLayout: function(nodes) {
-                // assume equilibrium - set to false below if a node moves
-                this.equilibrium = true;
+                this.equilibrium = false;
 
                 var i, j, k, node, otherNode, edge, curvature;
                 var numberOfNodes = nodes.length;
@@ -465,6 +464,7 @@
                         }
                     }
                 }
+                var energy = 0;
                 k = keys.length;
                 while(k--) {
                     key = keys[k];
@@ -517,20 +517,22 @@
                         }
                         // the more nodes that have stopped, the larger the starting velocity must be
                         else if(node.velocity >= this.minimumStartingVelocity +
-                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
+                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes) {
                             node.start();
+                        }
                         // if the node is moving and not fixed then calculate the new position
                         if(node.moving && !node.fixed) {
-                            this.equilibrium = false;
+                            energy += node.velocity;
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
                     }
                 }
+                if(energy < (numberOfNodes - numberOfStoppedNodes) * this.stoppingVelocity)
+                    this.equilibrium = true;
             },
             complexLayout: function(nodes) {
-                // assume equilibrium - set to false below if a node moves
-                this.equilibrium = true;
+                this.equilibrium = false;
 
                 var i, j, k, node, otherNode, edge, curvature;
                 var numberOfNodes = nodes.length;
@@ -577,6 +579,7 @@
                         }
                     }
                 }
+                var energy = 0;
                 k = keys.length;
                 while(k--) {
                     key = keys[k];
@@ -633,12 +636,14 @@
                             node.start();
                         // if the node is moving and not fixed then calculate the new position
                         if(node.moving && !node.fixed) {
-                            this.equilibrium = false;
+                            energy += node.velocity;
                             node.xPosition += node.xVelocity;
                             node.yPosition += node.yVelocity;
                         }
                     }
                 }
+                if(energy < (numberOfNodes - numberOfStoppedNodes) * this.stoppingVelocity)
+                    this.equilibrium = true;
             }
         };
 
@@ -3532,7 +3537,7 @@
                     if(role.coloring !== '#000000')
                         roleElement.setAttribute("coloring", role.coloring);
                     roleElement.setAttribute("identifier",
-                            this.isEmpty(component.identifier) ? false : component.identifier);
+                            this.isEmpty(role.identifier) ? false : role.identifier);
                     this.addDescriptionXML(roleElement, schema, component.description);
                     tie.appendChild(roleElement);
                 }
