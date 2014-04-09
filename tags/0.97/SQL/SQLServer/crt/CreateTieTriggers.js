@@ -569,7 +569,7 @@ BEGIN
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName ELSE @now END as $tie.timeRange),
-            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $tie.timeRange),
+            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
                 WHEN UPDATE($tie.reliabilityColumnName) THEN v.$tie.reliabilityColumnName 
                 WHEN UPDATE($tie.reliableColumnName) THEN 
@@ -628,6 +628,7 @@ INSTEAD OF DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
     INSERT INTO [$tie.capsule].[$tie.annexName] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,
@@ -639,7 +640,7 @@ BEGIN
         $(schema.METADATA)? d.$tie.metadataColumnName,
         d.$tie.identityColumnName,
         d.$tie.positorColumnName,
-        $schema.metadata.now,
+        @now,
         $schema.metadata.deleteReliability
     FROM
         deleted d;
