@@ -11,13 +11,13 @@ BEGIN TRY
 EXEC sp_dropextendedproperty
 @name = N'MS_Description',
 @level0type = N'Schema', @level0name = '$knot.capsule',
-@level1type = N'Table',  @level1name = '$knot.name';
+@level1type = N'Table',  @level1name = $(knot.isEquivalent())? '$knot.identityName'; : '$knot.name';
 END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
 EXEC sp_addextendedproperty
 @name = N'MS_Description',
 @value = '$knot.description._description',
 @level0type = N'Schema', @level0name = '$knot.capsule',
-@level1type = N'Table',  @level1name = '$knot.name';
+@level1type = N'Table',  @level1name = $(knot.isEquivalent())? '$knot.identityName'; : '$knot.name';
 GO
 ~*/
     }

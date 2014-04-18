@@ -73,7 +73,7 @@ SELECT
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -161,7 +161,7 @@ SELECT
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -321,7 +321,7 @@ SELECT
                     knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
@@ -410,7 +410,7 @@ SELECT
                     knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName,
+    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
