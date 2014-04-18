@@ -77,6 +77,7 @@ while (anchor = schema.nextAnchor()) {
                 knot = attribute.knot;
                 attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.metadata.identitySuffix;
                 attribute.knotValueColumnName = attribute.uniqueMnemonic + D + knot.name;
+                attribute.knotEquivalentColumnName = attribute.uniqueMnemonic + D + knot.equivalentColumnName;
                 attribute.knotChecksumColumnName = attribute.uniqueMnemonic + D + knot.checksumColumnName;
                 attribute.knotMetadataColumnName = attribute.uniqueMnemonic + D + knot.metadataColumnName;
                 attribute.knotBusinessName = attribute.businessName + D + knot.businessName;

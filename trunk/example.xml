@@ -8,6 +8,9 @@
     <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(max)">
         <metadata checksum="true"/>
     </knot>
+    <knot mnemonic="UTL" descriptor="Utilization" identity="tinyint" dataRange="tinyint">
+        <metadata equivalent="true"/>
+    </knot>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <key route="natural"/>
@@ -26,6 +29,8 @@
             <key stop="1" route="n" of="PE"/>
             <metadata checksum="true"/>
         </attribute>
+        <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
+        <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
