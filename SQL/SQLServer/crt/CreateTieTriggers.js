@@ -145,6 +145,7 @@ BEGIN
             }
         }
 /*~;~*/
+        var changingParameter = tie.isHistorized() ? 'v.' + tie.changingColumnName : 'DEFAULT';
         var statementTypes = "'N'";
         if(tie.isAssertive())
             statementTypes += ",'D'";
@@ -163,17 +164,23 @@ BEGIN
         SET
             v.$tie.statementTypeColumnName =
                 CASE
-                    WHEN v.$tie.reliabilityColumnName = (
+                    WHEN EXISTS (
                         SELECT TOP 1
-                            a.$tie.reliabilityColumnName
+                            t.$tie.identityColumnName
                         FROM
-                            [$tie.capsule].[$tie.annexName] a
+                            [$tie.capsule].[t$tie.name](v.$tie.positorColumnName, $changingParameter, v.$tie.positingColumnName, 1) t
                         WHERE
-                            a.$tie.identityColumnName = p.$tie.identityColumnName
+                            t.$tie.reliabilityColumnName = v.$tie.reliabilityColumnName
+                        $(tie.isHistorized())? AND
+                            $(tie.isHistorized())? t.$tie.changingColumnName = v.$tie.changingColumnName
+~*/
+        while(role = tie.nextRole()) {
+/*~
                         AND
-                            a.$tie.positorColumnName = v.$tie.positorColumnName
-                        ORDER BY
-                            a.$tie.positingColumnName desc
+                            t.$role.columnName = v.$role.columnName
+~*/
+        }
+/*~
                     ) 
                     THEN 'D' -- duplicate assertion    
 ~*/

@@ -195,8 +195,8 @@ BEGIN
     FROM
         @inserted i
 ~*/
-                if(attribute.isKnotted()) {
-                    knot = attribute.knot;
+            if(attribute.isKnotted()) {
+               knot = attribute.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
@@ -205,13 +205,14 @@ BEGIN
     WHERE
         ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
 ~*/
-                }
-                else {
+            }
+            else {
 /*~
     WHERE
         i.$attribute.valueColumnName is not null;
 ~*/
-                }
+            }
+            var changingParameter = attribute.isHistorized() ? 'v.' + attribute.changingColumnName : 'DEFAULT';
 /*~
     SELECT
         @maxVersion = max($attribute.versionColumnName),
@@ -225,17 +226,19 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN v.$attribute.reliabilityColumnName = (
+                    WHEN EXISTS (
                         SELECT TOP 1
-                            a.$attribute.reliabilityColumnName
+                            t.$attribute.identityColumnName
                         FROM
-                            [$attribute.capsule].[$attribute.annexName] a
+                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, 1) t
                         WHERE
-                            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+                            t.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                        $(attribute.isHistorized())? AND
+                            $(attribute.isHistorized())? t.$attribute.changingColumnName = v.$attribute.changingColumnName
                         AND
-                            a.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        ORDER BY
-                            a.$attribute.positingColumnName desc
+                            t.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
+                        AND
+                            $(attribute.hasChecksum())? t.$attribute.checksumColumnName = v.$attribute.checksumColumnName : t.$attribute.valueColumnName = v.$attribute.valueColumnName
                     ) 
                     THEN 'D' -- duplicate assertion
 ~*/
