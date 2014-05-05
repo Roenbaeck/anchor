@@ -187,14 +187,14 @@ BEGIN
         if(tie.isHistorized() && tie.hasMoreValues()) {
 /*~    
                     WHEN (
-                        SELECT
-                            COUNT(*)
-                        FROM (
-                            SELECT TOP 1
+                    SELECT
+                        COUNT(*)
+                    FROM (
+                        SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                                pre.$role.columnName$(tie.hasMoreValues())?,
+                            pre.$role.columnName$(tie.hasMoreValues())?,
 ~*/
             }
 /*~

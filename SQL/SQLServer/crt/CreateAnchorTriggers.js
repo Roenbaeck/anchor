@@ -244,43 +244,53 @@ BEGIN
 ~*/
             if(attribute.isHistorized()) {
 /*~                    
-                    WHEN $(attribute.hasChecksum())? v.$attribute.checksumColumnName in (( : v.$attribute.valueColumnName in ((
-                        SELECT TOP 1
-                            $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
-                        FROM
-                            [$attribute.capsule].[$attribute.name] pre
+                    WHEN EXISTS (
+                        SELECT
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName : v.$attribute.valueColumnName
                         WHERE
-                            pre.$attribute.changingColumnName < v.$attribute.changingColumnName
-                        AND
-                            pre.$attribute.positingColumnName <= v.$attribute.positingColumnName
-                        AND
-                            pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                        AND
-                            pre.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        AND
-                            pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-                        ORDER BY
-                            pre.$attribute.changingColumnName desc,
-                            pre.$attribute.positingColumnName desc
-                    ), (
-                        SELECT TOP 1
-                            $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
-                        FROM
-                            [$attribute.capsule].[$attribute.name] fol
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
+                                SELECT TOP 1
+                                    $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
+                                FROM
+                                    [$attribute.capsule].[$attribute.name] pre
+                                WHERE
+                                    pre.$attribute.changingColumnName < v.$attribute.changingColumnName
+                                AND
+                                    pre.$attribute.positingColumnName <= v.$attribute.positingColumnName
+                                AND
+                                    pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                                AND
+                                    pre.$attribute.positorColumnName = v.$attribute.positorColumnName
+                                AND
+                                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                                ORDER BY
+                                    pre.$attribute.changingColumnName desc,
+                                    pre.$attribute.positingColumnName desc
+                            )
+                    ) OR EXISTS (
+                        SELECT
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName : v.$attribute.valueColumnName
                         WHERE
-                            fol.$attribute.changingColumnName > v.$attribute.changingColumnName
-                        AND
-                            fol.$attribute.positingColumnName <= v.$attribute.positingColumnName
-                        AND
-                            fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                        AND
-                            fol.$attribute.positorColumnName = v.$attribute.positorColumnName
-                        AND
-                            fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-                        ORDER BY
-                            fol.$attribute.changingColumnName asc,
-                            fol.$attribute.positingColumnName desc
-                    ))
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
+                                SELECT TOP 1
+                                    $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
+                                FROM
+                                    [$attribute.capsule].[$attribute.name] fol
+                                WHERE
+                                    fol.$attribute.changingColumnName > v.$attribute.changingColumnName
+                                AND
+                                    fol.$attribute.positingColumnName <= v.$attribute.positingColumnName
+                                AND
+                                    fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                                AND
+                                    fol.$attribute.positorColumnName = v.$attribute.positorColumnName
+                                AND
+                                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                                ORDER BY
+                                    fol.$attribute.changingColumnName asc,
+                                    fol.$attribute.positingColumnName desc
+                            )
+                    )
                     THEN 'R' -- restatement
 ~*/
             }
@@ -415,44 +425,54 @@ BEGIN
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
         p.$attribute.anchorReferenceName is null
-    AND
-        i.$attribute.valueColumnName not in ((
-            SELECT TOP 1
-                pre.$attribute.valueColumnName
-            FROM
-                [$attribute.capsule].[$attribute.name] pre
-            WHERE
-                pre.$attribute.changingColumnName < u.$attribute.changingColumnName
-            AND
-                pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
-            AND
-                pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-            AND
-                pre.$attribute.positorColumnName = u.$attribute.positorColumnName
-            AND
-                pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-            ORDER BY
-                pre.$attribute.changingColumnName desc,
-                pre.$attribute.positingColumnName desc
-        ), (
-            SELECT TOP 1
-                fol.$attribute.valueColumnName
-            FROM
-                [$attribute.capsule].[$attribute.name] fol
-            WHERE
-                fol.$attribute.changingColumnName > u.$attribute.changingColumnName
-            AND
-                fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
-            AND
-                fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-            AND
-                fol.$attribute.positorColumnName = u.$attribute.positorColumnName
-            AND
-                fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-            ORDER BY
-                fol.$attribute.changingColumnName asc,
-                fol.$attribute.positingColumnName desc
-        ))~*/
+    AND NOT EXISTS (
+        SELECT
+            u.$attribute.valueColumnName
+        WHERE
+            u.$attribute.valueColumnName = (
+                SELECT TOP 1
+                    pre.$attribute.valueColumnName
+                FROM
+                    [$attribute.capsule].[$attribute.name] pre
+                WHERE
+                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
+                AND
+                    pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
+                AND
+                    pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                AND
+                    pre.$attribute.positorColumnName = u.$attribute.positorColumnName
+                AND
+                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                ORDER BY
+                    pre.$attribute.changingColumnName desc,
+                    pre.$attribute.positingColumnName desc
+            )
+    )
+    AND NOT EXISTS (
+        SELECT
+            u.$attribute.valueColumnName
+        WHERE
+            u.$attribute.valueColumnName = (
+                SELECT TOP 1
+                    fol.$attribute.valueColumnName
+                FROM
+                    [$attribute.capsule].[$attribute.name] fol
+                WHERE
+                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
+                AND
+                    fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
+                AND
+                    fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                AND
+                    fol.$attribute.positorColumnName = u.$attribute.positorColumnName
+                AND
+                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                ORDER BY
+                    fol.$attribute.changingColumnName asc,
+                    fol.$attribute.positingColumnName desc
+            )
+    )~*/
 				}
 			}
 			else { // not knotted
@@ -489,47 +509,57 @@ BEGIN
     AND
         $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
-        b.$attribute.changingColumnName = i.$attribute.changingColumnName
+        b.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
         b.$attribute.anchorReferenceName is null
-    AND
-        $(attribute.hasChecksum())? i.$attribute.checksumColumnName not in (( : i.$attribute.valueColumnName not in ((
-            SELECT TOP 1
-                $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
-            FROM
-                [$attribute.capsule].[$attribute.name] pre
-            WHERE
-                pre.$attribute.changingColumnName < u.$attribute.changingColumnName
-            AND
-                pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
-            AND
-                pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-            AND
-                pre.$attribute.positorColumnName = u.$attribute.positorColumnName
-            AND
-                pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-            ORDER BY
-                pre.$attribute.changingColumnName desc,
-                pre.$attribute.positingColumnName desc
-        ), (
-            SELECT TOP 1
-                $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
-            FROM
-                [$attribute.capsule].[$attribute.name] fol
-            WHERE
-                fol.$attribute.changingColumnName > u.$attribute.changingColumnName
-            AND
-                fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
-            AND
-                fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-            AND
-                fol.$attribute.positorColumnName = u.$attribute.positorColumnName
-            AND
-                fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
-            ORDER BY
-                fol.$attribute.changingColumnName asc,
-                fol.$attribute.positingColumnName desc
-        ))~*/
+    AND NOT EXISTS (
+        SELECT
+            $(attribute.hasChecksum())? i.$attribute.checksumColumnName : i.$attribute.valueColumnName
+        WHERE
+            $(attribute.hasChecksum())? i.$attribute.checksumColumnName = ( : i.$attribute.valueColumnName = (
+                SELECT TOP 1
+                    $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
+                FROM
+                    [$attribute.capsule].[$attribute.name] pre
+                WHERE
+                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
+                AND
+                    pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
+                AND
+                    pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                AND
+                    pre.$attribute.positorColumnName = u.$attribute.positorColumnName
+                AND
+                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                ORDER BY
+                    pre.$attribute.changingColumnName desc,
+                    pre.$attribute.positingColumnName desc
+            )
+    )
+    AND NOT EXISTS (
+        SELECT
+            $(attribute.hasChecksum())? i.$attribute.checksumColumnName : i.$attribute.valueColumnName
+        WHERE
+            $(attribute.hasChecksum())? i.$attribute.checksumColumnName = ( : i.$attribute.valueColumnName = (
+                SELECT TOP 1
+                    $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
+                FROM
+                    [$attribute.capsule].[$attribute.name] fol
+                WHERE
+                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
+                AND
+                    fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
+                AND
+                    fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                AND
+                    fol.$attribute.positorColumnName = u.$attribute.positorColumnName
+                AND
+                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                ORDER BY
+                    fol.$attribute.changingColumnName asc,
+                    fol.$attribute.positingColumnName desc
+            )
+    )~*/
 				}
 			}
 /*~;

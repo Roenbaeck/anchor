@@ -55,29 +55,39 @@ BEGIN
     )
     RETURNS tinyint AS
     BEGIN RETURN (
-        CASE WHEN @value IN ((
-            SELECT TOP 1
-                pre.$valueColumn
-            FROM
-                $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) pre : [$attribute.capsule].[$attribute.name] pre
+        CASE WHEN EXISTS (
+            SELECT
+                @value 
             WHERE
-                pre.$attribute.anchorReferenceName = @id
-            AND
-                pre.$attribute.changingColumnName < @changed
-            ORDER BY
-                pre.$attribute.changingColumnName DESC
-        ),(
-            SELECT TOP 1
-                fol.$valueColumn
-            FROM
-                $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) fol : [$attribute.capsule].[$attribute.name] fol
+                @value = (
+                    SELECT TOP 1
+                        pre.$valueColumn
+                    FROM
+                        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) pre : [$attribute.capsule].[$attribute.name] pre
+                    WHERE
+                        pre.$attribute.anchorReferenceName = @id
+                    AND
+                        pre.$attribute.changingColumnName < @changed
+                    ORDER BY
+                        pre.$attribute.changingColumnName DESC
+                )
+        ) OR EXISTS (
+            SELECT
+                @value 
             WHERE
-                fol.$attribute.anchorReferenceName = @id
-            AND
-                fol.$attribute.changingColumnName > @changed
-            ORDER BY
-                fol.$attribute.changingColumnName ASC
-        ))
+                @value = (
+                    SELECT TOP 1
+                        fol.$valueColumn
+                    FROM
+                        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) fol : [$attribute.capsule].[$attribute.name] fol
+                    WHERE
+                        fol.$attribute.anchorReferenceName = @id
+                    AND
+                        fol.$attribute.changingColumnName > @changed
+                    ORDER BY
+                        fol.$attribute.changingColumnName ASC
+                )
+        )
         THEN 1
         ELSE 0
         END
