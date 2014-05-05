@@ -241,6 +241,8 @@ BEGIN
                             $(attribute.hasChecksum())? t.$attribute.checksumColumnName = v.$attribute.checksumColumnName : t.$attribute.valueColumnName = v.$attribute.valueColumnName
                     ) 
                     THEN 'D' -- duplicate assertion
+                    WHEN p.$attribute.anchorReferenceName is not null
+                    THEN 'S' -- duplicate statement
 ~*/
             if(attribute.isHistorized()) {
 /*~                    
@@ -295,8 +297,6 @@ BEGIN
 ~*/
             }
 /*~                    
-                    WHEN p.$attribute.anchorReferenceName is not null
-                    THEN 'S' -- duplicate statement
                     ELSE 'N' -- new statement
                 END
         FROM
