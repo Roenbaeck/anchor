@@ -71,43 +71,53 @@ BEGIN
         CASE
         WHEN @reliable = 0
         THEN 0
-        WHEN @value IN ((
-            SELECT TOP 1
-                pre.$valueColumn
-            FROM
-                [$attribute.capsule].[r$attribute.name](
-                    @positor,
-                    DEFAULT,
-                    @posited
-                ) pre
+        WHEN EXISTS (
+            SELECT
+                @value
             WHERE
-                pre.$attribute.anchorReferenceName = @id
-            AND
-                pre.$attribute.changingColumnName < @changed
-            AND
-                pre.$attribute.reliableColumnName = 1
-            ORDER BY
-                pre.$attribute.changingColumnName DESC,
-                pre.$attribute.positingColumnName DESC
-        ),(
-            SELECT TOP 1
-                fol.$valueColumn
-            FROM
-                [$attribute.capsule].[r$attribute.name](
-                    @positor,
-                    DEFAULT,
-                    @posited
-                ) fol
+                @value = (
+                    SELECT TOP 1
+                        pre.$valueColumn
+                    FROM
+                        [$attribute.capsule].[r$attribute.name](
+                            @positor,
+                            DEFAULT,
+                            @posited
+                        ) pre
+                    WHERE
+                        pre.$attribute.anchorReferenceName = @id
+                    AND
+                        pre.$attribute.changingColumnName < @changed
+                    AND
+                        pre.$attribute.reliableColumnName = 1
+                    ORDER BY
+                        pre.$attribute.changingColumnName DESC,
+                        pre.$attribute.positingColumnName DESC
+                )
+        ) OR EXISTS (
+            SELECT
+                @value
             WHERE
-                fol.$attribute.anchorReferenceName = @id
-            AND
-                fol.$attribute.changingColumnName > @changed
-            AND
-                fol.$attribute.reliableColumnName = 1
-            ORDER BY
-                fol.$attribute.changingColumnName ASC,
-                fol.$attribute.positingColumnName DESC
-        ))
+                @value = (        
+                    SELECT TOP 1
+                        fol.$valueColumn
+                    FROM
+                        [$attribute.capsule].[r$attribute.name](
+                            @positor,
+                            DEFAULT,
+                            @posited
+                        ) fol
+                    WHERE
+                        fol.$attribute.anchorReferenceName = @id
+                    AND
+                        fol.$attribute.changingColumnName > @changed
+                    AND
+                        fol.$attribute.reliableColumnName = 1
+                    ORDER BY
+                        fol.$attribute.changingColumnName ASC,
+                        fol.$attribute.positingColumnName DESC
+                )
+        )
         THEN 1
         ELSE 0
         END
