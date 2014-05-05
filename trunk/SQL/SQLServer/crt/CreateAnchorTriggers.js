@@ -405,20 +405,14 @@ BEGIN
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
-                ELSE 0 
-            END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
         $attribute.changingColumnName,
         $attribute.valueColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName
-    )~*/
-				if(attribute.isIdempotent()) {
-/*~
+    )
     LEFT JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
@@ -427,15 +421,10 @@ BEGIN
         p.$attribute.valueColumnName = u.$attribute.valueColumnName
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
-~*/
-                }
-/*~                
     WHERE
-        i.$attribute.positorColumnName = u.$attribute.positorColumnName~*/
+        p.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
 /*~                    
-    AND
-        p.$attribute.anchorReferenceName is null
     AND NOT EXISTS (
         SELECT
             u.$attribute.valueColumnName
@@ -509,11 +498,7 @@ BEGIN
         SELECT
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
-                ELSE 0 
-            END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
@@ -543,12 +528,10 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND
-        p.$attribute.valueColumnName = u.$attribute.valueColumnName
-    WHERE
-        i.$attribute.positorColumnName = u.$attribute.positorColumnName~*/
+        p.$attribute.valueColumnName = u.$attribute.valueColumnName~*/
             if(!attribute.isAssertive()) {
 /*~
-    AND NOT EXISTS (
+    WHERE NOT EXISTS (
         SELECT
             u.$attribute.reliabilityColumnName
         WHERE
@@ -588,19 +571,13 @@ BEGIN
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
-                ELSE 0 
-            END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
         $attribute.changingColumnName, 
         $attribute.positorColumnName,
         $attribute.positingColumnName
-    )~*/
-				if(attribute.isIdempotent()) {
-/*~
+    )
     LEFT JOIN
         [$attribute.capsule].[$attribute.name] b
     ON
@@ -608,16 +585,11 @@ BEGIN
     AND
         $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
-        b.$attribute.changingColumnName = u.$attribute.changingColumnName~*/
-                }
-/*~                
+        b.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
-        i.$attribute.positorColumnName = u.$attribute.positorColumnName
-~*/
+        b.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
 /*~                    
-    AND
-        b.$attribute.anchorReferenceName is null
     AND NOT EXISTS (
         SELECT
             $(attribute.hasChecksum())? i.$attribute.checksumColumnName : i.$attribute.valueColumnName
@@ -686,11 +658,7 @@ BEGIN
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
-                ELSE 0 
-            END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
@@ -719,12 +687,10 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
-    WHERE
-        i.$attribute.positorColumnName = u.$attribute.positorColumnName~*/
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
             if(!attribute.isAssertive()) {
 /*~
-    AND NOT EXISTS (
+    WHERE NOT EXISTS (
         SELECT
             u.$attribute.reliabilityColumnName
         WHERE
