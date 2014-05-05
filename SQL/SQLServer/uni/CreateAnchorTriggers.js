@@ -220,6 +220,8 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
+                    WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
+                    THEN 'D' -- duplicate
                     WHEN [$attribute.capsule].[rf$attribute.name](
                         v.$attribute.anchorReferenceName,
                         $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
@@ -227,8 +229,6 @@ BEGIN
                         v.$attribute.changingColumnName
                     ) = 1
                     THEN 'R' -- restatement
-                    WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
-                    THEN 'D' -- duplicate
                     ELSE 'N' -- new statement
                 END
         FROM

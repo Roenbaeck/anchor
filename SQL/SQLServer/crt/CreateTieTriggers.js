@@ -183,6 +183,8 @@ BEGIN
 /*~
                     ) 
                     THEN 'D' -- duplicate assertion    
+                    WHEN p.$tie.identityColumnName is not null
+                    THEN 'S' -- duplicate statement
 ~*/
         if(tie.isHistorized() && tie.hasMoreValues()) {
 /*~    
@@ -298,8 +300,6 @@ BEGIN
 ~*/
         }
 /*~
-                    WHEN p.$tie.identityColumnName is not null
-                    THEN 'S' -- duplicate statement
                     ELSE 'N' -- new statement
                 END
         FROM
