@@ -316,6 +316,7 @@ CREATE PROCEDURE [$schema.metadata.defaultCapsule]._GenerateDropScript (
 )
 AS
 BEGIN
+   DECLARE @xml XML;
    WITH objects AS (
       SELECT
          'DROP ' + ft.[type] + ' ' + fn.[name] + '; -- ' + fn.[description] as [statement],
@@ -448,14 +449,315 @@ BEGIN
       AND
          o.[name] NOT LIKE ISNULL(@exclusionPattern, '')
    )
-   SELECT
-      [statement] + CHAR(13) as [text()]
-   FROM
-      objects
-   ORDER BY
-      [ordinal]
-   FOR XML PATH('');
+   SELECT @xml = (
+       SELECT
+          [statement] + CHAR(13) as [text()]
+       FROM
+          objects
+       ORDER BY
+          [ordinal]
+       FOR XML PATH('')
+   );
+   SELECT isnull(@xml.value('.', 'varchar(max)'), '');  
 END
 GO
+-- Database Copy Script Generator -------------------------------------------------------------------------------------
+-- generates a copy script, that must be run separately, copying all data between two identically modeled databases
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('_GenerateCopyScript', 'P') IS NOT NULL
+DROP PROCEDURE [$schema.metadata.defaultCapsule].[_GenerateCopyScript];
+GO
+
+CREATE PROCEDURE [$schema.metadata.defaultCapsule]._GenerateCopyScript (
+	@source varchar(123),
+	@target varchar(123)
+)
+as 
+begin
+	declare @R char(1) = CHAR(13);
+	-- stores the built SQL code
+	declare @sql varchar(max) = 'USE ' + @target + ';' + @R;
+	declare @xml xml;
+
+	-- find which version of the schema that is in effect
+	declare @version int;
+	select 
+		@version = max([version]) 
+	from
+		_Schema;
+
+	-- declare and set other variables we need
+	declare @equivalentSuffix varchar(42);
+	declare @identitySuffix varchar(42);
+	declare @annexSuffix varchar(42);
+	declare @positSuffix varchar(42);
+	declare @temporalization varchar(42);
+	select
+		@equivalentSuffix = equivalentSuffix,
+		@identitySuffix = identitySuffix,
+		@annexSuffix = annexSuffix,
+		@positSuffix = positSuffix,
+		@temporalization = temporalization
+	from
+		_Schema_Expanded 
+	where
+		[version] = @version;
+
+	-- build non-equivalent knot copy
+	set @xml = (
+		select 
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R 
+			end,
+			'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
+			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R,
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R 
+			end
+		from 
+			_Knot x
+		cross apply (
+			select stuff((
+				select 
+					', ' + [name]
+				from
+					sys.columns 
+				where
+					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
+				and
+					is_computed = 0
+				for xml path('')
+			), 1, 2, '')
+		) c ([columns])
+		where
+			[version] = @version
+		and
+			isnull(equivalent, 'false') = 'false'
+		for xml path('')
+	);
+	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
+	
+	-- build equivalent knot copy
+	set @xml = (
+		select 
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' ON;' + @R 
+			end,
+			'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @identitySuffix + '(' + [columns] + ')' + @R +
+			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @identitySuffix + ';' + @R,
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' OFF;' + @R 
+			end,
+			'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + '(' + [columns] + ')' + @R +
+			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + ';' + @R
+		from 
+			_Knot x
+		cross apply (
+			select stuff((
+				select 
+					', ' + [name]
+				from
+					sys.columns 
+				where
+					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
+				and
+					is_computed = 0
+				for xml path('')
+			), 1, 2, '')
+		) c ([columns])
+		where
+			[version] = @version
+		and
+			isnull(equivalent, 'false') = 'true'
+		for xml path('')
+	);
+	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
+
+	-- build anchor copy
+	set @xml = (
+		select 
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R 
+			end,
+			'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
+			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R,
+			case
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R 
+			end
+		from 
+			_Anchor x
+		cross apply (
+			select stuff((
+				select 
+					', ' + [name]
+				from
+					sys.columns 
+				where
+					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
+				and
+					is_computed = 0
+				for xml path('')
+			), 1, 2, '')
+		) c ([columns])
+		where
+			[version] = @version
+		for xml path('')
+	);
+	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
+
+	-- build attribute copy
+	if (@temporalization = 'crt')
+	begin
+		set @xml = (
+			select 
+				case
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R 
+				end,
+				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @positSuffix + '(' + [positColumns] + ')' + @R +
+				'SELECT ' + [positColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @positSuffix + ';' + @R,
+				case
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R 
+				end,
+				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
+				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
+			from 
+				_Attribute x
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @positSuffix)
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) pc ([positColumns])
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @annexSuffix)
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) ac ([annexColumns])
+			where
+				[version] = @version
+			for xml path('')
+		);
+	end
+	else -- uni
+	begin
+		set @xml = (
+			select 
+				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
+				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
+			from 
+				_Attribute x
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) c ([columns])
+			where
+				[version] = @version
+			for xml path('')
+		);
+	end
+	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
+
+	-- build tie copy
+	if (@temporalization = 'crt')
+	begin
+		set @xml = (
+			select 
+				case
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R 
+				end,
+				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @positSuffix + '(' + [positColumns] + ')' + @R +
+				'SELECT ' + [positColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @positSuffix + ';' + @R,
+				case
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R 
+				end,
+				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
+				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
+			from 
+				_Tie x
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @positSuffix)
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) pc ([positColumns])
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @annexSuffix)
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) ac ([annexColumns])
+			where
+				[version] = @version
+			for xml path('')
+		);
+	end
+	else -- uni
+	begin
+		set @xml = (
+			select 
+				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
+				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
+			from 
+				_Tie x
+			cross apply (
+				select stuff((
+					select 
+						', ' + [name]
+					from
+						sys.columns 
+					where
+						[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
+					and
+						is_computed = 0
+					for xml path('')
+				), 1, 2, '')
+			) c ([columns])
+			where
+				[version] = @version
+			for xml path('')
+		);
+	end
+	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
+
+	select @sql;
+end
 ~*/
 }
