@@ -259,21 +259,21 @@ BEGIN
                                 SELECT TOP 1
                                     $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
                                 FROM
-                                    [$attribute.capsule].[$attribute.name] pre
+                                    [$attribute.capsule].[r$attribute.name](
+                                        v.$attribute.positorColumnName,
+                                        v.$attribute.changingColumnName,
+                                        v.$attribute.positingColumnName
+                                    ) pre
                                 WHERE
-                                    pre.$attribute.changingColumnName < v.$attribute.changingColumnName
-                                AND
-                                    pre.$attribute.positingColumnName <= v.$attribute.positingColumnName
-                                AND
                                     pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                                 AND
-                                    pre.$attribute.positorColumnName = v.$attribute.positorColumnName
+                                    pre.$attribute.changingColumnName < v.$attribute.changingColumnName
                                 AND
-                                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                                    pre.$attribute.reliableColumnName = 1
                                 ORDER BY
-                                    pre.$attribute.changingColumnName desc,
-                                    pre.$attribute.positingColumnName desc
-                            )
+                                    pre.$attribute.changingColumnName DESC,
+                                    pre.$attribute.positingColumnName DESC
+                        )
                     ) OR EXISTS (
                         SELECT
                             $(attribute.hasChecksum())? v.$attribute.checksumColumnName : v.$attribute.valueColumnName
@@ -282,21 +282,21 @@ BEGIN
                                 SELECT TOP 1
                                     $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
                                 FROM
-                                    [$attribute.capsule].[$attribute.name] fol
+                                    [$attribute.capsule].[f$attribute.name](
+                                        v.$attribute.positorColumnName,
+                                        v.$attribute.changingColumnName,
+                                        v.$attribute.positingColumnName
+                                    ) fol
                                 WHERE
-                                    fol.$attribute.changingColumnName > v.$attribute.changingColumnName
-                                AND
-                                    fol.$attribute.positingColumnName <= v.$attribute.positingColumnName
-                                AND
                                     fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                                 AND
-                                    fol.$attribute.positorColumnName = v.$attribute.positorColumnName
+                                    fol.$attribute.changingColumnName < v.$attribute.changingColumnName
                                 AND
-                                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                                    fol.$attribute.reliableColumnName = 1
                                 ORDER BY
-                                    fol.$attribute.changingColumnName asc,
-                                    fol.$attribute.positingColumnName desc
-                            )
+                                    fol.$attribute.changingColumnName ASC,
+                                    fol.$attribute.positingColumnName DESC                            
+                        )
                     )
                     THEN 'R' -- restatement
 ~*/
@@ -429,7 +429,7 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
-        i.$attribute.anchorReferenceName is not null
+        u.$attribute.anchorReferenceName is not null
     AND
         p.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
@@ -600,7 +600,7 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
-        i.$attribute.anchorReferenceName is not null
+        u.$attribute.anchorReferenceName is not null
     AND
         p.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
