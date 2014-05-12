@@ -427,6 +427,8 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
+        i.$attribute.anchorReferenceName is not null
+    AND
         p.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
 /*~                    
@@ -506,6 +508,7 @@ BEGIN
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
+                WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN 0
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
                     CASE i.$schema.metadata.reliableSuffix
@@ -584,15 +587,17 @@ BEGIN
         $attribute.positingColumnName
     )
     LEFT JOIN
-        [$attribute.capsule].[$attribute.name] b
+        [$attribute.capsule].[$attribute.positName] p
     ON
-        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     AND
-        $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
-        b.$attribute.changingColumnName = u.$attribute.changingColumnName
+        p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
-        b.$attribute.anchorReferenceName is null~*/
+        i.$attribute.anchorReferenceName is not null
+    AND
+        p.$attribute.anchorReferenceName is null~*/
                 if(attribute.isIdempotent()) {
 /*~                    
     AND NOT EXISTS (
@@ -666,6 +671,7 @@ BEGIN
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
+                WHEN i.$attribute.valueColumnName is null THEN 0
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
                     CASE i.$schema.metadata.reliableSuffix
