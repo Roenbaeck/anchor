@@ -105,25 +105,31 @@ WHERE
                 while(role = tie.nextIdentifier()) {
 /*~
             sub.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreIdentifiers())? AND
+        AND
 ~*/
                 }
             }
             else {
+/*~
+        (
+~*/
                 while(role = tie.nextValue()) {
 /*~
-            sub.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreValues())? OR
+                sub.$role.columnName = tie.$role.columnName
+            $(tie.hasMoreValues())? OR
 ~*/
                 }
+/*~
+        )
+        AND
+~*/
             }
 /*~
+            sub.$tie.reliableColumnName = @reliable
         ORDER BY
             $(tie.isHistorized())? sub.$tie.changingColumnName DESC,
             sub.$tie.positingColumnName DESC
-    )
-AND
-    tie.$tie.reliableColumnName = @reliable;
+    );
 GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$tie.name viewed by the latest available information (may include future versions)

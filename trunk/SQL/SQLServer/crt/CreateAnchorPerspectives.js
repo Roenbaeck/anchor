@@ -110,12 +110,12 @@ ON
             ) sub
         WHERE
             sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+        AND
+            sub.$attribute.reliableColumnName = @reliable
         ORDER BY
             $(attribute.isHistorized())? sub.$attribute.changingColumnName DESC,
             sub.$attribute.positingColumnName DESC
-    )
-AND
-    [$attribute.mnemonic].$attribute.reliableColumnName = @reliable~*/
+    )~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
