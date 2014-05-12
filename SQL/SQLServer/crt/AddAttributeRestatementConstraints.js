@@ -81,7 +81,7 @@ BEGIN
                     FROM
                         [$attribute.capsule].[r$attribute.name](
                             @positor,
-                            DEFAULT,
+                            @changed,
                             @posited
                         ) pre
                     WHERE
@@ -102,9 +102,9 @@ BEGIN
                     SELECT TOP 1
                         fol.$valueColumn
                     FROM
-                        [$attribute.capsule].[r$attribute.name](
+                        [$attribute.capsule].[f$attribute.name](
                             @positor,
-                            DEFAULT,
+                            @changed,
                             @posited
                         ) fol
                     WHERE
