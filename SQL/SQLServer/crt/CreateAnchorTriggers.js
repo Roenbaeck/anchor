@@ -162,6 +162,7 @@ BEGIN
         $attribute.positorColumnName $schema.metadata.positorRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
         $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $attribute.reliableColumnName tinyint not null,
         $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.versionColumnName bigint not null,
@@ -180,6 +181,10 @@ BEGIN
         i.$attribute.positorColumnName,
         i.$attribute.positingColumnName,
         i.$attribute.reliabilityColumnName,
+        case
+            when i.$attribute.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
+            else 1
+        end,
         $(attribute.knotRange)? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
         DENSE_RANK() OVER (
@@ -230,7 +235,7 @@ BEGIN
                         SELECT TOP 1
                             t.$attribute.identityColumnName
                         FROM
-                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, 1) t
+                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.reliableColumnName) t
                         WHERE
                             t.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         $(attribute.isHistorized())? AND

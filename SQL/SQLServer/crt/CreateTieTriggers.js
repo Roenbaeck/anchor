@@ -34,6 +34,7 @@ BEGIN
         $tie.positorColumnName $schema.metadata.positorRange not null,
         $tie.positingColumnName $schema.metadata.positingRange not null,
         $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $tie.reliableColumnName tinyint not null,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -102,6 +103,10 @@ BEGIN
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
         ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff),
+        case
+            when i.$tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
+            else 1
+        end,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
