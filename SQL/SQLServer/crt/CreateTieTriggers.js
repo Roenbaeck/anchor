@@ -452,6 +452,14 @@ BEGIN
         }
 /*~
     WHERE
+~*/
+        while(role = tie.nextRole()) {
+/*~
+        i.$role.columnName is not null
+    AND
+~*/
+        }
+/*~    
         p.$tie.identityColumnName is null
     AND (
         SELECT
@@ -583,6 +591,16 @@ BEGIN
             cast(CASE WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName ELSE @now END as $tie.timeRange),
             cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
+                WHEN
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                    v.$role.columnName is null
+                $(tie.hasMoreValues())? OR
+~*/
+            }
+/*~
+                THEN 0
                 WHEN UPDATE($tie.reliabilityColumnName) THEN v.$tie.reliabilityColumnName 
                 WHEN UPDATE($tie.reliableColumnName) THEN 
                     CASE v.$tie.reliableColumnName
