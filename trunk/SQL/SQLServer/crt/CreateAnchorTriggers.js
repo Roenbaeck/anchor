@@ -397,7 +397,7 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        i.$attribute.anchorReferenceName,
+        u.$attribute.anchorReferenceName,
         u.$attribute.changingColumnName,
         u.$attribute.valueColumnName
     FROM
@@ -408,11 +408,13 @@ BEGIN
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     CROSS APPLY (
         SELECT
+            CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
-            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.changingColumnName,
         $attribute.valueColumnName,
         $attribute.positorColumnName,
@@ -421,7 +423,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         p.$attribute.valueColumnName = u.$attribute.valueColumnName
     AND
@@ -446,7 +448,7 @@ BEGIN
                 AND
                     pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
                 AND
-                    pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                    pre.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
                     pre.$attribute.positorColumnName = u.$attribute.positorColumnName
                 AND
@@ -470,7 +472,7 @@ BEGIN
                 AND
                     fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
                 AND
-                    fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                    fol.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
                     fol.$attribute.positorColumnName = u.$attribute.positorColumnName
                 AND
@@ -503,13 +505,13 @@ BEGIN
         $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     CROSS APPLY (
         SELECT
+            CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
-                WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN 0
-                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
+                WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN $schema.metadata.deleteReliability
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
                     CASE i.$schema.metadata.reliableSuffix
                         WHEN 0 THEN $schema.metadata.deleteReliability
@@ -520,9 +522,10 @@ BEGIN
                         WHEN 0 THEN $schema.metadata.deleteReliability
                         ELSE $schema.metadata.reliableCutoff
                     END                
-                ELSE i.$attribute.reliabilityColumnName 
+                ELSE ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.reliableCutoff)
             END            
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.valueColumnName,
         $attribute.changingColumnName,
         $attribute.positorColumnName,
@@ -532,7 +535,7 @@ BEGIN
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND
@@ -571,17 +574,19 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        i.$attribute.anchorReferenceName,
+        u.$attribute.anchorReferenceName,
         u.$attribute.changingColumnName,
         i.$attribute.valueColumnName
     FROM
         inserted i
     CROSS APPLY (
         SELECT
+            CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange)
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.changingColumnName, 
         $attribute.positorColumnName,
         $attribute.positingColumnName
@@ -589,7 +594,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
@@ -614,7 +619,7 @@ BEGIN
                 AND
                     pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
                 AND
-                    pre.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                    pre.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
                     pre.$attribute.positorColumnName = u.$attribute.positorColumnName
                 AND
@@ -638,7 +643,7 @@ BEGIN
                 AND
                     fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
                 AND
-                    fol.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                    fol.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
                     fol.$attribute.positorColumnName = u.$attribute.positorColumnName
                 AND
@@ -667,12 +672,12 @@ BEGIN
         inserted i
     CROSS APPLY (
         SELECT
+            CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
-            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE i.$attribute.positorColumnName END,
+            CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
-                WHEN i.$attribute.valueColumnName is null THEN 0
-                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName 
+                WHEN i.$attribute.valueColumnName is null THEN $schema.metadata.deleteReliability
                 WHEN UPDATE($schema.metadata.reliableSuffix) THEN 
                     CASE i.$schema.metadata.reliableSuffix
                         WHEN 0 THEN $schema.metadata.deleteReliability
@@ -683,9 +688,10 @@ BEGIN
                         WHEN 0 THEN $schema.metadata.deleteReliability
                         ELSE $schema.metadata.reliableCutoff
                     END                
-                ELSE i.$attribute.reliabilityColumnName 
+                ELSE ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.reliableCutoff)
             END            
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.changingColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName,
@@ -694,7 +700,7 @@ BEGIN
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND

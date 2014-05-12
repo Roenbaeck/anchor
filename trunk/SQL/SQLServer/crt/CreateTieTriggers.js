@@ -432,10 +432,12 @@ BEGIN
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
-            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange)
+            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
+            CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE 0 END
     ) u (
         $tie.changingColumnName,
-        $tie.positingColumnName
+        $tie.positingColumnName,
+        $tie.positorColumnName
     )~*/
         if(tie.isIdempotent()) {
 /*~
@@ -505,7 +507,7 @@ BEGIN
             AND
                 pre.$tie.positingColumnName <= u.$tie.positingColumnName
             AND
-                pre.$tie.positorColumnName = i.$tie.positorColumnName
+                pre.$tie.positorColumnName = u.$tie.positorColumnName
             AND
                 pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -552,7 +554,7 @@ BEGIN
             AND
                 fol.$tie.positingColumnName <= u.$tie.positingColumnName
             AND
-                fol.$tie.positorColumnName = i.$tie.positorColumnName
+                fol.$tie.positorColumnName = u.$tie.positorColumnName
             AND
                 fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
             ORDER BY
@@ -581,15 +583,16 @@ BEGIN
     SELECT
         $(schema.METADATA)? v.$tie.metadataColumnName,
         p.$tie.identityColumnName,
-        v.$tie.positorColumnName,
+        u.$tie.positorColumnName,
         u.$tie.positingColumnName,
-        v.$tie.reliabilityColumnName
+        u.$tie.reliabilityColumnName
     FROM
         inserted v
     CROSS APPLY (
         SELECT
             cast(CASE WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName ELSE @now END as $tie.timeRange),
             cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
+            CASE WHEN UPDATE($tie.positorColumnName) THEN v.$tie.positorColumnName ELSE 0 END,
             CASE 
                 WHEN
 ~*/
@@ -600,18 +603,19 @@ BEGIN
 ~*/
             }
 /*~
-                THEN 0
+                THEN $schema.metadata.deleteReliability
                 WHEN UPDATE($tie.reliabilityColumnName) THEN v.$tie.reliabilityColumnName 
                 WHEN UPDATE($tie.reliableColumnName) THEN 
                     CASE v.$tie.reliableColumnName
                         WHEN 0 THEN $schema.metadata.deleteReliability
                         ELSE $schema.metadata.reliableCutoff
                     END                
-                ELSE v.$tie.reliabilityColumnName 
+                ELSE ISNULL(v.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff)
             END  
     ) u (
         $tie.changingColumnName,
         $tie.positingColumnName,
+        $tie.positorColumnName,
         $tie.reliabilityColumnName
     )
     JOIN
@@ -638,7 +642,7 @@ BEGIN
                 WHERE
                     a.$tie.identityColumnName = p.$tie.identityColumnName
                 AND
-                    a.$tie.positorColumnName = v.$tie.positorColumnName
+                    a.$tie.positorColumnName = u.$tie.positorColumnName
                 ORDER BY
                     a.$tie.positingColumnName desc
             )
