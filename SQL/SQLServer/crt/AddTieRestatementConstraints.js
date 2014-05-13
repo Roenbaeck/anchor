@@ -75,7 +75,11 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] pre
+                [$tie.capsule].[r$tie.name] (
+                    @positor,
+                    @changed,
+                    @posited
+                ) pre
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -104,10 +108,6 @@ BEGIN
 /*~
                 pre.$tie.changingColumnName < @changed
             AND
-                pre.$tie.positingColumnName <= @posited
-            AND
-                pre.$tie.positorColumnName = @positor
-            AND
                 pre.$tie.reliableColumnName = 1
             ORDER BY
                 pre.$tie.changingColumnName DESC,
@@ -122,7 +122,11 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] fol
+                [$tie.capsule].[f$tie.name] (
+                    @positor,
+                    @changed,
+                    @posited                    
+                ) fol
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -150,10 +154,6 @@ BEGIN
             }
 /*~
                 fol.$tie.changingColumnName > @changed
-            AND
-                fol.$tie.positingColumnName <= @posited
-            AND
-                fol.$tie.positorColumnName = @positor
             AND
                 fol.$tie.reliableColumnName = 1
             ORDER BY

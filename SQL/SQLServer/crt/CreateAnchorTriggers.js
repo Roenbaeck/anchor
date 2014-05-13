@@ -290,7 +290,7 @@ BEGIN
                                 WHERE
                                     fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                                 AND
-                                    fol.$attribute.changingColumnName < v.$attribute.changingColumnName
+                                    fol.$attribute.changingColumnName > v.$attribute.changingColumnName
                                 AND
                                     fol.$attribute.reliableColumnName = 1
                                 ORDER BY
@@ -442,20 +442,20 @@ BEGIN
                 SELECT TOP 1
                     pre.$attribute.valueColumnName
                 FROM
-                    [$attribute.capsule].[$attribute.name] pre
+                    [$attribute.capsule].[r$attribute.name](
+                        u.$attribute.positorColumnName,
+                        u.$attribute.changingColumnName,
+                        u.$attribute.positingColumnName
+                    ) pre
                 WHERE
-                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
-                AND
-                    pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
-                AND
                     pre.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
-                    pre.$attribute.positorColumnName = u.$attribute.positorColumnName
+                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
                 AND
-                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                    pre.$attribute.reliableColumnName = 1
                 ORDER BY
-                    pre.$attribute.changingColumnName desc,
-                    pre.$attribute.positingColumnName desc
+                    pre.$attribute.changingColumnName DESC,
+                    pre.$attribute.positingColumnName DESC
             )
     )
     AND NOT EXISTS (
@@ -466,20 +466,20 @@ BEGIN
                 SELECT TOP 1
                     fol.$attribute.valueColumnName
                 FROM
-                    [$attribute.capsule].[$attribute.name] fol
+                    [$attribute.capsule].[f$attribute.name](
+                        u.$attribute.positorColumnName,
+                        u.$attribute.changingColumnName,
+                        u.$attribute.positingColumnName
+                    ) fol
                 WHERE
-                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
-                AND
-                    fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
-                AND
                     fol.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
-                    fol.$attribute.positorColumnName = u.$attribute.positorColumnName
+                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
                 AND
-                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                    fol.$attribute.reliableColumnName = 1
                 ORDER BY
-                    fol.$attribute.changingColumnName asc,
-                    fol.$attribute.positingColumnName desc
+                    fol.$attribute.changingColumnName ASC,
+                    fol.$attribute.positingColumnName DESC                            
             )
     )~*/
 				}
@@ -613,20 +613,20 @@ BEGIN
                 SELECT TOP 1
                     $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
                 FROM
-                    [$attribute.capsule].[$attribute.name] pre
+                    [$attribute.capsule].[r$attribute.name](
+                        u.$attribute.positorColumnName,
+                        u.$attribute.changingColumnName,
+                        u.$attribute.positingColumnName
+                    ) pre
                 WHERE
-                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
-                AND
-                    pre.$attribute.positingColumnName <= u.$attribute.positingColumnName
-                AND
                     pre.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
-                    pre.$attribute.positorColumnName = u.$attribute.positorColumnName
+                    pre.$attribute.changingColumnName < u.$attribute.changingColumnName
                 AND
-                    pre.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                    pre.$attribute.reliableColumnName = 1
                 ORDER BY
-                    pre.$attribute.changingColumnName desc,
-                    pre.$attribute.positingColumnName desc
+                    pre.$attribute.changingColumnName DESC,
+                    pre.$attribute.positingColumnName DESC
             )
     )
     AND NOT EXISTS (
@@ -637,20 +637,20 @@ BEGIN
                 SELECT TOP 1
                     $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
                 FROM
-                    [$attribute.capsule].[$attribute.name] fol
+                    [$attribute.capsule].[f$attribute.name](
+                        u.$attribute.positorColumnName,
+                        u.$attribute.changingColumnName,
+                        u.$attribute.positingColumnName
+                    ) fol
                 WHERE
-                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
-                AND
-                    fol.$attribute.positingColumnName <= u.$attribute.positingColumnName
-                AND
                     fol.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
                 AND
-                    fol.$attribute.positorColumnName = u.$attribute.positorColumnName
+                    fol.$attribute.changingColumnName > u.$attribute.changingColumnName
                 AND
-                    fol.$attribute.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                    fol.$attribute.reliableColumnName = 1
                 ORDER BY
-                    fol.$attribute.changingColumnName asc,
-                    fol.$attribute.positingColumnName desc
+                    fol.$attribute.changingColumnName ASC,
+                    fol.$attribute.positingColumnName DESC                            
             )
     )~*/
 				}
