@@ -206,7 +206,11 @@ BEGIN
             }
 /*~
                         FROM
-                            [$tie.capsule].[$tie.name] pre
+                            [$tie.capsule].[r$tie.name] (
+                                v.$tie.positorColumnName,
+                                v.$tie.changingColumnName,
+                                v.$tie.positingColumnName                            
+                            ) pre
                         WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -235,11 +239,7 @@ BEGIN
 /*~
                             pre.$tie.changingColumnName < v.$tie.changingColumnName
                         AND
-                            pre.$tie.positingColumnName <= v.$tie.positingColumnName
-                        AND
-                            pre.$tie.positorColumnName = v.$tie.positorColumnName
-                        AND
-                            pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                            pre.$tie.reliableColumnName = 1
                         ORDER BY
                             pre.$tie.changingColumnName DESC,
                             pre.$tie.positingColumnName DESC
@@ -253,7 +253,11 @@ BEGIN
             }
 /*~
                         FROM
-                            [$tie.capsule].[$tie.name] fol
+                            [$tie.capsule].[f$tie.name] (
+                                v.$tie.positorColumnName,
+                                v.$tie.changingColumnName,
+                                v.$tie.positingColumnName                            
+                            ) fol
                         WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -282,11 +286,7 @@ BEGIN
 /*~
                             fol.$tie.changingColumnName > v.$tie.changingColumnName
                         AND
-                            fol.$tie.positingColumnName <= v.$tie.positingColumnName
-                        AND
-                            fol.$tie.positorColumnName = v.$tie.positorColumnName
-                        AND
-                            fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                            fol.$tie.reliableColumnName = 1
                         ORDER BY
                             fol.$tie.changingColumnName ASC,
                             fol.$tie.positingColumnName DESC
@@ -476,7 +476,11 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] pre
+                [$tie.capsule].[r$tie.name] (
+                    u.$tie.positorColumnName,
+                    u.$tie.changingColumnName,
+                    u.$tie.positingColumnName                            
+                ) pre
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -505,11 +509,7 @@ BEGIN
 /*~
                 pre.$tie.changingColumnName < u.$tie.changingColumnName
             AND
-                pre.$tie.positingColumnName <= u.$tie.positingColumnName
-            AND
-                pre.$tie.positorColumnName = u.$tie.positorColumnName
-            AND
-                pre.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                pre.$tie.reliableColumnName = 1
             ORDER BY
                 pre.$tie.changingColumnName DESC,
                 pre.$tie.positingColumnName DESC
@@ -523,7 +523,11 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] fol
+                [$tie.capsule].[f$tie.name] (
+                    u.$tie.positorColumnName,
+                    u.$tie.changingColumnName,
+                    u.$tie.positingColumnName                            
+                ) fol
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -552,11 +556,7 @@ BEGIN
 /*~
                 fol.$tie.changingColumnName > u.$tie.changingColumnName
             AND
-                fol.$tie.positingColumnName <= u.$tie.positingColumnName
-            AND
-                fol.$tie.positorColumnName = u.$tie.positorColumnName
-            AND
-                fol.$tie.reliabilityColumnName >= $schema.metadata.reliableCutoff
+                fol.$tie.reliableColumnName = 1
             ORDER BY
                 fol.$tie.changingColumnName ASC,
                 fol.$tie.positingColumnName DESC
