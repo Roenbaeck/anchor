@@ -429,6 +429,8 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
+        u.$attribute.valueColumnName is not null
+    AND
         u.$attribute.anchorReferenceName is not null
     AND
         p.$attribute.anchorReferenceName is null~*/
@@ -600,6 +602,8 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
+        i.$attribute.valueColumnName is not null
+    AND
         u.$attribute.anchorReferenceName is not null
     AND
         p.$attribute.anchorReferenceName is null~*/
