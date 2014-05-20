@@ -590,7 +590,21 @@ BEGIN
         inserted v
     CROSS APPLY (
         SELECT
-            cast(CASE WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName ELSE @now END as $tie.timeRange),
+            cast(
+            CASE 
+                WHEN
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                    v.$role.columnName is null
+                $(tie.hasMoreValues())? OR
+~*/
+            }
+/*~
+                THEN v.$tie.changingColumnName
+                WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName 
+                ELSE @now 
+            END as $tie.timeRange),
             cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE WHEN UPDATE($tie.positorColumnName) THEN v.$tie.positorColumnName ELSE 0 END,
             CASE 

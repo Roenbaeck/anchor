@@ -509,7 +509,12 @@ BEGIN
         SELECT
             CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
-            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            cast(
+            CASE 
+                WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN i.$attribute.changingColumnName
+                WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName 
+                ELSE @now 
+            END as $attribute.timeRange),
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
@@ -677,7 +682,12 @@ BEGIN
     CROSS APPLY (
         SELECT
             CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
-            cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
+            cast(
+            CASE 
+                WHEN i.$attribute.valueColumnName is null THEN i.$attribute.changingColumnName
+                WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName 
+                ELSE @now 
+            END as $attribute.timeRange),
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE 
