@@ -407,7 +407,7 @@ BEGIN
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     CROSS APPLY (
         SELECT
             CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
@@ -506,7 +506,7 @@ BEGIN
     LEFT JOIN
         [$knot.capsule].[$knot.name] [k$knot.mnemonic]
     ON
-        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
     CROSS APPLY (
         SELECT
             CASE WHEN UPDATE($attribute.anchorReferenceName) THEN i.$attribute.anchorReferenceName ELSE i.$anchor.identityColumnName END,
@@ -605,7 +605,7 @@ BEGIN
     ON
         p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     WHERE
@@ -618,9 +618,9 @@ BEGIN
 /*~                    
     AND NOT EXISTS (
         SELECT
-            $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) : i.$attribute.valueColumnName
+            'P'
         WHERE
-            $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) = ( : i.$attribute.valueColumnName = (
+            $(attribute.hasChecksum())? HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) = ( : i.$attribute.valueColumnName = (
                 SELECT TOP 1
                     $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
                 FROM
@@ -642,9 +642,9 @@ BEGIN
     )
     AND NOT EXISTS (
         SELECT
-            $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) : i.$attribute.valueColumnName
+            'F'
         WHERE
-            $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) = ( : i.$attribute.valueColumnName = (
+            $(attribute.hasChecksum())? HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) = ( : i.$attribute.valueColumnName = (
                 SELECT TOP 1
                     $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
                 FROM
@@ -720,7 +720,7 @@ BEGIN
     AND
         p.$attribute.changingColumnName = u.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
             if(!attribute.isAssertive()) {
 /*~
     WHERE NOT EXISTS (
