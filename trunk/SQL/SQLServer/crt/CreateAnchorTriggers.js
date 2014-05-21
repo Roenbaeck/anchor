@@ -89,8 +89,9 @@ BEGIN
         ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
         ISNULL(i.$attribute.positingColumnName, @now),
         ISNULL(i.$attribute.reliabilityColumnName, 
-        CASE i.$schema.metadata.reliableSuffix
-            WHEN 0 THEN $schema.metadata.deleteReliability
+        CASE
+            WHEN i.$schema.metadata.reliableSuffix = 0 THEN $schema.metadata.deleteReliability
+            WHEN i.$attribute.reliableColumnName = 0 THEN $schema.metadata.deleteReliability
             ELSE $schema.metadata.reliableCutoff
         END),
 ~*/
@@ -123,6 +124,7 @@ BEGIN
             $attribute.positorColumnName,
             $attribute.positingColumnName,
             $attribute.reliabilityColumnName,
+            $attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
