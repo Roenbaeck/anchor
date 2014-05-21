@@ -3309,15 +3309,15 @@
                 return true;
             },
             setFirstRole: function(role) {
-                this.node.edges.splice(this.node.edges.indexOf(role), 1);
-                this.node.edges.splice(0, 0, role);
+                this.node.edges.splice(this.node.edges.indexOf(role.node), 1);
+                this.node.edges.splice(0, 0, role.node);
             },
             checkIdentifiers: function() {
                 if(this.historized) {
                     var outside = 0, inside = 0;
                     for(var i = 0; i < this.node.edges.length; i++) {
-                        outside += this.node.edges[i].identifier ? 0 : 1;
-                        inside += this.node.edges[i].identifier ? 1 : 0;
+                        outside += Model.nodeToComponent(this.node.edges[i]).identifier ? 0 : 1;
+                        inside += Model.nodeToComponent(this.node.edges[i]).identifier ? 1 : 0;
                     }
                     if(outside > 1)
                         alert("The tie " + this + " has " + outside +
