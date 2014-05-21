@@ -1118,8 +1118,9 @@
                     node = component.node;
                     if(node.type === NodeType.EDGE) {
                         edge = node;
-                        if(tie = edge.node.type === NodeType.TIE ? edge.node :
-                                        edge.otherNode.type === NodeType.TIE ? edge.otherNode : null) {
+                        if(tie = edge.node.type === NodeType.TIE ? this.nodeToComponent(edge.node) :
+                                 edge.otherNode.type === NodeType.TIE ? this.nodeToComponent(edge.otherNode) : 
+                                 null) {
                             tie.setFirstRole(component);
                         }
                     }
@@ -1188,7 +1189,7 @@
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
                     var anchor = new Anchor(node.xPosition + dx, node.yPosition + dy);
                     this.addComponent(anchor);
-                    this.addComponent(new Edge(component, anchor, true));
+                    this.addComponent(new Role(component, anchor, true));
                 }
                 this.recordState();
                 this.refresh();
@@ -1225,7 +1226,7 @@
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
                     var knot = new Knot(node.xPosition + dx, node.yPosition + dy);
                     this.addComponent(knot);
-                    this.addComponent(new Edge(component, knot, true));
+                    this.addComponent(new Role(component, knot, true));
                 }
                 this.recordState();
                 this.refresh();
@@ -3307,9 +3308,9 @@
             isDraggable: function() {
                 return true;
             },
-            setFirstRole: function(edge) {
-                this.node.edges.splice(this.node.edges.indexOf(edge), 1);
-                this.node.edges.splice(0, 0, edge);
+            setFirstRole: function(role) {
+                this.node.edges.splice(this.node.edges.indexOf(role), 1);
+                this.node.edges.splice(0, 0, role);
             },
             checkIdentifiers: function() {
                 if(this.historized) {
