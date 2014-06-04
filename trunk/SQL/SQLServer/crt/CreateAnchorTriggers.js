@@ -543,12 +543,18 @@ BEGIN
     )
     JOIN
         [$attribute.capsule].[$attribute.positName] p
-    ON
-        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
-    AND
-        p.$attribute.changingColumnName = u.$attribute.changingColumnName
-    AND
-        p.$attribute.valueColumnName = u.$attribute.valueColumnName~*/
+    ON (
+            p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
+        AND
+            p.$attribute.changingColumnName = u.$attribute.changingColumnName
+        AND
+            p.$attribute.valueColumnName = u.$attribute.valueColumnName
+    )
+    OR (
+            p.$attribute.identityColumnName = i.$attribute.identityColumnName
+        AND
+            u.$attribute.valueColumnName is null
+    )~*/
             if(!attribute.isAssertive()) {
 /*~
     WHERE NOT EXISTS (
@@ -715,12 +721,18 @@ BEGIN
     )
     JOIN
         [$attribute.capsule].[$attribute.positName] p
-    ON
-        p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
-    AND
-        p.$attribute.changingColumnName = u.$attribute.changingColumnName
-    AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName~*/
+    ON (
+            p.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
+        AND
+            p.$attribute.changingColumnName = u.$attribute.changingColumnName
+        AND
+            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+    )
+    OR (
+            p.$attribute.identityColumnName = i.$attribute.identityColumnName
+        AND
+            i.$attribute.valueColumnName is null
+    )~*/
             if(!attribute.isAssertive()) {
 /*~
     WHERE NOT EXISTS (

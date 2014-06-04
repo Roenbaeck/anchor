@@ -633,14 +633,30 @@ BEGIN
     )
     JOIN
         [$tie.capsule].[$tie.positName] p
-    ON
-        p.$tie.changingColumnName = u.$tie.changingColumnName
+    ON (
+            p.$tie.changingColumnName = u.$tie.changingColumnName
 ~*/
             while(role = tie.nextRole()) {
 /*~
-    AND
-        p.$role.columnName = v.$role.columnName~*/
+        AND
+            p.$role.columnName = v.$role.columnName
+~*/
             }
+/*~
+    )
+    OR (
+            p.$tie.identityColumnName = v.$tie.identityColumnName
+        AND (
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                v.$role.columnName is null
+             $(tie.hasMoreValues())? OR  
+~*/
+            }
+/*~
+        )
+    )~*/
             if(!tie.isAssertive()) {
 /*~
     WHERE NOT EXISTS (
