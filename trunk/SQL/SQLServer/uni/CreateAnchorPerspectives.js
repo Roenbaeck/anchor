@@ -142,7 +142,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[p$anchor.name] ﻿(
+CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -301,7 +301,7 @@ GO
 -- Latest equivalence perspective -------------------------------------------------------------------------------------
 -- el$anchor.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[el$anchor.name] ﻿(
+CREATE FUNCTION [$anchor.capsule].[el$anchor.name] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -390,7 +390,7 @@ GO
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -- ep$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[ep$anchor.name] ﻿(
+CREATE FUNCTION [$anchor.capsule].[ep$anchor.name] (
     @equivalent $schema.metadata.equivalentRange,
     @changingTimepoint $schema.metadata.chronon
 )
@@ -495,7 +495,7 @@ GO
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -- en$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[en$anchor.name] ﻿(
+CREATE FUNCTION [$anchor.capsule].[en$anchor.name] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE AS RETURN

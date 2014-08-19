@@ -126,7 +126,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[p$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[p$tie.name] (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -282,7 +282,7 @@ GO
 -- Latest equivalence perspective -------------------------------------------------------------------------------------
 -- el$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[el$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[el$tie.name] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -359,7 +359,7 @@ GO
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------------------
 -- ep$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[ep$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[ep$tie.name] (
     @equivalent $schema.metadata.equivalentRange,
     @changingTimepoint $schema.metadata.chronon
 )
@@ -445,7 +445,7 @@ GO
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -- en$tie.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[en$tie.name] ﻿(
+CREATE FUNCTION [$tie.capsule].[en$tie.name] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE AS RETURN
