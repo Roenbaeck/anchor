@@ -59,7 +59,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- Point_$anchor.businessName viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] ﻿(
+CREATE FUNCTION [$anchor.capsule].[Point_$anchor.businessName] (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
@@ -142,7 +142,7 @@ GO
 -- Latest equivalence perspective -------------------------------------------------------------------------------------
 -- EQ_Latest_$anchor.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[EQ_Latest_$anchor.businessName] ﻿(
+CREATE FUNCTION [$anchor.capsule].[EQ_Latest_$anchor.businessName] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE AS RETURN
@@ -171,7 +171,7 @@ GO
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -- EQ_Point_$anchor.businessName viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[EQ_Point_$anchor.businessName] ﻿(
+CREATE FUNCTION [$anchor.capsule].[EQ_Point_$anchor.businessName] (
     @equivalent $schema.metadata.equivalentRange,
     @changingTimepoint $schema.metadata.chronon
 )
@@ -200,7 +200,7 @@ GO
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -- EQ_Current_$anchor.businessName viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[EQ_Current_$anchor.businessName] ﻿(
+CREATE FUNCTION [$anchor.capsule].[EQ_Current_$anchor.businessName] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE AS RETURN

@@ -127,7 +127,7 @@ GO
 -- Latest equivalence perspective -------------------------------------------------------------------------------------
 -- EQ_Latest_$tie.businessName viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$tie.capsule].[EQ_Latest_$tie.businessName] ﻿(
+CREATE FUNCTION [$tie.capsule].[EQ_Latest_$tie.businessName] (
     @equivalent $schema.metadata.equivalentRange
 )
 RETURNS TABLE AS RETURN
