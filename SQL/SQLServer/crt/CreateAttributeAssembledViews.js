@@ -15,7 +15,7 @@ while (anchor = schema.nextAnchor()) {
 -- $attribute.name assembled view of the posit and annex tables,
 -- pk$attribute.name optional temporal consistency constraint
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.name', 'V') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.name', 'V') IS NULL
 BEGIN
     EXEC('
     CREATE VIEW [$attribute.capsule].[$attribute.name]

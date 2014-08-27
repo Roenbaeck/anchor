@@ -15,7 +15,7 @@ while (anchor = schema.nextAnchor()) {
 -- Attribute equivalence view -----------------------------------------------------------------------------------------
 -- $attribute.name parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('e$attribute.name', 'IF') IS NULL
+IF Object_ID('$attribute.capsule$.e$attribute.name', 'IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[e$attribute.name] (

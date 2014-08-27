@@ -6,15 +6,15 @@ if(schema.EQUIVALENCE) {
 -- must be available the table is set up with a default equivalent with identity 0.
 --
 -- Equivalent table ---------------------------------------------------------------------------------------------------
-IF Object_ID('_$schema.metadata.equivalentSuffix', 'U') IS NULL
+IF Object_ID('$schema.metadata.encapsulation$._$schema.metadata.equivalentSuffix', 'U') IS NULL
 BEGIN
-    CREATE TABLE [$schema.metadata.defaultCapsule].[_$schema.metadata.equivalentSuffix] (
+    CREATE TABLE [$schema.metadata.encapsulation].[_$schema.metadata.equivalentSuffix] (
         $schema.metadata.equivalentSuffix $schema.metadata.equivalentRange not null,
         constraint pk_$schema.metadata.equivalentSuffix primary key (
             $schema.metadata.equivalentSuffix asc
         )
     );
-    INSERT INTO [$schema.metadata.defaultCapsule].[_$schema.metadata.equivalentSuffix] (
+    INSERT INTO [$schema.metadata.encapsulation].[_$schema.metadata.equivalentSuffix] (
         $schema.metadata.equivalentSuffix
     )
     VALUES (

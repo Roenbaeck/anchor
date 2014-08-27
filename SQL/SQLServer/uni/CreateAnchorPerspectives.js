@@ -33,24 +33,24 @@ while (anchor = schema.nextAnchor()) {
 ~*/
     if(schema.EQUIVALENCE) {
 /*~
-IF Object_ID('ed$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.ed$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[ed$anchor.name];
-IF Object_ID('en$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.en$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[en$anchor.name];
-IF Object_ID('ep$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.ep$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[ep$anchor.name];
-IF Object_ID('el$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.el$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[el$anchor.name];
 ~*/
     }
 /*~
-IF Object_ID('d$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.d$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('n$anchor.name', 'V') IS NOT NULL
+IF Object_ID('$anchor.capsule$.n$anchor.name', 'V') IS NOT NULL
 DROP VIEW [$anchor.capsule].[n$anchor.name];
-IF Object_ID('p$anchor.name', 'IF') IS NOT NULL
+IF Object_ID('$anchor.capsule$.p$anchor.name', 'IF') IS NOT NULL
 DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('l$anchor.name', 'V') IS NOT NULL
+IF Object_ID('$anchor.capsule$.l$anchor.name', 'V') IS NOT NULL
 DROP VIEW [$anchor.capsule].[l$anchor.name];
 GO
 -- Latest perspective -------------------------------------------------------------------------------------------------

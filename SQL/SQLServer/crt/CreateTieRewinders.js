@@ -20,7 +20,7 @@ while (tie = schema.nextTie()) {
 -- Tie posit rewinder -------------------------------------------------------------------------------------------------
 -- r$tie.positName rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$tie.positName','IF') IS NULL
+IF Object_ID('$tie.capsule$.r$tie.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.positName] (
@@ -47,7 +47,7 @@ GO
 -- Tie posit forwarder ------------------------------------------------------------------------------------------------
 -- f$tie.positName forwarding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('f$tie.positName','IF') IS NULL
+IF Object_ID('$tie.capsule$.f$tie.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[f$tie.positName] (
@@ -77,7 +77,7 @@ GO
 -- Tie annex rewinder -------------------------------------------------------------------------------------------------
 -- r$tie.annexName rewinding over positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$tie.annexName','IF') IS NULL
+IF Object_ID('$tie.capsule$.r$tie.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.annexName] (
@@ -101,7 +101,7 @@ GO
 -- Tie assembled rewinder ---------------------------------------------------------------------------------------------
 -- r$tie.name rewinding over changing and positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$tie.name','IF') IS NULL
+IF Object_ID('$tie.capsule$.r$tie.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[r$tie.name] (
@@ -152,7 +152,7 @@ GO
 -- Tie assembled forwarder --------------------------------------------------------------------------------------------
 -- f$tie.name forwarding over changing and positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('f$tie.name','IF') IS NULL
+IF Object_ID('$tie.capsule$.f$tie.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[f$tie.name] (

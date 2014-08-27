@@ -22,7 +22,7 @@ while (anchor = schema.nextAnchor()) {
 -- Attribute posit rewinder -------------------------------------------------------------------------------------------
 -- r$attribute.positName rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.positName','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.positName] (
@@ -45,7 +45,7 @@ GO
 -- Attribute posit forwarder ------------------------------------------------------------------------------------------
 -- f$attribute.positName forwarding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('f$attribute.positName','IF') IS NULL
+IF Object_ID('$attribute.capsule$.f$attribute.positName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[f$attribute.positName] (
@@ -68,7 +68,7 @@ GO
 -- Attribute annex rewinder -------------------------------------------------------------------------------------------
 -- r$attribute.annexName rewinding over positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.annexName','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
@@ -92,7 +92,7 @@ GO
 -- Attribute assembled rewinder ---------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing and positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.name','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
@@ -139,7 +139,7 @@ GO
 -- Attribute assembled forwarder --------------------------------------------------------------------------------------
 -- f$attribute.name forwarding over changing and rewinding over positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('f$attribute.name','IF') IS NULL
+IF Object_ID('$attribute.capsule$.f$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[f$attribute.name] (
@@ -190,7 +190,7 @@ GO
 -- Attribute annex rewinder -------------------------------------------------------------------------------------------
 -- r$attribute.annexName rewinding over positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.annexName','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.annexName','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.annexName] (
@@ -214,7 +214,7 @@ GO
 -- Attribute assembled rewinder ---------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing and positing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.name','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (

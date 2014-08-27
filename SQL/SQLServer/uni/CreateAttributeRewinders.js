@@ -18,7 +18,7 @@ while (anchor = schema.nextAnchor()) {
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('r$attribute.name','IF') IS NULL
+IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (

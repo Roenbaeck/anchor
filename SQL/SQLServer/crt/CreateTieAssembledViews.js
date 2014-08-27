@@ -15,7 +15,7 @@ while (tie = schema.nextTie()) {
 -- $tie.name assembled view of the posit and annex tables,
 -- pk$tie.name optional temporal consistency constraint
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.name', 'V') IS NULL
+IF Object_ID('$tie.capsule$.$tie.name', 'V') IS NULL
 BEGIN
     EXEC('
     CREATE VIEW [$tie.capsule].[$tie.name]
