@@ -15,7 +15,7 @@ while (knot = schema.nextKnot()) {
 -- Knot equivalence view ----------------------------------------------------------------------------------------------
 -- $knot.name view and parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.name', 'V') IS NULL
+IF Object_ID('$knot.capsule$.$knot.name', 'V') IS NULL
 BEGIN
     EXEC('
     CREATE VIEW [$knot.capsule].[$knot.name] WITH SCHEMABINDING
@@ -35,7 +35,7 @@ BEGIN
     ');
 END
 GO
-IF Object_ID('e$knot.name', 'IF') IS NULL
+IF Object_ID('$knot.capsule$.e$knot.name', 'IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$knot.capsule].[e$knot.name] (

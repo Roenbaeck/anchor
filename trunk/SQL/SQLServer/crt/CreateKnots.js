@@ -18,7 +18,7 @@ while (knot = schema.nextKnot()) {
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.name', 'U') IS NULL
+IF Object_ID('$knot.capsule$.$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,

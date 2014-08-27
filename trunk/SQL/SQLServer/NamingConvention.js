@@ -8,7 +8,7 @@ var businessIdentity = 'Id';
 var businessName;
 
 // set some hard coded defaults if they are missing
-schema.metadata.defaultCapsule = schema.metadata.defaultCapsule || 'dbo';
+schema.metadata.encapsulation = schema.metadata.encapsulation || 'dbo';
 schema.metadata.chronon = schema.metadata.chronon || 'datetime';
 
 var knot;

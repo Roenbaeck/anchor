@@ -17,7 +17,7 @@ while (anchor = schema.nextAnchor()) {
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.name', 'U') IS NULL
+IF Object_ID('$anchor.capsule$.$anchor.name', 'U') IS NULL
 CREATE TABLE [$anchor.capsule].[$anchor.name] (
     $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
@@ -36,7 +36,7 @@ GO
 -- Historized attribute posit table -----------------------------------------------------------------------------------
 -- $attribute.positName table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.positName', 'U') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
@@ -64,7 +64,7 @@ GO
 -- Knotted historized attribute posit table ---------------------------------------------------------------------------
 -- $attribute.positName table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.positName', 'U') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
@@ -94,7 +94,7 @@ GO
 -- Knotted static attribute posit table -------------------------------------------------------------------------------
 -- $attribute.positName table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.positName', 'U') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
@@ -121,7 +121,7 @@ GO
 -- Static attribute posit table -----------------------------------------------------------------------------------
 -- $attribute.positName table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.positName', 'U') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
@@ -146,7 +146,7 @@ GO
 -- Attribute annex table ----------------------------------------------------------------------------------------------
 -- $attribute.annexName table (of $attribute.positName on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.annexName', 'U') IS NULL
+IF Object_ID('$attribute.capsule$.$attribute.annexName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     $attribute.identityColumnName $attribute.identity not null,
     $attribute.positingColumnName $schema.metadata.positingRange not null,

@@ -27,7 +27,7 @@ if(restatements) {
 -- rf$tie.name restatement finder
 -- rc$tie.name restatement constraint (available only in ties that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('rf$tie.name', 'FN') IS NULL
+IF Object_ID('$tie.capsule$.rf$tie.name', 'FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$tie.capsule].[rf$tie.name] (

@@ -29,24 +29,24 @@ while (tie = schema.nextTie()) {
 ~*/
     if(schema.EQUIVALENCE) {
 /*~
-IF Object_ID('ed$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.ed$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[ed$tie.name];
-IF Object_ID('en$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.en$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[en$tie.name];
-IF Object_ID('ep$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.ep$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[ep$tie.name];
-IF Object_ID('el$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.el$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[el$tie.name];
 ~*/
     }
 /*~
-IF Object_ID('d$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.d$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[d$tie.name];
-IF Object_ID('n$tie.name', 'V') IS NOT NULL
+IF Object_ID('$tie.capsule$.n$tie.name', 'V') IS NOT NULL
 DROP VIEW [$tie.capsule].[n$tie.name];
-IF Object_ID('p$tie.name', 'IF') IS NOT NULL
+IF Object_ID('$tie.capsule$.p$tie.name', 'IF') IS NOT NULL
 DROP FUNCTION [$tie.capsule].[p$tie.name];
-IF Object_ID('l$tie.name', 'V') IS NOT NULL
+IF Object_ID('$tie.capsule$.l$tie.name', 'V') IS NOT NULL
 DROP VIEW [$tie.capsule].[l$tie.name];
 GO
 -- Latest perspective -------------------------------------------------------------------------------------------------

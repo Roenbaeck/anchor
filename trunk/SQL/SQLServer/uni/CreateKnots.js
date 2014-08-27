@@ -19,7 +19,7 @@ while (knot = schema.nextKnot()) {
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.identityName', 'U') IS NULL
+IF Object_ID('$knot.capsule$.$knot.identityName', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.identityName] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
@@ -31,7 +31,7 @@ GO
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.equivalentName', 'U') IS NULL
+IF Object_ID('$knot.capsule$.$knot.equivalentName', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
@@ -59,7 +59,7 @@ GO
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.name', 'U') IS NULL
+IF Object_ID('$knot.capsule$.$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,

@@ -44,7 +44,7 @@ if(restatements) {
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('rf$attribute.name', 'FN') IS NULL
+IF Object_ID('$attribute.capsule$.rf$attribute.name', 'FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (

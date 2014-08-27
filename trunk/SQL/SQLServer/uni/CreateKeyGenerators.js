@@ -13,7 +13,7 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('k$anchor.name', 'P') IS NULL
+IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
 BEGIN
     EXEC('
     CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
@@ -57,7 +57,7 @@ GO
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('k$anchor.name', 'P') IS NULL
+IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
 BEGIN
     EXEC('
     CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (

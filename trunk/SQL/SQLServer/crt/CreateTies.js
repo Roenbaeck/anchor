@@ -37,7 +37,7 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.positName table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.positName', 'U') IS NULL
+IF Object_ID('$tie.capsule$.$tie.positName', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.positName] (
     $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
 ~*/
@@ -54,7 +54,7 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
+    ) references $(role.anchor)? [$role.anchor.capsule].[$role.anchor.name]($role.anchor.identityColumnName), : [$role.knot.capsule].[$role.knot.name]($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -113,7 +113,7 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
 -- Tie annex table ----------------------------------------------------------------------------------------------------
 -- $tie.annexName table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.annexName', 'U') IS NULL
+IF Object_ID('$tie.capsule$.$tie.annexName', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.annexName] (
     $tie.identityColumnName $tie.identity not null,
     $tie.positingColumnName $schema.metadata.positingRange not null,
