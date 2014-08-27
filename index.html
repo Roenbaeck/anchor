@@ -763,27 +763,6 @@
                         return false;
                 return true;
             },
-            /*
-            sort: function() {
-                this.nodes.sort(function(a, b) {
-                    if (a.type === NodeType.EDGE)
-                        return -1;
-                    if (a.type === NodeType.KNOT &&
-                            !(b.type === NodeType.EDGE))
-                        return -1;
-                    if (a.type === NodeType.ANCHOR &&
-                            !(b.type === NodeType.EDGE) &&
-                            !(b.type === NodeType.KNOT))
-                        return -1;
-                    if (a.type === NodeType.ATTRIBUTE &&
-                            !(b.type === NodeType.ANCHOR) &&
-                            !(b.type === NodeType.EDGE) &&
-                            !(b.type === NodeType.KNOT))
-                        return -1;
-                    return 1;
-                });
-            },
-            */
             addComponent: function(component) {
                 // add node at the end of the array
                 if(component) {
@@ -1004,8 +983,12 @@
                         }
                     }
                 }
-                if(confirm("Are you sure you want to delete the following?\n-- " +
-                        affectedComponents.length + " nodes and  edges --\n" + affectedComponents.join('\n'))) {
+                // need to remove nodes before edges
+                affectedComponents.sort(function(firstComponent, secondComponent) {
+                    return firstComponent.node.type - secondComponent.node.type;
+                });
+                if(confirm("Are you sure you want to delete the following\n-------- " +
+                        affectedComponents.length + " nodes and edges --------\n" + affectedComponents.join('\n'))) {
                     for(i = 0; component = affectedComponents[i]; i++)
                         this.removeComponent(component);
                     this.recordState();
