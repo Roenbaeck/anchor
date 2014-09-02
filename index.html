@@ -788,9 +788,9 @@
                     this.deleteElementFromArray(edge.node.edges, edge);
                     this.deleteElementFromArray(edge.otherNode.edges, edge);
                 }
-                delete this.idToComponent[component.id];
                 component.hide();
                 this.deleteElementFromArray(this.components, component);
+                delete this.idToComponent[component.id];
                 this.refresh();
             },
             deleteElementFromArray: function(array, element) {
@@ -1957,10 +1957,10 @@
             },
             clickSelection: this.clickHighlight,
             endInteraction: function(event) {
-                event.preventDefault();
+                if(event) event.preventDefault();
                 var component = EventHandler.interactedComponents[EventHandler.interactedComponents.length - 1];
-                if(event.toElement !== component.svg.graphicsElement &&
-                        EventHandler.getInteraction() !== "whileDragging") {
+                if(!event || (event.toElement !== component.svg.graphicsElement &&
+                        EventHandler.getInteraction() !== "whileDragging")) {
                     for(var i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         component.hideContextMenu();
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
@@ -1971,7 +1971,7 @@
                     window.removeEventListener('keypress', EventHandler.keypress, false);
                     DrawingEngine.setCursor('default');
                 }
-                event.stopPropagation();
+                if(event) event.stopPropagation();
             },
             preparePanning: function(event) {
                 event.preventDefault();
@@ -2234,17 +2234,22 @@
                 this.fixationElement = document.createElementNS(SVGNS, 'use');
                 this.fixationElement.setAttributeNS(XLINKNS, 'xlink:href', '#fixation');
             },
-            addDebug: function(imageLayer) {
+            hideDebug: function(imageLayer) {
+                if(this.forceElement && imageLayer.contains(this.forceElement))
+                    imageLayer.removeChild(this.forceElement);
+            },
+            showDebug: function(imageLayer) {
                 this.forceElement = document.createElementNS(SVGNS, 'line');
                 this.forceElement.setAttributeNS(null, 'marker-end', 'url(#arrowhead)');
-                imageLayer.appendChild(this.forceElement);
+                if(!imageLayer.contains(this.forceElement))
+                    imageLayer.appendChild(this.forceElement);
             },
             hideGraphics: function(imageLayer) {
                 if(this.graphicsElement && imageLayer.contains(this.graphicsElement))
                     imageLayer.removeChild(this.graphicsElement);
             },
             showGraphics: function(imageLayer) {
-                if(this.graphicsElement)
+                if(this.graphicsElement && !imageLayer.contains(this.graphicsElement))
                     imageLayer.appendChild(this.graphicsElement);
             },
             hidePath: function(imageLayer) {
@@ -2252,7 +2257,7 @@
                     imageLayer.removeChild(this.pathElement);
             },
             showPath: function(imageLayer) {
-                if(this.pathElement)
+                if(this.pathElement && !imageLayer.contains(this.pathElement))
                     imageLayer.appendChild(this.pathElement);
             },
             hideName: function(imageLayer) {
@@ -2260,7 +2265,7 @@
                     imageLayer.removeChild(this.nameElement);
             },
             showName: function(imageLayer) {
-                if(this.nameElement)
+                if(this.nameElement && !imageLayer.contains(this.nameElement))
                     imageLayer.appendChild(this.nameElement);
             }
         };
@@ -2272,7 +2277,6 @@
             this.operations = ['erase', 'connect'];
             this.svg = new Symbol(this);
             this.svg.makeInteractive();
-            this.svg.addDebug(SVGLayer.debug);
             this.nav = new Symbol(this);
         }
         Component.prototype = {
@@ -2285,17 +2289,23 @@
             svg: null,
             nav: null,
             nameable: false,
-            hasHighlight: false,
-            isSelected: false,
+            highlighted: false,
+            selected: false,
             lastName: null,
             imploded: false,
+            visible: false,
             // can be overridden by subclasses
             hide: function() {
+                this.visible = false;
+                // stop any ongoing interactions
+                EventHandler.endInteraction();
+                // do not display in layers
                 this.svg.hideGraphics(SVGLayer.nodes);
                 this.nav.hideGraphics(NAVLayer.nodes);
                 this.svg.hidePath(SVGLayer.edges);
                 this.nav.hidePath(NAVLayer.edges);
                 this.svg.hideName(SVGLayer.names);
+                this.svg.hideDebug(SVGLayer.debug);
             },
             show: function() {
                 this.svg.showGraphics(SVGLayer.nodes);
@@ -2303,9 +2313,12 @@
                 this.svg.showPath(SVGLayer.edges);
                 this.nav.showPath(NAVLayer.edges);
                 this.svg.showName(SVGLayer.names);
+                this.svg.showDebug(SVGLayer.debug);
+                this.visible = true;
             },
             postCreationInitialization: function() {
                 this.editables.push(Editables.descriptionEdit);
+                this.show();
             },
             setId: function(id)  {
                 if(id) {
@@ -2415,7 +2428,7 @@
             end: false,
             drawName: function(x, y) {
                 var svg = this.svg;
-                if(svg.nameElement) {
+                if(this.visible && svg.nameElement) {
                     var node = this.node;
                     this.updateName();
                     var i, xAverage = 0, closestEdge = node.edges[0] || node;
@@ -2487,23 +2500,23 @@
             getFixed: function() {
                 return this.node.fixed;
             },
-            setSelection: function(selected) {
-                this.isSelected = selected;
-                if(selected && !this.svg.graphicsElement.contains(this.svg.selectionElement)) {
+            setSelection: function(select) {
+                this.selected = select;
+                if(select && this.visible && !this.svg.graphicsElement.contains(this.svg.selectionElement)) {
                     this.svg.selectionElement.addEventListener('click', EventHandler.clickSelection, false);
                     this.svg.graphicsElement.insertBefore(
                             this.svg.selectionElement,
                             this.svg.graphicsElement.firstChild
                     );
                 }
-                else if (!selected && this.svg.graphicsElement.contains(this.svg.selectionElement)) {
+                else if (!select && this.visible && this.svg.graphicsElement.contains(this.svg.selectionElement)) {
                     this.svg.graphicsElement.removeChild(this.svg.selectionElement);
                     this.svg.selectionElement.removeEventListener('click', EventHandler.clickSelection, false);
                 }
             },
             setHighlight: function(highlight) {
-                this.hasHighlight = highlight;
-                if(highlight && !this.svg.graphicsElement.contains(this.svg.highlightElement)) {
+                this.highlighted = highlight;
+                if(highlight && this.visible && !this.svg.graphicsElement.contains(this.svg.highlightElement)) {
                     this.svg.highlightElement.addEventListener('click', EventHandler.clickHighlight, false);
                     this.svg.graphicsElement.insertBefore(
                             this.svg.highlightElement,
@@ -2515,7 +2528,7 @@
                         this.svg.showName(this.svg.graphicsElement);
                     }
                 }
-                else if (!highlight && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
+                else if (!highlight && this.visible && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
                     this.svg.graphicsElement.removeChild(this.svg.highlightElement);
                     this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
                     this.svg.hideName(this.svg.graphicsElement);
