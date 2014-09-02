@@ -1506,8 +1506,8 @@
                     height *= scale;
                     width *= scale;
                 }
-                NAV.style.width = width + 'px';
-                NAV.style.height = height + 'px';
+                NAV.width.baseVal.value = width;
+                NAV.height.baseVal.value = height;
                 NAV.viewBox.baseVal.x = nodeBox.x - pad;
                 NAV.viewBox.baseVal.y = nodeBox.y - pad;
                 NAV.viewBox.baseVal.width = nodeBox.width + 2 * pad;
@@ -3659,16 +3659,6 @@
             identifier: true,
             coloring: '#000000',
             tied: false,
-            hide: function() {
-                this.svg.hideGraphics(SVGLayer.edges);
-                this.nav.hideGraphics(NAVLayer.edges);
-                Component.prototype.hide.apply(this, arguments);
-            },
-            show: function() {
-                this.svg.showGraphics(SVGLayer.edges);
-                this.nav.showGraphics(NAVLayer.edges);
-                Component.prototype.show.apply(this, arguments);
-            },
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
@@ -6410,7 +6400,9 @@
              version="1.1"
              xmlns:xlink="http://www.w3.org/1999/xlink"
              viewBox="0 0 1 1"
-             preserveAspectRatio="xMinYMin slice">
+             preserveAspectRatio="xMinYMin slice"
+             width="1"
+             height="1">
             <defs id="nav_graphics">
                 <g id="nav_knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
