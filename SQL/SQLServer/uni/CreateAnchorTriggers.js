@@ -353,7 +353,7 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        i.$attribute.anchorReferenceName,
+        u.$attribute.anchorReferenceName,
         $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         u.$attribute.changingColumnName,
         u.$attribute.valueColumnName
@@ -367,9 +367,11 @@ BEGIN
         $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
     CROSS APPLY (
         SELECT
+            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange),
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.changingColumnName,
         $attribute.valueColumnName
     )~*/
@@ -378,7 +380,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.name] b
     ON
-        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        b.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         b.$attribute.valueColumnName = u.$attribute.valueColumnName
     AND
@@ -386,8 +388,8 @@ BEGIN
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
-        [$attribute.capsule].[rf$attribute.name](
-            i.$attribute.anchorReferenceName,
+        [$attribute.capsule].[rf$attribute.name] (
+            u.$attribute.anchorReferenceName,
             u.$attribute.valueColumnName,
             u.$attribute.changingColumnName
         ) = 0~*/
@@ -405,7 +407,7 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        i.$attribute.anchorReferenceName,
+        u.$attribute.anchorReferenceName,
         $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? CASE WHEN UPDATE($attribute.metadataColumnName) THEN i.$attribute.metadataColumnName ELSE 0 END,
         u.$attribute.changingColumnName,
@@ -414,8 +416,10 @@ BEGIN
         inserted i
     CROSS APPLY (
         SELECT
+            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange)
     ) u (
+        $attribute.anchorReferenceName,
         $attribute.changingColumnName
     )~*/
                 if(attribute.isIdempotent()) {
@@ -423,7 +427,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.name] b
     ON
-        b.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        b.$attribute.anchorReferenceName = u.$attribute.anchorReferenceName
     AND
         $(attribute.hasChecksum())? b.$attribute.checksumColumnName = i.$attribute.checksumColumnName : b.$attribute.valueColumnName = i.$attribute.valueColumnName
     AND
@@ -433,8 +437,8 @@ BEGIN
     WHERE
         b.$attribute.anchorReferenceName is null
     AND
-        [$attribute.capsule].[rf$attribute.name](
-            i.$attribute.anchorReferenceName,
+        [$attribute.capsule].[rf$attribute.name] (
+            u.$attribute.anchorReferenceName,
             $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
             $(attribute.hasChecksum())? i.$attribute.checksumColumnName, : i.$attribute.valueColumnName,
             u.$attribute.changingColumnName
