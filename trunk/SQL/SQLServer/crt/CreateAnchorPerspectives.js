@@ -141,7 +141,7 @@ SELECT
     1 as $schema.metadata.reliableSuffix,
     [$anchor.mnemonic].*
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
         p.$schema.metadata.positorSuffix,
@@ -162,7 +162,7 @@ SELECT
     1 as $schema.metadata.reliableSuffix,
     [$anchor.mnemonic].*
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
         p.$schema.metadata.positorSuffix,
@@ -181,7 +181,7 @@ SELECT
     1 as $schema.metadata.reliableSuffix,
     [$anchor.mnemonic].*
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$anchor.capsule].[t$anchor.name] (
         p.$schema.metadata.positorSuffix,
@@ -206,7 +206,7 @@ SELECT
     timepoints.inspectedTimepoint,
     [$anchor.mnemonic].*
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 JOIN (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {

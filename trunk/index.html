@@ -5152,7 +5152,7 @@
                 document.getElementById('database').value = Defaults.databaseTarget;
                 document.getElementById('miniatureFramesBetweenRefresh').value = DrawingEngine.miniatureFramesBetweenRefresh;
                 document.getElementById('calculations').value = this.calculations;
-                document.getElementById('defaultCapsule').value = Defaults.encapsulation;
+                document.getElementById('encapsulation').value = Defaults.encapsulation;
                 document.getElementById('defaultIdentity').value = Defaults.identity;
                 document.getElementById('defaultChronon').value = Defaults.chronon;
                 document.getElementById('defaultNow').value = Defaults.now;
@@ -5177,7 +5177,7 @@
                 else
                     reset = true;
                 if(reset) {
-                    this.setDefaultCapsule('dbo');
+                    this.setEncapsulation('dbo');
                     this.setDefaultIdentity('int');
                     this.setDefaultChronon('datetime2(7)');
                     this.setDefaultNow('sysdatetime()');
@@ -5261,7 +5261,7 @@
                 storage.setItem("database", Defaults.databaseTarget);
                 storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
                 storage.setItem("calculations", this.calculations);
-                storage.setItem("defaultCapsule", Defaults.encapsulation);
+                storage.setItem("encapsulation", Defaults.encapsulation);
                 storage.setItem("defaultIdentity", Defaults.identity);
                 storage.setItem("defaultChronon", Defaults.chronon);
                 storage.setItem("defaultNow", Defaults.now);
@@ -5321,7 +5321,7 @@
                     this.setDatabase(storage.getItem('database') || 'SQLServer', false);
                     this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                     this.setCalculations(storage.getItem('calculations') || 'simple');
-                    this.setDefaultCapsule(storage.getItem('defaultCapsule') || Defaults.encapsulation);
+                    this.setEncapsulation(storage.getItem('encapsulation') || Defaults.encapsulation);
                     this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
                     this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
                     this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
@@ -5665,7 +5665,7 @@
             setIdentitySuffix: function(value) {
                 Defaults.identitySuffix = value;
             },
-            setDefaultCapsule: function(value) {
+            setEncapsulation: function(value) {
                 Defaults.encapsulation = value;
             },
             setDefaultIdentity: function(value) {
@@ -6356,7 +6356,7 @@
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing time suffix</li>
                 <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
-                <li title="The default 'schema' to use for new items."><input id="defaultCapsule" class="inputDefaults" type="text" onblur="Settings.setDefaultCapsule(this.value)"/> Capsule</li>
+                <li title="The default 'schema' to use for new items."><input id="encapsulation" class="inputDefaults" type="text" onblur="Settings.setEncapsulation(this.value)"/> Capsule</li>
                 <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
                 <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>

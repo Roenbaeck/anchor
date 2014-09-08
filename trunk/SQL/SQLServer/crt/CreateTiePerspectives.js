@@ -138,7 +138,7 @@ CREATE VIEW [$tie.capsule].[l$tie.name] AS
 SELECT
     *
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
         p.$schema.metadata.positorSuffix,
@@ -157,7 +157,7 @@ RETURNS TABLE AS RETURN
 SELECT
     *
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
         p.$schema.metadata.positorSuffix,
@@ -174,7 +174,7 @@ AS
 SELECT
     *
 FROM
-    [$schema.metadata.defaultCapsule].[_$schema.metadata.positorSuffix] p
+    [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
 CROSS APPLY
     [$tie.capsule].[t$tie.name] (
         p.$schema.metadata.positorSuffix,
