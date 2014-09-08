@@ -21,7 +21,7 @@ while (knot = schema.nextKnot()) {
     knot.identityColumnName = knot.mnemonic + D + schema.metadata.identitySuffix;
     knot.checksumColumnName = knot.mnemonic + D + schema.metadata.checksumSuffix;
     knot.equivalentColumnName = knot.mnemonic + D + schema.metadata.equivalentSuffix;
-    knot.capsule = knot.metadata.capsule || schema.metadata.defaultCapsule;
+    knot.capsule = knot.metadata.capsule || schema.metadata.encapsulation;
     knot.metadataColumnName = schema.metadata.metadataPrefix + D + knot.mnemonic;
     knot.toString = function() { return this.mnemonic; };
 }
@@ -49,7 +49,7 @@ while (anchor = schema.nextAnchor()) {
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
     anchor.businessName = anchor.descriptor;
     anchor.identityColumnName = anchor.mnemonic + D + schema.metadata.identitySuffix;
-    anchor.capsule = anchor.metadata.capsule || schema.metadata.defaultCapsule;
+    anchor.capsule = anchor.metadata.capsule || schema.metadata.encapsulation;
     anchor.metadataColumnName = schema.metadata.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.metadata.dummySuffix;
     anchor.businessIdentityColumnName = anchor.descriptor + D + businessIdentity;
@@ -97,7 +97,7 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.isHistorized()) {
             attribute.changingColumnName = attribute.uniqueMnemonic + D + schema.metadata.changingSuffix;
         }
-        attribute.capsule = attribute.metadata.capsule || schema.metadata.defaultCapsule;
+        attribute.capsule = attribute.metadata.capsule || schema.metadata.encapsulation;
         attribute.toString = function() { return this.mnemonic; };
     }
 }
@@ -181,7 +181,7 @@ while (tie = schema.nextTie()) {
     tie.positorColumnName = tie.name + D + schema.metadata.positorSuffix;
     tie.reliabilityColumnName = tie.name + D + schema.metadata.reliabilitySuffix;
     tie.reliableColumnName = tie.name + D + schema.metadata.reliableSuffix;
-    tie.capsule = tie.metadata.capsule || schema.metadata.defaultCapsule;
+    tie.capsule = tie.metadata.capsule || schema.metadata.encapsulation;
     tie.metadataColumnName = schema.metadata.metadataPrefix + D + tie.name;
     tie.versionColumnName = tie.name + D + schema.metadata.versionSuffix;
     tie.statementTypeColumnName = tie.name + D + schema.metadata.statementTypeSuffix;
