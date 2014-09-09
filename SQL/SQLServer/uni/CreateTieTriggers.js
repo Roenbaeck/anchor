@@ -23,7 +23,8 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @inserted TABLE (
@@ -289,7 +290,8 @@ INSTEAD OF UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {

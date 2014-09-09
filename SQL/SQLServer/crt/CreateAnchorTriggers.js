@@ -24,7 +24,8 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @$anchor.mnemonic TABLE (
@@ -380,7 +381,8 @@ INSTEAD OF UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
     IF(UPDATE($anchor.identityColumnName))
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/
@@ -775,7 +777,8 @@ INSTEAD OF DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @now $schema.metadata.chronon = $schema.metadata.now;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
