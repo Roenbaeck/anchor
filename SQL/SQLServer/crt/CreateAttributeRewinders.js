@@ -183,6 +183,80 @@ BEGIN
     ');
 END
 GO
+-- Attribute previous value -------------------------------------------------------------------------------------------
+-- pre$attribute.name function for getting previous value
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.pre$attribute.name','FN') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$attribute.capsule].[pre$attribute.name] (
+        @id $anchor.identity,
+        @positor $schema.metadata.positorRange = 0,
+        @changingTimepoint $attribute.timeRange = '$schema.EOT',
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
+    )
+    RETURNS $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
+    AS
+    BEGIN RETURN (
+        SELECT TOP 1
+            $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
+        FROM
+            [$attribute.capsule].[r$attribute.name](
+                @positor,
+                @changingTimepoint,
+                @positingTimepoint
+            ) pre
+        WHERE
+            pre.$attribute.anchorReferenceName = @id
+        AND
+            pre.$attribute.changingColumnName < @changingTimepoint
+        AND
+            pre.$attribute.reliableColumnName = 1
+        ORDER BY
+            pre.$attribute.changingColumnName DESC,
+            pre.$attribute.positingColumnName DESC
+    );
+    END
+    ');
+END
+GO
+-- Attribute following value ------------------------------------------------------------------------------------------
+-- fol$attribute.name function for getting following value
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.fol$attribute.name','FN') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$attribute.capsule].[fol$attribute.name] (
+        @id $anchor.identity,
+        @positor $schema.metadata.positorRange = 0,
+        @changingTimepoint $attribute.timeRange = '$schema.EOT',
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
+    )
+    RETURNS $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
+    AS
+    BEGIN RETURN (
+        SELECT TOP 1
+            $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
+        FROM
+            [$attribute.capsule].[f$attribute.name](
+                @positor,
+                @changingTimepoint,
+                @positingTimepoint
+            ) fol
+        WHERE
+            fol.$attribute.anchorReferenceName = @id
+        AND
+            fol.$attribute.changingColumnName > @changingTimepoint
+        AND
+            fol.$attribute.reliableColumnName = 1
+        ORDER BY
+            fol.$attribute.changingColumnName ASC,
+            fol.$attribute.positingColumnName DESC
+    );
+    END
+    ');
+END
+GO
 ~*/
         }
         else {
