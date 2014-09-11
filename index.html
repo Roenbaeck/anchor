@@ -3958,10 +3958,18 @@
                     modelContainer = document.createElement('div');
                     modelContainer.setAttribute("class", "modelContainer");
                     modelContainer.modelId = model.getAttribute("modelId");
-                    modelContainer.modelName = model.getAttribute("modelName");
+                    var modelName = model.getAttribute("modelName");
+                    if(modelName.indexOf('data:') == 0)
+                        modelName = atob(modelName.split(',')[1]);
+                    modelContainer.modelName = modelName;
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
                     modelContainer.modelKeywords = model.getAttribute("keywords");
-                    modelContainer.modelDescription = unescape(model.getAttribute("description"));
+                    var modelDescription = model.getAttribute("description");
+                    if(modelDescription.indexOf('data:') == 0)
+                        modelDescription = atob(modelDescription.split(',')[1]);
+                    else
+                        modelDescription = unescape(modelDescription);
+                    modelContainer.modelDescription = modelDescription;
                     modelContainer.lastLoaded = model.getAttribute("lastLoaded");
                     modelContainer.loadedCount = model.getAttribute("loadedCount");
                     modelContainer.url = window.location.protocol + '//' +
@@ -4005,7 +4013,7 @@
                     icon.setAttribute("src", model.getAttribute("icon"));
                     icon.setAttribute("class", "modelIcon");
                     var name = document.createElement("div");
-                    name.appendChild(document.createTextNode(model.getAttribute("modelName") + " "));
+                    name.appendChild(document.createTextNode(modelContainer.modelName + " "));
                     name.className = 'modelName';
                     var keywords = document.createElement("div");
                     keywords.className = 'modelKeywords';
@@ -4744,7 +4752,10 @@
                                 Model.setupMinimal(false);
                         }
                         else {
-                            var model = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
+                            var model, modelString = xmlhttp.responseText;
+                            if(modelString.indexOf('data:') == 0)
+                                modelString = atob(modelString.split(',')[1]);
+                            model = new DOMParser().parseFromString(modelString, 'text/xml');
                             EventHandler.clearSelection();
                             SVGLayer.clearAll();
                             NAVLayer.clearAll();
@@ -4799,12 +4810,12 @@
 
                     var params = {};
                     params.action = 'save';
-                    params.modelName = Model.name;
-                    params.modelXml = new XMLSerializer().serializeToString(Model.toXML(false));
+                    params.modelName = "data:text/plain;base64," + btoa(Model.name);
+                    params.modelXml = "data:text/xml;base64," + btoa(new XMLSerializer().serializeToString(Model.toXML(false)));
                     params.icon = Actions.toPNGDataURL(NAV);
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
-                    params.description = escape(Model.description);
+                    params.description = "data:text/plain;base64," + btoa(Model.description);
                     if(Model.id)
                         params.modelId = Model.id;
                     this.cloudWrapper(xmlhttp,params);
