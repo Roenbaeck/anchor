@@ -312,7 +312,8 @@ DROP PROCEDURE [$schema.metadata.encapsulation].[_GenerateDropScript];
 GO
 
 CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
-   @exclusionPattern varchar(42) = '[_]%' -- exclude Metadata by default
+   @exclusionPattern varchar(42) = '[_]%', -- exclude Metadata by default
+   @inclusionPattern varchar(42) = '%'     -- include everything by default
 )
 AS
 BEGIN
@@ -448,6 +449,8 @@ BEGIN
          o.[type] IN ('P', 'IF', 'FN', 'V', 'U')
       AND
          o.[name] NOT LIKE ISNULL(@exclusionPattern, '')
+      AND
+         o.[name] LIKE ISNULL(@inclusionPattern, '%')
    )
    SELECT @xml = (
        SELECT
