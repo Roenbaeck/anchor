@@ -15,7 +15,6 @@
 var anchor, attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
-        knot = attribute.knot;
         var statementTypes = "'N'";
         if(attribute.isAssertive())
             statementTypes += ",'D'";
@@ -45,7 +44,7 @@ BEGIN
         $attribute.positingColumnName $schema.metadata.positingRange not null,
         $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
         $attribute.reliableColumnName tinyint not null,
-        $(attribute.knotRange)? $attribute.valueColumnName $knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.versionColumnName bigint not null,
         $attribute.statementTypeColumnName char(1) not null,
