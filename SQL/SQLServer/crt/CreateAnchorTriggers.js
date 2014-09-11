@@ -12,7 +12,7 @@
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor;
+var anchor, knot, attribute;
 while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
 /*~
@@ -47,7 +47,6 @@ BEGIN
         $anchor.identityColumnName $anchor.identity not null,
         $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
-        var knot;
         while (attribute = anchor.nextAttribute()) {
 /*~
         $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
