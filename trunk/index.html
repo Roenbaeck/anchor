@@ -117,6 +117,14 @@
                     type.prototype[member] = supertype.prototype[member];
         }
 
+        // helpers for UTF-8, credits to Johan Sundström and the Mozilla Developer Network
+        function utf8_to_b64( str ) {
+            return window.btoa(unescape(encodeURIComponent( str )));
+        }
+        function b64_to_utf8( str ) {
+            return decodeURIComponent(escape(window.atob( str )));
+        }
+
         // available node types enumeration with textual representation
         var NodeType = {
             UNKNOWN:    0, '0': "Unknown",
@@ -3960,13 +3968,13 @@
                     modelContainer.modelId = model.getAttribute("modelId");
                     var modelName = model.getAttribute("modelName");
                     if(modelName.indexOf('data:') == 0)
-                        modelName = atob(modelName.split(',')[1]);
+                        modelName = b64_to_utf8(modelName.split(',')[1]);
                     modelContainer.modelName = modelName;
                     modelContainer.modelScope = model.getAttribute("scope") || "private";
                     modelContainer.modelKeywords = model.getAttribute("keywords");
                     var modelDescription = model.getAttribute("description");
                     if(modelDescription.indexOf('data:') == 0)
-                        modelDescription = atob(modelDescription.split(',')[1]);
+                        modelDescription = b64_to_utf8(modelDescription.split(',')[1]);
                     else
                         modelDescription = unescape(modelDescription);
                     modelContainer.modelDescription = modelDescription;
@@ -4754,7 +4762,7 @@
                         else {
                             var model, modelString = xmlhttp.responseText;
                             if(modelString.indexOf('data:') == 0)
-                                modelString = atob(modelString.split(',')[1]);
+                                modelString = b64_to_utf8(modelString.split(',')[1]);
                             model = new DOMParser().parseFromString(modelString, 'text/xml');
                             EventHandler.clearSelection();
                             SVGLayer.clearAll();
@@ -4810,12 +4818,15 @@
 
                     var params = {};
                     params.action = 'save';
-                    params.modelName = "data:text/plain;base64," + btoa(Model.name);
-                    params.modelXml = "data:text/xml;base64," + btoa(new XMLSerializer().serializeToString(Model.toXML(false)));
+                    params.modelName = "data:text/plain;charset=UTF-8;base64," +
+                            utf8_to_b64(Model.name);
+                    params.modelXml = "data:text/plain;charset=UTF-8;base64," +
+                            utf8_to_b64(new XMLSerializer().serializeToString(Model.toXML(false)));
                     params.icon = Actions.toPNGDataURL(NAV);
                     params.scope = Model.scope || "private";
                     params.keywords = Model.keywords;
-                    params.description = "data:text/plain;base64," + btoa(Model.description);
+                    params.description = "data:text/plain;charset=UTF-8;base64," +
+                            utf8_to_b64(Model.description);
                     if(Model.id)
                         params.modelId = Model.id;
                     this.cloudWrapper(xmlhttp,params);
