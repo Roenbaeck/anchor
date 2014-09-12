@@ -4749,7 +4749,7 @@
                 window.status = "Contacting Cloud...";
                 document.body.style.cursor = "wait";
                 var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.onreadystatechange = function() {//Call a function when the state changes.
+                xmlhttp.onreadystatechange = function() {
                     if(xmlhttp.readyState === 4) {
                         window.status = "";
                         document.body.style.cursor = "default";
@@ -4760,7 +4760,9 @@
                                 Model.setupMinimal(false);
                         }
                         else {
-                            var model, modelString = xmlhttp.responseText;
+                            // remove whitespace and newlines from the response
+                            var model, modelString = xmlhttp.responseText.replace(/\s/g,"");
+                            console.log('"' + modelString + '"');
                             if(modelString.indexOf('data:') == 0)
                                 modelString = b64_to_utf8(modelString.split(',')[1]);
                             model = new DOMParser().parseFromString(modelString, 'text/xml');
@@ -4820,7 +4822,7 @@
                     params.action = 'save';
                     params.modelName = "data:text/plain;charset=UTF-8;base64," +
                             utf8_to_b64(Model.name);
-                    params.modelXml = "data:text/plain;charset=UTF-8;base64," +
+                    params.modelXml = "data:text/xml;charset=UTF-8;base64," +
                             utf8_to_b64(new XMLSerializer().serializeToString(Model.toXML(false)));
                     params.icon = Actions.toPNGDataURL(NAV);
                     params.scope = Model.scope || "private";
