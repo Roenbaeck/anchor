@@ -67,7 +67,6 @@ BEGIN
             }
             else {
 /*~
-        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) null,
         $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -102,7 +101,6 @@ BEGIN
 ~*/
             }
 /*~
-        $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))),
         i.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
@@ -133,7 +131,6 @@ BEGIN
 ~*/
             }
 /*~
-            $(attribute.hasChecksum())? $attribute.checksumColumnName,
             $attribute.valueColumnName,
 ~*/
         }
@@ -153,7 +150,6 @@ BEGIN
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
-        $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $(attribute.timeRange)? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -163,7 +159,6 @@ BEGIN
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.anchorReferenceName,
-        $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
         $(attribute.isKnotted())? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
         i.$attribute.positingColumnName,
@@ -194,7 +189,7 @@ END
 GO
 ~*/
 	}
-	if(anchor.hasMoreHistorizedAttributes()) {
+	if(anchor.hasMoreAttributes()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
 -- ut$anchor.name instead of UPDATE trigger on l$anchor.name
@@ -209,7 +204,7 @@ BEGIN
     IF(UPDATE($anchor.identityColumnName))
         RAISERROR('The identity column $anchor.identityColumnName is not updatable.', 16, 1);
 ~*/
-		while (attribute = anchor.nextHistorizedAttribute()) {
+		while (attribute = anchor.nextAttribute()) {
 /*~
     IF(UPDATE($attribute.identityColumnName))
         RAISERROR('The identity column $attribute.identityColumnName is not updatable.', 16, 1);
@@ -225,20 +220,26 @@ BEGIN
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.anchorReferenceName,
             $attribute.valueColumnName,
-            $attribute.changingColumnName,
+            $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.positingColumnName,
             $attribute.positorColumnName,
             $attribute.reliabilityColumnName
         )
         SELECT
-            $(schema.METADATA)? i.$attribute.metadataColumnName,
+            $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
+~*/
+                if(attribute.isHistorized()) {
+/*~
             cast(CASE
                 WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 ELSE @now
             END as $attribute.timeRange),
+~*/
+                }
+/*~
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             CASE
@@ -260,7 +261,19 @@ BEGIN
         LEFT JOIN
             [$knot.capsule].[$knot.name] [k$knot.mnemonic]
         ON
-            $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))); : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName;
+            $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+~*/
+                if(!attribute.isHistorized()) {
+/*~
+        LEFT JOIN
+            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+        ON
+            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
+        WHERE
+            [$attribute.mnemonic].$attribute.anchorReferenceName is null
+~*/
+                }
+/*~
     END
 ~*/
             }
@@ -272,20 +285,26 @@ BEGIN
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.anchorReferenceName,
             $attribute.valueColumnName,
-            $attribute.changingColumnName,
+            $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.positingColumnName,
             $attribute.positorColumnName,
             $attribute.reliabilityColumnName
         )
         SELECT
-            $(schema.METADATA)? i.$attribute.metadataColumnName,
+            $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             i.$attribute.valueColumnName,
+~*/
+                if(attribute.isHistorized()) {
+/*~
             cast(CASE
                 WHEN i.$attribute.valueColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 ELSE @now
             END as $attribute.timeRange),
+~*/
+                }
+/*~
             cast(CASE WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName ELSE @now END as $schema.metadata.positingRange),
             CASE WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix ELSE ISNULL(i.$attribute.positorColumnName, 0) END,
             CASE
@@ -303,7 +322,19 @@ BEGIN
                 ELSE ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.reliableCutoff)
             END
         FROM
-            inserted i;
+            inserted i
+~*/
+                if(!attribute.isHistorized()) {
+/*~
+        LEFT JOIN
+            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+        ON
+            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
+        WHERE
+            [$attribute.mnemonic].$attribute.anchorReferenceName is null
+~*/
+                }
+/*~
     END
 ~*/
 			} // end of not knotted
@@ -312,7 +343,7 @@ BEGIN
 END
 GO
 ~*/
-	} // end of if historized attributes exist
+	} // end of if attributes exist
 	if(anchor.hasMoreAttributes()) {
 /*~
 -- DELETE trigger -----------------------------------------------------------------------------------------------------

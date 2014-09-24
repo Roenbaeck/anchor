@@ -2,7 +2,7 @@
 -- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
 --
 -- The following triggers on the assembled views make them behave like tables.
--- There are three different 'instead of' triggers: insert, update, and delete.
+-- There is one 'instead of' trigger for: insert.
 -- They will ensure that such operations are propagated to the underlying tables
 -- in a consistent way. Default values are used for some columns if not provided
 -- by the corresponding SQL statements.
@@ -67,7 +67,7 @@ BEGIN
             else 1
         end,
         i.$attribute.valueColumnName,
-        $(attribute.hasChecksum())? i.$attribute.checksumColumnName,
+        $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))),
         DENSE_RANK() OVER (
             PARTITION BY
                 i.$attribute.positorColumnName,

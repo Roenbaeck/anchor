@@ -2874,33 +2874,28 @@
             draw: function(image) {
                 /*
                 if(!this.svg.stops) {
-                    this.svg.stops = document.createElementNS(SVGNS, 'g');
-                    // expando property as a reference back to the underlying component for use in event handlers
-                    this.svg.stops.component = this;
-                    var stop, route, of, i, box;
+                    this.svg.stops = [];
+                    var stop, route, of, i, offset = -20, height = 14;
                     // TODO: speed up, clicking, editing, layering, route paths?
                     for(i = 0; i < this.keys.length; i++) {
                         stop = this.keys[i].stop;
                         route = this.keys[i].route;
                         of = this.keys[i].of;
-                        var stopElement = document.createElementNS(SVGNS, 'text');
-                        stopElement.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
-                        stopElement.setAttributeNS(null, 'class', 'stop');
+
+                        offset -= height * i;
+
+                        var stopElement = document.createElementNS(SVGNS, 'use');
+                        stopElement.setAttributeNS(XLINKNS, 'xlink:href', '#stop');
+                        stopElement.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
                         stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
-                        this.svg.graphicsElement.insertBefore(stopElement, this.svg.graphicsElement.firstChild);
-                        box = stopElement.getBBox();
-                        var offset = -20 - (box.height + 3) * i;
-                        stopElement.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
-                        var stopBox = document.createElementNS(SVGNS, 'rect');
-                        stopBox.setAttributeNS(null, 'x', box.x - 2.5);
-                        stopBox.setAttributeNS(null, 'y', box.y - 1);
-                        stopBox.setAttributeNS(null, 'rx', 2);
-                        stopBox.setAttributeNS(null, 'ry', 2);
-                        stopBox.setAttributeNS(null, 'width', box.width + 5);
-                        stopBox.setAttributeNS(null, 'height', box.height + 2);
-                        stopBox.setAttributeNS(null, 'transform', 'translate(0, ' + offset + ')');
-                        stopBox.style.fill = '#708090';
-                        this.svg.graphicsElement.insertBefore(stopBox, stopElement);
+                        stopElement.component = this;
+                        this.svg.stops.push(stopElement);
+                        this.svg.graphicsElement.appendChild(stopElement);
+                        var stopText = document.createElementNS(SVGNS, 'text');
+                        stopText.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
+                        stopText.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
+                        stopText.setAttributeNS(null, 'class', 'stop');
+                        this.svg.graphicsElement.appendChild(stopText);
                     }
                 }
                 */
@@ -6094,6 +6089,7 @@
             SVGLayer.addLayer('debug');
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
+            SVGLayer.addLayer('keys');
             SVGLayer.addLayer('names');
             SVGLayer.hide('names');
             SVGLayer.hide('debug');
@@ -6281,6 +6277,9 @@
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
                 <line x1="-3" y1="3" x2="3" y2="3"/>
+            </g>
+            <g id="stop">
+                <rect width="24" height="11" rx="2" ry="2" transform="translate(-12, -8)" style="fill:#708090;"/>
             </g>
         </defs>
         <!-- layers are appended here -->
