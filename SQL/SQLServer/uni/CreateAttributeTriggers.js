@@ -20,12 +20,12 @@ while (anchor = schema.nextAnchor()) {
             statementTypes += ",'R'";
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
--- it$attribute.name instead of INSERT trigger on $attribute.name
+-- it_$attribute.name instead of INSERT trigger on $attribute.name
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.it$attribute.name', 'TR') IS NOT NULL
-DROP TRIGGER [$attribute.capsule].[it$attribute.name];
+IF Object_ID('$attribute.capsule$.it_$attribute.name', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule].[it_$attribute.name];
 GO
-CREATE TRIGGER [$attribute.capsule].[it$attribute.name] ON [$attribute.capsule].[$attribute.name]
+CREATE TRIGGER [$attribute.capsule].[it_$attribute.name] ON [$attribute.capsule].[$attribute.name]
 INSTEAD OF INSERT
 AS
 BEGIN

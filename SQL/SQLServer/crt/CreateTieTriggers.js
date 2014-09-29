@@ -1,7 +1,7 @@
 /*~
 -- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
 --
--- The following triggers on the latest view make it behave like a table.
+-- The following triggers on the assembled and latest views make them behave like tables.
 -- There are three different 'instead of' triggers: insert, update, and delete.
 -- They will ensure that such operations are propagated to the underlying tables
 -- in a consistent way. Default values are used for some columns if not provided
@@ -16,9 +16,12 @@ var tie, role, knot, anchor;
 while (tie = schema.nextTie()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
--- it$tie.name instead of INSERT trigger on l$tie.name
+-- it$tie.name instead of INSERT trigger on $tie.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$tie.capsule].[it$tie.name] ON [$tie.capsule].[l$tie.name]
+IF Object_ID('$tie.capsule$.it_$tie.name', 'TR') IS NOT NULL
+DROP TRIGGER [$tie.capsule].[it_$tie.name];
+GO
+CREATE TRIGGER [$tie.capsule].[it_$tie.name] ON [$tie.capsule].[$tie.name]
 INSTEAD OF INSERT
 AS
 BEGIN
@@ -109,30 +112,13 @@ BEGIN
         END),        
 ~*/
         while (role = tie.nextRole()) {
-            if(role.knot) {
-                knot = role.knot;
 /*~
-        ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName)~*/
-            }
-            else {
-                anchor = role.anchor;
-/*~
-        i.$role.columnName~*/
-            }
-            /*~$(tie.hasMoreRoles())?,~*/
+        i.$role.columnName$(tie.hasMoreRoles())?,
+~*/
         }
 /*~
     FROM
-        inserted i~*/
-        while (role = tie.nextKnotRole()) {
-            knot = role.knot;
-/*~
-    LEFT JOIN
-        [$knot.capsule].[$knot.name] [$role.name]
-    ON
-        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
-        }
-/*~
+        inserted i
     WHERE
 ~*/
         if(tie.hasMoreIdentifiers()) {
@@ -387,12 +373,65 @@ BEGIN
 END
 GO
 ~*/
-    if(tie.isHistorized() && tie.hasMoreValues()) {
+// Here comes the trigger on the latest view, using the trigger above
+/*~
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$tie.name instead of INSERT trigger on l$tie.name
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule].[it_l$tie.name] ON [$tie.capsule].[l$tie.name]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
+    INSERT INTO [$tie.capsule].[$tie.name] (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+        while (role = tie.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+        }
+/*~        
+        $tie.positorColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName
+    )
+    SELECT
+        $(schema.METADATA)? i.$tie.metadataColumnName,
+        $(tie.isHistorized())? i.$tie.changingColumnName,
+~*/
+        while (role = tie.nextRole()) {
+/*~
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName), : i.$role.columnName,
+~*/
+        }
+/*~
+        i.$tie.positorColumnName,
+        i.$tie.positingColumnName,
+        i.$tie.reliabilityColumnName
+    FROM
+        inserted i~*/
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [$role.name]
+    ON
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
+        }
+/*~;           
+END
+GO
+~*/
+    if(tie.hasMoreValues()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
--- ut$tie.name instead of UPDATE trigger on l$tie.name
+-- ut_l$tie.name instead of UPDATE trigger on l$tie.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$tie.capsule].[ut$tie.name] ON [$tie.capsule].[l$tie.name]
+CREATE TRIGGER [$tie.capsule].[ut_l$tie.name] ON [$tie.capsule].[l$tie.name]
 INSTEAD OF UPDATE
 AS
 BEGIN
@@ -409,286 +448,71 @@ BEGIN
             }
         }
 /*~
-    INSERT INTO [$tie.capsule].[$tie.positName] (
+    INSERT INTO [$tie.capsule].[$tie.name] (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
-            while(role = tie.nextRole()) {
+        while (role = tie.nextRole()) {
 /*~
         $role.columnName,
 ~*/
-            }
+        }
 /*~
-        $tie.changingColumnName
+        $tie.positorColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName
     )
     SELECT
+        $(schema.METADATA)? i.$tie.metadataColumnName,
+        $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
 ~*/
-            while(role = tie.nextRole()) {
+        while (role = tie.nextRole()) {
 /*~
-        i.$role.columnName,
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName), : i.$role.columnName,
 ~*/
-            }
+        }
 /*~
-        u.$tie.changingColumnName
+        CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE 0 END,
+        cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
+        CASE 
+            WHEN
+~*/
+        while(role = tie.nextValue()) {
+/*~
+                i.$role.columnName is null
+            $(tie.hasMoreValues())? OR
+~*/
+        }
+/*~
+            THEN $schema.metadata.deleteReliability
+            WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName 
+            WHEN UPDATE($tie.reliableColumnName) THEN 
+                CASE i.$tie.reliableColumnName
+                    WHEN 0 THEN $schema.metadata.deleteReliability
+                    ELSE $schema.metadata.reliableCutoff
+                END                
+            ELSE ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff)
+        END
     FROM
-        inserted i
-    CROSS APPLY (
-        SELECT
-            cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
-            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
-            CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE 0 END
-    ) u (
-        $tie.changingColumnName,
-        $tie.positingColumnName,
-        $tie.positorColumnName
-    )~*/
-        if(tie.isIdempotent()) {
+        inserted i~*/
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
 /*~
     LEFT JOIN
-        [$tie.capsule].[$tie.positName] p
+        [$knot.capsule].[$knot.name] [$role.name]
     ON
-        p.$tie.changingColumnName = u.$tie.changingColumnName
-~*/
-        while(role = tie.nextRole()) {
-/*~
-    AND
-        p.$role.columnName = i.$role.columnName
-~*/
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~
-    WHERE
-~*/
-        while(role = tie.nextRole()) {
-/*~
-        i.$role.columnName is not null
-    AND
-~*/
-        }
-/*~    
-        p.$tie.identityColumnName is null
-    AND (
-        SELECT
-            COUNT(*)
-        FROM (
-            SELECT TOP 1
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                pre.$role.columnName$(tie.hasMoreValues())?,
-~*/
-            }
-/*~
-            FROM
-                [$tie.capsule].[r$tie.name] (
-                    u.$tie.positorColumnName,
-                    u.$tie.changingColumnName,
-                    u.$tie.positingColumnName                            
-                ) pre
-            WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                pre.$role.columnName = i.$role.columnName
-            AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
-~*/
-                while(role = tie.nextValue()) {
-/*~
-                    pre.$role.columnName = i.$role.columnName
-                $(tie.hasMoreValues())? OR
-~*/
-                }
-/*~
-            )
-            AND
-~*/
-            }
-/*~
-                pre.$tie.changingColumnName < u.$tie.changingColumnName
-            AND
-                pre.$tie.reliableColumnName = 1
-            ORDER BY
-                pre.$tie.changingColumnName DESC,
-                pre.$tie.positingColumnName DESC
-            UNION
-            SELECT TOP 1
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                fol.$role.columnName$(tie.hasMoreValues())?,
-~*/
-            }
-/*~
-            FROM
-                [$tie.capsule].[f$tie.name] (
-                    u.$tie.positorColumnName,
-                    u.$tie.changingColumnName,
-                    u.$tie.positingColumnName                            
-                ) fol
-            WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                fol.$role.columnName = i.$role.columnName
-            AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
-~*/
-                while(role = tie.nextValue()) {
-/*~
-                    fol.$role.columnName = i.$role.columnName
-                $(tie.hasMoreValues())? OR
-~*/
-                }
-/*~
-            )
-            AND
-~*/
-            }
-/*~
-                fol.$tie.changingColumnName > u.$tie.changingColumnName
-            AND
-                fol.$tie.reliableColumnName = 1
-            ORDER BY
-                fol.$tie.changingColumnName ASC,
-                fol.$tie.positingColumnName DESC
-        ) s
-        WHERE
-~*/
-            while(role = tie.nextValue()) {
-/*~
-            s.$role.columnName = i.$role.columnName
-        $(tie.hasMoreValues())? AND
-~*/
-            }
-/*~
-        ) = 0~*/
-        }
-/*~;
-    INSERT INTO [$tie.capsule].[$tie.annexName] (
-        $(schema.METADATA)? $tie.metadataColumnName,
-        $tie.identityColumnName,
-        $tie.positorColumnName,
-        $tie.positingColumnName,
-        $tie.reliabilityColumnName
-    )
-    SELECT
-        $(schema.METADATA)? v.$tie.metadataColumnName,
-        p.$tie.identityColumnName,
-        u.$tie.positorColumnName,
-        u.$tie.positingColumnName,
-        u.$tie.reliabilityColumnName
-    FROM
-        inserted v
-    CROSS APPLY (
-        SELECT
-            cast(
-            CASE 
-                WHEN
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                    v.$role.columnName is null
-                $(tie.hasMoreValues())? OR
-~*/
-            }
-/*~
-                THEN v.$tie.changingColumnName
-                WHEN UPDATE($tie.changingColumnName) THEN v.$tie.changingColumnName 
-                ELSE @now 
-            END as $tie.timeRange),
-            cast(CASE WHEN UPDATE($tie.positingColumnName) THEN v.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
-            CASE WHEN UPDATE($tie.positorColumnName) THEN v.$tie.positorColumnName ELSE 0 END,
-            CASE 
-                WHEN
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                    v.$role.columnName is null
-                $(tie.hasMoreValues())? OR
-~*/
-            }
-/*~
-                THEN $schema.metadata.deleteReliability
-                WHEN UPDATE($tie.reliabilityColumnName) THEN v.$tie.reliabilityColumnName 
-                WHEN UPDATE($tie.reliableColumnName) THEN 
-                    CASE v.$tie.reliableColumnName
-                        WHEN 0 THEN $schema.metadata.deleteReliability
-                        ELSE $schema.metadata.reliableCutoff
-                    END                
-                ELSE ISNULL(v.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff)
-            END  
-    ) u (
-        $tie.changingColumnName,
-        $tie.positingColumnName,
-        $tie.positorColumnName,
-        $tie.reliabilityColumnName
-    )
-    JOIN
-        [$tie.capsule].[$tie.positName] p
-    ON (
-            p.$tie.changingColumnName = u.$tie.changingColumnName
-~*/
-            while(role = tie.nextRole()) {
-/*~
-        AND
-            p.$role.columnName = v.$role.columnName
-~*/
-            }
-/*~
-    )
-    OR (
-            p.$tie.identityColumnName = v.$tie.identityColumnName
-        AND (
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                v.$role.columnName is null
-             $(tie.hasMoreValues())? OR  
-~*/
-            }
-/*~
-        )
-    )~*/
-            if(!tie.isAssertive()) {
-/*~
-    WHERE NOT EXISTS (
-        SELECT 
-            u.$tie.reliabilityColumnName
-        WHERE
-            u.$tie.reliabilityColumnName = (
-                SELECT TOP 1
-                    a.$tie.reliabilityColumnName
-                FROM
-                    [$tie.capsule].[$tie.annexName] a
-                WHERE
-                    a.$tie.identityColumnName = p.$tie.identityColumnName
-                AND
-                    a.$tie.positorColumnName = u.$tie.positorColumnName
-                ORDER BY
-                    a.$tie.positingColumnName desc
-            )
-    )~*/
-            }
-/*~;
+/*~;     
 END
 GO
 ~*/
     }
 /*~
 -- DELETE trigger -----------------------------------------------------------------------------------------------------
--- dt$tie.name instead of DELETE trigger on l$tie.name
+-- dt_l$tie.name instead of DELETE trigger on l$tie.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$tie.capsule].[dt$tie.name] ON [$tie.capsule].[l$tie.name]
+CREATE TRIGGER [$tie.capsule].[dt_l$tie.name] ON [$tie.capsule].[l$tie.name]
 INSTEAD OF DELETE
 AS
 BEGIN
