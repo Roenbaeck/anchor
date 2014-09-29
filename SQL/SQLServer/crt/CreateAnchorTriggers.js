@@ -262,18 +262,6 @@ BEGIN
             [$knot.capsule].[$knot.name] [k$knot.mnemonic]
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
-~*/
-                if(!attribute.isHistorized()) {
-/*~
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-        ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
-        WHERE
-            [$attribute.mnemonic].$attribute.anchorReferenceName is null
-~*/
-                }
-/*~
     END
 ~*/
             }
@@ -323,18 +311,6 @@ BEGIN
             END
         FROM
             inserted i
-~*/
-                if(!attribute.isHistorized()) {
-/*~
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-        ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
-        WHERE
-            [$attribute.mnemonic].$attribute.anchorReferenceName is null
-~*/
-                }
-/*~
     END
 ~*/
 			} // end of not knotted
