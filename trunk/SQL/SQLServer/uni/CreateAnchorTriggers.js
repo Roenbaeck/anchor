@@ -240,18 +240,8 @@ BEGIN
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
-~*/
-                if(!attribute.isHistorized()) {
-/*~
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-        ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
         WHERE
-            [$attribute.mnemonic].$attribute.anchorReferenceName is null
-~*/
-                }
-/*~
+            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
     END
 ~*/
             }
@@ -284,20 +274,8 @@ BEGIN
             i.$attribute.valueColumnName
         FROM
             inserted i
-~*/
-                if(!attribute.isHistorized()) {
-/*~
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-        ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName)
-        $(attribute.isEquivalent())? AND
-            $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         WHERE
-            [$attribute.mnemonic].$attribute.anchorReferenceName is null
-~*/
-                }
-/*~
+            i.$attribute.valueColumnName is not null;
     END
 ~*/
 			} // end of not knotted
