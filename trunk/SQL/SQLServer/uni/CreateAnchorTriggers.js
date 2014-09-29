@@ -17,9 +17,9 @@ while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
--- it$anchor.name instead of INSERT trigger on l$anchor.name
+-- it_l$anchor.name instead of INSERT trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$anchor.capsule].[it$anchor.name] ON [$anchor.capsule].[l$anchor.name]
+CREATE TRIGGER [$anchor.capsule].[it_l$anchor.name] ON [$anchor.capsule].[l$anchor.name]
 INSTEAD OF INSERT
 AS
 BEGIN
@@ -188,9 +188,9 @@ GO
     if(anchor.hasMoreAttributes()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
--- ut$anchor.name instead of UPDATE trigger on l$anchor.name
+-- ut_l$anchor.name instead of UPDATE trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$anchor.capsule].[ut$anchor.name] ON [$anchor.capsule].[l$anchor.name]
+CREATE TRIGGER [$anchor.capsule].[ut_l$anchor.name] ON [$anchor.capsule].[l$anchor.name]
 INSTEAD OF UPDATE
 AS
 BEGIN
@@ -288,9 +288,9 @@ GO
     if(anchor.hasMoreAttributes()) {
 /*~
 -- DELETE trigger -----------------------------------------------------------------------------------------------------
--- dt$anchor.name instead of DELETE trigger on l$anchor.name
+-- dt_l$anchor.name instead of DELETE trigger on l$anchor.name
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TRIGGER [$anchor.capsule].[dt$anchor.name] ON [$anchor.capsule].[l$anchor.name]
+CREATE TRIGGER [$anchor.capsule].[dt_l$anchor.name] ON [$anchor.capsule].[l$anchor.name]
 INSTEAD OF DELETE
 AS
 BEGIN
