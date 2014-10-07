@@ -90,7 +90,7 @@ BEGIN
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
 /*~
         i.$attribute.knotValueColumnName,
-        $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max)))),
+        $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max)))),
         $(knot.isEquivalent())? ISNULL(i.$equivalent, 0),
         $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$anchor.metadataColumnName),
 ~*/
@@ -237,7 +237,7 @@ BEGIN
         LEFT JOIN
             [$knot.capsule].[$knot.name] [k$knot.mnemonic]
         ON
-            $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = HashBytes('MD5', cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+            $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
         WHERE

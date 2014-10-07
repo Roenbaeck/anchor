@@ -36,7 +36,7 @@ CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
+    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
@@ -63,7 +63,7 @@ IF Object_ID('$knot.capsule$.$knot.name', 'U') IS NULL
 CREATE TABLE [$knot.capsule].[$knot.name] (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName as cast(HashBytes('MD5', cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
+    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
         $knot.identityColumnName asc

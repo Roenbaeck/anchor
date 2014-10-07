@@ -41,7 +41,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
         $attribute.anchorReferenceName
@@ -126,7 +126,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(HashBytes('MD5', cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) PERSISTED,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     constraint fk$attribute.positName foreign key (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
