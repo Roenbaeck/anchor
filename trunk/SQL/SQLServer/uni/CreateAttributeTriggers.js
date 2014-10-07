@@ -54,7 +54,7 @@ BEGIN
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
         i.$attribute.valueColumnName,
-        $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))),
+        $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
 ~*/
         if(attribute.isHistorized()) {
 /*~

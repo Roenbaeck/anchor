@@ -67,7 +67,7 @@ BEGIN
             else 1
         end,
         i.$attribute.valueColumnName,
-        $(attribute.hasChecksum())? ISNULL(i.$attribute.checksumColumnName, HashBytes('MD5', cast(i.$attribute.valueColumnName as varbinary(max)))),
+        $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
         DENSE_RANK() OVER (
             PARTITION BY
                 i.$attribute.positorColumnName,
