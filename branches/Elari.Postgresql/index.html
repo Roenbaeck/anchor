@@ -3760,6 +3760,21 @@
                 [/"bit"/ig,                             '"NUMBER(1)"'],
                 [/"uniqueidentifier"/ig,                '"RAW(16)"']
             ],
+            SQLServer_to_PostgreSQL: [
+				[/"tinyint"/ig,                         '"smallint"'],
+				[/"datetime"/ig,                        '"timestamp"'],
+				[/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
+				[/"varchar\(max\)"/ig,                  '"text"'],
+				[/"varbinary\(([0-9]+)\)"/ig,           '"bytea($1)"'],
+                [/"varbinary\(max\)"/ig,                '"bytea"'],
+          	],
+          	PostgreSQL_to_SQLServer: [
+				[/"timestamp"/ig,         				 '"datetime"'],
+				[/"timestamp\(([0-9]+)\)"/ig,      		 '"datetime2($1)"'],
+				[/"text"/ig,                  			 '"varchar(max)"'],
+				[/"bytea\(([0-9]+)\)"/ig,           	 '"varbinary($1)"'],
+                [/"bytea"/ig,                			 '"varbinary(max)"'],
+      		],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
                 if(!ruleset) {
@@ -6330,6 +6345,7 @@
                     <select id="database" onchange="Settings.setDatabase(this.value, true)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
                         <option value="Oracle">Oracle</option>
+                        <option value="PostgreSQL">PostgreSQL</option>
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
