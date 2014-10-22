@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Your browser is not supported</title>
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+        }
+        td {
+            padding: 4px 12px 4px 4px;
+            border: 1px solid gray;
+        }
+        th {
+            padding: 4px 12px 4px 4px;
+            text-align: left;
+        }
+        /* functional support */
+        .full {
+            background:  #6f6;
+        }
+        .medium {
+            background:  #ff6;
+        }
+        .none {
+            background:  #f88;
+        }
+        /* performance */
+        .fast {
+            background:  #6f6;
+        }
+        .good {
+            background:  #ff6;
+        }
+        .slow {
+            background:  #f88;
+        }
+        /* recommendations */
+        .recommended {
+            font-weight: bold;
+            background:  #6f6;
+        }
+        .unsupported {
+            background:  #f88;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your browser is not supported!</h1>
+    <p>
+    In order to use this application get a browser that supports it (without red marks):
+    </p>
+    <table>
+        <tr>
+            <th>Browser</th><th>Version</th><th>Performance</th><th>Functionality</th>
+        </tr>
+        <tr class="recommended">
+            <td>Chrome</td><td>6 or later</td><td class="fast">Fast</td><td class="full">Full</td>
+        </tr>
+        <tr>
+            <td>Chrome</td><td>5</td><td class="fast">Fast</td><td class="medium">Almost full</td>
+        </tr>
+        <tr class="recommended">
+            <td>Firefox</td><td>8 or later</td><td class="fast">Fast</td><td class="full">Full</td>
+        </tr>
+        <tr>
+            <td>Firefox</td><td>4</td><td class="slow">Slow</td><td class="full">Full</td>
+        </tr>
+        <tr>
+            <td>Firefox</td><td>3.6</td><td class="slow">Slow</td><td class="none">Full, but linefeed bug when pasting generated SQL</td>
+        </tr>
+        <tr class="recommended">
+            <td>Safari</td><td>6 or later</td><td class="fast">Fast</td><td class="full">Full</td>
+        </tr>
+        <tr>
+            <td>Safari</td><td>5</td><td class="good">Good</td><td class="medium">Almost full, cannot load local files</td>
+        </tr>
+        <tr class="recommended">
+            <td>Opera</td><td>20 or later</td><td class="fast">Fast</td><td class="full">Full</td>
+        </tr>
+        <tr>
+            <td>Opera</td><td>11.5</td><td class="slow">Slow</td><td class="medium">Almost full, no cloud connection</td>
+        </tr>
+        <tr>
+            <td>Opera</td><td>10.6</td><td class="good">Good</td><td class="none">Partial</td>
+        </tr>
+        <tr class="unsupported">
+            <td>Internet Explorer</td><td>9</td><td class="fast">Fast</td><td class="none">Almost no functionality</td>
+        </tr>
+    </table>
+</body>
+</html>

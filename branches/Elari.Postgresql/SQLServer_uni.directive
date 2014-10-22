@@ -1,0 +1,26 @@
+# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/SQLServer/NamingConvention.js
+SQL/SQLServer/clr/Anchor.js
+SQL/SQLServer/uni/SetupEquivalentPartitioning.js
+SQL/SQLServer/uni/CreateEquivalentAndDefault.js
+SQL/SQLServer/uni/CreateKnots.js
+SQL/SQLServer/uni/CreateAnchorsAndAttributes.js
+SQL/SQLServer/uni/CreateTies.js
+SQL/SQLServer/uni/CreateKnotEquivalenceViews.js
+SQL/SQLServer/uni/CreateAttributeEquivalenceViews.js
+SQL/SQLServer/uni/AddAttributeRestatementConstraints.js
+SQL/SQLServer/uni/CreateKeyGenerators.js
+SQL/SQLServer/uni/CreateAttributeRewinders.js
+SQL/SQLServer/biz/DropAnchorBusinessPerspectives.js
+SQL/SQLServer/uni/CreateAnchorPerspectives.js
+SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.js
+SQL/SQLServer/uni/CreateAttributeTriggers.js
+SQL/SQLServer/uni/CreateAnchorTriggers.js
+SQL/SQLServer/uni/AddTieRestatementConstraints.js
+SQL/SQLServer/biz/DropTieBusinessPerspectives.js
+SQL/SQLServer/uni/CreateTiePerspectives.js
+SQL/SQLServer/biz/CreateTieBusinessPerspectives.js
+SQL/SQLServer/uni/CreateTieTriggers.js
+SQL/SQLServer/CreateSchemaTracking.js
+SQL/SQLServer/uni/AddDescriptions.js

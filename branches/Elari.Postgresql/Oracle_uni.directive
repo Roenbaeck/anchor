@@ -1,0 +1,23 @@
+# This is the processing directive for uni-temporal Anchor Modeling in Oracle
+#  -------------------------------------------------------------------- 
+#  Oracle implementation first beta 2013-11-14                           
+#  Created by: Jonas Åhgren Xanthe IT AB/SBAB
+#  Changelog
+#  Only supports unitemporal with improved naming convention
+#  20140322 Lars Rönnbäck   updating from r480 to fit r599
+#  --------------------------------------------------------------------
+SQL/Helpers.js
+SQL/Oracle/NamingConvention.js
+SQL/Oracle/uni/CreateKnots.js
+SQL/Oracle/uni/CreateAnchorsAndAttributes.js
+SQL/Oracle/uni/CreateTies.js
+#SQL/Oracle/uni/AddAttributeRestatementConstraints.js   #NOT YET CONVERTED TO ORACLE
+#SQL/Oracle/uni/CreateKeyGenerators.js                  #NOT YET CONVERTED TO ORACLE
+#SQL/Oracle/uni/CreateAttributeRewinders.js             #NOT YET CONVERTED TO ORACLE
+SQL/Oracle/uni/CreateAnchorPerspectives.js
+SQL/Oracle/uni/CreateAnchorTriggers.js
+#SQL/Oracle/uni/AddTieRestatementConstraints.js         #NOT YET CONVERTED TO ORACLE
+SQL/Oracle/uni/CreateTiePerspectives.js
+SQL/Oracle/uni/CreateTieTriggers.js
+#SQL/Oracle/CreateSchemaTracking.js                     #NOT YET CONVERTED TO ORACLE
+SQL/Oracle/uni/CreateTestData.js
