@@ -8,8 +8,8 @@ var businessIdentity = 'Id';
 var businessName;
 
 // set some hard coded defaults if they are missing
-schema.metadata.encapsulation = schema.metadata.encapsulation || 'public';
-schema.metadata.chronon = schema.metadata.chronon || 'timestamp';
+schema.metadata.encapsulation = schema.metadata.encapsulation || 'dbo';
+schema.metadata.chronon = schema.metadata.chronon || 'datetime';
 
 var knot;
 while (knot = schema.nextKnot()) {

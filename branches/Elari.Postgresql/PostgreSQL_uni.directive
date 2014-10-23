@@ -4,6 +4,7 @@ SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
 SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
 SQL/PostgreSQL/uni/CreateKnots.js
+SQL/PostgreSQL/uni/CreateKnotTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 SQL/PostgreSQL/uni/CreateTies.js
 SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
@@ -11,11 +12,15 @@ SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributeRewinders.js
+SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectives.js
+SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateAttributeTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorTriggers.js
 SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
+SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateTiePerspectives.js
+SQL/PostgreSQL/biz/CreateTieBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateTieTriggers.js
 SQL/PostgreSQL/CreateSchemaTracking.js
 SQL/PostgreSQL/uni/AddDescriptions.js
