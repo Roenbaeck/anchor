@@ -10,48 +10,47 @@
 --
  ~*/
 var knot;
+
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
         knot.identityGenerator = 'serial';
+    
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
         var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + knot.equivalentColumnName + ')' : '';
 /*~
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.identityName] (
-    $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
+CREATE TABLE IF NOT EXISTS $knot.identityName (
+    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint pk$knot.identityName primary key (
-        $knot.identityColumnName asc
+        $knot.identityColumnName
     )
 );
-GO
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.capsule$.$knot.equivalentName', 'U') IS NULL
-CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
+CREATE TABLE IF NOT EXISTS $knot.equivalentName (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),
+    ) references $knot.identityName($knot.identityColumnName) 
+    MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE,
     constraint pk$knot.equivalentName primary key (
-        $knot.equivalentColumnName asc,
-        $knot.identityColumnName asc
+        $knot.equivalentColumnName,
+        $knot.identityColumnName
     ),
     constraint uq$knot.equivalentName unique (
         $knot.equivalentColumnName,
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 )$scheme;
-GO
 ~*/
-
     } // end of equivalent knot
     else { // start of regular knot
 /*~
@@ -59,18 +58,17 @@ GO
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $knot.name (
-    $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
+    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
-        $knot.identityColumnName asc
+        $knot.identityColumnName
     ),
     constraint uq$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
-GO
 ~*/
     } // end of regular knot
 }
