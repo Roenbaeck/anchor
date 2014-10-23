@@ -3761,20 +3761,21 @@
                 [/"uniqueidentifier"/ig,                '"RAW(16)"']
             ],
             SQLServer_to_PostgreSQL: [
-				[/"tinyint"/ig,                         '"smallint"'],
-				[/"datetime"/ig,                        '"timestamp"'],
-				[/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
-				[/"varchar\(max\)"/ig,                  '"text"'],
-				[/"varbinary\(([0-9]+)\)"/ig,           '"bytea($1)"'],
+                [/"tinyint"/ig,                         '"smallint"'],
+                [/"datetime"/ig,                        '"timestamp"'],
+                [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
+                [/"varchar\(max\)"/ig,                  '"text"'],
+                [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],
                 [/"varbinary\(max\)"/ig,                '"bytea"'],
+                [/"bit"/ig,                             '"boolean"'],
           	],
           	PostgreSQL_to_SQLServer: [
-				[/"timestamp"/ig,         				 '"datetime"'],
-				[/"timestamp\(([0-9]+)\)"/ig,      		 '"datetime2($1)"'],
-				[/"text"/ig,                  			 '"varchar(max)"'],
-				[/"bytea\(([0-9]+)\)"/ig,           	 '"varbinary($1)"'],
-                [/"bytea"/ig,                			 '"varbinary(max)"'],
-      		],
+                [/"timestamp"/ig,                       '"datetime"'],
+                [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
+                [/"text"/ig,                            '"varchar(max)"'],
+                [/"bytea"/ig,                           '"varbinary(max)"'],
+                [/"boolean"/ig,                         '"bit"'],
+            ],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
                 if(!ruleset) {
@@ -6065,7 +6066,7 @@
         function init(window) {
             // another disclaimer for the testing versions
             if(!RELEASE) {
-                alert(
+                /*alert(
                     '----------- DISCLAIMER -----------\n' +
                     'Please note that this is a test version.\n' +
                     'It should not be used for production \n' +
@@ -6074,7 +6075,7 @@
                     'be found under the Help/About menu.\n' +
                     '----------- DISCLAIMER -----------'
                 );
-                document.getElementById("disclaimer").style.display = "block";
+                document.getElementById("disclaimer").style.display = "block";*/
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
