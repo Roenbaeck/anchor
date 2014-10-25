@@ -12,20 +12,18 @@
 var anchor;
 while (anchor = schema.nextAnchor()) {
     if(anchor.isGenerator())
-        anchor.identityGenerator = 'IDENTITY(1,1)';
+        anchor.identityGenerator = 'serial';
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.$anchor.name', 'U') IS NULL
-CREATE TABLE [$anchor.capsule].[$anchor.name] (
-    $anchor.identityColumnName $anchor.identity $anchor.identityGenerator not null,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
+CREATE TABLE IF NOT EXISTS $anchor.name (
+    $anchor.identityColumnName $(anchor.isGenerator())? $anchor.identityGenerator not null, : $anchor.identity not null,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName boolean null,
     constraint pk$anchor.name primary key (
-        $anchor.identityColumnName asc
+        $anchor.identityColumnName
     )
 );
-GO
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
@@ -113,22 +111,20 @@ GO
 -- Static attribute table ---------------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.$attribute.name', 'U') IS NULL
-CREATE TABLE [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
-    ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    ) references $anchor.name($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
-        $attribute.anchorReferenceName asc
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.anchorReferenceName
     )
 )$(attribute.isEquivalent())? $scheme; : ;
-GO
 ~*/
     }
 }}
