@@ -8,7 +8,7 @@ var knot;
 
 while (knot = schema.nextKnot()) {
     if(knot.hasChecksum()) {
-    	if(schema.EQUIVALENCE && knot.isEquivalent()) {
+        if(schema.EQUIVALENCE && knot.isEquivalent()) {
 /*~
 -- INSERT/UPDATE trigger ---------------------------------------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS tcs$knot.equivalentName ON $knot.equivalentName;
@@ -30,7 +30,7 @@ CREATE TRIGGER tcs$knot.equivalentName
 AFTER INSERT OR UPDATE ON $knot.equivalentName
 FOR EACH ROW EXECUTE PROCEDURE tcs$knot.equivalentName();
 ~*/
-    	} else {
+        } else {
 /*~
 -- INSERT/UPDATE trigger ---------------------------------------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS tcs$knot.name ON $knot.name;
