@@ -35,8 +35,7 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.$tie.name', 'U') IS NULL
-CREATE TABLE [$tie.capsule].[$tie.name] (
+CREATE TABLE IF NOT EXISTS $tie.name (
 ~*/
     var role;
     while (role = tie.nextRole()) {
@@ -51,12 +50,12 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     while (role = tie.nextRole()) {
         var knotReference = '';
         if(role.knot) {
-            knotReference += '[' + role.knot.capsule + '].[' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + ']';
+            knotReference += '' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + '';
         }
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? [$role.anchor.capsule].[$role.anchor.name]($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
+    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -85,7 +84,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     if(tie.hasMoreIdentifiers()) {
         while (role = tie.nextIdentifier()) {
 /*~
-        $role.columnName asc~*/
+        $role.columnName~*/
             if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -94,7 +93,7 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     else {
         while (role = tie.nextRole()) {
 /*~
-        $role.columnName asc~*/
+        $role.columnName~*/
             if(tie.hasMoreRoles() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -102,12 +101,11 @@ CREATE TABLE [$tie.capsule].[$tie.name] (
     }
     if(tie.isHistorized()) {
 /*~
-        $tie.changingColumnName desc
+        $tie.changingColumnName
 ~*/
     }
 /*~
     )
 );
-GO
 ~*/
 }
