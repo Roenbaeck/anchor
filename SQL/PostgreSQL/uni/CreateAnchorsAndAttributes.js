@@ -33,24 +33,22 @@ CREATE TABLE IF NOT EXISTS $anchor.name (
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.$attribute.name', 'U') IS NULL
-CREATE TABLE [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
-    ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    ) references $anchor.name($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
-        $attribute.anchorReferenceName asc,
-        $attribute.changingColumnName desc
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.anchorReferenceName,
+        $attribute.changingColumnName
     )
 )$(attribute.isEquivalent())? $scheme; : ;
-GO
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -60,24 +58,22 @@ GO
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.$attribute.name', 'U') IS NULL
-CREATE TABLE [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
-    ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    ) references $anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
+    ) references $knotTableName($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName asc,
-        $attribute.changingColumnName desc
+        $attribute.anchorReferenceName,
+        $attribute.changingColumnName
     )
 );
-GO
 ~*/
     }
     else if(attribute.isKnotted()) {
@@ -88,22 +84,20 @@ GO
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.$attribute.name', 'U') IS NULL
-CREATE TABLE [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
-    ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
+    ) references $anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
+    ) references $knotTableName($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName asc
+        $attribute.anchorReferenceName
     )
 );
-GO
 ~*/
     }
     else {
