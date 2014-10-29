@@ -3762,19 +3762,16 @@
             ],
             SQLServer_to_PostgreSQL: [
                 [/"tinyint"/ig,                         '"smallint"'],
+                [/"NUMBER\(([0-9]+)\)"/ig,              '"numeric($1)"'],
                 [/"datetime"/ig,                        '"timestamp"'],
                 [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
-                [/"varchar\(max\)"/ig,                  '"text"'],
-                [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],
-                [/"varbinary\(max\)"/ig,                '"bytea"'],
-                [/"bit"/ig,                             '"boolean"'],
+                [/"varchar"/ig,                         '"varchar(1)"'],
           	],
           	PostgreSQL_to_SQLServer: [
+                [/"numeric\(([0-9]+)\)"/ig,             '"NUMBER($1)"'],
                 [/"timestamp"/ig,                       '"datetime"'],
                 [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
-                [/"text"/ig,                            '"varchar(max)"'],
-                [/"bytea"/ig,                           '"varbinary(max)"'],
-                [/"boolean"/ig,                         '"bit"'],
+                [/"varchar(1)"/ig,                      '"varchar"'],
             ],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
