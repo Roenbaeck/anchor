@@ -107,5 +107,6 @@ CREATE TABLE IF NOT EXISTS $tie.name (
 /*~
     )
 );
+ALTER TABLE IF EXISTS ONLY $tie.name CLUSTER ON pk$tie.name;
 ~*/
 }
