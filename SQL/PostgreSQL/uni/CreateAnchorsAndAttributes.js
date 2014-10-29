@@ -11,8 +11,14 @@
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
-    if(anchor.isGenerator())
-        anchor.identityGenerator = 'serial';
+    if(anchor.isGenerator()) {
+        switch (anchor.identity) {
+            case 'smallint': anchor.identityGenerator = 'smallserial'; break;
+            case 'bigint': knot.identityGenerator = 'bigserial'; break;
+            default: anchor.identityGenerator = 'serial'; break;
+        }
+    }
+
 /*~
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
@@ -24,6 +30,7 @@ CREATE TABLE IF NOT EXISTS $anchor.name (
         $anchor.identityColumnName
     )
 );
+ALTER TABLE IF EXISTS ONLY $anchor.name CLUSTER ON pk$anchor.name;
 ~*/
     var knot, attribute;
     while (attribute = anchor.nextAttribute()) {
@@ -49,6 +56,7 @@ CREATE TABLE IF NOT EXISTS $attribute.name (
         $attribute.changingColumnName
     )
 )$(attribute.isEquivalent())? $scheme; : ;
+ALTER TABLE IF EXISTS ONLY $attribute.name CLUSTER ON pk$attribute.name;
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -74,6 +82,7 @@ CREATE TABLE IF NOT EXISTS $attribute.name (
         $attribute.changingColumnName
     )
 );
+ALTER TABLE IF EXISTS ONLY $attribute.name CLUSTER ON pk$attribute.name;
 ~*/
     }
     else if(attribute.isKnotted()) {
@@ -98,6 +107,7 @@ CREATE TABLE IF NOT EXISTS $attribute.name (
         $attribute.anchorReferenceName
     )
 );
+ALTER TABLE IF EXISTS ONLY $attribute.name CLUSTER ON pk$attribute.name;
 ~*/
     }
     else {
@@ -119,6 +129,7 @@ CREATE TABLE IF NOT EXISTS $attribute.name (
         $attribute.anchorReferenceName
     )
 )$(attribute.isEquivalent())? $scheme; : ;
+ALTER TABLE IF EXISTS ONLY $attribute.name CLUSTER ON pk$attribute.name;
 ~*/
     }
 }}

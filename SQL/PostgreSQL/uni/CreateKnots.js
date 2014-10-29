@@ -12,8 +12,13 @@
 var knot;
 
 while (knot = schema.nextKnot()) {
-    if(knot.isGenerator())
-        knot.identityGenerator = 'serial';
+    if(knot.isGenerator()) {
+        switch (knot.identity) {
+            case 'smallint': knot.identityGenerator = 'smallserial'; break;
+            case 'bigint': knot.identityGenerator = 'bigserial'; break;
+            default: knot.identityGenerator = 'serial'; break;
+        }
+    }
     
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
         var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + knot.equivalentColumnName + ')' : '';
@@ -28,6 +33,7 @@ CREATE TABLE IF NOT EXISTS $knot.identityName (
         $knot.identityColumnName
     )
 );
+ALTER TABLE IF EXISTS ONLY $knot.identityName CLUSTER ON pk$knot.identityName;
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
@@ -50,6 +56,7 @@ CREATE TABLE IF NOT EXISTS $knot.equivalentName (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 )$scheme;
+ALTER TABLE IF EXISTS ONLY $knot.equivalentName CLUSTER ON pk$knot.equivalentName;
 ~*/
     } // end of equivalent knot
     else { // start of regular knot
@@ -69,6 +76,7 @@ CREATE TABLE IF NOT EXISTS $knot.name (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
+ALTER TABLE IF EXISTS ONLY $knot.name CLUSTER ON pk$knot.name;
 ~*/
     } // end of regular knot
 }
