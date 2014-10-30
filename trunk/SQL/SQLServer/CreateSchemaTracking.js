@@ -384,6 +384,8 @@ BEGIN
          sys.schemas s
       ON
          s.[schema_id] = o.[schema_id]
+      AND
+         s.[name] = '$schema.metadata.encapsulation'
       CROSS APPLY (
          SELECT
             CASE
@@ -461,7 +463,7 @@ BEGIN
           [ordinal]
        FOR XML PATH('')
    );
-   SELECT isnull(@xml.value('.', 'varchar(max)'), '');  
+   SELECT @xml;
 END
 GO
 -- Database Copy Script Generator -------------------------------------------------------------------------------------
@@ -760,7 +762,7 @@ begin
 	end
 	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
 
-	select @sql;
+	select @sql for xml path('');
 end
 ~*/
 }
