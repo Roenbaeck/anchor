@@ -6,26 +6,38 @@
 -- instead shows all rows that have been in effect before that point
 -- in time.
 --
--- @changingTimepoint   the point in changing time to rewind to
+-- changingTimepoint   the point in changing time to rewind to
 --
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
     var attribute;
+    
     while (attribute = anchor.nextAttribute()) {
         if(attribute.isHistorized()) {
+            var attributeValueColumnType;
+        
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+                attributeValueColumnType = knot.identity;
+            } else {
+                attributeValueColumnType = attribute.dataRange;
+            }
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        $(attribute.isEquivalent())? @equivalent $schema.metadata.equivalentRange,
-        @changingTimepoint $attribute.timeRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+CREATE OR REPLACE FUNCTION r$attribute.name (
+    $(attribute.isEquivalent())? equivalent $schema.metadata.equivalentRange,
+    changingTimepoint $attribute.timeRange
+) RETURNS TABLE(
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
+    $attribute.anchorReferenceName $anchor.identity,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
+    $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName bytea,
+    $attribute.valueColumnName $attributeValueColumnType,
+    $attribute.changingColumnName $attribute.timeRange
+) AS '
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.anchorReferenceName,
@@ -34,12 +46,10 @@ BEGIN
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
-        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@equivalent) : [$attribute.capsule].[$attribute.name]
+        $(attribute.isEquivalent())? e$attribute.name(equivalent) : $attribute.name
     WHERE
-        $attribute.changingColumnName <= @changingTimepoint;
-    ');
-END
-GO
+        $attribute.changingColumnName <= changingTimepoint;
+' LANGUAGE SQL;
 ~*/
         }
     }
