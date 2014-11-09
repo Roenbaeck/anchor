@@ -1,25 +1,22 @@
+var knot;
+
+while (knot = schema.nextKnot()) {
+    if(schema.EQUIVALENCE && knot.isEquivalent()) {
 /*~
+
 -- KNOT EQUIVALENCE VIEWS ---------------------------------------------------------------------------------------------
 --
 -- Equivalence views combine the identity and equivalent parts of a knot into a single view, making
 -- it look and behave like a regular knot. They also make it possible to retrieve data for only the
 -- given equivalent.
 --
--- @equivalent  the equivalent that you want to retrieve data for
+-- equivalent  the equivalent that you want to retrieve data for
 --
-~*/
-var knot;
-while (knot = schema.nextKnot()) {
-    if(schema.EQUIVALENCE && knot.isEquivalent()) {
-/*~
 -- Knot equivalence view ----------------------------------------------------------------------------------------------
 -- $knot.name view and parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.capsule$.$knot.name', 'V') IS NULL
-BEGIN
-    EXEC('
-    CREATE VIEW [$knot.capsule].[$knot.name] WITH SCHEMABINDING
-    AS
+
+CREATE OR REPLACE VIEW \"$knot.name\" AS
     SELECT
         $(schema.METADATA)? v.$knot.metadataColumnName,
         i.$knot.identityColumnName,
@@ -27,21 +24,21 @@ BEGIN
         $(knot.hasChecksum())? v.$knot.checksumColumnName,
         v.$knot.valueColumnName
     FROM
-        [$knot.capsule].[$knot.identityName] i
+        $knot.identityName i
     JOIN
-        [$knot.capsule].[$knot.equivalentName] v
+        $knot.equivalentName v
     ON
         v.$knot.identityColumnName = i.$knot.identityColumnName;
-    ');
-END
-GO
-IF Object_ID('$knot.capsule$.e$knot.name', 'IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$knot.capsule].[e$knot.name] (
-        @equivalent $schema.metadata.equivalentRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+
+CREATE OR REPLACE FUNCTION e$knot.name (
+    equivalent $schema.metadata.equivalentRange
+) RETURNS TABLE (
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType,
+    $knot.identityColumnName $knot.identity, 
+    $knot.equivalentColumnName $schema.metadata.equivalentRange,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
+    $knot.valueColumnName $knot.dataRange
+) AS '
     SELECT
         $(schema.METADATA)? $knot.metadataColumnName,
         $knot.identityColumnName,
@@ -49,13 +46,10 @@ BEGIN
         $(knot.hasChecksum())? $knot.checksumColumnName,
         $knot.valueColumnName
     FROM
-        [$knot.capsule].[$knot.name]
+        \"$knot.name\"
     WHERE
-        $knot.equivalentColumnName = @equivalent;
-    ');
-END
-GO
+        $knot.equivalentColumnName = equivalent;
+' LANGUAGE SQL;
 ~*/
-
     }
 }
