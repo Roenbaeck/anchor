@@ -35,17 +35,17 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $tie.name (
+CREATE TABLE IF NOT EXISTS \"$tie.name\" (
 ~*/
     var role;
     while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
+    \"$role.columnName\" $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
 ~*/
     }
 /*~
-    $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
-    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+    $(tie.timeRange)? \"$tie.changingColumnName\" $tie.timeRange not null,
+    $(schema.METADATA)? \"$tie.metadataColumnName\" $schema.metadata.metadataType not null,
 ~*/
     while (role = tie.nextRole()) {
         var knotReference = '';
@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS $tie.name (
             knotReference += '' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + '';
         }
 /*~
-    constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
-        $role.columnName
-    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
+    constraint \"${(tie.name + '_fk' + role.name)}$\" foreign key (
+        \"$role.columnName\"
+    ) references $(role.anchor)? \"$role.anchor.name\"(\"$role.anchor.identityColumnName\"), : \"$knotReference\"(\"$role.knot.identityColumnName\"),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -63,28 +63,28 @@ CREATE TABLE IF NOT EXISTS $tie.name (
         while (role = tie.nextRole()) {
             if(tie.isHistorized()) {
 /*~
-    constraint ${tie.name + '_uq' + role.name}$ unique (
-        $role.columnName,
-        $tie.changingColumnName
+    constraint \"${tie.name + '_uq' + role.name}$\" unique (
+        \"$role.columnName\",
+        \"$tie.changingColumnName\"
     ),
 ~*/
             }
             else {
 /*~
-    constraint ${tie.name + '_uq' + role.name}$ unique (
-        $role.columnName
+    constraint \"${tie.name + '_uq' + role.name}$\" unique (
+        \"$role.columnName\"
     ),
 ~*/
             }
         }
     }
 /*~
-    constraint pk$tie.name primary key (
+    constraint \"pk$tie.name\" primary key (
 ~*/
     if(tie.hasMoreIdentifiers()) {
         while (role = tie.nextIdentifier()) {
 /*~
-        $role.columnName~*/
+        \"$role.columnName\"~*/
             if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS $tie.name (
     else {
         while (role = tie.nextRole()) {
 /*~
-        $role.columnName~*/
+        \"$role.columnName\"~*/
             if(tie.hasMoreRoles() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -101,12 +101,12 @@ CREATE TABLE IF NOT EXISTS $tie.name (
     }
     if(tie.isHistorized()) {
 /*~
-        $tie.changingColumnName
+        \"$tie.changingColumnName\"
 ~*/
     }
 /*~
     )
 );
-ALTER TABLE IF EXISTS ONLY $tie.name CLUSTER ON pk$tie.name;
+ALTER TABLE IF EXISTS ONLY \"$tie.name\" CLUSTER ON \"pk$tie.name\";
 ~*/
 }

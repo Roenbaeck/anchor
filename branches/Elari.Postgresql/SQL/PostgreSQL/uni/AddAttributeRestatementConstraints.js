@@ -1,4 +1,5 @@
 var anchor, knot, attribute, restatements = false;
+
 while (anchor = schema.nextAnchor())
     while(attribute = anchor.nextAttribute())
         if(attribute.isHistorized())
@@ -44,7 +45,7 @@ if(restatements) {
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION rf$attribute.name(
+CREATE OR REPLACE FUNCTION \"rf$attribute.name\"(
     id $anchor.identity,
     $(attribute.isEquivalent())? eq $schema.metadata.equivalentRange,
     value $valueType,
@@ -57,15 +58,15 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
             WHERE
                 value = (
                     SELECT
-                        pre.$valueColumn
+                        pre.\"$valueColumn\"
                     FROM
-                        $(attribute.isEquivalent())? e$attribute.name(eq) pre : $attribute.name pre
+                        $(attribute.isEquivalent())? \"e$attribute.name\"(eq) pre : \"$attribute.name\" pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = id
+                        pre.\"$attribute.anchorReferenceName\" = id
                     AND
-                        pre.$attribute.changingColumnName < changed
+                        pre.\"$attribute.changingColumnName\" < changed
                     ORDER BY
-                        pre.$attribute.changingColumnName DESC
+                        pre.\"$attribute.changingColumnName\" DESC
                     LIMIT 1
             )
         )
@@ -75,15 +76,15 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
             WHERE
                 value = (
                     SELECT
-                        fol.$valueColumn
+                        fol.\"$valueColumn\"
                     FROM
-                        $(attribute.isEquivalent())? e$attribute.name(eq) fol : $attribute.name fol
+                        $(attribute.isEquivalent())? \"e$attribute.name\"(eq) fol : \"$attribute.name\" fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = id
+                        fol.\"$attribute.anchorReferenceName\" = id
                     AND
-                        fol.$attribute.changingColumnName > changed
+                        fol.\"$attribute.changingColumnName\" > changed
                     ORDER BY
-                        fol.$attribute.changingColumnName ASC
+                        fol.\"$attribute.changingColumnName\" ASC
                     LIMIT 1
             )
         )
@@ -95,13 +96,13 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
 ~*/
                 if(!attribute.isRestatable()) {
 /*~
-        ALTER TABLE $attribute.name
-        ADD CONSTRAINT rc$attribute.name CHECK (
-                rf$attribute.name (
-                $attribute.anchorReferenceName,
-                $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-                $valueColumn,
-                $attribute.changingColumnName
+        ALTER TABLE \"$attribute.name\"
+        ADD CONSTRAINT \"rc$attribute.name\" CHECK (
+                \"rf$attribute.name\" (
+                \"$attribute.anchorReferenceName\",
+                $(attribute.isEquivalent())? \"$attribute.equivalentColumnName\",
+                \"$valueColumn\",
+                \"$attribute.changingColumnName\"
             ) = 0
         );
 ~*/

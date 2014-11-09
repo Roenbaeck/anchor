@@ -18,37 +18,37 @@ while (knot = schema.nextKnot()) {
 
 CREATE OR REPLACE VIEW \"$knot.name\" AS
     SELECT
-        $(schema.METADATA)? v.$knot.metadataColumnName,
-        i.$knot.identityColumnName,
-        v.$knot.equivalentColumnName,
-        $(knot.hasChecksum())? v.$knot.checksumColumnName,
-        v.$knot.valueColumnName
+        $(schema.METADATA)? v.\"$knot.metadataColumnName\",
+        i.\"$knot.identityColumnName\",
+        v.\"$knot.equivalentColumnName\",
+        $(knot.hasChecksum())? v.\"$knot.checksumColumnName\",
+        v.\"$knot.valueColumnName\"
     FROM
-        $knot.identityName i
+        \"$knot.identityName\" i
     JOIN
-        $knot.equivalentName v
+        \"$knot.equivalentName\" v
     ON
-        v.$knot.identityColumnName = i.$knot.identityColumnName;
+        v.\"$knot.identityColumnName\" = i.\"$knot.identityColumnName\";
 
-CREATE OR REPLACE FUNCTION e$knot.name (
+CREATE OR REPLACE FUNCTION \"e$knot.name\" (
     equivalent $schema.metadata.equivalentRange
 ) RETURNS TABLE (
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType,
-    $knot.identityColumnName $knot.identity, 
-    $knot.equivalentColumnName $schema.metadata.equivalentRange,
-    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
-    $knot.valueColumnName $knot.dataRange
+    $(schema.METADATA)? \"$knot.metadataColumnName\" $schema.metadata.metadataType,
+    \"$knot.identityColumnName\" $knot.identity, 
+    \"$knot.equivalentColumnName\" $schema.metadata.equivalentRange,
+    $(knot.hasChecksum())? \"$knot.checksumColumnName\" bytea,
+    \"$knot.valueColumnName\" $knot.dataRange
 ) AS '
     SELECT
-        $(schema.METADATA)? $knot.metadataColumnName,
-        $knot.identityColumnName,
-        $knot.equivalentColumnName,
-        $(knot.hasChecksum())? $knot.checksumColumnName,
-        $knot.valueColumnName
+        $(schema.METADATA)? \"$knot.metadataColumnName\",
+        \"$knot.identityColumnName\",
+        \"$knot.equivalentColumnName\",
+        $(knot.hasChecksum())? \"$knot.checksumColumnName\",
+        \"$knot.valueColumnName\"
     FROM
         \"$knot.name\"
     WHERE
-        $knot.equivalentColumnName = equivalent;
+        \"$knot.equivalentColumnName\" = equivalent;
 ' LANGUAGE SQL;
 ~*/
     }
