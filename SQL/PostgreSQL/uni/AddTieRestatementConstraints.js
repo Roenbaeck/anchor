@@ -1,7 +1,9 @@
 var tie, role, restatements = false;
+
 while (tie = schema.nextHistorizedTie())
-    if(tie.hasMoreValues())
+    if(tie.hasMoreValues()) {
         restatements = true;
+    }
 
 if(restatements) {
 /*~
@@ -32,11 +34,11 @@ if(restatements) {
 --
 -- rc$tie.name restatement constraint (available only in ties that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION rf$tie.name (
+CREATE OR REPLACE FUNCTION \"rf$tie.name\" (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
+    \"$role.columnName\" $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
 ~*/
             }
 /*~
@@ -50,18 +52,18 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                pre.$role.columnName$(tie.hasMoreValues())?,
+                pre.\"$role.columnName\"$(tie.hasMoreValues())?,
 ~*/
             }
 /*~
             FROM
-                $tie.name pre
+                \"$tie.name\" pre
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                pre.$role.columnName = $role.columnName
+                pre.\"$role.columnName\" = \"$role.columnName\"
             AND
 ~*/
                 }
@@ -72,7 +74,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                    pre.$role.columnName = $role.columnName
+                    pre.\"$role.columnName\" = \"$role.columnName\"
                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -82,27 +84,27 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             }
 /*~
-                pre.$tie.changingColumnName < changed
+                pre.\"$tie.changingColumnName\" < changed
             ORDER BY
-                pre.$tie.changingColumnName DESC
+                pre.\"$tie.changingColumnName\" DESC
             LIMIT 1)
             UNION
             (SELECT
 ~*/
             while(role = tie.nextValue()) {
 /*~
-                fol.$role.columnName$(tie.hasMoreValues())?,
+                fol.\"$role.columnName\"$(tie.hasMoreValues())?,
 ~*/
             }
 /*~
             FROM
-                $tie.name fol
+                \"$tie.name\" fol
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                fol.$role.columnName = $role.columnName
+                fol.\"$role.columnName\" = \"$role.columnName\"
             AND
 ~*/
                 }
@@ -113,7 +115,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                    fol.$role.columnName = $role.columnName
+                    fol.\"$role.columnName\" = \"$role.columnName\"
                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -123,16 +125,16 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             }
 /*~
-                fol.$tie.changingColumnName > changed
+                fol.\"$tie.changingColumnName\" > changed
             ORDER BY
-                fol.$tie.changingColumnName ASC
+                fol.\"$tie.changingColumnName\" ASC
             LIMIT 1)
         ) s
         WHERE
 ~*/
             while(role = tie.nextValue()) {
 /*~
-            s.$role.columnName = $role.columnName
+            s.\"$role.columnName\" = \"$role.columnName\"
         $(tie.hasMoreValues())? AND
 ~*/
             }
@@ -141,17 +143,17 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             if(!tie.isRestatable()) {
 /*~
-        ALTER TABLE $tie.name
-        ADD CONSTRAINT rc$tie.name CHECK (
-            rf$tie.name (
+        ALTER TABLE \"$tie.name\"
+        ADD CONSTRAINT \"rc$tie.name\" CHECK (
+            \"rf$tie.name\" (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                $role.columnName,
+                \"$role.columnName\",
 ~*/
             }
 /*~
-                $tie.changingColumnName
+                \"$tie.changingColumnName\"
             ) = 0
         );
 ~*/

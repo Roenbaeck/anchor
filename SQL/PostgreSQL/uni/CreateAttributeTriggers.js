@@ -18,24 +18,24 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.hasChecksum()) {
 /*~
 -- INSERT/UPDATE trigger ---------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS tcs$attribute.name ON $attribute.name;
+DROP TRIGGER IF EXISTS \"tcs$attribute.name\" ON \"$attribute.name\";
 
-CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
+CREATE OR REPLACE FUNCTION \"tcs$attribute.name\"() RETURNS trigger AS '
     BEGIN
         IF pg_trigger_depth() <> 1 THEN
             RETURN NEW;
         END IF;
 
-        UPDATE $attribute.name SET 
-            $attribute.checksumColumnName = cast(substring(MD5(cast(NEW.$attribute.valueColumnName as bytea)) for 16) as bytea)
-        WHERE $attribute.identityColumnName = NEW.$attribute.identityColumnName;
+        UPDATE \"$attribute.name\" SET 
+            \"$attribute.checksumColumnName\" = cast(substring(MD5(cast(NEW.\"$attribute.valueColumnName\" as bytea)) for 16) as bytea)
+        WHERE \"$attribute.identityColumnName\" = NEW.\"$attribute.identityColumnName\";
         RETURN NEW;
     END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER tcs$attribute.name 
-AFTER INSERT OR UPDATE ON $attribute.name
-FOR EACH ROW EXECUTE PROCEDURE tcs$attribute.name();
+CREATE TRIGGER \"tcs$attribute.name\"
+AFTER INSERT OR UPDATE ON \"$attribute.name\"
+FOR EACH ROW EXECUTE PROCEDURE \"tcs$attribute.name\"();
 ~*/
         }
 

@@ -13,7 +13,7 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION k$anchor.name (
+CREATE OR REPLACE FUNCTION \"k$anchor.name\" (
     requestedNumberOfIdentities bigint,
     metadata $schema.metadata.metadataType
 ) RETURNS void AS '
@@ -31,8 +31,8 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
                 WHERE
                     idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO $anchor.name (
-                $anchor.metadataColumnName
+            INSERT INTO \"$anchor.name\" (
+                \"$anchor.metadataColumnName\"
             )
             SELECT
                 metadata
@@ -48,7 +48,7 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION k$anchor.name (
+CREATE OR REPLACE FUNCTION \"k$anchor.name\" (
     requestedNumberOfIdentities bigint
 ) RETURNS void AS '
     BEGIN
@@ -65,8 +65,8 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
                 WHERE
                     idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO $anchor.name (
-                $anchor.dummyColumnName
+            INSERT INTO \"$anchor.name\" (
+                \"$anchor.dummyColumnName\"
             )
             SELECT
                 null

@@ -26,37 +26,37 @@ while (knot = schema.nextKnot()) {
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.identityName (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
-    constraint pk$knot.identityName primary key (
-        $knot.identityColumnName
+CREATE TABLE IF NOT EXISTS \"$knot.identityName\" (
+    \"$knot.identityColumnName\" $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+    $(schema.METADATA)? \"$knot.metadataColumnName\" $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
+    constraint \"pk$knot.identityName\" primary key (
+        \"$knot.identityColumnName\"
     )
 );
-ALTER TABLE IF EXISTS ONLY $knot.identityName CLUSTER ON pk$knot.identityName;
+ALTER TABLE IF EXISTS ONLY \"$knot.identityName\" CLUSTER ON \"pk$knot.identityName\";
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.equivalentName (
-    $knot.identityColumnName $knot.identity not null,
-    $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
-    $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
-    constraint fk$knot.equivalentName foreign key (
-        $knot.identityColumnName
-    ) references $knot.identityName($knot.identityColumnName) 
+CREATE TABLE IF NOT EXISTS \"$knot.equivalentName\" (
+    \"$knot.identityColumnName\" $knot.identity not null,
+    \"$knot.equivalentColumnName\" $schema.metadata.equivalentRange not null,
+    \"$knot.valueColumnName\" $knot.dataRange not null,
+    $(knot.hasChecksum())? \"$knot.checksumColumnName\" bytea,
+    $(schema.METADATA)? \"$knot.metadataColumnName\" $schema.metadata.metadataType not null, : \"$knot.dummyColumnName\" boolean null,
+    constraint \"fk$knot.equivalentName\" foreign key (
+        \"$knot.identityColumnName\"
+    ) references \"$knot.identityName\"(\"$knot.identityColumnName\") 
     MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE,
-    constraint pk$knot.equivalentName primary key (
-        $knot.equivalentColumnName,
-        $knot.identityColumnName
+    constraint \"pk$knot.equivalentName\" primary key (
+        \"$knot.equivalentColumnName\",
+        \"$knot.identityColumnName\"
     ),
-    constraint uq$knot.equivalentName unique (
-        $knot.equivalentColumnName,
-        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
+    constraint \"uq$knot.equivalentName\" unique (
+        \"$knot.equivalentColumnName\",
+        $(knot.hasChecksum())? \"$knot.checksumColumnName\" : \"$knot.valueColumnName\"
     )
 )$scheme;
-ALTER TABLE IF EXISTS ONLY $knot.equivalentName CLUSTER ON pk$knot.equivalentName;
+ALTER TABLE IF EXISTS ONLY \"$knot.equivalentName\" CLUSTER ON \"pk$knot.equivalentName\";
 ~*/
     } // end of equivalent knot
     else { // start of regular knot
@@ -64,19 +64,19 @@ ALTER TABLE IF EXISTS ONLY $knot.equivalentName CLUSTER ON pk$knot.equivalentNam
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.name (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
-    $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
-    constraint pk$knot.name primary key (
-        $knot.identityColumnName
+CREATE TABLE IF NOT EXISTS \"$knot.name\" (
+    \"$knot.identityColumnName\" $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+    \"$knot.valueColumnName\" $knot.dataRange not null,
+    $(knot.hasChecksum())? \"$knot.checksumColumnName\" bytea,
+    $(schema.METADATA)? \"$knot.metadataColumnName\" $schema.metadata.metadataType not null,
+    constraint \"pk$knot.name\" primary key (
+        \"$knot.identityColumnName\"
     ),
-    constraint uq$knot.name unique (
-        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
+    constraint \"uq$knot.name\" unique (
+        $(knot.hasChecksum())? \"$knot.checksumColumnName\" : \"$knot.valueColumnName\"
     )
 );
-ALTER TABLE IF EXISTS ONLY $knot.name CLUSTER ON pk$knot.name;
+ALTER TABLE IF EXISTS ONLY \"$knot.name\" CLUSTER ON \"pk$knot.name\";
 ~*/
     } // end of regular knot
 }
