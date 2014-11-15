@@ -1,5 +1,5 @@
 <p align="center">
-![Logotype](http://www.anchormodeling.com/wp-content/uploads/2013/05/Anchor.svg)
+<img src="http://www.anchormodeling.com/wp-content/uploads/2013/05/Anchor.svg"/>
 </p>
 
 Anchor Modeler is a database modeling tool for creating database models that handles temporalization using the sixth normal form.
