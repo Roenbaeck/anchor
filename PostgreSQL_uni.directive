@@ -1,9 +1,9 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
 SQL/PostgreSQL/NamingConvention.js
-#SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
-#SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
-#SQL/PostgreSQL/uni/CreateKnots.js
+SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
+SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
+SQL/PostgreSQL/uni/CreateKnots.js
 #SQL/PostgreSQL/uni/CreateKnotTriggers.js
 #SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 #SQL/PostgreSQL/uni/CreateTies.js
