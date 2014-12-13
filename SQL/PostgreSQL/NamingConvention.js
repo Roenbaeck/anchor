@@ -9,7 +9,8 @@ var businessName;
 
 // set some hard coded defaults if they are missing
 schema.metadata.encapsulation = schema.metadata.encapsulation || 'dbo';
-schema.metadata.chronon = schema.metadata.chronon || 'datetime';
+schema.metadata.chronon = 'timestamp without time zone';
+schema.metadata.now = 'LOCALTIMESTAMP';
 
 var knot;
 while (knot = schema.nextKnot()) {
