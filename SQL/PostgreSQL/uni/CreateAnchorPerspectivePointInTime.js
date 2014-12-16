@@ -37,7 +37,7 @@ RETURNS TABLE (
 ~*/    		
     	}
     	
-/*~    	
+/*~
 ) AS '
 SELECT
     $anchor.mnemonic\.$anchor.identityColumnName,
