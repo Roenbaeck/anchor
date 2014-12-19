@@ -105,6 +105,7 @@ BEGIN
         currentVersion = 0
     FROM
         t$attribute.name;
+        
     LOOP
         currentVersion := currentVersion + 1;
         UPDATE t$attribute.name

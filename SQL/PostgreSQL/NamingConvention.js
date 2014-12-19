@@ -8,9 +8,12 @@ var businessIdentity = 'Id';
 var businessName;
 
 // set some hard coded defaults if they are missing
-schema.metadata.encapsulation = schema.metadata.encapsulation || 'dbo';
+schema.metadata.encapsulation = schema.metadata.encapsulation || 'public';
 schema.metadata.chronon = 'timestamp without time zone';
 schema.metadata.now = 'LOCALTIMESTAMP';
+schema.metadata.identitySuffix = schema.metadata.identitySuffix || 'id';
+schema.metadata.equivalentSuffix = schema.metadata.equivalentSuffix || 'eq';
+schema.metadata.checksumSuffix = schema.metadata.checksumSuffix || 'ck';
 
 var knot;
 while (knot = schema.nextKnot()) {
