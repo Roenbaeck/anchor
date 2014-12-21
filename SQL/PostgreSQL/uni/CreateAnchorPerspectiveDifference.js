@@ -12,7 +12,36 @@ CREATE OR REPLACE FUNCTION d$anchor.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon,
     selection text = null
-) RETURNS SETOF record AS '
+) RETURNS TABLE (
+    inspectedTimepoint $schema.metadata.chronon,
+    mnemonic text,
+    $anchor.identityColumnName $anchor.identity,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,~*/
+        	
+    	while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
+    $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
+~*/
+    		if(attribute.isKnotted()) {
+    			knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? $attribute.knotChecksumColumnName bytea,
+    $(knot.isEquivalent())? $attribute.knotEquivalentColumnName $schema.metadata.equivalentRange,
+    $attribute.knotValueColumnName $knot.dataRange,
+    $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType, 
+~*/
+    		}
+/*~
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
+    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity: $attribute.dataRange~*/  
+/*~$(anchor.hasMoreAttributes())?,
+~*/    	
+    	}
+/*~
+) AS '
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
@@ -23,7 +52,7 @@ FROM (
 /*~
     SELECT DISTINCT
         $attribute.anchorReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName AS inspectedTimepoint,
+        CAST($attribute.changingColumnName AS $schema.metadata.chronon) AS inspectedTimepoint,
         ''$attribute.mnemonic'' AS mnemonic
     FROM
         $(attribute.isEquivalent())? e$attribute.name(0) : $attribute.name

@@ -18,161 +18,29 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.hasChecksum()) {
 /*~
 -- INSERT/UPDATE trigger ---------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS tcs$attribute.name ON $attribute.name;
+DROP TRIGGER IF EXISTS tcs$attribute.name ON _$attribute.name;
 
 CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
     BEGIN
-        IF pg_trigger_depth() <> 1 THEN
-            RETURN NEW;
-        END IF;
-
-        UPDATE $attribute.name SET 
-            $attribute.checksumColumnName = cast(substring(MD5(cast(NEW.$attribute.valueColumnName as bytea)) for 16) as bytea)
-        WHERE $attribute.identityColumnName = NEW.$attribute.identityColumnName;
+        -- convert value into an hash
+        NEW.$attribute.checksumColumnName = cast(
+            substring(
+                MD5(
+                    cast(
+                        cast(NEW.$attribute.valueColumnName as text) as bytea
+                    )
+                ) for 16
+            ) as bytea
+        );
+        
         RETURN NEW;
     END;
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER tcs$attribute.name
-AFTER INSERT OR UPDATE ON $attribute.name
+BEFORE INSERT OR UPDATE ON _$attribute.name
 FOR EACH ROW EXECUTE PROCEDURE tcs$attribute.name();
 ~*/
         }
-
-        var statementTypes = "''N''";
-        if(attribute.isHistorized() && !attribute.isIdempotent())
-            statementTypes += ",''R''";
-/*~
--- Insert trigger -----------------------------------------------------------------------------------------------------
--- it_$attribute.name instead of INSERT trigger on $attribute.name
------------------------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS it_$attribute.name ON $attribute.name;
-
-CREATE OR REPLACE FUNCTION it_$attribute.name() RETURNS trigger AS '
-BEGIN
-    DECLARE maxVersion int;
-    DECLARE currentVersion int;
-BEGIN
-    IF pg_trigger_depth() <> 1 THEN
-        RETURN;
-    END IF;
-    
-    CREATE TEMPORARY TABLE t$attribute.name (
-        $attribute.anchorReferenceName $anchor.identity not null,
-        $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
-        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
-        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
-        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
-        $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
-        $attribute.versionColumnName bigint not null,
-        $attribute.statementTypeColumnName char(1) not null,
-        primary key(
-            $attribute.versionColumnName,
-            $attribute.anchorReferenceName
-        )
-    );
-    
-    INSERT INTO t$attribute.name
-    SELECT
-        NEW.$attribute.anchorReferenceName,
-        $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
-        $(schema.METADATA)? NEW.$attribute.metadataColumnName,
-        $(attribute.isHistorized())? NEW.$attribute.changingColumnName,
-        NEW.$attribute.valueColumnName,
-        $(attribute.hasChecksum())? cast(substring(MD5(cast(NEW.$attribute.valueColumnName as text)) for 16) as bytea),
-~*/
-        if(attribute.isHistorized()) {
-/*~
-        DENSE_RANK() OVER (
-            PARTITION BY
-                $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-                i.$attribute.anchorReferenceName
-            ORDER BY
-                i.$attribute.changingColumnName ASC
-        ),
-~*/
-        }
-        else {
-/*~
-        1,
-~*/
-        }
-/*~
-        ''X'';
-
-    PERFORM
-        maxVersion = max($attribute.versionColumnName),
-        currentVersion = 0
-    FROM
-        t$attribute.name;
-        
-    LOOP
-        currentVersion := currentVersion + 1;
-        UPDATE t$attribute.name
-        SET
-            t$attribute.name\.$attribute.statementTypeColumnName =
-                CASE
-                    WHEN $attribute.mnemonic\.$attribute.anchorReferenceName is not null
-                    THEN ''D'' -- duplicate
-~*/
-        if(attribute.isHistorized()) {
-/*~
-                    WHEN rf$attribute.name(
-                        v.$attribute.anchorReferenceName,
-                        $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
-                        $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
-                        v.$attribute.changingColumnName
-                    ) = 1
-                    THEN ''R'' -- restatement
-~*/
-        }
-/*~
-                    ELSE ''N'' -- new statement
-                END
-        FROM
-            t$attribute.name v
-        LEFT JOIN
-            $attribute.name $attribute.mnemonic
-        ON
-            $attribute.mnemonic\.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-        $(attribute.isHistorized())? AND
-            $(attribute.isHistorized())? $attribute.mnemonic\.$attribute.changingColumnName = v.$attribute.changingColumnName
-        $(attribute.isEquivalent())? AND
-            $(attribute.isEquivalent())? $attribute.mnemonic\.$attribute.equivalentColumnName = v.$attribute.equivalentColumnName
-        AND
-            $(attribute.hasChecksum())? $attribute.mnemonic\.$attribute.checksumColumnName = v.$attribute.checksumColumnName : $attribute.mnemonic\.$attribute.valueColumnName = v.$attribute.valueColumnName
-        WHERE
-            v.$attribute.versionColumnName = currentVersion;
-
-        INSERT INTO $attribute.name (
-            $attribute.anchorReferenceName,
-            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.isHistorized())? $attribute.changingColumnName,
-            $attribute.valueColumnName
-        )
-        SELECT
-            $attribute.anchorReferenceName,
-            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.isHistorized())? $attribute.changingColumnName,
-            $attribute.valueColumnName
-        FROM
-            t$attribute.name
-        WHERE
-            $attribute.versionColumnName = currentVersion
-        AND
-            $attribute.statementTypeColumnName in ($statementTypes);
-
-        EXIT WHEN currentVersion >= maxVersion;
-    END LOOP;
-END;
-END;
-' LANGUAGE plpgsql;
-
-CREATE TRIGGER it_$attribute.name
-BEFORE INSERT ON $attribute.name
-FOR EACH ROW EXECUTE PROCEDURE it_$attribute.name();
-~*/
     } // end of loop over attributes
 }

@@ -35,7 +35,7 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $tie.name (
+CREATE TABLE IF NOT EXISTS _$tie.name (
 ~*/
     var role;
     while (role = tie.nextRole()) {
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS $tie.name (
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
+    ) references $(role.anchor)? _$role.anchor.name($role.anchor.identityColumnName), : _$knotReference($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -107,6 +107,9 @@ CREATE TABLE IF NOT EXISTS $tie.name (
 /*~
     )
 );
-ALTER TABLE IF EXISTS ONLY $tie.name CLUSTER ON pk$tie.name;
+
+ALTER TABLE IF EXISTS ONLY _$tie.name CLUSTER ON pk$tie.name;
+
+CREATE OR REPLACE VIEW $tie.name AS SELECT * FROM _$tie.name;
 ~*/
 }

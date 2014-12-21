@@ -36,7 +36,6 @@ RETURNS TABLE (
 /*~$(anchor.hasMoreAttributes())?,
 ~*/    		
     	}
-    	
 /*~
 ) AS '
 SELECT
