@@ -2,7 +2,6 @@
 -- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
 --
 -- The following triggers on the attributes make them behave like tables.
--- There is one 'instead of' trigger for: insert.
 -- They will ensure that such operations are propagated to the underlying tables
 -- in a consistent way. Default values are used for some columns if not provided
 -- by the corresponding SQL statements.
@@ -13,34 +12,180 @@
 --
 ~*/
 var anchor, attribute;
+
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
-        if(attribute.hasChecksum()) {
+    	var statementTypes = "''N''";
+        if(attribute.isHistorized() && !attribute.isIdempotent()) {
+            statementTypes += ",''R''";
+        }
+
 /*~
--- INSERT/UPDATE trigger ---------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS tcs$attribute.name ON _$attribute.name;
+-- BEFORE INSERT trigger --------------------------------------------------------------------------------------------------------
+--DROP TRIGGER IF EXISTS tcs$attribute.name ON $attribute.name;
 
 CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
     BEGIN
-        -- convert value into an hash
-        NEW.$attribute.checksumColumnName = cast(
-            substring(
-                MD5(
-                    cast(
-                        cast(NEW.$attribute.valueColumnName as text) as bytea
-                    )
-                ) for 16
-            ) as bytea
-        );
+		CREATE TEMPORARY TABLE IF NOT EXISTS _tmp_$attribute.name (
+		    $attribute.anchorReferenceName $anchor.identity not null,
+		    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
+		    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+		    $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+		    $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+		    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
+		    $attribute.versionColumnName bigint not null,
+		    $attribute.statementTypeColumnName char(1) not null,
+		    primary key(
+		        $attribute.versionColumnName,
+		        $attribute.anchorReferenceName
+		    )
+		) ON COMMIT DROP;
         
         RETURN NEW;
     END;
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER tcs$attribute.name
-BEFORE INSERT OR UPDATE ON _$attribute.name
-FOR EACH ROW EXECUTE PROCEDURE tcs$attribute.name();
+BEFORE INSERT ON $attribute.name
+FOR EACH STATEMENT
+EXECUTE PROCEDURE tcs$attribute.name();
+~*/
+
+    	
+/*~
+-- INSTEAD OF INSERT trigger ----------------------------------------------------------------------------------------------------
+--DROP TRIGGER IF EXISTS tcsi$attribute.name ON $attribute.name;
+
+CREATE OR REPLACE FUNCTION tcsi$attribute.name() RETURNS trigger AS '
+    BEGIN
+
+    INSERT INTO _tmp_$attribute.name
+    SELECT
+        NEW.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
+        $(schema.METADATA)? NEW.$attribute.metadataColumnName,
+        $(attribute.isHistorized())? NEW.$attribute.changingColumnName,
+        NEW.$attribute.valueColumnName,
+        $(attribute.hasChecksum())? cast(substring(MD5(cast(cast(NEW.$attribute.valueColumnName as text) as bytea)) for 16) as bytea),
+~*/
+        if(attribute.isHistorized()) {
+/*~
+        DENSE_RANK() OVER (
+            PARTITION BY
+                $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
+                NEW.$attribute.anchorReferenceName
+            ORDER BY
+                NEW.$attribute.changingColumnName ASC
+        ),
 ~*/
         }
+        else {
+/*~
+        1,
+~*/
+        }
+/*~
+        ''X'';
+        
+        RETURN NEW;
+    END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER tcsi$attribute.name
+INSTEAD OF INSERT ON $attribute.name
+FOR EACH ROW
+EXECUTE PROCEDURE tcsi$attribute.name();
+~*/
+        
+        
+/*~
+-- AFTER INSERT trigger ---------------------------------------------------------------------------------------------------------
+--DROP TRIGGER IF EXISTS it_$attribute.name ON $attribute.name;
+
+CREATE OR REPLACE FUNCTION it_$attribute.name() RETURNS trigger AS '
+    DECLARE maxVersion int;
+    DECLARE currentVersion int = 0;
+BEGIN
+    SELECT
+        MAX($attribute.versionColumnName) INTO maxVersion
+    FROM
+        _tmp_$attribute.name;
+        
+    LOOP
+        currentVersion := currentVersion + 1;
+        
+        UPDATE _tmp_$attribute.name
+        SET
+            $attribute.statementTypeColumnName =
+                CASE
+                    WHEN $attribute.mnemonic\.$attribute.anchorReferenceName is not null
+                    THEN ''D'' -- duplicate
+~*/
+        if(attribute.isHistorized()) {
+/*~
+                    WHEN rf$attribute.name(
+                        v.$attribute.anchorReferenceName,
+                        $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
+                        $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
+                        v.$attribute.changingColumnName
+                    ) = 1
+                    THEN ''R'' -- restatement
+~*/
+        }
+/*~
+                    ELSE ''N'' -- new statement
+                END
+        FROM
+            _tmp_$attribute.name v
+        LEFT JOIN
+            _$attribute.name $attribute.mnemonic
+        ON
+            $attribute.mnemonic\.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+        $(attribute.isHistorized())? AND
+            $(attribute.isHistorized())? $attribute.mnemonic\.$attribute.changingColumnName = v.$attribute.changingColumnName
+        $(attribute.isEquivalent())? AND
+            $(attribute.isEquivalent())? $attribute.mnemonic\.$attribute.equivalentColumnName = v.$attribute.equivalentColumnName
+        AND
+            $(attribute.hasChecksum())? $attribute.mnemonic\.$attribute.checksumColumnName = v.$attribute.checksumColumnName : $attribute.mnemonic\.$attribute.valueColumnName = v.$attribute.valueColumnName
+        WHERE
+            v.$attribute.versionColumnName = currentVersion;
+
+        INSERT INTO _$attribute.name (
+            $attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $(attribute.isHistorized())? $attribute.changingColumnName,
+            $attribute.valueColumnName$(attribute.hasChecksum())?,
+            $(attribute.hasChecksum())? $attribute.checksumColumnName
+        )
+        SELECT
+            $attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $(attribute.isHistorized())? $attribute.changingColumnName,
+            $attribute.valueColumnName$(attribute.hasChecksum())?,
+            $attribute.checksumColumnName
+        FROM
+            _tmp_$attribute.name
+        WHERE
+            $attribute.versionColumnName = currentVersion
+        AND
+            $attribute.statementTypeColumnName in ($statementTypes);
+
+        EXIT WHEN currentVersion >= maxVersion;
+    END LOOP;
+    
+    DROP TABLE IF EXISTS _tmp_$attribute.name;
+    
+    RETURN NULL;
+END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER it_$attribute.name
+AFTER INSERT ON $attribute.name
+FOR EACH STATEMENT
+EXECUTE PROCEDURE it_$attribute.name();
+~*/
+
     } // end of loop over attributes
 }
