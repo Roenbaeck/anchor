@@ -38,7 +38,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
+    _$role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
 ~*/
             }
 /*~
@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                pre.$role.columnName = $role.columnName
+                pre.$role.columnName = _$role.columnName
             AND
 ~*/
                 }
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                    pre.$role.columnName = $role.columnName
+                    pre.$role.columnName = _$role.columnName
                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -104,7 +104,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                fol.$role.columnName = $role.columnName
+                fol.$role.columnName = _$role.columnName
             AND
 ~*/
                 }
@@ -115,7 +115,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                    fol.$role.columnName = $role.columnName
+                    fol.$role.columnName = _$role.columnName
                 $(tie.hasMoreValues())? OR
 ~*/
                 }
@@ -134,7 +134,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             while(role = tie.nextValue()) {
 /*~
-            s.$role.columnName = $role.columnName
+            s.$role.columnName = _$role.columnName
         $(tie.hasMoreValues())? AND
 ~*/
             }
@@ -149,7 +149,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                $role.columnName,
+                _$role.columnName,
 ~*/
             }
 /*~
