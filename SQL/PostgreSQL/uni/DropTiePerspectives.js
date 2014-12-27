@@ -52,7 +52,7 @@ DROP FUNCTION IF EXISTS el$tie.name(
     if(tie.isHistorized()) {
 /*~
 DROP FUNCTION IF EXISTS d$tie.name(
-    $schema.metadata.chronon
+    $schema.metadata.chronon,
     $schema.metadata.chronon
 );
 ~*/
