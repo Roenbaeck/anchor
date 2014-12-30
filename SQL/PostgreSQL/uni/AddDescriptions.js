@@ -10,7 +10,7 @@ while (knot = schema.nextKnot()) {
        knot.description._description.length > 0) {
 /*~
 COMMENT ON TABLE 
-$(knot.isEquivalent())? $knot.identityName : $knot.name
+$(knot.isEquivalent())? _$knot.identityName : _$knot.name
 IS '$knot.description._description';
 ~*/
     }
@@ -24,7 +24,7 @@ while (anchor = schema.nextAnchor()) {
        anchor.description._description.length > 0) {
 /*~
 COMMENT ON TABLE 
-$anchor.name
+_$anchor.name
 IS '$anchor.description._description';
 ~*/
     }
@@ -35,7 +35,7 @@ IS '$anchor.description._description';
            attribute.description._description.length > 0) {
 /*~
 COMMENT ON TABLE 
-$attribute.name
+_$attribute.name
 IS '$attribute.description._description';
 ~*/
         }
@@ -50,7 +50,7 @@ while (tie = schema.nextTie()) {
        tie.description._description.length > 0) {
 /*~
 COMMENT ON TABLE 
-$tie.name
+_$tie.name
 IS '$tie.description._description';
 ~*/
     }
@@ -61,7 +61,7 @@ IS '$tie.description._description';
            role.description._description.length > 0) {
 /*~
 COMMENT ON COLUMN 
-$tie.name\.$role.columnName
+_$tie.name\.$role.columnName
 IS '$role.description._description';
 ~*/
         }
