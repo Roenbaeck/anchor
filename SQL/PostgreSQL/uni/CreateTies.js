@@ -56,25 +56,27 @@ CREATE TABLE IF NOT EXISTS _$tie.name (
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
     ) references $(role.anchor)? _$role.anchor.name($role.anchor.identityColumnName), : _$knotReference($role.knot.identityColumnName),
- ~*/
+~*/
     }
     // one-to-one and we need additional constraints
     if(!tie.hasMoreIdentifiers()) {
         while (role = tie.nextRole()) {
-            if(tie.isHistorized()) {
+            if(role.isAnchorRole()) {
+                if(tie.isHistorized()) {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
         $role.columnName,
         $tie.changingColumnName
     ),
 ~*/
-            }
-            else {
+                }
+                else {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
         $role.columnName
     ),
 ~*/
+                }
             }
         }
     }
