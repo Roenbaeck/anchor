@@ -26,20 +26,22 @@ while (anchor = schema.nextAnchor()) {
 
 CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
     BEGIN
-		CREATE TEMPORARY TABLE IF NOT EXISTS _tmp_$attribute.name (
-		    $attribute.anchorReferenceName $anchor.identity not null,
-		    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
-		    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
-		    $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
-		    $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
-		    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
-		    $attribute.versionColumnName bigint not null,
-		    $attribute.statementTypeColumnName char(1) not null,
-		    primary key(
-		        $attribute.versionColumnName,
-		        $attribute.anchorReferenceName
-		    )
-		) ON COMMIT DROP;
+        -- temporary table is used to create an insert order 
+        -- (so that rows are inserted in order with respect to temporality)
+        CREATE TEMPORARY TABLE IF NOT EXISTS _tmp_$attribute.name (
+            $attribute.anchorReferenceName $anchor.identity not null,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
+            $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+            $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+            $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+            $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
+            $attribute.versionColumnName bigint not null,
+            $attribute.statementTypeColumnName char(1) not null,
+            primary key(
+                $attribute.versionColumnName,
+                $attribute.anchorReferenceName
+            )
+        ) ON COMMIT DROP;
         
         RETURN NEW;
     END;
@@ -58,34 +60,28 @@ EXECUTE PROCEDURE tcs$attribute.name();
 
 CREATE OR REPLACE FUNCTION tcsi$attribute.name() RETURNS trigger AS '
     BEGIN
-
-    INSERT INTO _tmp_$attribute.name
-    SELECT
-        NEW.$attribute.anchorReferenceName,
-        $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
-        $(schema.METADATA)? NEW.$attribute.metadataColumnName,
-        $(attribute.isHistorized())? NEW.$attribute.changingColumnName,
-        NEW.$attribute.valueColumnName,
-        $(attribute.hasChecksum())? cast(substring(MD5(cast(cast(NEW.$attribute.valueColumnName as text) as bytea)) for 16) as bytea),
+        -- insert rows into the temporary table
+        INSERT INTO _tmp_$attribute.name
+        SELECT
+            NEW.$attribute.anchorReferenceName,
+            $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
+            $(schema.METADATA)? NEW.$attribute.metadataColumnName,
+            $(attribute.isHistorized())? NEW.$attribute.changingColumnName,
+            NEW.$attribute.valueColumnName,
+            $(attribute.hasChecksum())? cast(substring(MD5(cast(cast(NEW.$attribute.valueColumnName as text) as bytea)) for 16) as bytea),
 ~*/
         if(attribute.isHistorized()) {
 /*~
-        DENSE_RANK() OVER (
-            PARTITION BY
-                $(attribute.isEquivalent())? NEW.$attribute.equivalentColumnName,
-                NEW.$attribute.anchorReferenceName
-            ORDER BY
-                NEW.$attribute.changingColumnName ASC
-        ),
+            0,
 ~*/
         }
         else {
 /*~
-        1,
+            1,
 ~*/
         }
 /*~
-        ''X'';
+            ''X'';
         
         RETURN NEW;
     END;
@@ -106,14 +102,40 @@ CREATE OR REPLACE FUNCTION it_$attribute.name() RETURNS trigger AS '
     DECLARE maxVersion int;
     DECLARE currentVersion int = 0;
 BEGIN
+~*/
+        if(attribute.isHistorized()) {
+/*~
+    -- find ranks for inserted data (using self join)
+    UPDATE _tmp_$attribute.name
+    SET $attribute.versionColumnName = v.rank
+    FROM (
+        SELECT
+            DENSE_RANK() OVER (
+                PARTITION BY
+                    $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+                    $attribute.anchorReferenceName
+                ORDER BY
+                    $attribute.changingColumnName ASC
+            ) AS rank,
+            $attribute.anchorReferenceName AS pk
+        FROM _tmp_$attribute.name
+    ) AS v
+    WHERE $attribute.anchorReferenceName = v.pk
+    AND $attribute.versionColumnName = 0;
+~*/
+        }
+/*~
+    -- find max version
     SELECT
         MAX($attribute.versionColumnName) INTO maxVersion
     FROM
         _tmp_$attribute.name;
         
+    -- loop over versions
     LOOP
         currentVersion := currentVersion + 1;
         
+        -- set statement types
         UPDATE _tmp_$attribute.name
         SET
             $attribute.statementTypeColumnName =
@@ -150,6 +172,7 @@ BEGIN
         WHERE
             v.$attribute.versionColumnName = currentVersion;
 
+        -- insert data into attribute table
         INSERT INTO _$attribute.name (
             $attribute.anchorReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
