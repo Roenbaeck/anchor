@@ -187,7 +187,7 @@ BEGIN
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName$(attribute.hasChecksum())?,
-            $attribute.checksumColumnName
+            $(attribute.hasChecksum())? $attribute.checksumColumnName
         FROM
             _tmp_$attribute.name
         WHERE
