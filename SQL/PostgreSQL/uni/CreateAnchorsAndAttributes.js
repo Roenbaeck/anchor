@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS _$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS _$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
