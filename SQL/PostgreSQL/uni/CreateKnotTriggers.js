@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION tcs$knot.equivalentName() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER tcs$knot.equivalentName
-BEFORE INSERT OR UPDATE ON _$knot.equivalentName
+BEFORE INSERT OR UPDATE OF $knot.valueColumnName ON _$knot.equivalentName
 FOR EACH ROW EXECUTE PROCEDURE tcs$knot.equivalentName();
 ~*/
         } else {
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION tcs$knot.name() RETURNS trigger AS '
 ' LANGUAGE plpgsql;
 
 CREATE TRIGGER tcs$knot.name
-BEFORE INSERT OR UPDATE ON _$knot.name
+BEFORE INSERT OR UPDATE OF $knot.valueColumnName ON _$knot.name
 FOR EACH ROW EXECUTE PROCEDURE tcs$knot.name();
 ~*/
         }
