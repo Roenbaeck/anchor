@@ -14,6 +14,8 @@ schema.metadata.now = 'LOCALTIMESTAMP';
 schema.metadata.identitySuffix = schema.metadata.identitySuffix || 'id';
 schema.metadata.equivalentSuffix = schema.metadata.equivalentSuffix || 'eq';
 schema.metadata.checksumSuffix = schema.metadata.checksumSuffix || 'ck';
+schema.metadata.checksumFunction = 'generateChecksum';
+schema.metadata.checksumType = 'bytea';
 
 var knot;
 while (knot = schema.nextKnot()) {
