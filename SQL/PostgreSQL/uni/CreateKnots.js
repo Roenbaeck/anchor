@@ -20,8 +20,9 @@ while (knot = schema.nextKnot()) {
 /*~
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.identityName;
 -----------------------------------------------------------------------------------------------------------------------
+-- DROP TABLE IF EXISTS $knot.capsule\._$knot.identityName;
+
 CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.identityName (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.identityName (
 ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.identityName CLUSTER ON pk$knot.identityName;
 
 -- DROP VIEW IF EXISTS $knot.capsule\.$knot.identityName;
------------------------------------------------------------------------------------------------------------------------
+
 CREATE OR REPLACE VIEW $knot.capsule\.$knot.identityName AS SELECT
     $knot.identityColumnName$(schema.METADATA)?,
     $(schema.METADATA)? $knot.metadataColumnName
@@ -42,8 +43,9 @@ FROM $knot.capsule\._$knot.identityName;
 
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.equivalentName;
 -----------------------------------------------------------------------------------------------------------------------
+-- DROP TABLE IF EXISTS $knot.capsule\._$knot.equivalentName;
+
 CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.equivalentName (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
@@ -67,7 +69,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.equivalentName (
 ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.equivalentName CLUSTER ON pk$knot.equivalentName;
 
 -- DROP VIEW IF EXISTS $knot.capsule\.$knot.equivalentName;
------------------------------------------------------------------------------------------------------------------------
+
 CREATE OR REPLACE VIEW $knot.capsule\.$knot.equivalentName AS SELECT
     $knot.identityColumnName,
     $knot.equivalentColumnName,
@@ -81,8 +83,9 @@ FROM $knot.capsule\._$knot.equivalentName;
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.name;
 -----------------------------------------------------------------------------------------------------------------------
+-- DROP TABLE IF EXISTS $knot.capsule\._$knot.name;
+
 CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.name (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $knot.valueColumnName $knot.dataRange not null,
@@ -99,7 +102,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.name (
 ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.name CLUSTER ON pk$knot.name;
 
 -- DROP VIEW IF EXISTS $knot.capsule\.$knot.name;
------------------------------------------------------------------------------------------------------------------------
+
 CREATE OR REPLACE VIEW $knot.capsule\.$knot.name AS SELECT
     $knot.identityColumnName,
     $knot.valueColumnName$(knot.hasChecksum() || schema.METADATA)?,
