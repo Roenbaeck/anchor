@@ -1,11 +1,10 @@
 # This is the processing directive for uni-temporal Anchor Modeling in PostgreSQL
 SQL/Helpers.js
+SQL/PostgreSQL/HelpersOverride.js
 SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/DatabaseInitialization.js
-#SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
-#SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
-#
-#SQL/PostgreSQL/uni/CreateKnots.js
+SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
+SQL/PostgreSQL/uni/CreateKnots.js
 SQL/PostgreSQL/uni/CreateKnotTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 SQL/PostgreSQL/uni/CreateTies.js
@@ -15,7 +14,7 @@ SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
-SQL/PostgreSQL/uni/DropAnchorPerspectives.js
+#SQL/PostgreSQL/uni/DropAnchorPerspectives.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveLatest.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectivePointInTime.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveNow.js
@@ -26,7 +25,7 @@ SQL/PostgreSQL/uni/CreateAnchorPerspectiveDifference.js
 #SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalenceDifference.js
 #SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateAttributeTriggers.js
-#SQL/PostgreSQL/uni/CreateAnchorTriggersInsert.js
+SQL/PostgreSQL/uni/CreateAnchorTriggersInsert.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersUpdate.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersDelete.js
 SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
@@ -42,5 +41,5 @@ SQL/PostgreSQL/uni/CreateTiePerspectiveDifference.js
 #SQL/PostgreSQL/uni/CreateTiePerspectiveEquivalenceDifference.js
 #SQL/PostgreSQL/biz/CreateTieBusinessPerspectives.js
 #SQL/PostgreSQL/uni/CreateTieTriggers.js
-#SQL/PostgreSQL/CreateSchemaTracking.js
-SQL/PostgreSQL/uni/AddDescriptions.js
+#SQL/PostgreSQL/CreateSchemaTracking.js --- ei tõlgi
+#SQL/PostgreSQL/uni/AddDescriptions.js
