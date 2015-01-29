@@ -94,23 +94,25 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
         
         RETURN 0;
 ~*/
-                if(!attribute.isRestatable()) {
-/*~
-        ALTER TABLE $attribute.name
-        ADD CONSTRAINT rc$attribute.name CHECK (
-                rf$attribute.name (
-                $attribute.anchorReferenceName,
-                $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-                $valueColumn,
-                $attribute.changingColumnName
-            ) = 0
-        );
-~*/
-                }
+               
 /*~
     END;
 ' LANGUAGE plpgsql;
 ~*/
+                
+                if(!attribute.isRestatable()) {
+/*~
+ALTER TABLE _$attribute.name
+ADD CONSTRAINT rc$attribute.name CHECK (
+        rf$attribute.name (
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $valueColumn,
+        $attribute.changingColumnName
+    ) = 0
+);
+~*/
+                }
             }
         }
     }

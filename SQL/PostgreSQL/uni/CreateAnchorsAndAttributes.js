@@ -144,4 +144,5 @@ ALTER TABLE IF EXISTS ONLY _$attribute.name CLUSTER ON pk$attribute.name;
 CREATE OR REPLACE VIEW $attribute.name AS SELECT * FROM _$attribute.name;
 ~*/
     }
-}}
+  }
+}
