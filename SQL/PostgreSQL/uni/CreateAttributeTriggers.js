@@ -1,5 +1,5 @@
 /*~
--- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
+-- ATTRIBUTE TRIGGERS -------------------------------------------------------------------------------------------------
 --
 -- The following triggers on the attributes make them behave like tables.
 -- They will ensure that such operations are propagated to the underlying tables
@@ -16,15 +16,17 @@ var anchor, attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
     	var statementTypes = "''N''";
+    	
         if(attribute.isHistorized() && !attribute.isIdempotent()) {
             statementTypes += ",''R''";
         }
 
 /*~
--- BEFORE INSERT trigger --------------------------------------------------------------------------------------------------------
---DROP TRIGGER IF EXISTS tcs$attribute.name ON $attribute.name;
+-- BEFORE INSERT trigger ----------------------------------------------------------------------------------------------
+-- DROP TRIGGER IF EXISTS tcb$attribute.name ON $attribute.capsule\.$attribute.name;
+-- DROP FUNCTION IF EXISTS $attribute.capsule\.tcb$attribute.name();
 
-CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
+CREATE OR REPLACE FUNCTION $attribute.capsule\.tcb$attribute.name() RETURNS trigger AS '
     BEGIN
         -- temporary table is used to create an insert order 
         -- (so that rows are inserted in order with respect to temporality)
@@ -34,7 +36,7 @@ CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
             $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
             $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
             $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
-            $(attribute.hasChecksum())? $attribute.checksumColumnName bytea not null,
+            $(attribute.hasChecksum())? $attribute.checksumColumnName $schema.metadata.checksumType not null,
             $attribute.versionColumnName bigint not null,
             $attribute.statementTypeColumnName char(1) not null,
             primary key(
@@ -47,18 +49,19 @@ CREATE OR REPLACE FUNCTION tcs$attribute.name() RETURNS trigger AS '
     END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER tcs$attribute.name
-BEFORE INSERT ON $attribute.name
+CREATE TRIGGER tcb$attribute.name
+BEFORE INSERT ON $attribute.capsule\.$attribute.name
 FOR EACH STATEMENT
-EXECUTE PROCEDURE tcs$attribute.name();
+EXECUTE PROCEDURE $attribute.capsule\.tcb$attribute.name();
 ~*/
 
     	
 /*~
--- INSTEAD OF INSERT trigger ----------------------------------------------------------------------------------------------------
---DROP TRIGGER IF EXISTS tcsi$attribute.name ON $attribute.name;
+-- INSTEAD OF INSERT trigger ------------------------------------------------------------------------------------------
+-- DROP TRIGGER IF EXISTS tci$attribute.name ON $attribute.capsule\.$attribute.name;
+-- DROP FUNCTION IF EXISTS $attribute.capsule\.tci$attribute.name();
 
-CREATE OR REPLACE FUNCTION tcsi$attribute.name() RETURNS trigger AS '
+CREATE OR REPLACE FUNCTION $attribute.capsule\.tci$attribute.name() RETURNS trigger AS '
     BEGIN
         -- insert rows into the temporary table
         INSERT INTO _tmp_$attribute.name
@@ -68,7 +71,7 @@ CREATE OR REPLACE FUNCTION tcsi$attribute.name() RETURNS trigger AS '
             $(schema.METADATA)? NEW.$attribute.metadataColumnName,
             $(attribute.isHistorized())? NEW.$attribute.changingColumnName,
             NEW.$attribute.valueColumnName,
-            $(attribute.hasChecksum())? cast(substring(MD5(cast(cast(NEW.$attribute.valueColumnName as text) as bytea)) for 16) as bytea),
+            $(attribute.hasChecksum())? $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(CAST(NEW.$attribute.valueColumnName AS text)),
 ~*/
         if(attribute.isHistorized()) {
 /*~
@@ -87,18 +90,19 @@ CREATE OR REPLACE FUNCTION tcsi$attribute.name() RETURNS trigger AS '
     END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER tcsi$attribute.name
-INSTEAD OF INSERT ON $attribute.name
+CREATE TRIGGER tci$attribute.name
+INSTEAD OF INSERT ON $attribute.capsule\.$attribute.name
 FOR EACH ROW
-EXECUTE PROCEDURE tcsi$attribute.name();
+EXECUTE PROCEDURE $attribute.capsule\.tci$attribute.name();
 ~*/
-        
-        
-/*~
--- AFTER INSERT trigger ---------------------------------------------------------------------------------------------------------
---DROP TRIGGER IF EXISTS it_$attribute.name ON $attribute.name;
 
-CREATE OR REPLACE FUNCTION it_$attribute.name() RETURNS trigger AS '
+
+/*~
+-- AFTER INSERT trigger -----------------------------------------------------------------------------------------------
+-- DROP TRIGGER IF EXISTS tca$attribute.name ON $attribute.capsule\.$attribute.name;
+-- DROP FUNCTION IF EXISTS $attribute.capsule\.tca$attribute.name();
+
+CREATE OR REPLACE FUNCTION $attribute.capsule\.tca$attribute.name() RETURNS trigger AS '
     DECLARE maxVersion int;
     DECLARE currentVersion int = 0;
 BEGIN
@@ -130,7 +134,12 @@ BEGIN
         MAX($attribute.versionColumnName) INTO maxVersion
     FROM
         _tmp_$attribute.name;
-        
+    
+    -- is max version NULL?
+    IF (maxVersion is null) THEN
+        RETURN NULL;
+    END IF;
+    
     -- loop over versions
     LOOP
         currentVersion := currentVersion + 1;
@@ -160,7 +169,7 @@ BEGIN
         FROM
             _tmp_$attribute.name v
         LEFT JOIN
-            _$attribute.name $attribute.mnemonic
+            $attribute.capsule\._$attribute.name $attribute.mnemonic
         ON
             $attribute.mnemonic\.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
         $(attribute.isHistorized())? AND
@@ -173,7 +182,7 @@ BEGIN
             v.$attribute.versionColumnName = currentVersion;
 
         -- insert data into attribute table
-        INSERT INTO _$attribute.name (
+        INSERT INTO $attribute.capsule\._$attribute.name (
             $attribute.anchorReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(schema.METADATA)? $attribute.metadataColumnName,
@@ -204,10 +213,10 @@ BEGIN
 END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER it_$attribute.name
-AFTER INSERT ON $attribute.name
+CREATE TRIGGER tca$attribute.name
+AFTER INSERT ON $attribute.capsule\.$attribute.name
 FOR EACH STATEMENT
-EXECUTE PROCEDURE it_$attribute.name();
+EXECUTE PROCEDURE $attribute.capsule\.tca$attribute.name();
 ~*/
 
     } // end of loop over attributes
