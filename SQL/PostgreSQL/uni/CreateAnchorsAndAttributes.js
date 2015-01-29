@@ -13,11 +13,7 @@ var anchor;
 
 while (anchor = schema.nextAnchor()) {
     if(anchor.isGenerator()) {
-        switch (anchor.identity) {
-            case 'smallint': anchor.identityGenerator = 'smallserial'; break;
-            case 'bigint': knot.identityGenerator = 'bigserial'; break;
-            default: anchor.identityGenerator = 'serial'; break;
-        }
+    	schema.setIdentityGenerator(anchor);
     }
 
 /*~
