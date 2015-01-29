@@ -12,22 +12,20 @@
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
+
 var anchor, knot, attribute, equivalent;
 
 while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
-/*~
+/*~    	
 -- BEFORE INSERT trigger --------------------------------------------------------------------------------------------------------
---DROP TRIGGER IF EXISTS tcsl$anchor.name ON l$anchor.name;
+DROP TRIGGER IF EXISTS itb_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+DROP FUNCTION IF EXISTS $anchor.capsule\.itb_l$anchor.name();
 
-CREATE OR REPLACE FUNCTION tcsl$anchor.name() RETURNS trigger AS '
+CREATE OR REPLACE FUNCTION $anchor.capsule\.itb_l$anchor.name() RETURNS trigger AS '
     BEGIN
-        CREATE TEMPORARY TABLE IF NOT EXISTS _tmp_$anchor.mnemonic (
-            Row bigserial not null primary key,
-            $anchor.identityColumnName $anchor.identity not null
-        ) ON COMMIT DROP;
-
-        CREATE TEMPORARY TABLE IF NOT EXISTS _tmpi_$anchor.mnemonic (
+        -- create temporary table to keep inserted rows in
+        CREATE TEMPORARY TABLE IF NOT EXISTS _tmp_it_$anchor.name (
             $anchor.identityColumnName $anchor.identity not null,
             $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
@@ -43,12 +41,13 @@ CREATE OR REPLACE FUNCTION tcsl$anchor.name() RETURNS trigger AS '
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
 /*~
             $attribute.knotValueColumnName $knot.dataRange null,
-            $(knot.hasChecksum())? $attribute.knotChecksumColumnName varbinary(16) null,
+            $(knot.hasChecksum())? $attribute.knotChecksumColumnName $schema.metadata.checksumType null,
             $(knot.isEquivalent())? $equivalent $schema.metadata.equivalentRange null,
             $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType null,
             $attribute.valueColumnName $knot.identity null$(anchor.hasMoreAttributes())?,
 ~*/
-            } else {
+            }
+            else {
 /*~
             $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
@@ -56,171 +55,183 @@ CREATE OR REPLACE FUNCTION tcsl$anchor.name() RETURNS trigger AS '
         }
 /*~
         ) ON COMMIT DROP;
-        
+
         RETURN NEW;
     END;
 ' LANGUAGE plpgsql;
 
-CREATE TRIGGER tcsl$anchor.name
-BEFORE INSERT ON l$anchor.name
+CREATE TRIGGER itb_l$anchor.name
+BEFORE INSERT ON $anchor.capsule\.l$anchor.name
 FOR EACH STATEMENT
-EXECUTE PROCEDURE tcsl$anchor.name();
-~*/    	
+EXECUTE PROCEDURE $anchor.capsule\.itb_l$anchor.name(); 	
 
 
-/*~
 -- INSTEAD OF INSERT trigger ----------------------------------------------------------------------------------------------------
---DROP TRIGGER IF EXISTS tcsil$anchor.name ON l$anchor.name;
+DROP TRIGGER IF EXISTS iti_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+DROP FUNCTION IF EXISTS $anchor.capsule\.iti_l$anchor.name();
 
-CREATE OR REPLACE FUNCTION tcsil$anchor.name() RETURNS trigger AS '
+CREATE OR REPLACE FUNCTION $anchor.capsule\.iti_l$anchor.name() RETURNS trigger AS '
     BEGIN
-	    INSERT INTO $anchor.name (
-	        $(schema.METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
-	    )
-	    OUTPUT
-	        NEW.$anchor.identityColumnName
-	    INTO
-	        _tmp_$anchor.mnemonic
-	    SELECT
-	        $(schema.METADATA)? NEW.$anchor.metadataColumnName : null
-	    FROM
-	        inserted
-	    WHERE
-	        inserted.$anchor.identityColumnName is null;
+        -- generate anchor ID (if not provided)
+        IF (NEW.$anchor.identityColumnName IS NULL) THEN 
+            INSERT INTO $anchor.capsule\.$anchor.name (
+                $(schema.METADATA)? $anchor.metadataColumnName : $anchor.dummyColumnName
+            ) VALUES (
+                $(schema.METADATA)? NEW.$anchor.metadataColumnName : null
+            );
+            
+            SELECT
+                lastval() 
+            INTO NEW.$anchor.identityColumnName;
+        -- if anchor ID is provided then let''s insert it into the anchor table
+        -- but only if that ID is not present in the anchor table
+        ELSE
+            INSERT INTO $anchor.capsule\.$anchor.name (
+                $(schema.METADATA)? $anchor.metadataColumnName,
+                $anchor.identityColumnName
+            )
+            SELECT
+                $(schema.METADATA)? NEW.$anchor.metadataColumnName,
+                NEW.$anchor.identityColumnName
+            WHERE NOT EXISTS(
+	            SELECT
+	                $anchor.identityColumnName 
+	            FROM $anchor.capsule\.$anchor.name
+	            WHERE $anchor.identityColumnName = NEW.$anchor.identityColumnName
+	            LIMIT 1
+            );
+        END IF;
     
-    
-	    INSERT INTO _tmpi_$anchor.mnemonic
-	    SELECT
-	        ISNULL(NEW.$anchor.identityColumnName, a.$anchor.identityColumnName),
-	        $(schema.METADATA)? NEW.$anchor.metadataColumnName,
-	 ~*/
-	        while (attribute = anchor.nextAttribute()) {
-	/*~
-	        $(schema.IMPROVED)? ISNULL(ISNULL(NEW.$attribute.anchorReferenceName, NEW.$anchor.identityColumnName), a.$anchor.identityColumnName),
-	        $(schema.METADATA)? ISNULL(NEW.$attribute.metadataColumnName, NEW.$anchor.metadataColumnName),
-	        $(attribute.timeRange)? ISNULL(NEW.$attribute.changingColumnName, @now),
-	        $(attribute.isEquivalent())? ISNULL(NEW.$attribute.equivalentColumnName, 0),
-	~*/
-	            if(attribute.isKnotted()) {
-	                knot = attribute.knot;
-	                equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
-	/*~
-	        NEW.$attribute.knotValueColumnName,
-	        $(knot.hasChecksum())? ISNULL(NEW.$attribute.knotChecksumColumnName, ${schema.metadata.encapsulation}$.MD5(cast(NEW.$attribute.knotValueColumnName as varbinary(max)))),
-	        $(knot.isEquivalent())? ISNULL(NEW.$equivalent, 0),
-	        $(schema.METADATA)? ISNULL(NEW.$attribute.knotMetadataColumnName, NEW.$anchor.metadataColumnName),
-	~*/
-	            }
-	/*~
-	        NEW.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
-	~*/
-	        }
-	/*~
-	    FROM (
-	        SELECT
-	            $anchor.identityColumnName,
-	            $(schema.METADATA)? $anchor.metadataColumnName,
-	 ~*/
-	        while (attribute = anchor.nextAttribute()) {
-	/*~
-	            $(schema.IMPROVED)? $attribute.anchorReferenceName,
-	            $(schema.METADATA)? $attribute.metadataColumnName,
-	            $(attribute.timeRange)? $attribute.changingColumnName,
-	            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-	~*/
-	            if(attribute.isKnotted()) {
-	                knot = attribute.knot;
-	                equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
-	/*~
-	            $attribute.knotValueColumnName,
-	            $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
-	            $(knot.isEquivalent())? $equivalent,
-	            $(schema.METADATA)? $attribute.knotMetadataColumnName,
-	~*/
-	            }
-	/*~
-	            $attribute.valueColumnName,
-	~*/
-	        }
-	/*~
-	            ROW_NUMBER() OVER (PARTITION BY $anchor.identityColumnName ORDER BY $anchor.identityColumnName) AS Row
-	        FROM
-	            inserted
-	    ) i
-	    LEFT JOIN
-	        _tmp_$anchor.mnemonic a
-	    ON
-	        a.Row = NEW.Row;
-    
-        RETURN NEW;
-    END;
-' LANGUAGE plpgsql;
-
-CREATE TRIGGER tcsil$anchor.name
-INSTEAD OF INSERT ON l$anchor.name
-FOR EACH ROW
-EXECUTE PROCEDURE tcsil$anchor.name();
-~*/
-        
-        
-        
-        
-        
-        
-    	
-/*~
-BEGIN
-    DECLARE @now $schema.metadata.chronon;
-    SET @now = $schema.metadata.now;
-        
-    
+        -- insert row into temporary table
+    	INSERT INTO _tmp_it_$anchor.name (
+            $anchor.identityColumnName,
+            $(schema.METADATA)? $anchor.metadataColumnName,
 ~*/
         while (attribute = anchor.nextAttribute()) {
-            knot = attribute.knot;
 /*~
-    INSERT INTO [$attribute.capsule].[$attribute.name] (
-        $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
-        $(attribute.timeRange)? $attribute.changingColumnName,
-        $attribute.valueColumnName
-    )
-    SELECT
-        $(schema.METADATA)? i.$attribute.metadataColumnName,
-        i.$attribute.anchorReferenceName,
-        $(attribute.timeRange)? i.$attribute.changingColumnName,
-        $(attribute.isKnotted())? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
-    FROM
-        @inserted i
+            $(schema.IMPROVED)? $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $(attribute.timeRange)? $attribute.changingColumnName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
+                equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
 /*~
-    LEFT JOIN
-        [$knot.capsule].[$knot.name] [k$knot.mnemonic]
-    ON
-        $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
-~*/
-                if(knot.isEquivalent()) {
-                    equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
-/*~
-    AND
-        [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
-~*/
-                }
-/*~
-    WHERE
-        ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
+            $attribute.knotValueColumnName,
+            $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
+            $(knot.isEquivalent())? $equivalent,
+            $(schema.METADATA)? $attribute.knotMetadataColumnName,
+            $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    WHERE
-        i.$attribute.valueColumnName is not null;
+            $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
         }
 /*~
-END;
+    	) VALUES (
+    	    NEW.$anchor.identityColumnName,
+            $(schema.METADATA)? NEW.$anchor.metadataColumnName,
+ ~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+            $(schema.IMPROVED)? COALESCE(NEW.$attribute.anchorReferenceName, NEW.$anchor.identityColumnName),
+            $(schema.METADATA)? COALESCE(NEW.$attribute.metadataColumnName, NEW.$anchor.metadataColumnName),
+            $(attribute.timeRange)? COALESCE(NEW.$attribute.changingColumnName, $schema.metadata.now),
+            $(attribute.isEquivalent())? COALESCE(NEW.$attribute.equivalentColumnName, 0),
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+                equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
+/*~
+            NEW.$attribute.knotValueColumnName,
+            $(knot.hasChecksum())? COALESCE(NEW.$attribute.knotChecksumColumnName, $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(CAST(NEW.$attribute.knotValueColumnName AS text))),
+            $(knot.isEquivalent())? COALESCE(NEW.$equivalent, 0),
+            $(schema.METADATA)? COALESCE(NEW.$attribute.knotMetadataColumnName, NEW.$anchor.metadataColumnName),
+~*/
+            }
+/*~
+            NEW.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+        }
+/*~
+    	);
+    
+        RETURN NEW;
+    END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER iti_l$anchor.name
+INSTEAD OF INSERT ON $anchor.capsule\.l$anchor.name
+FOR EACH ROW
+EXECUTE PROCEDURE $anchor.capsule\.iti_l$anchor.name();
+
+
+-- AFTER INSERT trigger ---------------------------------------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS ita_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+DROP FUNCTION IF EXISTS $anchor.capsule\.ita_l$anchor.name();
+
+CREATE OR REPLACE FUNCTION $anchor.capsule\.ita_l$anchor.name() RETURNS trigger AS '
+    BEGIN
+        ~*/
+        while (attribute = anchor.nextAttribute()) {
+            knot = attribute.knot;
+/*~
+        INSERT INTO $attribute.capsule\.$attribute.name (
+            $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $(attribute.timeRange)? $attribute.changingColumnName,
+            $attribute.valueColumnName
+        )
+        SELECT
+            i.$attribute.anchorReferenceName,
+            $(schema.METADATA)? i.$attribute.metadataColumnName,
+            $(attribute.timeRange)? i.$attribute.changingColumnName,
+            $(attribute.isKnotted())? COALESCE(i.$attribute.valueColumnName, k$knot.mnemonic\.$knot.identityColumnName) : i.$attribute.valueColumnName
+        FROM
+            _tmp_it_$anchor.name i
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+        LEFT JOIN
+            $knot.capsule\.$knot.name k$knot.mnemonic
+        ON
+            $(knot.hasChecksum())? k$knot.mnemonic\.$knot.checksumColumnName = i.$attribute.knotChecksumColumnName : k$knot.mnemonic\.$knot.valueColumnName = i.$attribute.knotValueColumnName
+~*/
+                if(knot.isEquivalent()) {
+                    equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
+/*~
+        AND
+            k$knot.mnemonic\.$knot.equivalentColumnName = i.$equivalent
+~*/
+                }
+/*~
+        WHERE
+            COALESCE(i.$attribute.valueColumnName, k$knot.mnemonic\.$knot.identityColumnName) is not null;
+~*/
+            }
+            else {
+/*~
+        WHERE
+            i.$attribute.valueColumnName is not null;
+~*/
+            }
+        }
+/*~
+        DROP TABLE IF EXISTS _tmp_it_$anchor.name;
+    
+        RETURN NULL;
+    END;
+' LANGUAGE plpgsql;
+
+CREATE TRIGGER ita_l$anchor.name
+AFTER INSERT ON $anchor.capsule\.l$anchor.name
+FOR EACH STATEMENT
+EXECUTE PROCEDURE $anchor.capsule\.ita_l$anchor.name();
 ~*/
     }
 }
