@@ -140,7 +140,7 @@ CREATE OR REPLACE FUNCTION $anchor.capsule\.iti_l$anchor.name() RETURNS trigger 
 /*~
             $(schema.IMPROVED)? COALESCE(NEW.$attribute.anchorReferenceName, NEW.$anchor.identityColumnName),
             $(schema.METADATA)? COALESCE(NEW.$attribute.metadataColumnName, NEW.$anchor.metadataColumnName),
-            $(attribute.timeRange)? COALESCE(NEW.$attribute.changingColumnName, $schema.metadata.now),
+            $(attribute.timeRange)? COALESCE(NEW.$attribute.changingColumnName, CAST($schema.metadata.now AS $attribute.timeRange)),
             $(attribute.isEquivalent())? COALESCE(NEW.$attribute.equivalentColumnName, 0),
 ~*/
             if(attribute.isKnotted()) {
