@@ -16,9 +16,11 @@ while (knot = schema.nextKnot()) {
 CREATE OR REPLACE FUNCTION $knot.capsule\.tcs$knot.name() RETURNS trigger AS '
     BEGIN
         IF (TG_OP = ''INSERT'') THEN
-            NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(
-                CAST(NEW.$knot.valueColumnName AS text)
-            );
+            IF (NEW.$knot.checksumColumnName IS NULL) THEN
+                NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(
+                    CAST(NEW.$knot.valueColumnName AS text)
+                );
+            END IF;
         ELSIF (TG_OP = ''UPDATE'') THEN
             IF (OLD.$knot.valueColumnName != NEW.$knot.valueColumnName) THEN
                 NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(
@@ -43,9 +45,11 @@ FOR EACH ROW EXECUTE PROCEDURE $knot.capsule\.tcs$knot.name();
 CREATE OR REPLACE FUNCTION $knot.capsule\.tcs$knot.name() RETURNS trigger AS '
     BEGIN
         IF (TG_OP = ''INSERT'') THEN
-            NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(
-                CAST(NEW.$knot.valueColumnName AS text)
-            );
+            IF (NEW.$knot.checksumColumnName IS NULL) THEN
+                NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(
+                    CAST(NEW.$knot.valueColumnName AS text)
+                );
+            END IF;
         ELSIF (TG_OP = ''UPDATE'') THEN
             IF (OLD.$knot.valueColumnName != NEW.$knot.valueColumnName) THEN
                 NEW.$knot.checksumColumnName = $schema.metadata.encapsulation\.$schema.metadata.checksumFunction(

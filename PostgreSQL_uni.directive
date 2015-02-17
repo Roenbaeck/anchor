@@ -6,6 +6,7 @@ SQL/PostgreSQL/DatabaseInitialization.js
 SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
 SQL/PostgreSQL/uni/CreateKnots.js
 SQL/PostgreSQL/uni/CreateKnotTriggers.js
+### good so far
 SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 SQL/PostgreSQL/uni/CreateTies.js
 #SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
@@ -14,7 +15,7 @@ SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
-#SQL/PostgreSQL/uni/DropAnchorPerspectives.js
+SQL/PostgreSQL/uni/DropAnchorPerspectives.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveLatest.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectivePointInTime.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveNow.js
@@ -42,4 +43,4 @@ SQL/PostgreSQL/uni/CreateTiePerspectiveDifference.js
 #SQL/PostgreSQL/biz/CreateTieBusinessPerspectives.js
 #SQL/PostgreSQL/uni/CreateTieTriggers.js
 #SQL/PostgreSQL/CreateSchemaTracking.js --- ei tõlgi
-#SQL/PostgreSQL/uni/AddDescriptions.js
+SQL/PostgreSQL/uni/AddDescriptions.js
