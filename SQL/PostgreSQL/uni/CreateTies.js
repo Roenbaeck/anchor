@@ -35,7 +35,9 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS _$tie.name (
+-- DROP TABLE IF EXISTS $tie.capsule\._$tie.name;
+
+CREATE TABLE IF NOT EXISTS $tie.capsule\._$tie.name (
 ~*/
     var role;
     while (role = tie.nextRole()) {
@@ -50,12 +52,12 @@ CREATE TABLE IF NOT EXISTS _$tie.name (
     while (role = tie.nextRole()) {
         var knotReference = '';
         if(role.knot) {
-            knotReference += '' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + '';
+            knotReference += role.knot.capsule + '._' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name);
         }
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? _$role.anchor.name($role.anchor.identityColumnName), : _$knotReference($role.knot.identityColumnName),
+    ) references $(role.anchor)? $role.anchor.capsule\._$role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
 ~*/
     }
     // one-to-one and we need additional constraints
@@ -110,8 +112,22 @@ CREATE TABLE IF NOT EXISTS _$tie.name (
     )
 );
 
-ALTER TABLE IF EXISTS ONLY _$tie.name CLUSTER ON pk$tie.name;
+ALTER TABLE IF EXISTS ONLY $tie.capsule\._$tie.name CLUSTER ON pk$tie.name;
 
-CREATE OR REPLACE VIEW $tie.name AS SELECT * FROM _$tie.name;
+-- DROP VIEW IF EXISTS $tie.capsule\.$tie.name;
+
+CREATE OR REPLACE VIEW $tie.capsule\.$tie.name AS SELECT
+~*/
+    while (role = tie.nextRole()) {
+/*~
+    $role.columnName$(tie.hasMoreRoles() || tie.timeRange || schema.METADATA)?,
+~*/
+    }
+/*~
+    $(tie.timeRange)? $tie.changingColumnName~*//*~$(tie.timeRange && schema.METADATA)?,
+    $(schema.METADATA)? $tie.metadataColumnName
+
+FROM $tie.capsule\._$tie.name;
+
 ~*/
 }
