@@ -25,6 +25,7 @@ if(restatements) {
         while(attribute = anchor.nextAttribute()) {
             if(attribute.isHistorized()) {
                 var valueColumn, valueType;
+                
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
                         valueColumn = attribute.checksumColumnName;
@@ -45,7 +46,14 @@ if(restatements) {
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION rf$attribute.name(
+DROP FUNCTION IF EXISTS $attribute.capsule\.rf$attribute.name(
+    $anchor.identity,
+    $(attribute.isEquivalent())? $schema.metadata.equivalentRange,
+    $valueType,
+    $attribute.timeRange
+);
+
+CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
     id $anchor.identity,
     $(attribute.isEquivalent())? eq $schema.metadata.equivalentRange,
     value $valueType,
@@ -60,7 +68,7 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
                     SELECT
                         pre.$valueColumn
                     FROM
-                        $(attribute.isEquivalent())? e$attribute.name(eq) pre : $attribute.name pre
+                        $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(eq) pre : $attribute.capsule\.$attribute.name pre
                     WHERE
                         pre.$attribute.anchorReferenceName = id
                     AND
@@ -78,7 +86,7 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
                     SELECT
                         fol.$valueColumn
                     FROM
-                        $(attribute.isEquivalent())? e$attribute.name(eq) fol : $attribute.name fol
+                        $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(eq) fol : $attribute.capsule\.$attribute.name fol
                     WHERE
                         fol.$attribute.anchorReferenceName = id
                     AND
@@ -102,9 +110,9 @@ CREATE OR REPLACE FUNCTION rf$attribute.name(
                 
                 if(!attribute.isRestatable()) {
 /*~
-ALTER TABLE _$attribute.name
+ALTER TABLE $attribute.capsule\._$attribute.name
 ADD CONSTRAINT rc$attribute.name CHECK (
-        rf$attribute.name (
+    $attribute.capsule\.rf$attribute.name(
         $attribute.anchorReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $valueColumn,

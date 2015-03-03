@@ -8,10 +8,10 @@ SQL/PostgreSQL/uni/CreateKnots.js
 SQL/PostgreSQL/uni/CreateKnotTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 SQL/PostgreSQL/uni/CreateTies.js
-### good so far
-#SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
-#SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
+###SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
+###SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
+### good so far
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
