@@ -13,7 +13,12 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION k$anchor.name (
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint,
+--    $schema.metadata.metadataType
+--);
+
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
     requestedNumberOfIdentities bigint,
     metadata $schema.metadata.metadataType
 ) RETURNS void AS '
@@ -31,7 +36,7 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
                 WHERE
                     idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO $anchor.name (
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.metadataColumnName
             )
             SELECT
@@ -48,7 +53,11 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION k$anchor.name (
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint
+--);
+
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
     requestedNumberOfIdentities bigint
 ) RETURNS void AS '
     BEGIN
@@ -65,7 +74,7 @@ CREATE OR REPLACE FUNCTION k$anchor.name (
                 WHERE
                     idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO $anchor.name (
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.dummyColumnName
             )
             SELECT
