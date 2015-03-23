@@ -154,7 +154,7 @@ BEGIN
 ~*/
         if(attribute.isHistorized()) {
 /*~
-                    WHEN rf$attribute.name(
+                    WHEN $attribute.capsule\.rf$attribute.name(
                         v.$attribute.anchorReferenceName,
                         $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
                         $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
