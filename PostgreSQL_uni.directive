@@ -15,10 +15,10 @@ SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 ###SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
 SQL/PostgreSQL/uni/DropAnchorPerspectives.js
-### good so far
-
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveLatest.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectivePointInTime.js
+### good so far
+
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveNow.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveDifference.js
 #SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalenceLatest.js

@@ -8,7 +8,7 @@ while (anchor = schema.nextAnchor()) {
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION p$anchor.name (
+CREATE OR REPLACE FUNCTION $anchor.capsule\.p$anchor.name (
     changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE (
@@ -65,20 +65,20 @@ SELECT
         }
 /*~
 FROM
-    $anchor.name $anchor.mnemonic
+    $anchor.capsule\.$anchor.name $anchor.mnemonic
 ~*/
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isHistorized()) {
                 if(attribute.isEquivalent()) {
 /*~
 LEFT JOIN
-    r$attribute.name(0, CAST(changingTimepoint AS $attribute.timeRange)) $attribute.mnemonic
+    $attribute.capsule\.r$attribute.name(0, CAST(changingTimepoint AS $attribute.timeRange)) $attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    r$attribute.name(CAST(changingTimepoint AS $attribute.timeRange)) $attribute.mnemonic
+    $attribute.capsule\.r$attribute.name(CAST(changingTimepoint AS $attribute.timeRange)) $attribute.mnemonic
 ~*/
                 }
 /*~
@@ -89,7 +89,7 @@ AND
         SELECT
             max(sub.$attribute.changingColumnName)
         FROM
-            $(attribute.isEquivalent())? r$attribute.name(0, CAST(changingTimepoint AS $attribute.timeRange)) sub : r$attribute.name(CAST(changingTimepoint AS $attribute.timeRange)) sub
+            $(attribute.isEquivalent())? $attribute.capsule\.r$attribute.name(0, CAST(changingTimepoint AS $attribute.timeRange)) sub : $attribute.capsule\.r$attribute.name(CAST(changingTimepoint AS $attribute.timeRange)) sub
         WHERE
             sub.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName
    )~*/
@@ -98,13 +98,13 @@ AND
                 if(attribute.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$attribute.name(0) $attribute.mnemonic
+    $attribute.capsule\.e$attribute.name(0) $attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    $attribute.name $attribute.mnemonic
+    $attribute.capsule\.$attribute.name $attribute.mnemonic
 ~*/
                 }
 /*~
@@ -116,13 +116,13 @@ ON
                 if(knot.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$knot.name(0) k$attribute.mnemonic
+    $knot.capsule\.e$knot.name(0) k$attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    $knot.name k$attribute.mnemonic
+    $knot.capsule\.$knot.name k$attribute.mnemonic
 ~*/
                 }
 /*~
