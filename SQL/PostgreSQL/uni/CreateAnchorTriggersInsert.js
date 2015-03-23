@@ -19,8 +19,8 @@ while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
 /*~    	
 -- BEFORE INSERT trigger --------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS itb_l$anchor.name ON $anchor.capsule\.l$anchor.name;
-DROP FUNCTION IF EXISTS $anchor.capsule\.itb_l$anchor.name();
+--DROP TRIGGER IF EXISTS itb_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+--DROP FUNCTION IF EXISTS $anchor.capsule\.itb_l$anchor.name();
 
 CREATE OR REPLACE FUNCTION $anchor.capsule\.itb_l$anchor.name() RETURNS trigger AS '
     BEGIN
@@ -67,8 +67,8 @@ EXECUTE PROCEDURE $anchor.capsule\.itb_l$anchor.name();
 
 
 -- INSTEAD OF INSERT trigger ----------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS iti_l$anchor.name ON $anchor.capsule\.l$anchor.name;
-DROP FUNCTION IF EXISTS $anchor.capsule\.iti_l$anchor.name();
+--DROP TRIGGER IF EXISTS iti_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+--DROP FUNCTION IF EXISTS $anchor.capsule\.iti_l$anchor.name();
 
 CREATE OR REPLACE FUNCTION $anchor.capsule\.iti_l$anchor.name() RETURNS trigger AS '
     BEGIN
@@ -171,8 +171,8 @@ EXECUTE PROCEDURE $anchor.capsule\.iti_l$anchor.name();
 
 
 -- AFTER INSERT trigger ---------------------------------------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS ita_l$anchor.name ON $anchor.capsule\.l$anchor.name;
-DROP FUNCTION IF EXISTS $anchor.capsule\.ita_l$anchor.name();
+--DROP TRIGGER IF EXISTS ita_l$anchor.name ON $anchor.capsule\.l$anchor.name;
+--DROP FUNCTION IF EXISTS $anchor.capsule\.ita_l$anchor.name();
 
 CREATE OR REPLACE FUNCTION $anchor.capsule\.ita_l$anchor.name() RETURNS trigger AS '
     BEGIN

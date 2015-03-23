@@ -24,12 +24,12 @@ SQL/PostgreSQL/uni/CreateAnchorPerspectiveDifference.js
 ###SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalenceNow.js
 ###SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalenceDifference.js
 ###SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
-### good so far
-
 SQL/PostgreSQL/uni/CreateAttributeTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorTriggersInsert.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersUpdate.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersDelete.js
+### good so far
+
 SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
 #SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
 SQL/PostgreSQL/uni/DropTiePerspectives.js
