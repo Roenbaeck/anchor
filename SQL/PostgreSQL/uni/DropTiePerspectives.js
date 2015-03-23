@@ -25,25 +25,26 @@
 
 /*~
 -- DROP TIE TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------
+/*
 ~*/
 
 var tie, role, knot;
 while (tie = schema.nextTie()) {
     if(schema.EQUIVALENCE) {
 /*~
-DROP FUNCTION IF EXISTS ed$tie.name(
+DROP FUNCTION IF EXISTS $tie.capsule\.ed$tie.name(
 
 );
 
-DROP FUNCTION IF EXISTS en$tie.name(
+DROP FUNCTION IF EXISTS $tie.capsule\.en$tie.name(
 
 );
 
-DROP FUNCTION IF EXISTS ep$tie.name(
+DROP FUNCTION IF EXISTS $tie.capsule\.ep$tie.name(
 
 );
 
-DROP FUNCTION IF EXISTS el$tie.name(
+DROP FUNCTION IF EXISTS $tie.capsule\.el$tie.name(
 
 );
 ~*/
@@ -51,19 +52,24 @@ DROP FUNCTION IF EXISTS el$tie.name(
     
     if(tie.isHistorized()) {
 /*~
-DROP FUNCTION IF EXISTS d$tie.name(
+DROP FUNCTION IF EXISTS $tie.capsule\.d$tie.name(
     $schema.metadata.chronon,
     $schema.metadata.chronon
 );
 ~*/
     }
 /*~
-DROP VIEW IF EXISTS n$tie.name;
 
-DROP FUNCTION IF EXISTS p$tie.name(
+DROP VIEW IF EXISTS $tie.capsule\.n$tie.name;
+
+DROP FUNCTION IF EXISTS $tie.capsule\.p$tie.name(
     $schema.metadata.chronon
 );
 
-DROP VIEW IF EXISTS l$tie.name;
+DROP VIEW IF EXISTS $tie.capsule\.l$tie.name;
 ~*/
 }
+
+/*~
+*/
+~*/
