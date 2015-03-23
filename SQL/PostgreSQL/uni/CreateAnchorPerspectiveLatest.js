@@ -6,7 +6,7 @@ while (anchor = schema.nextAnchor()) {
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$anchor.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW l$anchor.name AS
+CREATE OR REPLACE VIEW $anchor.capsule\.l$anchor.name AS
 SELECT
     $anchor.mnemonic\.$anchor.identityColumnName,
     $(schema.METADATA)? $anchor.mnemonic\.$anchor.metadataColumnName,
@@ -35,19 +35,19 @@ SELECT
         }
 /*~
 FROM
-    $anchor.name $anchor.mnemonic
+    $anchor.capsule\.$anchor.name $anchor.mnemonic
 ~*/
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$attribute.name(0) $attribute.mnemonic
+    $attribute.capsule\.e$attribute.name(0) $attribute.mnemonic
 ~*/
             }
             else {
 /*~
 LEFT JOIN
-    $attribute.name $attribute.mnemonic
+    $attribute.capsule\.$attribute.name $attribute.mnemonic
 ~*/
             }
 /*~
@@ -60,7 +60,7 @@ AND
         SELECT
             max(sub.$attribute.changingColumnName)
         FROM
-            $(attribute.isEquivalent())? e$attribute.name(0) sub : $attribute.name sub
+            $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(0) sub : $attribute.capsule\.$attribute.name sub
         WHERE
             sub.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName
    )~*/
@@ -70,13 +70,13 @@ AND
                 if(knot.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$knot.name(0) k$attribute.mnemonic
+    $knot.capsule\.e$knot.name(0) k$attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    $knot.name k$attribute.mnemonic
+    $knot.capsule\.$knot.name k$attribute.mnemonic
 ~*/
                 }
 /*~
