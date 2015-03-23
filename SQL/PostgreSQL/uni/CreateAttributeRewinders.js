@@ -27,10 +27,12 @@ while (anchor = schema.nextAnchor()) {
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
+/*
 DROP FUNCTION IF EXISTS $attribute.capsule\.r$attribute.name(
     $(attribute.isEquivalent())? $schema.metadata.equivalentRange,
     $attribute.timeRange
 );
+*/
 
 CREATE OR REPLACE FUNCTION $attribute.capsule\.r$attribute.name(
     $(attribute.isEquivalent())? equivalent $schema.metadata.equivalentRange,

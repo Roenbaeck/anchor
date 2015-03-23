@@ -6,7 +6,7 @@ while (tie = schema.nextTie()) {
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -- d$tie.name showing all differences between the given timepoints
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION d$tie.name (
+CREATE OR REPLACE FUNCTION $tie.capsule\.d$tie.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon
 )
@@ -50,20 +50,20 @@ SELECT
         }
 /*~
 FROM
-    $tie.name tie
+    $tie.capsule\.$tie.name tie
 ~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
                 if(knot.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$knot.name(0) $role.name
+    $knot.capsule\.e$knot.name(0) $role.name
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    $knot.name $role.name
+    $knot.capsule\.$knot.name $role.name
 ~*/
                 }
 /*~

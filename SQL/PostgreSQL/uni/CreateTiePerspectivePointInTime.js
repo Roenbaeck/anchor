@@ -5,7 +5,7 @@ while (tie = schema.nextTie()) {
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$tie.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION p$tie.name (
+CREATE OR REPLACE FUNCTION $tie.capsule\.p$tie.name (
     changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE (
@@ -48,19 +48,19 @@ SELECT
         }
 /*~
 FROM
-    $tie.name tie~*/
+    $tie.capsule\.$tie.name tie~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
                 if(knot.isEquivalent()) {
 /*~
 LEFT JOIN
-    e$knot.name(0) $role.name
+    $knot.capsule\.e$knot.name(0) $role.name
 ~*/
                 }
                 else {
 /*~
 LEFT JOIN
-    $knot.name $role.name
+    $knot.capsule\.$knot.name $role.name
 ~*/
                 }
 /*~
@@ -74,7 +74,7 @@ WHERE
         SELECT
             max(sub.$tie.changingColumnName)
         FROM
-            $tie.name sub
+            $tie.capsule\.$tie.name sub
         WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
