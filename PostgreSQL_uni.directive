@@ -28,10 +28,10 @@ SQL/PostgreSQL/uni/CreateAttributeTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorTriggersInsert.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersUpdate.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersDelete.js
+SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
+###SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
 ### good so far
 
-SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
-#SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
 SQL/PostgreSQL/uni/DropTiePerspectives.js
 SQL/PostgreSQL/uni/CreateTiePerspectiveLatest.js
 SQL/PostgreSQL/uni/CreateTiePerspectivePointInTime.js

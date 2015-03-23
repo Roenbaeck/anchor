@@ -34,7 +34,7 @@ if(restatements) {
 --
 -- rc$tie.name restatement constraint (available only in ties that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION rf$tie.name (
+CREATE OR REPLACE FUNCTION $tie.capsule\.rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -57,7 +57,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
             }
 /*~
             FROM
-                $tie.name pre
+                $tie.capsule\.$tie.name pre
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
             }
 /*~
             FROM
-                $tie.name fol
+                $tie.capsule\.$tie.name fol
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -143,9 +143,9 @@ CREATE OR REPLACE FUNCTION rf$tie.name (
 ~*/
             if(!tie.isRestatable()) {
 /*~
-        ALTER TABLE $tie.name
+        ALTER TABLE $tie.capsule\.$tie.name
         ADD CONSTRAINT rc$tie.name CHECK (
-            rf$tie.name (
+            $tie.capsule\.rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
