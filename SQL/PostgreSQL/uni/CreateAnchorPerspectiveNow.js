@@ -7,11 +7,11 @@ while (anchor = schema.nextAnchor()) {
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -- n$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW n$anchor.name AS
+CREATE OR REPLACE VIEW $anchor.capsule\.n$anchor.name AS
 SELECT
     *
 FROM
-    p$anchor.name($schema.metadata.now);
+    $anchor.capsule\.p$anchor.name($schema.metadata.now);
 ~*/
     } // end of if anchor has any attributes
 }

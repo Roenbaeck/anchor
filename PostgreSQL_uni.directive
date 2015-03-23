@@ -17,9 +17,9 @@ SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 SQL/PostgreSQL/uni/DropAnchorPerspectives.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveLatest.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectivePointInTime.js
+SQL/PostgreSQL/uni/CreateAnchorPerspectiveNow.js
 ### good so far
 
-SQL/PostgreSQL/uni/CreateAnchorPerspectiveNow.js
 SQL/PostgreSQL/uni/CreateAnchorPerspectiveDifference.js
 #SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalenceLatest.js
 #SQL/PostgreSQL/uni/CreateAnchorPerspectiveEquivalencePointInTime.js
