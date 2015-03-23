@@ -46,12 +46,14 @@ if(restatements) {
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
+/*
 DROP FUNCTION IF EXISTS $attribute.capsule\.rf$attribute.name(
     $anchor.identity,
     $(attribute.isEquivalent())? $schema.metadata.equivalentRange,
     $valueType,
     $attribute.timeRange
 );
+*/
 
 CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
     id $anchor.identity,

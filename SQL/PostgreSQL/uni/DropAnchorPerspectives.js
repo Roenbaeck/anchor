@@ -28,6 +28,7 @@
 
 /*~
 -- DROP ANCHOR TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------
+/*
 ~*/
 
 var anchor;
@@ -35,36 +36,46 @@ while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
         if(schema.EQUIVALENCE) {
 /*~
-DROP FUNCTION IF EXISTS ed$anchor.name(
+DROP FUNCTION IF EXISTS $anchor.capsule\.ed$anchor.name(
     $schema.metadata.equivalentRange, 
     $schema.metadata.chronon, 
     $schema.metadata.chronon, 
     text
 );
-DROP FUNCTION IF EXISTS en$anchor.name(
+
+DROP FUNCTION IF EXISTS $anchor.capsule\.en$anchor.name(
     $schema.metadata.equivalentRange
 );
-DROP FUNCTION IF EXISTS ep$anchor.name(
+
+DROP FUNCTION IF EXISTS $anchor.capsule\.ep$anchor.name(
     $schema.metadata.equivalentRange, 
     $schema.metadata.chronon
 );
-DROP FUNCTION IF EXISTS el$anchor.name(
+
+DROP FUNCTION IF EXISTS $anchor.capsule\.el$anchor.name(
     $schema.metadata.equivalentRange
 );
 ~*/
         } // end of equivalence
         
 /*~
-DROP FUNCTION IF EXISTS d$anchor.name(
+DROP FUNCTION IF EXISTS $anchor.capsule\.d$anchor.name(
     $schema.metadata.chronon, 
     $schema.metadata.chronon, 
     text
 );
-DROP VIEW IF EXISTS n$anchor.name;
-DROP FUNCTION IF EXISTS p$anchor.name(
+
+DROP VIEW IF EXISTS $anchor.capsule\.n$anchor.name;
+
+DROP FUNCTION IF EXISTS $anchor.capsule\.p$anchor.name(
     $schema.metadata.chronon
 );
-DROP VIEW IF EXISTS l$anchor.name;
+
+DROP VIEW IF EXISTS $anchor.capsule\.l$anchor.name;
 ~*/
     } // end of if anchor has any attributes
 }
+
+/*~
+*/
+~*/
