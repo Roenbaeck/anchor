@@ -673,7 +673,7 @@
             // other members
             components: [],
             visibleNodes: [],
-            idToComponent: {}, 
+            idToComponent: {},
             version: -1,
             versions: [],
             getAnchorLookup: function() {
@@ -1118,7 +1118,7 @@
                     if(node.type === NodeType.EDGE) {
                         edge = node;
                         if(tie = edge.node.type === NodeType.TIE ? this.nodeToComponent(edge.node) :
-                                 edge.otherNode.type === NodeType.TIE ? this.nodeToComponent(edge.otherNode) : 
+                                 edge.otherNode.type === NodeType.TIE ? this.nodeToComponent(edge.otherNode) :
                                  null) {
                             tie.setFirstRole(component);
                         }
@@ -4572,8 +4572,8 @@
                 img.height = can.height = image.height.baseVal.value;
                 img.src = this.toSVGDataURL(image);
                 // TODO: causes violation in latest Safari
-                ctx.drawImage(img, 0, 0);
-                return can.toDataURL();
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                return can.toDataURL('image/png');
             },
             findNodeToExplode: function(node) {
                 var edge, otherNode;
