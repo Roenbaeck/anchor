@@ -69,7 +69,13 @@ BEGIN
         }
         else {
 /*~
-        1,
+        ROW_NUMBER() OVER (
+            PARTITION BY
+                $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
+                i.$attribute.anchorReferenceName
+            ORDER BY
+                (SELECT 1) ASC -- some undefined order
+        ),
 ~*/
         }
 /*~
@@ -78,7 +84,7 @@ BEGIN
         inserted i;
 
     SELECT
-        @maxVersion = max($attribute.versionColumnName),
+        @maxVersion = $(attribute.isHistorized())? max($attribute.versionColumnName), : 1,
         @currentVersion = 0
     FROM
         @$attribute.name;
