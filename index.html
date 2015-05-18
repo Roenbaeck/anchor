@@ -164,17 +164,21 @@
             yVelocity: 0,
             velocity: 0,
             moving: true,
+            unstoppable: false,
             fixed: false,
             visible: true,
             edges: null,
             stop: function() {
-                this.moving = false;
+                this.moving = this.unstoppable;
             },
             // movement is propagated to the edges of a node
             start: function() {
                 this.moving = true;
                 var i = this.edges.length;
                 while(i--) this.edges[i].start();
+            },
+            setUnstoppable: function(unstoppable) {
+                this.unstoppable = unstoppable;
             },
             // "static variables"
             getMass: function() {
@@ -1936,6 +1940,7 @@
                                 component.node.xPosition = svgPoint.x;
                                 component.node.yPosition = svgPoint.y;
                                 component.setFixed(true);
+                                component.node.setUnstoppable(true);
                                 Model.invalidateComponent(component);
                                 DrawingEngine.start(true);
                             }
@@ -1979,6 +1984,7 @@
                         EventHandler.getInteraction() !== "whileDragging")) {
                     for(var i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         component.hideContextMenu();
+                        component.node.setUnstoppable(false);
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
                     }
                     EventHandler.clearInteraction();
@@ -2600,10 +2606,12 @@
             var ref = historized ? '#attribute_historized' : '#attribute';
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
             this.svg.graphicsElement.appendChild(this.svg.useElement);
-            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
             this.svg.xOffset = 5;
             this.svg.yOffset = 2;
@@ -2612,9 +2620,11 @@
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
             this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
             this.nav.graphicsElement.appendChild(this.nav.useElement);
-            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
             this.setNameable(true);
             this.postCreationInitialization();
         }
@@ -2926,10 +2936,12 @@
             this.svg.useElement = document.createElementNS(SVGNS, 'use');
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
             this.svg.graphicsElement.appendChild(this.svg.useElement);
-            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
             this.svg.xOffset = 6;
             this.svg.yOffset = 0;
@@ -2939,9 +2951,11 @@
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
             this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_anchor');
             this.nav.graphicsElement.appendChild(this.nav.useElement);
-            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
             this.setNameable(true);
             this.postCreationInitialization();
         }
@@ -3105,10 +3119,12 @@
             this.svg.useElement = document.createElementNS(SVGNS, 'use');
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
             this.svg.graphicsElement.appendChild(this.svg.useElement);
-            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
             this.svg.xOffset = 6;
             this.svg.yOffset = 0;
@@ -3118,9 +3134,11 @@
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
             this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_knot');
             this.nav.graphicsElement.appendChild(this.nav.useElement);
-            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
             this.setNameable(true);
             this.postCreationInitialization();
         }
@@ -3281,10 +3299,12 @@
             var ref = historized ? '#tie_historized' : '#tie';
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
             this.svg.graphicsElement.appendChild(this.svg.useElement);
-            this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
             SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-            this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
             this.svg.boundingBox = this.svg.graphicsElement.getBBox();
             this.svg.xOffset = 2;
             this.svg.yOffset = 2;
@@ -3294,9 +3314,11 @@
             this.nav.useElement = document.createElementNS(SVGNS, 'use');
             this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
             this.nav.graphicsElement.appendChild(this.nav.useElement);
-            this.nav.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + x.toFixed(2) + ',' + y.toFixed(2) + ')');
             NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-            this.nav.control = this.nav.graphicsElement.transform.baseVal.getItem(0);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
             this.setNameable(true);
             this.postCreationInitialization();
         }
@@ -3640,10 +3662,12 @@
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
-                this.svg.graphicsElement.setAttributeNS(null, 'transform', 'translate(' + controlPoint.xPosition + ',' + controlPoint.yPosition + ')');
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
-                this.svg.control = this.svg.graphicsElement.transform.baseVal.getItem(0);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                    this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+                );
+                this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
                 this.svg.boundingBox = this.svg.graphicsElement.getBBox();
                 this.svg.xOffset = 2;
                 this.svg.yOffset = 2;
@@ -3759,6 +3783,19 @@
                 [/"xml"/ig,                             '"XMLTYPE"'],
                 [/"bit"/ig,                             '"NUMBER(1)"'],
                 [/"uniqueidentifier"/ig,                '"RAW(16)"']
+            ],
+            SQLServer_to_PostgreSQL: [
+                [/"tinyint"/ig,                         '"smallint"'],
+                [/"NUMBER\(([0-9]+)\)"/ig,              '"numeric($1)"'],
+                [/"datetime"/ig,                        '"timestamp"'],
+                [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
+                [/"varchar"/ig,                         '"char(1)"'],
+          	],
+          	PostgreSQL_to_SQLServer: [
+                [/"numeric\(([0-9]+)\)"/ig,             '"NUMBER($1)"'],
+                [/"timestamp"/ig,                       '"datetime"'],
+                [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
+                [/"char(1)"/ig,                         '"varchar"'],
             ],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
@@ -6050,7 +6087,7 @@
         function init(window) {
             // another disclaimer for the testing versions
             if(!RELEASE) {
-                alert(
+                /*alert(
                     '----------- DISCLAIMER -----------\n' +
                     'Please note that this is a test version.\n' +
                     'It should not be used for production \n' +
@@ -6059,7 +6096,7 @@
                     'be found under the Help/About menu.\n' +
                     '----------- DISCLAIMER -----------'
                 );
-                document.getElementById("disclaimer").style.display = "block";
+                document.getElementById("disclaimer").style.display = "block";*/
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
@@ -6330,6 +6367,7 @@
                     <select id="database" onchange="Settings.setDatabase(this.value, true)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
                         <option value="Oracle">Oracle</option>
+                        <option value="PostgreSQL">PostgreSQL</option>
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">

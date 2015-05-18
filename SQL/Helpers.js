@@ -231,10 +231,10 @@ while (tie = schema.nextTie()) {
         };
         role.isKnotRole = function() {
             return schema.knot[this.type] != null;
-        }
+        };
         role.isAnchorRole = function() {
             return schema.anchor[this.type] != null;
-        }
+        };
         if(schema.hasMoreKnots() && schema.knot[role.type]) {
             role.knot = schema.knot[role.type];
             tie.knotRoles.push(role.id);
