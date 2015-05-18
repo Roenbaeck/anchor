@@ -35,7 +35,7 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$tie.capsule].[$tie.name] (
+CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
 ~*/
     var role, anchorRoles = [];
     while (role = tie.nextRole()) {
@@ -111,13 +111,42 @@ CREATE TABLE IF NOT EXISTS [$tie.capsule].[$tie.name] (
     )
 ) ORDER BY
 ~*/
-var r;
-for(r = 0; role = anchorRoles[r]; r++) {
+    var r;
+    for(r = 0; role = anchorRoles[r]; r++) {
 /*~
     $role.columnName$(r != anchorRoles.length - 1)?,
 ~*/
-}
+    }
 /*~
 SEGMENTED BY MODULARHASH(${anchorRoles[0].columnName}$) ALL NODES;
 ~*/
+    var segmentationRole, otherRoles;
+    for(var i = 1; segmentationRole = anchorRoles[i]; i++) {
+        otherRoles = [];
+        for(r = 0; role = anchorRoles[r]; r++) {
+            if(role != segmentationRole) otherRoles.push(role);
+        }
+/*~
+CREATE PROJECTION ${tie.capsule}$.${tie.name}$__${segmentationRole.columnName}$
+AS
+SELECT
+~*/
+        while (role = tie.nextRole()) {
+/*~
+    $role.columnName$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
+ORDER BY
+    $segmentationRole.columnName,
+~*/
+        for(r = 0; role = otherRoles[r]; r++) {
+/*~
+    $role.columnName$(r != otherRoles.length - 1)?,
+~*/
+        }
+/*~
+SEGMENTED BY MODULARHASH(${segmentationRole.columnName}$) ALL NODES;
+~*/
+    }
 }

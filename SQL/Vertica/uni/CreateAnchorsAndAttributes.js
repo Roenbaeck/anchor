@@ -17,7 +17,7 @@ while (anchor = schema.nextAnchor()) {
 -- Anchor table -------------------------------------------------------------------------------------------------------
 -- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$anchor.capsule].[$anchor.name] (
+CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
     $anchor.identityColumnName $(anchor.isGenerator())? $anchor.identityGenerator not null, : $anchor.identity not null,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS [$anchor.capsule].[$anchor.name] (
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Static attribute table ---------------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,

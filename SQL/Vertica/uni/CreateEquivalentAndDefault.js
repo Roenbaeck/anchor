@@ -6,13 +6,13 @@ if(schema.EQUIVALENCE) {
 -- must be available the table is set up with a default equivalent with identity 0.
 --
 -- Equivalent table ---------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$schema.metadata.encapsulation].[_$schema.metadata.equivalentSuffix] (
+CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix (
     $schema.metadata.equivalentSuffix $schema.metadata.equivalentRange not null,
     constraint pk_$schema.metadata.equivalentSuffix primary key (
         $schema.metadata.equivalentSuffix asc
     )
 );
-MERGE INTO [$schema.metadata.encapsulation].[_$schema.metadata.equivalentSuffix] e
+MERGE INTO $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix e
 USING ( SELECT 0 AS _defaultEquivalent ) d
 ON (
     d._defaultEquivalent = e.$schema.metadata.equivalentSuffix

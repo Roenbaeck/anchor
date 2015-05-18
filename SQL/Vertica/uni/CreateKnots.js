@@ -19,7 +19,7 @@ while (knot = schema.nextKnot()) {
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.identityName] (
+CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.identityName (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.identityName] (
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.equivalentName] (
+CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.equivalentName] (
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$knot.capsule].[$knot.name] (
+CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $knot.valueColumnName $knot.dataRange not null,
     $(knot.hasChecksum())? $knot.checksumColumnName int default hash($knot.valueColumnName),
