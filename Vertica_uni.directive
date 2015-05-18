@@ -1,0 +1,25 @@
+# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/Vertica/NamingConvention.js
+SQL/Vertica/uni/CreateEquivalentAndDefault.js
+SQL/Vertica/uni/CreateKnots.js
+SQL/Vertica/uni/CreateAnchorsAndAttributes.js
+SQL/Vertica/uni/CreateTies.js
+# to be done later
+#SQL/Vertica/uni/CreateKnotEquivalenceViews.js
+#SQL/Vertica/uni/CreateAttributeEquivalenceViews.js
+#SQL/Vertica/uni/AddAttributeRestatementConstraints.js
+#SQL/Vertica/uni/CreateKeyGenerators.js
+#SQL/Vertica/uni/CreateAttributeRewinders.js
+#SQL/Vertica/biz/DropAnchorBusinessPerspectives.js
+#SQL/Vertica/uni/CreateAnchorPerspectives.js
+#SQL/Vertica/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Vertica/uni/CreateAttributeTriggers.js
+#SQL/Vertica/uni/CreateAnchorTriggers.js
+#SQL/Vertica/uni/AddTieRestatementConstraints.js
+#SQL/Vertica/biz/DropTieBusinessPerspectives.js
+#SQL/Vertica/uni/CreateTiePerspectives.js
+#SQL/Vertica/biz/CreateTieBusinessPerspectives.js
+#SQL/Vertica/uni/CreateTieTriggers.js
+#SQL/Vertica/CreateSchemaTracking.js
+#SQL/Vertica/uni/AddDescriptions.js
