@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
     if(tie.hasMoreIdentifiers()) {
         while (role = tie.nextIdentifier()) {
 /*~
-        $role.columnName asc~*/
+        $role.columnName~*/
             if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
     else {
         while (role = tie.nextRole()) {
 /*~
-        $role.columnName asc~*/
+        $role.columnName~*/
             if(tie.hasMoreRoles() || tie.isHistorized()) {
                 /*~,~*/
             }
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
     }
     if(tie.isHistorized()) {
 /*~
-        $tie.changingColumnName desc
+        $tie.changingColumnName
 ~*/
     }
 /*~

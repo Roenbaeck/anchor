@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
     $anchor.identityColumnName $(anchor.isGenerator())? $anchor.identityGenerator not null, : $anchor.identity not null,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
     constraint pk$anchor.name primary key (
-        $anchor.identityColumnName asc
+        $anchor.identityColumnName
     )
 ) ORDER BY $anchor.identityColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES;
 ~*/
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
-        $attribute.anchorReferenceName asc,
-        $attribute.changingColumnName desc
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.anchorReferenceName,
+        $attribute.changingColumnName
     )
 ) ORDER BY $anchor.identityColumnName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
 ~*/
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.knotReferenceName
     ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName asc,
-        $attribute.changingColumnName desc
+        $attribute.anchorReferenceName,
+        $attribute.changingColumnName
     )
 ) ORDER BY $anchor.identityColumnName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES;
 ~*/
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.knotReferenceName
     ) references [$knot.capsule].[$knotTableName]($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName asc
+        $attribute.anchorReferenceName
     )
 ) ORDER BY $anchor.identityColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES;
 ~*/
@@ -115,8 +115,8 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.anchorReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
-        $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
-        $attribute.anchorReferenceName asc
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.anchorReferenceName 
     )
 ) ORDER BY $anchor.identityColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
 ~*/

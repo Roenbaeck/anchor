@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.identityName (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
-        $knot.identityColumnName asc
+        $knot.identityColumnName
     )
 ) ORDER BY $knot.identityColumnName UNSEGMENTED ALL NODES;
 
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
         $knot.identityColumnName
     ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),
     constraint pk$knot.equivalentName primary key (
-        $knot.equivalentColumnName asc,
-        $knot.identityColumnName asc
+        $knot.equivalentColumnName,
+        $knot.identityColumnName
     ),
     constraint uq$knot.equivalentName unique (
         $knot.equivalentColumnName,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
     $(knot.hasChecksum())? $knot.checksumColumnName int default hash($knot.valueColumnName),
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
-        $knot.identityColumnName asc
+        $knot.identityColumnName
     ),
     constraint uq$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
