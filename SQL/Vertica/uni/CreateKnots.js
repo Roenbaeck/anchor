@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knot.identityName($knot.identityColumnName),
     constraint pk$knot.equivalentName primary key (
         $knot.equivalentColumnName,
         $knot.identityColumnName

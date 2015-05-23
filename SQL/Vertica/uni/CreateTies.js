@@ -51,12 +51,12 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
     while (role = tie.nextRole()) {
         var knotReference = '';
         if(role.knot) {
-            knotReference += '[' + role.knot.capsule + '].[' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + ']';
+            knotReference += role.knot.capsule + '.' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name);
         }
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? [$role.anchor.capsule].[$role.anchor.name]($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
+    ) references $(role.anchor)? ${role.anchor.capsule}$.$role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
 ~*/
     }
     // one-to-one and we need additional constraints
@@ -137,6 +137,8 @@ SELECT
 ~*/
         }
 /*~
+FROM
+    ${tie.capsule}$.$tie.name
 ORDER BY
     $segmentationRole.columnName,
 ~*/
