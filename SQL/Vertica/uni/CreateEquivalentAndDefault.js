@@ -9,7 +9,7 @@ if(schema.EQUIVALENCE) {
 CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix (
     $schema.metadata.equivalentSuffix $schema.metadata.equivalentRange not null,
     constraint pk_$schema.metadata.equivalentSuffix primary key (
-        $schema.metadata.equivalentSuffix asc
+        $schema.metadata.equivalentSuffix 
     )
 );
 MERGE INTO $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix e
