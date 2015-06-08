@@ -1,0 +1,27 @@
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/Vertica/NamingConvention.js
+SQL/Vertica/crt/CreatePositorAndDefault.js
+SQL/Vertica/crt/CreateKnots.js
+SQL/Vertica/crt/CreateAnchorsAndAttributes.js
+SQL/Vertica/crt/CreateAttributeAssembledProjections.js
+# to be done later
+#SQL/Vertica/crt/CreateAttributeRewinders.js
+#SQL/Vertica/crt/AddAttributeRestatementConstraints.js
+#SQL/Vertica/biz/DropAnchorBusinessPerspectives.js
+#SQL/Vertica/crt/CreateAnchorPerspectives.js
+#SQL/Vertica/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Vertica/crt/CreateKeyGenerators.js
+#SQL/Vertica/crt/CreateAttributeTriggers.js
+#SQL/Vertica/crt/CreateAnchorTriggers.js
+#SQL/Vertica/crt/CreateTies.js
+#SQL/Vertica/crt/CreateTieAssembledViews.js
+#SQL/Vertica/crt/AddTieRestatementConstraints.js
+#SQL/Vertica/crt/CreateTieRewinders.js
+#SQL/Vertica/biz/DropTieBusinessPerspectives.js
+#SQL/Vertica/crt/CreateTiePerspectives.js
+#SQL/Vertica/biz/CreateTieBusinessPerspectives.js
+#SQL/Vertica/crt/CreateTieTriggers.js
+#SQL/Vertica/crt/CreateAttributeSheetStacks.js
+#SQL/Vertica/CreateSchemaTracking.js
+#SQL/Vertica/crt/AddDescriptions.js
