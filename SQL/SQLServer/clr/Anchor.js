@@ -10,6 +10,7 @@ while(anchor = schema.nextAnchor()) {
 while(knot = schema.nextKnot()) {
     if(knot.hasChecksum()) {
         thereAreHashes = true;
+        schema.resetKnots();
         break;
     }
 }

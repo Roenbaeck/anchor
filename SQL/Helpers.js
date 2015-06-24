@@ -28,6 +28,9 @@ schema.hasMoreKnots = function() {
 schema.isFirstKnot = function() {
     return schema._iterator.knot == 1;
 };
+schema.resetKnots = function() {
+    schema._iterator.knot = 0;
+};
 
 var knot;
 while(knot = schema.nextKnot()) {
