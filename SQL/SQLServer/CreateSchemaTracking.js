@@ -41,7 +41,7 @@ SELECT
 	[schema].value('schema[1]/@format', 'nvarchar(max)') as [format],
 	[schema].value('schema[1]/@date', 'date') as [date],
 	[schema].value('schema[1]/@time', 'time(0)') as [time],
-	[schema].value('schema[1]/metadata[1]/@temporalization', 'nvarchar(max)') as [temporalization], 
+	[schema].value('schema[1]/metadata[1]/@temporalization', 'nvarchar(max)') as [temporalization],
 	[schema].value('schema[1]/metadata[1]/@databaseTarget', 'nvarchar(max)') as [databaseTarget],
 	[schema].value('schema[1]/metadata[1]/@changingRange', 'nvarchar(max)') as [changingRange],
 	[schema].value('schema[1]/metadata[1]/@encapsulation', 'nvarchar(max)') as [encapsulation],
@@ -79,7 +79,7 @@ SELECT
 	[schema].value('schema[1]/metadata[1]/@equivalence', 'nvarchar(max)') as [equivalence],
 	[schema].value('schema[1]/metadata[1]/@equivalentSuffix', 'nvarchar(max)') as [equivalentSuffix],
 	[schema].value('schema[1]/metadata[1]/@equivalentRange', 'nvarchar(max)') as [equivalentRange]
-FROM 
+FROM
 	_Schema;
 GO
 -- Anchor view --------------------------------------------------------------------------------------------------------
@@ -317,153 +317,226 @@ CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
 )
 AS
 BEGIN
-   DECLARE @xml XML;
-   WITH objects AS (
-      SELECT
-         'DROP ' + ft.[type] + ' ' + fn.[name] + '; -- ' + fn.[description] as [statement],
-         row_number() OVER (
-            ORDER BY
-               -- restatement finders last
-               CASE dc.[description]
-                  WHEN 'restatement finder' THEN 1
-                  ELSE 0
-               END ASC,
-               -- order based on type
-               CASE ft.[type]
-                  WHEN 'PROCEDURE' THEN 1
-                  WHEN 'FUNCTION' THEN 2
-                  WHEN 'VIEW' THEN 3
-                  WHEN 'TABLE' THEN 4
-                  ELSE 5
-               END ASC,
-               -- order within type
-               CASE dc.[description]
-                  WHEN 'key generator' THEN 1
-                  WHEN 'latest perspective' THEN 2
-                  WHEN 'current perspective' THEN 3
-                  WHEN 'difference perspective' THEN 4
-                  WHEN 'point-in-time perspective' THEN 5
-                  WHEN 'time traveler' THEN 6
-                  WHEN 'rewinder' THEN 7
-                  WHEN 'assembled view' THEN 8
-                  WHEN 'annex table' THEN 9
-                  WHEN 'posit table' THEN 10
-                  WHEN 'table' THEN 11
-                  WHEN 'restatement finder' THEN 12
-                  ELSE 13
-               END,
-               -- order within description
-               CASE ft.[type]
-                  WHEN 'TABLE' THEN
-                     CASE cl.[class]
-                        WHEN 'Attribute' THEN 1
-                        WHEN 'Attribute Annex' THEN 2
-                        WHEN 'Attribute Posit' THEN 3
-                        WHEN 'Tie' THEN 4
-                        WHEN 'Anchor' THEN 5
-                        WHEN 'Knot' THEN 6
-                        ELSE 7
-                     END
-                  ELSE
-                     CASE cl.[class]
-                        WHEN 'Anchor' THEN 1
-                        WHEN 'Attribute' THEN 2
-                        WHEN 'Attribute Annex' THEN 3
-                        WHEN 'Attribute Posit' THEN 4
-                        WHEN 'Tie' THEN 5
-                        WHEN 'Knot' THEN 6
-                        ELSE 7
-                     END
-               END,
-               -- finally alphabetically
-               o.[name] ASC
-         ) AS [ordinal]
-      FROM
-         sys.objects o
-      JOIN
-         sys.schemas s
-      ON
-         s.[schema_id] = o.[schema_id]
-      AND
-         s.[name] = '$schema.metadata.encapsulation'
-      CROSS APPLY (
-         SELECT
-            CASE
-               WHEN o.[name] LIKE '[_]%'
-               COLLATE Latin1_General_BIN THEN 'Metadata'
-               WHEN o.[name] LIKE '%[A-Z][A-Z][_][a-z]%[A-Z][A-Z][_][a-z]%'
-               COLLATE Latin1_General_BIN THEN 'Tie'
-               WHEN o.[name] LIKE '%[A-Z][A-Z][_][A-Z][A-Z][A-Z][_][A-Z]%[_]%'
-               COLLATE Latin1_General_BIN THEN 'Attribute'
-               WHEN o.[name] LIKE '%[A-Z][A-Z][A-Z][_][A-Z]%'
-               COLLATE Latin1_General_BIN THEN 'Knot'
-               WHEN o.[name] LIKE '%[A-Z][A-Z][_][A-Z]%'
-               COLLATE Latin1_General_BIN THEN 'Anchor'
-               ELSE 'Other'
-            END
-      ) cl ([class])
-      CROSS APPLY (
-         SELECT
-            CASE o.[type]
-               WHEN 'P'  THEN 'PROCEDURE'
-               WHEN 'IF' THEN 'FUNCTION'
-               WHEN 'FN' THEN 'FUNCTION'
-               WHEN 'V'  THEN 'VIEW'
-               WHEN 'U'  THEN 'TABLE'
-            END
-      ) ft ([type])
-      CROSS APPLY (
-         SELECT
-            CASE
-               WHEN ft.[type] = 'PROCEDURE' AND cl.[class] = 'Anchor' AND o.[name] LIKE 'k%'
-               COLLATE Latin1_General_BIN THEN 'key generator'
-               WHEN ft.[type] = 'FUNCTION' AND o.[name] LIKE 't%'
-               COLLATE Latin1_General_BIN THEN 'time traveler'
-               WHEN ft.[type] = 'FUNCTION' AND o.[name] LIKE 'rf%'
-               COLLATE Latin1_General_BIN THEN 'restatement finder'
-               WHEN ft.[type] = 'FUNCTION' AND o.[name] LIKE 'r%'
-               COLLATE Latin1_General_BIN THEN 'rewinder'
-               WHEN ft.[type] = 'VIEW' AND o.[name] LIKE 'l%'
-               COLLATE Latin1_General_BIN THEN 'latest perspective'
-               WHEN ft.[type] = 'FUNCTION' AND o.[name] LIKE 'p%'
-               COLLATE Latin1_General_BIN THEN 'point-in-time perspective'
-               WHEN ft.[type] = 'VIEW' AND o.[name] LIKE 'n%'
-               COLLATE Latin1_General_BIN THEN 'current perspective'
-               WHEN ft.[type] = 'FUNCTION' AND o.[name] LIKE 'd%'
-               COLLATE Latin1_General_BIN THEN 'difference perspective'
-               WHEN ft.[type] = 'VIEW' AND cl.[class] = 'Attribute'
-               COLLATE Latin1_General_BIN THEN 'assembled view'
-               WHEN ft.[type] = 'TABLE' AND o.[name] LIKE '%Annex'
-               COLLATE Latin1_General_BIN THEN 'annex table'
-               WHEN ft.[type] = 'TABLE' AND o.[name] LIKE '%Posit'
-               COLLATE Latin1_General_BIN THEN 'posit table'
-               WHEN ft.[type] = 'TABLE'
-               COLLATE Latin1_General_BIN THEN 'table'
-               ELSE 'other'
-            END
-      ) dc ([description])
-      CROSS APPLY (
-         SELECT
-            s.[name] + '.' + o.[name],
-            cl.[class] + ' ' + dc.[description]
-      ) fn ([name], [description])
-      WHERE
-         o.[type] IN ('P', 'IF', 'FN', 'V', 'U')
-      AND
-         o.[name] NOT LIKE ISNULL(@exclusionPattern, '')
-      AND
-         o.[name] LIKE ISNULL(@inclusionPattern, '%')
-   )
-   SELECT @xml = (
-       SELECT
-          [statement] + CHAR(13) as [text()]
-       FROM
-          objects
-       ORDER BY
-          [ordinal]
-       FOR XML PATH('')
-   );
-   SELECT @xml;
+	with constructs as (
+		select distinct
+			'Anchor' as construct,
+			0 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + ']' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Anchor
+		union all
+		select distinct
+			'Tie' as construct,
+			1 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + ']' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Tie
+		union all
+		select distinct
+			'Tie' as construct,
+			2 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + '_Annex]' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Tie
+		union all
+		select distinct
+			'Tie' as construct,
+			3 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + '_Posit]' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Tie
+		union all
+		select distinct
+			'Attribute' as construct,
+			4 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + ']' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Attribute
+		union all
+		select distinct
+			'Attribute' as construct,
+			5 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + '_Annex]' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Attribute
+		union all
+		select distinct
+			'Attribute' as construct,
+			6 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + '_Posit]' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Attribute
+		union all
+		select distinct
+			'Knot' as construct,
+			7 as ordinal,
+			name,
+			'[' + capsule + '].[' + name  + ']' as qualifiedName
+		from
+			[$schema.metadata.encapsulation]._Knot
+	),
+	includedConstructs as (
+		select
+			c.*
+		from
+			constructs c
+    join
+      sys.objects o
+    on
+      o.object_id = OBJECT_ID(c.qualifiedName)
+		where
+			c.name not like @exclusionPattern
+		and
+			c.name like @inclusionPattern
+	),
+	related as (
+		select
+			o.object_id,
+			o.[type],
+			'[' + s.name + '].[' + o.name + ']' as objectName,
+			c.qualifiedName,
+			c.name,
+			c.construct,
+			c.ordinal,
+			1 as depth
+		from
+			includedConstructs c
+		join
+			sys.sql_expression_dependencies d
+		on
+			d.referenced_id = OBJECT_ID(c.qualifiedName)
+		and
+			d.referenced_minor_id = 0
+		join
+			sys.objects o
+		on
+			o.object_id = d.referencing_id
+		and
+			o.name like '%' + c.name + '%'
+		and
+			o.type not in ('S')
+		join
+			sys.schemas s
+		on
+			s.schema_id = o.schema_id
+		union all
+		select
+			o.object_id,
+			o.[type],
+			'[' + s.name + '].[' + o.name + ']' as objectName,
+			c.qualifiedName,
+			c.name,
+			c.construct,
+			c.ordinal,
+			c.depth + 1 as depth
+		from
+			related c
+		join
+			sys.sql_expression_dependencies d
+		on
+			d.referenced_id = c.object_id
+		and
+			d.referenced_minor_id = 0
+		join
+			sys.objects o
+		on
+			o.object_id = d.referencing_id
+		and
+			o.name like '%' + c.name + '%'
+		and
+			o.type not in ('S')
+		join
+			sys.schemas s
+		on
+			s.schema_id = o.schema_id
+	),
+	dropList as (
+		select distinct
+			construct,
+			objectType,
+			objectName,
+			dropOrder
+		from (
+			select
+				*,
+				dense_rank() over (
+					order by
+						case [type]
+							when 'TR' then 1 -- SQL_TRIGGER
+							when 'P'  then 2 -- SQL_STORED_PROCEDURE
+							when 'V'  then 3 -- VIEW
+							when 'IF' then 4 -- SQL_INLINE_TABLE_VALUED_FUNCTION
+							when 'FN' then 5 -- SQL_SCALAR_FUNCTION
+							when 'PK' then 6 -- PRIMARY_KEY_CONSTRAINT
+							when 'UQ' then 7 -- UNIQUE_CONSTRAINT
+							when 'F'  then 8 -- FOREIGN_KEY_CONSTRAINT
+							when 'U'  then 9 -- USER_TABLE
+						end asc,
+						ordinal asc,
+						depth desc
+				) as dropOrder
+			from
+				related
+			cross apply (
+				values (
+					case [type]
+						when 'TR' then 'TRIGGER'
+						when 'V'  then 'VIEW'
+						when 'IF' then 'FUNCTION'
+						when 'FN' then 'FUNCTION'
+						when 'P'  then 'PROCEDURE'
+						when 'PK' then 'CONSTRAINT'
+						when 'UQ' then 'CONSTRAINT'
+						when 'F'  then 'CONSTRAINT'
+						when 'U'  then 'TABLE'
+					end
+				)
+			) t (objectType)
+			where
+				t.objectType in (
+					'VIEW',
+					'FUNCTION',
+					'PROCEDURE',
+					'TABLE'
+				)
+		) r
+		union all
+		select distinct
+			construct,
+			'TABLE' as objectType,
+			qualifiedName as objectName,
+			2147483600 +
+				case construct
+					when 'Anchor' then 9
+					else ordinal
+				end
+			as dropOrder
+		from
+			includedConstructs
+	)
+	select
+		'DROP ' + objectType + ' ' + objectName + '; -- ' + construct + ' ' + LOWER(objectType) + CHAR(13) as [text()]
+	from
+		dropList d
+	where
+		dropOrder = (
+			select
+				min(dropOrder)
+			from
+				dropList s
+			where
+				s.objectName = d.objectName
+		)
+	order by
+		dropOrder asc
+	for xml path('');
 END
 GO
 -- Database Copy Script Generator -------------------------------------------------------------------------------------
@@ -477,7 +550,7 @@ CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateCopyScript (
 	@source varchar(123),
 	@target varchar(123)
 )
-as 
+as
 begin
 	declare @R char(1) = CHAR(13);
 	-- stores the built SQL code
@@ -486,8 +559,8 @@ begin
 
 	-- find which version of the schema that is in effect
 	declare @version int;
-	select 
-		@version = max([version]) 
+	select
+		@version = max([version])
 	from
 		_Schema;
 
@@ -504,29 +577,29 @@ begin
 		@positSuffix = positSuffix,
 		@temporalization = temporalization
 	from
-		_Schema_Expanded 
+		_Schema_Expanded
 	where
 		[version] = @version;
 
 	-- build non-equivalent knot copy
 	set @xml = (
-		select 
+		select
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R
 			end,
 			'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R,
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R
 			end
-		from 
+		from
 			_Knot x
 		cross apply (
 			select stuff((
-				select 
+				select
 					', ' + [name]
 				from
-					sys.columns 
+					sys.columns
 				where
 					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
 				and
@@ -541,28 +614,28 @@ begin
 		for xml path('')
 	);
 	set @sql = @sql + isnull(@xml.value('.', 'varchar(max)'), '');
-	
+
 	-- build equivalent knot copy
 	set @xml = (
-		select 
+		select
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' ON;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' ON;' + @R
 			end,
 			'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @identitySuffix + '(' + [columns] + ')' + @R +
 			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @identitySuffix + ';' + @R,
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' OFF;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @identitySuffix + ' OFF;' + @R
 			end,
 			'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + '(' + [columns] + ')' + @R +
 			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + ';' + @R
-		from 
+		from
 			_Knot x
 		cross apply (
 			select stuff((
-				select 
+				select
 					', ' + [name]
 				from
-					sys.columns 
+					sys.columns
 				where
 					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
 				and
@@ -580,23 +653,23 @@ begin
 
 	-- build anchor copy
 	set @xml = (
-		select 
+		select
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' ON;' + @R
 			end,
 			'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R,
 			case
-				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R 
+				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R
 			end
-		from 
+		from
 			_Anchor x
 		cross apply (
 			select stuff((
-				select 
+				select
 					', ' + [name]
 				from
-					sys.columns 
+					sys.columns
 				where
 					[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
 				and
@@ -614,25 +687,25 @@ begin
 	if (@temporalization = 'crt')
 	begin
 		set @xml = (
-			select 
+			select
 				case
-					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R 
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R
 				end,
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @positSuffix + '(' + [positColumns] + ')' + @R +
 				'SELECT ' + [positColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @positSuffix + ';' + @R,
 				case
-					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R 
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R
 				end,
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
 				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
-			from 
+			from
 				_Attribute x
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @positSuffix)
 					and
@@ -642,10 +715,10 @@ begin
 			) pc ([positColumns])
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @annexSuffix)
 					and
@@ -661,17 +734,17 @@ begin
 	else -- uni
 	begin
 		set @xml = (
-			select 
+			select
 				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
-			from 
+			from
 				_Attribute x
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
 					and
@@ -690,25 +763,25 @@ begin
 	if (@temporalization = 'crt')
 	begin
 		set @xml = (
-			select 
+			select
 				case
-					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R 
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' ON;' + @R
 				end,
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @positSuffix + '(' + [positColumns] + ')' + @R +
 				'SELECT ' + [positColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @positSuffix + ';' + @R,
 				case
-					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R 
+					when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + '_' + @positSuffix + ' OFF;' + @R
 				end,
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
 				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
-			from 
+			from
 				_Tie x
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @positSuffix)
 					and
@@ -718,10 +791,10 @@ begin
 			) pc ([positColumns])
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name] + '_' + @annexSuffix)
 					and
@@ -737,17 +810,17 @@ begin
 	else -- uni
 	begin
 		set @xml = (
-			select 
+			select
 				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
-			from 
+			from
 				_Tie x
 			cross apply (
 				select stuff((
-					select 
+					select
 						', ' + [name]
 					from
-						sys.columns 
+						sys.columns
 					where
 						[object_Id] = object_Id(x.[capsule] + '.' + x.[name])
 					and
