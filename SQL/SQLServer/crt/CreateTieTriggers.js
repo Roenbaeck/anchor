@@ -100,16 +100,16 @@ BEGIN
             ORDER BY
                 $(tie.isHistorized())? ISNULL(i.$tie.changingColumnName, @now),
                 i.$tie.positingColumnName ASC,
-                i.$tie.reliabilityColumnName ASC                
+                i.$tie.reliabilityColumnName ASC
         ),
         'X',
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
-        ISNULL(i.$tie.reliabilityColumnName, 
+        ISNULL(i.$tie.reliabilityColumnName,
         CASE i.$tie.reliableColumnName
             WHEN 0 THEN $schema.metadata.deleteReliability
             ELSE $schema.metadata.reliableCutoff
-        END),        
+        END),
 ~*/
         while (role = tie.nextRole()) {
 /*~
@@ -172,13 +172,13 @@ BEGIN
 ~*/
         }
 /*~
-                    ) 
-                    THEN 'D' -- duplicate assertion    
+                    )
+                    THEN 'D' -- duplicate assertion
                     WHEN p.$tie.identityColumnName is not null
                     THEN 'S' -- duplicate statement
 ~*/
         if(tie.isHistorized() && tie.hasMoreValues()) {
-/*~    
+/*~
                     WHEN (
                     SELECT
                         COUNT(*)
@@ -195,7 +195,7 @@ BEGIN
                             [$tie.capsule].[r$tie.name] (
                                 v.$tie.positorColumnName,
                                 v.$tie.changingColumnName,
-                                v.$tie.positingColumnName                            
+                                v.$tie.positingColumnName
                             ) pre
                         WHERE
 ~*/
@@ -242,7 +242,7 @@ BEGIN
                             [$tie.capsule].[f$tie.name] (
                                 v.$tie.positorColumnName,
                                 v.$tie.changingColumnName,
-                                v.$tie.positingColumnName                            
+                                v.$tie.positingColumnName
                             ) fol
                         WHERE
 ~*/
@@ -394,7 +394,7 @@ BEGIN
         $role.columnName,
 ~*/
         }
-/*~        
+/*~
         $tie.positorColumnName,
         $tie.positingColumnName,
         $tie.reliabilityColumnName
@@ -405,7 +405,7 @@ BEGIN
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName), : i.$role.columnName,
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName), : i.$role.columnName,
 ~*/
         }
 /*~
@@ -422,7 +422,7 @@ BEGIN
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~;           
+/*~;
 END
 GO
 ~*/
@@ -468,13 +468,13 @@ BEGIN
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName), : i.$role.columnName,
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName), : i.$role.columnName,
 ~*/
         }
 /*~
         CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE 0 END,
         cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
-        CASE 
+        CASE
             WHEN
 ~*/
         while(role = tie.nextValue()) {
@@ -485,12 +485,12 @@ BEGIN
         }
 /*~
             THEN $schema.metadata.deleteReliability
-            WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName 
-            WHEN UPDATE($tie.reliableColumnName) THEN 
+            WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName
+            WHEN UPDATE($tie.reliableColumnName) THEN
                 CASE i.$tie.reliableColumnName
                     WHEN 0 THEN $schema.metadata.deleteReliability
                     ELSE $schema.metadata.reliableCutoff
-                END                
+                END
             ELSE ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff)
         END
     FROM
@@ -503,7 +503,7 @@ BEGIN
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~;     
+/*~;
 END
 GO
 ~*/

@@ -288,7 +288,7 @@ BEGIN
         $role.columnName$(tie.hasMoreRoles())?,
 ~*/
         }
-/*~      
+/*~
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
@@ -297,7 +297,7 @@ BEGIN
         while (role = tie.nextRole()) {
             comma = tie.hasMoreRoles() ? ',' : '';
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
 ~*/
         }
 /*~
@@ -311,7 +311,7 @@ BEGIN
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~;           
+/*~;
 END
 GO
 ~*/
@@ -355,7 +355,7 @@ BEGIN
         while (role = tie.nextRole()) {
             comma = tie.hasMoreRoles() ? ',' : '';
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
 ~*/
         }
 /*~
@@ -369,7 +369,7 @@ BEGIN
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~;       
+/*~;
 END
 GO
 ~*/
