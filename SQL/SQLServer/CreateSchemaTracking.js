@@ -317,226 +317,205 @@ CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
 )
 AS
 BEGIN
-	with constructs as (
-		select distinct
-			'Anchor' as construct,
-			0 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + ']' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Anchor
-		union all
-		select distinct
-			'Tie' as construct,
-			1 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + ']' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Tie
-		union all
-		select distinct
-			'Tie' as construct,
-			2 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + '_Annex]' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Tie
-		union all
-		select distinct
-			'Tie' as construct,
-			3 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + '_Posit]' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Tie
-		union all
-		select distinct
-			'Attribute' as construct,
-			4 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + ']' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Attribute
-		union all
-		select distinct
-			'Attribute' as construct,
-			5 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + '_Annex]' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Attribute
-		union all
-		select distinct
-			'Attribute' as construct,
-			6 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + '_Posit]' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Attribute
-		union all
-		select distinct
-			'Knot' as construct,
-			7 as ordinal,
-			name,
-			'[' + capsule + '].[' + name  + ']' as qualifiedName
-		from
-			[$schema.metadata.encapsulation]._Knot
-	),
-	includedConstructs as (
-		select
-			c.*
-		from
-			constructs c
-    join
-      sys.objects o
-    on
-      o.object_id = OBJECT_ID(c.qualifiedName)
-		where
-			c.name not like @exclusionPattern
-		and
-			c.name like @inclusionPattern
-	),
-	related as (
-		select
-			o.object_id,
-			o.[type],
-			'[' + s.name + '].[' + o.name + ']' as objectName,
-			c.qualifiedName,
-			c.name,
-			c.construct,
-			c.ordinal,
-			1 as depth
-		from
-			includedConstructs c
-		join
-			sys.sql_expression_dependencies d
-		on
-			d.referenced_id = OBJECT_ID(c.qualifiedName)
-		and
-			d.referenced_minor_id = 0
-		join
-			sys.objects o
-		on
-			o.object_id = d.referencing_id
-		and
-			o.name like '%' + c.name + '%'
-		and
-			o.type not in ('S')
-		join
-			sys.schemas s
-		on
-			s.schema_id = o.schema_id
-		union all
-		select
-			o.object_id,
-			o.[type],
-			'[' + s.name + '].[' + o.name + ']' as objectName,
-			c.qualifiedName,
-			c.name,
-			c.construct,
-			c.ordinal,
-			c.depth + 1 as depth
-		from
-			related c
-		join
-			sys.sql_expression_dependencies d
-		on
-			d.referenced_id = c.object_id
-		and
-			d.referenced_minor_id = 0
-		join
-			sys.objects o
-		on
-			o.object_id = d.referencing_id
-		and
-			o.name like '%' + c.name + '%'
-		and
-			o.type not in ('S')
-		join
-			sys.schemas s
-		on
-			s.schema_id = o.schema_id
-	),
-	dropList as (
-		select distinct
-			construct,
-			objectType,
-			objectName,
-			dropOrder
-		from (
-			select
-				*,
-				dense_rank() over (
-					order by
-						case [type]
-							when 'TR' then 1 -- SQL_TRIGGER
-							when 'P'  then 2 -- SQL_STORED_PROCEDURE
-							when 'V'  then 3 -- VIEW
-							when 'IF' then 4 -- SQL_INLINE_TABLE_VALUED_FUNCTION
-							when 'FN' then 5 -- SQL_SCALAR_FUNCTION
-							when 'PK' then 6 -- PRIMARY_KEY_CONSTRAINT
-							when 'UQ' then 7 -- UNIQUE_CONSTRAINT
-							when 'F'  then 8 -- FOREIGN_KEY_CONSTRAINT
-							when 'U'  then 9 -- USER_TABLE
-						end asc,
-						ordinal asc,
-						depth desc
-				) as dropOrder
-			from
-				related
-			cross apply (
-				values (
-					case [type]
-						when 'TR' then 'TRIGGER'
-						when 'V'  then 'VIEW'
-						when 'IF' then 'FUNCTION'
-						when 'FN' then 'FUNCTION'
-						when 'P'  then 'PROCEDURE'
-						when 'PK' then 'CONSTRAINT'
-						when 'UQ' then 'CONSTRAINT'
-						when 'F'  then 'CONSTRAINT'
-						when 'U'  then 'TABLE'
-					end
-				)
-			) t (objectType)
-			where
-				t.objectType in (
-					'VIEW',
-					'FUNCTION',
-					'PROCEDURE',
-					'TABLE'
-				)
-		) r
-		union all
-		select distinct
-			construct,
-			'TABLE' as objectType,
-			qualifiedName as objectName,
-			2147483600 +
-				case construct
-					when 'Anchor' then 9
-					else ordinal
-				end
-			as dropOrder
-		from
-			includedConstructs
-	)
-	select
-		'DROP ' + objectType + ' ' + objectName + '; -- ' + construct + ' ' + LOWER(objectType) + CHAR(13) as [text()]
-	from
-		dropList d
-	where
-		dropOrder = (
-			select
-				min(dropOrder)
-			from
-				dropList s
-			where
-				s.objectName = d.objectName
-		)
-	order by
-		dropOrder asc
-	for xml path('');
+   with constructs as (
+      select distinct
+         0 as ordinal,
+         '[' + capsule + '].[' + name + ']' as qualifiedName
+      from
+         [dbo]._Anchor
+      union all
+      select distinct
+         1 as ordinal,
+         '[' + capsule + '].[' + name + ']' as qualifiedName
+      from
+         [dbo]._Tie
+      union all
+      select distinct
+         2 as ordinal,
+         '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
+      from
+         [dbo]._Tie
+      union all
+      select distinct
+         3 as ordinal,
+         '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
+      from
+         [dbo]._Tie
+      union all
+      select distinct
+         4 as ordinal,
+         '[' + capsule + '].[' + name + ']' as qualifiedName
+      from
+         [dbo]._Attribute
+      union all
+      select distinct
+         5 as ordinal,
+         '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
+      from
+         [dbo]._Attribute
+      union all
+      select distinct
+         6 as ordinal,
+         '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
+      from
+         [dbo]._Attribute
+      union all
+      select distinct
+         7 as ordinal,
+         '[' + capsule + '].[' + name + ']' as qualifiedName
+      from
+         [dbo]._Knot
+   ),
+   includedConstructs as (
+      select
+         c.ordinal,
+         cast(c.qualifiedName as nvarchar(517)) as qualifiedName,
+         o.[object_id],
+         o.[type]
+      from
+         constructs c
+      join
+         sys.objects o
+      on
+         o.object_id = OBJECT_ID(c.qualifiedName)
+   ),
+   relatedUpwards as (
+      select
+         c.[object_id],
+         c.[type],
+         c.qualifiedName,
+         c.ordinal,
+         1 as depth
+      from
+         includedConstructs c
+      union all
+      select
+         o.[object_id],
+         o.[type],
+         n.qualifiedName,
+         c.ordinal,
+         c.depth + 1 as depth
+      from
+         relatedUpwards c
+      cross apply 
+         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT')  r
+      cross apply (
+         values(cast('[' + r.referencing_schema_name + '].[' + r.referencing_entity_name + ']' as nvarchar(517)))
+      ) n (qualifiedName)
+      join
+         sys.objects o
+      on
+         o.object_id = r.referencing_id
+      and
+         o.type not in ('S')
+   ),
+   relatedDownwards as (
+      select
+         c.[object_id],
+         c.[type],
+         c.qualifiedName,
+         c.ordinal,
+         c.depth
+      from
+         relatedUpwards c
+      union all
+      select
+         o.[object_id],
+         o.[type],
+         n.qualifiedName,
+         c.ordinal,
+         c.depth - 1 as depth
+      from
+         relatedDownwards c
+      cross apply 
+         sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT')  r
+      cross apply (
+         values(cast('[' + r.referenced_schema_name + '].[' + r.referenced_entity_name + ']' as nvarchar(517)))
+      ) n (qualifiedName)
+      join
+         sys.objects o
+      on
+         o.object_id = r.referenced_id
+      and
+         o.type not in ('S')  
+      where
+         r.referenced_minor_id = 0  
+   ),
+   affectedObjects as (
+      select
+         [object_id],
+         [type],
+         [qualifiedName],
+         max([ordinal]) as ordinal,
+         min([depth]) as depth
+      from
+         relatedDownwards 
+      where
+         [qualifiedName] not like @exclusionPattern
+      and
+         [qualifiedName] like @inclusionPattern
+      group by
+         [object_id],
+         [type],
+         [qualifiedName]
+   ),
+   dropList as (
+      select distinct
+         objectType,
+         qualifiedName,
+         dropOrder
+      from (
+         select
+            *,
+            dense_rank() over (
+               order by
+                  case [type]
+                     when 'TR' then 1 -- SQL_TRIGGER
+                     when 'P' then 2 -- SQL_STORED_PROCEDURE
+                     when 'V' then 3 -- VIEW
+                     when 'IF' then 4 -- SQL_INLINE_TABLE_VALUED_FUNCTION
+                     when 'FN' then 5 -- SQL_SCALAR_FUNCTION
+                     when 'PK' then 6 -- PRIMARY_KEY_CONSTRAINT
+                     when 'UQ' then 7 -- UNIQUE_CONSTRAINT
+                     when 'F' then 8 -- FOREIGN_KEY_CONSTRAINT
+                     when 'U' then 9 -- USER_TABLE
+                  end asc,
+                  ordinal asc,
+                  depth desc
+            ) as dropOrder
+         from
+            affectedObjects
+         cross apply (
+            values (
+               case [type]
+                  when 'TR' then 'TRIGGER'
+                  when 'V' then 'VIEW'
+                  when 'IF' then 'FUNCTION'
+                  when 'FN' then 'FUNCTION'
+                  when 'P' then 'PROCEDURE'
+                  when 'PK' then 'CONSTRAINT'
+                  when 'UQ' then 'CONSTRAINT'
+                  when 'F' then 'CONSTRAINT'
+                  when 'U' then 'TABLE'
+               end
+            )
+         ) t (objectType)
+         where
+            t.objectType in (
+               'VIEW',
+               'FUNCTION',
+               'PROCEDURE',
+               'TABLE'
+            )
+      ) r
+   )
+   select
+      'DROP ' + objectType + ' ' + qualifiedName + ';' + CHAR(13) as [text()]
+   from
+      dropList d
+   order by
+      dropOrder asc
+   for xml path('');
 END
 GO
 -- Database Copy Script Generator -------------------------------------------------------------------------------------
