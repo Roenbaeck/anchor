@@ -26,7 +26,7 @@ SQL/PostgreSQL/uni/CreateAnchorPerspectiveDifference.js
 ###SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
 SQL/PostgreSQL/uni/CreateAttributeTriggers.js
 SQL/PostgreSQL/uni/CreateAnchorTriggersInsert.js
-#SQL/PostgreSQL/uni/CreateAnchorTriggersUpdate.js
+SQL/PostgreSQL/uni/CreateAnchorTriggersUpdate.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggersDelete.js
 SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
 ###SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
