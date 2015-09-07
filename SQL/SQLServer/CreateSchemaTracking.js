@@ -39,8 +39,7 @@ SELECT
 	[activation],
 	[schema],
 	[schema].value('schema[1]/@format', 'nvarchar(max)') as [format],
-	[schema].value('schema[1]/@date', 'date') as [date],
-	[schema].value('schema[1]/@time', 'time(0)') as [time],
+	[schema].value('schema[1]/@date', 'datetime') + [schema].value('schema[1]/@time', 'datetime') as [date],
 	[schema].value('schema[1]/metadata[1]/@temporalization', 'nvarchar(max)') as [temporalization],
 	[schema].value('schema[1]/metadata[1]/@databaseTarget', 'nvarchar(max)') as [databaseTarget],
 	[schema].value('schema[1]/metadata[1]/@changingRange', 'nvarchar(max)') as [changingRange],
@@ -230,7 +229,7 @@ DROP FUNCTION [$schema.metadata.encapsulation].[_Evolution];
 GO
 
 CREATE FUNCTION [$schema.metadata.encapsulation].[_Evolution] (
-    @timepoint AS DATETIME2(7)
+    @timepoint AS $schema.metadata.chronon
 )
 RETURNS TABLE
 RETURN
@@ -397,10 +396,11 @@ BEGIN
          c.depth + 1 as depth
       from
          relatedUpwards c
-      cross apply 
+      cross apply
          sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT')  r
       cross apply (
-         values(cast('[' + r.referencing_schema_name + '].[' + r.referencing_entity_name + ']' as nvarchar(517)))
+         select
+            cast('[' + r.referencing_schema_name + '].[' + r.referencing_entity_name + ']' as nvarchar(517))
       ) n (qualifiedName)
       join
          sys.objects o
@@ -427,19 +427,20 @@ BEGIN
          c.depth - 1 as depth
       from
          relatedDownwards c
-      cross apply 
+      cross apply
          sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT')  r
       cross apply (
-         values(cast('[' + r.referenced_schema_name + '].[' + r.referenced_entity_name + ']' as nvarchar(517)))
+         select
+            cast('[' + r.referenced_schema_name + '].[' + r.referenced_entity_name + ']' as nvarchar(517))
       ) n (qualifiedName)
       join
          sys.objects o
       on
          o.object_id = r.referenced_id
       and
-         o.type not in ('S')  
+         o.type not in ('S')
       where
-         r.referenced_minor_id = 0  
+         r.referenced_minor_id = 0
    ),
    affectedObjects as (
       select
@@ -449,7 +450,7 @@ BEGIN
          max([ordinal]) as ordinal,
          min([depth]) as depth
       from
-         relatedDownwards 
+         relatedDownwards
       where
          [qualifiedName] not like @exclusionPattern
       and
@@ -486,7 +487,7 @@ BEGIN
          from
             affectedObjects
          cross apply (
-            values (
+            select
                case [type]
                   when 'TR' then 'TRIGGER'
                   when 'V' then 'VIEW'
@@ -498,7 +499,6 @@ BEGIN
                   when 'F' then 'CONSTRAINT'
                   when 'U' then 'TABLE'
                end
-            )
          ) t (objectType)
          where
             t.objectType in (
@@ -531,9 +531,11 @@ CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateCopyScript (
 )
 as
 begin
-	declare @R char(1) = CHAR(13);
+	declare @R char(1);
+    set @R = CHAR(13);
 	-- stores the built SQL code
-	declare @sql varchar(max) = 'USE ' + @target + ';' + @R;
+	declare @sql varchar(max);
+    set @sql = 'USE ' + @target + ';' + @R;
 	declare @xml xml;
 
 	-- find which version of the schema that is in effect
