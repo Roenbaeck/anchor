@@ -2782,7 +2782,7 @@
                 attribute.setHistorized(historized);
                 attribute.changingRange = changingRange;
                 attribute.dataRange = dataRange;
-                attribute.description = description ? description.firstChild.nodeValue : '';
+                attribute.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 attribute.encapsulation = capsule;
@@ -3054,7 +3054,7 @@
                 var anchor = new Anchor(x, y);
                 anchor.setFixed(fixed);
                 anchor.setImploded(imploded);
-                anchor.description = description ? description.firstChild.nodeValue : '';
+                anchor.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 anchor.mnemonic = mnemonic;
                 anchor.descriptor = descriptor;
                 anchor.identity = identity;
@@ -3230,7 +3230,7 @@
                 var dataRange = element.getAttribute("dataRange") || '';
                 var knot = new Knot(x, y);
                 knot.setFixed(fixed);
-                knot.description = description ? description.firstChild.nodeValue : '';
+                knot.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
                 knot.descriptor = descriptor;
                 knot.identity = identity;
@@ -3490,7 +3490,7 @@
                 tie.assertive = assertive;
                 tie.positIdentity = identity;
                 tie.positGenerator = generator;
-                tie.description = description ? description.firstChild.nodeValue : '';
+                tie.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 var anchorLookup = Model.getAnchorLookup();
                 var knotLookup = Model.getKnotLookup();
                 var grandparent = element.parentNode.parentNode;
@@ -3512,7 +3512,7 @@
                             role = new Role(tie, anchor, (identifier === "true"));
                             role.role = roleName;
                             role.setColoring(coloring);
-                            role.description = description ? description.firstChild.nodeValue : '';
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                             Model.addComponent(role);
                             role.updateName();
                             break; // only one should match
@@ -3536,7 +3536,7 @@
                             role = new Role(tie, knot, (identifier === "true"));
                             role.role = roleName;
                             role.setColoring(coloring);
-                            role.description = description ? description.firstChild.nodeValue : '';
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                             Model.addComponent(role);
                             role.updateName();
                             break; // only one should match
