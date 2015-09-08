@@ -818,5 +818,76 @@ begin
 
 	select @sql for xml path('');
 end
+-- Delete Everything with a Certain Metadata Id -----------------------------------------------------------------------
+-- deletes all rows from all tables that have the specified metadata id
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$schema.metadata.encapsulation$._DeleteWhereMetadataEquals', 'P') IS NOT NULL
+DROP PROCEDURE [$schema.metadata.encapsulation].[_DeleteWhereMetadataEquals];
+GO
+
+CREATE PROCEDURE [$schema.metadata.encapsulation]._DeleteWhereMetadataEquals (
+	@metadataID int,
+	@schemaVersion int = null,
+	@includeKnots bit = 0
+)
+as
+begin
+	declare @sql varchar(max);
+	set @sql = 'print ''Null is not a valid value for @metadataId''';
+
+	if(@metadataId is not null)
+	begin
+		if(@schemaVersion is null)
+		begin
+			select
+				@schemaVersion = max(Version)
+			from
+				_Schema;
+		end;
+
+		with constructs as (
+			select
+				'l' + name as name,
+				2 as prio,
+				'Metadata_' + name as metadataColumn
+			from
+				_Tie
+			where
+				[version] = @schemaVersion
+			union all
+			select
+				'l' + name as name,
+				3 as prio,
+				'Metadata_' + mnemonic as metadataColumn
+			from
+				_Anchor
+			where
+				[version] = @schemaVersion
+			union all
+			select
+				name,
+				4 as prio,
+				'Metadata_' + mnemonic as metadataColumn
+			from
+				_Knot
+			where
+				[version] = @schemaVersion
+			and
+				@includeKnots = 1
+		)
+		select
+			@sql = (
+				select
+					'DELETE FROM ' + name + ' WHERE ' + metadataColumn + ' = ' + cast(@metadataId as varchar(10)) + '; '
+				from
+					constructs
+        order by
+					prio, name
+				for xml
+					path('')
+			);
+	end
+	exec(@sql);
+end
 ~*/
 }
