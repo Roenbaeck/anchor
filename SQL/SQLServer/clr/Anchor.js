@@ -3,15 +3,12 @@ while(anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
         if(attribute.hasChecksum()) {
             thereAreHashes = true;
-            break;
         }
     }
 }
 while(knot = schema.nextKnot()) {
     if(knot.hasChecksum()) {
         thereAreHashes = true;
-        schema.resetKnots();
-        break;
     }
 }
 if(thereAreHashes) {
