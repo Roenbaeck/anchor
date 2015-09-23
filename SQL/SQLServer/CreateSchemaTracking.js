@@ -825,6 +825,7 @@ begin
 
 	select @sql for xml path('');
 end
+go
 -- Delete Everything with a Certain Metadata Id -----------------------------------------------------------------------
 -- deletes all rows from all tables that have the specified metadata id
 -----------------------------------------------------------------------------------------------------------------------
@@ -896,5 +897,6 @@ begin
 	end
 	exec(@sql);
 end
+go
 ~*/
 }
