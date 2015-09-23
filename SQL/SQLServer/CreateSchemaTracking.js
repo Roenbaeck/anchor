@@ -11,9 +11,12 @@ if(schema.serialization) {
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$schema.metadata.encapsulation$._Schema', 'U') IS NULL
    CREATE TABLE [$schema.metadata.encapsulation].[_Schema] (
-      [version] int identity(1, 1) not null primary key,
+      [version] int identity(1, 1) not null,
       [activation] $schema.metadata.chronon not null,
-      [schema] xml not null
+      [schema] xml not null,
+      constraint pk_Schema primary key (
+         [version]
+      )
    );
 GO
 -- Insert the XML schema (as of now)
@@ -264,25 +267,25 @@ FROM (
 ) V
 JOIN (
    SELECT
-      [name],
+      [capsule] + '.' + [name] AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Anchor] a
    UNION ALL
    SELECT
-      [name],
+      [capsule] + '.' + [name] AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Knot] k
    UNION ALL
    SELECT
-      [name],
+      [capsule] + '.' + [name] AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Attribute] b
    UNION ALL
    SELECT
-      [name],
+      [capsule] + '.' + [name] AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Tie] t
@@ -290,15 +293,19 @@ JOIN (
 ON
    S.[version] = V.[version]
 FULL OUTER JOIN (
-   SELECT
-      [name],
-      [create_date]
+   SELECT 
+      s.[name] + '.' + t.[name] AS [name],
+      t.[create_date]
    FROM
-      sys.tables
+      sys.tables t
+   JOIN
+      sys.schemas s
+   ON
+      s.schema_id = t.schema_id
    WHERE
-      [type] like '%U%'
+      t.[type] like '%U%'
    AND
-      LEFT([name], 1) <> '_'
+      LEFT(t.[name], 1) <> '_'
 ) T
 ON
    S.[name] = T.[name];
@@ -321,49 +328,49 @@ BEGIN
          0 as ordinal,
          '[' + capsule + '].[' + name + ']' as qualifiedName
       from
-         [dbo]._Anchor
+         [$schema.metadata.encapsulation]._Anchor
       union all
       select distinct
          1 as ordinal,
          '[' + capsule + '].[' + name + ']' as qualifiedName
       from
-         [dbo]._Tie
+         [$schema.metadata.encapsulation]._Tie
       union all
       select distinct
          2 as ordinal,
          '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
       from
-         [dbo]._Tie
+         [$schema.metadata.encapsulation]._Tie
       union all
       select distinct
          3 as ordinal,
          '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
       from
-         [dbo]._Tie
+         [$schema.metadata.encapsulation]._Tie
       union all
       select distinct
          4 as ordinal,
          '[' + capsule + '].[' + name + ']' as qualifiedName
       from
-         [dbo]._Attribute
+         [$schema.metadata.encapsulation]._Attribute
       union all
       select distinct
          5 as ordinal,
          '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
       from
-         [dbo]._Attribute
+         [$schema.metadata.encapsulation]._Attribute
       union all
       select distinct
          6 as ordinal,
          '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
       from
-         [dbo]._Attribute
+         [$schema.metadata.encapsulation]._Attribute
       union all
       select distinct
          7 as ordinal,
          '[' + capsule + '].[' + name + ']' as qualifiedName
       from
-         [dbo]._Knot
+         [$schema.metadata.encapsulation]._Knot
    ),
    includedConstructs as (
       select
@@ -818,7 +825,6 @@ begin
 
 	select @sql for xml path('');
 end
-GO
 -- Delete Everything with a Certain Metadata Id -----------------------------------------------------------------------
 -- deletes all rows from all tables that have the specified metadata id
 -----------------------------------------------------------------------------------------------------------------------
@@ -890,6 +896,5 @@ begin
 	end
 	exec(@sql);
 end
-GO
 ~*/
 }
