@@ -319,7 +319,9 @@ GO
 
 CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
    @exclusionPattern varchar(42) = '[_]%', -- exclude Metadata by default
-   @inclusionPattern varchar(42) = '%'     -- include everything by default
+   @inclusionPattern varchar(42) = '%', -- include everything by default
+   @directions varchar(42) = 'Upwards, Downwards', -- do both up and down by default
+   @qualifiedName varchar(555) = null -- can specify a single object
 )
 AS
 BEGIN
@@ -384,6 +386,8 @@ BEGIN
          sys.objects o
       on
          o.object_id = OBJECT_ID(c.qualifiedName)
+      where
+         OBJECT_ID(c.qualifiedName) = OBJECT_ID(isnull(@qualifiedName, c.qualifiedName))
    ),
    relatedUpwards as (
       select
@@ -404,7 +408,7 @@ BEGIN
       from
          relatedUpwards c
       cross apply
-         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT')  r
+         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') r
       cross apply (
          select
             cast('[' + r.referencing_schema_name + '].[' + r.referencing_entity_name + ']' as nvarchar(517))
@@ -418,15 +422,17 @@ BEGIN
    ),
    relatedDownwards as (
       select
+         cast('Upwards' as varchar(42)) as [relationType],
          c.[object_id],
          c.[type],
          c.qualifiedName,
          c.ordinal,
          c.depth
       from
-         relatedUpwards c
+         relatedUpwards c 
       union all
       select
+         cast('Downwards' as varchar(42)) as [relationType],
          o.[object_id],
          o.[type],
          n.qualifiedName,
@@ -435,7 +441,7 @@ BEGIN
       from
          relatedDownwards c
       cross apply
-         sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT')  r
+         sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT') r
       cross apply (
          select
             cast('[' + r.referenced_schema_name + '].[' + r.referenced_entity_name + ']' as nvarchar(517))
@@ -448,6 +454,8 @@ BEGIN
          o.type not in ('S')
       where
          r.referenced_minor_id = 0
+      and 
+         r.referenced_id <> OBJECT_ID(c.qualifiedName)
    ),
    affectedObjects as (
       select
@@ -462,6 +470,8 @@ BEGIN
          [qualifiedName] not like @exclusionPattern
       and
          [qualifiedName] like @inclusionPattern
+      and
+         @directions like '%' + [relationType] + '%'
       group by
          [object_id],
          [type],
