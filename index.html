@@ -1295,6 +1295,7 @@
                                                 break;
                                             }
                                         }
+                                        knotComponent = this.nodeToComponent(knot);
                                         knotEdgeComponent = this.nodeToComponent(knotEdge);
                                         knotEdgeComponent.hide();
                                         knotEdge.stop();
@@ -1305,6 +1306,7 @@
                                                 visibleEdges++;
                                         if(visibleEdges === 0) {
                                             knotEdgeComponent.hide();
+                                            knotComponent.hide();
                                             knot.stop();
                                             knot.visible = false;
                                         }
