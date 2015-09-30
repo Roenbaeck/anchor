@@ -37,8 +37,7 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.positName table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.$tie.positName', 'U') IS NULL
-CREATE TABLE [$tie.capsule].[$tie.positName] (
+CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
 ~*/
     var role;
@@ -54,7 +53,7 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? [$role.anchor.capsule].[$role.anchor.name]($role.anchor.identityColumnName), : [$role.knot.capsule].[$role.knot.name]($role.knot.identityColumnName),
+    ) references $(role.anchor)? ${role.anchor.capsule}$.$role.anchor.name($role.anchor.identityColumnName), : ${role.knot.capsule}$.$role.knot.name($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -108,15 +107,53 @@ CREATE TABLE [$tie.capsule].[$tie.positName] (
     }
 /*~
     )
-);
+) ORDER BY
 ~*/
-    var scheme = schema.PARTITIONING ? ' ON PositorScheme(' + tie.positorColumnName + ')' : '';
+    var r;
+    for(r = 0; role = anchorRoles[r]; r++) {
+/*~
+    $role.columnName$(r != anchorRoles.length - 1)?,
+~*/
+    }
+/*~
+SEGMENTED BY MODULARHASH(${anchorRoles[0].columnName}$) ALL NODES;
+~*/
+    var segmentationRole, otherRoles;
+    for(var i = 1; segmentationRole = anchorRoles[i]; i++) {
+        otherRoles = [];
+        for(r = 0; role = anchorRoles[r]; r++) {
+            if(role != segmentationRole) otherRoles.push(role);
+        }
+/*~
+CREATE PROJECTION ${tie.capsule}$.${tie.name}$__${segmentationRole.columnName}$
+AS
+SELECT
+~*/
+        while (role = tie.nextRole()) {
+/*~
+    $role.columnName$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
+FROM
+    ${tie.capsule}$.$tie.name
+ORDER BY
+    $segmentationRole.columnName,
+~*/
+        for(r = 0; role = otherRoles[r]; r++) {
+/*~
+    $role.columnName$(r != otherRoles.length - 1)?,
+~*/
+        }
+/*~
+SEGMENTED BY MODULARHASH(${segmentationRole.columnName}$) ALL NODES;
+~*/
+    }
 /*~
 -- Tie annex table ----------------------------------------------------------------------------------------------------
 -- $tie.annexName table
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.$tie.annexName', 'U') IS NULL
-CREATE TABLE [$tie.capsule].[$tie.annexName] (
+CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.annexName (
     $tie.identityColumnName $tie.identity not null,
     $tie.positingColumnName $schema.metadata.positingRange not null,
     $tie.positorColumnName $schema.metadata.positorRange not null,
@@ -130,13 +167,13 @@ CREATE TABLE [$tie.capsule].[$tie.annexName] (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
-    ) references [$tie.capsule].[$tie.positName]($tie.identityColumnName),
+    ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
     constraint pk$tie.annexName primary key clustered (
         $tie.identityColumnName asc,
         $tie.positorColumnName asc,
         $tie.positingColumnName desc
     )
-)$scheme;
-GO
+) ORDER BY $tie.identityColumnName, $tie.positorColumnName, $tie.positingColumnName SEGMENTED BY MODULARHASH($tie.identityColumnName) ALL NODES
+PARTITION BY ($tie.positorColumnName);
 ~*/
 }

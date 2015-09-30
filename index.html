@@ -2360,7 +2360,7 @@
                     this.svg.nameElement = document.createElementNS(SVGNS, 'text');
                     this.svg.nameElement.setAttributeNS(null, 'x', '0');
                     this.svg.nameElement.setAttributeNS(null, 'y', '0');
-                    this.svg.nameText = document.createTextNode('I am a placeholder');
+                    this.svg.nameText = document.createTextNode('');
                     this.svg.nameElement.appendChild(this.svg.nameText);
                     SVGLayer.names.appendChild(this.svg.nameElement);
                     this.svg.nameControl = {
@@ -6089,7 +6089,7 @@
         function init(window) {
             // another disclaimer for the testing versions
             if(!RELEASE) {
-                /*alert(
+                alert(
                     '----------- DISCLAIMER -----------\n' +
                     'Please note that this is a test version.\n' +
                     'It should not be used for production \n' +
@@ -6098,7 +6098,7 @@
                     'be found under the Help/About menu.\n' +
                     '----------- DISCLAIMER -----------'
                 );
-                document.getElementById("disclaimer").style.display = "block";*/
+                document.getElementById("disclaimer").style.display = "block";
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
