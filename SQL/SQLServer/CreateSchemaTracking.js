@@ -259,51 +259,70 @@ SELECT
 FROM (
    SELECT
       MAX([version]) as [version],
-      MAX([activation]) as [activation]
+      MAX([activation]) as [activation],
+      MAX([temporalization]) as [temporalization]
    FROM
-      [$schema.metadata.encapsulation].[_Schema]
+      [$schema.metadata.encapsulation].[_Schema_Expanded]
    WHERE
       [activation] <= @timepoint
 ) V
 JOIN (
    SELECT
-      [capsule] + '.' + [name] AS [name],
+      temporalization,
+      [capsule] + '.' + [name] + s.suffix AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Anchor] a
+   CROSS APPLY (
+      VALUES ('uni', ''), ('crt', '')
+   ) s (temporalization, suffix)
    UNION ALL
    SELECT
-      [capsule] + '.' + [name] AS [name],
+      temporalization,
+      [capsule] + '.' + [name] + s.suffix AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Knot] k
+   CROSS APPLY (
+      VALUES ('uni', ''), ('crt', '')
+   ) s (temporalization, suffix)
    UNION ALL
    SELECT
-      [capsule] + '.' + [name] AS [name],
+      temporalization,
+      [capsule] + '.' + [name] + s.suffix AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Attribute] b
+   CROSS APPLY (
+      VALUES ('uni', ''), ('crt', '_Annex'), ('crt', '_Posit')
+   ) s (temporalization, suffix)
    UNION ALL
    SELECT
-      [capsule] + '.' + [name] AS [name],
+      temporalization,
+      [capsule] + '.' + [name] + s.suffix AS [name],
       [version]
    FROM
       [$schema.metadata.encapsulation].[_Tie] t
+   CROSS APPLY (
+      VALUES ('uni', ''), ('crt', '_Annex'), ('crt', '_Posit')
+   ) s (temporalization, suffix)
 ) S
 ON
    S.[version] = V.[version]
+AND
+   S.temporalization = V.temporalization
 FULL OUTER JOIN (
    SELECT 
       s.[name] + '.' + t.[name] AS [name],
       t.[create_date]
-   FROM
+   FROM 
       sys.tables t
    JOIN
       sys.schemas s
    ON
       s.schema_id = t.schema_id
    WHERE
-      t.[type] like '%U%'
+      t.[type] = 'U'
    AND
       LEFT(t.[name], 1) <> '_'
 ) T
