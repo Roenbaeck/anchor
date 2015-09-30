@@ -5,6 +5,8 @@ SQL/Vertica/crt/CreatePositorAndDefault.js
 SQL/Vertica/crt/CreateKnots.js
 SQL/Vertica/crt/CreateAnchorsAndAttributes.js
 SQL/Vertica/crt/CreateAttributeAssembledProjections.js
+SQL/Vertica/crt/CreateTies.js
+SQL/Vertica/crt/CreateTieAssembledProjections.js
 # to be done later
 #SQL/Vertica/crt/CreateAttributeRewinders.js
 #SQL/Vertica/crt/AddAttributeRestatementConstraints.js
@@ -15,7 +17,6 @@ SQL/Vertica/crt/CreateAttributeAssembledProjections.js
 #SQL/Vertica/crt/CreateAttributeTriggers.js
 #SQL/Vertica/crt/CreateAnchorTriggers.js
 #SQL/Vertica/crt/CreateTies.js
-#SQL/Vertica/crt/CreateTieAssembledViews.js
 #SQL/Vertica/crt/AddTieRestatementConstraints.js
 #SQL/Vertica/crt/CreateTieRewinders.js
 #SQL/Vertica/biz/DropTieBusinessPerspectives.js
