@@ -49,7 +49,7 @@ BEGIN
                 b.$attribute.positorColumnName,
                 x.$attribute.anchorReferenceName,
                 x.$attribute.positingColumnName,
-                b.$attribute.reliableColumnName,
+                b.$attribute.assertionColumnName,
                 ' + @pivot + '
             FROM (
                 SELECT DISTINCT
@@ -65,7 +65,7 @@ BEGIN
                     $attribute.positorColumnName,
                     $attribute.anchorReferenceName,
                     $attribute.positingColumnName,
-                    $attribute.reliableColumnName,
+                    $attribute.assertionColumnName,
                     ' + @pivot + '
                 FROM
                     [$attribute.capsule].[$attribute.name]
@@ -84,7 +84,7 @@ BEGIN
             ORDER BY
                 $attribute.anchorReferenceName,
                 $attribute.positingColumnName,
-                $attribute.reliableColumnName
+                $attribute.assertionColumnName
         ';
         EXEC(@sql);
         FETCH NEXT FROM positor INTO @positor;

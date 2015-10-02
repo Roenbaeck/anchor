@@ -43,7 +43,7 @@ BEGIN
         $attribute.positorColumnName $schema.metadata.positorRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
         $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-        $attribute.reliableColumnName tinyint not null,
+        $attribute.assertionColumnName char(1) not null,
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.versionColumnName bigint not null,
@@ -63,8 +63,9 @@ BEGIN
         i.$attribute.positingColumnName,
         i.$attribute.reliabilityColumnName,
         case
-            when i.$attribute.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
-            else 1
+            when i.$attribute.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+            when i.$attribute.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
+            else '?'
         end,
         i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
@@ -97,7 +98,7 @@ BEGIN
                         SELECT TOP 1
                             t.$attribute.identityColumnName
                         FROM
-                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.reliableColumnName) t
+                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.assertionColumnName) t
                         WHERE
                             t.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
                         $(attribute.isHistorized())? AND
@@ -122,7 +123,8 @@ BEGIN
                                     v.$attribute.anchorReferenceName,
                                     v.$attribute.positorColumnName,
                                     v.$attribute.changingColumnName,
-                                    v.$attribute.positingColumnName
+                                    v.$attribute.positingColumnName,
+                                    v.$attribute.assertionColumnName
                                 )
                     ) OR EXISTS (
                         SELECT
@@ -133,7 +135,8 @@ BEGIN
                                     v.$attribute.anchorReferenceName,
                                     v.$attribute.positorColumnName,
                                     v.$attribute.changingColumnName,
-                                    v.$attribute.positingColumnName
+                                    v.$attribute.positingColumnName,
+                                    v.$attribute.assertionColumnName
                                 )
                     )
                     THEN 'R' -- restatement

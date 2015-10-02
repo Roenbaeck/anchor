@@ -90,7 +90,7 @@ BEGIN
         $tie.positingColumnName,
         $tie.positorColumnName,
         $tie.reliabilityColumnName,
-        $tie.reliableColumnName
+        $tie.assertionColumnName
     FROM
         [$tie.capsule].[$tie.annexName]
     WHERE
@@ -124,7 +124,7 @@ BEGIN
         a.$tie.positingColumnName,
         a.$tie.positorColumnName,
         a.$tie.reliabilityColumnName,
-        a.$tie.reliableColumnName
+        a.$tie.assertionColumnName
     FROM
         $(tie.isHistorized())? [$tie.capsule].[r$tie.positName](@changingTimepoint) p : [$tie.capsule].[$tie.positName] p
     JOIN
@@ -175,7 +175,7 @@ BEGIN
         a.$tie.positingColumnName,
         a.$tie.positorColumnName,
         a.$tie.reliabilityColumnName,
-        a.$tie.reliableColumnName
+        a.$tie.assertionColumnName
     FROM
         $(tie.isHistorized())? [$tie.capsule].[f$tie.positName](@changingTimepoint) p : [$tie.capsule].[$tie.positName] p
     JOIN

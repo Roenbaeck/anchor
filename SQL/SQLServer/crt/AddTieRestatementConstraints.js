@@ -16,7 +16,7 @@ if(restatements) {
 -- @posit       the id of the posit that should be checked
 -- @posited     the time when this posit was made
 -- @positor     the one who made the posit
--- @reliable    whether this posit is considered reliable (1) or unreliable (0)
+-- @assertion   whether this posit is positively or negatively asserted, or unreliable
 --
 ~*/
     while (tie = schema.nextHistorizedTie()) {
@@ -34,7 +34,7 @@ BEGIN
         @posit $tie.identity,
         @posited $schema.metadata.positingRange,
         @positor $schema.metadata.positorRange,
-        @reliable tinyint
+        @assertion char(1)
     )
     RETURNS tinyint AS
     BEGIN
@@ -61,7 +61,7 @@ BEGIN
         p.$tie.identityColumnName = @posit;
 
     RETURN
-        CASE WHEN @reliable = 0 THEN 0
+        CASE WHEN @assertion = ''?'' THEN 0
         ELSE (
         SELECT
             COUNT(*)
@@ -108,7 +108,7 @@ BEGIN
 /*~
                 pre.$tie.changingColumnName < @changed
             AND
-                pre.$tie.reliableColumnName = 1
+                pre.$tie.assertionColumnName = @assertion
             ORDER BY
                 pre.$tie.changingColumnName DESC,
                 pre.$tie.positingColumnName DESC
@@ -155,7 +155,7 @@ BEGIN
 /*~
                 fol.$tie.changingColumnName > @changed
             AND
-                fol.$tie.reliableColumnName = 1
+                fol.$tie.assertionColumnName = @assertion
             ORDER BY
                 fol.$tie.changingColumnName ASC,
                 fol.$tie.positingColumnName DESC
@@ -182,7 +182,7 @@ BEGIN
             $tie.identityColumnName,
             $tie.positingColumnName,
             $tie.positorColumnName,
-            $tie.reliableColumnName
+            $tie.assertionColumnName
         ) = 0
     );
 ~*/

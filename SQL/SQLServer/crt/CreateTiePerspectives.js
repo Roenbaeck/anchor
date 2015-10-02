@@ -11,7 +11,7 @@
 -- @positor             the view of which positor to adopt (defaults to 0)
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
--- @reliable            whether to show reliable (1) or unreliable (0) results
+-- @assertion           whether to show positve, negative, uncertain, or all posits (defaults to all)
 --
 -- The latest perspective shows the latest available information for each tie.
 -- The now perspective shows the information as it is right now.
@@ -47,7 +47,7 @@ CREATE FUNCTION [$tie.capsule].[t$tie.name] (
     @positor $schema.metadata.positorRange = 0,
     @changingTimepoint $schema.metadata.chronon = $schema.EOT,
     @positingTimepoint $schema.metadata.positingRange = $schema.EOT,
-    @reliable tinyint = 1
+    @assertion char(1) = null
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
@@ -57,7 +57,7 @@ SELECT
     $(tie.isHistorized())? tie.$tie.changingColumnName,
     tie.$tie.positingColumnName,
     tie.$tie.reliabilityColumnName,
-    tie.$tie.reliableColumnName,
+    tie.$tie.assertionColumnName,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -125,10 +125,11 @@ WHERE
 ~*/
             }
 /*~
-            sub.$tie.reliableColumnName = @reliable
+            sub.$tie.assertionColumnName = isnull(@assertion, sub.$tie.assertionColumnName)
         ORDER BY
             $(tie.isHistorized())? sub.$tie.changingColumnName DESC,
-            sub.$tie.positingColumnName DESC
+            sub.$tie.positingColumnName DESC,
+            sub.$tie.reliabilityColumnName DESC
     );
 GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
@@ -144,7 +145,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         DEFAULT,
         DEFAULT,
-        DEFAULT
+        '+'
     ) tie;
 GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
@@ -163,7 +164,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         @changingTimepoint,
         DEFAULT,
-        DEFAULT
+        '+'
     ) tie;
 GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -180,7 +181,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now,
         DEFAULT,
-        DEFAULT
+        '+'
     ) tie;
 GO
 ~*/
