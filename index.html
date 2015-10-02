@@ -110,6 +110,7 @@
             statementTypeSuffix: 'StatementType',
             checksumSuffix: 'Checksum',
             businessViews: 'false',
+            decisiveness: 'true',
             equivalence: 'false',
             equivalentSuffix: 'EQ',
             equivalentRange: 'tinyint',
@@ -5225,6 +5226,8 @@
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
+                document.getElementById('decisiveness').checked = Defaults.decisiveness === 'true';
+                document.getElementById('entityIntegrity').checked = Defaults.entityIntegrity === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
                 document.getElementById('partitioning').checked = Defaults.partitioning === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
@@ -5256,6 +5259,7 @@
                     this.setAssertiveness('true');
                     this.setMetadataUsage('true');
                     this.setBusinessViews('false');
+                    this.setDecisiveness('true');
                     this.setEquivalence('false');
                     this.setChangingSuffix('ChangedAt');
                     this.setIdentitySuffix('ID');
@@ -5336,6 +5340,7 @@
                 storage.setItem("equivalentRange", Defaults.equivalentRange);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
+                storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("restatability", Defaults.restatability);
                 storage.setItem("idempotency", Defaults.idempotency);
@@ -5395,6 +5400,7 @@
                     this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
+                    this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                     this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
@@ -5477,8 +5483,6 @@
             reliabilitySuffix: null,
             deleteReliability: null,
             assertionSuffix: null,
-            partitioning: null,
-            entityIntegrity: null,
             metadataPrefix: null,
             metadataType: null,
             equivalentSuffix: null,
@@ -5582,14 +5586,6 @@
                             function() { Settings.setAssertionSuffix(this.value); }
                     );
                     this.addBoolItem(
-                            'entityIntegrity', listOfDefaults, beforeItem, ' Ensure entity integrity',
-                            "Entity integrity adds constraints ensuring that no temporal duplicates " +
-                            "can co-exist for the same entity and version, that no negative recording " +
-                            "time intervals can be stored, and that there are no overlapping intervals " +
-                            "with respect to recording time.",
-                            function() { Settings.setEntityIntegrity(this.checked ? 'true' : 'false'); }
-                    );
-                    this.addBoolItem(
                             'assertiveness', listOfDefaults, beforeItem, ' Assertiveness',
                             "Default for new items. Assertive items get new annex rows every time a posit " +
                             "is made with a different positing time. Non-assertive items must also have a " +
@@ -5610,7 +5606,6 @@
                     this.removeItem('reliabilitySuffix', listOfDefaults);
                     this.removeItem('deleteReliability', listOfDefaults);
                     this.removeItem('assertionSuffix', listOfDefaults);
-                    this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('assertiveness', listOfDefaults);
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
@@ -5658,6 +5653,9 @@
                             "descriptors must follow the same rules of uniqueness as mnemonics do, " +
                             "otherwise naming clashes may occur."
                     );
+            },
+            setDecisiveness: function(value) {
+                Defaults.decisiveness = value;
             },
             setEquivalence: function(value) {
                 Defaults.equivalence = value;
@@ -6356,8 +6354,10 @@
                     </select> Temporalization
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false')"/> Use business views</li>
-                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false')"/> Use equivalence</li>
+                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
+                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
+                <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
+                <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>

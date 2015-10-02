@@ -324,6 +324,7 @@ schema.PARTITIONING = schema.metadata.partitioning == 'true';
 schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
 schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
 schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
+schema.DECISIVENESS = schema.metadata.decisiveness === 'true';
 schema.UNI = schema.metadata.temporalization == 'uni';
 schema.CRT = schema.metadata.temporalization == 'crt';
 schema.EOT = '\'9999-12-31\''; // End Of Time
