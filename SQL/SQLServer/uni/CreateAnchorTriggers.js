@@ -208,6 +208,15 @@ BEGIN
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
+                if(!attribute.isHistorized()) {
+/*~
+    IF (UPDATE($attribute.valueColumnName)) 
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+    IF (UPDATE($attribute.knotValueColumnName))
+        RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+~*/                
+                }
+                else {
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     BEGIN
@@ -221,7 +230,7 @@ BEGIN
             $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
 ~*/
-                if(attribute.isHistorized()) {
+                    if(attribute.isHistorized()) {
 /*~
             cast(CASE
                 WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN i.$attribute.changingColumnName
@@ -229,7 +238,7 @@ BEGIN
                 ELSE @now
             END as $attribute.timeRange),
 ~*/
-                }
+                    }
 /*~
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
         FROM
@@ -244,8 +253,16 @@ BEGIN
             ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
     END
 ~*/
+                }
             }
 			else { // not knotted
+                if(!attribute.isHistorized()) {
+/*~
+    IF (UPDATE($attribute.valueColumnName)) 
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+~*/                
+                }
+                else {
 /*~
     IF(UPDATE($attribute.valueColumnName))
     BEGIN
@@ -261,7 +278,7 @@ BEGIN
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
 ~*/
-                if(attribute.isHistorized()) {
+                    if(attribute.isHistorized()) {
 /*~
             cast(CASE
                 WHEN i.$attribute.valueColumnName is null THEN i.$attribute.changingColumnName
@@ -269,7 +286,7 @@ BEGIN
                 ELSE @now
             END as $attribute.timeRange),
 ~*/
-                }
+                    }
 /*~
             i.$attribute.valueColumnName
         FROM
@@ -278,7 +295,8 @@ BEGIN
             i.$attribute.valueColumnName is not null;
     END
 ~*/
-			} // end of not knotted
+			     } // end of historized
+            } // end of not knotted
         } // end of while loop over attributes
 /*~
 END

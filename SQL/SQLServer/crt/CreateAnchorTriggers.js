@@ -209,10 +209,18 @@ BEGIN
 ~*/
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
+                if(!attribute.isHistorized()) {
+/*~
+    IF (UPDATE($attribute.valueColumnName)) 
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+    IF (UPDATE($attribute.knotValueColumnName))
+        RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+~*/
+                }
 /*~
     IF (
-        UPDATE($attribute.valueColumnName) OR 
-        UPDATE($attribute.knotValueColumnName) OR
+        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR 
+        $(attribute.isHistorized())? UPDATE($attribute.knotValueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
@@ -271,9 +279,15 @@ BEGIN
 ~*/
             }
 			else { // not knotted
+                if(!attribute.isHistorized()) {
+/*~
+    IF (UPDATE($attribute.valueColumnName)) 
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+~*/
+                }
 /*~
     IF (
-        UPDATE($attribute.valueColumnName) OR
+        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
