@@ -82,7 +82,7 @@ BEGIN
         $attribute.positingColumnName,
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName
+        $attribute.assertionColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -108,7 +108,7 @@ BEGIN
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
+        a.$attribute.assertionColumnName,
         p.$attribute.anchorReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
@@ -155,7 +155,7 @@ BEGIN
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
+        a.$attribute.assertionColumnName,
         p.$attribute.anchorReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
@@ -194,7 +194,8 @@ BEGIN
         @id $anchor.identity,
         @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
-        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT', 
+        @assertion char(1) = null
     )
     RETURNS $returnType
     AS
@@ -212,7 +213,7 @@ BEGIN
         AND
             pre.$attribute.changingColumnName < @changingTimepoint
         AND
-            pre.$attribute.reliableColumnName = 1
+            pre.$attribute.assertionColumnName = isnull(@assertion, pre.$attribute.assertionColumnName)
         ORDER BY
             pre.$attribute.changingColumnName DESC,
             pre.$attribute.positingColumnName DESC
@@ -231,7 +232,8 @@ BEGIN
         @id $anchor.identity,
         @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
-        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
+        @positingTimepoint $schema.metadata.positingRange = '$schema.EOT', 
+        @assertion char(1) = null
     )
     RETURNS $returnType
     AS
@@ -249,7 +251,7 @@ BEGIN
         AND
             fol.$attribute.changingColumnName > @changingTimepoint
         AND
-            fol.$attribute.reliableColumnName = 1
+            fol.$attribute.assertionColumnName = isnull(@assertion, fol.$attribute.assertionColumnName)
         ORDER BY
             fol.$attribute.changingColumnName ASC,
             fol.$attribute.positingColumnName DESC
@@ -278,7 +280,7 @@ BEGIN
         $attribute.positingColumnName,
         $attribute.positorColumnName,
         $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName
+        $attribute.assertionColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -303,7 +305,7 @@ BEGIN
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
+        a.$attribute.assertionColumnName,
         p.$attribute.anchorReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName

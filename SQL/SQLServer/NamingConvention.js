@@ -69,7 +69,7 @@ while (anchor = schema.nextAnchor()) {
         attribute.positingColumnName = attribute.uniqueMnemonic + D + schema.metadata.positingSuffix;
         attribute.positorColumnName = attribute.uniqueMnemonic + D + schema.metadata.positorSuffix;
         attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliabilitySuffix;
-        attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliableSuffix;
+        attribute.assertionColumnName = attribute.uniqueMnemonic + D + schema.metadata.assertionSuffix;
         attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
         if(schema.IMPROVED) {
             attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
@@ -180,7 +180,7 @@ while (tie = schema.nextTie()) {
     tie.positingColumnName = tie.name + D + schema.metadata.positingSuffix;
     tie.positorColumnName = tie.name + D + schema.metadata.positorSuffix;
     tie.reliabilityColumnName = tie.name + D + schema.metadata.reliabilitySuffix;
-    tie.reliableColumnName = tie.name + D + schema.metadata.reliableSuffix;
+    tie.assertionColumnName = tie.name + D + schema.metadata.assertionSuffix;
     tie.capsule = tie.metadata.capsule || schema.metadata.encapsulation;
     tie.metadataColumnName = schema.metadata.metadataPrefix + D + tie.name;
     tie.versionColumnName = tie.name + D + schema.metadata.versionSuffix;

@@ -91,11 +91,10 @@
             positingSuffix: 'PositedAt',
             positorRange: 'tinyint',
             positorSuffix: 'Positor',
-            reliabilityRange: 'tinyint',
+            reliabilityRange: 'decimal(5,2)',
             reliabilitySuffix: 'Reliability',
-            reliableCutoff: '1', // inclusive, smallest reliability considered reliable
             deleteReliability: '0', // default reliability value for deletes
-            reliableSuffix: 'Reliable',
+            assertionSuffix: 'Assertion',
             partitioning: 'false',
             entityIntegrity: 'true',
             restatability: 'true',
@@ -5264,11 +5263,10 @@
                     this.setPositingSuffix('PositedAt');
                     this.setPositorRange('tinyint');
                     this.setPositorSuffix('Positor');
-                    this.setReliabilityRange('tinyint');
+                    this.setReliabilityRange('decimal(5,2)');
                     this.setReliabilitySuffix('Reliability');
-                    this.setReliableCutoff('1');
                     this.setDeleteReliability('0');
-                    this.setReliableSuffix('Reliable');
+                    this.setAssertionSuffix('Assertion');
                     this.setPartitioning('false');
                     this.setEntityIntegrity('true');
                     this.setTemporalization('uni');
@@ -5351,9 +5349,8 @@
                 storage.setItem("checksumSuffix", Defaults.checksumSuffix);
                 storage.setItem("reliabilityRange", Defaults.reliabilityRange);
                 storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
-                storage.setItem("reliableCutoff", Defaults.reliableCutoff);
                 storage.setItem("deleteReliability", Defaults.deleteReliability);
-                storage.setItem("reliableSuffix", Defaults.reliableSuffix);
+                storage.setItem("assertionSuffix", Defaults.assertionSuffix);
                 storage.setItem("partitioning", Defaults.partitioning);
                 storage.setItem("entityIntegrity", Defaults.entityIntegrity);
                 storage.setItem("naming", Defaults.naming);
@@ -5408,9 +5405,8 @@
                     this.setChecksumSuffix(storage.getItem('checksumSuffix') || Defaults.checksumSuffix);
                     this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
                     this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
-                    this.setReliableCutoff(storage.getItem('reliableCutoff') || Defaults.reliableCutoff);
                     this.setDeleteReliability(storage.getItem('deleteReliability') || Defaults.deleteReliability);
-                    this.setReliableSuffix(storage.getItem('reliableSuffix') || Defaults.reliableSuffix);
+                    this.setAssertionSuffix(storage.getItem('assertionSuffix') || Defaults.assertionSuffix);
                     this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                     this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
                     this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
@@ -5456,14 +5452,11 @@
             setReliabilitySuffix: function(value) {
                 Defaults.reliabilitySuffix = value;
             },
-            setReliableCutoff: function(value) {
-                Defaults.reliableCutoff = value;
-            },
             setDeleteReliability: function(value) {
                 Defaults.deleteReliability = value;
             },
-            setReliableSuffix: function(value) {
-                Defaults.reliableSuffix = value;
+            setAssertionSuffix: function(value) {
+                Defaults.assertionSuffix = value;
             },
             setPartitioning: function(value) {
                 Defaults.partitioning = value;
@@ -5481,9 +5474,8 @@
             positorSuffix: null,
             reliabilityRange: null,
             reliabilitySuffix: null,
-            reliableCutoff: null,
             deleteReliability: null,
-            reliableSuffix: null,
+            assertionSuffix: null,
             partitioning: null,
             entityIntegrity: null,
             metadataPrefix: null,
@@ -5541,7 +5533,6 @@
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var beforeItem = document.getElementById('crtSettingsBeforeHere');
                 if(value === 'crt') {
-                    this.addOrRemovePartitioning();
                     this.addTextItem(
                             'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
                             "The 'data type' for identities of posits used throughout the implementation.",
@@ -5578,21 +5569,16 @@
                             function() { Settings.setReliabilitySuffix(this.value); }
                     );
                     this.addTextItem(
-                            'reliableCutoff', listOfDefaults, beforeItem, ' Reliable cutoff',
-                            "The smallest (inclusive) value of reliability to be considered reliable.",
-                            function() { Settings.setReliableCutoff(this.value); }
-                    );
-                    this.addTextItem(
-                            'deleteReliability', listOfDefaults, beforeItem, ' Delete reliability',
-                            "The default value of reliability to use when deleting information.",
+                            'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
+                            "The default value of reliability to use when deleting information, " +
+                            "which corresponds to being completely uncertain about a posit.",
                             function() { Settings.setDeleteReliabilty(this.value); }
                     );
                     this.addTextItem(
-                            'reliableSuffix', listOfDefaults, beforeItem, ' Reliable suffix',
-                            "The suffix used for the computed column storing the boolean reliable result." +
-                            "This is based on a calculation using the cutoff to determine if data is " +
-                            "considered reliable or unreliable.",
-                            function() { Settings.setReliableSuffix(this.value); }
+                            'assertionSuffix', listOfDefaults, beforeItem, ' Assertion suffix',
+                            "The suffix used for the computed column storing a single character '+', '-', or '?'," +
+                            "indicating whether an assertion is positive, negative, or completely uncertain.",
+                            function() { Settings.setAssertionSuffix(this.value); }
                     );
                     this.addBoolItem(
                             'entityIntegrity', listOfDefaults, beforeItem, ' Ensure entity integrity',
@@ -5621,32 +5607,14 @@
                     this.removeItem('positorSuffix', listOfDefaults);
                     this.removeItem('reliabilityRange', listOfDefaults);
                     this.removeItem('reliabilitySuffix', listOfDefaults);
-                    this.removeItem('reliableCutoff', listOfDefaults);
                     this.removeItem('deleteReliability', listOfDefaults);
-                    this.removeItem('reliableSuffix', listOfDefaults);
+                    this.removeItem('assertionSuffix', listOfDefaults);
                     this.removeItem('entityIntegrity', listOfDefaults);
                     this.removeItem('assertiveness', listOfDefaults);
-                    this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.positIdentityEdit, false);
                     Editables.setEditability(Editables.positGeneratorEdit, false);
                     Editables.setEditability(Editables.assertivenessEdit, false);
                 }
-            },
-            addOrRemovePartitioning: function() {
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('crtSettingsBeforeHere');
-                if(Defaults.temporalization === 'crt' || Defaults.equivalence === 'true') {
-                    if(!this.partitioning) {
-                        this.addBoolItem(
-                                'partitioning', listOfDefaults, beforeItem, ' Use partitioning',
-                                "Partitioning will put currently recorded information in a separate partition " +
-                                "from erased information, greatly speeding up querying in the bitemporal implementation.",
-                                function() { Settings.setPartitioning(this.checked ? 'true' : 'false'); }
-                        );
-                    }
-                }
-                else
-                    this.removeItem('partitioning', listOfDefaults);
             },
             setMetadataPrefix: function(value) {
                 Defaults.metadataPrefix = value;
@@ -5705,13 +5673,11 @@
                             "The 'data type' of the equivalents column.",
                             function() { Settings.setEquivalentRange(this.value); }
                     );
-                    this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.equivalenceEdit, true);
                 }
                 else {
                     this.removeItem('equivalentSuffix', listOfDefaults);
                     this.removeItem('equivalentRange', listOfDefaults);
-                    this.addOrRemovePartitioning();
                     Editables.setEditability(Editables.equivalenceEdit, false);
                 }
             },
@@ -6391,6 +6357,7 @@
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
+                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false', true)"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>

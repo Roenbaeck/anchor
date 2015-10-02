@@ -38,6 +38,7 @@ BEGIN
         $tie.positorColumnName $schema.metadata.positorRange not null,
         $tie.positingColumnName $schema.metadata.positingRange not null,
         $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $tie.assertionColumnName char(1) not null,
 ~*/
         while (role = tie.nextRole()) {
             if(role.knot) {
@@ -105,11 +106,14 @@ BEGIN
         'X',
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
-        ISNULL(i.$tie.reliabilityColumnName,
-        CASE i.$tie.reliableColumnName
-            WHEN 0 THEN $schema.metadata.deleteReliability
-            ELSE $schema.metadata.reliableCutoff
-        END),
+        ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.deleteReliability),
+        isnull(cast(
+            case
+                when i.$tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+                when i.$tie.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
+                else '?'
+            end
+        as char(1)), '?'),
 ~*/
         while (role = tie.nextRole()) {
 /*~
@@ -225,7 +229,7 @@ BEGIN
 /*~
                             pre.$tie.changingColumnName < v.$tie.changingColumnName
                         AND
-                            pre.$tie.reliableColumnName = 1
+                            pre.$tie.assertionColumnName = v.$tie.assertionColumnName
                         ORDER BY
                             pre.$tie.changingColumnName DESC,
                             pre.$tie.positingColumnName DESC
@@ -272,7 +276,7 @@ BEGIN
 /*~
                             fol.$tie.changingColumnName > v.$tie.changingColumnName
                         AND
-                            fol.$tie.reliableColumnName = 1
+                            fol.$tie.assertionColumnName = v.$tie.assertionColumnName
                         ORDER BY
                             fol.$tie.changingColumnName ASC,
                             fol.$tie.positingColumnName DESC
@@ -438,6 +442,8 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
+    IF(UPDATE($tie.assertionColumnName))
+        RAISERROR('The computed assertion column $tie.assertionColumnName is not updatable.', 16, 1);
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
@@ -486,12 +492,7 @@ BEGIN
 /*~
             THEN $schema.metadata.deleteReliability
             WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName
-            WHEN UPDATE($tie.reliableColumnName) THEN
-                CASE i.$tie.reliableColumnName
-                    WHEN 0 THEN $schema.metadata.deleteReliability
-                    ELSE $schema.metadata.reliableCutoff
-                END
-            ELSE ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.reliableCutoff)
+            ELSE ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.deleteReliability)
         END
     FROM
         inserted i~*/

@@ -30,7 +30,7 @@ BEGIN
         a.$attribute.positingColumnName,
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName
+        a.$attribute.assertionColumnName
     FROM
         [$attribute.capsule].[$attribute.positName] p
     JOIN
@@ -46,7 +46,7 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name]
     ON [$attribute.capsule].[$attribute.name] (
-        $attribute.reliableColumnName desc,
+        $attribute.assertionColumnName desc,
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
         $attribute.positingColumnName desc,

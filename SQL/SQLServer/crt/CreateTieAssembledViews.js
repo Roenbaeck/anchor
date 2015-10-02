@@ -35,7 +35,7 @@ BEGIN
         a.$tie.positingColumnName,
         a.$tie.positorColumnName,
         a.$tie.reliabilityColumnName,
-        a.$tie.reliableColumnName
+        a.$tie.assertionColumnName
     FROM
         [$tie.capsule].[$tie.positName] p
     JOIN
@@ -51,7 +51,7 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$tie.name]
     ON [$tie.capsule].[$tie.name] (
-        $tie.reliableColumnName desc,
+        $tie.assertionColumnName desc,
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while (role = tie.nextIdentifier()) {

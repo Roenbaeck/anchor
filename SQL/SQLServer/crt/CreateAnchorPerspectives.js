@@ -12,7 +12,7 @@
 -- @positor             the view of which positor to adopt (defaults to 0)
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
--- @reliable            whether to show reliable (1) or unreliable (0) results
+-- @assertion           whether to show positve, negative, uncertain, or all posits (defaults to all)
 --
 -- The latest perspective shows the latest available (changing & positing) information for each anchor.
 -- The now perspective shows the information as it is right now, with latest positing time.
@@ -54,7 +54,7 @@ CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
     @positor $schema.metadata.positorRange = 0,
     @changingTimepoint $schema.metadata.chronon = $schema.EOT,
     @positingTimepoint $schema.metadata.positingRange = $schema.EOT,
-    @reliable tinyint = 1
+    @assertion char(1) = null
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
@@ -71,7 +71,7 @@ SELECT
     [$attribute.mnemonic].$attribute.positingColumnName,
     [$attribute.mnemonic].$attribute.positorColumnName,
     [$attribute.mnemonic].$attribute.reliabilityColumnName,
-    [$attribute.mnemonic].$attribute.reliableColumnName,
+    [$attribute.mnemonic].$attribute.assertionColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -111,10 +111,11 @@ ON
         WHERE
             sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
         AND
-            sub.$attribute.reliableColumnName = @reliable
+            sub.$attribute.assertionColumnName = isnull(@assertion, sub.$attribute.assertionColumnName)
         ORDER BY
             $(attribute.isHistorized())? sub.$attribute.changingColumnName DESC,
-            sub.$attribute.positingColumnName DESC
+            sub.$attribute.positingColumnName DESC,
+            sub.$attribute.reliabilityColumnName DESC
     )~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -138,7 +139,7 @@ CREATE VIEW [$anchor.capsule].[l$anchor.name]
 AS
 SELECT
     p.*, 
-    1 as $schema.metadata.reliableSuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     [$anchor.mnemonic].*
 FROM
     [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
@@ -147,7 +148,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         DEFAULT,
         DEFAULT,
-        DEFAULT
+        '+' -- positve assertions only
     ) [$anchor.mnemonic];
 GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
@@ -158,8 +159,8 @@ CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    p.*, 
-    1 as $schema.metadata.reliableSuffix,
+    p.*,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     [$anchor.mnemonic].*
 FROM
     [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
@@ -168,7 +169,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         @changingTimepoint,
         DEFAULT,
-        DEFAULT
+        '+' -- positve assertions only
     ) [$anchor.mnemonic];
 GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -178,7 +179,7 @@ CREATE VIEW [$anchor.capsule].[n$anchor.name]
 AS
 SELECT
     p.*, 
-    1 as $schema.metadata.reliableSuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     [$anchor.mnemonic].*
 FROM
     [$schema.metadata.encapsulation].[_$schema.metadata.positorSuffix] p
@@ -187,7 +188,7 @@ CROSS APPLY
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now,
         DEFAULT,
-        DEFAULT
+        '+' -- positve assertions only
     ) [$anchor.mnemonic];
 GO
 ~*/
@@ -234,7 +235,7 @@ CROSS APPLY
         timepoints.positor,
         timepoints.inspectedTimepoint,
         DEFAULT,
-        DEFAULT
+        '+' -- positve assertions only
     ) [$anchor.mnemonic]
  WHERE
     [$anchor.mnemonic].$anchor.identityColumnName = timepoints.$anchor.identityColumnName;

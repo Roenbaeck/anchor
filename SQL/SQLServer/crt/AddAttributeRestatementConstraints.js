@@ -18,7 +18,7 @@ if(restatements) {
 -- @posit       the id of the posit that should be checked
 -- @posited     the time when this posit was made
 -- @positor     the one who made the posit
--- @reliable    whether this posit is considered reliable (1) or unreliable (0)
+-- @assertion   whether this posit is positively or negatively asserted, or unreliable
 --
 ~*/
     while (anchor = schema.nextAnchor()) {
@@ -52,7 +52,7 @@ BEGIN
         @posit $anchor.identity,
         @posited $schema.metadata.positingRange,
         @positor $schema.metadata.positorRange,
-        @reliable tinyint
+        @assertion char(1)
     )
     RETURNS tinyint AS
     BEGIN
@@ -69,53 +69,29 @@ BEGIN
         $attribute.identityColumnName = @posit;
     RETURN (
         CASE
-        WHEN @reliable = 0
+        WHEN @assertion = ''?''
         THEN 0
         WHEN EXISTS (
             SELECT
                 @value
             WHERE
-                @value = (
-                    SELECT TOP 1
-                        pre.$valueColumn
-                    FROM
-                        [$attribute.capsule].[r$attribute.name](
-                            @positor,
-                            @changed,
-                            @posited
-                        ) pre
-                    WHERE
-                        pre.$attribute.anchorReferenceName = @id
-                    AND
-                        pre.$attribute.changingColumnName < @changed
-                    AND
-                        pre.$attribute.reliableColumnName = 1
-                    ORDER BY
-                        pre.$attribute.changingColumnName DESC,
-                        pre.$attribute.positingColumnName DESC
+                @value = [$attribute.capsule].[pre$attribute.name] (
+                    @id,
+                    @positor,
+                    @changed,
+                    @posited, 
+                    @assertion
                 )
         ) OR EXISTS (
             SELECT
                 @value
             WHERE
-                @value = (        
-                    SELECT TOP 1
-                        fol.$valueColumn
-                    FROM
-                        [$attribute.capsule].[f$attribute.name](
-                            @positor,
-                            @changed,
-                            @posited
-                        ) fol
-                    WHERE
-                        fol.$attribute.anchorReferenceName = @id
-                    AND
-                        fol.$attribute.changingColumnName > @changed
-                    AND
-                        fol.$attribute.reliableColumnName = 1
-                    ORDER BY
-                        fol.$attribute.changingColumnName ASC,
-                        fol.$attribute.positingColumnName DESC
+                @value = [$attribute.capsule].[fol$attribute.name] (
+                    @id,
+                    @positor,
+                    @changed,
+                    @posited, 
+                    @assertion
                 )
         )
         THEN 1
@@ -133,7 +109,7 @@ BEGIN
             $attribute.identityColumnName,
             $attribute.positingColumnName,
             $attribute.positorColumnName,
-            $attribute.reliableColumnName
+            $attribute.assertionColumnName
         ) = 0
     );
 ~*/
