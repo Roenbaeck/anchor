@@ -51,24 +51,26 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$tie.name]
     ON [$tie.capsule].[$tie.name] (
-        $tie.assertionColumnName desc,
+        $(schema.DECISIVENESS)? $tie.assertionColumnName desc : $tie.identityColumnName asc,
 ~*/
-        if(tie.hasMoreIdentifiers()) {
-            while (role = tie.nextIdentifier()) {
+        if(schema.DECISIVENESS) {
+            if(tie.hasMoreIdentifiers()) {
+                while (role = tie.nextIdentifier()) {
 /*~
         $role.columnName asc,
 ~*/
+                }
             }
-        }
-        else {
-            while (role = tie.nextRole()) {
+            else {
+                while (role = tie.nextRole()) {
 /*~
         $role.columnName asc,
 ~*/
+                }
             }
         }
 /*~
-        $(tie.timeRange)? $tie.changingColumnName desc,
+        $(tie.timeRange && schema.DECISIVENESS)? $tie.changingColumnName desc,
         $tie.positingColumnName desc,
         $tie.positorColumnName asc
     )$scheme;
