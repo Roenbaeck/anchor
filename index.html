@@ -5226,6 +5226,7 @@
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
+                document.getElementById('partitioning').checked = Defaults.partitioning === 'true';
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('checksumSuffix').value = Defaults.checksumSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
@@ -6355,9 +6356,9 @@
                     </select> Temporalization
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
-                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
-                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false', true)"/> Use partitioning</li>
+                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false')"/> Use business views</li>
+                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false')"/> Use equivalence</li>
+                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
