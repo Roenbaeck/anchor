@@ -46,7 +46,7 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name]
     ON [$attribute.capsule].[$attribute.name] (
-        $(schema.DECISIVENESS)? $attribute.assertionColumnName desc : $attribute.identityColumnName asc,
+        $(schema.DECISIVENESS)? $attribute.assertionColumnName desc, : $attribute.identityColumnName asc,
         $(schema.DECISIVENESS)? $attribute.anchorReferenceName asc,
         $(attribute.timeRange && schema.DECISIVENESS)? $attribute.changingColumnName desc,
         $attribute.positingColumnName desc,
