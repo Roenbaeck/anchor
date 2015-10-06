@@ -51,7 +51,7 @@ BEGIN
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$tie.name]
     ON [$tie.capsule].[$tie.name] (
-        $(schema.DECISIVENESS)? $tie.assertionColumnName desc : $tie.identityColumnName asc,
+        $(schema.DECISIVENESS)? $tie.assertionColumnName desc, : $tie.identityColumnName asc,
 ~*/
         if(schema.DECISIVENESS) {
             if(tie.hasMoreIdentifiers()) {
