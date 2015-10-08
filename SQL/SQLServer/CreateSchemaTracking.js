@@ -437,6 +437,8 @@ BEGIN
          o.object_id = r.referencing_id
       and
          o.type not in ('S')
+      where 
+         r.referencing_id <> OBJECT_ID(c.qualifiedName)
    ),
    relatedDownwards as (
       select
@@ -550,7 +552,8 @@ BEGIN
       dropList d
    order by
       dropOrder asc
-   for xml path('');
+   for xml path('')
+   option(maxrecursion 10000);
 END
 GO
 -- Database Copy Script Generator -------------------------------------------------------------------------------------
