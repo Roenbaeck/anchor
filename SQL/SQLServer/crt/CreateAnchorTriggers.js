@@ -235,7 +235,17 @@ BEGIN
             $attribute.reliabilityColumnName
         )
         SELECT
-            $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
+~*/
+                if(schema.METADATA) {
+/*~                        
+            CASE 
+                WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
+                THEN i.$anchor.metadataColumnName
+                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
+            END,
+~*/                 
+                }            
+/*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             CASE 
                 WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName 
@@ -302,7 +312,17 @@ BEGIN
             $attribute.reliabilityColumnName
         )
         SELECT
-            $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
+~*/
+                if(schema.METADATA) {
+/*~                        
+            CASE 
+                WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
+                THEN i.$anchor.metadataColumnName
+                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
+            END,
+~*/                 
+                }            
+/*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             i.$attribute.valueColumnName,
 ~*/
