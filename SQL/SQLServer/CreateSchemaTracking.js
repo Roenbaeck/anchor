@@ -233,6 +233,8 @@ GO
 CREATE FUNCTION [$schema.metadata.encapsulation].[_Evolution] (
     @timepoint AS $schema.metadata.chronon
 )
+RETURNS TABLE AS
+RETURN
 WITH constructs AS (
    SELECT
       temporalization,
