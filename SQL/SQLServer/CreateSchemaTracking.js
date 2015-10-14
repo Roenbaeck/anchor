@@ -233,44 +233,13 @@ GO
 CREATE FUNCTION [$schema.metadata.encapsulation].[_Evolution] (
     @timepoint AS $schema.metadata.chronon
 )
-RETURNS TABLE
-RETURN
-SELECT
-   V.[version],
-   ISNULL(S.[name], T.[name]) AS [name],
-   ISNULL(V.[activation], T.[create_date]) AS [activation],
-   CASE
-      WHEN S.[name] is null THEN
-         CASE
-            WHEN T.[create_date] > (
-               SELECT
-                  ISNULL(MAX([activation]), @timepoint)
-               FROM
-                  [$schema.metadata.encapsulation].[_Schema]
-               WHERE
-                  [activation] <= @timepoint
-            ) THEN 'Future'
-            ELSE 'Past'
-         END
-      WHEN T.[name] is null THEN 'Missing'
-      ELSE 'Present'
-   END AS Existence
-FROM (
-   SELECT
-      MAX([version]) as [version],
-      MAX([activation]) as [activation],
-      MAX([temporalization]) as [temporalization]
-   FROM
-      [$schema.metadata.encapsulation].[_Schema_Expanded]
-   WHERE
-      [activation] <= @timepoint
-) V
-JOIN (
+WITH constructs AS (
    SELECT
       temporalization,
-      [capsule] + '.' + [name] + s.suffix AS [name],
-      [version]
-   FROM
+      [capsule] + '.' + [name] + s.suffix AS [qualifiedName],
+      [version],
+      [activation]
+   FROM 
       [$schema.metadata.encapsulation].[_Anchor] a
    CROSS APPLY (
       VALUES ('uni', ''), ('crt', '')
@@ -278,8 +247,9 @@ JOIN (
    UNION ALL
    SELECT
       temporalization,
-      [capsule] + '.' + [name] + s.suffix AS [name],
-      [version]
+      [capsule] + '.' + [name] + s.suffix AS [qualifiedName],
+      [version],
+      [activation]
    FROM
       [$schema.metadata.encapsulation].[_Knot] k
    CROSS APPLY (
@@ -288,8 +258,9 @@ JOIN (
    UNION ALL
    SELECT
       temporalization,
-      [capsule] + '.' + [name] + s.suffix AS [name],
-      [version]
+      [capsule] + '.' + [name] + s.suffix AS [qualifiedName],
+      [version],
+      [activation]
    FROM
       [$schema.metadata.encapsulation].[_Attribute] b
    CROSS APPLY (
@@ -298,21 +269,62 @@ JOIN (
    UNION ALL
    SELECT
       temporalization,
-      [capsule] + '.' + [name] + s.suffix AS [name],
-      [version]
+      [capsule] + '.' + [name] + s.suffix AS [qualifiedName],
+      [version],
+      [activation]
    FROM
       [$schema.metadata.encapsulation].[_Tie] t
    CROSS APPLY (
       VALUES ('uni', ''), ('crt', '_Annex'), ('crt', '_Posit')
    ) s (temporalization, suffix)
-) S
-ON
-   S.[version] = V.[version]
-AND
-   S.temporalization = V.temporalization
+), 
+selectedSchema AS (
+   SELECT TOP 1
+      *
+   FROM
+      [$schema.metadata.encapsulation].[_Schema_Expanded]
+   WHERE
+      [activation] <= @timepoint
+   ORDER BY
+      [activation] DESC
+),
+presentConstructs AS (
+   SELECT
+      C.*
+   FROM
+      selectedSchema S
+   JOIN
+      constructs C
+   ON
+      S.[version] = C.[version]
+   AND
+      S.temporalization = C.temporalization      
+), 
+allConstructs AS (
+   SELECT
+      C.*
+   FROM
+      selectedSchema S
+   JOIN
+      constructs C
+   ON
+      S.temporalization = C.temporalization
+)
+SELECT
+   COALESCE(P.[version], X.[version]) as [version],
+   COALESCE(P.[qualifiedName], T.[qualifiedName]) AS [name],
+   COALESCE(P.[activation], X.[activation], T.[create_date]) AS [activation],
+   CASE
+      WHEN P.[activation] = S.[activation] THEN 'Present'
+      WHEN X.[activation] > S.[activation] THEN 'Future'
+      WHEN X.[activation] < S.[activation] THEN 'Past'
+      ELSE 'Missing'
+   END AS Existence
+FROM 
+   presentConstructs P
 FULL OUTER JOIN (
    SELECT 
-      s.[name] + '.' + t.[name] AS [name],
+      s.[name] + '.' + t.[name] AS [qualifiedName],
       t.[create_date]
    FROM 
       sys.tables t
@@ -326,7 +338,28 @@ FULL OUTER JOIN (
       LEFT(t.[name], 1) <> '_'
 ) T
 ON
-   S.[name] = T.[name];
+   T.[qualifiedName] = P.[qualifiedName]
+LEFT JOIN
+   allConstructs X
+ON
+   X.[qualifiedName] = T.[qualifiedName]
+AND
+   X.[activation] = (
+      SELECT
+         MIN(sub.[activation])
+      FROM
+         constructs sub
+      WHERE
+         sub.[qualifiedName] = T.[qualifiedName]
+      AND 
+         sub.[activation] >= T.[create_date]
+   )
+CROSS APPLY (
+   SELECT
+      *
+   FROM
+      selectedSchema
+) S;
 GO
 -- Drop Script Generator ----------------------------------------------------------------------------------------------
 -- generates a drop script, that must be run separately, dropping everything in an Anchor Modeled database
