@@ -141,11 +141,14 @@ BEGIN
         }
 /*~;~*/
         var changingParameter = tie.isHistorized() ? 'v.' + tie.changingColumnName : 'DEFAULT';
-        var statementTypes = "'N'";
-        if(tie.isAssertive())
-            statementTypes += ",'D'";
-        if(tie.isHistorized() && !tie.isIdempotent())
-            statementTypes += ",'R'";
+        var positStatementTypes = "'N'", annexStatementTypes = "'N'";
+        if(tie.isAssertive()) {
+            annexStatementTypes += ",'D'";
+        }
+        if(tie.isHistorized() && !tie.isIdempotent()) {
+            positStatementTypes += ",'R'";
+            annexStatementTypes += ",'R'";
+        }
 /*~
     SELECT
         @maxVersion = max($tie.versionColumnName),
@@ -339,7 +342,7 @@ BEGIN
         WHERE
             $tie.versionColumnName = @currentVersion
         AND
-            $tie.statementTypeColumnName in ($statementTypes);
+            $tie.statementTypeColumnName in ($positStatementTypes);
 
         INSERT INTO [$tie.capsule].[$tie.annexName] (
             $(schema.METADATA)? $tie.metadataColumnName,
@@ -372,7 +375,7 @@ BEGIN
         WHERE
             v.$tie.versionColumnName = @currentVersion
         AND
-            v.$tie.statementTypeColumnName in ('S',$statementTypes);
+            v.$tie.statementTypeColumnName in ('S',$annexStatementTypes);
     END
 END
 GO

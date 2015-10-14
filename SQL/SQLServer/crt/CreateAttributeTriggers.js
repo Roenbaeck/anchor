@@ -15,11 +15,14 @@
 var anchor, attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
-        var statementTypes = "'N'";
-        if(attribute.isAssertive())
-            statementTypes += ",'D'";
-        if(attribute.isHistorized() && !attribute.isIdempotent())
-            statementTypes += ",'R'";
+        var annexStatementTypes = "'N'", positStatementTypes = "'N'";
+        if(attribute.isAssertive()) {
+            annexStatementTypes += ",'D'";
+        }
+        if(attribute.isHistorized() && !attribute.isIdempotent()) {
+            annexStatementTypes += ",'R'";
+            positStatementTypes += ",'R'";
+        }
         var changingParameter = attribute.isHistorized() ? 'v.' + attribute.changingColumnName : 'DEFAULT';
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
@@ -172,7 +175,7 @@ BEGIN
         WHERE
             $attribute.versionColumnName = @currentVersion
         AND
-            $attribute.statementTypeColumnName in ($statementTypes);
+            $attribute.statementTypeColumnName in ($positStatementTypes);
 
         INSERT INTO [$attribute.capsule].[$attribute.annexName] (
             $(schema.METADATA)? $attribute.metadataColumnName,
@@ -200,7 +203,7 @@ BEGIN
         WHERE
             v.$attribute.versionColumnName = @currentVersion
         AND
-            $attribute.statementTypeColumnName in ('S',$statementTypes);
+            $attribute.statementTypeColumnName in ('S',$annexStatementTypes);
     END
 END
 GO
