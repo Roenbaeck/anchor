@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*****************************************************************************************************************
+      XML Schema definition for Anchor Modeling initially made by Lars Rönnbäck in 2009.
+
+******** CHANGES ************************************************************************************************
+2014-05-21 Lars Rönnbäck    All assertions have been commented out to comply with XML Schema v1.0 
+2015-10-05 Lars Rönnbäck    All assertions have been reinstated, and the schema made up to date.
+2015-11-25 Lars Rönnbäck    Added xpathDefaultNamespace="##defaultNamespace" in order to make assertions work.
+*****************************************************************************************************************
+-->
+<xs:schema 
+    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+    xmlns="http://anchormodeling.com/schema" 
+    targetNamespace="http://anchormodeling.com/schema" 
+    xpathDefaultNamespace="##defaultNamespace"
+    elementFormDefault="qualified">
+<xs:simpleType name="name">
+    <xs:restriction base="xs:string"/>
+</xs:simpleType>
+<xs:simpleType name="identity">
+    <xs:restriction base="xs:string"/>
+</xs:simpleType>
+<xs:simpleType name="dataType">
+    <xs:restriction base="xs:string"/>
+</xs:simpleType>
+<xs:simpleType name="timeType">
+    <xs:restriction base="xs:string"/>
+</xs:simpleType>
+<xs:group name="construct">
+    <xs:choice>
+        <xs:element name="metadata" maxOccurs="1"/>
+        <xs:element name="layout" maxOccurs="1"/>
+        <xs:element name="description" maxOccurs="1"/>
+    </xs:choice>    
+</xs:group>
+<xs:complexType name="role">
+    <xs:attribute name="role" type="name" use="required"/>
+    <xs:attribute name="type" type="name" use="required"/>
+    <xs:attribute name="identifier" type="xs:boolean" use="optional" default="false"/>
+</xs:complexType>
+<xs:complexType name="knot">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+    </xs:choice>
+    <xs:attribute name="mnemonic" type="name" use="required"/>
+    <xs:attribute name="descriptor" type="name" use="required"/>
+    <xs:attribute name="identity" type="identity" use="required"/>
+    <xs:attribute name="dataRange" type="dataType" use="required"/>
+</xs:complexType>
+<xs:complexType name="attribute">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+    </xs:choice>
+    <xs:attribute name="mnemonic" type="name" use="required"/>
+    <xs:attribute name="descriptor" type="name" use="required"/>
+    <xs:attribute name="knotRange" type="name" use="optional"/>
+    <xs:attribute name="dataRange" type="dataType" use="optional"/>
+    <xs:attribute name="timeRange" type="timeType" use="optional"/>
+    <!-- only one of a knotRange and a dataRange may be specified -->
+    <xs:assert test="count(@knotRange) + count(@dataRange) = 1"/>
+</xs:complexType>
+<xs:complexType name="anchor">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+        <xs:element name="attribute" type="attribute" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:choice>
+    <xs:attribute name="mnemonic" type="name" use="required"/>
+    <xs:attribute name="descriptor" type="name" use="required"/>
+    <xs:attribute name="identity" type="identity" use="required"/>
+</xs:complexType>
+<xs:complexType name="tie">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+        <xs:element name="anchorRole" type="role" minOccurs="2" maxOccurs="unbounded"/>
+        <xs:element name="knotRole" type="role" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:choice>
+    <xs:attribute name="timeRange" type="timeType" use="optional"/>
+</xs:complexType>
+<xs:complexType name="schema">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+        <xs:element name="knot" type="knot"/>
+        <xs:element name="anchor" type="anchor"/>
+        <xs:element name="tie" type="tie"/>
+    </xs:choice>
+    <xs:anyAttribute processContents="lax"/>
+    <!-- every knotRange references an existing knot -->
+    <xs:assert test="every $k in anchor/attribute/@knotRange satisfies knot[@mnemonic = $k]"/>
+    <!-- every anchorRole references an existing anchor -->
+    <xs:assert test="every $a in tie/anchorRole/@type satisfies anchor[@mnemonic = $a]"/>
+    <!-- every knotRole references an existing knot -->
+    <xs:assert test="every $k in tie/knotRole/@type satisfies knot[@mnemonic = $k]"/>
+    <!-- two ties may not be equal in their composition -->
+    <xs:assert test="not(some $t1 in tie, $t2 in $t1/preceding-sibling::tie satisfies deep-equal($t1,$t2))"/>
+    <!-- two roles within the same tie may not be equal in their composition -->
+    <xs:assert test="not(some $t1 in tie/*, $t2 in $t1/preceding-sibling::node() satisfies deep-equal($t1,$t2))"/>
+    <!-- two anchors may not have the same mnemonic -->
+    <xs:assert test="not(some $t1 in anchor, $t2 in $t1/preceding-sibling::anchor satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
+    <!-- two knots may not have the same mnemonic -->
+    <xs:assert test="not(some $t1 in knot, $t2 in $t1/preceding-sibling::knot satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
+    <!-- two attributes may not have the same mnemonic within the scope of the same anchor -->
+    <xs:assert test="not(some $t1 in anchor/attribute, $t2 in $t1/preceding-sibling::attribute satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
+</xs:complexType>
+<xs:element name="schema" type="schema"/>
+</xs:schema>
