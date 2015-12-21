@@ -1,3 +1,105 @@
+
+var MAP = {
+    Anchor: {
+        description: 'models from Anchor Modeling, http://www.anchormodeling.com',
+        // name of the root element and resulting JSON object
+        root: 'schema',
+        // define 'keys' for elements that may occur more than once
+        // on the same level in the XML document
+        key: {
+            knot: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            anchor: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            attribute: function(xml, fragment) {
+                return fragment.getAttribute('mnemonic');
+            },
+            tie: function(xml, fragment) {
+                var roles = fragment.selectNodes('*[@role]');
+                var key = '', role;
+                for(var i = 0; i < roles.length; i++) {
+                    role = roles.item(i);
+                    key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                    if(i < roles.length - 1) key += '_';
+                }
+                return key;
+            },
+            anchorRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            },
+            knotRole: function(xml, fragment) {
+                return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+            }
+        },
+        // used to replace certain element names with others
+        replacer: function(name) {
+            switch(name) {
+                case 'anchorRoles':
+                    return 'roles';
+                case 'knotRoles':
+                    return 'roles';
+                default:
+                    return name;
+            }
+        }
+    },
+    Workflow: {
+        description: 'workflow for SQL Server Job Agent',
+        root: 'workflow',
+        key: { 
+            job: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            },
+            jobstep: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            },
+            variable: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            }
+        }
+    },
+    Source: { 
+        description: 'source data format description',
+        root: 'source',
+        key: { 
+            part: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            },
+            term: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            },
+            key: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            },
+            component: function(xml, fragment) {
+                return fragment.getAttribute('of');
+            },            
+            calculation: function(xml, fragment) {
+                return fragment.getAttribute('name');
+            }
+        }
+    },
+    Target: {
+        description: 'target loading description',
+        root: 'target',
+        key: { 
+            map: function(xml, fragment) {
+                return fragment.getAttribute('source') + '__' + fragment.getAttribute('target');
+            },
+            load: function(xml, fragment) {
+                var pass = fragment.getAttribute('pass');
+                pass = pass ? '__' + pass : '';
+                return fragment.getAttribute('source') + '__' + fragment.getAttribute('target') + pass;
+            },
+            sql: function(xml, fragment) {
+                return fragment.getAttribute('position');
+            }
+        }
+    }
+}
+
 var Sisulator = {
     // this function will recursively traverse the XML document and
     // create a 'hash' object that mimics the structure using the given map
