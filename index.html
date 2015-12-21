@@ -4657,11 +4657,18 @@
                     EventHandler.clearSelection();
                 }
             },
-            getDirective: function() {
+            getDirectives: function(scriptname) {
                 var database = Defaults.databaseTarget;
                 var temporalization = Defaults.temporalization;
-                var directive = database + '_' + temporalization + '.directive';
-                return directive;
+                var filename = scriptname || database + '_' + temporalization + '.directive';
+
+                var cacheDisabler = '';
+                if(DEBUG) cacheDisabler = '?r=' + Math.random();
+                var xmlhttp = new window.XMLHttpRequest();
+                xmlhttp.open("GET", filename + cacheDisabler, false);
+                xmlhttp.send(null);
+
+                return xmlhttp.responseText;
             },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
@@ -6204,7 +6211,7 @@
                 <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives, document)), true)"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
