@@ -1,4 +1,3 @@
-
 var MAP = {
     description: 'models from Anchor Modeling, http://www.anchormodeling.com',
     // name of the root element and resulting JSON object
@@ -48,5 +47,5 @@ var MAP = {
             default:
                 return name;
         }
-    },
-}
+    }
+};
