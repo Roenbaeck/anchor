@@ -10,16 +10,15 @@ var Sisulator = {
                 // if there are children or attributes we need a container
                 if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
                     if(!object[xmlFragment.nodeName])
-                        object[xmlFragment.nodeName] = Object.create(null);
+                        object[xmlFragment.nodeName] = new Object();
                     var partialObject = object[xmlFragment.nodeName];
-                    if(typeof map[xmlFragment.nodeName] === 'function') {
-                        var key = map[xmlFragment.nodeName](xml, xmlFragment);
+                    if(typeof map.key[xmlFragment.nodeName] === 'function') {
+                        var key = map.key[xmlFragment.nodeName](xml, xmlFragment);
                         if(key) {
-                            partialObject = partialObject[key] = Object.create(null);
+                            partialObject = partialObject[key] = new Object();
                             partialObject.id = key;
-                            var name = Sisulator.replacer(
-                                    xmlFragment.nodeName + listSuffix
-                            );
+                            var name = xmlFragment.nodeName + listSuffix;
+                            name = map.replacer ? map.replacer(name) : name;
                             // reference the object from the array
                             if(!object[name])
                                 object[name] = [];
@@ -54,9 +53,10 @@ var Sisulator = {
     },
     sisulate: function(xml, map, directives) {
         // objectify the xml
-        var schema = Sisulator.objectify(xml, Sisulator.MAP).schema;
-        var cacheDisabler = '';
-        if(DEBUG) cacheDisabler = '?r=' + Math.random();
+        var jsonObject = Sisulator.objectify(xml, map);
+        // consistent with other line breaks and without comments
+        //jsonObject[map.root]._xml = xml.replace(/(\r\n|\n|\r)/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+        eval("var " + map.root + " = jsonObject." + map.root);
         // this variable holds the result
         var _sisula_ = '';
         var scripts = directives();

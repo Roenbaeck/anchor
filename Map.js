@@ -1,5 +1,10 @@
 
 var MAP = {
+    description: 'models from Anchor Modeling, http://www.anchormodeling.com',
+    // name of the root element and resulting JSON object
+    root: 'schema',
+    // define 'keys' for elements that may occur more than once
+    // on the same level in the XML document
     key: {
         knot: function (xml, fragment) {
             return fragment.getAttribute('mnemonic');

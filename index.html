@@ -4667,8 +4667,8 @@
                 var xmlhttp = new window.XMLHttpRequest();
                 xmlhttp.open("GET", filename + cacheDisabler, false);
                 xmlhttp.send(null);
-
-                return xmlhttp.responseText;
+                var script = xmlhttp.responseText
+                return script;
             },
             transform: function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
