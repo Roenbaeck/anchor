@@ -40,7 +40,7 @@
     </script>
 
     <script type="text/javascript" src="Sisulator.js"></script>
-
+    <script type="text/javascript" src="Map.js"></script>
     <script type="text/javascript">
         <!--
         "use strict"; // be safe!
@@ -5029,7 +5029,7 @@
                 html.body.appendChild(fragment);
             },
             jsonify: function(xml) {
-                var object = Sisulator.objectify(xml, MAP.Anchor);
+                var object = Sisulator.objectify(xml, MAP);
                 // jsonify the object
                 return JSON.stringify(object, null, 3);
             },
