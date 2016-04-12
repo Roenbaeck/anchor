@@ -212,9 +212,9 @@ BEGIN
                 if(!attribute.isHistorized()) {
 /*~
     IF (UPDATE($attribute.valueColumnName)) 
-        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
     IF (UPDATE($attribute.knotValueColumnName))
-        RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+        RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and only missing values have been added.', 0, 1);
 ~*/
                 }
 /*~
@@ -292,7 +292,7 @@ BEGIN
                 if(!attribute.isHistorized()) {
 /*~
     IF (UPDATE($attribute.valueColumnName)) 
-        RAISERROR('The static column $attribute.valueColumnName is not updatable, and your attempt to update it has been ignored.', 0, 1);
+        RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
 ~*/
                 }
 /*~
