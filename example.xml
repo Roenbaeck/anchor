@@ -13,7 +13,6 @@
     </knot>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
-        <key route="natural"/>
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
             <key stop="3" route="n" of="PE"/>
         </attribute>

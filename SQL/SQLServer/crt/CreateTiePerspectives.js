@@ -113,10 +113,10 @@ WHERE
 /*~
         (
 ~*/
-                while(role = tie.nextValue()) {
+                while(role = tie.nextAnchorRole()) {
 /*~
                 sub.$role.columnName = tie.$role.columnName
-            $(tie.hasMoreValues())? OR
+            $(tie.hasMoreAnchorRoles())? OR
 ~*/
                 }
 /*~

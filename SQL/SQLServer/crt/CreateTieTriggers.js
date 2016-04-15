@@ -221,7 +221,7 @@ BEGIN
                 while(role = tie.nextValue()) {
 /*~
                                 pre.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? OR
+                            $(tie.hasMoreValues())? AND
 ~*/
                 }
 /*~
@@ -268,7 +268,7 @@ BEGIN
                 while(role = tie.nextValue()) {
 /*~
                                 fol.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? OR
+                            $(tie.hasMoreValues())? AND
 ~*/
                 }
 /*~
