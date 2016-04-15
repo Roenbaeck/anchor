@@ -11,6 +11,7 @@
     <knot mnemonic="UTL" descriptor="Utilization" identity="tinyint" dataRange="tinyint">
         <metadata equivalent="true"/>
     </knot>
+    <knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)"/>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
@@ -44,6 +45,7 @@
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
         <anchorRole role="with" type="AC" identifier="false"/>
+        <knotRole role="currently" type="ONG" identifier="false"/>
     </tie>
     <tie>
         <anchorRole role="wasHeld" type="PE" identifier="true"/>
