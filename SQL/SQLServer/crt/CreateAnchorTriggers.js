@@ -255,7 +255,7 @@ BEGIN
                 if(attribute.isHistorized()) {
 /*~
             cast(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN ISNULL(i.$attribute.changingColumnName, @now)
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 ELSE @now
             END as $attribute.timeRange),
@@ -329,7 +329,7 @@ BEGIN
                 if(attribute.isHistorized()) {
 /*~
             cast(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN ISNULL(i.$attribute.changingColumnName, @now)
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 ELSE @now
             END as $attribute.timeRange),
