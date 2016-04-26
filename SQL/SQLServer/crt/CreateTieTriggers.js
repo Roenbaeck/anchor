@@ -477,7 +477,7 @@ BEGIN
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName), : i.$role.columnName,
+        $(role.knot)? CASE WHEN UPDATE(i.$role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END${comma}$ : i.$role.columnName${comma}$
 ~*/
         }
 /*~
