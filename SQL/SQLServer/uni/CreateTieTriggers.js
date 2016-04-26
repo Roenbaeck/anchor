@@ -355,7 +355,7 @@ BEGIN
         while (role = tie.nextRole()) {
             comma = tie.hasMoreRoles() ? ',' : '';
 /*~
-        $(role.knot)? CASE WHEN UPDATE(i.$role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END${comma}$ : i.$role.columnName${comma}$
+        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END${comma}$ : i.$role.columnName${comma}$
 ~*/
         }
 /*~
