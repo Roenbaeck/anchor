@@ -211,7 +211,7 @@ BEGIN
 				knot = attribute.knot;
                 if(!attribute.isHistorized()) {
 /*~
-    IF (UPDATE($attribute.valueColumnName)) 
+    IF (UPDATE($attribute.valueColumnName))
         RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
     IF (UPDATE($attribute.knotValueColumnName))
         RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and only missing values have been added.', 0, 1);
@@ -219,7 +219,7 @@ BEGIN
                 }
 /*~
     IF (
-        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR 
+        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
         $(attribute.isHistorized())? UPDATE($attribute.knotValueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
@@ -237,44 +237,42 @@ BEGIN
         SELECT
 ~*/
                 if(schema.METADATA) {
-/*~                        
-            CASE 
+/*~
+            ISNULL(CASE
                 WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
                 THEN i.$anchor.metadataColumnName
-                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
-            END,
-~*/                 
-                }            
+                ELSE i.$attribute.metadataColumnName
+            END, i.$anchor.metadataColumnName),
+~*/
+                }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
-            CASE 
-                WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName 
-                ELSE [k$knot.mnemonic].$knot.identityColumnName 
+            CASE
+                WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
+                ELSE [k$knot.mnemonic].$knot.identityColumnName
             END,
 ~*/
                 if(attribute.isHistorized()) {
 /*~
-            cast(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN ISNULL(i.$attribute.changingColumnName, @now)
+            cast(ISNULL(CASE
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
-                ELSE @now
-            END as $attribute.timeRange),
+            END, @now) as $attribute.timeRange),
 ~*/
                 }
 /*~
-            cast(CASE 
-                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName 
-                ELSE @now 
-            END as $schema.metadata.positingRange),
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                ELSE ISNULL(i.$attribute.positorColumnName, 0) 
-            END,
-            CASE
-                WHEN UPDATE($attribute.reliabilityColumnName) THEN ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.deleteReliability)
+            cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
+            END, @now) as $schema.metadata.positingRange),
+            ISNULL(CASE
+                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
+                ELSE i.$attribute.positorColumnName
+            END, 0),
+            ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
                 WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
-                ELSE ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.deleteReliability)
-            END
+                ELSE i.$attribute.reliabilityColumnName
+            END, $schema.metadata.deleteReliability)
         FROM
             inserted i
         LEFT JOIN
@@ -282,16 +280,16 @@ BEGIN
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         WHERE
-            i.$attribute.valueColumnName is not null 
-        OR 
-            [k$knot.mnemonic].$knot.identityColumnName is not null    
+            i.$attribute.valueColumnName is not null
+        OR
+            [k$knot.mnemonic].$knot.identityColumnName is not null
     END
 ~*/
             }
 			else { // not knotted
                 if(!attribute.isHistorized()) {
 /*~
-    IF (UPDATE($attribute.valueColumnName)) 
+    IF (UPDATE($attribute.valueColumnName))
         RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
 ~*/
                 }
@@ -314,45 +312,43 @@ BEGIN
         SELECT
 ~*/
                 if(schema.METADATA) {
-/*~                        
-            CASE 
+/*~
+            ISNULL(CASE
                 WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
                 THEN i.$anchor.metadataColumnName
-                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
-            END,
-~*/                 
-                }            
+                ELSE i.$attribute.metadataColumnName
+            END, i.$anchor.metadataColumnName),
+~*/
+                }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             i.$attribute.valueColumnName,
 ~*/
                 if(attribute.isHistorized()) {
 /*~
-            cast(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN ISNULL(i.$attribute.changingColumnName, @now)
+            cast(ISNULL(CASE
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
-                ELSE @now
-            END as $attribute.timeRange),
+            END, @now) as $attribute.timeRange),
 ~*/
                 }
 /*~
-            cast(CASE 
-                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName 
-                ELSE @now 
-            END as $schema.metadata.positingRange),
-            CASE 
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix 
-                ELSE ISNULL(i.$attribute.positorColumnName, 0) 
-            END,
-            CASE
-                WHEN UPDATE($attribute.reliabilityColumnName) THEN ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.deleteReliability)
+            cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
+            END, @now) as $schema.metadata.positingRange),
+            ISNULL(CASE
+                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
+                ELSE i.$attribute.positorColumnName
+            END, 0),
+            ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
                 WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
-                ELSE ISNULL(i.$attribute.reliabilityColumnName, $schema.metadata.deleteReliability)
-            END
+                ELSE i.$attribute.reliabilityColumnName
+            END, $schema.metadata.deleteReliability)
         FROM
             inserted i
         WHERE
-            i.$attribute.valueColumnName is not null 
+            i.$attribute.valueColumnName is not null
     END
 ~*/
 			} // end of not knotted
