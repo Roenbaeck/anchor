@@ -210,11 +210,11 @@ BEGIN
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
                 if(!attribute.isHistorized()) {
 /*~
-    IF (UPDATE($attribute.valueColumnName)) 
+    IF (UPDATE($attribute.valueColumnName))
         RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
     IF (UPDATE($attribute.knotValueColumnName))
         RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and only missing values have been added.', 0, 1);
-~*/                
+~*/
                 }
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
@@ -228,24 +228,23 @@ BEGIN
         SELECT
 ~*/
                 if(schema.METADATA) {
-/*~                        
-            CASE 
+/*~
+            ISNULL(CASE
                 WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
                 THEN i.$anchor.metadataColumnName
-                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
-            END,
-~*/                 
-                }            
+                ELSE i.$attribute.metadataColumnName
+            END, i.$anchor.metadataColumnName),
+~*/
+                }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
 ~*/
                 if(attribute.isHistorized()) {
 /*~
-            cast(CASE
+            cast(ISNULL(CASE
                 WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
-                ELSE @now
-            END as $attribute.timeRange),
+            END, @now) as $attribute.timeRange),
 ~*/
                 }
 /*~
@@ -266,9 +265,9 @@ BEGIN
 			else { // not knotted
                 if(!attribute.isHistorized()) {
 /*~
-    IF (UPDATE($attribute.valueColumnName)) 
+    IF (UPDATE($attribute.valueColumnName))
         RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
-~*/                
+~*/
                 }
 /*~
     IF(UPDATE($attribute.valueColumnName))
@@ -283,25 +282,24 @@ BEGIN
         SELECT
 ~*/
                 if(schema.METADATA) {
-/*~                        
-            CASE 
+/*~
+            ISNULL(CASE
                 WHEN UPDATE($anchor.metadataColumnName) AND NOT UPDATE($attribute.metadataColumnName)
                 THEN i.$anchor.metadataColumnName
-                ELSE ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName)
-            END,
-~*/                 
-                }            
+                ELSE i.$attribute.metadataColumnName
+            END, i.$anchor.metadataColumnName),
+~*/
+                }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
 ~*/
                 if(attribute.isHistorized()) {
 /*~
-            cast(CASE
+            cast(ISNULL(CASE
                 WHEN i.$attribute.valueColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
-                ELSE @now
-            END as $attribute.timeRange),
+            END, @now) as $attribute.timeRange),
 ~*/
                 }
 /*~
