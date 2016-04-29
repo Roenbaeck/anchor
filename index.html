@@ -145,6 +145,7 @@
             TIE:        4, '4': "Tie",
             EDGE:       5, '5': "Edge",
             PARTITION:  6, '6': "Partition",
+            KEY:        7, '7': "Key",
             // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
             mass:       [null, 2, 3, 5, 5, 2, null],
             charge:     [null, 1, 1, 1, 1, 4, null]
@@ -919,6 +920,9 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
+                    var keys = xml.getElementsByTagName('key');
+                    for (i = 0; i < keys.length; i++)
+                        this.addComponent(Key.prototype.fromXML(keys[i]));
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -948,11 +952,14 @@
                             otherComponent = this.nodeToComponent(otherNode);
                             if(otherNode.type === NodeType.ATTRIBUTE && affectedComponents.indexOf(otherComponent) < 0)
                                 affectedComponents.push(otherComponent);
+                            if(otherNode.type === NodeType.KEY && affectedComponents.indexOf(otherComponent) < 0)
+                                affectedComponents.push(otherComponent);
                         }
                     }
                     else if ((node.type === NodeType.TIE ||
                             node.type === NodeType.ATTRIBUTE ||
-                            node.type === NodeType.KNOT) &&
+                            node.type === NodeType.KNOT ||
+                            node.type === NodeType.KEY) &&
                             affectedComponents.indexOf(component) < 0) {
                         affectedComponents.push(component);
                         for(j = 0; edge = node.edges[j]; j++) {
@@ -1151,6 +1158,22 @@
                 this.refresh();
                 DrawingEngine.start(true);
             },
+            addKey: function(components) {
+                var dx, dy, node, component;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var key = new Key(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(key);
+                    this.addComponent(new Role(key, component, true));
+                }
+                this.recordState();
+                this.refresh();
+                DrawingEngine.start(true);
+            },            
             addTie: function(components) {
                 var tie, node;
                 // multiple anchors selected
@@ -2921,6 +2944,144 @@
         // inheritance
         extend(Attribute, Component);
 
+// KEY
+        function Key(x, y) {
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.KEY));
+            // set members
+            this.mnemonic = '?' + this.getId();
+            this.descriptor = '!Unnamed!';
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.twoMnemonicEdit);
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            // expando property as a reference back to the underlying component for use in event handlers
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            var ref = '#key';
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 5;
+            this.svg.yOffset = 2;
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
+            this.setNameable(true);
+            this.postCreationInitialization();
+        }
+        Key.prototype = {
+            mnemonic: '',
+            descriptor: '',
+            isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
+                return true;
+            },
+            isConforming: function() {
+                var i, edge, anchor, otherNode, otherComponent;
+                // first find the anchor
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
+                    if(otherNode.type === NodeType.ANCHOR) {
+                        anchor = Model.nodeToComponent(otherNode);
+                        break;
+                    }
+                }
+                // then check mnemonic uniqueness
+                for(i = 0; edge = anchor.node.edges[i]; i++) {
+                    otherNode = (edge.node === anchor.node ? edge.otherNode : edge.node);
+                    otherComponent = Model.nodeToComponent(otherNode);
+                    if(otherNode.type === NodeType.KEY && otherNode !== this.node && otherComponent.mnemonic === this.mnemonic) {
+                        return !confirm("The mnemonic '" + this.mnemonic +
+                                "' is not unique among other keys on the '" + anchor +
+                                "' anchor. Please change to a different mnemonic in order to continue.");
+                    }
+                }
+                return true;
+            },
+            fromXML: function(element) {
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? fixed === 'true' : false;
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'description')
+                        description = element.childNodes.item(i);
+                var mnemonic = element.getAttribute("mnemonic") || '???';
+                var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
+                var parent = element.parentNode;
+                //var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var key = new Key(x, y);
+                key.setFixed(fixed);
+                key.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                key.mnemonic = mnemonic;
+                key.descriptor = descriptor;
+                var anchorLookup = Model.getAnchorLookup();
+                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
+                Model.addComponent(new Role(key, anchor, true));
+                key.updateName();
+                return attribute;
+            },
+            addXML: function(element, schema) {
+                // create an attribute element
+                var key = schema.createElement("key");
+                // set attributes on the element
+                key.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
+                key.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                this.addLayoutXML(key, schema);
+                this.addDescriptionXML(key, schema, this.description);
+                element.appendChild(key);
+            },
+            contextualName: function() {
+                var name = '';
+                if(Settings.showMnemonics)
+                    name += this.toString();
+                else
+                    name += this.descriptor;
+                return name;
+            },
+            toString: function() {
+                var anchor, edge;
+                for(var i = 0; edge = this.node.edges[i]; i++)
+                    if(edge.otherNode.type === NodeType.ANCHOR)
+                        anchor = Model.nodeToComponent(edge.otherNode);
+                return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+            },
+            draw: function(image) {
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+            }
+        };
+
+                // inheritance
+        extend(Key, Component);
+// KEY 
+
+
         function Anchor(x, y) {
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
@@ -2934,7 +3095,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
+            this.operations.push('addAttribute','addKey','addTie','addTieAndAnchor','explode');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3084,7 +3245,7 @@
 
                 var edge;
                 for(var i = 0; edge = this.node.edges[i]; i++) {
-                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.KEY) {
                         var role = Model.nodeToComponent(edge.node);
                         role.addXML(anchor, schema);
                     }
@@ -4249,6 +4410,9 @@
                 ['addAttribute',
                     'Add attribute',
                     'Add an attribute to the selected anchor(s).'],
+                ['addKey',
+                    'Add key',
+                    'Add a key to the selected anchor(s).'],
                 ['addTie',
                     'Add tie',
                     'Add a tie between the selected anchors.'],
@@ -6264,6 +6428,9 @@
                 <circle r="12"/>
                 <circle r="7"/>
             </g>
+            <g id="key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px;">
+                <circle r="10"/>
+            </g>
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>
@@ -6463,6 +6630,9 @@
                 <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="10"/>
                 </g>
+                <g id="nav_key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px;">
+                    <circle r="10"/>
+                </g>         
                 <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="12"/>
                     <circle r="7"/>
