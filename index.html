@@ -147,8 +147,8 @@
             PARTITION:  6, '6': "Partition",
             KEY:        7, '7': "Key",
             // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-            mass:       [null, 2, 3, 5, 5, 2, null],
-            charge:     [null, 1, 1, 1, 1, 4, null]
+            mass:       [null, 2, 3, 5, 5, 2, null, 3],
+            charge:     [null, 1, 1, 1, 1, 4, null, 1]
         };
 
         // the node type that the layout algorithm expects
@@ -703,7 +703,7 @@
                         knotLookup[component.mnemonic] = component;
                 }
                 return knotLookup;
-            },
+            },      
             nodeToComponent: function(node) {
                 return this.idToComponent[node.id];
             },
@@ -1027,13 +1027,15 @@
                 }
             },
             connect: function(components) {
-                var node, anchor, attribute, tie, knot;
+                var node, anchor, attribute, tie, knot, key;
                 for(var i = 0; i < components.length; i++) {
                     node = components[i].node;
                     if(node.type === NodeType.ANCHOR)
                         anchor = components[i];
                     else if(node.type === NodeType.ATTRIBUTE)
                         attribute = components[i];
+                    else if(node.type === NodeType.KEY)
+                        key = components[i];
                     else if(node.type === NodeType.TIE)
                         tie = components[i];
                     else if(node.type === NodeType.KNOT)
@@ -1050,6 +1052,12 @@
                     tie.setKnotted(true);
                     this.addComponent(new Role(tie, knot, false));
                 }
+                else if (key && attribute) {
+                    this.addComponent(new Role(key, attribute, false));
+                }
+                else if (key && tie) {
+                    this.addComponent(new Role(key, tie, false));
+                }                 
                 this.recordState();
                 DrawingEngine.start(true);
             },
@@ -3781,8 +3789,10 @@
                     if(i > 0)
                         name += "_";
                     component = Model.nodeToComponent(edge.otherNode);
-                    role = Model.nodeToComponent(edge);
-                    name += component.mnemonic + "_" + role.role;
+                    if(component.type !== NodeType.KEY) {
+                        role = Model.nodeToComponent(edge);
+                        name += component.mnemonic + "_" + role.role;
+                    }
                 }
                 return name;
             },
@@ -3807,7 +3817,9 @@
             this.identifier = identifier;
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
-            this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
+            var anchored = node.type === NodeType.ANCHOR || otherNode.type == NodeType.ANCHOR;
+            this.keyed = (node.type === NodeType.KEY || otherNode.type === NodeType.KEY) && !anchored;
+            this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) && !this.keyed;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.setColoring(this.coloring);
@@ -3827,6 +3839,27 @@
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                this.svg.graphicsElement.appendChild(this.svg.useElement);
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                    this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+                );
+                this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
+                this.setNameable(true);
+                this.svg.nameElement.setAttributeNS(null, 'class', 'role');
+            }
+            if(this.keyed) {
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
+                var bubble = document.createElementNS(SVGNS, 'use');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                this.svg.graphicsElement.appendChild(bubble);
+                this.svg.useElement = document.createElementNS(SVGNS, 'use');
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#two');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
@@ -3860,6 +3893,7 @@
             identifier: true,
             coloring: '#000000',
             tied: false,
+            keyed: false,
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
@@ -3876,7 +3910,7 @@
                 }
             },
             isInteractive: function() {
-                return this.tied;
+                return this.tied || this.keyed;
             },
             isDraggable: function() {
                 return false;
@@ -3903,6 +3937,13 @@
                 image.pathControl.q.x = otherNode.xPosition;
                 image.pathControl.q.y = otherNode.yPosition;
                 if(this.tied && image.control) {
+                    // experimenting with cardinality placement
+//                    var l = image.pathElement.getTotalLength();
+//                    var p = image.pathElement.getPointAtLength(l/4);
+//                    image.control.setTranslate(p.x, p.y);
+                    image.control.setTranslate(role.xPosition, role.yPosition);
+                }
+                if(this.keyed && image.control) {
                     // experimenting with cardinality placement
 //                    var l = image.pathElement.getTotalLength();
 //                    var p = image.pathElement.getPointAtLength(l/4);
@@ -4437,7 +4478,7 @@
                     function(allComponents) {
                         if(allComponents.length !== 2)
                             return false;
-                        var component, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                        var component, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0, keys = 0;
                         for(var i = 0; component = allComponents[i]; i++) {
                             if(component.node.type === NodeType.ANCHOR)
                                 anchors++;
@@ -4449,8 +4490,10 @@
                                 attributes++;
                                 knotted = component.getKnotted();
                             }
+                            else if(component.node.type === NodeType.KEY)
+                                keys++;                                
                         }
-                        return anchors && ties || knots && ties || attributes && knots && !knotted;
+                        return anchors && ties || knots && ties || attributes && knots && !knotted || keys && attributes || keys && ties;
                     }],
                 ['explode',
                     'Explode/Implode',
@@ -5474,6 +5517,8 @@
                     NodeType.charge[NodeType.ANCHOR] = 1;
                     NodeType.mass[NodeType.ATTRIBUTE] = 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1;
+                    NodeType.mass[NodeType.KEY] = 3;
+                    NodeType.charge[NodeType.KEY] = 1;
                     NodeType.mass[NodeType.TIE] = 5;
                     NodeType.charge[NodeType.TIE] = 1;
                     NodeType.mass[NodeType.EDGE] = 2;
@@ -5533,6 +5578,8 @@
                 storage.setItem("anchorCharge", NodeType.charge[NodeType.ANCHOR]);
                 storage.setItem("attributeMass", NodeType.mass[NodeType.ATTRIBUTE]);
                 storage.setItem("attributeCharge", NodeType.charge[NodeType.ATTRIBUTE]);
+                storage.setItem("keyMass", NodeType.mass[NodeType.KEY]);
+                storage.setItem("keyCharge", NodeType.charge[NodeType.KEY]);
                 storage.setItem("tieMass", NodeType.mass[NodeType.TIE]);
                 storage.setItem("tieCharge", NodeType.charge[NodeType.TIE]);
                 storage.setItem("edgeMass", NodeType.mass[NodeType.EDGE]);
@@ -5593,6 +5640,8 @@
                     NodeType.charge[NodeType.ANCHOR] = 1 * storage.getItem('anchorCharge') || 1;
                     NodeType.mass[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeMass') || 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeCharge') || 1;
+                    NodeType.mass[NodeType.KEY] = 1 * storage.getItem('keyMass') || 3;
+                    NodeType.charge[NodeType.KEY] = 1 * storage.getItem('keyCharge') || 1; 
                     NodeType.mass[NodeType.TIE] = 1 * storage.getItem('tieMass') || 5;
                     NodeType.charge[NodeType.TIE] = 1 * storage.getItem('tieCharge') || 1;
                     NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 2;
@@ -5947,6 +5996,8 @@
             tieCharge: null,
             edgeMass: null,
             edgeCharge: null,
+            keyMass: null,
+            keyCharge: null,            
             setCalculations: function(value) {
                 var listOfSettings = document.getElementById('listOfSettings');
                 var calcsItem = document.getElementById('calcsItem');
@@ -5962,6 +6013,8 @@
                     if(this.tieCharge) listOfSettings.removeChild(this.tieCharge);
                     if(this.edgeMass) listOfSettings.removeChild(this.edgeMass);
                     if(this.edgeCharge) listOfSettings.removeChild(this.edgeCharge);
+                    if(this.keyMass) listOfSettings.removeChild(this.keyMass);
+                    if(this.keyCharge) listOfSettings.removeChild(this.keyCharge);
                     this.knotMass = null;
                     this.knotCharge = null;
                     this.anchorMass = null;
@@ -5972,6 +6025,8 @@
                     this.tieCharge = null;
                     this.edgeMass = null;
                     this.edgeCharge = null;
+                    this.keyMass = null;
+                    this.keyCharge = null;
                 }
                 else if (value === 'complex') {
                     LayoutEngine.layout = LayoutEngine.complexLayout;
@@ -5985,6 +6040,8 @@
                     this.tieCharge = document.createElement('li');
                     this.edgeMass = document.createElement('li');
                     this.edgeCharge = document.createElement('li');
+                    this.keyMass = document.createElement('li');
+                    this.keyCharge = document.createElement('li');
                     var knotMassInput = document.createElement('input');
                     var knotChargeInput = document.createElement('input');
                     var anchorMassInput = document.createElement('input');
@@ -5995,6 +6052,8 @@
                     var tieChargeInput = document.createElement('input');
                     var edgeMassInput = document.createElement('input');
                     var edgeChargeInput = document.createElement('input');
+                    var keyMassInput = document.createElement('input');
+                    var keyChargeInput = document.createElement('input');
                     knotMassInput.setAttribute('type', 'number');
                     knotChargeInput.setAttribute('type', 'number');
                     anchorMassInput.setAttribute('type', 'number');
@@ -6005,6 +6064,8 @@
                     tieChargeInput.setAttribute('type', 'number');
                     edgeMassInput.setAttribute('type', 'number');
                     edgeChargeInput.setAttribute('type', 'number');
+                    keyMassInput.setAttribute('type', 'number');
+                    keyChargeInput.setAttribute('type', 'number');
                     knotMassInput.setAttribute('step', '0.1');
                     knotChargeInput.setAttribute('step', '0.1');
                     anchorMassInput.setAttribute('step', '0.1');
@@ -6015,6 +6076,8 @@
                     tieChargeInput.setAttribute('step', '0.1');
                     edgeMassInput.setAttribute('step', '0.1');
                     edgeChargeInput.setAttribute('step', '0.1');
+                    keyMassInput.setAttribute('step', '0.1');
+                    keyChargeInput.setAttribute('step', '0.1');
                     knotMassInput.value = NodeType.mass[NodeType.KNOT];
                     knotChargeInput.value = NodeType.charge[NodeType.KNOT];
                     anchorMassInput.value = NodeType.mass[NodeType.ANCHOR];
@@ -6025,6 +6088,8 @@
                     tieChargeInput.value = NodeType.charge[NodeType.TIE];
                     edgeMassInput.value = NodeType.mass[NodeType.EDGE];
                     edgeChargeInput.value = NodeType.charge[NodeType.EDGE];
+                    keyMassInput.value = NodeType.mass[NodeType.KEY];
+                    keyChargeInput.value = NodeType.charge[NodeType.KEY];
                     knotMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.KNOT] = 1 * this.value; }, false);
                     knotChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.KNOT] = 1 * this.value; }, false);
                     anchorMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.ANCHOR] = 1 * this.value; }, false);
@@ -6035,6 +6100,8 @@
                     tieChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.TIE] = 1 * this.value; }, false);
                     edgeMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.EDGE] = 1 * this.value; }, false);
                     edgeChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.EDGE] = 1 * this.value; }, false);
+                    keyMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.KEY] = 1 * this.value; }, false);
+                    keyChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.KEY] = 1 * this.value; }, false);
                     this.knotMass.appendChild(knotMassInput);
                     this.knotCharge.appendChild(knotChargeInput);
                     this.anchorMass.appendChild(anchorMassInput);
@@ -6045,6 +6112,8 @@
                     this.tieCharge.appendChild(tieChargeInput);
                     this.edgeMass.appendChild(edgeMassInput);
                     this.edgeCharge.appendChild(edgeChargeInput);
+                    this.keyMass.appendChild(keyMassInput);
+                    this.keyCharge.appendChild(keyChargeInput);
                     this.knotMass.appendChild(document.createTextNode(' Knot mass'));
                     this.knotCharge.appendChild(document.createTextNode(' Knot charge'));
                     this.anchorMass.appendChild(document.createTextNode(' Anchor mass'));
@@ -6055,6 +6124,10 @@
                     this.tieCharge.appendChild(document.createTextNode(' Tie charge'));
                     this.edgeMass.appendChild(document.createTextNode(' Edge mass'));
                     this.edgeCharge.appendChild(document.createTextNode(' Edge charge'));
+                    this.keyMass.appendChild(document.createTextNode(' Key mass'));
+                    this.keyCharge.appendChild(document.createTextNode(' Key charge'));
+                    listOfSettings.insertBefore(this.keyCharge, calcsItem);
+                    listOfSettings.insertBefore(this.keyMass, calcsItem);
                     listOfSettings.insertBefore(this.edgeCharge, calcsItem);
                     listOfSettings.insertBefore(this.edgeMass, calcsItem);
                     listOfSettings.insertBefore(this.tieCharge, calcsItem);
@@ -6446,6 +6519,10 @@
             </g>
             <g id="one" style="stroke:#544; stroke-width:1px;">
                 <line x1="0" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="two" style="stroke:#544; stroke-width:1px;">
+                <line x1="-1.5" y1="-3" x2="-1.5" y2="3"/>
+                <line x1="1.5" y1="-3" x2="1.5" y2="3"/>
             </g>
             <g id="many" style="stroke:#544; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
