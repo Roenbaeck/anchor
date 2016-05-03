@@ -190,6 +190,14 @@
             },
             getCharge: function() {
                 return NodeType.charge[this.type];
+            },
+            getConnectedNodesOfType: function(nodeType) {
+                var nodes = [];
+                var edge;
+                for(var i = 0; edge = this.edges[i]; i++)
+                    if(edge.otherNode.type === nodeType)
+                        nodes.push(Model.nodeToComponent(edge.otherNode));
+                return nodes;
             }
         };
 
@@ -1054,15 +1062,27 @@
                 }
                 // added a hack misusing the identifier for the role number of the key
                 else if (key && attribute) {
-                    //roleCount = key.countRoles();
-                    keyRole = new Role(attribute, key, key.node.edges.length);
-                    keyRole.role = key.mnemonic;
-                    this.addComponent(keyRole);
+                    // the key and attribute should be attached to the same anchor!
+                    var keyAnchor = key.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    var attributeAnchor = attribute.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    if (keyAnchor === attributeAnchor){
+                        keyRole = new Role(attribute, key, key.node.edges.length);
+                        keyRole.role = key.mnemonic;
+                        this.addComponent(keyRole);
+                    }
                 }
                 else if (key && tie) {
-                    keyRole = new Role(tie, key, key.node.edges.length);
-                    keyRole.role = key.mnemonic;
-                    this.addComponent(keyRole);
+                    var keyAnchor = key.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    var tieAnchors = tie.node.getConnectedNodesOfType(NodeType.ANCHOR);
+                    var anchor;
+                    for(var j = 0; anchor = tieAnchors[j]; j++){
+                        if (keyAnchor === anchor) {
+                            keyRole = new Role(tie, key, key.node.edges.length);
+                            keyRole.role = key.mnemonic;
+                            this.addComponent(keyRole);
+                        }
+                    }
+                    
                 }                 
                 this.recordState();
                 DrawingEngine.start(true);
