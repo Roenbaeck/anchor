@@ -1027,7 +1027,7 @@
                 }
             },
             connect: function(components) {
-                var node, anchor, attribute, tie, knot, key;
+                var node, anchor, attribute, tie, knot, key, keyRole;
                 for(var i = 0; i < components.length; i++) {
                     node = components[i].node;
                     if(node.type === NodeType.ANCHOR)
@@ -1052,11 +1052,16 @@
                     tie.setKnotted(true);
                     this.addComponent(new Role(tie, knot, false));
                 }
+                // added a hack misusing the identifier for the role number of the key
                 else if (key && attribute) {
-                    this.addComponent(new Role(key, attribute, false));
+                    keyRole = new Role(key, attribute, key.roles.length + 1);
+                    key.roles.push(keyRole);
+                    this.addComponent(keyRole);
                 }
                 else if (key && tie) {
-                    this.addComponent(new Role(key, tie, false));
+                    keyRole = new Role(key, tie, key.roles.length + 1);
+                    key.roles.push(keyRole);
+                    this.addComponent(keyRole);
                 }                 
                 this.recordState();
                 DrawingEngine.start(true);
@@ -2995,6 +3000,7 @@
         Key.prototype = {
             mnemonic: '',
             descriptor: '',
+            roles: [],
             isInteractive: function() {
                 return true;
             },
@@ -3814,6 +3820,7 @@
             this.role = '?' + this.id;
             this.component = component;
             this.otherComponent = otherComponent;
+            var roleNumber = identifier;
             this.identifier = identifier;
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole');
@@ -3859,7 +3866,23 @@
                 bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
-                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#two');
+                var roleTag ;
+                switch(roleNumber){
+                    case 1:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#one');
+                         break;
+                    case 2:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#two');
+                         break;   
+                    case 3:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#three');
+                         break;
+                    case 4:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#four');
+                         break;                                        
+                    default:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#many');
+                }
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
