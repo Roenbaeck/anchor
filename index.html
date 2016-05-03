@@ -1054,13 +1054,14 @@
                 }
                 // added a hack misusing the identifier for the role number of the key
                 else if (key && attribute) {
-                    keyRole = new Role(key, attribute, key.roles.length + 1);
-                    key.roles.push(keyRole);
+                    //roleCount = key.countRoles();
+                    keyRole = new Role(key, attribute, key.node.edges.length);
+                    keyRole.role = key.mnemonic;
                     this.addComponent(keyRole);
                 }
                 else if (key && tie) {
-                    keyRole = new Role(key, tie, key.roles.length + 1);
-                    key.roles.push(keyRole);
+                    keyRole = new Role(key, tie, key.node.edges.length);
+                    keyRole.role = key.mnemonic;
                     this.addComponent(keyRole);
                 }                 
                 this.recordState();
@@ -3000,7 +3001,17 @@
         Key.prototype = {
             mnemonic: '',
             descriptor: '',
-            roles: [],
+            countRoles: function() {
+                var otherNode, roleCount;
+                roleCount = 0;
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
+                    if (otherNode.type !== NodeType.ANCHOR) {
+                        roleCount++;
+                    }
+                }
+                return roleCount;
+            },
             isInteractive: function() {
                 return true;
             },
@@ -3866,7 +3877,21 @@
                 bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
-                var roleTag ;
+                var roleTag = [ '#many'
+                              , '#one'
+                              , '#two'
+                              , '#three'
+                              , '#four'
+                              , '#five'
+                              , '#six'
+                              , '#seven'
+                              , '#eight'
+                              , '#eight'
+                              , '#nine'
+                              , '#ten'
+                              ];
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', roleNumber > 10 ? roleTag[0] : roleTag[roleNumber]);              
+                /*              
                 switch(roleNumber){
                     case 1:
                          this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#one');
@@ -3880,9 +3905,27 @@
                     case 4:
                          this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#four');
                          break;                                        
+                    case 5:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#five');
+                         break;         
+                    case 6:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#six');
+                         break;  
+                    case 7:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#seven');
+                         break;       
+                    case 8:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#eight');
+                         break;
+                    case 9:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nine');
+                         break;   
+                    case 10:
+                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#ten');
+                         break;   
                     default:
                          this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#many');
-                }
+                }*/
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
@@ -6552,6 +6595,42 @@
                 <line x1="0" y1="-3" x2="0" y2="3"/>
                 <line x1="3" y1="-3" x2="3" y2="3"/>
             </g>
+            <g id="four" style="stroke:#544; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="-3" y2="3"/>
+                <line x1="0" y1="-3" x2="2" y2="3"/>
+                <line x1="4" y1="-3" x2="2" y2="3"/>
+            </g>
+            <g id="five" style="stroke:#544; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="0" y2="3"/>
+                <line x1="2" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="six" style="stroke:#544; stroke-width:1px;">
+                <line x1="-4" y1="-3" x2="-2" y2="3"/>
+                <line x1="0" y1="-3" x2="-2" y2="3"/>
+                <line x1="3" y1="-3" x2="3" y2="3"/>
+            </g>
+            <g id="seven" style="stroke:#544; stroke-width:1px;">
+                <line x1="-5" y1="-3" x2="-3" y2="3"/>
+                <line x1="-1" y1="-3" x2="-3" y2="3"/>
+                <line x1="2" y1="-3" x2="2" y2="3"/>
+                <line x1="5" y1="-3" x2="5" y2="3"/>
+            </g>
+            <g id="eight" style="stroke:#544; stroke-width:1px;">
+                <line x1="-6.5" y1="-3" x2="-4.5" y2="3"/>
+                <line x1="-2.5" y1="-3" x2="-4.5" y2="3"/>
+                <line x1="0.5" y1="-3" x2="0.5" y2="3"/>
+                <line x1="3.5" y1="-3" x2="3.5" y2="3"/>
+                <line x1="6.5" y1="-3" x2="6.5" y2="3"/>
+            </g>
+            <g id="nine" style="stroke:#544; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="-3" y2="3"/>
+                <line x1="0" y1="-3" x2="4" y2="3"/>
+                <line x1="4" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="ten" style="stroke:#544; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="2" y2="3"/>
+                <line x1="2" y1="-3" x2="-2" y2="3"/>
+            </g>            
             <g id="many" style="stroke:#544; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
