@@ -1055,12 +1055,12 @@
                 // added a hack misusing the identifier for the role number of the key
                 else if (key && attribute) {
                     //roleCount = key.countRoles();
-                    keyRole = new Role(key, attribute, key.node.edges.length);
+                    keyRole = new Role(attribute, key, key.node.edges.length);
                     keyRole.role = key.mnemonic;
                     this.addComponent(keyRole);
                 }
                 else if (key && tie) {
-                    keyRole = new Role(key, tie, key.node.edges.length);
+                    keyRole = new Role(tie, key, key.node.edges.length);
                     keyRole.role = key.mnemonic;
                     this.addComponent(keyRole);
                 }                 
@@ -3001,17 +3001,6 @@
         Key.prototype = {
             mnemonic: '',
             descriptor: '',
-            countRoles: function() {
-                var otherNode, roleCount;
-                roleCount = 0;
-                for(i = 0; edge = this.node.edges[i]; i++) {
-                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
-                    if (otherNode.type !== NodeType.ANCHOR) {
-                        roleCount++;
-                    }
-                }
-                return roleCount;
-            },
             isInteractive: function() {
                 return true;
             },
@@ -3753,8 +3742,18 @@
                         roleElement = schema.createElement("anchorRole");
                     else if(node.type === NodeType.KNOT)
                         roleElement = schema.createElement("knotRole");
+                    else if(node.type == NodeType.KEY)
+                        roleElement = schema.createElement("keyRole");
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
-                    roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
+                    if(node.type == NodeType.KEY){
+                        var anchor, edge;
+                        for(var i = 0; edge = node.edges[i]; i++)
+                            if(edge.otherNode.type === NodeType.ANCHOR)
+                                anchor = Model.nodeToComponent(edge.otherNode);
+                        roleElement.setAttribute("type", this.isEmpty(anchor.mnemonic) ? "???" : anchor.mnemonic);
+                    } else {
+                        roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
+                    }
                     if(role.coloring !== '#000000')
                         roleElement.setAttribute("coloring", role.coloring);
                     roleElement.setAttribute("identifier",
@@ -3803,10 +3802,10 @@
             toString: function() {
                 var i, edge, component, role, name="";
                 for(i = 0; edge = this.node.edges[i]; i++) {
-                    if(i > 0)
+                    if(i > 0 && edge.otherNode.type !== NodeType.KEY)
                         name += "_";
                     component = Model.nodeToComponent(edge.otherNode);
-                    if(component.type !== NodeType.KEY) {
+                    if(edge.otherNode.type !== NodeType.KEY) {
                         role = Model.nodeToComponent(edge);
                         name += component.mnemonic + "_" + role.role;
                     }
@@ -3891,41 +3890,6 @@
                               , '#ten'
                               ];
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', roleNumber > 10 ? roleTag[0] : roleTag[roleNumber]);              
-                /*              
-                switch(roleNumber){
-                    case 1:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#one');
-                         break;
-                    case 2:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#two');
-                         break;   
-                    case 3:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#three');
-                         break;
-                    case 4:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#four');
-                         break;                                        
-                    case 5:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#five');
-                         break;         
-                    case 6:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#six');
-                         break;  
-                    case 7:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#seven');
-                         break;       
-                    case 8:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#eight');
-                         break;
-                    case 9:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nine');
-                         break;   
-                    case 10:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#ten');
-                         break;   
-                    default:
-                         this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#many');
-                }*/
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
