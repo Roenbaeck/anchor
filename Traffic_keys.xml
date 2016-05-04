@@ -1,0 +1,46 @@
+<schema format="0.99" date="2016-05-04" time="21:10:27">
+<metadata changingRange="date" encapsulation="dbo" identity="int" metadataPrefix="Metadata" metadataType="int" metadataUsage="true" changingSuffix="ChangedAt" identitySuffix="ID" positIdentity="int" positGenerator="true" positingRange="datetime" positingSuffix="PositedAt" positorRange="tinyint" positorSuffix="Positor" reliabilityRange="tinyint" reliabilitySuffix="Reliability" deleteReliability="0" assertionSuffix="Assertion" partitioning="false" entityIntegrity="true" restatability="false" idempotency="true" assertiveness="false" naming="improved" positSuffix="Posit" annexSuffix="Annex" chronon="datetime2(7)" now="sysdatetime()" dummySuffix="Dummy" versionSuffix="Version" statementTypeSuffix="StatementType" checksumSuffix="Checksum" businessViews="false" decisiveness="true" equivalence="false" equivalentSuffix="EQ" equivalentRange="tinyint" databaseTarget="SQLServer" temporalization="uni"/>
+<anchor mnemonic="ST" descriptor="Street" identity="int">
+<metadata capsule="dbo" generator="true"/>
+<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(555)">
+<keyRole role="NK" type="ST" identifier="1"/>
+<metadata capsule="dbo"/>
+<layout x="764.71" y="847.60" fixed="false"/>
+</attribute>
+<key mnemonic="NK" descriptor="NaturalKey">
+<layout x="777.76" y="899.06" fixed="false"/>
+</key>
+<layout x="806.56" y="787.14" fixed="true"/>
+</anchor>
+<anchor mnemonic="IS" descriptor="Intersection" identity="int">
+<metadata capsule="dbo" generator="true"/>
+<attribute mnemonic="COL" descriptor="CollisionCount" timeRange="date" dataRange="int">
+<metadata capsule="dbo" restatable="false" idempotent="true"/>
+<layout x="703.63" y="433.21" fixed="false"/>
+</attribute>
+<attribute mnemonic="INJ" descriptor="InjuredCount" timeRange="date" dataRange="int">
+<metadata capsule="dbo" restatable="false" idempotent="true"/>
+<layout x="789.16" y="439.97" fixed="false"/>
+</attribute>
+<attribute mnemonic="KIL" descriptor="KilledCount" timeRange="date" dataRange="int">
+<metadata capsule="dbo" restatable="false" idempotent="true"/>
+<layout x="691.94" y="543.19" fixed="false"/>
+</attribute>
+<attribute mnemonic="VEH" descriptor="VehicleCount" timeRange="date" dataRange="smallint">
+<metadata capsule="dbo" restatable="false" idempotent="true"/>
+<layout x="640.60" y="470.32" fixed="false"/>
+</attribute>
+<key mnemonic="NK" descriptor="NaturalKey">
+<layout x="784.34" y="576.84" fixed="false"/>
+</key>
+<layout x="735.56" y="491.14" fixed="true"/>
+</anchor>
+<tie>
+<anchorRole role="intersecting" type="ST" identifier="true"/>
+<anchorRole role="of" type="IS" identifier="false"/>
+<anchorRole role="crossing" type="ST" identifier="true"/>
+<keyRole role="NK" type="IS" identifier="1"/>
+<metadata capsule="dbo"/>
+<layout x="745.38" y="673.73" fixed="false"/>
+</tie>
+</schema>

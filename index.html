@@ -3790,7 +3790,7 @@
                     coloring = keyRole.getAttribute("coloring") || "#000000";
                     var key, keys, edge, edges, anchor;
                     var anchors = grandparent.getElementsByTagName("anchor");
-                    for(j = 0; anchor = anchors[i]; j++) {
+                    for(j = 0; anchor = anchors[j]; j++) {
                         if(anchor.getAttribute("mnemonic") === type) {
                             anchor = anchorLookup[anchor.getAttribute("mnemonic")];
                             break; // only one should match
