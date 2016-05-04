@@ -143,12 +143,12 @@
             KNOT:       2, '2': "Knot",
             ATTRIBUTE:  3, '3': "Attribute",
             TIE:        4, '4': "Tie",
-            EDGE:       5, '5': "Edge",
-            PARTITION:  6, '6': "Partition",
-            KEY:        7, '7': "Key",
+            KEY:        5, '5': "Key",
+            EDGE:       6, '6': "Edge",
+            PARTITION:  7, '7': "Partition",
             // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-            mass:       [null, 2, 3, 5, 5, 2, null, 3],
-            charge:     [null, 1, 1, 1, 1, 4, null, 1]
+            mass:       [null, 2, 3, 5, 5, 3, 2, null],
+            charge:     [null, 1, 1, 1, 1, 1, 4, null]
         };
 
         // the node type that the layout algorithm expects
@@ -194,9 +194,12 @@
             getConnectedNodesOfType: function(nodeType) {
                 var nodes = [];
                 var edge;
-                for(var i = 0; edge = this.edges[i]; i++)
+                for(var i = 0; edge = this.edges[i]; i++){
                     if(edge.otherNode.type === nodeType)
                         nodes.push(Model.nodeToComponent(edge.otherNode));
+                    if(edge.node.type === nodeType)
+                        nodes.push(Model.nodeToComponent(edge.node));
+                }
                 return nodes;
             }
         };
@@ -922,15 +925,15 @@
                     var anchors = xml.getElementsByTagName('anchor');
                     for (i = 0; i < anchors.length; i++)
                         this.addComponent(Anchor.prototype.fromXML(anchors[i]));
+                    var keys = xml.getElementsByTagName('key');
+                    for (i = 0; i < keys.length; i++)
+                        this.addComponent(Key.prototype.fromXML(keys[i]));
                     var attributes = xml.getElementsByTagName('attribute');
                     for (i = 0; i < attributes.length; i++)
                         this.addComponent(Attribute.prototype.fromXML(attributes[i]));
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
-                    var keys = xml.getElementsByTagName('key');
-                    for (i = 0; i < keys.length; i++)
-                        this.addComponent(Key.prototype.fromXML(keys[i]));
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -2870,6 +2873,26 @@
                         }
                     }
                 }
+                var keyRole, keyRoles = element.getElementsByTagName("keyRole");
+                for(i = 0; keyRole = keyRoles[i]; i++) {
+                    var type = keyRole.getAttribute("type") || "???";
+                    var roleName = keyRole.getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    var identifier = keyRole.getAttribute("identifier");
+                    var coloring = keyRole.getAttribute("coloring") || "#000000";
+                    var key, keys, edge, edges, anchor;
+                    keys = anchor.node.getConnectedNodesOfType(NodeType.KEY);
+                    for(var k = 0; key = keys[k]; k++) {
+                        if(key.mnemonic === roleName){
+                            var role = new Role(attribute, key, identifier);
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
+                        }
+                    }
+                }
                 attribute.updateName();
                 return attribute;
             },
@@ -2893,6 +2916,20 @@
                 else {
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
                 }
+                // Add keyRole
+                var keys = this.node.getConnectedNodesOfType(NodeType.KEY);
+                var anchor = Model.nodeToComponent(this.node.getConnectedNodesOfType(NodeType.ANCHOR)[0]);
+                for(var i = 0; edge = this.node.edges[i]; i++){
+                    if(edge.otherNode.type === NodeType.KEY){
+                        var role = Model.nodeToComponent(edge); 
+                        var keyRole = schema.createElement("keyRole");
+                        keyRole.setAttribute("role", role.role);
+                        keyRole.setAttribute("type", anchor.mnemonic);
+                        keyRole.setAttribute("identifier", role.identifier);
+                        attribute.appendChild(keyRole);
+                    }
+                }
+                
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
@@ -3064,7 +3101,7 @@
                 fixed = fixed ? fixed === 'true' : false;
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName === 'description')
+                    if(element.childNodes.item(i).nodeName === 'descriptioAtttrn')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
@@ -3079,7 +3116,7 @@
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 Model.addComponent(new Role(key, anchor, true));
                 key.updateName();
-                return attribute;
+                return key;
             },
             addXML: function(element, schema) {
                 // create an attribute element
@@ -3743,6 +3780,34 @@
                         }
                     }
                 }
+                
+                var keyRole, keyRoles = element.getElementsByTagName("keyRole");
+                for(i = 0; keyRole = keyRoles[i]; i++) {
+                    type = keyRole.getAttribute("type") || "???";
+                    roleName = keyRole.getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    identifier = keyRole.getAttribute("identifier");
+                    coloring = keyRole.getAttribute("coloring") || "#000000";
+                    var key, keys, edge, edges, anchor;
+                    var anchors = grandparent.getElementsByTagName("anchor");
+                    for(j = 0; anchor = anchors[i]; j++) {
+                        if(anchor.getAttribute("mnemonic") === type) {
+                            anchor = anchorLookup[anchor.getAttribute("mnemonic")];
+                            break; // only one should match
+                        }
+                    }
+                    keys = anchor.node.getConnectedNodesOfType(NodeType.KEY);
+                    for(var k = 0; key = keys[k]; k++) {
+                        if(key.mnemonic === roleName){
+                            role = new Role(tie, key, identifier);
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
+                        }
+                    }
+                }
                 tie.updateName();
                 return tie;
             },
@@ -3765,11 +3830,10 @@
                     else if(node.type == NodeType.KEY)
                         roleElement = schema.createElement("keyRole");
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
+                    // In a key role the type should be the anchor of the connected keyNode which is also an anchor of the tie!
                     if(node.type == NodeType.KEY){
-                        var anchor, edge;
-                        for(var i = 0; edge = node.edges[i]; i++)
-                            if(edge.otherNode.type === NodeType.ANCHOR)
-                                anchor = Model.nodeToComponent(edge.otherNode);
+                        // A key is attached to one anchor. so we can pick the first in the array.
+                        var anchor = node.getConnectedNodesOfType(NodeType.ANCHOR)[0]
                         roleElement.setAttribute("type", this.isEmpty(anchor.mnemonic) ? "???" : anchor.mnemonic);
                     } else {
                         roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
@@ -3904,7 +3968,6 @@
                               , '#five'
                               , '#six'
                               , '#seven'
-                              , '#eight'
                               , '#eight'
                               , '#nine'
                               , '#ten'
@@ -5313,6 +5376,9 @@
                 attribute: function(xml, fragment) {
                     return fragment.getAttribute('mnemonic');
                 },
+                key: function(xml, fragment) {
+                    return fragment.getAttribute('mnemonic');
+                },
                 tie: function(xml, fragment) {
                     var roles = xml.evaluate(
                             '*[@role]',
@@ -5323,13 +5389,17 @@
                     );
                     var key = '', role = roles.iterateNext();
                     while(role) {
-                        key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                        if(role.tagName !== 'keyRole') 
+                            key += role.getAttribute('type') + '_' + role.getAttribute('role');
                         role = roles.iterateNext();
-                        if(role) key += '_';
+                        if(role && role.tagName !== 'keyRole') key += '_';
                     }
                     return key;
                 },
                 anchorRole: function(xml, fragment) {
+                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+                },
+                keyRole: function(xml, fragment) {
                     return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
                 },
                 knotRole: function(xml, fragment) {
