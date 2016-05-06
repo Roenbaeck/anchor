@@ -1655,7 +1655,10 @@
                        'A two letter mnemonic, that needs to be unique within the entire ' +
                        'model. If an anchor is named "CoffeeMachine" for example, then ' +
                        '"CM" is a suitable mnemonic.',
-                setMember: function (element, component) { component.mnemonic = element.value; },
+                setMember: function (element, component) { 
+                               component.mnemonic = element.value;
+                               if(component.node.type === NodeType.KEY) component.setRoleName(); 
+                           },
                 getMember: function (component) { return component.mnemonic; },
                 setElement: function (element, component) { element.value = component.mnemonic; },
                 getElement: function (element) { return element.value; },
@@ -3087,6 +3090,16 @@
                         component.setIdentifier(i);
                     }
                 }
+            },
+            setRoleName: function(){
+                var edge;
+                for(var i =0; edge = this.node.edges[i]; i++){
+                    if (edge.otherNode.type !== NodeType.ANCHOR){
+                        var component = Model.nodeToComponent(edge)
+                        component.role = this.mnemonic;
+                    }
+                }                
+
             },            
             isConforming: function() {
                 var i, edge, anchor, otherNode, otherComponent;
