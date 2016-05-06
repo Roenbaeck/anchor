@@ -1178,6 +1178,23 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            makeFirstKeyRole: function(components) {
+                var key, component, node, edge;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    if(node.type === NodeType.EDGE) {
+                        edge = node;
+                        if(key = edge.node.type === NodeType.KEY ? this.nodeToComponent(edge.node) :
+                                 edge.otherNode.type === NodeType.KEY ? this.nodeToComponent(edge.otherNode) :
+                                 null) {
+                            key.setFirstKeyRole(component);
+                        }
+                    }
+                }
+                this.recordState();
+                DrawingEngine.start(false);
+            },            
             lastAngle: 0,
             addAttribute: function(components) {
                 var dx, dy, node, component;
@@ -2708,10 +2725,6 @@
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
-            keys: [
-                {stop: "1", route: "N", of: "PE"},
-                {stop: "3", route: "A", of: "PE"}
-            ], // TODO: this is just a test
             isInteractive: function() {
                 return true;
             },
@@ -3064,6 +3077,17 @@
             isDraggable: function() {
                 return true;
             },
+            setFirstKeyRole: function(role) {
+                this.node.edges.splice(this.node.edges.indexOf(role.node), 1);
+                this.node.edges.splice(1, 0, role.node);
+                var edge;
+                for(var i =0; edge = this.node.edges[i]; i++){
+                    if (edge.otherNode.type !== NodeType.ANCHOR){
+                        var component = Model.nodeToComponent(edge)
+                        component.setIdentifier(i);
+                    }
+                }
+            },            
             isConforming: function() {
                 var i, edge, anchor, otherNode, otherComponent;
                 // first find the anchor
@@ -3916,11 +3940,16 @@
             this.otherComponent = otherComponent;
             var roleNumber = identifier;
             this.identifier = identifier;
-            this.editables.push(Editables.roleEdit, Editables.coloringEdit);
-            this.operations.push('toggleIdentifier', 'makeFirstRole');
             var anchored = node.type === NodeType.ANCHOR || otherNode.type == NodeType.ANCHOR;
             this.keyed = (node.type === NodeType.KEY || otherNode.type === NodeType.KEY) && !anchored;
             this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) && !this.keyed;
+            if (this.keyed) {
+                this.editables.push(Editables.coloringEdit);
+                this.operations.push('makeFirstKeyRole');
+            } else {
+                this.editables.push(Editables.roleEdit, Editables.coloringEdit);
+                this.operations.push('toggleIdentifier', 'makeFirstRole');
+            }
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.setColoring(this.coloring);
@@ -4009,7 +4038,23 @@
             keyed: false,
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
-                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                if (this.keyed) {
+                    var roleTag = [ '#many'
+                                  , '#one'
+                                  , '#two'
+                                  , '#three'
+                                  , '#four'
+                                  , '#five'
+                                  , '#six'
+                                  , '#seven'
+                                  , '#eight'
+                                  , '#nine'
+                                  , '#ten'
+                                  ];
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', identifier > 10 ? roleTag[0] : roleTag[identifier]); 
+                } else {
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                }
             },
             setColoring: function(coloring) {
                 this.coloring = coloring;
@@ -4585,6 +4630,9 @@
                 ['makeFirstRole',
                     'Make first role',
                     'Make the selected role(s) the first role in the primary key and tie name.'],
+                ['makeFirstKeyRole',
+                    'Make first key role',
+                    'Make the selected role(s) the first role in the key.'],
                 ['connect',
                     'Connect',
                     'Connect the selected node(s).',
