@@ -94,7 +94,7 @@ BEGIN
 /*~
             (
 ~*/
-                while(role = tie.nextValue()) {
+                while(role = tie.nextAnchorRole()) {
 /*~
                     pre.$role.columnName = @$role.name
                 $(tie.hasMoreValues())? OR
@@ -141,7 +141,7 @@ BEGIN
 /*~
             (
 ~*/
-                while(role = tie.nextValue()) {
+                while(role = tie.nextAnchorRole()) {
 /*~
                     fol.$role.columnName = @$role.name
                 $(tie.hasMoreValues())? OR
