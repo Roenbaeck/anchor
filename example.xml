@@ -1,4 +1,5 @@
-<schema format="0.99" date="2016-05-04" time="21:47:41">
+
+<schema format="0.99" date="2016-05-13" time="15:36:05">
 <metadata changingRange="date" encapsulation="dbo" identity="int" metadataPrefix="Metadata" metadataType="int" metadataUsage="true" changingSuffix="ChangedAt" identitySuffix="ID" positIdentity="int" positGenerator="true" positingRange="datetime" positingSuffix="PositedAt" positorRange="tinyint" positorSuffix="Positor" reliabilityRange="tinyint" reliabilitySuffix="Reliability" deleteReliability="0" assertionSuffix="Assertion" partitioning="false" entityIntegrity="true" restatability="false" idempotency="true" assertiveness="false" naming="improved" positSuffix="Posit" annexSuffix="Annex" chronon="datetime2(7)" now="sysdatetime()" dummySuffix="Dummy" versionSuffix="Version" statementTypeSuffix="StatementType" checksumSuffix="Checksum" businessViews="false" decisiveness="true" equivalence="false" equivalentSuffix="EQ" equivalentRange="tinyint" databaseTarget="SQLServer" temporalization="uni"/>
 <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
 <metadata capsule="dbo" generator="false"/>
@@ -26,6 +27,10 @@
 </knot>
 <anchor mnemonic="PE" descriptor="Performance" identity="int">
 <metadata capsule="dbo" generator="true"/>
+<key mnemonic="NK" descriptor="NaturalKey">
+<metadata capsule="dbo"/>
+<layout x="1073.67" y="95.39" fixed="true"/>
+</key>
 <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
 <keyRole role="NK" type="PE" identifier="3"/>
 <metadata capsule="dbo"/>
@@ -39,9 +44,6 @@
 <metadata capsule="dbo"/>
 <layout x="1160.00" y="223.39" fixed="false"/>
 </attribute>
-<key mnemonic="NK" descriptor="NaturalKey">
-<layout x="1073.67" y="95.39" fixed="true"/>
-</key>
 <layout x="1073.85" y="259.37" fixed="false"/>
 </anchor>
 <anchor mnemonic="EV" descriptor="Event" identity="int">
@@ -50,6 +52,10 @@
 </anchor>
 <anchor mnemonic="ST" descriptor="Stage" identity="int">
 <metadata capsule="dbo" generator="true"/>
+<key mnemonic="NK" descriptor="NaturalKey">
+<metadata capsule="dbo"/>
+<layout x="633.64" y="133.90" fixed="false"/>
+</key>
 <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
 <metadata capsule="dbo" restatable="false" idempotent="true"/>
 <layout x="772.53" y="150.59" fixed="false"/>
@@ -67,9 +73,6 @@
 <metadata capsule="dbo"/>
 <layout x="739.81" y="0.73" fixed="false"/>
 </attribute>
-<key mnemonic="NK" descriptor="NaturalKey">
-<layout x="633.64" y="133.90" fixed="false"/>
-</key>
 <layout x="800.41" y="110.55" fixed="false"/>
 </anchor>
 <anchor mnemonic="AC" descriptor="Actor" identity="int">
@@ -90,14 +93,15 @@
 </anchor>
 <anchor mnemonic="PR" descriptor="Program" identity="int">
 <metadata capsule="dbo" generator="true"/>
+<key mnemonic="NK" descriptor="NaturalKey">
+<metadata capsule="dbo"/>
+<layout x="772.12" y="444.78" fixed="false"/>
+</key>
 <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
 <keyRole role="NK" type="PR" identifier="1"/>
 <metadata capsule="dbo"/>
 <layout x="810.40" y="469.98" fixed="false"/>
 </attribute>
-<key mnemonic="NK" descriptor="NaturalKey">
-<layout x="772.12" y="444.78" fixed="false"/>
-</key>
 <layout x="865.63" y="403.80" fixed="false"/>
 </anchor>
 <tie timeRange="datetime">
@@ -112,7 +116,7 @@
 <anchorRole role="at" type="ST" identifier="false"/>
 <keyRole role="NK" type="PE" identifier="1"/>
 <metadata capsule="dbo"/>
-<layout x="942.51" y="160.49" fixed="false"/>
+<layout x="942.64" y="160.45" fixed="false"/>
 </tie>
 <tie>
 <anchorRole role="subset" type="PE" identifier="false"/>
@@ -131,7 +135,7 @@
 <anchorRole role="in" type="PE" identifier="true"/>
 <anchorRole role="wasCast" type="AC" identifier="true"/>
 <metadata capsule="dbo"/>
-<layout x="1054.04" y="412.92" fixed="false"/>
+<layout x="1054.01" y="413.04" fixed="false"/>
 </tie>
 <tie timeRange="datetime">
 <anchorRole role="part" type="AC" identifier="true"/>

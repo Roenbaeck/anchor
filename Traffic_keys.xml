@@ -1,39 +1,41 @@
-<schema format="0.99" date="2016-05-04" time="21:10:27">
-<metadata changingRange="date" encapsulation="dbo" identity="int" metadataPrefix="Metadata" metadataType="int" metadataUsage="true" changingSuffix="ChangedAt" identitySuffix="ID" positIdentity="int" positGenerator="true" positingRange="datetime" positingSuffix="PositedAt" positorRange="tinyint" positorSuffix="Positor" reliabilityRange="tinyint" reliabilitySuffix="Reliability" deleteReliability="0" assertionSuffix="Assertion" partitioning="false" entityIntegrity="true" restatability="false" idempotency="true" assertiveness="false" naming="improved" positSuffix="Posit" annexSuffix="Annex" chronon="datetime2(7)" now="sysdatetime()" dummySuffix="Dummy" versionSuffix="Version" statementTypeSuffix="StatementType" checksumSuffix="Checksum" businessViews="false" decisiveness="true" equivalence="false" equivalentSuffix="EQ" equivalentRange="tinyint" databaseTarget="SQLServer" temporalization="uni"/>
+<schema format="0.99" date="2016-05-13" time="15:15:48">
+<metadata changingRange="date" encapsulation="dbo" identity="int" metadataPrefix="Metadata" metadataType="int" metadataUsage="true" changingSuffix="ChangedAt" identitySuffix="ID" positIdentity="int" positGenerator="true" positingRange="datetime" positingSuffix="PositedAt" positorRange="tinyint" positorSuffix="Positor" reliabilityRange="tinyint" reliabilitySuffix="Reliability" deleteReliability="0" assertionSuffix="Assertion" partitioning="false" entityIntegrity="true" restatability="false" idempotency="true" assertiveness="false" naming="improved" positSuffix="Posit" annexSuffix="Annex" chronon="datetime2(7)" now="sysdatetime()" dummySuffix="Dummy" versionSuffix="Version" statementTypeSuffix="StatementType" checksumSuffix="Checksum" businessViews="true" decisiveness="true" equivalence="false" equivalentSuffix="EQ" equivalentRange="tinyint" databaseTarget="SQLServer" temporalization="uni"/>
 <anchor mnemonic="ST" descriptor="Street" identity="int">
 <metadata capsule="dbo" generator="true"/>
+<key mnemonic="NK" descriptor="NaturalKey">
+<metadata capsule="str1"/>
+<layout x="649.19" y="810.06" fixed="false"/>
+</key>
 <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(555)">
 <keyRole role="NK" type="ST" identifier="1"/>
-<metadata capsule="dbo"/>
-<layout x="764.71" y="847.60" fixed="false"/>
+<metadata capsule="street"/>
+<layout x="718.77" y="798.09" fixed="false"/>
 </attribute>
-<key mnemonic="NK" descriptor="NaturalKey">
-<layout x="777.76" y="899.06" fixed="false"/>
-</key>
-<layout x="806.56" y="787.14" fixed="true"/>
+<layout x="623.41" y="757.62" fixed="false"/>
 </anchor>
 <anchor mnemonic="IS" descriptor="Intersection" identity="int">
 <metadata capsule="dbo" generator="true"/>
+<key mnemonic="NK" descriptor="NaturalKey">
+<metadata capsule="dbo"/>
+<layout x="577.12" y="598.14" fixed="false"/>
+</key>
 <attribute mnemonic="COL" descriptor="CollisionCount" timeRange="date" dataRange="int">
 <metadata capsule="dbo" restatable="false" idempotent="true"/>
-<layout x="703.63" y="433.21" fixed="false"/>
+<layout x="437.11" y="520.89" fixed="false"/>
 </attribute>
 <attribute mnemonic="INJ" descriptor="InjuredCount" timeRange="date" dataRange="int">
 <metadata capsule="dbo" restatable="false" idempotent="true"/>
-<layout x="789.16" y="439.97" fixed="false"/>
+<layout x="453.38" y="666.81" fixed="false"/>
 </attribute>
 <attribute mnemonic="KIL" descriptor="KilledCount" timeRange="date" dataRange="int">
 <metadata capsule="dbo" restatable="false" idempotent="true"/>
-<layout x="691.94" y="543.19" fixed="false"/>
+<layout x="498.63" y="510.69" fixed="false"/>
 </attribute>
 <attribute mnemonic="VEH" descriptor="VehicleCount" timeRange="date" dataRange="smallint">
 <metadata capsule="dbo" restatable="false" idempotent="true"/>
-<layout x="640.60" y="470.32" fixed="false"/>
+<layout x="417.00" y="611.50" fixed="false"/>
 </attribute>
-<key mnemonic="NK" descriptor="NaturalKey">
-<layout x="784.34" y="576.84" fixed="false"/>
-</key>
-<layout x="735.56" y="491.14" fixed="true"/>
+<layout x="485.14" y="597.43" fixed="false"/>
 </anchor>
 <tie>
 <anchorRole role="intersecting" type="ST" identifier="true"/>
@@ -41,6 +43,6 @@
 <anchorRole role="crossing" type="ST" identifier="true"/>
 <keyRole role="NK" type="IS" identifier="1"/>
 <metadata capsule="dbo"/>
-<layout x="745.38" y="673.73" fixed="false"/>
+<layout x="554.00" y="695.94" fixed="false"/>
 </tie>
 </schema>

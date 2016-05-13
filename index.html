@@ -3041,6 +3041,7 @@
             this.descriptor = '!Unnamed!';
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -3074,6 +3075,7 @@
         Key.prototype = {
             mnemonic: '',
             descriptor: '',
+            encapsulation: Defaults.encapsulation,
             isInteractive: function() {
                 return true;
             },
@@ -3136,9 +3138,17 @@
                 x = x ? Number(x) : Math.random() * window.innerWidth;
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed === 'true' : false;
+                var metadata;
+                var capsule = Defaults.encapsulation;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule; 
+                }               
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
-                    if(element.childNodes.item(i).nodeName === 'descriptioAtttrn')
+                    if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
@@ -3149,6 +3159,7 @@
                 key.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 key.mnemonic = mnemonic;
                 key.descriptor = descriptor;
+                key.encapsulation = capsule;
                 var anchorLookup = Model.getAnchorLookup();
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 Model.addComponent(new Role(key, anchor, true));
@@ -3161,6 +3172,9 @@
                 // set attributes on the element
                 key.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 key.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                key.appendChild(metadata);
                 this.addLayoutXML(key, schema);
                 this.addDescriptionXML(key, schema, this.description);
                 element.appendChild(key);
