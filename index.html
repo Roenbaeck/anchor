@@ -1316,15 +1316,15 @@
                 DrawingEngine.start(true);
             },
             explode: function(components, startEngine) {
-                var node, component, i, j, k, edge, otherNode, otherComponent;
-                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges;
+                var node, component, e, i, j, k, edge, otherNode, otherComponent;
+                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges, keyEdge, keyEdgeComponent;
                 for(i = 0; component = components[i]; i++) {
                     node = component.node;
                     if(node.type === NodeType.ANCHOR) {
                         if(component.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.ATTRIBUTE) {
+                                if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.KEY) {
                                     var dx = 2 * LayoutEngine.normalDistance * Math.cos(j);
                                     var dy = 2 * LayoutEngine.normalDistance * Math.sin(j);
                                     otherComponent = this.nodeToComponent(otherNode);
@@ -1349,7 +1349,16 @@
                                         knotEdge.visible = true;
                                         knotEdgeComponent.show();
                                     }
+                                    if(otherNode.type === NodeType.KEY) {
+                                        for(e = 0; keyEdge = otherNode.edges[e]; e++) {
+                                            keyEdgeComponent = this.nodeToComponent(keyEdge);
+                                            keyEdge.start();
+                                            keyEdge.visible = true;
+                                            keyEdgeComponent.show();
+                                        }
+                                    }                                    
                                     otherComponent = this.nodeToComponent(otherNode);
+                                    otherComponent.imploded = otherComponent.type === NodeType.Key ? false : otherComponent.imploded;
                                     otherNode.xPosition = node.xPosition + dx;
                                     otherNode.yPosition = node.yPosition + dy;
                                     otherNode.start();
@@ -1366,7 +1375,7 @@
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.ATTRIBUTE) {
+                                if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.KEY) {
                                     otherComponent = this.nodeToComponent(otherNode);
                                     if(otherComponent.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
@@ -1391,7 +1400,15 @@
                                             knot.visible = false;
                                         }
                                     }
+                                    if(otherNode.type === NodeType.KEY) {
+                                        for(e = 0; keyEdge = otherNode.edges[e]; e++) {
+                                            keyEdgeComponent = this.nodeToComponent(keyEdge);
+                                            keyEdgeComponent.hide();
+                                            keyEdge.visible = false;
+                                        }
+                                    }                                      
                                     otherComponent.hide();
+                                    otherComponent.imploded = otherComponent.type === NodeType.Key ? true : otherComponent.imploded;
                                     otherNode.stop();
                                     otherNode.visible = false;
                                     role = this.nodeToComponent(edge);
@@ -1407,7 +1424,61 @@
                 this.refresh();
                 if(startEngine == null || startEngine)
                     DrawingEngine.start(true);
-            }
+            },
+            hideShowKeys: function(components, startEngine) {
+                var node, component, e, i, j, k, edge, otherNode, otherComponent;
+                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges, keyEdge, keyEdgeComponent;
+                if(components[0].node.type === NodeType.ANCHOR) {
+                    var keys = components[0].node.getConnectedNodesOfType(NodeType.KEY)
+                    for(k = 0; node = keys[k]; k++){
+                        components.push(Model.nodeToComponent(node));
+                    }
+                }
+                for(i = 0; component = components[i]; i++) {
+                    node = component.node;
+                    if(node.type === NodeType.KEY) {
+                        var anchor = Model.nodeToComponent(node.getConnectedNodesOfType(NodeType.ANCHOR)[0]);
+                        if(component.imploded) {
+                            var dx = 2 * LayoutEngine.normalDistance * Math.cos(0);
+                            var dy = 2 * LayoutEngine.normalDistance * Math.sin(0);
+                            node.xPosition = node.xPosition + dx;
+                            node.yPosition = node.yPosition + dy;
+                            node.start();
+                            component.setFixed(false);
+                            component.show();
+                            component.imploded = false;
+                            node.visible = true;                                                        
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
+                                if(!anchor.imploded || otherNode.type === NodeType.ANCHOR){
+                                    role = this.nodeToComponent(edge);
+                                    edge.start();
+                                    role.show();
+                                    edge.visible = true;                                
+                                }
+                            }                            
+                        }
+                        else {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
+                                if(!anchor.imploded || otherNode.type === NodeType.ANCHOR){                                
+                                    role = this.nodeToComponent(edge);
+                                    role.hide();
+                                    edge.stop();
+                                    edge.visible = false;
+                                }                                
+                            }
+                            component.hide();
+                            component.imploded = true;
+                            node.stop();
+                            node.visible = false;                            
+                        }
+                    }
+                }
+                this.refresh();
+                if(startEngine == null || startEngine)
+                    DrawingEngine.start(true);
+            }            
         };
 
         var DrawingEngine = {
@@ -3042,6 +3113,7 @@
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.twoMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
+            this.operations.push('hideShowKeys');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -3217,7 +3289,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addKey','addTie','addTieAndAnchor','explode');
+            this.operations.push('addAttribute','addKey','addTie','addTieAndAnchor','explode','hideShowKeys');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -4685,7 +4757,10 @@
                     }],
                 ['explode',
                     'Explode/Implode',
-                    'Change the level of detail for the selected item(s) in the model.']
+                    'Change the level of detail for the selected item(s) in the model.'],
+                ['hideShowKeys',
+                    'Hide',
+                    'Hide this key.']                    
             ],
             isSupported: function(operation, components) {
                 for(var i = 0; i < components.length; i++)
@@ -5395,6 +5470,23 @@
                 }
                 Model.explode(allComponents);
             },
+            hideAllKeys: function() {
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.KEY) && !component.imploded)
+                        allComponents.push(component);
+                }
+                EventHandler.clearSelection();
+                Model.hideShowKeys(allComponents);
+            },
+            unhideAllKeys: function() {
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.KEY) && component.imploded)
+                        allComponents.push(component);
+                }
+                Model.hideShowKeys(allComponents);
+            },            
             generateURL: function() {
                 if(Model.id) {
                     if(Model.scope !== 'public')
@@ -6806,6 +6898,8 @@
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
                 <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
                 <li title="Unhide all hidden attributes and knots." onclick="Actions.explodeAll()">Explode all</li>
+                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.hideAllKeys()">Hide all keys</li>
+                <li title="Unhide all hidden attributes and knots." onclick="Actions.unhideAllKeys()">Show all keys</li>                
                 <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
                 <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." onclick="Actions.randomizeLayout()">Randomize layout</li>
             </ul>
