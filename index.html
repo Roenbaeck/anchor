@@ -754,6 +754,7 @@
                 this.version -= (this.version === 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
                 DrawingEngine.stop();
+                EventHandler.clearSelection();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
