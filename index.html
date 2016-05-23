@@ -121,6 +121,21 @@
             temporalization: 'uni'
         };
 
+        // Generate UUID function https://jsfiddle.net/xg7tek9j/7/
+        // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript 
+        function generateUUID() {
+            var d = new Date().getTime();
+            if(window.performance && typeof window.performance.now === "function"){
+                d += performance.now();; //use high-precision timer if available
+            }
+            var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = (d + Math.random()*16)%16 | 0;
+                d = Math.floor(d/16);
+                return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+            });
+            return uuid;
+        };
+
         // global function providing inheritance
         function extend(type, supertype){
             for(var member in supertype.prototype)
@@ -154,6 +169,7 @@
         // the node type that the layout algorithm expects
         function Node(id, x, y, type) {
             this.id = id;
+            this.uuid = generateUUID();
             this.type = NodeType[type] ? type : 0; // check that the type is defined in NodeType
             this.xPosition = x;
             this.yPosition = y;
@@ -161,6 +177,7 @@
         }
         Node.prototype = {
             id: null,
+            uuid: null,
             type: null,
             xPosition: null,
             yPosition: null,
@@ -1428,6 +1445,7 @@
             hideShowKeys: function(components, startEngine) {
                 var node, component, e, i, j, k, edge, otherNode, otherComponent;
                 var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges, keyEdge, keyEdgeComponent;
+                // If we select an Anchor then we add the keys of the achor to the components array. 
                 if(components[0].node.type === NodeType.ANCHOR) {
                     var keys = components[0].node.getConnectedNodesOfType(NodeType.KEY)
                     for(k = 0; node = keys[k]; k++){
@@ -2929,6 +2947,8 @@
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
+                var uuid = element.getAttribute("uuid")
+                attribute.uuid = uuid;
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
                 attribute.setHistorized(historized);
@@ -2987,6 +3007,7 @@
                 // create an attribute element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
+                attribute.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 if(Defaults.temporalization === 'crt')
@@ -4759,8 +4780,8 @@
                     'Explode/Implode',
                     'Change the level of detail for the selected item(s) in the model.'],
                 ['hideShowKeys',
-                    'Hide',
-                    'Hide this key.']                    
+                    'Hide/Show key(s)',
+                    'Hide/Show key(s) of the selected anchor.']                    
             ],
             isSupported: function(operation, components) {
                 for(var i = 0; i < components.length; i++)
