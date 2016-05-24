@@ -4480,8 +4480,10 @@
                     if(this.showEditables) {
                         this.contextMenu.appendChild(this.editables);
                         var editables = this.editables.getElementsByClassName('editable');
-                        if(editables.length > 0)
+                        if(editables.length > 0) {
                             editables[0].focus();
+                            editables[0].setSelectionRange(0, editables[0].value.length);
+                        }
                     }
                     window.removeEventListener('keypress', EventHandler.keypress, false);
                     this.contextMenu.appendChild(this.operators);
