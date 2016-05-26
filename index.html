@@ -4696,11 +4696,15 @@
             },
             saveToDisk: function (str, type) {
                 var save = document.createElement('a');
-                save.href = 'data:text/' + type + ',' + str;
+//                save.href = 'data:text/' + type + ',' + str;
+                save.href = 'data:application/download,' + str;
                 save.target = '_blank';
                 save.download = (Model.name || 'Model') + '.' + type;
-                var event = document.createEvent('Event');
-                event.initEvent('click', true, true);
+                var event = new MouseEvent('click', {
+                                'view': window,
+                                'bubbles': true,
+                                'cancelable': false
+                            });
                 save.dispatchEvent(event);
                 (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
