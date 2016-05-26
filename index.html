@@ -783,6 +783,7 @@
                 this.version -= (this.version === 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
                 DrawingEngine.stop();
+                EventHandler.clearSelection();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
             },
@@ -4970,8 +4971,10 @@
                     if(this.showEditables) {
                         this.contextMenu.appendChild(this.editables);
                         var editables = this.editables.getElementsByClassName('editable');
-                        if(editables.length > 0)
+                        if(editables.length > 0) {
                             editables[0].focus();
+                            editables[0].setSelectionRange(0, editables[0].value.length);
+                        }
                     }
                     window.removeEventListener('keypress', EventHandler.keypress, false);
                     this.contextMenu.appendChild(this.operators);
@@ -5184,11 +5187,15 @@
             },
             saveToDisk: function (str, type) {
                 var save = document.createElement('a');
-                save.href = 'data:text/' + type + ',' + str;
+//                save.href = 'data:text/' + type + ',' + str;
+                save.href = 'data:application/download,' + str;
                 save.target = '_blank';
                 save.download = (Model.name || 'Model') + '.' + type;
-                var event = document.createEvent('Event');
-                event.initEvent('click', true, true);
+                var event = new MouseEvent('click', {
+                                'view': window,
+                                'bubbles': true,
+                                'cancelable': false
+                            });
                 save.dispatchEvent(event);
                 (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
