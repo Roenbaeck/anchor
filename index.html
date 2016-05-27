@@ -994,10 +994,11 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             otherComponent = this.nodeToComponent(otherNode);
-                            if(affectedComponents.indexOf(otherComponent) < 0)
+                            var edgeComponent = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(otherComponent) < 0 && affectedComponents.indexOf(edgeComponent) < 0)
                                 dangling = false;
                         }
-                        if(dangling) {
+                        if(dangling && affectedComponents.indexOf(component) < 0) {
                             affectedComponents.push(component);
                             for(j = 0; edge = node.edges[j]; j++) {
                                 role = this.nodeToComponent(edge);
@@ -1015,6 +1016,7 @@
                         affectedComponents.length + " nodes and edges --------\n" + affectedComponents.join('\n'))) {
                     for(i = 0; component = affectedComponents[i]; i++)
                         this.removeComponent(component);
+                    EventHandler.clearSelection();
                     this.recordState();
                     this.refresh();
                     DrawingEngine.start(true);
