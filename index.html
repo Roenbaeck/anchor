@@ -4696,8 +4696,7 @@
             },
             saveToDisk: function (str, type) {
                 var save = document.createElement('a');
-//                save.href = 'data:text/' + type + ',' + str;
-                save.href = 'data:application/download,' + str;
+                save.href = 'data:text/' + type + ',' + str;
                 save.target = '_blank';
                 save.download = (Model.name || 'Model') + '.' + type;
                 var event = new MouseEvent('click', {
