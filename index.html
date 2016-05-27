@@ -2948,7 +2948,7 @@
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
-                var uuid = element.getAttribute("uuid")
+                var uuid = element.getAttribute("uuid");
                 attribute.uuid = uuid;
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
@@ -3247,8 +3247,9 @@
                 var mnemonic = element.getAttribute("mnemonic") || '???';
                 var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
                 var parent = element.parentNode;
-                //var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var uuid = element.getAttribute("uuid");
                 var key = new Key(x, y);
+                key.uuid = uuid;
                 key.setFixed(fixed);
                 key.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 key.mnemonic = mnemonic;
@@ -3264,6 +3265,7 @@
                 // create an attribute element
                 var key = schema.createElement("key");
                 // set attributes on the element
+                key.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 key.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 key.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 var metadata = schema.createElement("metadata");
@@ -3433,7 +3435,9 @@
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
+                var uuid = element.getAttribute("uuid");
                 var anchor = new Anchor(x, y);
+                anchor.uuid = uuid;
                 anchor.setFixed(fixed);
                 anchor.setImploded(imploded);
                 anchor.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3449,6 +3453,7 @@
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
                 // set attributes on the element
+                anchor.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 anchor.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "??" : this.mnemonic);
                 anchor.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 anchor.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
@@ -3610,7 +3615,9 @@
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
+                var uuid = element.getAttribute("uuid");
                 var knot = new Knot(x, y);
+                knot.uuid = uuid;
                 knot.setFixed(fixed);
                 knot.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
@@ -3628,6 +3635,7 @@
                 // create an anchor element
                 var knot = schema.createElement("knot");
                 // set attributes on the element
+                knot.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 knot.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 knot.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 knot.setAttribute("identity", this.isEmpty(this.identity) ? '' : this.identity);
@@ -3862,7 +3870,9 @@
                 var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var uuid = element.getAttribute("uuid");
                 var tie = new Tie(x, y, historized);
+                tie.uuid = uuid;
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
@@ -3958,6 +3968,7 @@
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
+                tie.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 if(Defaults.temporalization === 'crt')
                     tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
