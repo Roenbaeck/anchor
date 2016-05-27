@@ -800,11 +800,12 @@
             removeComponent: function(component) {
                 var edge;
                 if(component.node.type === NodeType.KNOT) {
-                    edge = component.node.edges[0];
-                    var otherNode = edge.node === this ? edge.otherNode : edge.node;
-                    if(otherNode.type === NodeType.ATTRIBUTE) {
-                        var attribute = this.nodeToComponent(otherNode);
-                        attribute.setKnotted(false);
+                    for(var j = 0; edge = component.node.edges[j]; j++) {
+                        var otherNode = edge.node === this ? edge.otherNode : edge.node;
+                        if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.TIE) {
+                            var otherComponent = this.nodeToComponent(otherNode);
+                            otherComponent.setKnotted(false);
+                        }
                     }
                 }
                 else if (component.node.type === NodeType.EDGE) {
@@ -994,8 +995,8 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             otherComponent = this.nodeToComponent(otherNode);
-                            var edgeComponent = this.nodeToComponent(edge);
-                            if(affectedComponents.indexOf(otherComponent) < 0 && affectedComponents.indexOf(edgeComponent) < 0)
+                            role = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(otherComponent) < 0 && affectedComponents.indexOf(role) < 0)
                                 dangling = false;
                         }
                         if(dangling && affectedComponents.indexOf(component) < 0) {
