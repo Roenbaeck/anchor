@@ -2983,6 +2983,7 @@
                 }
                 var keyRole, keyRoles = element.getElementsByTagName("keyRole");
                 for(i = 0; keyRole = keyRoles[i]; i++) {
+                    var roleUuid = keyRole.getAttribute("uuid");
                     var type = keyRole.getAttribute("type") || "???";
                     var roleName = keyRole.getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -2993,6 +2994,7 @@
                     for(var k = 0; key = keys[k]; k++) {
                         if(key.mnemonic === roleName){
                             var role = new Role(attribute, key, identifier);
+                            role.uuid = roleUuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3032,6 +3034,7 @@
                     if(edge.otherNode.type === NodeType.KEY){
                         var role = Model.nodeToComponent(edge); 
                         var keyRole = schema.createElement("keyRole");
+                        keyRole.setAttribute("uuid", this.isEmpty(role.uuid) ? generateUUID() : role.uuid);
                         keyRole.setAttribute("role", role.role);
                         keyRole.setAttribute("type", anchor.mnemonic);
                         keyRole.setAttribute("identifier", role.identifier);
@@ -3889,6 +3892,7 @@
                 var j, d, type, role, roleName, identifier, coloring, anchor;
                 var anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
+                    uuid = anchorRoles[i].getAttribute("uuid"); 
                     type = anchorRoles[i].getAttribute("type") || "??";
                     roleName = anchorRoles[i].getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -3902,6 +3906,7 @@
                         if(anchors[j].getAttribute("mnemonic") === type) {
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
                             role = new Role(tie, anchor, (identifier === "true"));
+                            role.uuid = uuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3913,6 +3918,7 @@
                 }
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
+                    uuid = knotRoles[i].getAttribute("uuid");
                     type = knotRoles[i].getAttribute("type") || "???";
                     roleName = knotRoles[i].getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -3926,6 +3932,7 @@
                         if(knots[j].getAttribute("mnemonic") === type) {
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
                             role = new Role(tie, knot, (identifier === "true"));
+                            role.uuid = uuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3938,6 +3945,7 @@
                 
                 var keyRole, keyRoles = element.getElementsByTagName("keyRole");
                 for(i = 0; keyRole = keyRoles[i]; i++) {
+                    uuid = keyRole.getAttribute("uuid");
                     type = keyRole.getAttribute("type") || "???";
                     roleName = keyRole.getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -3955,6 +3963,7 @@
                     for(var k = 0; key = keys[k]; k++) {
                         if(key.mnemonic === roleName){
                             role = new Role(tie, key, identifier);
+                            role.uuid = uuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3985,6 +3994,7 @@
                         roleElement = schema.createElement("knotRole");
                     else if(node.type == NodeType.KEY)
                         roleElement = schema.createElement("keyRole");
+                    roleElement.setAttribute("uuid", this.isEmpty(role.uuid) ? generateUUID() : role.uuid);
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
                     // In a key role the type should be the anchor of the connected keyNode which is also an anchor of the tie!
                     if(node.type == NodeType.KEY){
