@@ -829,11 +829,12 @@
             removeComponent: function(component) {
                 var edge;
                 if(component.node.type === NodeType.KNOT) {
-                    edge = component.node.edges[0];
-                    var otherNode = edge.node === this ? edge.otherNode : edge.node;
-                    if(otherNode.type === NodeType.ATTRIBUTE) {
-                        var attribute = this.nodeToComponent(otherNode);
-                        attribute.setKnotted(false);
+                    for(var j = 0; edge = component.node.edges[j]; j++) {
+                        var otherNode = edge.node === this ? edge.otherNode : edge.node;
+                        if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.TIE) {
+                            var otherComponent = this.nodeToComponent(otherNode);
+                            otherComponent.setKnotted(false);
+                        }
                     }
                 }
                 else if (component.node.type === NodeType.EDGE) {
@@ -1029,10 +1030,11 @@
                         for(j = 0; edge = node.edges[j]; j++) {
                             otherNode = (node === edge.otherNode ? edge.node : edge.otherNode);
                             otherComponent = this.nodeToComponent(otherNode);
-                            if(affectedComponents.indexOf(otherComponent) < 0)
+                            role = this.nodeToComponent(edge);
+                            if(affectedComponents.indexOf(otherComponent) < 0 && affectedComponents.indexOf(role) < 0)
                                 dangling = false;
                         }
-                        if(dangling) {
+                        if(dangling && affectedComponents.indexOf(component) < 0) {
                             affectedComponents.push(component);
                             for(j = 0; edge = node.edges[j]; j++) {
                                 role = this.nodeToComponent(edge);
@@ -1050,6 +1052,7 @@
                         affectedComponents.length + " nodes and edges --------\n" + affectedComponents.join('\n'))) {
                     for(i = 0; component = affectedComponents[i]; i++)
                         this.removeComponent(component);
+                    EventHandler.clearSelection();
                     this.recordState();
                     this.refresh();
                     DrawingEngine.start(true);
@@ -5187,8 +5190,7 @@
             },
             saveToDisk: function (str, type) {
                 var save = document.createElement('a');
-//                save.href = 'data:text/' + type + ',' + str;
-                save.href = 'data:application/download,' + str;
+                save.href = 'data:text/' + type + ',' + str;
                 save.target = '_blank';
                 save.download = (Model.name || 'Model') + '.' + type;
                 var event = new MouseEvent('click', {
