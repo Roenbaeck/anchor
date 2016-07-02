@@ -1243,7 +1243,7 @@
                     dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
                     var key = new Key(node.xPosition + dx, node.yPosition + dy);
                     this.addComponent(key);
-                    this.addComponent(new Role(key, component, true));
+                    this.addComponent(new Role(key, component, false));
                 }
                 this.recordState();
                 this.refresh();
@@ -2376,6 +2376,8 @@
                             Model.toggleKnotted(allComponents);
                         else if(Operations.isSupported("addKnot", allComponents))
                             Model.addKnot(allComponents);
+                        else if(Operations.isSupported("addKey", allComponents))
+                            Model.addKey(allComponents);                        
                         break;
                     case "i":
                         if(Operations.isSupported("toggleIdentifier", allComponents))
@@ -3196,10 +3198,10 @@
             setRoleName: function(){
                 var edge;
                 for(var i =0; edge = this.node.edges[i]; i++){
-                    if (edge.otherNode.type !== NodeType.ANCHOR){
+                    //if (edge.otherNode.type !== NodeType.ANCHOR){
                         var component = Model.nodeToComponent(edge)
                         component.role = this.mnemonic;
-                    }
+                    //}
                 }                
 
             },            
@@ -3263,7 +3265,9 @@
                 key.encapsulation = capsule;
                 var anchorLookup = Model.getAnchorLookup();
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
-                Model.addComponent(new Role(key, anchor, true));
+                var keyRole = new Role(key, anchor, false);
+                keyRole.role = mnemonic;
+                Model.addComponent(keyRole);
                 key.updateName();
                 return key;
             },
@@ -4085,8 +4089,8 @@
             this.otherComponent = otherComponent;
             var roleNumber = identifier;
             this.identifier = identifier;
-            var anchored = node.type === NodeType.ANCHOR || otherNode.type == NodeType.ANCHOR;
-            this.keyed = (node.type === NodeType.KEY || otherNode.type === NodeType.KEY) && !anchored;
+            this.anchored = node.type === NodeType.ANCHOR || otherNode.type == NodeType.ANCHOR;
+            this.keyed = (node.type === NodeType.KEY || otherNode.type === NodeType.KEY);// && !anchored;
             this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) && !this.keyed;
             if (this.keyed) {
                 this.editables.push(Editables.coloringEdit);
@@ -4130,12 +4134,16 @@
             if(this.keyed) {
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
                 this.svg.graphicsElement.component = this;
-                var bubble = document.createElementNS(SVGNS, 'use');
-                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
-                this.svg.graphicsElement.appendChild(bubble);
+                // the line from key to anchor does not need the 'bubble'
+                // it has no key sequence number.
+                if (!this.anchored){
+                    var bubble = document.createElementNS(SVGNS, 'use');
+                    bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                    this.svg.graphicsElement.appendChild(bubble);
+                }
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
-                var roleTag = [ '#many'
-                              , '#one'
+                var roleTag = [ '#tenplus'
+                              , '#onekey'
                               , '#two'
                               , '#three'
                               , '#four'
@@ -4146,7 +4154,7 @@
                               , '#nine'
                               , '#ten'
                               ];
-                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', roleNumber > 10 ? roleTag[0] : roleTag[roleNumber]);              
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', roleNumber > 10 ? roleTag[0] : roleTag[roleNumber]);          
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
@@ -4181,11 +4189,12 @@
             coloring: '#000000',
             tied: false,
             keyed: false,
+            anchored: false,
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
                 if (this.keyed) {
-                    var roleTag = [ '#many'
-                                  , '#one'
+                    var roleTag = [ '#tenplus'
+                                  , '#onekey'
                                   , '#two'
                                   , '#three'
                                   , '#four'
@@ -4198,7 +4207,7 @@
                                   ];
                     this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', identifier > 10 ? roleTag[0] : roleTag[identifier]); 
                 } else {
-                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', identifier ? '#many' : '#one');
                 }
             },
             setColoring: function(coloring) {
@@ -4213,7 +4222,7 @@
                 }
             },
             isInteractive: function() {
-                return this.tied || this.keyed;
+                return this.tied || (this.keyed && !this.anchored);
             },
             isDraggable: function() {
                 return false;
@@ -4247,6 +4256,9 @@
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
                 if(this.keyed && image.control) {
+                    // set the dotted line
+                    this.svg.pathElement.style.stroke = '#a8a8a8'
+                    this.svg.pathElement.style.strokeDasharray = '1 4';
                     // experimenting with cardinality placement
 //                    var l = image.pathElement.getTotalLength();
 //                    var p = image.pathElement.getPointAtLength(l/4);
@@ -6839,9 +6851,22 @@
                 <circle r="12"/>
                 <circle r="7"/>
             </g>
-            <g id="key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px;">
+            <!--
+            <g id="key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px; stroke-dash:5,5;">
                 <circle r="10"/>
             </g>
+            -->
+            <g id="key" style="fill:#f9f8f7; stroke:#a8a8a8;" transform="rotate(-60)" >
+                <circle r="10" />
+                <line x1="3" y1="-7" x2="3" y2="-2"/>
+                <line x1="-3" y1="-7" x2="-3" y2="-2"/>
+                <line x1="0" y1="-2" x2="0" y2="7"/>
+                <line x1="-3" y1="-2" x2="3" y2="-2"/>
+                <line x1="-3" y1="-7" x2="3" y2="-7"/>
+                <line x1="-3" y1="7" x2="0" y2="7"/>
+                <line x1="-3" y1="5" x2="0" y2="5"/>
+                <line x1="-3" y1="3" x2="0" y2="3"/>
+            </g>            
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>
@@ -6858,51 +6883,60 @@
             <g id="one" style="stroke:#544; stroke-width:1px;">
                 <line x1="0" y1="-3" x2="0" y2="3"/>
             </g>
-            <g id="two" style="stroke:#544; stroke-width:1px;">
+            <g id="onekey" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="two" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-1.5" y1="-3" x2="-1.5" y2="3"/>
                 <line x1="1.5" y1="-3" x2="1.5" y2="3"/>
             </g>
-            <g id="three" style="stroke:#544; stroke-width:1px;">
+            <g id="three" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="-3" y2="3"/>
                 <line x1="0" y1="-3" x2="0" y2="3"/>
                 <line x1="3" y1="-3" x2="3" y2="3"/>
             </g>
-            <g id="four" style="stroke:#544; stroke-width:1px;">
+            <g id="four" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="-3" y2="3"/>
                 <line x1="0" y1="-3" x2="2" y2="3"/>
                 <line x1="4" y1="-3" x2="2" y2="3"/>
             </g>
-            <g id="five" style="stroke:#544; stroke-width:1px;">
+            <g id="five" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-2" y1="-3" x2="0" y2="3"/>
                 <line x1="2" y1="-3" x2="0" y2="3"/>
             </g>
-            <g id="six" style="stroke:#544; stroke-width:1px;">
+            <g id="six" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-4" y1="-3" x2="-2" y2="3"/>
                 <line x1="0" y1="-3" x2="-2" y2="3"/>
                 <line x1="3" y1="-3" x2="3" y2="3"/>
             </g>
-            <g id="seven" style="stroke:#544; stroke-width:1px;">
+            <g id="seven" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-5" y1="-3" x2="-3" y2="3"/>
                 <line x1="-1" y1="-3" x2="-3" y2="3"/>
                 <line x1="2" y1="-3" x2="2" y2="3"/>
                 <line x1="5" y1="-3" x2="5" y2="3"/>
             </g>
-            <g id="eight" style="stroke:#544; stroke-width:1px;">
+            <g id="eight" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-6.5" y1="-3" x2="-4.5" y2="3"/>
                 <line x1="-2.5" y1="-3" x2="-4.5" y2="3"/>
                 <line x1="0.5" y1="-3" x2="0.5" y2="3"/>
                 <line x1="3.5" y1="-3" x2="3.5" y2="3"/>
                 <line x1="6.5" y1="-3" x2="6.5" y2="3"/>
             </g>
-            <g id="nine" style="stroke:#544; stroke-width:1px;">
+            <g id="nine" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="-3" y2="3"/>
                 <line x1="0" y1="-3" x2="4" y2="3"/>
                 <line x1="4" y1="-3" x2="0" y2="3"/>
             </g>
-            <g id="ten" style="stroke:#544; stroke-width:1px;">
+            <g id="ten" style="stroke:#a8a8a8; stroke-width:1px;">
                 <line x1="-2" y1="-3" x2="2" y2="3"/>
                 <line x1="2" y1="-3" x2="-2" y2="3"/>
-            </g>            
+            </g>
+            <g id="tenplus" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="2" y2="3"/>
+                <line x1="2" y1="-3" x2="-2" y2="3"/>
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+                <line x1="-3" y1="0" x2="3" y2="0"/>
+            </g>  
             <g id="many" style="stroke:#544; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
@@ -7088,9 +7122,22 @@
                 <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="10"/>
                 </g>
+                <!--
                 <g id="nav_key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px;">
                     <circle r="10"/>
-                </g>         
+                </g>
+                -->
+                <g id="nav_key" style="fill:#f9f8f7; stroke:#544;" transform="rotate(-60)" >
+                    <circle r="10" style="stroke:none"/>
+                    <line x1="3" y1="-8" x2="3" y2="-2"/>
+                    <line x1="-3" y1="-8" x2="-3" y2="-2"/>
+                    <line x1="0" y1="-2" x2="0" y2="8"/>
+                    <line x1="-3" y1="-2" x2="3" y2="-2"/>
+                    <line x1="-3" y1="-8" x2="3" y2="-8"/>
+                    <line x1="-3" y1="8" x2="0" y2="8"/>
+                    <line x1="-3" y1="6" x2="0" y2="6"/>
+                    <line x1="-3" y1="4" x2="0" y2="4"/>
+                </g>                            
                 <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="12"/>
                     <circle r="7"/>
