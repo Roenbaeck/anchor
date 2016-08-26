@@ -248,7 +248,7 @@ BEGIN
 ~*/
                 }
 /*~
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName)
         FROM
             inserted i
         LEFT JOIN
