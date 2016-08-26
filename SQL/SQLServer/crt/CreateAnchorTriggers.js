@@ -247,7 +247,10 @@ BEGIN
                 }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
-            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName),
+            CASE
+                WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
+                ELSE [k$knot.mnemonic].$knot.identityColumnName
+            END,
 ~*/
                 if(attribute.isHistorized()) {
 /*~
@@ -277,7 +280,10 @@ BEGIN
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         WHERE
-            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null
+            CASE
+                WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
+                ELSE [k$knot.mnemonic].$knot.identityColumnName
+            END is not null;
     END
 ~*/
             }

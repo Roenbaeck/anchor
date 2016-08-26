@@ -248,7 +248,7 @@ BEGIN
 ~*/
                 }
 /*~
-            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName)
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
         FROM
             inserted i
         LEFT JOIN
@@ -258,7 +258,7 @@ BEGIN
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
         WHERE
-            ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) is not null;
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null
     END
 ~*/
             }
