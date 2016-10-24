@@ -280,9 +280,10 @@ BEGIN
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         WHERE
-            i.$attribute.valueColumnName is not null
-        OR
-            [k$knot.mnemonic].$knot.identityColumnName is not null
+            CASE
+                WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
+                ELSE [k$knot.mnemonic].$knot.identityColumnName
+            END is not null;
     END
 ~*/
             }
