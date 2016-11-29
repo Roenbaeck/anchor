@@ -121,6 +121,21 @@
             temporalization: 'uni'
         };
 
+        // Generate UUID function https://jsfiddle.net/xg7tek9j/7/
+        // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript 
+        function generateUUID() {
+            var d = new Date().getTime();
+            if(window.performance && typeof window.performance.now === "function"){
+                d += performance.now();; //use high-precision timer if available
+            }
+            var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = (d + Math.random()*16)%16 | 0;
+                d = Math.floor(d/16);
+                return (c=='x' ? r : (r&0x3|0x8)).toString(16);
+            });
+            return uuid;
+        };
+
         // global function providing inheritance
         function extend(type, supertype){
             for(var member in supertype.prototype)
@@ -143,16 +158,18 @@
             KNOT:       2, '2': "Knot",
             ATTRIBUTE:  3, '3': "Attribute",
             TIE:        4, '4': "Tie",
-            EDGE:       5, '5': "Edge",
-            PARTITION:  6, '6': "Partition",
+            KEY:        5, '5': "Key",
+            EDGE:       6, '6': "Edge",
+            PARTITION:  7, '7': "Partition",
             // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-            mass:       [null, 2, 3, 5, 5, 2, null],
-            charge:     [null, 1, 1, 1, 1, 4, null]
+            mass:       [null, 2, 3, 5, 5, 3, 2, null],
+            charge:     [null, 1, 1, 1, 1, 1, 4, null]
         };
 
         // the node type that the layout algorithm expects
         function Node(id, x, y, type) {
             this.id = id;
+            this.uuid = generateUUID();
             this.type = NodeType[type] ? type : 0; // check that the type is defined in NodeType
             this.xPosition = x;
             this.yPosition = y;
@@ -160,6 +177,7 @@
         }
         Node.prototype = {
             id: null,
+            uuid: null,
             type: null,
             xPosition: null,
             yPosition: null,
@@ -189,6 +207,17 @@
             },
             getCharge: function() {
                 return NodeType.charge[this.type];
+            },
+            getConnectedNodesOfType: function(nodeType) {
+                var nodes = [];
+                var edge;
+                for(var i = 0; edge = this.edges[i]; i++){
+                    if(edge.otherNode.type === nodeType)
+                        nodes.push(Model.nodeToComponent(edge.otherNode));
+                    if(edge.node.type === nodeType)
+                        nodes.push(Model.nodeToComponent(edge.node));
+                }
+                return nodes;
             }
         };
 
@@ -702,7 +731,7 @@
                         knotLookup[component.mnemonic] = component;
                 }
                 return knotLookup;
-            },
+            },      
             nodeToComponent: function(node) {
                 return this.idToComponent[node.id];
             },
@@ -915,6 +944,9 @@
                     var anchors = xml.getElementsByTagName('anchor');
                     for (i = 0; i < anchors.length; i++)
                         this.addComponent(Anchor.prototype.fromXML(anchors[i]));
+                    var keys = xml.getElementsByTagName('key');
+                    for (i = 0; i < keys.length; i++)
+                        this.addComponent(Key.prototype.fromXML(keys[i]));
                     var attributes = xml.getElementsByTagName('attribute');
                     for (i = 0; i < attributes.length; i++)
                         this.addComponent(Attribute.prototype.fromXML(attributes[i]));
@@ -950,11 +982,14 @@
                             otherComponent = this.nodeToComponent(otherNode);
                             if(otherNode.type === NodeType.ATTRIBUTE && affectedComponents.indexOf(otherComponent) < 0)
                                 affectedComponents.push(otherComponent);
+                            if(otherNode.type === NodeType.KEY && affectedComponents.indexOf(otherComponent) < 0)
+                                affectedComponents.push(otherComponent);
                         }
                     }
                     else if ((node.type === NodeType.TIE ||
                             node.type === NodeType.ATTRIBUTE ||
-                            node.type === NodeType.KNOT) &&
+                            node.type === NodeType.KNOT ||
+                            node.type === NodeType.KEY) &&
                             affectedComponents.indexOf(component) < 0) {
                         affectedComponents.push(component);
                         for(j = 0; edge = node.edges[j]; j++) {
@@ -1024,13 +1059,15 @@
                 }
             },
             connect: function(components) {
-                var node, anchor, attribute, tie, knot;
+                var node, anchor, attribute, tie, knot, key, keyRole;
                 for(var i = 0; i < components.length; i++) {
                     node = components[i].node;
                     if(node.type === NodeType.ANCHOR)
                         anchor = components[i];
                     else if(node.type === NodeType.ATTRIBUTE)
                         attribute = components[i];
+                    else if(node.type === NodeType.KEY)
+                        key = components[i];
                     else if(node.type === NodeType.TIE)
                         tie = components[i];
                     else if(node.type === NodeType.KNOT)
@@ -1047,6 +1084,30 @@
                     tie.setKnotted(true);
                     this.addComponent(new Role(tie, knot, false));
                 }
+                // added a hack misusing the identifier for the role number of the key
+                else if (key && attribute) {
+                    // the key and attribute should be attached to the same anchor!
+                    var keyAnchor = key.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    var attributeAnchor = attribute.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    if (keyAnchor === attributeAnchor){
+                        keyRole = new Role(attribute, key, key.node.edges.length);
+                        keyRole.role = key.mnemonic;
+                        this.addComponent(keyRole);
+                    }
+                }
+                else if (key && tie) {
+                    var keyAnchor = key.node.getConnectedNodesOfType(NodeType.ANCHOR)[0];
+                    var tieAnchors = tie.node.getConnectedNodesOfType(NodeType.ANCHOR);
+                    var anchor;
+                    for(var j = 0; anchor = tieAnchors[j]; j++){
+                        if (keyAnchor === anchor) {
+                            keyRole = new Role(tie, key, key.node.edges.length);
+                            keyRole.role = key.mnemonic;
+                            this.addComponent(keyRole);
+                        }
+                    }
+                    
+                }                 
                 this.recordState();
                 DrawingEngine.start(true);
             },
@@ -1138,6 +1199,23 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            makeFirstKeyRole: function(components) {
+                var key, component, node, edge;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    if(node.type === NodeType.EDGE) {
+                        edge = node;
+                        if(key = edge.node.type === NodeType.KEY ? this.nodeToComponent(edge.node) :
+                                 edge.otherNode.type === NodeType.KEY ? this.nodeToComponent(edge.otherNode) :
+                                 null) {
+                            key.setFirstKeyRole(component);
+                        }
+                    }
+                }
+                this.recordState();
+                DrawingEngine.start(false);
+            },            
             lastAngle: 0,
             addAttribute: function(components) {
                 var dx, dy, node, component;
@@ -1155,6 +1233,22 @@
                 this.refresh();
                 DrawingEngine.start(true);
             },
+            addKey: function(components) {
+                var dx, dy, node, component;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var key = new Key(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(key);
+                    this.addComponent(new Role(key, component, false));
+                }
+                this.recordState();
+                this.refresh();
+                DrawingEngine.start(true);
+            },            
             addTie: function(components) {
                 var tie, node;
                 // multiple anchors selected
@@ -1243,15 +1337,15 @@
                 DrawingEngine.start(true);
             },
             explode: function(components, startEngine) {
-                var node, component, i, j, k, edge, otherNode, otherComponent;
-                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges;
+                var node, component, e, i, j, k, edge, otherNode, otherComponent;
+                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges, keyEdge, keyEdgeComponent;
                 for(i = 0; component = components[i]; i++) {
                     node = component.node;
                     if(node.type === NodeType.ANCHOR) {
                         if(component.imploded) {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.ATTRIBUTE) {
+                                if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.KEY) {
                                     var dx = 2 * LayoutEngine.normalDistance * Math.cos(j);
                                     var dy = 2 * LayoutEngine.normalDistance * Math.sin(j);
                                     otherComponent = this.nodeToComponent(otherNode);
@@ -1276,7 +1370,16 @@
                                         knotEdge.visible = true;
                                         knotEdgeComponent.show();
                                     }
+                                    if(otherNode.type === NodeType.KEY) {
+                                        for(e = 0; keyEdge = otherNode.edges[e]; e++) {
+                                            keyEdgeComponent = this.nodeToComponent(keyEdge);
+                                            keyEdge.start();
+                                            keyEdge.visible = true;
+                                            keyEdgeComponent.show();
+                                        }
+                                    }                                    
                                     otherComponent = this.nodeToComponent(otherNode);
+                                    otherComponent.imploded = otherComponent.type === NodeType.Key ? false : otherComponent.imploded;
                                     otherNode.xPosition = node.xPosition + dx;
                                     otherNode.yPosition = node.yPosition + dy;
                                     otherNode.start();
@@ -1293,7 +1396,7 @@
                         else {
                             for(j = 0; edge = node.edges[j]; j++) {
                                 otherNode = edge.node === node ? edge.otherNode : edge.node;
-                                if(otherNode.type === NodeType.ATTRIBUTE) {
+                                if(otherNode.type === NodeType.ATTRIBUTE || otherNode.type === NodeType.KEY) {
                                     otherComponent = this.nodeToComponent(otherNode);
                                     if(otherComponent.knotted) {
                                         for(k = 0; knotEdge = otherNode.edges[k]; k++) {
@@ -1318,7 +1421,15 @@
                                             knot.visible = false;
                                         }
                                     }
+                                    if(otherNode.type === NodeType.KEY) {
+                                        for(e = 0; keyEdge = otherNode.edges[e]; e++) {
+                                            keyEdgeComponent = this.nodeToComponent(keyEdge);
+                                            keyEdgeComponent.hide();
+                                            keyEdge.visible = false;
+                                        }
+                                    }                                      
                                     otherComponent.hide();
+                                    otherComponent.imploded = otherComponent.type === NodeType.Key ? true : otherComponent.imploded;
                                     otherNode.stop();
                                     otherNode.visible = false;
                                     role = this.nodeToComponent(edge);
@@ -1334,7 +1445,62 @@
                 this.refresh();
                 if(startEngine == null || startEngine)
                     DrawingEngine.start(true);
-            }
+            },
+            hideShowKeys: function(components, startEngine) {
+                var node, component, e, i, j, k, edge, otherNode, otherComponent;
+                var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges, keyEdge, keyEdgeComponent;
+                // If we select an Anchor then we add the keys of the achor to the components array. 
+                if(components[0].node.type === NodeType.ANCHOR) {
+                    var keys = components[0].node.getConnectedNodesOfType(NodeType.KEY)
+                    for(k = 0; node = keys[k]; k++){
+                        components.push(Model.nodeToComponent(node));
+                    }
+                }
+                for(i = 0; component = components[i]; i++) {
+                    node = component.node;
+                    if(node.type === NodeType.KEY) {
+                        var anchor = Model.nodeToComponent(node.getConnectedNodesOfType(NodeType.ANCHOR)[0]);
+                        if(component.imploded) {
+                            var dx = 2 * LayoutEngine.normalDistance * Math.cos(0);
+                            var dy = 2 * LayoutEngine.normalDistance * Math.sin(0);
+                            node.xPosition = node.xPosition + dx;
+                            node.yPosition = node.yPosition + dy;
+                            node.start();
+                            component.setFixed(false);
+                            component.show();
+                            component.imploded = false;
+                            node.visible = true;                                                        
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
+                                if(!anchor.imploded || otherNode.type === NodeType.ANCHOR){
+                                    role = this.nodeToComponent(edge);
+                                    edge.start();
+                                    role.show();
+                                    edge.visible = true;                                
+                                }
+                            }                            
+                        }
+                        else {
+                            for(j = 0; edge = node.edges[j]; j++) {
+                                otherNode = edge.node === node ? edge.otherNode : edge.node;
+                                if(!anchor.imploded || otherNode.type === NodeType.ANCHOR){                                
+                                    role = this.nodeToComponent(edge);
+                                    role.hide();
+                                    edge.stop();
+                                    edge.visible = false;
+                                }                                
+                            }
+                            component.hide();
+                            component.imploded = true;
+                            node.stop();
+                            node.visible = false;                            
+                        }
+                    }
+                }
+                this.refresh();
+                if(startEngine == null || startEngine)
+                    DrawingEngine.start(true);
+            }            
         };
 
         var DrawingEngine = {
@@ -1582,7 +1748,10 @@
                        'A two letter mnemonic, that needs to be unique within the entire ' +
                        'model. If an anchor is named "CoffeeMachine" for example, then ' +
                        '"CM" is a suitable mnemonic.',
-                setMember: function (element, component) { component.mnemonic = element.value; },
+                setMember: function (element, component) { 
+                               component.mnemonic = element.value;
+                               if(component.node.type === NodeType.KEY) component.setRoleName(); 
+                           },
                 getMember: function (component) { return component.mnemonic; },
                 setElement: function (element, component) { element.value = component.mnemonic; },
                 getElement: function (element) { return element.value; },
@@ -2216,6 +2385,8 @@
                             Model.toggleKnotted(allComponents);
                         else if(Operations.isSupported("addKnot", allComponents))
                             Model.addKnot(allComponents);
+                        else if(Operations.isSupported("addKey", allComponents))
+                            Model.addKey(allComponents);                        
                         break;
                     case "i":
                         if(Operations.isSupported("toggleIdentifier", allComponents))
@@ -2661,10 +2832,6 @@
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
-            keys: [
-                {stop: "1", route: "N", of: "PE"},
-                {stop: "3", route: "A", of: "PE"}
-            ], // TODO: this is just a test
             isInteractive: function() {
                 return true;
             },
@@ -2795,6 +2962,8 @@
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
+                var uuid = element.getAttribute("uuid");
+                attribute.uuid = uuid;
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
                 attribute.setHistorized(historized);
@@ -2826,6 +2995,28 @@
                         }
                     }
                 }
+                var keyRole, keyRoles = element.getElementsByTagName("keyRole");
+                for(i = 0; keyRole = keyRoles[i]; i++) {
+                    var roleUuid = keyRole.getAttribute("uuid");
+                    var type = keyRole.getAttribute("type") || "???";
+                    var roleName = keyRole.getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    var identifier = keyRole.getAttribute("identifier");
+                    var coloring = keyRole.getAttribute("coloring") || "#000000";
+                    var key, keys, edge, edges, anchor;
+                    keys = anchor.node.getConnectedNodesOfType(NodeType.KEY);
+                    for(var k = 0; key = keys[k]; k++) {
+                        if(key.mnemonic === roleName){
+                            var role = new Role(attribute, key, identifier);
+                            role.uuid = roleUuid;
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
+                        }
+                    }
+                }
                 attribute.updateName();
                 return attribute;
             },
@@ -2833,6 +3024,7 @@
                 // create an attribute element
                 var attribute = schema.createElement("attribute");
                 // set attributes on the element
+                attribute.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 if(Defaults.temporalization === 'crt')
@@ -2849,6 +3041,21 @@
                 else {
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
                 }
+                // Add keyRole
+                var keys = this.node.getConnectedNodesOfType(NodeType.KEY);
+                var anchor = Model.nodeToComponent(this.node.getConnectedNodesOfType(NodeType.ANCHOR)[0]);
+                for(var i = 0; edge = this.node.edges[i]; i++){
+                    if(edge.otherNode.type === NodeType.KEY){
+                        var role = Model.nodeToComponent(edge); 
+                        var keyRole = schema.createElement("keyRole");
+                        keyRole.setAttribute("uuid", this.isEmpty(role.uuid) ? generateUUID() : role.uuid);
+                        keyRole.setAttribute("role", role.role);
+                        keyRole.setAttribute("type", anchor.mnemonic);
+                        keyRole.setAttribute("identifier", role.identifier);
+                        attribute.appendChild(keyRole);
+                    }
+                }
+                
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
@@ -2934,6 +3141,185 @@
         // inheritance
         extend(Attribute, Component);
 
+// KEY
+        function Key(x, y) {
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.KEY));
+            // set members
+            this.mnemonic = '?' + this.getId();
+            this.descriptor = '!Unnamed!';
+            this.encapsulation = Defaults.encapsulation;
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
+            this.operations.push('hideShowKeys');
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            // expando property as a reference back to the underlying component for use in event handlers
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            var ref = '#key';
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 5;
+            this.svg.yOffset = 2;
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
+            this.setNameable(true);
+            this.postCreationInitialization();
+        }
+        Key.prototype = {
+            mnemonic: '',
+            descriptor: '',
+            encapsulation: Defaults.encapsulation,
+            isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
+                return true;
+            },
+            setFirstKeyRole: function(role) {
+                this.node.edges.splice(this.node.edges.indexOf(role.node), 1);
+                this.node.edges.splice(1, 0, role.node);
+                var edge;
+                for(var i =0; edge = this.node.edges[i]; i++){
+                    if (edge.otherNode.type !== NodeType.ANCHOR){
+                        var component = Model.nodeToComponent(edge)
+                        component.setIdentifier(i);
+                    }
+                }
+            },
+            setRoleName: function(){
+                var edge;
+                for(var i =0; edge = this.node.edges[i]; i++){
+                    //if (edge.otherNode.type !== NodeType.ANCHOR){
+                        var component = Model.nodeToComponent(edge)
+                        component.role = this.mnemonic;
+                    //}
+                }                
+
+            },            
+            isConforming: function() {
+                var i, edge, anchor, otherNode, otherComponent;
+                // first find the anchor
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
+                    if(otherNode.type === NodeType.ANCHOR) {
+                        anchor = Model.nodeToComponent(otherNode);
+                        break;
+                    }
+                }
+                // then check mnemonic uniqueness
+                for(i = 0; edge = anchor.node.edges[i]; i++) {
+                    otherNode = (edge.node === anchor.node ? edge.otherNode : edge.node);
+                    otherComponent = Model.nodeToComponent(otherNode);
+                    if(otherNode.type === NodeType.KEY && otherNode !== this.node && otherComponent.mnemonic === this.mnemonic) {
+                        return !confirm("The mnemonic '" + this.mnemonic +
+                                "' is not unique among other keys on the '" + anchor +
+                                "' anchor. Please change to a different mnemonic in order to continue.");
+                    }
+                }
+                return true;
+            },
+            fromXML: function(element) {
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? fixed === 'true' : false;
+                var metadata;
+                var capsule = Defaults.encapsulation;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule; 
+                }               
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'description')
+                        description = element.childNodes.item(i);
+                var mnemonic = element.getAttribute("mnemonic") || '???';
+                var descriptor = element.getAttribute("descriptor") || '!Unnamed!';
+                var parent = element.parentNode;
+                var uuid = element.getAttribute("uuid");
+                var key = new Key(x, y);
+                key.uuid = uuid;
+                key.setFixed(fixed);
+                key.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                key.mnemonic = mnemonic;
+                key.descriptor = descriptor;
+                key.encapsulation = capsule;
+                var anchorLookup = Model.getAnchorLookup();
+                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
+                var keyRole = new Role(key, anchor, false);
+                keyRole.role = mnemonic;
+                Model.addComponent(keyRole);
+                key.updateName();
+                return key;
+            },
+            addXML: function(element, schema) {
+                // create an attribute element
+                var key = schema.createElement("key");
+                // set attributes on the element
+                key.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
+                key.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
+                key.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ? Defaults.encapsulation : this.encapsulation);
+                key.appendChild(metadata);
+                this.addLayoutXML(key, schema);
+                this.addDescriptionXML(key, schema, this.description);
+                element.appendChild(key);
+            },
+            contextualName: function() {
+                var name = '';
+                if(Settings.showMnemonics)
+                    name += this.toString();
+                else
+                    name += this.descriptor;
+                return name;
+            },
+            toString: function() {
+                var anchor, edge;
+                for(var i = 0; edge = this.node.edges[i]; i++)
+                    if(edge.otherNode.type === NodeType.ANCHOR)
+                        anchor = Model.nodeToComponent(edge.otherNode);
+                return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+            },
+            draw: function(image) {
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+            }
+        };
+
+                // inheritance
+        extend(Key, Component);
+// KEY 
+
+
         function Anchor(x, y) {
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
@@ -2947,7 +3333,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
+            this.operations.push('addAttribute','addKey','addTie','addTieAndAnchor','explode','hideShowKeys');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3069,7 +3455,9 @@
                 var mnemonic = element.getAttribute("mnemonic") || "??";
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
+                var uuid = element.getAttribute("uuid");
                 var anchor = new Anchor(x, y);
+                anchor.uuid = uuid;
                 anchor.setFixed(fixed);
                 anchor.setImploded(imploded);
                 anchor.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3085,6 +3473,7 @@
                 // create an anchor element
                 var anchor = schema.createElement("anchor");
                 // set attributes on the element
+                anchor.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 anchor.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "??" : this.mnemonic);
                 anchor.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 anchor.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
@@ -3097,7 +3486,7 @@
 
                 var edge;
                 for(var i = 0; edge = this.node.edges[i]; i++) {
-                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.KEY) {
                         var role = Model.nodeToComponent(edge.node);
                         role.addXML(anchor, schema);
                     }
@@ -3246,7 +3635,9 @@
                 var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
+                var uuid = element.getAttribute("uuid");
                 var knot = new Knot(x, y);
+                knot.uuid = uuid;
                 knot.setFixed(fixed);
                 knot.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
@@ -3264,6 +3655,7 @@
                 // create an anchor element
                 var knot = schema.createElement("knot");
                 // set attributes on the element
+                knot.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 knot.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 knot.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
                 knot.setAttribute("identity", this.isEmpty(this.identity) ? '' : this.identity);
@@ -3498,7 +3890,9 @@
                 var changingRange = element.getAttribute("timeRange") || '';
                 var historized = changingRange ? true : false;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var uuid = element.getAttribute("uuid");
                 var tie = new Tie(x, y, historized);
+                tie.uuid = uuid;
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
@@ -3515,6 +3909,7 @@
                 var j, d, type, role, roleName, identifier, coloring, anchor;
                 var anchorRoles = element.getElementsByTagName("anchorRole");
                 for(i = 0; i < anchorRoles.length; i++) {
+                    uuid = anchorRoles[i].getAttribute("uuid"); 
                     type = anchorRoles[i].getAttribute("type") || "??";
                     roleName = anchorRoles[i].getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -3528,6 +3923,7 @@
                         if(anchors[j].getAttribute("mnemonic") === type) {
                             anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
                             role = new Role(tie, anchor, (identifier === "true"));
+                            role.uuid = uuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3539,6 +3935,7 @@
                 }
                 var knot, knotRoles = element.getElementsByTagName("knotRole");
                 for(i = 0; i < knotRoles.length; i++) {
+                    uuid = knotRoles[i].getAttribute("uuid");
                     type = knotRoles[i].getAttribute("type") || "???";
                     roleName = knotRoles[i].getAttribute("role");
                     if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
@@ -3552,6 +3949,7 @@
                         if(knots[j].getAttribute("mnemonic") === type) {
                             knot = knotLookup[knots[j].getAttribute("mnemonic")];
                             role = new Role(tie, knot, (identifier === "true"));
+                            role.uuid = uuid;
                             role.role = roleName;
                             role.setColoring(coloring);
                             role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
@@ -3561,11 +3959,42 @@
                         }
                     }
                 }
+                
+                var keyRole, keyRoles = element.getElementsByTagName("keyRole");
+                for(i = 0; keyRole = keyRoles[i]; i++) {
+                    uuid = keyRole.getAttribute("uuid");
+                    type = keyRole.getAttribute("type") || "???";
+                    roleName = keyRole.getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    identifier = keyRole.getAttribute("identifier");
+                    coloring = keyRole.getAttribute("coloring") || "#000000";
+                    var key, keys, edge, edges, anchor;
+                    var anchors = grandparent.getElementsByTagName("anchor");
+                    for(j = 0; anchor = anchors[j]; j++) {
+                        if(anchor.getAttribute("mnemonic") === type) {
+                            anchor = anchorLookup[anchor.getAttribute("mnemonic")];
+                            break; // only one should match
+                        }
+                    }
+                    keys = anchor.node.getConnectedNodesOfType(NodeType.KEY);
+                    for(var k = 0; key = keys[k]; k++) {
+                        if(key.mnemonic === roleName){
+                            role = new Role(tie, key, identifier);
+                            role.uuid = uuid;
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                            Model.addComponent(role);
+                            role.updateName();
+                        }
+                    }
+                }
                 tie.updateName();
                 return tie;
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
+                tie.setAttribute("uuid", this.isEmpty(this.uuid) ? generateUUID() : this.uuid);
                 if(Defaults.temporalization === 'crt')
                     tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
@@ -3580,8 +4009,18 @@
                         roleElement = schema.createElement("anchorRole");
                     else if(node.type === NodeType.KNOT)
                         roleElement = schema.createElement("knotRole");
+                    else if(node.type == NodeType.KEY)
+                        roleElement = schema.createElement("keyRole");
+                    roleElement.setAttribute("uuid", this.isEmpty(role.uuid) ? generateUUID() : role.uuid);
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
-                    roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
+                    // In a key role the type should be the anchor of the connected keyNode which is also an anchor of the tie!
+                    if(node.type == NodeType.KEY){
+                        // A key is attached to one anchor. so we can pick the first in the array.
+                        var anchor = node.getConnectedNodesOfType(NodeType.ANCHOR)[0]
+                        roleElement.setAttribute("type", this.isEmpty(anchor.mnemonic) ? "???" : anchor.mnemonic);
+                    } else {
+                        roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
+                    }
                     if(role.coloring !== '#000000')
                         roleElement.setAttribute("coloring", role.coloring);
                     roleElement.setAttribute("identifier",
@@ -3630,11 +4069,13 @@
             toString: function() {
                 var i, edge, component, role, name="";
                 for(i = 0; edge = this.node.edges[i]; i++) {
-                    if(i > 0)
+                    if(i > 0 && edge.otherNode.type !== NodeType.KEY)
                         name += "_";
                     component = Model.nodeToComponent(edge.otherNode);
-                    role = Model.nodeToComponent(edge);
-                    name += component.mnemonic + "_" + role.role;
+                    if(edge.otherNode.type !== NodeType.KEY) {
+                        role = Model.nodeToComponent(edge);
+                        name += component.mnemonic + "_" + role.role;
+                    }
                 }
                 return name;
             },
@@ -3656,10 +4097,18 @@
             this.role = '?' + this.id;
             this.component = component;
             this.otherComponent = otherComponent;
+            var roleNumber = identifier;
             this.identifier = identifier;
-            this.editables.push(Editables.roleEdit, Editables.coloringEdit);
-            this.operations.push('toggleIdentifier', 'makeFirstRole');
-            this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
+            this.anchored = node.type === NodeType.ANCHOR || otherNode.type == NodeType.ANCHOR;
+            this.keyed = (node.type === NodeType.KEY || otherNode.type === NodeType.KEY);// && !anchored;
+            this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) && !this.keyed;
+            if (this.keyed) {
+                this.editables.push(Editables.coloringEdit);
+                this.operations.push('makeFirstKeyRole');
+            } else {
+                this.editables.push(Editables.roleEdit, Editables.coloringEdit);
+                this.operations.push('toggleIdentifier', 'makeFirstRole');
+            }
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.setColoring(this.coloring);
@@ -3679,6 +4128,43 @@
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                this.svg.graphicsElement.appendChild(this.svg.useElement);
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                    this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+                );
+                this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
+                this.setNameable(true);
+                this.svg.nameElement.setAttributeNS(null, 'class', 'role');
+            }
+            if(this.keyed) {
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
+                // the line from key to anchor does not need the 'bubble'
+                // it has no key sequence number.
+                if (!this.anchored){
+                    var bubble = document.createElementNS(SVGNS, 'use');
+                    bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                    this.svg.graphicsElement.appendChild(bubble);
+                }
+                this.svg.useElement = document.createElementNS(SVGNS, 'use');
+                var roleTag = [ '#tenplus'
+                              , '#onekey'
+                              , '#two'
+                              , '#three'
+                              , '#four'
+                              , '#five'
+                              , '#six'
+                              , '#seven'
+                              , '#eight'
+                              , '#nine'
+                              , '#ten'
+                              ];
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', roleNumber > 10 ? roleTag[0] : roleTag[roleNumber]);          
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
@@ -3712,9 +4198,27 @@
             identifier: true,
             coloring: '#000000',
             tied: false,
+            keyed: false,
+            anchored: false,
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
-                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+                if (this.keyed) {
+                    var roleTag = [ '#tenplus'
+                                  , '#onekey'
+                                  , '#two'
+                                  , '#three'
+                                  , '#four'
+                                  , '#five'
+                                  , '#six'
+                                  , '#seven'
+                                  , '#eight'
+                                  , '#nine'
+                                  , '#ten'
+                                  ];
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', identifier > 10 ? roleTag[0] : roleTag[identifier]); 
+                } else {
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', identifier ? '#many' : '#one');
+                }
             },
             setColoring: function(coloring) {
                 this.coloring = coloring;
@@ -3728,7 +4232,7 @@
                 }
             },
             isInteractive: function() {
-                return this.tied;
+                return this.tied || (this.keyed && !this.anchored);
             },
             isDraggable: function() {
                 return false;
@@ -3755,6 +4259,16 @@
                 image.pathControl.q.x = otherNode.xPosition;
                 image.pathControl.q.y = otherNode.yPosition;
                 if(this.tied && image.control) {
+                    // experimenting with cardinality placement
+//                    var l = image.pathElement.getTotalLength();
+//                    var p = image.pathElement.getPointAtLength(l/4);
+//                    image.control.setTranslate(p.x, p.y);
+                    image.control.setTranslate(role.xPosition, role.yPosition);
+                }
+                if(this.keyed && image.control) {
+                    // set the dotted line
+                    this.svg.pathElement.style.stroke = '#a8a8a8'
+                    this.svg.pathElement.style.strokeDasharray = '1 4';
                     // experimenting with cardinality placement
 //                    var l = image.pathElement.getTotalLength();
 //                    var p = image.pathElement.getPointAtLength(l/4);
@@ -4262,6 +4776,9 @@
                 ['addAttribute',
                     'Add <u>a</u>ttribute',
                     'Add an attribute to the selected anchor(s).'],
+                ['addKey',
+                    'Add key',
+                    'Add a key to the selected anchor(s).'],
                 ['addTie',
                     'Add <u>t</u>ie',
                     'Add a tie between the selected anchors.'],
@@ -4280,13 +4797,16 @@
                 ['makeFirstRole',
                     'Make <u>f</u>irst role',
                     'Make the selected role(s) the first role in the primary key and tie name.'],
+                ['makeFirstKeyRole',
+                    'Make first key role',
+                    'Make the selected role(s) the first role in the key.'],
                 ['connect',
                     '<u>C</u>onnect',
                     'Connect the selected node(s).',
                     function(allComponents) {
                         if(allComponents.length !== 2)
                             return false;
-                        var component, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0;
+                        var component, anchors = 0, ties = 0, knots = 0, knotted, attributes = 0, keys = 0;
                         for(var i = 0; component = allComponents[i]; i++) {
                             if(component.node.type === NodeType.ANCHOR)
                                 anchors++;
@@ -4298,12 +4818,17 @@
                                 attributes++;
                                 knotted = component.getKnotted();
                             }
+                            else if(component.node.type === NodeType.KEY)
+                                keys++;                                
                         }
-                        return anchors && ties || knots && ties || attributes && knots && !knotted;
+                        return anchors && ties || knots && ties || attributes && knots && !knotted || keys && attributes || keys && ties;
                     }],
                 ['explode',
                     'E<u>x</u>plode/Implode',
                     'Change the level of detail for the selected item(s) in the model.']
+                ['hideShowKeys',
+                    'Hide/Show key(s)',
+                    'Hide/Show key(s) of the selected anchor.']                    
             ],
             isSupported: function(operation, components) {
                 for(var i = 0; i < components.length; i++)
@@ -5018,6 +5543,23 @@
                 }
                 Model.explode(allComponents);
             },
+            hideAllKeys: function() {
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.KEY) && !component.imploded)
+                        allComponents.push(component);
+                }
+                EventHandler.clearSelection();
+                Model.hideShowKeys(allComponents);
+            },
+            unhideAllKeys: function() {
+                var i, component, allComponents = [];
+                for(i = 0; component = Model.components[i]; i++) {
+                    if((component.node.type === NodeType.KEY) && component.imploded)
+                        allComponents.push(component);
+                }
+                Model.hideShowKeys(allComponents);
+            },            
             generateURL: function() {
                 if(Model.id) {
                     if(Model.scope !== 'public')
@@ -5074,6 +5616,9 @@
                 attribute: function(xml, fragment) {
                     return fragment.getAttribute('mnemonic');
                 },
+                key: function(xml, fragment) {
+                    return fragment.getAttribute('mnemonic');
+                },
                 tie: function(xml, fragment) {
                     var roles = xml.evaluate(
                             '*[@role]',
@@ -5084,13 +5629,17 @@
                     );
                     var key = '', role = roles.iterateNext();
                     while(role) {
-                        key += role.getAttribute('type') + '_' + role.getAttribute('role');
+                        if(role.tagName !== 'keyRole') 
+                            key += role.getAttribute('type') + '_' + role.getAttribute('role');
                         role = roles.iterateNext();
-                        if(role) key += '_';
+                        if(role && role.tagName !== 'keyRole') key += '_';
                     }
                     return key;
                 },
                 anchorRole: function(xml, fragment) {
+                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+                },
+                keyRole: function(xml, fragment) {
                     return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
                 },
                 knotRole: function(xml, fragment) {
@@ -5328,6 +5877,8 @@
                     NodeType.charge[NodeType.ANCHOR] = 1;
                     NodeType.mass[NodeType.ATTRIBUTE] = 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1;
+                    NodeType.mass[NodeType.KEY] = 3;
+                    NodeType.charge[NodeType.KEY] = 1;
                     NodeType.mass[NodeType.TIE] = 5;
                     NodeType.charge[NodeType.TIE] = 1;
                     NodeType.mass[NodeType.EDGE] = 2;
@@ -5387,6 +5938,8 @@
                 storage.setItem("anchorCharge", NodeType.charge[NodeType.ANCHOR]);
                 storage.setItem("attributeMass", NodeType.mass[NodeType.ATTRIBUTE]);
                 storage.setItem("attributeCharge", NodeType.charge[NodeType.ATTRIBUTE]);
+                storage.setItem("keyMass", NodeType.mass[NodeType.KEY]);
+                storage.setItem("keyCharge", NodeType.charge[NodeType.KEY]);
                 storage.setItem("tieMass", NodeType.mass[NodeType.TIE]);
                 storage.setItem("tieCharge", NodeType.charge[NodeType.TIE]);
                 storage.setItem("edgeMass", NodeType.mass[NodeType.EDGE]);
@@ -5447,6 +6000,8 @@
                     NodeType.charge[NodeType.ANCHOR] = 1 * storage.getItem('anchorCharge') || 1;
                     NodeType.mass[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeMass') || 3;
                     NodeType.charge[NodeType.ATTRIBUTE] = 1 * storage.getItem('attributeCharge') || 1;
+                    NodeType.mass[NodeType.KEY] = 1 * storage.getItem('keyMass') || 3;
+                    NodeType.charge[NodeType.KEY] = 1 * storage.getItem('keyCharge') || 1; 
                     NodeType.mass[NodeType.TIE] = 1 * storage.getItem('tieMass') || 5;
                     NodeType.charge[NodeType.TIE] = 1 * storage.getItem('tieCharge') || 1;
                     NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 2;
@@ -5801,6 +6356,8 @@
             tieCharge: null,
             edgeMass: null,
             edgeCharge: null,
+            keyMass: null,
+            keyCharge: null,            
             setCalculations: function(value) {
                 var listOfSettings = document.getElementById('listOfSettings');
                 var calcsItem = document.getElementById('calcsItem');
@@ -5816,6 +6373,8 @@
                     if(this.tieCharge) listOfSettings.removeChild(this.tieCharge);
                     if(this.edgeMass) listOfSettings.removeChild(this.edgeMass);
                     if(this.edgeCharge) listOfSettings.removeChild(this.edgeCharge);
+                    if(this.keyMass) listOfSettings.removeChild(this.keyMass);
+                    if(this.keyCharge) listOfSettings.removeChild(this.keyCharge);
                     this.knotMass = null;
                     this.knotCharge = null;
                     this.anchorMass = null;
@@ -5826,6 +6385,8 @@
                     this.tieCharge = null;
                     this.edgeMass = null;
                     this.edgeCharge = null;
+                    this.keyMass = null;
+                    this.keyCharge = null;
                 }
                 else if (value === 'complex') {
                     LayoutEngine.layout = LayoutEngine.complexLayout;
@@ -5839,6 +6400,8 @@
                     this.tieCharge = document.createElement('li');
                     this.edgeMass = document.createElement('li');
                     this.edgeCharge = document.createElement('li');
+                    this.keyMass = document.createElement('li');
+                    this.keyCharge = document.createElement('li');
                     var knotMassInput = document.createElement('input');
                     var knotChargeInput = document.createElement('input');
                     var anchorMassInput = document.createElement('input');
@@ -5849,6 +6412,8 @@
                     var tieChargeInput = document.createElement('input');
                     var edgeMassInput = document.createElement('input');
                     var edgeChargeInput = document.createElement('input');
+                    var keyMassInput = document.createElement('input');
+                    var keyChargeInput = document.createElement('input');
                     knotMassInput.setAttribute('type', 'number');
                     knotChargeInput.setAttribute('type', 'number');
                     anchorMassInput.setAttribute('type', 'number');
@@ -5859,6 +6424,8 @@
                     tieChargeInput.setAttribute('type', 'number');
                     edgeMassInput.setAttribute('type', 'number');
                     edgeChargeInput.setAttribute('type', 'number');
+                    keyMassInput.setAttribute('type', 'number');
+                    keyChargeInput.setAttribute('type', 'number');
                     knotMassInput.setAttribute('step', '0.1');
                     knotChargeInput.setAttribute('step', '0.1');
                     anchorMassInput.setAttribute('step', '0.1');
@@ -5869,6 +6436,8 @@
                     tieChargeInput.setAttribute('step', '0.1');
                     edgeMassInput.setAttribute('step', '0.1');
                     edgeChargeInput.setAttribute('step', '0.1');
+                    keyMassInput.setAttribute('step', '0.1');
+                    keyChargeInput.setAttribute('step', '0.1');
                     knotMassInput.value = NodeType.mass[NodeType.KNOT];
                     knotChargeInput.value = NodeType.charge[NodeType.KNOT];
                     anchorMassInput.value = NodeType.mass[NodeType.ANCHOR];
@@ -5879,6 +6448,8 @@
                     tieChargeInput.value = NodeType.charge[NodeType.TIE];
                     edgeMassInput.value = NodeType.mass[NodeType.EDGE];
                     edgeChargeInput.value = NodeType.charge[NodeType.EDGE];
+                    keyMassInput.value = NodeType.mass[NodeType.KEY];
+                    keyChargeInput.value = NodeType.charge[NodeType.KEY];
                     knotMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.KNOT] = 1 * this.value; }, false);
                     knotChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.KNOT] = 1 * this.value; }, false);
                     anchorMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.ANCHOR] = 1 * this.value; }, false);
@@ -5889,6 +6460,8 @@
                     tieChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.TIE] = 1 * this.value; }, false);
                     edgeMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.EDGE] = 1 * this.value; }, false);
                     edgeChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.EDGE] = 1 * this.value; }, false);
+                    keyMassInput.addEventListener('blur', function() { NodeType.mass[NodeType.KEY] = 1 * this.value; }, false);
+                    keyChargeInput.addEventListener('blur', function() { NodeType.charge[NodeType.KEY] = 1 * this.value; }, false);
                     this.knotMass.appendChild(knotMassInput);
                     this.knotCharge.appendChild(knotChargeInput);
                     this.anchorMass.appendChild(anchorMassInput);
@@ -5899,6 +6472,8 @@
                     this.tieCharge.appendChild(tieChargeInput);
                     this.edgeMass.appendChild(edgeMassInput);
                     this.edgeCharge.appendChild(edgeChargeInput);
+                    this.keyMass.appendChild(keyMassInput);
+                    this.keyCharge.appendChild(keyChargeInput);
                     this.knotMass.appendChild(document.createTextNode(' Knot mass'));
                     this.knotCharge.appendChild(document.createTextNode(' Knot charge'));
                     this.anchorMass.appendChild(document.createTextNode(' Anchor mass'));
@@ -5909,6 +6484,10 @@
                     this.tieCharge.appendChild(document.createTextNode(' Tie charge'));
                     this.edgeMass.appendChild(document.createTextNode(' Edge mass'));
                     this.edgeCharge.appendChild(document.createTextNode(' Edge charge'));
+                    this.keyMass.appendChild(document.createTextNode(' Key mass'));
+                    this.keyCharge.appendChild(document.createTextNode(' Key charge'));
+                    listOfSettings.insertBefore(this.keyCharge, calcsItem);
+                    listOfSettings.insertBefore(this.keyMass, calcsItem);
                     listOfSettings.insertBefore(this.edgeCharge, calcsItem);
                     listOfSettings.insertBefore(this.edgeMass, calcsItem);
                     listOfSettings.insertBefore(this.tieCharge, calcsItem);
@@ -6284,6 +6863,22 @@
                 <circle r="12"/>
                 <circle r="7"/>
             </g>
+            <!--
+            <g id="key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px; stroke-dash:5,5;">
+                <circle r="10"/>
+            </g>
+            -->
+            <g id="key" style="fill:#f9f8f7; stroke:#a8a8a8;" transform="rotate(-60)" >
+                <circle r="10" />
+                <line x1="3" y1="-7" x2="3" y2="-2"/>
+                <line x1="-3" y1="-7" x2="-3" y2="-2"/>
+                <line x1="0" y1="-2" x2="0" y2="7"/>
+                <line x1="-3" y1="-2" x2="3" y2="-2"/>
+                <line x1="-3" y1="-7" x2="3" y2="-7"/>
+                <line x1="-3" y1="7" x2="0" y2="7"/>
+                <line x1="-3" y1="5" x2="0" y2="5"/>
+                <line x1="-3" y1="3" x2="0" y2="3"/>
+            </g>            
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>
@@ -6300,6 +6895,60 @@
             <g id="one" style="stroke:#544; stroke-width:1px;">
                 <line x1="0" y1="-3" x2="0" y2="3"/>
             </g>
+            <g id="onekey" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="two" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-1.5" y1="-3" x2="-1.5" y2="3"/>
+                <line x1="1.5" y1="-3" x2="1.5" y2="3"/>
+            </g>
+            <g id="three" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="-3" y2="3"/>
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+                <line x1="3" y1="-3" x2="3" y2="3"/>
+            </g>
+            <g id="four" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="-3" y2="3"/>
+                <line x1="0" y1="-3" x2="2" y2="3"/>
+                <line x1="4" y1="-3" x2="2" y2="3"/>
+            </g>
+            <g id="five" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="0" y2="3"/>
+                <line x1="2" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="six" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-4" y1="-3" x2="-2" y2="3"/>
+                <line x1="0" y1="-3" x2="-2" y2="3"/>
+                <line x1="3" y1="-3" x2="3" y2="3"/>
+            </g>
+            <g id="seven" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-5" y1="-3" x2="-3" y2="3"/>
+                <line x1="-1" y1="-3" x2="-3" y2="3"/>
+                <line x1="2" y1="-3" x2="2" y2="3"/>
+                <line x1="5" y1="-3" x2="5" y2="3"/>
+            </g>
+            <g id="eight" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-6.5" y1="-3" x2="-4.5" y2="3"/>
+                <line x1="-2.5" y1="-3" x2="-4.5" y2="3"/>
+                <line x1="0.5" y1="-3" x2="0.5" y2="3"/>
+                <line x1="3.5" y1="-3" x2="3.5" y2="3"/>
+                <line x1="6.5" y1="-3" x2="6.5" y2="3"/>
+            </g>
+            <g id="nine" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-3" y1="-3" x2="-3" y2="3"/>
+                <line x1="0" y1="-3" x2="4" y2="3"/>
+                <line x1="4" y1="-3" x2="0" y2="3"/>
+            </g>
+            <g id="ten" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="2" y2="3"/>
+                <line x1="2" y1="-3" x2="-2" y2="3"/>
+            </g>
+            <g id="tenplus" style="stroke:#a8a8a8; stroke-width:1px;">
+                <line x1="-2" y1="-3" x2="2" y2="3"/>
+                <line x1="2" y1="-3" x2="-2" y2="3"/>
+                <line x1="0" y1="-3" x2="0" y2="3"/>
+                <line x1="-3" y1="0" x2="3" y2="0"/>
+            </g>  
             <g id="many" style="stroke:#544; stroke-width:1px;">
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
@@ -6346,6 +6995,8 @@
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
                 <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
                 <li title="Unhide all hidden attributes and knots." onclick="Actions.explodeAll()">Explode all</li>
+                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.hideAllKeys()">Hide all keys</li>
+                <li title="Unhide all hidden attributes and knots." onclick="Actions.unhideAllKeys()">Show all keys</li>                
                 <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
                 <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." onclick="Actions.randomizeLayout()">Randomize layout</li>
             </ul>
@@ -6483,6 +7134,22 @@
                 <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="10"/>
                 </g>
+                <!--
+                <g id="nav_key" style="fill:#a8a8a8; stroke:#f88; stroke-width:2px;">
+                    <circle r="10"/>
+                </g>
+                -->
+                <g id="nav_key" style="fill:#f9f8f7; stroke:#544;" transform="rotate(-60)" >
+                    <circle r="10" style="stroke:none"/>
+                    <line x1="3" y1="-8" x2="3" y2="-2"/>
+                    <line x1="-3" y1="-8" x2="-3" y2="-2"/>
+                    <line x1="0" y1="-2" x2="0" y2="8"/>
+                    <line x1="-3" y1="-2" x2="3" y2="-2"/>
+                    <line x1="-3" y1="-8" x2="3" y2="-8"/>
+                    <line x1="-3" y1="8" x2="0" y2="8"/>
+                    <line x1="-3" y1="6" x2="0" y2="6"/>
+                    <line x1="-3" y1="4" x2="0" y2="4"/>
+                </g>                            
                 <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="12"/>
                     <circle r="7"/>
