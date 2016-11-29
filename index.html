@@ -2031,6 +2031,15 @@
                 }
                 this.setInteraction(null);
             },
+            escape: function (event) {
+                if (event.keyCode == 27) {
+                    EventHandler.clearSelection();
+                    var component = EventHandler.interactedComponents[0];
+                    if(component) {
+                        component.hideContextMenu();
+                    }
+                }
+            },
             isSelected: function(component) {
                 return this.selectedComponents.indexOf(component) >= 0;
             },
@@ -2206,7 +2215,7 @@
                     EventHandler.lastY = event.clientY;
                 }
                 DrawingEngine.invalidateMiniature();
-                DrawingEngine.start(false);
+                DrawingEngine.start(false); // TODO: this should halt layouting and just pan, but it does not
                 event.stopPropagation();
             },
             completePanning: function(event) {
@@ -4016,7 +4025,7 @@
                         roleElement.setAttribute("coloring", role.coloring);
                     roleElement.setAttribute("identifier",
                             this.isEmpty(role.identifier) ? false : role.identifier);
-                    this.addDescriptionXML(roleElement, schema, component.description);
+                    this.addDescriptionXML(roleElement, schema, role.description || component.description);
                     tie.appendChild(roleElement);
                 }
 
@@ -4756,43 +4765,43 @@
             // operations are defined as 'method', 'display name', 'description', 'optional rule'
             list: [
                 ['erase',
-                    'Delete selected...',
+                    '<u>D</u>elete selected...',
                     'Deletes the selected item(s) from the model.'],
                 ['toggleKnotted',
-                    'Toggle knotted',
+                    'Toggle <u>k</u>notted',
                     'Adds or removes a knot from the selected attribute(s).'], // TODO: only remove knot if it is the last attribute
                 ['toggleHistorized',
-                    'Toggle historized',
+                    'Toggle <u>h</u>istorized',
                     'Historized items can store versions of values over changing time and are marked by a double outline in the model.'],
                 ['addAttribute',
-                    'Add attribute',
+                    'Add <u>a</u>ttribute',
                     'Add an attribute to the selected anchor(s).'],
                 ['addKey',
                     'Add key',
                     'Add a key to the selected anchor(s).'],
                 ['addTie',
-                    'Add tie',
+                    'Add <u>t</u>ie',
                     'Add a tie between the selected anchors.'],
                 ['addAnchor',
-                    'Add anchor',
+                    'Add <u>a</u>nchor',
                     'Add an anchor to the selected tie(s).'],
                 ['addKnot',
-                    'Add knot',
+                    'Add <u>k</u>not',
                     'Add a knot to the selected tie(s).'],
                 ['addTieAndAnchor',
-                    'Add tied anchor',
+                    'Add <u>t</u>ied anchor',
                     'Add a tie with a connected anchor to the selected anchor(s).'],
                 ['toggleIdentifier',
-                    'Toggle identifier',
+                    'Toggle <u>i</u>dentifier',
                     'Toggles whether the selected role(s) should be a part of the primary key or not.'],
                 ['makeFirstRole',
-                    'Make first role',
+                    'Make <u>f</u>irst role',
                     'Make the selected role(s) the first role in the primary key and tie name.'],
                 ['makeFirstKeyRole',
                     'Make first key role',
                     'Make the selected role(s) the first role in the key.'],
                 ['connect',
-                    'Connect',
+                    '<u>C</u>onnect',
                     'Connect the selected node(s).',
                     function(allComponents) {
                         if(allComponents.length !== 2)
@@ -4815,8 +4824,8 @@
                         return anchors && ties || knots && ties || attributes && knots && !knotted || keys && attributes || keys && ties;
                     }],
                 ['explode',
-                    'Explode/Implode',
-                    'Change the level of detail for the selected item(s) in the model.'],
+                    'E<u>x</u>plode/Implode',
+                    'Change the level of detail for the selected item(s) in the model.']
                 ['hideShowKeys',
                     'Hide/Show key(s)',
                     'Hide/Show key(s) of the selected anchor.']                    
@@ -4925,7 +4934,7 @@
                 var operator = document.createElement('div');
                 operator.setAttribute('class', 'operator');
                 operator.setAttribute('title', supportedOperations[i][2]);
-                operator.appendChild(document.createTextNode(supportedOperations[i][1]));
+                operator.innerHTML = supportedOperations[i][1];
                 operator.method = supportedOperations[i][0];
                 operator.addEventListener('click', function() { self.operate(this, allComponents); }, false);
                 this.operators.appendChild(operator);
@@ -6520,17 +6529,18 @@
                 this.redoButton.addEventListener('click', this.redo, false);
                 this.zoomInButton.addEventListener('click', this.zoomIn, false);
                 this.zoomOutButton.addEventListener('click', this.zoomOut, false);
+                this.playing = false;
             },
             togglePlayPause: function (event) {
                 if(DrawingEngine.running) {
                     DrawingEngine.stop();
                     this.setPlayState();
                 }
-                else if (LayoutEngine.equilibrium) {
-                    this.invalidateLayout();
-                }
                 else {
-                    DrawingEngine.start(false);
+                    if (LayoutEngine.equilibrium) {
+                        this.invalidateLayout();
+                    }
+                    DrawingEngine.start(true);
                     this.setPauseState();
                 }
             },
@@ -6566,7 +6576,6 @@
                 for(var i = 0; i < Model.visibleNodes.length; i++) {
                     Model.visibleNodes[i].start();
                 }
-                DrawingEngine.start(true);
             },
             doZoom: function (zoom) {
                 var w = SVG.viewBox.baseVal.width;
@@ -6727,6 +6736,8 @@
 
             // handle resizing
             window.addEventListener('resize', EventHandler.resize, false);
+            // handle the escape button
+            window.addEventListener('keypress', EventHandler.escape, false);
 
             // load url or previous model, if any
             var model;
