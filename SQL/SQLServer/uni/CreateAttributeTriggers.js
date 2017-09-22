@@ -100,12 +100,39 @@ BEGIN
 ~*/
         if(attribute.isHistorized()) {
 /*~
-                    WHEN [$attribute.capsule].[rf$attribute.name](
-                        v.$attribute.anchorReferenceName,
-                        $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
-                        $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
-                        v.$attribute.changingColumnName
-                    ) = 1
+                    WHEN EXISTS ( -- note that this code is identical to the scalar function [$attribute.capsule].[rf$attribute.name]
+                        SELECT TOP 1
+                            42 
+                        WHERE
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
+                                SELECT TOP 1
+                                    $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
+                                FROM
+                                    $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](v.$attribute.equivalentColumnName) pre : [$attribute.capsule].[$attribute.name] pre
+                                WHERE
+                                    pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                                AND
+                                    pre.$attribute.changingColumnName < v.$attribute.changingColumnName
+                                ORDER BY
+                                    pre.$attribute.changingColumnName DESC
+                            )
+                    ) OR EXISTS (
+                        SELECT TOP 1
+                            42 
+                        WHERE
+                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
+                                SELECT TOP 1
+                                    $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
+                                FROM
+                                    $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](v.$attribute.equivalentColumnName) fol : [$attribute.capsule].[$attribute.name] fol
+                                WHERE
+                                    fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                                AND
+                                    fol.$attribute.changingColumnName > v.$attribute.changingColumnName
+                                ORDER BY
+                                    fol.$attribute.changingColumnName ASC
+                            )
+                    )                    
                     THEN 'R' -- restatement
 ~*/
         }
