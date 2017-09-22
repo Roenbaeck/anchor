@@ -88,33 +88,62 @@ FROM
     [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
 ~*/
         while (attribute = anchor.nextAttribute()) {
-            if(attribute.isEquivalent()) {
+            if(attribute.isHistorized()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[e$attribute.name](0) [$attribute.mnemonic]
+LEFT JOIN (
+    SELECT
+        $attribute.anchorReferenceName,
+        $(schema.METADATA)? MAX($attribute.metadataColumnName) AS $attribute.metadataColumnName,
+        MAX($attribute.changingColumnName) AS $attribute.changingColumnName,
+        $(attribute.isEquivalent())? MAX($attribute.equivalentColumnName) AS $attribute.equivalentColumnName,
+        MAX($attribute.valueColumnName) AS $attribute.valueColumnName
+    FROM (
+        SELECT
+            $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $attribute.changingColumnName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+            $attribute.valueColumnName,
+            ROW_NUMBER() OVER (PARTITION BY $attribute.anchorReferenceName ORDER BY $attribute.changingColumnName DESC) AS ReversedVersion
+        FROM
 ~*/
-            }
+                if(attribute.isEquivalent()) {
+/*~
+            [$attribute.capsule].[e$attribute.name](0)
+~*/
+                }
+                else {
+/*~
+            [$attribute.capsule].[$attribute.name]
+~*/
+                }
+/*~
+    ) a
+    WHERE
+        ReversedVersion = 1
+    GROUP BY
+        $attribute.anchorReferenceName
+) [$attribute.mnemonic]
+~*/
+            } // end of historized
             else {
 /*~
 LEFT JOIN
+~*/
+                if(attribute.isEquivalent()) {
+/*~
+    [$attribute.capsule].[e$attribute.name](0) [$attribute.mnemonic]
+~*/
+                }
+                else {
+/*~
     [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
 ~*/
+                }             
             }
 /*~
 ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
-            if(attribute.isHistorized()) {
-/*~
-AND
-    [$attribute.mnemonic].$attribute.changingColumnName = (
-        SELECT
-            max(sub.$attribute.changingColumnName)
-        FROM
-            $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](0) sub : [$attribute.capsule].[$attribute.name] sub
-        WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-   )~*/
-            }
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 if(knot.isEquivalent()) {
@@ -177,48 +206,61 @@ FROM
 ~*/
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isHistorized()) {
+/*~
+LEFT JOIN (
+    SELECT
+        $attribute.anchorReferenceName,
+        $(schema.METADATA)? MAX($attribute.metadataColumnName) AS $attribute.metadataColumnName,
+        MAX($attribute.changingColumnName) AS $attribute.changingColumnName,
+        $(attribute.isEquivalent())? MAX($attribute.equivalentColumnName) AS $attribute.equivalentColumnName,
+        MAX($attribute.valueColumnName) AS $attribute.valueColumnName
+    FROM (
+        SELECT
+            $attribute.anchorReferenceName,
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $attribute.changingColumnName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+            $attribute.valueColumnName,
+            ROW_NUMBER() OVER (PARTITION BY $attribute.anchorReferenceName ORDER BY $attribute.changingColumnName DESC) AS ReversedVersion
+        FROM
+~*/
                 if(attribute.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[r$attribute.name](0, @changingTimepoint) [$attribute.mnemonic]
+            [$attribute.capsule].[r$attribute.name](0, @changingTimepoint)
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[r$attribute.name](@changingTimepoint) [$attribute.mnemonic]
+            [$attribute.capsule].[r$attribute.name](@changingTimepoint)
 ~*/
                 }
 /*~
-ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-AND
-    [$attribute.mnemonic].$attribute.changingColumnName = (
-        SELECT
-            max(sub.$attribute.changingColumnName)
-        FROM
-            $(attribute.isEquivalent())? [$attribute.capsule].[r$attribute.name](0, @changingTimepoint) sub : [$attribute.capsule].[r$attribute.name](@changingTimepoint) sub
-        WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-   )~*/
-            }
+    ) a
+    WHERE
+        ReversedVersion = 1
+    GROUP BY
+        $attribute.anchorReferenceName
+) [$attribute.mnemonic]
+~*/
+            } // end of historized
             else {
-                if(attribute.isEquivalent()) {
 /*~
 LEFT JOIN
+~*/
+                if(attribute.isEquivalent()) {
+/*~
     [$attribute.capsule].[e$attribute.name](0) [$attribute.mnemonic]
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
     [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
 ~*/
-                }
+                }             
+            }
 /*~
 ON
     [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
-            }
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 if(knot.isEquivalent()) {
