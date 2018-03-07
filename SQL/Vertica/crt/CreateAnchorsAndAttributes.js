@@ -19,7 +19,7 @@ while (anchor = schema.nextAnchor()) {
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
     $anchor.identityColumnName $(anchor.isGenerator())? $anchor.identityGenerator not null, : $anchor.identity not null,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName bit null,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName boolean null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName
     )
