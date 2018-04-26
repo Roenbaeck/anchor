@@ -66,6 +66,7 @@ SELECT
 /*~
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
+    $(attribute.isDeletable())? cast(null as bit) as $attribute.deletableColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
     $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
 ~*/

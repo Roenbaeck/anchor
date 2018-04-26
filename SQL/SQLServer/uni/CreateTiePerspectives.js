@@ -55,6 +55,7 @@ GO
 CREATE VIEW [$tie.capsule].[l$tie.name] WITH SCHEMABINDING AS
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
+    $(tie.isDeletable())? cast(null as bit) as $tie.deletableColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
 ~*/
         while (role = tie.nextRole()) {

@@ -119,7 +119,10 @@
             equivalentRange: 'tinyint',
             databaseTarget: 'SQLServer',
             temporalization: 'uni', 
-            deleteability: 'false'
+            deletability: 'false',
+            deletablePrefix: 'Deletable',
+            deletionSuffix: 'Deleted'
+
         };
 
         // global function providing inheritance
@@ -1701,15 +1704,15 @@
                 event: 'click',
                 attributes: ['type', 'checkbox']
             },
-            deleteabilityEdit: {
-                name: 'Deleteable',
+            deletabilityEdit: {
+                name: 'Deletable',
                 description:
                        'Check this if you want to be able to "delete" values using an update statement ' +
                        'with a null value and a later changing time then of the latest existing value. ' +
                        'Affected rows will be moved to a deletion table.',
-                setMember: function (element, component) { component.deleteable = element.checked; },
-                getMember: function (component) { return component.deleteable; },
-                setElement: function (element, component) { element.checked = component.deleteable; },
+                setMember: function (element, component) { component.deletable = element.checked; },
+                getMember: function (component) { return component.deletable; },
+                setElement: function (element, component) { element.checked = component.deletable; },
                 getElement: function (element) { return element.checked; },
                 editable: true,
                 type: 'input',
@@ -2620,11 +2623,11 @@
             this.editables.push(Editables.positGeneratorEdit);
             this.editables.push(Editables.assertivenessEdit);
             this.editables.push(Editables.checksumEdit);
-            this.editables.push(Editables.deleteabilityEdit);
+            this.editables.push(Editables.deletabilityEdit);
             this.editables.push(Editables.equivalenceEdit);
             this.knotted = false;
             this.historized = historized;
-            this.deleteable = Defaults.deleteability === 'true';
+            this.deletable = Defaults.deletability === 'true';
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
             this.assertive = Defaults.assertiveness === 'true';
@@ -2672,7 +2675,7 @@
             positIdentity: '',
             positGenerator: true,
             historized: false,
-            deleteable: false,
+            deletable: false,
             restatable: true,
             idempotent: false,
             assertive: true,
@@ -2776,7 +2779,7 @@
                 fixed = fixed ? fixed === 'true' : false;
                 var metadata;
                 var capsule = Defaults.encapsulation;
-                var deleteable = Defaults.deleteability === 'true';
+                var deletable = Defaults.deletability === 'true';
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
                 var assertive = Defaults.assertiveness === 'true';
@@ -2788,8 +2791,8 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    var _deleteable = metadata.getAttribute("deleteable");
-                    deleteable = _deleteable ? _deleteable === 'true' : deleteable;
+                    var _deletable = metadata.getAttribute("deletable");
+                    deletable = _deletable ? _deletable === 'true' : deletable;
                     var _restatable = metadata.getAttribute("restatable") || metadata.getAttribute("restatements");
                     restatable = _restatable ? _restatable === 'true' : restatable;
                     var _idempotent = metadata.getAttribute("idempotent");
@@ -2826,7 +2829,7 @@
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
                 attribute.encapsulation = capsule;
-                attribute.deleteable = deleteable;
+                attribute.deletable = deletable;
                 attribute.restatable = restatable;
                 attribute.idempotent = idempotent;
                 attribute.assertive = assertive;
@@ -2892,8 +2895,8 @@
                     metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
                             Defaults.idempotency === 'true' : this.idempotent);
                 }
-                metadata.setAttribute("deleteable", this.isEmpty(this.deleteable) ?
-                        Defaults.deleteability === 'true' : this.deleteable);                
+                metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
+                        Defaults.deletability === 'true' : this.deletable);                
                 attribute.appendChild(metadata);
                 this.addLayoutXML(attribute, schema);
                 this.addDescriptionXML(attribute, schema, this.description);
@@ -2911,7 +2914,7 @@
                         name += 'r';
                     if(this.idempotent)
                         name += 'i';
-                    if(this.deleteable)
+                    if(this.deletable)
                         name += 'd';
                     if(Defaults.temporalization === 'crt' && this.assertive)
                         name += 'a';
@@ -3326,7 +3329,7 @@
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.TIE));
             this.historized = historized;
-            this.deleteable = Defaults.deleteability === 'true';
+            this.deletable = Defaults.deletability === 'true';
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
             this.assertive = Defaults.assertiveness === 'true';
@@ -3334,7 +3337,7 @@
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
             this.editables.push(Editables.assertivenessEdit);
-            this.editables.push(Editables.deleteabilityEdit);
+            this.editables.push(Editables.deletabilityEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor');
@@ -3372,7 +3375,7 @@
         Tie.prototype = {
             changingRange: Defaults.changingRange,
             historized: false,
-            deleteable: false,
+            deletable: false,
             restatable: true,
             idempotent: false,
             assertive: true,
@@ -3503,7 +3506,7 @@
                 fixed = fixed ? fixed === 'true' : false;
                 var metadata;
                 var capsule = Defaults.encapsulation;
-                var deleteable = Defaults.deleteability === 'true';
+                var deletable = Defaults.deletability === 'true';
                 var restatable = Defaults.restatability === 'true';
                 var idempotent = Defaults.idempotency === 'true';
                 var assertive = Defaults.assertiveness === 'true';
@@ -3513,8 +3516,8 @@
                         metadata = element.childNodes.item(i);
                 if(metadata) {
                     capsule = metadata.getAttribute("capsule") || capsule;
-                    var _deleteable = metadata.getAttribute("deleteable");
-                    deleteable = _deleteable ? _deleteable === 'true' : deleteable;
+                    var _deletable = metadata.getAttribute("deletable");
+                    deletable = _deletable ? _deletable === 'true' : deletable;
                     var _restatable = metadata.getAttribute("restatable") || metadata.getAttribute("restatements");
                     restatable = _restatable ? _restatable === 'true' : restatable;
                     var _idempotent = metadata.getAttribute("idempotent");
@@ -3536,7 +3539,7 @@
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
                 tie.encapsulation = capsule;
-                tie.deleteable = deleteable;
+                tie.deletable = deletable;
                 tie.restatable = restatable;
                 tie.idempotent = idempotent;
                 tie.assertive = assertive;
@@ -3636,8 +3639,8 @@
                     metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
                             Defaults.idempotency === 'true' : this.idempotent);
                 }
-                metadata.setAttribute("deleteable", this.isEmpty(this.deleteable) ?
-                        Defaults.deleteability === 'true' : this.deleteable);
+                metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
+                        Defaults.deletability === 'true' : this.deletable);
                 tie.appendChild(metadata);
 
                 this.addLayoutXML(tie, schema);
@@ -3654,7 +3657,7 @@
                             name += 'r';
                         if(this.idempotent)
                             name += 'i';
-                        if(this.deleteable)
+                        if(this.deletable)
                             name += 'd';
                         if(Defaults.temporalization === 'crt' && this.assertive)
                             name += 'a';
@@ -5281,7 +5284,7 @@
                 document.getElementById('defaultChronon').value = Defaults.chronon;
                 document.getElementById('defaultNow').value = Defaults.now;
                 document.getElementById('defaultChangingRange').value = Defaults.changingRange;
-                document.getElementById('deleteability').checked = Defaults.deleteability === 'true';
+                document.getElementById('deletability').checked = Defaults.deletability === 'true';
                 document.getElementById('restatability').checked = Defaults.restatability === 'true';
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
@@ -5293,6 +5296,8 @@
                 document.getElementById('changingSuffix').value = Defaults.changingSuffix;
                 document.getElementById('checksumSuffix').value = Defaults.checksumSuffix;
                 document.getElementById('identitySuffix').value = Defaults.identitySuffix;
+                document.getElementById('deletablePrefix').value = Defaults.deletablePrefix;
+                document.getElementById('deletionSuffix').value = Defaults.deletionSuffix;
                 document.getElementById('naming').value = Defaults.naming;
             },
             resetDefaults: function(warn) {
@@ -5311,10 +5316,12 @@
                     this.setDefaultNow('sysdatetime()');
                     this.setDefaultChangingRange('datetime');
                     this.setMetadataPrefix('Metadata');
+                    this.setDeletablePrefix('Deletable');
+                    this.setDeletionSuffix('Deleted');
                     this.setMetadataType('int');
                     this.setEquivalentSuffix('EQ');
                     this.setEquivalentRange('tinyint');
-                    this.setDeleteability('false');
+                    this.setDeletability('false');
                     this.setRestatability('true');
                     this.setIdempotency('false');
                     this.setAssertiveness('true');
@@ -5395,6 +5402,8 @@
                 storage.setItem("defaultChronon", Defaults.chronon);
                 storage.setItem("defaultNow", Defaults.now);
                 storage.setItem("defaultChangingRange", Defaults.changingRange);
+                storage.setItem("deletablePrefix", Defaults.deletablePrefix);
+                storage.setItem("deletionSuffix", Defaults.deletionSuffix);
                 storage.setItem("metadataPrefix", Defaults.metadataPrefix);
                 storage.setItem("metadataType", Defaults.metadataType);
                 storage.setItem("equivalentSuffix", Defaults.equivalentSuffix);
@@ -5403,7 +5412,7 @@
                 storage.setItem("businessViews", Defaults.businessViews);
                 storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
-                storage.setItem("deleteability", Defaults.deleteability);
+                storage.setItem("deletability", Defaults.deletability);
                 storage.setItem("restatability", Defaults.restatability);
                 storage.setItem("idempotency", Defaults.idempotency);
                 storage.setItem("assertiveness", Defaults.assertiveness);
@@ -5456,6 +5465,8 @@
                     this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
                     this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
                     this.setDefaultChangingRange(storage.getItem('defaultChangingRange') || Defaults.changingRange);
+                    this.setDeletablePrefix(storage.getItem('deletablePrefix') || Defaults.deletablePrefix);
+                    this.setDeletionSuffix(storage.getItem('deletionSuffix') || Defaults.deletionSuffix);
                     this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                     this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
                     this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
@@ -5478,7 +5489,7 @@
                     this.setAssertionSuffix(storage.getItem('assertionSuffix') || Defaults.assertionSuffix);
                     this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
                     this.setEntityIntegrity(storage.getItem('entityIntegrity') || Defaults.entityIntegrity);
-                    this.setDeleteability(storage.getItem('deleteability') || Defaults.deleteability);
+                    this.setDeletability(storage.getItem('deletability') || Defaults.deletability);
                     this.setRestatability(storage.getItem('restatability') || Defaults.restatability);
                     this.setIdempotency(storage.getItem('idempotency') || Defaults.idempotency);
                     this.setAssertiveness(storage.getItem('assertiveness') || Defaults.assertiveness);
@@ -5546,6 +5557,8 @@
             reliabilitySuffix: null,
             deleteReliability: null,
             assertionSuffix: null,
+            deletablePrefix: null,
+            deletionSuffix: null,
             metadataPrefix: null,
             metadataType: null,
             equivalentSuffix: null,
@@ -5675,6 +5688,12 @@
                     Editables.setEditability(Editables.assertivenessEdit, false);
                 }
             },
+            setDeletablePrefix: function(value) {
+                Defaults.deletablePrefix = value;
+            },
+            setDeletionSuffix: function(value) {
+                Defaults.deletionSuffix = value;
+            },
             setMetadataPrefix: function(value) {
                 Defaults.metadataPrefix = value;
             },
@@ -5743,8 +5762,8 @@
                     Editables.setEditability(Editables.equivalenceEdit, false);
                 }
             },
-            setDeleteability: function(value) {
-                Defaults.deleteability = value;
+            setDeletability: function(value) {
+                Defaults.deletability = value;
             },
             setRestatability: function(value) {
                 Defaults.restatability = value;
@@ -6467,11 +6486,13 @@
                 <li title="The default 'schema' to use for new items."><input id="encapsulation" class="inputDefaults" type="text" onblur="Settings.setEncapsulation(this.value)"/> Capsule</li>
                 <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
                 <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
+                <li title="The prefix used for the columns that enable deletion."><input id="deletablePrefix" class="inputDefaults" type="text" onblur="Settings.setDeletablePrefix(this.value)"/> Deletable prefix</li>
+                <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" onblur="Settings.setDeletionSuffix(this.value)"/> Deletion suffix</li>
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
                 <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li title="Default for new items. Deleteable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deleteability" class="inputDefaults" type="checkbox" onchange="Settings.setDeleteability(this.checked ? 'true' : 'false')"/> Deleteability</li>
+                <li title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
                 <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
