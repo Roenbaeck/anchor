@@ -372,16 +372,14 @@ BEGIN
             }
 /*~;~*/
         }
-        if(tie.isDeletable()) {
+        if(tie.isDeletable() && tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
 /*~        
     SELECT
 ~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
+            while(role = tie.nextIdentifier()) {
 /*~
         $role.columnName$(tie.hasMoreIdentifiers())?,
 ~*/
-                }
             }
 /*~        
     INTO
@@ -389,7 +387,16 @@ BEGIN
     FROM
         inserted i 
     WHERE
-        i.$tie.deletableColumnName = 1;
+~*/
+            while(role = tie.nextValue()) {
+/*~
+        i.$role.columnName is null
+    AND
+~*/
+            }
+/*~
+
+        i.$tie.deletableColumnName = 1
 
     IF(@@ROWCOUNT > 0)
     BEGIN
