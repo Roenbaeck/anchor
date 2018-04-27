@@ -104,6 +104,9 @@ while (anchor = schema.nextAnchor()) {
         attribute.isEquivalent = function() {
             return this.metadata.equivalent == 'true';
         };
+        attribute.isDeletable = function() {
+            return this.metadata.deletable == 'true';
+        };
         attribute.isRestatable = function() {
             return this.metadata.restatable == 'true';
         };
@@ -169,6 +172,9 @@ while(tie = schema.nextTie()) {
     };
     tie.isHistorized = function() {
         return !!this['timeRange'];
+    };
+    tie.isDeletable = function() {
+        return this.metadata.deletable == 'true';
     };
     tie.isRestatable = function() {
         return this.metadata.restatable == 'true';

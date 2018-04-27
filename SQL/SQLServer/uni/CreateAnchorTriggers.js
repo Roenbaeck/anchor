@@ -258,7 +258,52 @@ BEGIN
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
         WHERE
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null;
+~*/
+                if(attribute.isDeletable()) {
+/*~
+        SELECT
+            i.$attribute.anchorReferenceName
+        INTO
+            #$attribute.mnemonic
+        FROM
+            inserted i
+        JOIN
+            deleted d
+        ON
+            d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        AND
+            d.$attribute.valueColumnName is not null
+        WHERE
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE i.$attribute.knotValueColumnName END is null
+        AND
+            i.$attribute.deletableColumnName = 1;
+
+        IF(@@ROWCOUNT > 0)
+        BEGIN
+            IF OBJECT_ID('[$attribute.capsule].[$attribute.deletionName]') is null
+            SELECT TOP 0 
+                * 
+            INTO 
+                [$attribute.capsule].[$attribute.deletionName]
+            FROM 
+                [$attribute.capsule].[$attribute.name];
+
+            DELETE [$attribute.mnemonic]
+            OUTPUT
+                deleted.*
+            INTO
+                [$attribute.capsule].[$attribute.deletionName]
+            FROM
+                [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+            JOIN
+                #$attribute.mnemonic d
+            ON
+                d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
+        END
+~*/
+                } // end of deletable
+/*~
     END
 ~*/
             }
@@ -308,6 +353,51 @@ BEGIN
             inserted i
         WHERE
             i.$attribute.valueColumnName is not null;
+~*/
+                if(attribute.isDeletable()) {
+/*~
+        SELECT
+            i.$attribute.anchorReferenceName
+        INTO
+            #$attribute.mnemonic
+        FROM
+            inserted i
+        JOIN
+            deleted d
+        ON
+            d.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        AND
+            d.$attribute.valueColumnName is not null
+        WHERE
+            i.$attribute.valueColumnName is null
+        AND
+            i.$attribute.deletableColumnName = 1;
+
+        IF(@@ROWCOUNT > 0)
+        BEGIN
+            IF OBJECT_ID('[$attribute.capsule].[$attribute.deletionName]') is null
+            SELECT TOP 0 
+                * 
+            INTO 
+                [$attribute.capsule].[$attribute.deletionName]
+            FROM 
+                [$attribute.capsule].[$attribute.name];
+
+            DELETE [$attribute.mnemonic]
+            OUTPUT
+                deleted.*
+            INTO
+                [$attribute.capsule].[$attribute.deletionName]
+            FROM
+                [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+            JOIN
+                #$attribute.mnemonic d
+            ON
+                d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
+        END
+~*/
+                } // end of deletable
+/*~
     END
 ~*/
             } // end of not knotted
