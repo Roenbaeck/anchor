@@ -261,11 +261,13 @@ BEGIN
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null;
 ~*/
                 if(attribute.isDeletable()) {
+                    var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
 /*~
         SELECT
+            $(attribute.isHistorized())? cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange) as $attribute.deletionTimeColumnName,
             i.$attribute.anchorReferenceName
         INTO
-            #$attribute.mnemonic
+            #$attribute.uniqueMnemonic
         FROM
             inserted i
         JOIN
@@ -283,7 +285,8 @@ BEGIN
         BEGIN
             IF OBJECT_ID('[$attribute.capsule].[$attribute.deletionName]') is null
             SELECT TOP 0 
-                * 
+                *, 
+                CAST(null as $timeType) as $attribute.deletionTimeColumnName
             INTO 
                 [$attribute.capsule].[$attribute.deletionName]
             FROM 
@@ -291,13 +294,14 @@ BEGIN
 
             DELETE [$attribute.mnemonic]
             OUTPUT
-                deleted.*
+                deleted.*,
+                $(attribute.isHistorized())? ISNULL(d.$attribute.deletionTimeColumnName, @now) : @now
             INTO
                 [$attribute.capsule].[$attribute.deletionName]
             FROM
                 [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
             JOIN
-                #$attribute.mnemonic d
+                #$attribute.uniqueMnemonic d
             ON
                 d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
         END
@@ -355,11 +359,13 @@ BEGIN
             i.$attribute.valueColumnName is not null;
 ~*/
                 if(attribute.isDeletable()) {
+                    var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
 /*~
         SELECT
+            $(attribute.isHistorized())? cast(CASE WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName ELSE @now END as $attribute.timeRange) as $attribute.deletionTimeColumnName,
             i.$attribute.anchorReferenceName
         INTO
-            #$attribute.mnemonic
+            #$attribute.uniqueMnemonic
         FROM
             inserted i
         JOIN
@@ -377,7 +383,8 @@ BEGIN
         BEGIN
             IF OBJECT_ID('[$attribute.capsule].[$attribute.deletionName]') is null
             SELECT TOP 0 
-                * 
+                *, 
+                CAST(null as $timeType) as $attribute.deletionTimeColumnName
             INTO 
                 [$attribute.capsule].[$attribute.deletionName]
             FROM 
@@ -385,13 +392,14 @@ BEGIN
 
             DELETE [$attribute.mnemonic]
             OUTPUT
-                deleted.*
+                deleted.*,
+                $(attribute.isHistorized())? ISNULL(d.$attribute.deletionTimeColumnName, @now) : @now
             INTO
                 [$attribute.capsule].[$attribute.deletionName]
             FROM
                 [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
             JOIN
-                #$attribute.mnemonic d
+                #$attribute.uniqueMnemonic d
             ON
                 d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName
         END
