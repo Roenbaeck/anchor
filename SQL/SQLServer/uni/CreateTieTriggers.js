@@ -373,12 +373,14 @@ BEGIN
 /*~;~*/
         }
         if(tie.isDeletable() && tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
+            var timeType = tie.isHistorized() ? tie.timeRange : schema.metadata.chronon;
 /*~        
     SELECT
+        $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange) as $tie.deletionTimeColumnName,
 ~*/
             while(role = tie.nextIdentifier()) {
 /*~
-        $role.columnName$(tie.hasMoreIdentifiers())?,
+        i.$role.columnName$(tie.hasMoreIdentifiers())?,
 ~*/
             }
 /*~        
@@ -402,7 +404,8 @@ BEGIN
     BEGIN
         IF OBJECT_ID('[$tie.capsule].[$tie.deletionName]') is null
         SELECT TOP 0 
-            * 
+            * ,
+            CAST(null as $timeType) as $tie.deletionTimeColumnName
         INTO 
             [$tie.capsule].[$tie.deletionName]
         FROM 
@@ -410,7 +413,8 @@ BEGIN
 
         DELETE tie
         OUTPUT 
-            deleted.*
+            deleted.*,
+            $(tie.isHistorized())? ISNULL(d.$tie.deletionTimeColumnName, @now) : @now            
         INTO
             [$tie.capsule].[$tie.deletionName]
         FROM
