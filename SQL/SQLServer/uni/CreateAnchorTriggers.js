@@ -277,7 +277,7 @@ BEGIN
         AND
             d.$attribute.valueColumnName is not null
         WHERE
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE i.$attribute.knotValueColumnName END is null
+            ((UPDATE($attribute.valueColumnName) AND i.$attribute.valueColumnName is null) OR (UPDATE($attribute.knotValueColumnName) AND i.$attribute.knotValueColumnName is null))
         AND
             i.$attribute.deletableColumnName = 1;
 
