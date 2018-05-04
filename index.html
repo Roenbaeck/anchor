@@ -4673,6 +4673,12 @@
                 ctx.drawImage(img, 0, 0, img.width, img.height);
                 return can.toDataURL('image/png');
             },
+            screenshot: function(dataURL) {
+                var newtab = window.open('about:screenshot'); /* undocumented functionality */
+                var img = newtab.document.createElement('img');
+                img.src = dataURL;
+                newtab.document.body.appendChild(img);
+            },
             findNodeToExplode: function(node) {
                 var edge, otherNode;
                 for(var i = 0; edge = node.edges[i]; i++) {
@@ -6451,8 +6457,8 @@
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
-                <li title="Generate a bitmap image of the view currently shown on screen." onclick="window.open(Actions.toPNGDataURL(SVG), '_newtab')">PNG screenshot</li>
-                <li title="Generate a vector image of the entire model." onclick="window.open(Actions.toSVGDataURL(SVG), '_newtab')">SVG screenshot</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
+                <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
             </ul>
         </div>
 
