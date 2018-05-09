@@ -3005,6 +3005,7 @@
             );
             this.nav.control.setTranslate(x, y);
             this.setNameable(true);
+            this.svg.nameElement.setAttributeNS(null, 'class', 'anchor');
             this.postCreationInitialization();
         }
         Anchor.prototype = {
@@ -6311,6 +6312,12 @@
                     text-anchor:        left;
                     dominant-baseline:  middle;
                     fill:               #000;
+                }
+                .anchor {
+                    font-style:         italic;
+                    font-weight:        bolder;
+                    stroke:             none;
+                    fill:               #c80514;
                 }
                 .role {
                     font-style:         italic;
