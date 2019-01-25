@@ -482,21 +482,29 @@ BEGIN
          c.depth + 1 as depth
       from
          relatedUpwards c
-      cross apply
-         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') r
       cross apply (
          select
-            cast('[' + r.referencing_schema_name + '].[' + r.referencing_entity_name + ']' as nvarchar(517)),
-            cast(r.referencing_entity_name as nvarchar(517))
-      ) n (qualifiedName, unqualifiedName)
+            refs.referencing_id
+         from 
+            sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') refs
+         where
+            refs.referencing_id <> OBJECT_ID(c.qualifiedName)
+      ) r
       join
          sys.objects o
       on
          o.[object_id] = r.referencing_id
       and
          o.type not in ('S')
-      where 
-         r.referencing_id <> OBJECT_ID(c.qualifiedName)
+      join 
+         sys.schemas s 
+      on 
+         s.schema_id = o.schema_id
+      cross apply (
+         select
+            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
+            cast(o.name as nvarchar(517))
+      ) n (qualifiedName, unqualifiedName)
    )
    select distinct
       [object_id],
@@ -540,25 +548,33 @@ BEGIN
          c.depth - 1 as depth
       from
          relatedDownwards c
-      cross apply
-         sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT') r
       cross apply (
-         select
-            cast('[' + r.referenced_schema_name + '].[' + r.referenced_entity_name + ']' as nvarchar(517)),
-            cast(r.referenced_entity_name as nvarchar(517))
-      ) n (qualifiedName, unqualifiedName)
-      join
+         select 
+            refs.referenced_id 
+         from
+            sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT') refs
+         where
+            refs.referenced_minor_id = 0
+         and
+            refs.referenced_id <> OBJECT_ID(c.qualifiedName)
+         and 
+            refs.referenced_id not in (select [object_id] from #relatedUpwards)
+      ) r
+      join -- select top 100 * from 
          sys.objects o
       on
          o.[object_id] = r.referenced_id
       and
          o.type not in ('S')
-      where
-         r.referenced_minor_id = 0
-      and 
-         r.referenced_id <> OBJECT_ID(c.qualifiedName)
-      and
-         r.referenced_id not in (select [object_id] from #relatedUpwards)
+      join
+         sys.schemas s
+      on 
+         s.schema_id = o.schema_id
+      cross apply (
+         select
+            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
+            cast(o.name as nvarchar(517))
+      ) n (qualifiedName, unqualifiedName)
    )
    select distinct
       relationType,
