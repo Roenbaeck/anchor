@@ -45,7 +45,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = 0.99;
+        var VERSION = '0.99.1';
 
         // change to false in beta
         var RELEASE = false;
@@ -121,7 +121,8 @@
             temporalization: 'uni', 
             deletability: 'false',
             deletablePrefix: 'Deletable',
-            deletionSuffix: 'Deleted'
+            deletionSuffix: 'Deleted',
+            privacy: 'Ignore'
 
         };
 
@@ -1348,7 +1349,7 @@
             running: false,
             miniCounter: 0,
             miniature: null,
-            showNames: false,
+            showNames: true,
             coloring: true,
             newState: true,
             miniatureFramesBetweenRefresh: 50,
@@ -1560,6 +1561,13 @@
                 this.usedIds[id] = true;
                 return id;
             }
+        };
+
+        function createOption(value) {
+            var o = document.createElement('option');
+            o.value = value;
+            o.text = value;
+            return o;
         };
 
         var Editables = {
@@ -1852,6 +1860,28 @@
                 pattern: null, // anything and nothing are all fine
                 event: 'blur',
                 attributes: ['rows', '3', 'cols', '16']
+            },
+            privacyEdit: {
+                name: 'Privacy action',
+                description:
+                        'Determines the action to take when data in this attribute becomes subject to ' +
+                        'privacy regulations, such as being "forgotten" according to GDPR.',
+                setMember: function (element, component) { component.privacy = element.value; },
+                getMember: function (component) { return component.privacy; },
+                setElement: function (element, component) { element.value = component.privacy; },
+                getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'select',
+                pattern: null, // anything and nothing are all fine
+                event: 'click',
+                attributes: [],
+                elements: [
+                    createOption('Ignore'),
+                    createOption('Delete'),
+                    createOption('Anonymize'),
+                    createOption('Pseudonymize'),
+                    createOption('Encrypt')
+                ]
             }
         };
 
@@ -2625,6 +2655,7 @@
             this.editables.push(Editables.checksumEdit);
             this.editables.push(Editables.deletabilityEdit);
             this.editables.push(Editables.equivalenceEdit);
+            this.editables.push(Editables.privacyEdit);
             this.knotted = false;
             this.historized = historized;
             this.deletable = Defaults.deletability === 'true';
@@ -2634,6 +2665,7 @@
             this.equivalent = Defaults.equivalence === 'true';
             this.checksum = false;
             this.encapsulation = Defaults.encapsulation;
+            this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleKnotted','toggleHistorized');
@@ -2683,6 +2715,7 @@
             checksum: false,
             knotted: false,
             encapsulation: Defaults.encapsulation,
+            privacy: Defaults.privacy,
             keys: [
                 {stop: "1", route: "N", of: "PE"},
                 {stop: "3", route: "A", of: "PE"}
@@ -2778,6 +2811,7 @@
                 y = y ? Number(y) : Math.random() * window.innerHeight;
                 fixed = fixed ? fixed === 'true' : false;
                 var metadata;
+                var privacy = Defaults.privacy;
                 var capsule = Defaults.encapsulation;
                 var deletable = Defaults.deletability === 'true';
                 var restatable = Defaults.restatability === 'true';
@@ -2790,6 +2824,7 @@
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
                 if(metadata) {
+                    privacy = metadata.getAttribute("privacy") || privacy;
                     capsule = metadata.getAttribute("capsule") || capsule;
                     var _deletable = metadata.getAttribute("deletable");
                     deletable = _deletable ? _deletable === 'true' : deletable;
@@ -2828,6 +2863,7 @@
                 attribute.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 attribute.mnemonic = mnemonic;
                 attribute.descriptor = descriptor;
+                attribute.privacy = privacy;
                 attribute.encapsulation = capsule;
                 attribute.deletable = deletable;
                 attribute.restatable = restatable;
@@ -2876,6 +2912,8 @@
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
                 }
                 var metadata = schema.createElement("metadata");
+                metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
+                        Defaults.privacy : this.privacy);
                 metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
                         Defaults.encapsulation : this.encapsulation);
                 if(Defaults.equivalence === 'true') {
@@ -4388,12 +4426,21 @@
                         this.showEditables = true;
                         var element = document.createElement(editable.type);
                         element.className = 'editable';
-                        if(editable.pattern)
+                        if(editable.pattern) {
                             element.setAttribute('pattern', editable.pattern);
-                        for(j = 0; j < editable.attributes.length;) {
-                            var attribute = editable.attributes[j++];
-                            var value = editable.attributes[j++];
-                            element.setAttribute(attribute, value);
+                        }
+                        if(editable.attributes) {
+                            for(j = 0; j < editable.attributes.length;) {
+                                var attribute = editable.attributes[j++];
+                                var value = editable.attributes[j++];
+                                element.setAttribute(attribute, value);
+                            }
+                        }
+                        if(editable.elements) {
+                            for(j = 0; j < editable.elements.length;) {
+                                var subElement = editable.elements[j++];
+                                element.appendChild(subElement);
+                            }
                         }
                         editable.setElement(element, hoveredComponent);
                         element.editable = editable;
@@ -4669,16 +4716,20 @@
                 var img = new Image();
                 img.width = can.width = image.width.baseVal.value;
                 img.height = can.height = image.height.baseVal.value;
+                img.onload = function() {
+                    // draw the image onto the canvas
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                }
                 img.src = this.toSVGDataURL(image);
-                // TODO: causes violation in latest Safari
-                ctx.drawImage(img, 0, 0, img.width, img.height);
                 return can.toDataURL('image/png');
             },
             screenshot: function(dataURL) {
-                var newtab = window.open('about:screenshot'); /* undocumented functionality */
+                var newtab = window.open('about:blank'); 
                 var img = newtab.document.createElement('img');
                 img.src = dataURL;
-                newtab.document.body.appendChild(img);
+                setTimeout(function(){
+                    newtab.document.write(img.outerHTML);
+                }, 0);
             },
             findNodeToExplode: function(node) {
                 var edge, otherNode;
@@ -4726,20 +4777,13 @@
                 var directive = database + '_' + temporalization + '.directive';
                 return directive;
             },
-            transform: function (xmlDocument, transformationURL, ownerDocument) {
+            transform: async function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
-                var xmlhttp = new window.XMLHttpRequest();
                 // Added random parameter to prevent caching...
-                xmlhttp.open("GET", transformationURL + '?r=' + Math.random(), false);
-                xmlhttp.send(null);
+                var url = transformationURL + '?r=' + Math.random();
+                var xml = await this.loadXML(url);
                 var processor = new XSLTProcessor();
-                if(xmlhttp.responseXML) {
-                    processor.importStylesheet(xmlhttp.responseXML.documentElement);
-                }
-                else {
-                    var xml = new DOMParser().parseFromString(xmlhttp.responseText, 'text/xml');
-                    processor.importStylesheet(xml.documentElement);
-                }
+                processor.importStylesheet(xml.documentElement);
                 result = processor.transformToFragment(xmlDocument, ownerDocument);
                 return result;
             },
@@ -4767,22 +4811,28 @@
                 save.dispatchEvent(event);
                 (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
+            loadXML: async function(url) {
+                var response = await fetch(url);
+                var responseText = await response.text();
+                var xml = new DOMParser().parseFromString(responseText, 'text/xml');
+                return xml;                
+            },
             loadFromURL: function (url, layout) {
                 layout = typeof layout !== 'undefined' ? layout : false;
-                var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.open("GET", url, false);
-                xmlhttp.send(null);
-                EventHandler.clearSelection();
-                SVGLayer.clearAll();
-                NAVLayer.clearAll();
-                Model.uncloud();
-                Model.clearStates();
-                Model.fromXML(xmlhttp.responseXML);
-                Actions.setModelStatus();
-                Actions.resetZoom();
-                Actions.centerModel();
-                DrawingEngine.taint();
-                DrawingEngine.start(layout);
+                this.loadXML(url)
+                .then(xml => {
+                    EventHandler.clearSelection();
+                    SVGLayer.clearAll();
+                    NAVLayer.clearAll();
+                    Model.uncloud();
+                    Model.clearStates();
+                    Model.fromXML(xml);
+                    Actions.setModelStatus();
+                    Actions.resetZoom();
+                    Actions.centerModel();
+                    DrawingEngine.taint();
+                    DrawingEngine.start(layout);
+                });
             },
             modelStatusText: null,
             setModelStatus: function() {
@@ -5078,6 +5128,18 @@
                     alert("This model is not saved in the cloud. Please save the model before generating a URL.");
                 }
             },
+            generateSQL: function() {
+                Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)
+                .then(sql => {
+                    new CodePopover(Actions.preformat(sql), true)
+                });
+            },
+            generateXML: function() {
+                Actions.transform(Model.toXML(false), 'xml2html.xsl', document)
+                .then(fragment => {
+                    new CodePopover(fragment, false);
+                });
+            },
             generateHTML: function() {
                 var html = window.open('', '_newtab').document;
                 html.open();
@@ -5090,9 +5152,10 @@
                     '</body></html>'
                 );
                 html.close();
-                var fragment = this.transform(Model.toXML(false), 'xml2documentation.xsl', html);
-                // alert(new XMLSerializer().serializeToString(fragment));
-                html.body.appendChild(fragment);
+                this.transform(Model.toXML(false), 'xml2documentation.xsl', html)
+                .then(fragment => {
+                    html.body.appendChild(fragment);
+                });
             },
             jsonify: function(xml) {
                 var object = Sisulator.objectify(xml, Sisulator.MAP);
@@ -5209,7 +5272,7 @@
                 // just initialize and return the result
                 return objectifier(xml.documentElement, map, {});
             },
-            sisulate: function(xml, directive) {
+            sisulate: async function(xml, directive) {
                 // objectify the xml
                 var schema = Sisulator.objectify(xml, Sisulator.MAP).schema;
                 var cacheDisabler = '';
@@ -5218,19 +5281,18 @@
                 var _sisula_ = '';
 
                 // process and evaluate all sisulas in the directive
-                var xmlhttp = new window.XMLHttpRequest();
-                xmlhttp.open("GET", directive + cacheDisabler, false);
-                xmlhttp.send(null);
-                var response = xmlhttp.responseText.replace(/\r/g, ''); // unify line breaks
+                var response = await fetch(directive + cacheDisabler);
+                var responseText = await response.text();
+
+                // unify line breaks and match
                 // only non-empty lines that are not comments (starts with #)
-                var scripts = response.match(/^[^#].+/gm);
+                var scripts = responseText.replace(/\r/g, '').match(/^[^#].+/gm);
                 var script;
                 var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
                 // process every sisula
                 for(var s = 0; script = scripts[s]; s++) {
-                    xmlhttp.open("GET", script.trim() + cacheDisabler, false);
-                    xmlhttp.send(null);
-                    var sisula = xmlhttp.responseText;
+                    response = await fetch(script.trim() + cacheDisabler);
+                    var sisula = await response.text();
                     // split language into JavaScript and SQL template components
                     var sisulets = sisula.split(splitter);
                     // substitute from SQL template to JavaScript
@@ -5270,7 +5332,7 @@
         var Settings = {
             // default values for some 'global' settings
             calculations: 'simple',
-            showMnemonics: true,
+            showMnemonics: false,
             showCardinalities: true,
             init: function() {
                 document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);
@@ -5318,6 +5380,7 @@
                     reset = true;
                 if(reset) {
                     this.setEncapsulation('dbo');
+                    this.setPrivacy('Ignore');
                     this.setDefaultIdentity('int');
                     this.setDefaultChronon('datetime2(7)');
                     this.setDefaultNow('sysdatetime()');
@@ -5405,6 +5468,7 @@
                 storage.setItem("miniatureFramesBetweenRefresh", DrawingEngine.miniatureFramesBetweenRefresh);
                 storage.setItem("calculations", this.calculations);
                 storage.setItem("encapsulation", Defaults.encapsulation);
+                storage.setItem("privacy", Defaults.privacy);
                 storage.setItem("defaultIdentity", Defaults.identity);
                 storage.setItem("defaultChronon", Defaults.chronon);
                 storage.setItem("defaultNow", Defaults.now);
@@ -5468,6 +5532,7 @@
                     this.setMiniRate(storage.getItem('miniatureFramesBetweenRefresh') || 50);
                     this.setCalculations(storage.getItem('calculations') || 'simple');
                     this.setEncapsulation(storage.getItem('encapsulation') || Defaults.encapsulation);
+                    this.setPrivacy(storage.getItem('privacy') || Defaults.privacy);
                     this.setDefaultIdentity(storage.getItem('defaultIdentity') || Defaults.identity);
                     this.setDefaultChronon(storage.getItem('defaultChronon') || Defaults.chronon);
                     this.setDefaultNow(storage.getItem('defaultNow') || Defaults.now);
@@ -5789,6 +5854,9 @@
             },
             setEncapsulation: function(value) {
                 Defaults.encapsulation = value;
+            },
+            setPrivacy: function(value) {
+                Defaults.privacy = value;
             },
             setDefaultIdentity: function(value) {
                 Defaults.identity = value;
@@ -6187,7 +6255,7 @@
             SVGLayer.addLayer('nodes');
             SVGLayer.addLayer('keys');
             SVGLayer.addLayer('names');
-            SVGLayer.hide('names');
+            // SVGLayer.hide('names');
             SVGLayer.hide('debug');
             SVGLayer.hide('debugPartitions');
 
@@ -6247,7 +6315,8 @@
             else
                 Actions.loadFromURL('example.xml');
 
-            Actions.checkCloudConnectionStatus(false);
+            // all cloud stuff will have to be rewritten (no longer using Google Cloud)
+            //Actions.checkCloudConnectionStatus(false);
 
             // start the engine and let's go
             DrawingEngine.start(true);
@@ -6401,9 +6470,11 @@
         <div id="file" class="menu">File
             <ul class="submenu">
                 <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Model.setupMinimal(true)">New model...</li>
+                <!--
                 <li title="Load a publicly stored model from the Google Cloud connection." onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                 <li title="Load a privately stored model from the Google Cloud connection. Requires that you log in to your Google account." onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                 <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
+                -->
                 <li><i>Load model from local file:</i></li>
                 <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
                 <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
@@ -6459,12 +6530,16 @@
                 <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="new CodePopover(Actions.preformat(Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)), true)"> SQL code</li>
-                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="new CodePopover(Actions.transform(Model.toXML(false), 'xml2html.xsl', document), false)"> XML code</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." onclick="Actions.generateSQL()"> SQL code</li>
+                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="Actions.generateXML()"> XML code</li>
                 <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
+                <!--
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
+                -->
                 <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
+                <!--
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
+                -->
                 <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
             </ul>
         </div>
