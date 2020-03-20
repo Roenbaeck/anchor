@@ -22,8 +22,16 @@ if(thereAreHashes) {
 -- MD5 function -------------------------------------------------------------------------------------------------------
 -- MD5 hashing function
 -----------------------------------------------------------------------------------------------------------------------
+DECLARE @version smallint =
+    CASE 
+        WHEN patindex('% 2[0-2][0-9][0-9] %', @@VERSION) > 0
+        THEN substring(@@VERSION, patindex('% 2[0-2][0-9][0-9] %', @@VERSION) + 1, 4)
+        ELSE 0
+    END
 IF Object_Id('${schema.metadata.encapsulation}$.MD5', 'FS') IS NULL
 BEGIN
+    -- since some version of 2017 assemblies must be "trusted"
+    IF(@version >= 2017 AND OBJECT_ID('sys.sp_add_trusted_assembly') IS NOT NULL) EXEC sys.sp_add_trusted_assembly @hash = 0x57C34E8101BA13D5E5132DCEDCBBFAE8E9DCBA2F679A47766F50E5E723970186593B3C8B55F93378A91D226D7BAC82DD95D4074D841F5DFB92AA53228334E636, @description = N'Anchor';
     CREATE ASSEMBLY Anchor
     AUTHORIZATION dbo
     -- you can use the DLL instead if you substitute for your path:
@@ -36,11 +44,10 @@ BEGIN
     CREATE FUNCTION ${schema.metadata.encapsulation}$.MD5(@binaryData AS varbinary(max))
     RETURNS varbinary(16) AS EXTERNAL NAME Anchor.Utilities.HashMD5
     ');
+
+    EXEC sys.sp_configure 'clr enabled', 1;
+    reconfigure with override;
 END
-GO
-sp_configure 'clr enabled', 1;
-GO
-reconfigure with override;
 GO
 ~*/
 }
