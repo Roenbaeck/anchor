@@ -30,7 +30,7 @@ DECLARE @version smallint =
     END
 IF Object_Id('${schema.metadata.encapsulation}$.MD5', 'FS') IS NULL
 BEGIN
-    -- since some version of 2017 assemblies must be "trusted"
+    -- since some version of 2017 assemblies must be explicitly whitelisted
     IF(@version >= 2017 AND OBJECT_ID('sys.sp_add_trusted_assembly') IS NOT NULL) EXEC sys.sp_add_trusted_assembly @hash = 0x57C34E8101BA13D5E5132DCEDCBBFAE8E9DCBA2F679A47766F50E5E723970186593B3C8B55F93378A91D226D7BAC82DD95D4074D841F5DFB92AA53228334E636, @description = N'Anchor';
     CREATE ASSEMBLY Anchor
     AUTHORIZATION dbo
