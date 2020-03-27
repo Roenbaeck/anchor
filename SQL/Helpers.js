@@ -116,6 +116,9 @@ while (anchor = schema.nextAnchor()) {
         attribute.isHistorized = function() {
             return !!this['timeRange'];
         };
+        attribute.getEncryptionGroup = function() {
+            return this.metadata.encryptionGroup;
+        };
         if(attribute.isHistorized())
             anchor.historizedAttributes.push(attribute.mnemonic);
         if(attribute.isKnotted())

@@ -156,6 +156,7 @@ SELECT
    isnull(Nodeset.attribute.value('metadata[1]/@equivalent', 'nvarchar(max)'), 'false') as [equivalent],
    Nodeset.attribute.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.attribute.value('metadata[1]/@assertive', 'nvarchar(max)') as [assertive],
+   Nodeset.attribute.value('metadata[1]/@privacy', 'nvarchar(max)') as [privacy],
    isnull(Nodeset.attribute.value('metadata[1]/@checksum', 'nvarchar(max)'), 'false') as [checksum],
    Nodeset.attribute.value('metadata[1]/@restatable', 'nvarchar(max)') as [restatable],
    Nodeset.attribute.value('metadata[1]/@idempotent', 'nvarchar(max)') as [idempotent],
