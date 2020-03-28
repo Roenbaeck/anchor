@@ -81,8 +81,17 @@ SELECT
             }
 /*~
     $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/                
+            }
         }
 /*~
 FROM
@@ -169,8 +178,17 @@ SELECT
             }
 /*~
     $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/                
+            }
         }
 /*~
 FROM
@@ -329,8 +347,17 @@ SELECT
                 }
 /*~
     $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.getEncryptionGroup()) {
+/*~
+    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/                
+                }
             }
 /*~
 FROM
@@ -418,8 +445,17 @@ SELECT
                 }
 /*~
     $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.getEncryptionGroup()) {
+/*~
+    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/                
+                }
             }
 /*~
 FROM

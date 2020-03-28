@@ -12,7 +12,7 @@
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor, attribute;
+var anchor, attribute, encryptionGroup;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
         var statementTypes = "'N'";
@@ -32,7 +32,21 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
-
+~*/
+        if(encryptionGroup = attribute.getEncryptionGroup()) {
+/*~
+    IF NOT EXISTS (
+        SELECT * FROM sys.openkeys 
+        WHERE [key_name] = '$encryptionGroup' AND [database_id] = DB_ID()
+    ) AND EXISTS (
+        SELECT TOP 1 $attribute.anchorReferenceName FROM inserted
+    )
+    BEGIN
+        RAISERROR('The key [$encryptionGroup] must be open in order to modify the attribute ${attribute.name}$.', 16, 1);
+    END    
+~*/
+        }
+/*~    
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,

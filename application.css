@@ -1,3 +1,8 @@
+html {
+    -webkit-text-size-adjust: none;
+    touch-action: manipulation;
+}
+
 body {
     font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
     line-height:        1.88889;

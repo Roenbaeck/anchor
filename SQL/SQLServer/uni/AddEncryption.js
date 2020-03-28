@@ -44,7 +44,7 @@ IF NOT EXISTS (SELECT * FROM sys.certificates WHERE [name] = '$encryptionGroup')
 BEGIN
 	CREATE CERTIFICATE [$encryptionGroup] WITH SUBJECT = '$encryptionGroup';
 END
--- GROUP KEY ------------------------------------------------------------------------------------------------------
+-- GROUP KEY ----------------------------------------------------------------------------------------------------------
 -- An encryption key used to encrypt the data in the attributes: 
 ~*/
 		while(attribute = encryptionGroups[encryptionGroup].pop()) {
