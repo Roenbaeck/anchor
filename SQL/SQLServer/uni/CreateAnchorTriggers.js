@@ -66,8 +66,9 @@ BEGIN
 ~*/
             }
             else {
+                var dataRange = attribute.getEncryptionGroup() ? attribute.originalDataRange : attribute.dataRange;
 /*~
-        $attribute.valueColumnName $attribute.dataRange null$(anchor.hasMoreAttributes())?,
+        $attribute.valueColumnName $dataRange null$(anchor.hasMoreAttributes())?,
 ~*/
             }
         }
@@ -149,7 +150,18 @@ BEGIN
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.anchorReferenceName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
+~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+        ENCRYPTBYKEY(KEY_GUID('${attribute.getEncryptionGroup()}$'), cast(i.$attribute.valueColumnName as varbinary(max)))        
+~*/
+            }
+            else {
+/*~
         $(attribute.isKnotted())? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
+~*/
+            }
+/*~
     FROM
         @inserted i
 ~*/
@@ -351,8 +363,17 @@ BEGIN
             END, @now) as $attribute.timeRange),
 ~*/
                 }
+                if(attribute.getEncryptionGroup()) {
+/*~
+        ENCRYPTBYKEY(KEY_GUID('${attribute.getEncryptionGroup()}$'), cast(i.$attribute.valueColumnName as varbinary(max)))        
+~*/
+                }
+                else {
 /*~
             i.$attribute.valueColumnName
+~*/
+                }
+/*~
         FROM
             inserted i
         WHERE

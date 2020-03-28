@@ -116,10 +116,19 @@ while (anchor = schema.nextAnchor()) {
         attribute.isHistorized = function() {
             return !!this['timeRange'];
         };
+        attribute.getEncryptionGroup = function() {
+            if(!this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0) 
+                return;
+            return this.metadata.encryptionGroup;
+        };
         if(attribute.isHistorized())
             anchor.historizedAttributes.push(attribute.mnemonic);
         if(attribute.isKnotted())
             attribute.knot = schema.knot[attribute.knotRange];
+        if(attribute.getEncryptionGroup()) {
+            attribute.originalDataRange = attribute.dataRange;
+            attribute.dataRange = 'varbinary(max)';
+        }
     }
 }
 
