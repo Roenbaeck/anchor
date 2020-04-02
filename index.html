@@ -691,6 +691,34 @@
             idToComponent: {},
             version: -1,
             versions: [],
+            // WIP: keys
+            keys: {},
+            interactive: false,
+            // in interactive mode keys are added on the fly, in non-interactive mode they need to be prepared
+            setInteractive: function(interactive) {
+                this.interactive = interactive || false;
+            },
+            prepareKeys: function() {
+                var component; 
+                for(var i = 0; i < this.components.length; i++) {
+                    component = this.components[i];
+                    if(component.keys && component.keys.length > 0) {
+                        for(var j = 0; j < component.keys.length; j++)
+                            this.addKey(component, component.keys[j]);
+                    }
+                }                
+            },
+            addKey: function(component, key) {
+                var hash = key.of + '|' + key.route; // ugly concat, but that's life
+                var anchorLookup = this.getAnchorLookup();
+                if(!this.keys[hash]) {
+                    this.keys[hash] = {
+                        of: anchorLookup[key.of],
+                        stops: {}
+                    };
+                }
+                this.keys[hash].stops[key.stop] = component;
+            },
             getAnchorLookup: function() {
                 var anchorLookup = Object.create(null);
                 var component;
@@ -800,6 +828,11 @@
                 if(component) {
                     this.components.push(component);
                     this.idToComponent[component.id] = component;
+                    // WIP: keys
+                    if(this.interactive && component.keys && component.keys.length > 0) {
+                        for(var i = 0; i < component.keys.length; i++)
+                            this.addKey(component, component.keys[i]);
+                    }
                     // this.sort();
                     this.invalidateComponent(component);
                     this.refresh();
@@ -874,6 +907,7 @@
             },
             fromXML: function(xml) {
                 if(xml) {
+                    this.setInteractive(false);
                     this.empty();
                     var schemaElement = xml.documentElement;
                     var metadata = schemaElement.getElementsByTagName('metadata');
@@ -929,6 +963,8 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
+                    // keys must be added last since they may provide a path through many of the above
+                    this.prepareKeys();
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -938,6 +974,7 @@
                         }
                     }
                     this.explode(allComponents, false);
+                    this.setInteractive(true);
                     this.refresh();
                 }
             },
@@ -1495,9 +1532,41 @@
                     centerElement.r.baseVal.value = 100*(Math.abs(partition.xVelocity) + Math.abs(partition.yVelocity));
                 }
             },
+            // WIP: keys
+            drawKeys: function() {
+                var i = Model.keys.length;
+                /*
+                if(!this.svg.stops) {
+                    this.svg.stops = [];
+                    var stop, route, of, i, offset = -20, height = 14;
+                    // WIP: keys
+                    for(i = 0; i < this.keys.length; i++) {
+                        stop = this.keys[i].stop;
+                        route = this.keys[i].route;
+                        of = this.keys[i].of;
+
+                        offset -= height * i;
+
+                        var stopElement = document.createElementNS(SVGNS, 'use');
+                        stopElement.setAttributeNS(XLINKNS, 'xlink:href', '#stop');
+                        stopElement.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
+                        stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
+                        stopElement.component = this;
+                        this.svg.stops.push(stopElement);
+                        this.svg.graphicsElement.appendChild(stopElement);
+                        var stopText = document.createElementNS(SVGNS, 'text');
+                        stopText.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
+                        stopText.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
+                        stopText.setAttributeNS(null, 'class', 'stop');
+                        this.svg.graphicsElement.appendChild(stopText);
+                    }
+                }
+                */
+            },
             draw: function() {
                 if(DEBUG)
                     this.drawPartitions();
+                this.drawKeys();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var component, node;
@@ -2666,6 +2735,7 @@
             // set members
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
+            this.keys = [];
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
@@ -2740,10 +2810,7 @@
             knotted: false,
             encapsulation: Defaults.encapsulation,
             privacy: Defaults.privacy,
-            keys: [
-                {stop: "1", route: "N", of: "PE"},
-                {stop: "3", route: "A", of: "PE"}
-            ], // TODO: this is just a test
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -2888,6 +2955,17 @@
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        attribute.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
                 attribute.setHistorized(historized);
@@ -2973,6 +3051,16 @@
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);                
                 attribute.appendChild(metadata);
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        attribute.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(attribute, schema);
                 this.addDescriptionXML(attribute, schema, this.description);
                 element.appendChild(attribute);
@@ -3005,33 +3093,6 @@
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
-                /*
-                if(!this.svg.stops) {
-                    this.svg.stops = [];
-                    var stop, route, of, i, offset = -20, height = 14;
-                    // TODO: speed up, clicking, editing, layering, route paths?
-                    for(i = 0; i < this.keys.length; i++) {
-                        stop = this.keys[i].stop;
-                        route = this.keys[i].route;
-                        of = this.keys[i].of;
-
-                        offset -= height * i;
-
-                        var stopElement = document.createElementNS(SVGNS, 'use');
-                        stopElement.setAttributeNS(XLINKNS, 'xlink:href', '#stop');
-                        stopElement.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
-                        stopElement.component = this;
-                        this.svg.stops.push(stopElement);
-                        this.svg.graphicsElement.appendChild(stopElement);
-                        var stopText = document.createElementNS(SVGNS, 'text');
-                        stopText.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
-                        stopText.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopText.setAttributeNS(null, 'class', 'stop');
-                        this.svg.graphicsElement.appendChild(stopText);
-                    }
-                }
-                */
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
             }
         };
@@ -3226,6 +3287,7 @@
             Component.call(this, new Node(this.id, x, y, NodeType.KNOT));
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
+            this.keys = [];
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
@@ -3275,6 +3337,7 @@
             checksum: false,
             equivalent: false,
             encapsulation: Defaults.encapsulation,
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -3353,6 +3416,17 @@
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
                 var knot = new Knot(x, y);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        knot.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 knot.setFixed(fixed);
                 knot.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
@@ -3387,7 +3461,16 @@
                     metadata.setAttribute("equivalent", this.isEmpty(this.equivalent) ? '' : this.equivalent);
                 }
                 knot.appendChild(metadata);
-
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        knot.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(knot, schema);
                 this.addDescriptionXML(knot, schema, this.description);
                 return knot;
@@ -3405,6 +3488,7 @@
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.TIE));
             this.historized = historized;
+            this.keys = [];
             this.deletable = Defaults.deletability === 'true';
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
@@ -3458,6 +3542,7 @@
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -3611,6 +3696,17 @@
                 var historized = changingRange ? true : false;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var tie = new Tie(x, y, historized);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        tie.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
@@ -3718,7 +3814,16 @@
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);
                 tie.appendChild(metadata);
-
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        tie.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(tie, schema);
                 this.addDescriptionXML(tie, schema, this.description);
                 return tie;
