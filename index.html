@@ -713,6 +713,7 @@
                 var anchorLookup = this.getAnchorLookup();
                 if(!this.keys[hash]) {
                     this.keys[hash] = {
+                        route: key.route,
                         of: anchorLookup[key.of],
                         stops: {}
                     };
@@ -1540,7 +1541,30 @@
                     key = Model.keys[hash];
                     if(!key.blob) {
                         key.blob = document.createElementNS(SVGNS, 'path');
+                        key.blob.setAttributeNS(null, 'id', hash);
                         key.blob.setAttributeNS(null, 'class', 'key');
+                        key.blob.addEventListener('mouseover', function(e) { 
+                            this.setAttributeNS(null, 'class', 'keyHover'); 
+                            if(!this.text) {
+                                var hash = this.getAttribute('id');
+                                var key = Model.keys[hash];
+                                this.text = document.createElementNS(SVGNS, 'text');
+                                this.text.setAttributeNS(null, 'class', 'keyText');
+                                var textPath = document.createElementNS(SVGNS, 'textPath');
+                                textPath.appendChild(document.createTextNode(key.route));
+                                textPath.setAttributeNS(null, 'href', '#' + hash);
+                                textPath.setAttributeNS(null, 'startOffset', '17');
+                                this.text.appendChild(textPath);
+                                SVGLayer.keys.appendChild(this.text);
+                            }
+                        } , false);
+                        key.blob.addEventListener('mouseout', function(e) { 
+                            if(this.text) {
+                                SVGLayer.keys.removeChild(this.text);
+                                delete this.text;
+                            }
+                            this.setAttributeNS(null, 'class', 'key'); 
+                        } , false);
                         SVGLayer.keys.appendChild(key.blob);
                     }
                     var stops = key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2);
@@ -6521,10 +6545,24 @@
                 }
                 .key {
                     fill:               none;
-                    stroke:             rgba(0, 0, 0, 0.07);
+                    stroke:             rgba(42, 0, 0, 0.07);
                     stroke-width:       32;
                     stroke-linecap:     round;
                     stroke-linejoin:    round;
+                }
+                .keyHover {
+                    fill:               none;
+                    stroke:             rgba(242, 101, 101, 0.2);
+                    stroke-width:       42;
+                    stroke-linecap:     round;
+                    stroke-linejoin:    round;
+                }
+                .keyText {
+                    font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
+                    font-size:          20pt;
+                    font-weight:        normal;
+                    fill:               white;
+                    dominant-baseline:  middle;
                 }
                 .bad {
                     fill:               #e00;
