@@ -1532,36 +1532,22 @@
                     centerElement.r.baseVal.value = 100*(Math.abs(partition.xVelocity) + Math.abs(partition.yVelocity));
                 }
             },
-            // WIP: keys
+            // WIP: keys draw
             drawKeys: function() {
-                var i = Model.keys.length;
-                /*
-                if(!this.svg.stops) {
-                    this.svg.stops = [];
-                    var stop, route, of, i, offset = -20, height = 14;
-                    // WIP: keys
-                    for(i = 0; i < this.keys.length; i++) {
-                        stop = this.keys[i].stop;
-                        route = this.keys[i].route;
-                        of = this.keys[i].of;
-
-                        offset -= height * i;
-
-                        var stopElement = document.createElementNS(SVGNS, 'use');
-                        stopElement.setAttributeNS(XLINKNS, 'xlink:href', '#stop');
-                        stopElement.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
-                        stopElement.component = this;
-                        this.svg.stops.push(stopElement);
-                        this.svg.graphicsElement.appendChild(stopElement);
-                        var stopText = document.createElementNS(SVGNS, 'text');
-                        stopText.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
-                        stopText.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopText.setAttributeNS(null, 'class', 'stop');
-                        this.svg.graphicsElement.appendChild(stopText);
+                var key;
+                for(var hash in Model.keys) {  
+                    key = Model.keys[hash];
+                    if(!key.blob) {
+                        key.blob = document.createElementNS(SVGNS, 'path');
+                        key.blob.setAttributeNS(null, 'class', 'key');
+                        SVGLayer.keys.appendChild(key.blob);
                     }
+                    var stops = '';
+                    for(var stop in key.stops) {
+                        stops += ' ' + key.stops[stop].node.xPosition.toFixed(2) + ',' + key.stops[stop].node.yPosition.toFixed(2);
+                    }
+                    key.blob.setAttributeNS(null, 'd', 'M' + key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2) + stops);
                 }
-                */
             },
             draw: function() {
                 if(DEBUG)
@@ -5270,6 +5256,9 @@
                     alert("This model is not saved in the cloud. Please save the model before generating a URL.");
                 }
             },
+            generateSVG: function(graph) {
+                new CodePopover(Actions.preformat((new XMLSerializer()).serializeToString(graph)), true);
+            },
             generateSQL: function() {
                 Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)
                 .then(sql => {
@@ -6387,9 +6376,9 @@
             SVGLayer = new Layer(SVG);
             SVGLayer.addLayer('debugPartitions');
             SVGLayer.addLayer('debug');
+            SVGLayer.addLayer('keys');
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
-            SVGLayer.addLayer('keys');
             SVGLayer.addLayer('names');
             // SVGLayer.hide('names');
             SVGLayer.hide('debug');
@@ -6529,12 +6518,8 @@
                     stroke:             none;
                     fill:               #000;
                 }
-                .stop {
-                    font-size:          6pt;
-                    font-family:        "Consolas", "Andale Mono", monospace;
-                    text-anchor:        middle;
-                    dominant-baseline:  bottom;
-                    fill:               #fff;
+                .key {
+                    fill:               rgba(0, 0, 0, 0.1);
                 }
                 .bad {
                     fill:               #e00;
@@ -6586,9 +6571,6 @@
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
                 <line x1="-3" y1="3" x2="3" y2="3"/>
-            </g>
-            <g id="stop">
-                <rect width="24" height="11" rx="2" ry="2" transform="translate(-12, -8)" style="fill:#708090;"/>
             </g>
         </defs>
         <!-- layers are appended here -->
@@ -6677,6 +6659,7 @@
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
                 -->
                 <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
+                <li title="Generate an SVG representation of the model." onclick="Actions.generateSVG(SVG)">SVG code</li>
             </ul>
         </div>
 
