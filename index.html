@@ -754,6 +754,7 @@
             empty: function() {
                 this.components = [];
                 this.visibleNodes = [];
+                this.keys = {};
                 this.idToComponent = Object.create(null);
                 SVGLayer.clearAll();
                 NAVLayer.clearAll();
@@ -1542,11 +1543,11 @@
                         key.blob.setAttributeNS(null, 'class', 'key');
                         SVGLayer.keys.appendChild(key.blob);
                     }
-                    var stops = '';
+                    var stops = key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2);
                     for(var stop in key.stops) {
                         stops += ' ' + key.stops[stop].node.xPosition.toFixed(2) + ',' + key.stops[stop].node.yPosition.toFixed(2);
                     }
-                    key.blob.setAttributeNS(null, 'd', 'M' + key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2) + stops);
+                    key.blob.setAttributeNS(null, 'd', 'M' + stops);// + 'Z');
                 }
             },
             draw: function() {
@@ -6519,7 +6520,11 @@
                     fill:               #000;
                 }
                 .key {
-                    fill:               rgba(0, 0, 0, 0.1);
+                    fill:               none;
+                    stroke:             rgba(0, 0, 0, 0.07);
+                    stroke-width:       32;
+                    stroke-linecap:     round;
+                    stroke-linejoin:    round;
                 }
                 .bad {
                     fill:               #e00;
