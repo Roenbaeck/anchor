@@ -47,7 +47,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.3';
+        var VERSION = '0.99.4';
 
         // change to false in beta
         var RELEASE = false;
@@ -718,7 +718,17 @@
                         stops: {}
                     };
                 }
-                this.keys[hash].stops[key.stop] = component;
+                this.keys[hash].stops[key.stop] = {
+                    component: component, 
+                    key: key // this is the key as represented in the component
+                };
+            },
+            changeKeyRouteName: function(key, name) {
+                key.route = name;
+                for(var stopNumber in key.stops) {
+                    var stop = key.stops[stopNumber];
+                    stop.key.route = name;
+                }
             },
             getAnchorLookup: function() {
                 var anchorLookup = Object.create(null);
@@ -1552,7 +1562,8 @@
                                     key.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
                                     key.svgKeyRouteText.setAttributeNS(null, 'class', 'keyText');
                                     var textPath = document.createElementNS(SVGNS, 'textPath');
-                                    textPath.appendChild(document.createTextNode(key.route));
+                                    key.svgKeyRouteText.text = document.createTextNode(key.route);
+                                    textPath.appendChild(key.svgKeyRouteText.text);
                                     textPath.setAttributeNS(null, 'href', '#' + hash);
                                     textPath.setAttributeNS(null, 'startOffset', '17');
                                     key.svgKeyRouteText.appendChild(textPath);
@@ -1573,14 +1584,30 @@
                         }, false);
                         key.blob.addEventListener('click', function(e) {
                             EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
+                            var hash = this.getAttribute('id');
+                            var key = Model.keys[hash];                            
                             if(!EventHandler.keySelected()) {
+                                this.setAttributeNS(null, 'class', 'keyHover'); 
                                 EventHandler.selectKey(key);
+                                // add a text box for the route name
+                                key.routeInput = document.createElement('input');
+                                key.routeInput.setAttribute('id', 'route');
+                                key.routeInput.value = key.route;
+                                key.routeInput.addEventListener('input', function(e) {
+                                    Model.changeKeyRouteName(key, e.target.value);
+                                    key.svgKeyRouteText.text.nodeValue = e.target.value;
+                                }, false);
+                                document.body.appendChild(key.routeInput);
                             }
                             else if(EventHandler.keySelected() == key) {
                                 EventHandler.unselectKey();
                                 if(key.svgKeyRouteText) {
                                     SVGLayer.keys.removeChild(key.svgKeyRouteText);
                                     delete key.svgKeyRouteText;
+                                }
+                                if(key.routeInput) {
+                                    document.body.removeChild(key.routeInput);
+                                    delete key.routeInput;
                                 }
                                 this.setAttributeNS(null, 'class', 'key'); 
                             }
@@ -1589,9 +1616,11 @@
                     }
                     var stops = key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2);
                     for(var stopNumber in key.stops) {
-                        stops += ' ' + key.stops[stopNumber].node.xPosition.toFixed(2) + ',' + key.stops[stopNumber].node.yPosition.toFixed(2);
+                        stops += ' ' + 
+                            key.stops[stopNumber].component.node.xPosition.toFixed(2) + ',' + 
+                            key.stops[stopNumber].component.node.yPosition.toFixed(2);
                     }
-                    key.blob.setAttributeNS(null, 'd', 'M' + stops);// + 'Z');
+                    key.blob.setAttributeNS(null, 'd', 'M' + stops);
                 }
             },
             draw: function() {

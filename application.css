@@ -60,6 +60,14 @@ a:hover {
     background-image:   url(deleteButtonPressed.png);
 }
 
+#route {
+    position:           absolute;
+    top:                42px;
+    right:              7px;
+    display:            block;
+    z-index:            9;
+}
+
 /* the SVG graph used as the main interface */
 #graph {
     position:           absolute;
