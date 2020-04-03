@@ -1165,6 +1165,27 @@
                 DrawingEngine.start(false);
             },
             // WIP: keys operations
+            createKey: function(components) {
+                var i, anchor, component, stopComponents = [];
+                for(i = 0; component = components[i]; i++) {
+                    if(component.node.type === NodeType.ANCHOR) 
+                        anchor = component;
+                    else
+                        stopComponents.push(component);
+                }
+                for(i = 0; component = stopComponents[i]; i++) {
+                    var stopNumber = (i + 1).toString();
+                    var key = {
+                        stop: stopNumber,
+                        route: '!unnamed!',
+                        of: anchor.mnemonic                                                        
+                    };
+                    component.keys.push(key);
+                    this.addKey(component, key);
+                }
+                this.recordState();
+                DrawingEngine.start(false);
+            },
             addToKey: function(components) {
                 var route = EventHandler.selectedRoute;
                 if(route) {
@@ -1220,11 +1241,31 @@
                             if(route.stops[stopNumber]) 
                                 stops.push(route.stops[stopNumber]);
                         }
-                        route.stops = {};
-                        for(var s = 0; s < stops.length; s++) {
-                            var newStopNumber = (s + 1).toString();
-                            stops[s].key.stop = newStopNumber;
-                            route.stops[newStopNumber] = stops[s];
+                        if(stops.length > 0) {
+                            route.stops = {};
+                            for(var s = 0; s < stops.length; s++) {
+                                var newStopNumber = (s + 1).toString();
+                                stops[s].key.stop = newStopNumber;
+                                route.stops[newStopNumber] = stops[s];
+                            }
+                        }
+                        // we removed the last stop of the route
+                        else {
+                            var hash = route.start.mnemonic + '|' + route.name;
+                            if(route.routeInput) {
+                                document.body.removeChild(route.routeInput);
+                                delete route.routeInput;
+                            }
+                            if(route.svgKeyRouteText) {
+                                SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                delete route.svgKeyRouteText;
+                            }
+                            if(route.svgKeyRoute) {
+                                SVGLayer.keys.removeChild(route.svgKeyRoute);
+                                delete route.svgKeyRoute;
+                            }
+                            EventHandler.unselectRoute();
+                            delete Model.routes[hash];
                         }
                     }
                     this.recordState();
@@ -2600,7 +2641,7 @@
         function Component(node) {
             this.node = node;
             this.editables = [];
-            this.operations = ['erase', 'connect'];
+            this.operations = ['erase', 'connect', 'createKey'];
             this.svg = new Symbol(this);
             this.svg.makeInteractive();
             this.nav = new Symbol(this);
@@ -4032,6 +4073,7 @@
             this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
+            this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
             this.setColoring(this.coloring);
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
@@ -4632,6 +4674,27 @@
                     'Removes the selected item(s) from the selected key route.',
                     function(allComponents) {
                         return EventHandler.selectedRoute;
+                    }],
+                ['createKey',
+                    'Create key from selected',
+                    'Creates a key route from the selected item(s) in the model.',
+                    function(allComponents) {
+                        if(allComponents.length < 2)
+                            return false;
+                        var component, anchors = 0, ties = 0, knots = 0, attributes = 0;
+                        for(var i = 0; component = allComponents[i]; i++) {
+                            if(component.node.type === NodeType.ANCHOR)
+                                anchors++;
+                            else if(component.node.type === NodeType.TIE)
+                                ties++;
+                            else if(component.node.type === NodeType.KNOT)
+                                knots++;
+                            else if(component.node.type === NodeType.ATTRIBUTE) 
+                                attributes++;
+                        }
+                        if(anchors != 1 || ties + knots + attributes == 0)
+                            return false;
+                        return true;
                     }],
                 ['erase',
                     '<u>D</u>elete selected...',
@@ -6685,17 +6748,23 @@
                     text-anchor:        left;
                     dominant-baseline:  middle;
                     fill:               #000;
+                    pointer-events:     none;
+                }
+                .edge {
+                    pointer-events:     none;
                 }
                 .anchor {
                     font-style:         italic;
                     font-weight:        bold;
                     stroke:             none;
                     fill:               #c80514;
+                    pointer-events:     none;
                 }
                 .role {
                     font-style:         italic;
                     stroke:             none;
                     fill:               #000;
+                    pointer-events:     none;
                 }
                 .route {
                     fill:               none;
@@ -6717,6 +6786,7 @@
                     font-weight:        normal;
                     fill:               white;
                     dominant-baseline:  middle;
+                    pointer-events:     none;
                 }
                 .bad {
                     fill:               #e00;
