@@ -101,7 +101,8 @@ SELECT
    Nodeset.anchor.value('@descriptor', 'nvarchar(max)') as [descriptor],
    Nodeset.anchor.value('@identity', 'nvarchar(max)') as [identity],
    Nodeset.anchor.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
-   Nodeset.anchor.value('count(attribute)', 'int') as [numberOfAttributes]
+   Nodeset.anchor.value('count(attribute)', 'int') as [numberOfAttributes],
+   Nodeset.anchor.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -127,7 +128,8 @@ SELECT
    Nodeset.knot.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.knot.value('@dataRange', 'nvarchar(max)') as [dataRange],
    isnull(Nodeset.knot.value('metadata[1]/@checksum', 'nvarchar(max)'), 'false') as [checksum],
-   isnull(Nodeset.knot.value('metadata[1]/@equivalent', 'nvarchar(max)'), 'false') as [equivalent]
+   isnull(Nodeset.knot.value('metadata[1]/@equivalent', 'nvarchar(max)'), 'false') as [equivalent],
+   Nodeset.knot.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -165,7 +167,10 @@ SELECT
    ParentNodeset.anchor.value('@identity', 'nvarchar(max)') as [anchorIdentity],
    Nodeset.attribute.value('@dataRange', 'nvarchar(max)') as [dataRange],
    Nodeset.attribute.value('@knotRange', 'nvarchar(max)') as [knotRange],
-   Nodeset.attribute.value('@timeRange', 'nvarchar(max)') as [timeRange]
+   Nodeset.attribute.value('@timeRange', 'nvarchar(max)') as [timeRange],
+   Nodeset.attribute.value('metadata[1]/@deletable', 'nvarchar(max)') as [deletable],
+   Nodeset.attribute.value('metadata[1]/@encryptionGroup', 'nvarchar(max)') as [encryptionGroup],
+   Nodeset.attribute.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -214,7 +219,8 @@ SELECT
    Nodeset.tie.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.tie.value('metadata[1]/@assertive', 'nvarchar(max)') as [assertive],
    Nodeset.tie.value('metadata[1]/@restatable', 'nvarchar(max)') as [restatable],
-   Nodeset.tie.value('metadata[1]/@idempotent', 'nvarchar(max)') as [idempotent]
+   Nodeset.tie.value('metadata[1]/@idempotent', 'nvarchar(max)') as [idempotent],
+   Nodeset.tie.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY

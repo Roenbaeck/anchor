@@ -1544,32 +1544,52 @@
                         key.blob.setAttributeNS(null, 'id', hash);
                         key.blob.setAttributeNS(null, 'class', 'key');
                         key.blob.addEventListener('mouseover', function(e) { 
-                            this.setAttributeNS(null, 'class', 'keyHover'); 
-                            if(!this.text) {
+                            if(!EventHandler.keySelected()) {
+                                this.setAttributeNS(null, 'class', 'keyHover'); 
                                 var hash = this.getAttribute('id');
                                 var key = Model.keys[hash];
-                                this.text = document.createElementNS(SVGNS, 'text');
-                                this.text.setAttributeNS(null, 'class', 'keyText');
-                                var textPath = document.createElementNS(SVGNS, 'textPath');
-                                textPath.appendChild(document.createTextNode(key.route));
-                                textPath.setAttributeNS(null, 'href', '#' + hash);
-                                textPath.setAttributeNS(null, 'startOffset', '17');
-                                this.text.appendChild(textPath);
-                                SVGLayer.keys.appendChild(this.text);
+                                if(!key.svgKeyRouteText) {
+                                    key.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
+                                    key.svgKeyRouteText.setAttributeNS(null, 'class', 'keyText');
+                                    var textPath = document.createElementNS(SVGNS, 'textPath');
+                                    textPath.appendChild(document.createTextNode(key.route));
+                                    textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    textPath.setAttributeNS(null, 'startOffset', '17');
+                                    key.svgKeyRouteText.appendChild(textPath);
+                                    SVGLayer.keys.appendChild(key.svgKeyRouteText);
+                                }
                             }
-                        } , false);
+                        }, false);
                         key.blob.addEventListener('mouseout', function(e) { 
-                            if(this.text) {
-                                SVGLayer.keys.removeChild(this.text);
-                                delete this.text;
+                            var hash = this.getAttribute('id');
+                            var key = Model.keys[hash];
+                            if(!EventHandler.keySelected()) {
+                                if(key.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(key.svgKeyRouteText);
+                                    delete key.svgKeyRouteText;
+                                }
+                                this.setAttributeNS(null, 'class', 'key'); 
                             }
-                            this.setAttributeNS(null, 'class', 'key'); 
-                        } , false);
+                        }, false);
+                        key.blob.addEventListener('click', function(e) {
+                            EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
+                            if(!EventHandler.keySelected()) {
+                                EventHandler.selectKey(key);
+                            }
+                            else if(EventHandler.keySelected() == key) {
+                                EventHandler.unselectKey();
+                                if(key.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(key.svgKeyRouteText);
+                                    delete key.svgKeyRouteText;
+                                }
+                                this.setAttributeNS(null, 'class', 'key'); 
+                            }
+                        }, false);
                         SVGLayer.keys.appendChild(key.blob);
                     }
                     var stops = key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2);
-                    for(var stop in key.stops) {
-                        stops += ' ' + key.stops[stop].node.xPosition.toFixed(2) + ',' + key.stops[stop].node.yPosition.toFixed(2);
+                    for(var stopNumber in key.stops) {
+                        stops += ' ' + key.stops[stopNumber].node.xPosition.toFixed(2) + ',' + key.stops[stopNumber].node.yPosition.toFixed(2);
                     }
                     key.blob.setAttributeNS(null, 'd', 'M' + stops);// + 'Z');
                 }
@@ -1995,6 +2015,17 @@
             lastY: null,
             scaleX: null,
             scaleY: null,
+            // WIP: keys event
+            key: null,
+            selectKey: function(key) {
+                this.key = key;
+            },
+            keySelected: function() {
+                return this.key;
+            },
+            unselectKey: function() {
+                this.key = null;
+            },
             addComponentToSelection: function(component) {
                 if(this.selectedComponents.indexOf(component) < 0)
                     this.selectedComponents.push(component);
