@@ -691,8 +691,8 @@
             idToComponent: {},
             version: -1,
             versions: [],
-            // WIP: keys
-            keys: {},
+            // WIP: keys model
+            routes: {},
             interactive: false,
             // in interactive mode keys are added on the fly, in non-interactive mode they need to be prepared
             setInteractive: function(interactive) {
@@ -711,22 +711,27 @@
             addKey: function(component, key) {
                 var hash = key.of + '|' + key.route; // ugly concat, but that's life
                 var anchorLookup = this.getAnchorLookup();
-                if(!this.keys[hash]) {
-                    this.keys[hash] = {
-                        route: key.route,
-                        of: anchorLookup[key.of],
+                if(!this.routes[hash]) {
+                    this.routes[hash] = {
+                        name: key.route,
+                        start: anchorLookup[key.of],
                         stops: {}
                     };
                 }
-                this.keys[hash].stops[key.stop] = {
+                this.routes[hash].stops[key.stop] = {
                     component: component, 
                     key: key // this is the key as represented in the component
                 };
             },
-            changeKeyRouteName: function(key, name) {
-                key.route = name;
-                for(var stopNumber in key.stops) {
-                    var stop = key.stops[stopNumber];
+            changeRouteName: function(route, name) {
+                var oldHash = route.start.mnemonic + '|' + route.name;
+                if(this.routes[oldHash]) 
+                    delete this.routes[oldHash];
+                route.name = name;
+                var newHash = route.start.mnemonic + '|' + route.name;
+                this.routes[newHash] = route;
+                for(var stopNumber in route.stops) {
+                    var stop = route.stops[stopNumber];
                     stop.key.route = name;
                 }
             },
@@ -765,7 +770,7 @@
             empty: function() {
                 this.components = [];
                 this.visibleNodes = [];
-                this.keys = {};
+                this.routes = {};
                 this.idToComponent = Object.create(null);
                 SVGLayer.clearAll();
                 NAVLayer.clearAll();
@@ -1159,6 +1164,73 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            // WIP: keys operations
+            addToKey: function(components) {
+                var route = EventHandler.selectedRoute;
+                if(route) {
+                    var component;
+                    for(var i = 0; i < components.length; i++) {
+                        component = components[i];
+                        var shouldBeAdded = true, maxStopNumber = 0;
+                        for(var stopNumber in route.stops) {
+                            if(parseInt(stopNumber) > maxStopNumber)
+                                maxStopNumber = parseInt(stopNumber);
+                            if(route.stops[stopNumber].component == component)
+                                shouldBeAdded = false;
+                        }
+                        if(shouldBeAdded) {
+                            maxStopNumber = (maxStopNumber + 1).toString();
+                            var key = {
+                                stop: maxStopNumber,
+                                route: route.name,
+                                of: route.start.mnemonic                                
+                            };
+                            component.keys.push(key);
+                            route.stops[maxStopNumber] = {
+                                component: component,
+                                key: key // this is the key as represented in the component
+                            }
+                        }
+                    }
+                    this.recordState();
+                    DrawingEngine.start(false);
+                }
+            },         
+            removeFromKey: function(components) {
+                var route = EventHandler.selectedRoute;
+                if(route) {
+                    var component, deletesHaveBeenMade = false, maxStopNumber = 0;
+                    for(var i = 0; i < components.length; i++) {
+                        component = components[i];
+                        for(var stopNumber in route.stops) {
+                            if(parseInt(stopNumber) > maxStopNumber)
+                                maxStopNumber = parseInt(stopNumber);
+                            if(route.stops[stopNumber].component == component) {
+                                var keyIndex = component.keys.indexOf(route.stops[stopNumber].key);
+                                component.keys.splice(keyIndex, 1);
+                                delete route.stops[stopNumber];
+                                deletesHaveBeenMade = true;
+                            }
+                        }
+                    }
+                    // renumbering of stops
+                    if(deletesHaveBeenMade) {
+                        var stops = [];
+                        for(var stopNumber = 1; stopNumber <= maxStopNumber; stopNumber++) {
+                            if(route.stops[stopNumber]) 
+                                stops.push(route.stops[stopNumber]);
+                        }
+                        route.stops = {};
+                        for(var s = 0; s < stops.length; s++) {
+                            var newStopNumber = (s + 1).toString();
+                            stops[s].key.stop = newStopNumber;
+                            route.stops[newStopNumber] = stops[s];
+                        }
+                    }
+                    this.recordState();
+                    DrawingEngine.start(false);                    
+                }                
+            },   
             toggleIdentifier: function(components) {
                 var ties = [], component, node, edge;
                 for(var i = 0; i < components.length; i++) {
@@ -1545,88 +1617,91 @@
                 }
             },
             // WIP: keys draw
-            drawKeys: function() {
-                var key;
-                for(var hash in Model.keys) {  
-                    key = Model.keys[hash];
-                    if(!key.blob) {
-                        key.blob = document.createElementNS(SVGNS, 'path');
-                        key.blob.setAttributeNS(null, 'id', hash);
-                        key.blob.setAttributeNS(null, 'class', 'key');
-                        key.blob.addEventListener('mouseover', function(e) { 
-                            if(!EventHandler.keySelected()) {
-                                this.setAttributeNS(null, 'class', 'keyHover'); 
+            drawRoutes: function() {
+                var route;
+                for(var hash in Model.routes) {  
+                    route = Model.routes[hash];
+                    if(!route.svgKeyRoute) {
+                        route.svgKeyRoute = document.createElementNS(SVGNS, 'path');
+                        route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                        route.svgKeyRoute.setAttributeNS(null, 'class', 'route');
+                        route.svgKeyRoute.addEventListener('mouseover', function(e) { 
+                            if(!EventHandler.routeSelected()) {
+                                this.setAttributeNS(null, 'class', 'routeSelected'); 
                                 var hash = this.getAttribute('id');
-                                var key = Model.keys[hash];
-                                if(!key.svgKeyRouteText) {
-                                    key.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
-                                    key.svgKeyRouteText.setAttributeNS(null, 'class', 'keyText');
-                                    var textPath = document.createElementNS(SVGNS, 'textPath');
-                                    key.svgKeyRouteText.text = document.createTextNode(key.route);
-                                    textPath.appendChild(key.svgKeyRouteText.text);
-                                    textPath.setAttributeNS(null, 'href', '#' + hash);
-                                    textPath.setAttributeNS(null, 'startOffset', '17');
-                                    key.svgKeyRouteText.appendChild(textPath);
-                                    SVGLayer.keys.appendChild(key.svgKeyRouteText);
+                                var route = Model.routes[hash];
+                                if(!route.svgKeyRouteText) {
+                                    route.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
+                                    route.svgKeyRouteText.setAttributeNS(null, 'class', 'routeText');
+                                    route.svgKeyRouteText.textPath = document.createElementNS(SVGNS, 'textPath');
+                                    route.svgKeyRouteText.text = document.createTextNode(route.name);
+                                    route.svgKeyRouteText.textPath.appendChild(route.svgKeyRouteText.text);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'startOffset', '17');
+                                    route.svgKeyRouteText.appendChild(route.svgKeyRouteText.textPath);
+                                    SVGLayer.keys.appendChild(route.svgKeyRouteText);
                                 }
                             }
                         }, false);
-                        key.blob.addEventListener('mouseout', function(e) { 
+                        route.svgKeyRoute.addEventListener('mouseout', function(e) { 
                             var hash = this.getAttribute('id');
-                            var key = Model.keys[hash];
-                            if(!EventHandler.keySelected()) {
-                                if(key.svgKeyRouteText) {
-                                    SVGLayer.keys.removeChild(key.svgKeyRouteText);
-                                    delete key.svgKeyRouteText;
+                            var route = Model.routes[hash];
+                            if(!EventHandler.routeSelected()) {
+                                if(route.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                    delete route.svgKeyRouteText;
                                 }
-                                this.setAttributeNS(null, 'class', 'key'); 
+                                this.setAttributeNS(null, 'class', 'route'); 
                             }
                         }, false);
-                        key.blob.addEventListener('click', function(e) {
+                        route.svgKeyRoute.addEventListener('click', function(e) {
                             EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
                             var hash = this.getAttribute('id');
-                            var key = Model.keys[hash];                            
-                            if(!EventHandler.keySelected()) {
-                                this.setAttributeNS(null, 'class', 'keyHover'); 
-                                EventHandler.selectKey(key);
+                            var route = Model.routes[hash];                            
+                            if(!EventHandler.routeSelected()) {
+                                this.setAttributeNS(null, 'class', 'routeSelected'); 
+                                EventHandler.selectRoute(route);
                                 // add a text box for the route name
-                                key.routeInput = document.createElement('input');
-                                key.routeInput.setAttribute('id', 'route');
-                                key.routeInput.value = key.route;
-                                key.routeInput.addEventListener('input', function(e) {
-                                    Model.changeKeyRouteName(key, e.target.value);
-                                    key.svgKeyRouteText.text.nodeValue = e.target.value;
+                                route.routeInput = document.createElement('input');
+                                route.routeInput.setAttribute('id', 'route');
+                                route.routeInput.value = route.name;
+                                route.routeInput.addEventListener('input', function(e) {
+                                    Model.changeRouteName(route, e.target.value);
+                                    var hash = route.start.mnemonic + '|' + route.name;
+                                    route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.text.nodeValue = e.target.value;
                                 }, false);
-                                document.body.appendChild(key.routeInput);
+                                document.body.appendChild(route.routeInput);
                             }
-                            else if(EventHandler.keySelected() == key) {
-                                EventHandler.unselectKey();
-                                if(key.svgKeyRouteText) {
-                                    SVGLayer.keys.removeChild(key.svgKeyRouteText);
-                                    delete key.svgKeyRouteText;
+                            else if(EventHandler.routeSelected() == route) {
+                                EventHandler.unselectRoute();
+                                if(route.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                    delete route.svgKeyRouteText;
                                 }
-                                if(key.routeInput) {
-                                    document.body.removeChild(key.routeInput);
-                                    delete key.routeInput;
+                                if(route.routeInput) {
+                                    document.body.removeChild(route.routeInput);
+                                    delete route.routeInput;
                                 }
-                                this.setAttributeNS(null, 'class', 'key'); 
+                                this.setAttributeNS(null, 'class', 'route'); 
                             }
                         }, false);
-                        SVGLayer.keys.appendChild(key.blob);
+                        SVGLayer.keys.appendChild(route.svgKeyRoute);
                     }
-                    var stops = key.of.node.xPosition.toFixed(2) + ',' + key.of.node.yPosition.toFixed(2);
-                    for(var stopNumber in key.stops) {
+                    var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
+                    for(var stopNumber in route.stops) {
                         stops += ' ' + 
-                            key.stops[stopNumber].component.node.xPosition.toFixed(2) + ',' + 
-                            key.stops[stopNumber].component.node.yPosition.toFixed(2);
+                            route.stops[stopNumber].component.node.xPosition.toFixed(2) + ',' + 
+                            route.stops[stopNumber].component.node.yPosition.toFixed(2);
                     }
-                    key.blob.setAttributeNS(null, 'd', 'M' + stops);
+                    route.svgKeyRoute.setAttributeNS(null, 'd', 'M' + stops);
                 }
             },
             draw: function() {
                 if(DEBUG)
                     this.drawPartitions();
-                this.drawKeys();
+                this.drawRoutes();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var component, node;
@@ -2045,15 +2120,15 @@
             scaleX: null,
             scaleY: null,
             // WIP: keys event
-            key: null,
-            selectKey: function(key) {
-                this.key = key;
+            selectedRoute: null,
+            selectRoute: function(key) {
+                this.selectedRoute = key;
             },
-            keySelected: function() {
-                return this.key;
+            routeSelected: function() {
+                return this.selectedRoute;
             },
-            unselectKey: function() {
-                this.key = null;
+            unselectRoute: function() {
+                this.selectedRoute = null;
             },
             addComponentToSelection: function(component) {
                 if(this.selectedComponents.indexOf(component) < 0)
@@ -2128,7 +2203,7 @@
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
-                    component.showContextMenu(component, EventHandler.selectedComponents);
+                    component.showContextMenu(component, EventHandler.selectedComponents, EventHandler.selectedRoute);
                     DrawingEngine.setCursor('pointer');
                 }
                 event.stopPropagation();
@@ -2390,9 +2465,10 @@
                                 EventHandler.selectedComponents
                         ));
                 var component = EventHandler.interactedComponents.pop();
+                var selectedRoute = EventHandler.selectedRoute;
                 switch(String.fromCharCode(event.charCode || event.which)) {
                     case "e":
-                        component.showContextMenu(component, allComponents);
+                        component.showContextMenu(component, allComponents, selectedRoute);
                         component.contextMenu.toggle();
                         break;
                     case "a":
@@ -2787,9 +2863,9 @@
                 }
             },
             contextMenu: null,
-            showContextMenu: function(hoveredComponent, selectedComponents) {
+            showContextMenu: function(hoveredComponent, selectedComponents, selectedRoute) {
                 if(!this.contextMenu)
-                    this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents);
+                    this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents, selectedRoute);
             },
             hideContextMenu: function() {
                 if(this.contextMenu) {
@@ -2832,7 +2908,7 @@
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleKnotted','toggleHistorized');
+            this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -3370,6 +3446,7 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.equivalent = Defaults.equivalence === 'true';
+            this.operations.push('addToKey', 'removeFromKey');
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3571,7 +3648,7 @@
             this.editables.push(Editables.deletabilityEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleHistorized','addKnot','addAnchor');
+            this.operations.push('toggleHistorized','addKnot','addAnchor', 'addToKey', 'removeFromKey');
             this.encapsulation = Defaults.encapsulation;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -4543,6 +4620,19 @@
         var Operations = {
             // operations are defined as 'method', 'display name', 'description', 'optional rule'
             list: [
+                // WIP: keys operations
+                ['addToKey',
+                    'Add selected to key',
+                    'Adds the selected item(s) to the selected key route.',
+                    function(allComponents) {
+                        return EventHandler.selectedRoute;
+                    }],
+                ['removeFromKey',
+                    'Remvove selected from key',
+                    'Removes the selected item(s) from the selected key route.',
+                    function(allComponents) {
+                        return EventHandler.selectedRoute;
+                    }],
                 ['erase',
                     '<u>D</u>elete selected...',
                     'Deletes the selected item(s) from the model.'],
@@ -4606,7 +4696,7 @@
             }
         };
 
-        function ContextMenu(hoveredComponent, selectedComponents) {
+        function ContextMenu(hoveredComponent, selectedComponents, selectedRoute) {
             var self = this;
 
             this.hoveredComponent = hoveredComponent;
@@ -4631,8 +4721,12 @@
             this.showEditables = false;
 
             var i, j, tr;
+            // WIP: keys edit
+            if(selectedRoute) {
+                this.topper.appendChild(document.createTextNode("Edit key of " + selectedRoute.start.mnemonic));
+            }
             // if we are operating a single node, show its editable fields
-            if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
+            else if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
                 this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredComponent.node.type]));
                 for(i = 0; editable = hoveredComponent.editables[i]; i++) {
                     if(editable.editable) {
@@ -6603,21 +6697,21 @@
                     stroke:             none;
                     fill:               #000;
                 }
-                .key {
+                .route {
                     fill:               none;
                     stroke:             rgba(42, 0, 0, 0.07);
                     stroke-width:       32;
                     stroke-linecap:     round;
                     stroke-linejoin:    round;
                 }
-                .keyHover {
+                .routeSelected {
                     fill:               none;
                     stroke:             rgba(242, 101, 101, 0.2);
                     stroke-width:       42;
                     stroke-linecap:     round;
                     stroke-linejoin:    round;
                 }
-                .keyText {
+                .routeText {
                     font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
                     font-size:          20pt;
                     font-weight:        normal;
