@@ -101,7 +101,8 @@ SELECT
    Nodeset.anchor.value('@descriptor', 'nvarchar(max)') as [descriptor],
    Nodeset.anchor.value('@identity', 'nvarchar(max)') as [identity],
    Nodeset.anchor.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
-   Nodeset.anchor.value('count(attribute)', 'int') as [numberOfAttributes]
+   Nodeset.anchor.value('count(attribute)', 'int') as [numberOfAttributes],
+   Nodeset.anchor.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -127,7 +128,8 @@ SELECT
    Nodeset.knot.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.knot.value('@dataRange', 'nvarchar(max)') as [dataRange],
    isnull(Nodeset.knot.value('metadata[1]/@checksum', 'nvarchar(max)'), 'false') as [checksum],
-   isnull(Nodeset.knot.value('metadata[1]/@equivalent', 'nvarchar(max)'), 'false') as [equivalent]
+   isnull(Nodeset.knot.value('metadata[1]/@equivalent', 'nvarchar(max)'), 'false') as [equivalent],
+   Nodeset.knot.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -165,7 +167,10 @@ SELECT
    ParentNodeset.anchor.value('@identity', 'nvarchar(max)') as [anchorIdentity],
    Nodeset.attribute.value('@dataRange', 'nvarchar(max)') as [dataRange],
    Nodeset.attribute.value('@knotRange', 'nvarchar(max)') as [knotRange],
-   Nodeset.attribute.value('@timeRange', 'nvarchar(max)') as [timeRange]
+   Nodeset.attribute.value('@timeRange', 'nvarchar(max)') as [timeRange],
+   Nodeset.attribute.value('metadata[1]/@deletable', 'nvarchar(max)') as [deletable],
+   Nodeset.attribute.value('metadata[1]/@encryptionGroup', 'nvarchar(max)') as [encryptionGroup],
+   Nodeset.attribute.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
@@ -214,12 +219,51 @@ SELECT
    Nodeset.tie.value('metadata[1]/@generator', 'nvarchar(max)') as [generator],
    Nodeset.tie.value('metadata[1]/@assertive', 'nvarchar(max)') as [assertive],
    Nodeset.tie.value('metadata[1]/@restatable', 'nvarchar(max)') as [restatable],
-   Nodeset.tie.value('metadata[1]/@idempotent', 'nvarchar(max)') as [idempotent]
+   Nodeset.tie.value('metadata[1]/@idempotent', 'nvarchar(max)') as [idempotent],
+   Nodeset.tie.value('description[1]/.', 'nvarchar(max)') as [description]
 FROM
    [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema/tie') as Nodeset(tie);
 GO
+
+-- Key view -----------------------------------------------------------------------------------------------------------
+-- The key view shows information about all the keys in a schema
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$schema.metadata.encapsulation$._Key', 'V') IS NOT NULL
+DROP VIEW [$schema.metadata.encapsulation].[_Key]
+GO
+
+CREATE VIEW [$schema.metadata.encapsulation].[_Key]
+AS
+SELECT
+   S.version,
+   S.activation,
+   Nodeset.keys.value('@of', 'nvarchar(max)') as [of],
+   Nodeset.keys.value('@route', 'nvarchar(max)') as [route],
+   Nodeset.keys.value('@stop', 'nvarchar(max)') as [stop],
+   case Nodeset.keys.value('local-name(..)', 'nvarchar(max)')
+      when 'knot'
+      then Nodeset.keys.value('concat(../@mnemonic, ""_"")', 'nvarchar(max)') +
+          Nodeset.keys.value('../@descriptor', 'nvarchar(max)') 
+      when 'attribute'
+      then Nodeset.keys.value('concat(../../@mnemonic, ""_"")', 'nvarchar(max)') +
+          Nodeset.keys.value('concat(../@mnemonic, ""_"")', 'nvarchar(max)') +
+          Nodeset.keys.value('concat(../../@descriptor, ""_"")', 'nvarchar(max)') +
+          Nodeset.keys.value('../@descriptor', 'nvarchar(max)') 
+      when 'tie'
+      then REPLACE(Nodeset.keys.query('
+            for $$role in ../*[local-name() = ""anchorRole"" or local-name() = ""knotRole""]
+            return concat($$role/@type, "_", $$role/@role)
+          ').value('.', 'nvarchar(max)'), ' ', '_')
+   end as [in],
+   Nodeset.keys.value('local-name(..)', 'nvarchar(max)') as [parent]
+FROM
+   [dbo].[_Schema] S
+CROSS APPLY
+   S.[schema].nodes('/schema//key') as Nodeset(keys);
+GO
+
 -- Evolution function -------------------------------------------------------------------------------------------------
 -- The evolution function shows what the schema looked like at the given
 -- point in time with additional information about missing or added

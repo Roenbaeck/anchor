@@ -15,7 +15,7 @@
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
-            <key stop="3" route="n" of="PE"/>
+            <key stop="1" route="1st" of="PE"/>
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
@@ -26,20 +26,24 @@
             <metadata equivalent="true"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
-            <key stop="1" route="n" of="PE"/>
+            <key stop="1" route="1st" of="ST"/>
+            <key stop="3" route="1st" of="PE"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
         <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
-        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)"/>
+        <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+            <key stop="1" route="1st" of="AC"/>
+        </attribute>
         <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
         <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
             <metadata equivalent="true"/>
+            <key stop="1" route="1st" of="PR"/>
         </attribute>
     </anchor>
     <tie timeRange="datetime">
@@ -50,13 +54,13 @@
     <tie>
         <anchorRole role="wasHeld" type="PE" identifier="true"/>
         <anchorRole role="at" type="ST" identifier="false"/>
+        <key stop="2" route="1st" of="PE"/>
     </tie>
     <tie>
         <anchorRole role="subset" type="PE" identifier="false"/>
         <anchorRole role="of" type="EV" identifier="false"/>
     </tie>
     <tie>
-        <key stop="2" route="n" of="PE" from="PR" to="PE"/>
         <anchorRole role="at" type="PE" identifier="true"/>
         <anchorRole role="wasPlayed" type="PR" identifier="false"/>
     </tie>

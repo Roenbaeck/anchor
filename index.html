@@ -47,7 +47,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.3';
+        var VERSION = '0.99.4';
 
         // change to false in beta
         var RELEASE = false;
@@ -691,6 +691,50 @@
             idToComponent: {},
             version: -1,
             versions: [],
+            // WIP: keys model
+            routes: {},
+            interactive: false,
+            // in interactive mode keys are added on the fly, in non-interactive mode they need to be prepared
+            setInteractive: function(interactive) {
+                this.interactive = interactive || false;
+            },
+            prepareKeys: function() {
+                var component; 
+                for(var i = 0; i < this.components.length; i++) {
+                    component = this.components[i];
+                    if(component.keys && component.keys.length > 0) {
+                        for(var j = 0; j < component.keys.length; j++)
+                            this.addKey(component, component.keys[j]);
+                    }
+                }                
+            },
+            addKey: function(component, key) {
+                var hash = key.of + '|' + key.route; // ugly concat, but that's life
+                var anchorLookup = this.getAnchorLookup();
+                if(!this.routes[hash]) {
+                    this.routes[hash] = {
+                        name: key.route,
+                        start: anchorLookup[key.of],
+                        stops: {}
+                    };
+                }
+                this.routes[hash].stops[key.stop] = {
+                    component: component, 
+                    key: key // this is the key as represented in the component
+                };
+            },
+            changeRouteName: function(route, name) {
+                var oldHash = route.start.mnemonic + '|' + route.name;
+                if(this.routes[oldHash]) 
+                    delete this.routes[oldHash];
+                route.name = name;
+                var newHash = route.start.mnemonic + '|' + route.name;
+                this.routes[newHash] = route;
+                for(var stopNumber in route.stops) {
+                    var stop = route.stops[stopNumber];
+                    stop.key.route = name;
+                }
+            },
             getAnchorLookup: function() {
                 var anchorLookup = Object.create(null);
                 var component;
@@ -726,6 +770,7 @@
             empty: function() {
                 this.components = [];
                 this.visibleNodes = [];
+                this.routes = {};
                 this.idToComponent = Object.create(null);
                 SVGLayer.clearAll();
                 NAVLayer.clearAll();
@@ -800,6 +845,11 @@
                 if(component) {
                     this.components.push(component);
                     this.idToComponent[component.id] = component;
+                    // WIP: keys
+                    if(this.interactive && component.keys && component.keys.length > 0) {
+                        for(var i = 0; i < component.keys.length; i++)
+                            this.addKey(component, component.keys[i]);
+                    }
                     // this.sort();
                     this.invalidateComponent(component);
                     this.refresh();
@@ -874,6 +924,7 @@
             },
             fromXML: function(xml) {
                 if(xml) {
+                    this.setInteractive(false);
                     this.empty();
                     var schemaElement = xml.documentElement;
                     var metadata = schemaElement.getElementsByTagName('metadata');
@@ -929,6 +980,8 @@
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
+                    // keys must be added last since they may provide a path through many of the above
+                    this.prepareKeys();
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -938,6 +991,7 @@
                         }
                     }
                     this.explode(allComponents, false);
+                    this.setInteractive(true);
                     this.refresh();
                 }
             },
@@ -1110,6 +1164,114 @@
                 this.recordState();
                 DrawingEngine.start(false);
             },
+            // WIP: keys operations
+            createKey: function(components) {
+                var i, anchor, component, stopComponents = [];
+                for(i = 0; component = components[i]; i++) {
+                    if(component.node.type === NodeType.ANCHOR) 
+                        anchor = component;
+                    else
+                        stopComponents.push(component);
+                }
+                for(i = 0; component = stopComponents[i]; i++) {
+                    var stopNumber = (i + 1).toString();
+                    var key = {
+                        stop: stopNumber,
+                        route: '!unnamed!',
+                        of: anchor.mnemonic                                                        
+                    };
+                    component.keys.push(key);
+                    this.addKey(component, key);
+                }
+                this.recordState();
+                DrawingEngine.start(false);
+            },
+            addToKey: function(components) {
+                var route = EventHandler.selectedRoute;
+                if(route) {
+                    var component;
+                    for(var i = 0; i < components.length; i++) {
+                        component = components[i];
+                        var shouldBeAdded = true, maxStopNumber = 0;
+                        for(var stopNumber in route.stops) {
+                            if(parseInt(stopNumber) > maxStopNumber)
+                                maxStopNumber = parseInt(stopNumber);
+                            if(route.stops[stopNumber].component == component)
+                                shouldBeAdded = false;
+                        }
+                        if(shouldBeAdded) {
+                            maxStopNumber = (maxStopNumber + 1).toString();
+                            var key = {
+                                stop: maxStopNumber,
+                                route: route.name,
+                                of: route.start.mnemonic                                
+                            };
+                            component.keys.push(key);
+                            route.stops[maxStopNumber] = {
+                                component: component,
+                                key: key // this is the key as represented in the component
+                            }
+                        }
+                    }
+                    this.recordState();
+                    DrawingEngine.start(false);
+                }
+            },         
+            removeFromKey: function(components) {
+                var route = EventHandler.selectedRoute;
+                if(route) {
+                    var component, deletesHaveBeenMade = false, maxStopNumber = 0;
+                    for(var i = 0; i < components.length; i++) {
+                        component = components[i];
+                        for(var stopNumber in route.stops) {
+                            if(parseInt(stopNumber) > maxStopNumber)
+                                maxStopNumber = parseInt(stopNumber);
+                            if(route.stops[stopNumber].component == component) {
+                                var keyIndex = component.keys.indexOf(route.stops[stopNumber].key);
+                                component.keys.splice(keyIndex, 1);
+                                delete route.stops[stopNumber];
+                                deletesHaveBeenMade = true;
+                            }
+                        }
+                    }
+                    // renumbering of stops
+                    if(deletesHaveBeenMade) {
+                        var stops = [];
+                        for(var stopNumber = 1; stopNumber <= maxStopNumber; stopNumber++) {
+                            if(route.stops[stopNumber]) 
+                                stops.push(route.stops[stopNumber]);
+                        }
+                        if(stops.length > 0) {
+                            route.stops = {};
+                            for(var s = 0; s < stops.length; s++) {
+                                var newStopNumber = (s + 1).toString();
+                                stops[s].key.stop = newStopNumber;
+                                route.stops[newStopNumber] = stops[s];
+                            }
+                        }
+                        // we removed the last stop of the route
+                        else {
+                            var hash = route.start.mnemonic + '|' + route.name;
+                            if(route.routeInput) {
+                                document.body.removeChild(route.routeInput);
+                                delete route.routeInput;
+                            }
+                            if(route.svgKeyRouteText) {
+                                SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                delete route.svgKeyRouteText;
+                            }
+                            if(route.svgKeyRoute) {
+                                SVGLayer.keys.removeChild(route.svgKeyRoute);
+                                delete route.svgKeyRoute;
+                            }
+                            EventHandler.unselectRoute();
+                            delete Model.routes[hash];
+                        }
+                    }
+                    this.recordState();
+                    DrawingEngine.start(false);                    
+                }                
+            },   
             toggleIdentifier: function(components) {
                 var ties = [], component, node, edge;
                 for(var i = 0; i < components.length; i++) {
@@ -1495,9 +1657,92 @@
                     centerElement.r.baseVal.value = 100*(Math.abs(partition.xVelocity) + Math.abs(partition.yVelocity));
                 }
             },
+            // WIP: keys draw
+            drawRoutes: function() {
+                var route;
+                for(var hash in Model.routes) {  
+                    route = Model.routes[hash];
+                    if(!route.svgKeyRoute) {
+                        route.svgKeyRoute = document.createElementNS(SVGNS, 'path');
+                        route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                        route.svgKeyRoute.setAttributeNS(null, 'class', 'route');
+                        route.svgKeyRoute.addEventListener('mouseover', function(e) { 
+                            if(!EventHandler.routeSelected()) {
+                                this.setAttributeNS(null, 'class', 'routeSelected'); 
+                                var hash = this.getAttribute('id');
+                                var route = Model.routes[hash];
+                                if(!route.svgKeyRouteText) {
+                                    route.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
+                                    route.svgKeyRouteText.setAttributeNS(null, 'class', 'routeText');
+                                    route.svgKeyRouteText.textPath = document.createElementNS(SVGNS, 'textPath');
+                                    route.svgKeyRouteText.text = document.createTextNode(route.name);
+                                    route.svgKeyRouteText.textPath.appendChild(route.svgKeyRouteText.text);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'startOffset', '17');
+                                    route.svgKeyRouteText.appendChild(route.svgKeyRouteText.textPath);
+                                    SVGLayer.keys.appendChild(route.svgKeyRouteText);
+                                }
+                            }
+                        }, false);
+                        route.svgKeyRoute.addEventListener('mouseout', function(e) { 
+                            var hash = this.getAttribute('id');
+                            var route = Model.routes[hash];
+                            if(!EventHandler.routeSelected()) {
+                                if(route.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                    delete route.svgKeyRouteText;
+                                }
+                                this.setAttributeNS(null, 'class', 'route'); 
+                            }
+                        }, false);
+                        route.svgKeyRoute.addEventListener('click', function(e) {
+                            EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
+                            var hash = this.getAttribute('id');
+                            var route = Model.routes[hash];                            
+                            if(!EventHandler.routeSelected()) {
+                                this.setAttributeNS(null, 'class', 'routeSelected'); 
+                                EventHandler.selectRoute(route);
+                                // add a text box for the route name
+                                route.routeInput = document.createElement('input');
+                                route.routeInput.setAttribute('id', 'route');
+                                route.routeInput.value = route.name;
+                                route.routeInput.addEventListener('input', function(e) {
+                                    Model.changeRouteName(route, e.target.value);
+                                    var hash = route.start.mnemonic + '|' + route.name;
+                                    route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.text.nodeValue = e.target.value;
+                                }, false);
+                                document.body.appendChild(route.routeInput);
+                            }
+                            else if(EventHandler.routeSelected() == route) {
+                                EventHandler.unselectRoute();
+                                if(route.svgKeyRouteText) {
+                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
+                                    delete route.svgKeyRouteText;
+                                }
+                                if(route.routeInput) {
+                                    document.body.removeChild(route.routeInput);
+                                    delete route.routeInput;
+                                }
+                                this.setAttributeNS(null, 'class', 'route'); 
+                            }
+                        }, false);
+                        SVGLayer.keys.appendChild(route.svgKeyRoute);
+                    }
+                    var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
+                    for(var stopNumber in route.stops) {
+                        stops += ' ' + 
+                            route.stops[stopNumber].component.node.xPosition.toFixed(2) + ',' + 
+                            route.stops[stopNumber].component.node.yPosition.toFixed(2);
+                    }
+                    route.svgKeyRoute.setAttributeNS(null, 'd', 'M' + stops);
+                }
+            },
             draw: function() {
                 if(DEBUG)
                     this.drawPartitions();
+                this.drawRoutes();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var component, node;
@@ -1915,6 +2160,17 @@
             lastY: null,
             scaleX: null,
             scaleY: null,
+            // WIP: keys event
+            selectedRoute: null,
+            selectRoute: function(key) {
+                this.selectedRoute = key;
+            },
+            routeSelected: function() {
+                return this.selectedRoute;
+            },
+            unselectRoute: function() {
+                this.selectedRoute = null;
+            },
             addComponentToSelection: function(component) {
                 if(this.selectedComponents.indexOf(component) < 0)
                     this.selectedComponents.push(component);
@@ -1988,7 +2244,7 @@
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
-                    component.showContextMenu(component, EventHandler.selectedComponents);
+                    component.showContextMenu(component, EventHandler.selectedComponents, EventHandler.selectedRoute);
                     DrawingEngine.setCursor('pointer');
                 }
                 event.stopPropagation();
@@ -2250,9 +2506,10 @@
                                 EventHandler.selectedComponents
                         ));
                 var component = EventHandler.interactedComponents.pop();
+                var selectedRoute = EventHandler.selectedRoute;
                 switch(String.fromCharCode(event.charCode || event.which)) {
                     case "e":
-                        component.showContextMenu(component, allComponents);
+                        component.showContextMenu(component, allComponents, selectedRoute);
                         component.contextMenu.toggle();
                         break;
                     case "a":
@@ -2384,7 +2641,7 @@
         function Component(node) {
             this.node = node;
             this.editables = [];
-            this.operations = ['erase', 'connect'];
+            this.operations = ['erase', 'connect', 'createKey'];
             this.svg = new Symbol(this);
             this.svg.makeInteractive();
             this.nav = new Symbol(this);
@@ -2647,9 +2904,9 @@
                 }
             },
             contextMenu: null,
-            showContextMenu: function(hoveredComponent, selectedComponents) {
+            showContextMenu: function(hoveredComponent, selectedComponents, selectedRoute) {
                 if(!this.contextMenu)
-                    this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents);
+                    this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents, selectedRoute);
             },
             hideContextMenu: function() {
                 if(this.contextMenu) {
@@ -2666,6 +2923,7 @@
             // set members
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
+            this.keys = [];
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
@@ -2691,7 +2949,7 @@
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleKnotted','toggleHistorized');
+            this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -2740,10 +2998,7 @@
             knotted: false,
             encapsulation: Defaults.encapsulation,
             privacy: Defaults.privacy,
-            keys: [
-                {stop: "1", route: "N", of: "PE"},
-                {stop: "3", route: "A", of: "PE"}
-            ], // TODO: this is just a test
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -2888,6 +3143,17 @@
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var attribute = new Attribute(x, y, historized);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        attribute.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 attribute.setFixed(fixed);
                 attribute.setKnotted(knotted);
                 attribute.setHistorized(historized);
@@ -2973,6 +3239,16 @@
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);                
                 attribute.appendChild(metadata);
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        attribute.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(attribute, schema);
                 this.addDescriptionXML(attribute, schema, this.description);
                 element.appendChild(attribute);
@@ -3005,33 +3281,6 @@
                 return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
-                /*
-                if(!this.svg.stops) {
-                    this.svg.stops = [];
-                    var stop, route, of, i, offset = -20, height = 14;
-                    // TODO: speed up, clicking, editing, layering, route paths?
-                    for(i = 0; i < this.keys.length; i++) {
-                        stop = this.keys[i].stop;
-                        route = this.keys[i].route;
-                        of = this.keys[i].of;
-
-                        offset -= height * i;
-
-                        var stopElement = document.createElementNS(SVGNS, 'use');
-                        stopElement.setAttributeNS(XLINKNS, 'xlink:href', '#stop');
-                        stopElement.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopElement.addEventListener('mouseover', EventHandler.modifyKey, false);
-                        stopElement.component = this;
-                        this.svg.stops.push(stopElement);
-                        this.svg.graphicsElement.appendChild(stopElement);
-                        var stopText = document.createElementNS(SVGNS, 'text');
-                        stopText.appendChild(document.createTextNode(stop + route.toLowerCase() + of));
-                        stopText.setAttributeNS(null, 'transform', 'translate(0,' + offset  + ')');
-                        stopText.setAttributeNS(null, 'class', 'stop');
-                        this.svg.graphicsElement.appendChild(stopText);
-                    }
-                }
-                */
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
             }
         };
@@ -3226,6 +3475,7 @@
             Component.call(this, new Node(this.id, x, y, NodeType.KNOT));
             this.mnemonic = '?' + this.getId();
             this.descriptor = '!Unnamed!';
+            this.keys = [];
             this.editables.push(Editables.descriptorEdit);
             this.editables.push(Editables.threeMnemonicEdit);
             this.editables.push(Editables.encapsulationEdit);
@@ -3237,6 +3487,7 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.equivalent = Defaults.equivalence === 'true';
+            this.operations.push('addToKey', 'removeFromKey');
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3275,6 +3526,7 @@
             checksum: false,
             equivalent: false,
             encapsulation: Defaults.encapsulation,
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -3353,6 +3605,17 @@
                 var identity = element.getAttribute("identity") || '';
                 var dataRange = element.getAttribute("dataRange") || '';
                 var knot = new Knot(x, y);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        knot.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 knot.setFixed(fixed);
                 knot.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 knot.mnemonic = mnemonic;
@@ -3387,7 +3650,16 @@
                     metadata.setAttribute("equivalent", this.isEmpty(this.equivalent) ? '' : this.equivalent);
                 }
                 knot.appendChild(metadata);
-
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        knot.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(knot, schema);
                 this.addDescriptionXML(knot, schema, this.description);
                 return knot;
@@ -3405,6 +3677,7 @@
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.TIE));
             this.historized = historized;
+            this.keys = [];
             this.deletable = Defaults.deletability === 'true';
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
@@ -3416,7 +3689,7 @@
             this.editables.push(Editables.deletabilityEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleHistorized','addKnot','addAnchor');
+            this.operations.push('toggleHistorized','addKnot','addAnchor', 'addToKey', 'removeFromKey');
             this.encapsulation = Defaults.encapsulation;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -3458,6 +3731,7 @@
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
+            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -3611,6 +3885,17 @@
                 var historized = changingRange ? true : false;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var tie = new Tie(x, y, historized);
+                // WIP: keys
+                for(i = 0; i < element.childNodes.length; i++) {
+                    if(element.childNodes.item(i).nodeName === 'key') {
+                        var key = element.childNodes.item(i);
+                        tie.keys.push({
+                            stop: key.getAttribute("stop"),
+                            route: key.getAttribute("route"),
+                            of: key.getAttribute("of")
+                        });
+                    }
+                }
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
@@ -3718,7 +4003,16 @@
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);
                 tie.appendChild(metadata);
-
+                // WIP: keys
+                if(this.keys && this.keys.length > 0) {
+                    for(var i = 0; i < this.keys.length; i++) {
+                        var key = schema.createElement("key");
+                        key.setAttribute("stop", this.keys[i].stop);
+                        key.setAttribute("route", this.keys[i].route);
+                        key.setAttribute("of", this.keys[i].of)
+                        tie.appendChild(key);
+                    }
+                }
                 this.addLayoutXML(tie, schema);
                 this.addDescriptionXML(tie, schema, this.description);
                 return tie;
@@ -3779,6 +4073,7 @@
             this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
+            this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
             this.setColoring(this.coloring);
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
@@ -4367,6 +4662,40 @@
         var Operations = {
             // operations are defined as 'method', 'display name', 'description', 'optional rule'
             list: [
+                // WIP: keys operations
+                ['addToKey',
+                    'Add selected to key',
+                    'Adds the selected item(s) to the selected key route.',
+                    function(allComponents) {
+                        return EventHandler.selectedRoute;
+                    }],
+                ['removeFromKey',
+                    'Remvove selected from key',
+                    'Removes the selected item(s) from the selected key route.',
+                    function(allComponents) {
+                        return EventHandler.selectedRoute;
+                    }],
+                ['createKey',
+                    'Create key from selected',
+                    'Creates a key route from the selected item(s) in the model.',
+                    function(allComponents) {
+                        if(allComponents.length < 2)
+                            return false;
+                        var component, anchors = 0, ties = 0, knots = 0, attributes = 0;
+                        for(var i = 0; component = allComponents[i]; i++) {
+                            if(component.node.type === NodeType.ANCHOR)
+                                anchors++;
+                            else if(component.node.type === NodeType.TIE)
+                                ties++;
+                            else if(component.node.type === NodeType.KNOT)
+                                knots++;
+                            else if(component.node.type === NodeType.ATTRIBUTE) 
+                                attributes++;
+                        }
+                        if(anchors != 1 || ties + knots + attributes == 0)
+                            return false;
+                        return true;
+                    }],
                 ['erase',
                     '<u>D</u>elete selected...',
                     'Deletes the selected item(s) from the model.'],
@@ -4430,7 +4759,7 @@
             }
         };
 
-        function ContextMenu(hoveredComponent, selectedComponents) {
+        function ContextMenu(hoveredComponent, selectedComponents, selectedRoute) {
             var self = this;
 
             this.hoveredComponent = hoveredComponent;
@@ -4455,8 +4784,12 @@
             this.showEditables = false;
 
             var i, j, tr;
+            // WIP: keys edit
+            if(selectedRoute) {
+                this.topper.appendChild(document.createTextNode("Edit key of " + selectedRoute.start.mnemonic));
+            }
             // if we are operating a single node, show its editable fields
-            if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
+            else if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
                 this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredComponent.node.type]));
                 for(i = 0; editable = hoveredComponent.editables[i]; i++) {
                     if(editable.editable) {
@@ -5164,6 +5497,9 @@
                 else {
                     alert("This model is not saved in the cloud. Please save the model before generating a URL.");
                 }
+            },
+            generateSVG: function(graph) {
+                new CodePopover(Actions.preformat((new XMLSerializer()).serializeToString(graph)), true);
             },
             generateSQL: function() {
                 Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)
@@ -6282,9 +6618,9 @@
             SVGLayer = new Layer(SVG);
             SVGLayer.addLayer('debugPartitions');
             SVGLayer.addLayer('debug');
+            SVGLayer.addLayer('keys');
             SVGLayer.addLayer('edges');
             SVGLayer.addLayer('nodes');
-            SVGLayer.addLayer('keys');
             SVGLayer.addLayer('names');
             // SVGLayer.hide('names');
             SVGLayer.hide('debug');
@@ -6412,24 +6748,45 @@
                     text-anchor:        left;
                     dominant-baseline:  middle;
                     fill:               #000;
+                    pointer-events:     none;
+                }
+                .edge {
+                    pointer-events:     none;
                 }
                 .anchor {
                     font-style:         italic;
                     font-weight:        bold;
                     stroke:             none;
                     fill:               #c80514;
+                    pointer-events:     none;
                 }
                 .role {
                     font-style:         italic;
                     stroke:             none;
                     fill:               #000;
+                    pointer-events:     none;
                 }
-                .stop {
-                    font-size:          6pt;
-                    font-family:        "Consolas", "Andale Mono", monospace;
-                    text-anchor:        middle;
-                    dominant-baseline:  bottom;
-                    fill:               #fff;
+                .route {
+                    fill:               none;
+                    stroke:             rgba(42, 0, 0, 0.07);
+                    stroke-width:       32;
+                    stroke-linecap:     round;
+                    stroke-linejoin:    round;
+                }
+                .routeSelected {
+                    fill:               none;
+                    stroke:             rgba(242, 101, 101, 0.2);
+                    stroke-width:       42;
+                    stroke-linecap:     round;
+                    stroke-linejoin:    round;
+                }
+                .routeText {
+                    font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
+                    font-size:          20pt;
+                    font-weight:        normal;
+                    fill:               white;
+                    dominant-baseline:  middle;
+                    pointer-events:     none;
                 }
                 .bad {
                     fill:               #e00;
@@ -6481,9 +6838,6 @@
                 <line x1="-3" y1="-3" x2="3" y2="-3"/>
                 <line x1="-3" y1="0" x2="3" y2="0"/>
                 <line x1="-3" y1="3" x2="3" y2="3"/>
-            </g>
-            <g id="stop">
-                <rect width="24" height="11" rx="2" ry="2" transform="translate(-12, -8)" style="fill:#708090;"/>
             </g>
         </defs>
         <!-- layers are appended here -->
@@ -6572,6 +6926,7 @@
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
                 -->
                 <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
+                <li title="Generate an SVG representation of the model." onclick="Actions.generateSVG(SVG)">SVG code</li>
             </ul>
         </div>
 
