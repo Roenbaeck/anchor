@@ -1514,6 +1514,7 @@
             miniCounter: 0,
             miniature: null,
             showNames: true,
+            showKeys: true,
             coloring: true,
             newState: true,
             miniatureFramesBetweenRefresh: 50,
@@ -1716,7 +1717,6 @@
                             }
                             else if(EventHandler.routeSelected() == route) {
                                 EventHandler.clearSelection();
-                                this.setAttributeNS(null, 'class', 'route'); 
                             }
                         }, false);
                         SVGLayer.keys.appendChild(route.svgKeyRoute);
@@ -1733,7 +1733,8 @@
             draw: function() {
                 if(DEBUG)
                     this.drawPartitions();
-                this.drawRoutes();
+                if(this.showKeys)
+                    this.drawRoutes();
                 // draw the miniature every minirate frames
                 this.miniCounter = (this.miniCounter + 1) % this.miniatureFramesBetweenRefresh;
                 var component, node;
@@ -2186,6 +2187,7 @@
                         document.body.removeChild(this.selectedRoute.routeInput);
                         delete this.selectedRoute.routeInput;
                     }
+                    this.selectedRoute.svgKeyRoute.setAttributeNS(null, 'class', 'route'); 
                     this.selectedRoute = null;
                 }
                 this.setInteraction(null);
@@ -4169,10 +4171,6 @@
                 image.pathControl.q.x = otherNode.xPosition;
                 image.pathControl.q.y = otherNode.yPosition;
                 if(this.tied && image.control) {
-                    // experimenting with cardinality placement
-//                    var l = image.pathElement.getTotalLength();
-//                    var p = image.pathElement.getPointAtLength(l/4);
-//                    image.control.setTranslate(p.x, p.y);
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
             }
@@ -5462,6 +5460,15 @@
                 else
                     SVGLayer.hide('names');
                 DrawingEngine.start(false);
+            },
+            toggleKeys: function() {
+                EventHandler.clearSelection();
+                DrawingEngine.showKeys = !DrawingEngine.showKeys;
+                if(DrawingEngine.showKeys) 
+                    SVGLayer.show('keys');
+                else
+                    SVGLayer.hide('keys');
+                DrawingEngine.start(false);                
             },
             toggleMnemonics: function () {
                 Settings.showMnemonics = !Settings.showMnemonics;
@@ -6877,6 +6884,7 @@
                 <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
                 <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
                 <li title="Toggle whether coloring of edges should be visible or not." onclick="Actions.toggleColoring()">Toggle coloring</li>
+                <li title="Toggle whether key routes should be visible or not." onclick="Actions.toggleKeys()">Toggle keys</li>
                 <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
                 <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
                 <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
