@@ -242,7 +242,11 @@ SELECT
    Nodeset.keys.value('@of', 'nvarchar(max)') as [of],
    Nodeset.keys.value('@route', 'nvarchar(max)') as [route],
    Nodeset.keys.value('@stop', 'nvarchar(max)') as [stop],
-   case Nodeset.keys.value('local-name(..)', 'nvarchar(max)')
+   case [parent]
+      when 'tie'
+      then Nodeset.keys.value('../@role', 'nvarchar(max)')
+   end as [role],
+   case [parent]
       when 'knot'
       then Nodeset.keys.value('concat(../@mnemonic, ""_"")', 'nvarchar(max)') +
           Nodeset.keys.value('../@descriptor', 'nvarchar(max)') 
@@ -253,15 +257,24 @@ SELECT
           Nodeset.keys.value('../@descriptor', 'nvarchar(max)') 
       when 'tie'
       then REPLACE(Nodeset.keys.query('
-            for $$role in ../*[local-name() = ""anchorRole"" or local-name() = ""knotRole""]
+            for $$role in ../../*[local-name() = ""anchorRole"" or local-name() = ""knotRole""]
             return concat($$role/@type, "_", $$role/@role)
           ').value('.', 'nvarchar(max)'), ' ', '_')
    end as [in],
-   Nodeset.keys.value('local-name(..)', 'nvarchar(max)') as [parent]
+   [parent]
 FROM
    [dbo].[_Schema] S
 CROSS APPLY
-   S.[schema].nodes('/schema//key') as Nodeset(keys);
+   S.[schema].nodes('/schema//key') as Nodeset(keys)
+CROSS APPLY (
+   VALUES (
+      case
+         when Nodeset.keys.value('local-name(..)', 'nvarchar(max)') in ('anchorRole', 'knotRole')
+         then 'tie'
+         else Nodeset.keys.value('local-name(..)', 'nvarchar(max)')
+      end 
+   )
+) p ([parent]);
 GO
 
 -- Evolution function -------------------------------------------------------------------------------------------------
