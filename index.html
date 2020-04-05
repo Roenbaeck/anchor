@@ -1192,14 +1192,13 @@
                     var component;
                     for(var i = 0; i < components.length; i++) {
                         component = components[i];
-                        var shouldBeAdded = true, maxStopNumber = 0;
+                        var maxStopNumber = 0;
                         for(var stopNumber in route.stops) {
                             if(parseInt(stopNumber) > maxStopNumber)
                                 maxStopNumber = parseInt(stopNumber);
-                            if(route.stops[stopNumber].component == component)
-                                shouldBeAdded = false;
                         }
-                        if(shouldBeAdded) {
+                        // last stop cannot be the same stop
+                        if(route.stops[maxStopNumber.toString()].component !== component) {
                             maxStopNumber = (maxStopNumber + 1).toString();
                             var key = {
                                 stop: maxStopNumber,
@@ -1716,15 +1715,7 @@
                                 document.body.appendChild(route.routeInput);
                             }
                             else if(EventHandler.routeSelected() == route) {
-                                EventHandler.unselectRoute();
-                                if(route.svgKeyRouteText) {
-                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
-                                    delete route.svgKeyRouteText;
-                                }
-                                if(route.routeInput) {
-                                    document.body.removeChild(route.routeInput);
-                                    delete route.routeInput;
-                                }
+                                EventHandler.clearSelection();
                                 this.setAttributeNS(null, 'class', 'route'); 
                             }
                         }, false);
@@ -2185,6 +2176,17 @@
                 var component;
                 while(component = this.selectedComponents.pop()) {
                     this.removeComponentFromSelection(component);
+                }
+                if(this.selectedRoute) {
+                    if(this.selectedRoute.svgKeyRouteText) {
+                        SVGLayer.keys.removeChild(this.selectedRoute.svgKeyRouteText);
+                        delete this.selectedRoute.svgKeyRouteText;
+                    }
+                    if(this.selectedRoute.routeInput) {
+                        document.body.removeChild(this.selectedRoute.routeInput);
+                        delete this.selectedRoute.routeInput;
+                    }
+                    this.selectedRoute = null;
                 }
                 this.setInteraction(null);
             },
