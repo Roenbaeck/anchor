@@ -27,7 +27,7 @@
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
             <key stop="1" route="1st" of="ST"/>
-            <key stop="3" route="1st" of="PE"/>
+            <key stop="4" route="1st" of="PE"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
@@ -52,9 +52,12 @@
         <knotRole role="currently" type="ONG" identifier="false"/>
     </tie>
     <tie>
-        <anchorRole role="wasHeld" type="PE" identifier="true"/>
-        <anchorRole role="at" type="ST" identifier="false"/>
-        <key stop="2" route="1st" of="PE"/>
+        <anchorRole role="wasHeld" type="PE" identifier="true">
+            <key stop="2" route="1st" of="PE"/>
+        </anchorRole>
+        <anchorRole role="at" type="ST" identifier="false">
+            <key stop="3" route="1st" of="PE"/>
+        </anchorRole>
     </tie>
     <tie>
         <anchorRole role="subset" type="PE" identifier="false"/>

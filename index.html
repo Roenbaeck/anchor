@@ -1084,6 +1084,7 @@
                     this.refresh();
                     DrawingEngine.start(true);
                 }
+                return true; // close menu
             },
             connect: function(components) {
                 var node, anchor, attribute, tie, knot;
@@ -1111,6 +1112,7 @@
                 }
                 this.recordState();
                 DrawingEngine.start(true);
+                return true; // close menu
             },
             toggleKnotted: function(components) {
                 var dx, dy;
@@ -1151,6 +1153,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return true; // close menu
             },
             toggleHistorized: function(components) {
                 var component, node;
@@ -1163,28 +1166,34 @@
                 }
                 this.recordState();
                 DrawingEngine.start(false);
+                return true; // close menu
             },
             // WIP: keys operations
             createKey: function(components) {
-                var i, anchor, component, stopComponents = [];
+                var i, id, anchor, component, stopComponents = [];
                 for(i = 0; component = components[i]; i++) {
                     if(component.node.type === NodeType.ANCHOR) 
                         anchor = component;
                     else
                         stopComponents.push(component);
                 }
+                if(stopComponents.length > 0)
+                    id = UniqueIdentity.nextId();
                 for(i = 0; component = stopComponents[i]; i++) {
                     var stopNumber = (i + 1).toString();
                     var key = {
+                        id: id,
                         stop: stopNumber,
-                        route: '!unnamed!',
+                        route: '?Route ' + id + '?',
                         of: anchor.mnemonic                                                        
                     };
                     component.keys.push(key);
                     this.addKey(component, key);
                 }
                 this.recordState();
+                EventHandler.clearSelection();
                 DrawingEngine.start(false);
+                return true; // close menu
             },
             addToKey: function(components) {
                 var route = EventHandler.selectedRoute;
@@ -1213,8 +1222,10 @@
                         }
                     }
                     this.recordState();
+                    EventHandler.clearSelection();
                     DrawingEngine.start(false);
                 }
+                return true; // close menu
             },         
             removeFromKey: function(components) {
                 var route = EventHandler.selectedRoute;
@@ -1268,8 +1279,10 @@
                         }
                     }
                     this.recordState();
+                    EventHandler.clearSelection();
                     DrawingEngine.start(false);                    
                 }                
+                return true; // close menu
             },   
             toggleIdentifier: function(components) {
                 var ties = [], component, node, edge;
@@ -1289,6 +1302,7 @@
                     ties[i].checkIdentifiers();
                 this.recordState();
                 DrawingEngine.start(false);
+                return false; // do not close menu
             },
             makeFirstRole: function(components) {
                 var tie, component, node, edge;
@@ -1306,6 +1320,7 @@
                 }
                 this.recordState();
                 DrawingEngine.start(false);
+                return false; // do not close menu
             },
             lastAngle: 0,
             addAttribute: function(components) {
@@ -1323,6 +1338,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return false; // do not close menu
             },
             addTie: function(components) {
                 var tie, node;
@@ -1357,6 +1373,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return false; // do not close menu
             },
             addAnchor: function(components) {
                 var dx, dy, component, node;
@@ -1373,6 +1390,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return false; // do not close menu
             },
             addTieAndAnchor: function(components) {
                 var dx, dy, component, node;
@@ -1394,6 +1412,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return false; // do not close menu
             },
             addKnot: function(components) {
                 var dx, dy, component, node;
@@ -1410,6 +1429,7 @@
                 this.recordState();
                 this.refresh();
                 DrawingEngine.start(true);
+                return false; // do not close menu
             },
             explode: function(components, startEngine) {
                 var node, component, i, j, k, edge, otherNode, otherComponent;
@@ -1503,6 +1523,7 @@
                 this.refresh();
                 if(startEngine == null || startEngine)
                     DrawingEngine.start(true);
+                return false; // do not close menu
             }
         };
 
@@ -1682,6 +1703,9 @@
                                     route.svgKeyRouteText.appendChild(route.svgKeyRouteText.textPath);
                                     SVGLayer.keys.appendChild(route.svgKeyRouteText);
                                 }
+                                for(var stopNumber in route.stops) 
+                                    route.stops[stopNumber].component.postfixes.push(stopNumber);
+                                DrawingEngine.start(false);
                             }
                         }, false);
                         route.svgKeyRoute.addEventListener('mouseout', function(e) { 
@@ -1692,7 +1716,10 @@
                                     SVGLayer.keys.removeChild(route.svgKeyRouteText);
                                     delete route.svgKeyRouteText;
                                 }
+                                for(var stopNumber in route.stops) 
+                                    route.stops[stopNumber].component.postfixes = [];
                                 this.setAttributeNS(null, 'class', 'route'); 
+                                DrawingEngine.start(false);
                             }
                         }, false);
                         route.svgKeyRoute.addEventListener('click', function(e) {
@@ -1716,6 +1743,8 @@
                                 document.body.appendChild(route.routeInput);
                             }
                             else if(EventHandler.routeSelected() == route) {
+                                for(var stopNumber in route.stops) 
+                                    route.stops[stopNumber].component.postfixes = [];
                                 EventHandler.clearSelection();
                             }
                         }, false);
@@ -2645,10 +2674,11 @@
         function Component(node) {
             this.node = node;
             this.editables = [];
-            this.operations = ['erase', 'connect', 'createKey'];
+            this.operations = ['erase', 'connect'];
             this.svg = new Symbol(this);
             this.svg.makeInteractive();
             this.nav = new Symbol(this);
+            this.postfixes = [];
         }
         Component.prototype = {
             node: null,
@@ -2665,6 +2695,7 @@
             lastName: null,
             imploded: false,
             visible: false,
+            postfixes: null,
             // can be overridden by subclasses
             hide: function() {
                 this.visible = false;
@@ -2953,7 +2984,7 @@
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey');
+            this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -3275,6 +3306,8 @@
                         name += 'a';
                     name += ')';
                 }
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
                 return name;
             },
             toString: function() {
@@ -3305,7 +3338,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3368,6 +3401,8 @@
                     name = this.descriptor;
                 if(this.imploded)
                     name = "(" + name + ")";
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
                 return name;
             },
             toString: function() {
@@ -3491,7 +3526,7 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.equivalent = Defaults.equivalence === 'true';
-            this.operations.push('addToKey', 'removeFromKey');
+            this.operations.push('addToKey', 'removeFromKey', 'createKey');
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3543,6 +3578,8 @@
                     name = this.toString();
                 else
                     name = this.descriptor;
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
                 return name;
             },
             toString: function() {
@@ -3681,7 +3718,6 @@
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.TIE));
             this.historized = historized;
-            this.keys = [];
             this.deletable = Defaults.deletability === 'true';
             this.restatable = Defaults.restatability === 'true';
             this.idempotent = Defaults.idempotency === 'true';
@@ -3693,7 +3729,7 @@
             this.editables.push(Editables.deletabilityEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleHistorized','addKnot','addAnchor', 'addToKey', 'removeFromKey');
+            this.operations.push('toggleHistorized','addKnot','addAnchor');
             this.encapsulation = Defaults.encapsulation;
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -3735,7 +3771,6 @@
             positIdentity: '',
             positGenerator: true,
             encapsulation: Defaults.encapsulation,
-            keys: null,
             isInteractive: function() {
                 return true;
             },
@@ -3889,17 +3924,6 @@
                 var historized = changingRange ? true : false;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var tie = new Tie(x, y, historized);
-                // WIP: keys
-                for(i = 0; i < element.childNodes.length; i++) {
-                    if(element.childNodes.item(i).nodeName === 'key') {
-                        var key = element.childNodes.item(i);
-                        tie.keys.push({
-                            stop: key.getAttribute("stop"),
-                            route: key.getAttribute("route"),
-                            of: key.getAttribute("of")
-                        });
-                    }
-                }
                 tie.setFixed(fixed);
                 tie.setHistorized(historized);
                 tie.changingRange = changingRange;
@@ -3911,60 +3935,60 @@
                 tie.positIdentity = identity;
                 tie.positGenerator = generator;
                 tie.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
-                var anchorLookup = Model.getAnchorLookup();
-                var knotLookup = Model.getKnotLookup();
                 var grandparent = element.parentNode.parentNode;
-                var j, d, type, role, roleName, identifier, coloring, anchor;
                 var anchorRoles = element.getElementsByTagName("anchorRole");
-                for(i = 0; i < anchorRoles.length; i++) {
-                    type = anchorRoles[i].getAttribute("type") || "??";
-                    roleName = anchorRoles[i].getAttribute("role");
-                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
-                    identifier = anchorRoles[i].getAttribute("identifier") || false;
-                    coloring = anchorRoles[i].getAttribute("coloring") || "#000000";
-                    for(d = 0; d < anchorRoles[i].childNodes.length; d++)
-                        if(anchorRoles[i].childNodes.item(d).nodeName === 'description')
-                            description = anchorRoles[i].childNodes.item(d);
-                    var anchors = grandparent.getElementsByTagName("anchor");
-                    for(j = 0; j < anchors.length; j++) {
-                        if(anchors[j].getAttribute("mnemonic") === type) {
-                            anchor = anchorLookup[anchors[j].getAttribute("mnemonic")];
-                            role = new Role(tie, anchor, (identifier === "true"));
-                            role.role = roleName;
-                            role.setColoring(coloring);
-                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
-                            Model.addComponent(role);
-                            role.updateName();
-                            break; // only one should match
-                        }
-                    }
-                }
-                var knot, knotRoles = element.getElementsByTagName("knotRole");
-                for(i = 0; i < knotRoles.length; i++) {
-                    type = knotRoles[i].getAttribute("type") || "???";
-                    roleName = knotRoles[i].getAttribute("role");
-                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
-                    identifier = knotRoles[i].getAttribute("identifier") || false;
-                    coloring = knotRoles[i].getAttribute("coloring") || "#000000";
-                    for(d = 0; d < knotRoles[i].childNodes.length; d++)
-                        if(knotRoles[i].childNodes.item(d).nodeName === 'description')
-                            description = knotRoles[i].childNodes.item(d);
-                    var knots = grandparent.getElementsByTagName("knot");
-                    for(j = 0; j < knots.length; j++) {
-                        if(knots[j].getAttribute("mnemonic") === type) {
-                            knot = knotLookup[knots[j].getAttribute("mnemonic")];
-                            role = new Role(tie, knot, (identifier === "true"));
-                            role.role = roleName;
-                            role.setColoring(coloring);
-                            role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
-                            Model.addComponent(role);
-                            role.updateName();
-                            break; // only one should match
-                        }
-                    }
-                }
+                if(anchorRoles && anchorRoles.length > 0) 
+                    this.parseRoles(
+                            tie,
+                            anchorRoles, 
+                            Model.getAnchorLookup(), 
+                            grandparent.getElementsByTagName("anchor")
+                    );
+                var knotRoles = element.getElementsByTagName("knotRole");
+                if(knotRoles && knotRoles.length > 0)
+                    this.parseRoles(
+                            tie,
+                            knotRoles, 
+                            Model.getKnotLookup(), 
+                            grandparent.getElementsByTagName("knot")
+                    );
                 tie.updateName();
                 return tie;
+            },
+            parseRoles: function(tie, roles, lookup, refs) {
+                var i, j, d, type, role, roleName, identifier, description, coloring, referred, key;
+                for(i = 0; i < roles.length; i++) {
+                    type = roles[i].getAttribute("type") || "??";
+                    roleName = roles[i].getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    identifier = roles[i].getAttribute("identifier") || false;
+                    coloring = roles[i].getAttribute("coloring") || "#000000";
+                    for(j = 0; j < refs.length; j++) {
+                        if(refs[j].getAttribute("mnemonic") === type) {
+                            referred = lookup[refs[j].getAttribute("mnemonic")];
+                            role = new Role(tie, referred, (identifier === "true"));
+                            role.role = roleName;
+                            role.setColoring(coloring);
+                            Model.addComponent(role);
+                            role.updateName();
+                            break; // only one should match
+                        }
+                    }
+                    for(d = 0; d < roles[i].childNodes.length; d++) {
+                        if(roles[i].childNodes.item(d).nodeName === 'description')
+                            description = roles[i].childNodes.item(d);
+                        // WIP: keys
+                        if(roles[i].childNodes.item(d).nodeName === 'key') {
+                            key = roles[i].childNodes.item(d);
+                            role.keys.push({
+                                stop: key.getAttribute("stop"),
+                                route: key.getAttribute("route"),
+                                of: key.getAttribute("of")
+                            });
+                        }
+                    }
+                    role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                }
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
@@ -3989,6 +4013,16 @@
                     roleElement.setAttribute("identifier",
                             this.isEmpty(role.identifier) ? false : role.identifier);
                     this.addDescriptionXML(roleElement, schema, role.description || component.description);
+                    // WIP: keys
+                    if(role.keys && role.keys.length > 0) {
+                        for(var k = 0; k < role.keys.length; k++) {
+                            var key = schema.createElement("key");
+                            key.setAttribute("stop", role.keys[k].stop);
+                            key.setAttribute("route", role.keys[k].route);
+                            key.setAttribute("of", role.keys[k].of)
+                            roleElement.appendChild(key);
+                        }
+                    }
                     tie.appendChild(roleElement);
                 }
 
@@ -4007,16 +4041,6 @@
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);
                 tie.appendChild(metadata);
-                // WIP: keys
-                if(this.keys && this.keys.length > 0) {
-                    for(var i = 0; i < this.keys.length; i++) {
-                        var key = schema.createElement("key");
-                        key.setAttribute("stop", this.keys[i].stop);
-                        key.setAttribute("route", this.keys[i].route);
-                        key.setAttribute("of", this.keys[i].of)
-                        tie.appendChild(key);
-                    }
-                }
                 this.addLayoutXML(tie, schema);
                 this.addDescriptionXML(tie, schema, this.description);
                 return tie;
@@ -4037,6 +4061,8 @@
                             name += 'a';
                         name += ')';
                     }
+                    if(this.postfixes.length > 0) 
+                        name += ' [' + this.postfixes.join(', ') + ']'; 
                 }
                 else
                     name = '';
@@ -4072,8 +4098,9 @@
             this.component = component;
             this.otherComponent = otherComponent;
             this.identifier = identifier;
+            this.keys = [];
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
-            this.operations.push('toggleIdentifier', 'makeFirstRole');
+            this.operations.push('toggleIdentifier', 'makeFirstRole', 'addToKey', 'removeFromKey', 'createKey');
             this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
@@ -4128,6 +4155,7 @@
             identifier: true,
             coloring: '#000000',
             tied: false,
+            keys: null,
             setIdentifier: function(identifier) {
                 this.identifier = identifier;
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
@@ -4154,7 +4182,10 @@
                 this.fixed = false;
             },
             contextualName: function() {
-                return this.toString();
+                var name = this.toString();
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
+                return name;
             },
             toString: function() {
                 return this.role;
@@ -4681,7 +4712,7 @@
                     function(allComponents) {
                         if(allComponents.length < 2)
                             return false;
-                        var component, anchors = 0, ties = 0, knots = 0, attributes = 0;
+                        var component, anchors = 0, ties = 0, knots = 0, attributes = 0, roles = 0;
                         for(var i = 0; component = allComponents[i]; i++) {
                             if(component.node.type === NodeType.ANCHOR)
                                 anchors++;
@@ -4691,8 +4722,10 @@
                                 knots++;
                             else if(component.node.type === NodeType.ATTRIBUTE) 
                                 attributes++;
+                            else if(component.node.type === NodeType.EDGE) 
+                                roles++;
                         }
-                        if(anchors != 1 || ties + knots + attributes == 0)
+                        if(anchors != 1 || roles + knots + attributes == 0 || ties > 0)
                             return false;
                         return true;
                     }],
@@ -4893,7 +4926,8 @@
             editsHaveBeenMade: false,
             dragging: false,
             operate: function(button, components) {
-                Model[button.method](components);
+                if(Model[button.method](components))
+                    this.close();
             },
             edit: function(element, component) {
                 if(element && component) {
