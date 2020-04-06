@@ -1724,13 +1724,16 @@
                     // this is the actual svg element
                     if(!route.svgKeyRoute) {
                         route.svgKeyRoute = document.createElementNS(SVGNS, 'path');
+                        route.svgKeyRoute.component = route; // for use in captured events
                         route.svgKeyRoute.setAttributeNS(null, 'id', hash);
                         route.svgKeyRoute.setAttributeNS(null, 'class', 'route');
                         route.svgKeyRoute.addEventListener('mouseover', function(e) { 
-                            if(!EventHandler.routeSelected() && !route.hightlighted) route.toggleHighlight();
+                            if(!EventHandler.routeSelected() && !this.component.hightlighted) 
+                                this.component.toggleHighlight();
                         }, false);
                         route.svgKeyRoute.addEventListener('mouseout', function(e) { 
-                            if(!EventHandler.routeSelected() && route.hightlighted) route.toggleHighlight(); 
+                            if(!EventHandler.routeSelected() && this.component.hightlighted) 
+                                this.component.toggleHighlight(); 
                         }, false);
                         route.svgKeyRoute.addEventListener('click', function(e) {
                             EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
