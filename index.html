@@ -1683,59 +1683,69 @@
                 var route;
                 for(var hash in Model.routes) {  
                     route = Model.routes[hash];
+                    // create some utility functions on the route
+                    if(!route.toggleHighlight) {
+                        route.hightlighted = false;
+                        route.toggleHighlight = function() {
+                            if(this.svgKeyRoute) {
+                                var hash = this.svgKeyRoute.getAttribute('id');
+                                if(!this.hightlighted) {
+                                    this.svgKeyRoute.setAttributeNS(null, 'class', 'routeSelected'); 
+                                    if(!this.svgKeyRouteText) {
+                                        this.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
+                                        this.svgKeyRouteText.setAttributeNS(null, 'class', 'routeText');
+                                        this.svgKeyRouteText.textPath = document.createElementNS(SVGNS, 'textPath');
+                                        this.svgKeyRouteText.text = document.createTextNode(this.name);
+                                        this.svgKeyRouteText.textPath.appendChild(this.svgKeyRouteText.text);
+                                        this.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                        this.svgKeyRouteText.textPath.setAttributeNS(null, 'startOffset', '17');
+                                        this.svgKeyRouteText.appendChild(this.svgKeyRouteText.textPath);
+                                        SVGLayer.keys.appendChild(this.svgKeyRouteText);
+                                    }
+                                    for(var stopNumber in this.stops) 
+                                        this.stops[stopNumber].component.postfixes.push(stopNumber);
+                                    this.hightlighted = true;
+                                    DrawingEngine.start(false);
+                                }   
+                                else {
+                                    if(this.svgKeyRouteText) {
+                                        SVGLayer.keys.removeChild(this.svgKeyRouteText);
+                                        delete this.svgKeyRouteText;
+                                    }
+                                    for(var stopNumber in this.stops) 
+                                        this.stops[stopNumber].component.postfixes = [];
+                                    this.svgKeyRoute.setAttributeNS(null, 'class', 'route'); 
+                                    this.hightlighted = false;
+                                    DrawingEngine.start(false);
+                                }                         
+                            }
+                        }
+                    }
+                    // this is the actual svg element
                     if(!route.svgKeyRoute) {
                         route.svgKeyRoute = document.createElementNS(SVGNS, 'path');
                         route.svgKeyRoute.setAttributeNS(null, 'id', hash);
                         route.svgKeyRoute.setAttributeNS(null, 'class', 'route');
                         route.svgKeyRoute.addEventListener('mouseover', function(e) { 
-                            if(!EventHandler.routeSelected()) {
-                                this.setAttributeNS(null, 'class', 'routeSelected'); 
-                                var hash = this.getAttribute('id');
-                                var route = Model.routes[hash];
-                                if(!route.svgKeyRouteText) {
-                                    route.svgKeyRouteText = document.createElementNS(SVGNS, 'text');
-                                    route.svgKeyRouteText.setAttributeNS(null, 'class', 'routeText');
-                                    route.svgKeyRouteText.textPath = document.createElementNS(SVGNS, 'textPath');
-                                    route.svgKeyRouteText.text = document.createTextNode(route.name);
-                                    route.svgKeyRouteText.textPath.appendChild(route.svgKeyRouteText.text);
-                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
-                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'startOffset', '17');
-                                    route.svgKeyRouteText.appendChild(route.svgKeyRouteText.textPath);
-                                    SVGLayer.keys.appendChild(route.svgKeyRouteText);
-                                }
-                                for(var stopNumber in route.stops) 
-                                    route.stops[stopNumber].component.postfixes.push(stopNumber);
-                                DrawingEngine.start(false);
-                            }
+                            if(!EventHandler.routeSelected() && !route.hightlighted) route.toggleHighlight();
                         }, false);
                         route.svgKeyRoute.addEventListener('mouseout', function(e) { 
-                            var hash = this.getAttribute('id');
-                            var route = Model.routes[hash];
-                            if(!EventHandler.routeSelected()) {
-                                if(route.svgKeyRouteText) {
-                                    SVGLayer.keys.removeChild(route.svgKeyRouteText);
-                                    delete route.svgKeyRouteText;
-                                }
-                                for(var stopNumber in route.stops) 
-                                    route.stops[stopNumber].component.postfixes = [];
-                                this.setAttributeNS(null, 'class', 'route'); 
-                                DrawingEngine.start(false);
-                            }
+                            if(!EventHandler.routeSelected() && route.hightlighted) route.toggleHighlight(); 
                         }, false);
                         route.svgKeyRoute.addEventListener('click', function(e) {
                             EventHandler.clearInteraction(); // remove the click that would otherwise result in panning
                             var hash = this.getAttribute('id');
                             var route = Model.routes[hash];                            
                             if(!EventHandler.routeSelected()) {
-                                this.setAttributeNS(null, 'class', 'routeSelected'); 
+                                if(!route.hightlighted) route.toggleHighlight();
                                 EventHandler.selectRoute(route);
                                 // add a text box for the route name
                                 route.routeInput = document.createElement('input');
                                 route.routeInput.setAttribute('id', 'route');
                                 route.routeInput.value = route.name;
                                 route.routeInput.addEventListener('input', function(e) {
-                                    Model.changeRouteName(route, e.target.value);
-                                    var hash = route.start.mnemonic + '|' + route.name;
+                                    Model.changeRouteName(route, e.target.value.trim());
+                                    var hash = (route.start.mnemonic + '|' + route.name).trim();
                                     route.svgKeyRoute.setAttributeNS(null, 'id', hash);
                                     route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
                                     route.svgKeyRouteText.text.nodeValue = e.target.value;
@@ -1743,8 +1753,7 @@
                                 document.body.appendChild(route.routeInput);
                             }
                             else if(EventHandler.routeSelected() == route) {
-                                for(var stopNumber in route.stops) 
-                                    route.stops[stopNumber].component.postfixes = [];
+                                if(route.hightlighted) route.toggleHighlight();
                                 EventHandler.clearSelection();
                             }
                         }, false);
