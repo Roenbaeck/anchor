@@ -5634,7 +5634,14 @@
                 },
                 knotRole: function(xml, fragment) {
                     return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
-                }
+                },
+                key: function(xml, fragment) {
+                    return fragment.getAttribute('of') + 
+                           '|' +
+                           fragment.getAttribute('route') + 
+                           '|' +
+                           fragment.getAttribute('stop');
+                }                
             },
             // used to replace certain element names with others
             replacer: function(name) {
