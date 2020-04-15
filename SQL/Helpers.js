@@ -343,9 +343,11 @@ while (anchor = schema.nextAnchor()) {
                     schema.anchor[key.of].keys = {};
                 if(!schema.anchor[key.of].keys[key.route])
                     schema.anchor[key.of].keys[key.route] = {};
-                schema.anchor[key.of].keys[key.route][key.stop] = {
-                    anchor: anchor,
-                    attribute: attribute
+                if(!schema.anchor[key.of].keys[key.route].stops)
+                    schema.anchor[key.of].keys[key.route].stops = {};
+                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    attribute: attribute,
+                    anchor: anchor
                 };
             }
         }
@@ -360,9 +362,11 @@ while (tie = schema.nextTie()) {
                     schema.anchor[key.of].keys = {};
                 if(!schema.anchor[key.of].keys[key.route])
                     schema.anchor[key.of].keys[key.route] = {};
-                schema.anchor[key.of].keys[key.route][key.stop] = {
-                    tie: tie,
-                    role: role
+                if(!schema.anchor[key.of].keys[key.route].stops)
+                    schema.anchor[key.of].keys[key.route].stops = {};
+                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    role: role,
+                    tie: tie
                 }
             }
         }

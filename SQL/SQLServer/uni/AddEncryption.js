@@ -30,7 +30,7 @@ if(encryptionExists) {
 -----------------------------------------------------------------------------------------------------------------------
 IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE [name] = '##MS_DatabaseMasterKey##')
 BEGIN
-	CREATE MASTER KEY ENCRYPTION BY PASSWORD = '$password';
+    CREATE MASTER KEY ENCRYPTION BY PASSWORD = '$password';
 END
 GO
 ~*/	
@@ -42,7 +42,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF NOT EXISTS (SELECT * FROM sys.certificates WHERE [name] = '$encryptionGroup')
 BEGIN
-	CREATE CERTIFICATE [$encryptionGroup] WITH SUBJECT = '$encryptionGroup';
+    CREATE CERTIFICATE [$encryptionGroup] WITH SUBJECT = '$encryptionGroup';
 END
 -- GROUP KEY ----------------------------------------------------------------------------------------------------------
 -- An encryption key used to encrypt the data in the attributes: 
@@ -56,10 +56,10 @@ END
 -----------------------------------------------------------------------------------------------------------------------
 IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE [name] = '$encryptionGroup')
 BEGIN
-	CREATE SYMMETRIC KEY [$encryptionGroup]
-	WITH ALGORITHM = AES_256,  
-	IDENTITY_VALUE = '$encryptionGroup'
-	ENCRYPTION BY CERTIFICATE [$encryptionGroup];
+    CREATE SYMMETRIC KEY [$encryptionGroup]
+    WITH ALGORITHM = AES_256,  
+    IDENTITY_VALUE = '$encryptionGroup'
+    ENCRYPTION BY CERTIFICATE [$encryptionGroup];
 END
 ~*/
 	}

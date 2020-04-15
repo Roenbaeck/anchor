@@ -214,3 +214,24 @@ if(schema.BUSINESS_VIEWS) {
             );
     }
 }
+
+// second pass over anchor to set key names
+while (anchor = schema.nextAnchor()) {
+    if(anchor.keys) {
+        var role, key, route, stop, component;
+        for(route in anchor.keys) {
+            key = anchor.keys[route];
+            key.name = 'key' + D + anchor.mnemonic + D + route;
+            for(stop in key.stops) {
+                component = key.stops[stop];
+                if(component.attribute) {
+                    component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
+                    if(component.attribute.timeRange) {
+                        component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
+                    }
+                }
+                role = component.role;
+            }
+        }
+    }
+}
