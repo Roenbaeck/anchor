@@ -253,7 +253,7 @@ BEGIN
                     anyRole = role;
 /*~
         tie.$role.columnName = i.$role.columnName
-    $(tie.hasMoreValues())? AND
+    $(tie.hasMoreValues())? OR
 ~*/
                 }
             }
@@ -288,7 +288,7 @@ BEGIN
         $role.columnName$(tie.hasMoreRoles())?,
 ~*/
         }
-/*~
+/*~      
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
@@ -297,7 +297,7 @@ BEGIN
         while (role = tie.nextRole()) {
             comma = tie.hasMoreRoles() ? ',' : '';
 /*~
-        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$role.knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
 ~*/
         }
 /*~
@@ -311,11 +311,11 @@ BEGIN
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
         }
-/*~;
+/*~;           
 END
 GO
 ~*/
-    if(tie.hasMoreValues() || tie.isDeletable()) {
+    if(tie.hasMoreValues()) {
 /*~
 -- UPDATE trigger -----------------------------------------------------------------------------------------------------
 -- ut_l$tie.name instead of UPDATE trigger on l$tie.name
@@ -328,114 +328,48 @@ BEGIN
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
 ~*/
-        if(tie.hasMoreValues()) {
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
 /*~
     IF(UPDATE($role.columnName))
         RAISERROR('The identity column $role.columnName is not updatable.', 16, 1);
 ~*/
-                }
             }
+        }
 /*~
     INSERT INTO [$tie.capsule].[$tie.name] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
-            while (role = tie.nextRole()) {
+        while (role = tie.nextRole()) {
 /*~
         $role.columnName$(tie.hasMoreRoles())?,
 ~*/
-            }
+        }
 /*~
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
         $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
 ~*/
-            while (role = tie.nextRole()) {
-                comma = tie.hasMoreRoles() ? ',' : '';
+        while (role = tie.nextRole()) {
+            comma = tie.hasMoreRoles() ? ',' : '';
 /*~
-        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END${comma}$ : i.$role.columnName${comma}$
+        $(role.knot)? ISNULL(i.$role.columnName, [$role.name].$knot.identityColumnName)${comma}$ : i.$role.columnName${comma}$
 ~*/
-            }
+        }
 /*~
     FROM
         inserted i~*/
-            while (role = tie.nextKnotRole()) {
-                knot = role.knot;
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [$role.name]
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
-            }
-/*~;~*/
         }
-        if(tie.isDeletable() && tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
-            var timeType = tie.isHistorized() ? tie.timeRange : schema.metadata.chronon;
-/*~        
-    SELECT
-        $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange) as $tie.deletionTimeColumnName,
-~*/
-            while(role = tie.nextIdentifier()) {
-/*~
-        i.$role.columnName$(tie.hasMoreIdentifiers())?,
-~*/
-            }
-/*~        
-    INTO
-        #$tie.name
-    FROM
-        inserted i 
-    WHERE
-~*/
-            while(role = tie.nextValue()) {
-/*~
-        i.$role.columnName is null
-    AND
-~*/
-            }
-/*~
-
-        i.$tie.deletableColumnName = 1
-
-    IF(@@ROWCOUNT > 0)
-    BEGIN
-        IF OBJECT_ID('[$tie.capsule].[$tie.deletionName]') is null
-        SELECT TOP 0 
-            * ,
-            CAST(null as $timeType) as $tie.deletionTimeColumnName
-        INTO 
-            [$tie.capsule].[$tie.deletionName]
-        FROM 
-            [$tie.capsule].[$tie.name];
-
-        DELETE tie
-        OUTPUT 
-            deleted.*,
-            $(tie.isHistorized())? ISNULL(d.$tie.deletionTimeColumnName, @now) : @now            
-        INTO
-            [$tie.capsule].[$tie.deletionName]
-        FROM
-            [$tie.capsule].[$tie.name] tie
-        JOIN
-            #$tie.name d
-        ON
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-            d.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreIdentifiers())? AND
-~*/
-                }
-            }
-/*~                    
-    END
-~*/
-        } // end of deletable
-/*~        
+/*~;       
 END
 GO
 ~*/
@@ -473,7 +407,7 @@ BEGIN
         while(role = tie.nextValue()) {
 /*~
             d.$role.columnName = tie.$role.columnName
-        $(tie.hasMoreValues())? AND
+        $(tie.hasMoreValues())? OR
 ~*/
         }
 /*~

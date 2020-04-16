@@ -10,105 +10,69 @@
 --
  ~*/
 var knot;
-
 while (knot = schema.nextKnot()) {
-    if(knot.isGenerator()) {
-    	schema.setIdentityGenerator(knot);
-    }
-    
+    if(knot.isGenerator())
+        knot.identityGenerator = 'IDENTITY(1,1)';
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
+        var scheme = schema.PARTITIONING ? ' ON EquivalenceScheme(' + knot.equivalentColumnName + ')' : '';
 /*~
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.identityName;
-
-CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.identityName (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
+IF Object_ID('$knot.capsule$.$knot.identityName', 'U') IS NULL
+CREATE TABLE [$knot.capsule].[$knot.identityName] (
+    $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
-        $knot.identityColumnName
+        $knot.identityColumnName asc
     )
 );
-
-ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.identityName CLUSTER ON pk$knot.identityName;
-
--- DROP VIEW IF EXISTS $knot.capsule\.$knot.identityName;
-
-CREATE OR REPLACE VIEW $knot.capsule\.$knot.identityName AS SELECT
-    $knot.identityColumnName$(schema.METADATA)?,
-    $(schema.METADATA)? $knot.metadataColumnName
-FROM $knot.capsule\._$knot.identityName;
-
-
+GO
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.equivalentName;
-
-CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.equivalentName (
+IF Object_ID('$knot.capsule$.$knot.equivalentName', 'U') IS NULL
+CREATE TABLE [$knot.capsule].[$knot.equivalentName] (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName $schema.metadata.checksumType not null,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
+    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references $knot.capsule\._$knot.identityName($knot.identityColumnName) 
-    MATCH SIMPLE ON UPDATE NO ACTION ON DELETE CASCADE,
+    ) references [$knot.capsule].[$knot.identityName]($knot.identityColumnName),
     constraint pk$knot.equivalentName primary key (
-        $knot.equivalentColumnName,
-        $knot.identityColumnName
+        $knot.equivalentColumnName asc,
+        $knot.identityColumnName asc
     ),
     constraint uq$knot.equivalentName unique (
         $knot.equivalentColumnName,
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
-);
-
-ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.equivalentName CLUSTER ON pk$knot.equivalentName;
-
--- DROP VIEW IF EXISTS $knot.capsule\.$knot.equivalentName;
-
-CREATE OR REPLACE VIEW $knot.capsule\.$knot.equivalentName AS SELECT
-    $knot.identityColumnName,
-    $knot.equivalentColumnName,
-    $knot.valueColumnName$(knot.hasChecksum() || schema.METADATA)?,
-    $(knot.hasChecksum())? $knot.checksumColumnName~*//*~$(knot.hasChecksum() && schema.METADATA)?,
-    $(schema.METADATA)? $knot.metadataColumnName
-FROM $knot.capsule\._$knot.equivalentName;
+)$scheme;
+GO
 ~*/
+
     } // end of equivalent knot
     else { // start of regular knot
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
--- DROP TABLE IF EXISTS $knot.capsule\._$knot.name;
-
-CREATE TABLE IF NOT EXISTS $knot.capsule\._$knot.name (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+IF Object_ID('$knot.capsule$.$knot.name', 'U') IS NULL
+CREATE TABLE [$knot.capsule].[$knot.name] (
+    $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName $schema.metadata.checksumType not null,
+    $(knot.hasChecksum())? $knot.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($knot.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
-        $knot.identityColumnName
+        $knot.identityColumnName asc
     ),
     constraint uq$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
-
-ALTER TABLE IF EXISTS ONLY $knot.capsule\._$knot.name CLUSTER ON pk$knot.name;
-
--- DROP VIEW IF EXISTS $knot.capsule\.$knot.name;
-
-CREATE OR REPLACE VIEW $knot.capsule\.$knot.name AS SELECT
-    $knot.identityColumnName,
-    $knot.valueColumnName$(knot.hasChecksum() || schema.METADATA)?,
-    $(knot.hasChecksum())? $knot.checksumColumnName~*//*~$(knot.hasChecksum() && schema.METADATA)?,
-    $(schema.METADATA)? $knot.metadataColumnName
-FROM $knot.capsule\._$knot.name;
+GO
 ~*/
     } // end of regular knot
 }

@@ -9,13 +9,7 @@ var businessName;
 
 // set some hard coded defaults if they are missing
 schema.metadata.encapsulation = schema.metadata.encapsulation || 'public';
-schema.metadata.chronon = 'timestamp without time zone';
-schema.metadata.now = 'LOCALTIMESTAMP';
-schema.metadata.identitySuffix = schema.metadata.identitySuffix || 'id';
-schema.metadata.equivalentSuffix = schema.metadata.equivalentSuffix || 'eq';
-schema.metadata.checksumSuffix = schema.metadata.checksumSuffix || 'ck';
-schema.metadata.checksumFunction = 'generateChecksum';
-schema.metadata.checksumType = 'bytea';
+schema.metadata.chronon = schema.metadata.chronon || 'timestamp';
 
 var knot;
 while (knot = schema.nextKnot()) {
@@ -64,18 +58,21 @@ while (anchor = schema.nextAnchor()) {
     while (attribute = anchor.nextAttribute()) {
         attribute.uniqueMnemonic = anchor.mnemonic + D + attribute.mnemonic;
         attribute.name = attribute.uniqueMnemonic + D + anchor.descriptor + D + attribute.descriptor;
+        attribute.deletionName = attribute.name + D + schema.metadata.deletionSuffix;
         attribute.businessName = attribute.descriptor;
         attribute.positName = attribute.name + D + schema.metadata.positSuffix;
         attribute.annexName = attribute.name + D + schema.metadata.annexSuffix;
         attribute.checksumColumnName = attribute.uniqueMnemonic + D + schema.metadata.checksumSuffix;
         attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.metadata.identitySuffix;
         attribute.metadataColumnName = schema.metadata.metadataPrefix + D + attribute.uniqueMnemonic;
+        attribute.deletableColumnName = schema.metadata.deletablePrefix + D + attribute.uniqueMnemonic;
+        attribute.deletionTimeColumnName = attribute.uniqueMnemonic + D + schema.metadata.deletionSuffix;
         attribute.equivalentColumnName = attribute.uniqueMnemonic + D + schema.metadata.equivalentSuffix;
         attribute.versionColumnName = attribute.uniqueMnemonic + D + schema.metadata.versionSuffix;
         attribute.positingColumnName = attribute.uniqueMnemonic + D + schema.metadata.positingSuffix;
         attribute.positorColumnName = attribute.uniqueMnemonic + D + schema.metadata.positorSuffix;
         attribute.reliabilityColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliabilitySuffix;
-        attribute.reliableColumnName = attribute.uniqueMnemonic + D + schema.metadata.reliableSuffix;
+        attribute.assertionColumnName = attribute.uniqueMnemonic + D + schema.metadata.assertionSuffix;
         attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
         if(schema.IMPROVED) {
             attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
@@ -179,6 +176,7 @@ while (tie = schema.nextTie()) {
         }
     }
     tie.name = name;
+    tie.deletionName = tie.name + D + schema.metadata.deletionSuffix;
     tie.businessName = bName;
     tie.positName = tie.name + D + schema.metadata.positSuffix;
     tie.annexName = tie.name + D + schema.metadata.annexSuffix;
@@ -186,8 +184,10 @@ while (tie = schema.nextTie()) {
     tie.positingColumnName = tie.name + D + schema.metadata.positingSuffix;
     tie.positorColumnName = tie.name + D + schema.metadata.positorSuffix;
     tie.reliabilityColumnName = tie.name + D + schema.metadata.reliabilitySuffix;
-    tie.reliableColumnName = tie.name + D + schema.metadata.reliableSuffix;
+    tie.assertionColumnName = tie.name + D + schema.metadata.assertionSuffix;
     tie.capsule = tie.metadata.capsule || schema.metadata.encapsulation;
+    tie.deletableColumnName = schema.metadata.deletablePrefix + D + tie.name;
+    tie.deletionTimeColumnName = tie.name + D + schema.metadata.deletionSuffix;
     tie.metadataColumnName = schema.metadata.metadataPrefix + D + tie.name;
     tie.versionColumnName = tie.name + D + schema.metadata.versionSuffix;
     tie.statementTypeColumnName = tie.name + D + schema.metadata.statementTypeSuffix;

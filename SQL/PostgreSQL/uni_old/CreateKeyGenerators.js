@@ -13,18 +13,19 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
-BEGIN
-    EXEC('
-    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-        @requestedNumberOfIdentities bigint,
-        @metadata $schema.metadata.metadataType
-    ) AS
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint,
+--    $schema.metadata.metadataType
+--);
+
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
+    requestedNumberOfIdentities bigint,
+    metadata $schema.metadata.metadataType
+) RETURNS void AS '
     BEGIN
-        SET NOCOUNT ON;
-        IF @requestedNumberOfIdentities > 0
-        BEGIN
-            WITH idGenerator (idNumber) AS (
+        IF requestedNumberOfIdentities > 0
+        THEN
+            WITH RECURSIVE idGenerator (idNumber) AS (
                 SELECT
                     1
                 UNION ALL
@@ -33,23 +34,18 @@ BEGIN
                 FROM
                     idGenerator
                 WHERE
-                    idNumber < @requestedNumberOfIdentities
+                    idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO [$anchor.capsule].[$anchor.name] (
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.metadataColumnName
             )
-            OUTPUT
-                inserted.$anchor.identityColumnName
             SELECT
-                @metadata
+                metadata
             FROM
-                idGenerator
-            OPTION (maxrecursion 0);
-        END
-    END
-    ');
-END
-GO
+                idGenerator;
+        END IF;
+    END;
+' LANGUAGE plpgsql;
 ~*/
         }
         else {
@@ -57,17 +53,17 @@ GO
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
-BEGIN
-    EXEC('
-    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-        @requestedNumberOfIdentities bigint
-    ) AS
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint
+--);
+
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
+    requestedNumberOfIdentities bigint
+) RETURNS void AS '
     BEGIN
-        SET NOCOUNT ON;
-        IF @requestedNumberOfIdentities > 0
-        BEGIN
-            WITH idGenerator (idNumber) AS (
+        IF requestedNumberOfIdentities > 0
+        THEN
+            WITH RECURSIVE idGenerator (idNumber) AS (
                 SELECT
                     1
                 UNION ALL
@@ -76,23 +72,18 @@ BEGIN
                 FROM
                     idGenerator
                 WHERE
-                    idNumber < @requestedNumberOfIdentities
+                    idNumber < requestedNumberOfIdentities
             )
-            INSERT INTO [$anchor.capsule].[$anchor.name] (
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.dummyColumnName
             )
-            OUTPUT
-                inserted.$anchor.identityColumnName
             SELECT
                 null
             FROM
-                idGenerator
-            OPTION (maxrecursion 0);
-        END
-    END
-    ');
-END
-GO
+                idGenerator;
+        END IF;
+    END;
+' LANGUAGE plpgsql;
 ~*/
         }
     }
