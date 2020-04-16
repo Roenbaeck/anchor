@@ -2,13 +2,10 @@
 schema._iterator = {};
 schema._iterator.knot = 0;
 schema._iterator.anchor = 0;
-schema._iterator.key = 0;
 schema._iterator.attribute = 0;
-schema._iterator.attributeKeyRole = 0;
 schema._iterator.historizedAttribute = 0;
 schema._iterator.tie = 0;
 schema._iterator.historizedTie = 0;
-schema._iterator.tieKeyRole = 0;
 schema._iterator.role = 0;
 schema._iterator.knotRole = 0;
 schema._iterator.anchorRole = 0;
@@ -89,25 +86,6 @@ while (anchor = schema.nextAnchor()) {
     };
 }
 
-// set up helpers for keys
-while (anchor = schema.nextAnchor()) {
-    anchor.nextKey = function() {
-        if(!this.keys) return null;
-        if(schema._iterator.key == this.keys.length) {
-            schema._iterator.key = 0;
-            return null;
-        }
-        return this.key[this.keys[schema._iterator.key++]];
-    };
-    anchor.hasMoreKeys = function() {
-        if(!this.keys) return false;
-        return schema._iterator.key < this.keys.length;
-    };
-    anchor.isFirstKey = function() {
-        return schema._iterator.key == 1;
-    };
-}
-
 var attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
@@ -151,27 +129,6 @@ while (anchor = schema.nextAnchor()) {
             attribute.originalDataRange = attribute.dataRange;
             attribute.dataRange = 'varbinary(max)';
         }
-    }
-}
-
-// helpers for attribute key roles
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
-    attribute.nextKeyRole = function() {
-        if(!this.keyRoles) return null;
-        if(schema._iterator.attributeKeyRole == this.keyRoles.length) {
-            schema._iterator.attributeKeyRole = 0;
-            return null;
-        }
-        return this.keyRole[this.keyRoles[schema._iterator.attributeKeyRole++]];
-    };
-    attribute.hasMoreKeyRoles = function() {
-        if(!this.keyRoles) return false;
-        return schema._iterator.attributeKeyRole < this.keyRoles.length;
-    };
-    attribute.isFirstKeyRole = function() {
-        return schema._iterator.attributeKeyRole == 1;
-    };
     }
 }
 
@@ -278,25 +235,6 @@ while(tie = schema.nextTie()) {
     };
     tie.isFirstRole = function() {
         return schema._iterator.role == 1;
-    };
-}
-
-// set up helpers for tie key roles
-while(tie = schema.nextTie()) {
-    tie.nextKeyRole = function() {
-        if(!this.keyRoles) return null;
-        if(schema._iterator.tieKeyRole == this.keyRoles.length) {
-            schema._iterator.tieKeyRole = 0;
-            return null;
-        }
-        return this.keyRole[this.keyRoles[schema._iterator.tieKeyRole++]];
-    };
-    tie.hasMoreKeyRoles = function() {
-        if(!this.keyRoles) return false;
-        return schema._iterator.tieKeyRole < this.keyRoles.length;
-    };
-    tie.isFirstKeyRole = function() {
-        return schema._iterator.tieKeyRole == 1;
     };
 }
 
