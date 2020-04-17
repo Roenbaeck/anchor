@@ -226,9 +226,7 @@ while (anchor = schema.nextAnchor()) {
                 component = key.stops[stop];
                 if(component.attribute) {
                     component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
-                    if(component.attribute.timeRange) {
-                        component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
-                    }
+                    component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName + D + schema.metadata.changingSuffix;
                 }
                 role = component.role;
             }
