@@ -332,6 +332,53 @@ while (tie = schema.nextTie()) {
     };
 }
 
+// create a key lookup
+var keyIdentifier, key;
+while (anchor = schema.nextAnchor()) {
+    while(attribute = anchor.nextAttribute()) {
+        if(attribute.key) {
+            for(keyIdentifier in attribute.key) {
+                key = attribute.key[keyIdentifier];
+                if(!schema.anchor[key.of].keys) 
+                    schema.anchor[key.of].keys = {};
+                if(!schema.anchor[key.of].keys[key.route])
+                    schema.anchor[key.of].keys[key.route] = {};
+                if(!schema.anchor[key.of].keys[key.route].stops)
+                    schema.anchor[key.of].keys[key.route].stops = {};
+                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    branch: key.branch,
+                    stop: key.stop,
+                    attribute: attribute,
+                    anchor: anchor
+                };
+            }
+        }
+    }
+}
+while (tie = schema.nextTie()) {
+    while(role = tie.nextRole()) {
+        if(role.key) {
+            for(keyIdentifier in role.key) {
+                key = role.key[keyIdentifier];
+                if(!schema.anchor[key.of].keys) 
+                    schema.anchor[key.of].keys = {};
+                if(!schema.anchor[key.of].keys[key.route])
+                    schema.anchor[key.of].keys[key.route] = {};
+                if(!schema.anchor[key.of].keys[key.route].stops)
+                    schema.anchor[key.of].keys[key.route].stops = {};
+                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    branch: key.branch,
+                    stop: key.stop,
+                    role: role,
+                    tie: tie
+                }
+            }
+        }
+    }
+}
+
+if(DEBUG) console.log(schema);
+
 // "global" variables
 schema.METADATA = schema.metadata.metadataUsage == 'true';
 schema.IMPROVED = schema.metadata.naming == 'improved';

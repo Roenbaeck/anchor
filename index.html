@@ -47,7 +47,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.5';
+        var VERSION = '0.99.6';
 
         // change to false in beta
         var RELEASE = false;
@@ -720,6 +720,7 @@
                 }
                 this.routes[hash].stops[key.stop] = {
                     component: component, 
+                    branch: key.branch, // the branch this stop belongs to
                     key: key // this is the key as represented in the component
                 };
             },
@@ -993,6 +994,7 @@
                     this.explode(allComponents, false);
                     this.setInteractive(true);
                     this.refresh();
+                    if(DEBUG) console.log(this);
                 }
             },
             erase: function(components) {
@@ -1185,7 +1187,8 @@
                         id: id,
                         stop: stopNumber,
                         route: '?Route ' + id + '?',
-                        of: anchor.mnemonic                                                        
+                        of: anchor.mnemonic, 
+                        branch: 1 // creation always leads to the first branch
                     };
                     component.keys.push(key);
                     this.addKey(component, key);
@@ -1196,27 +1199,44 @@
                 return true; // close menu
             },
             addToKey: function(components) {
-                var route = EventHandler.selectedRoute;
+                var i, route = EventHandler.selectedRoute;
                 if(route) {
-                    var component;
-                    for(var i = 0; i < components.length; i++) {
-                        component = components[i];
-                        var maxStopNumber = 0;
+                    var component, anchor, stopComponents = [];
+                    for(i = 0; component = components[i]; i++) {
+                        if(component.node.type === NodeType.ANCHOR) 
+                            anchor = component;
+                        else
+                            stopComponents.push(component);
+                    }
+                    var stop, maxStopNumber = 0, maxBranchNumber = 0;
+                    for(i = 0; i < stopComponents.length; i++) {
+                        component = stopComponents[i];
                         for(var stopNumber in route.stops) {
+                            stop = route.stops[stopNumber];
                             if(parseInt(stopNumber) > maxStopNumber)
                                 maxStopNumber = parseInt(stopNumber);
+                            if(parseInt(stop.branch) > maxBranchNumber) 
+                                maxBranchNumber = parseInt(stop.branch);
                         }
+                    }
+                    var actualBranchNumber = maxBranchNumber;
+                    if(anchor) // start a new branch if an anchor was in the selection
+                        actualBranchNumber = maxBranchNumber + 1;  
+                    for(i = 0; i < stopComponents.length; i++) {
+                        component = stopComponents[i];
                         // last stop cannot be the same stop
                         if(route.stops[maxStopNumber.toString()].component !== component) {
-                            maxStopNumber = (maxStopNumber + 1).toString();
+                            maxStopNumber++;
                             var key = {
-                                stop: maxStopNumber,
+                                stop: maxStopNumber.toString(),
                                 route: route.name,
-                                of: route.start.mnemonic                                
+                                of: route.start.mnemonic,
+                                branch: actualBranchNumber.toString()
                             };
                             component.keys.push(key);
                             route.stops[maxStopNumber] = {
                                 component: component,
+                                branch: key.branch, 
                                 key: key // this is the key as represented in the component
                             }
                         }
@@ -1274,7 +1294,6 @@
                                 SVGLayer.keys.removeChild(route.svgKeyRoute);
                                 delete route.svgKeyRoute;
                             }
-                            EventHandler.unselectRoute();
                             delete Model.routes[hash];
                         }
                     }
@@ -1763,10 +1782,18 @@
                         SVGLayer.keys.appendChild(route.svgKeyRoute);
                     }
                     var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
+                    var stop, currentBranch; 
                     for(var stopNumber in route.stops) {
+                        stop = route.stops[stopNumber];
+                        if(stop.branch != currentBranch) {
+                            stops += ' M' + 
+                                route.start.node.xPosition.toFixed(2) + ',' + 
+                                route.start.node.yPosition.toFixed(2);
+                            currentBranch = stop.branch;
+                        }
                         stops += ' ' + 
-                            route.stops[stopNumber].component.node.xPosition.toFixed(2) + ',' + 
-                            route.stops[stopNumber].component.node.yPosition.toFixed(2);
+                            stop.component.node.xPosition.toFixed(2) + ',' + 
+                            stop.component.node.yPosition.toFixed(2);
                     }
                     route.svgKeyRoute.setAttributeNS(null, 'd', 'M' + stops);
                 }
@@ -2201,9 +2228,6 @@
             routeSelected: function() {
                 return this.selectedRoute;
             },
-            unselectRoute: function() {
-                this.selectedRoute = null;
-            },
             addComponentToSelection: function(component) {
                 if(this.selectedComponents.indexOf(component) < 0)
                     this.selectedComponents.push(component);
@@ -2221,14 +2245,17 @@
                 }
                 if(this.selectedRoute) {
                     if(this.selectedRoute.svgKeyRouteText) {
-                        SVGLayer.keys.removeChild(this.selectedRoute.svgKeyRouteText);
+                        if(SVGLayer.keys.contains(this.selectedRoute.svgKeyRouteText))
+                            SVGLayer.keys.removeChild(this.selectedRoute.svgKeyRouteText);
                         delete this.selectedRoute.svgKeyRouteText;
                     }
                     if(this.selectedRoute.routeInput) {
-                        document.body.removeChild(this.selectedRoute.routeInput);
+                        if(document.body.contains(this.selectedRoute.routeInput))
+                            document.body.removeChild(this.selectedRoute.routeInput);
                         delete this.selectedRoute.routeInput;
                     }
-                    this.selectedRoute.svgKeyRoute.setAttributeNS(null, 'class', 'route'); 
+                    if(this.selectedRoute.hightlighted)
+                        this.selectedRoute.toggleHightlight(); 
                     this.selectedRoute = null;
                 }
                 this.setInteraction(null);
@@ -3195,9 +3222,10 @@
                     if(element.childNodes.item(i).nodeName === 'key') {
                         var key = element.childNodes.item(i);
                         attribute.keys.push({
-                            stop: key.getAttribute("stop"),
+                            stop: key.getAttribute("stop") || '1',
                             route: key.getAttribute("route"),
-                            of: key.getAttribute("of")
+                            of: key.getAttribute("of"),
+                            branch: key.getAttribute("branch") || '1'
                         });
                     }
                 }
@@ -3292,7 +3320,8 @@
                         var key = schema.createElement("key");
                         key.setAttribute("stop", this.keys[i].stop);
                         key.setAttribute("route", this.keys[i].route);
-                        key.setAttribute("of", this.keys[i].of)
+                        key.setAttribute("of", this.keys[i].of);
+                        key.setAttribute("branch", this.keys[i].branch);
                         attribute.appendChild(key);
                     }
                 }
@@ -3350,7 +3379,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode', 'createKey');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode', 'addToKey', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3663,9 +3692,10 @@
                     if(element.childNodes.item(i).nodeName === 'key') {
                         var key = element.childNodes.item(i);
                         knot.keys.push({
-                            stop: key.getAttribute("stop"),
+                            stop: key.getAttribute("stop") || '1',
                             route: key.getAttribute("route"),
-                            of: key.getAttribute("of")
+                            of: key.getAttribute("of"),
+                            branch: key.getAttribute("branch") || '1'
                         });
                     }
                 }
@@ -3709,7 +3739,8 @@
                         var key = schema.createElement("key");
                         key.setAttribute("stop", this.keys[i].stop);
                         key.setAttribute("route", this.keys[i].route);
-                        key.setAttribute("of", this.keys[i].of)
+                        key.setAttribute("of", this.keys[i].of);
+                        key.setAttribute("branch", this.keys[i].branch);
                         knot.appendChild(key);
                     }
                 }
@@ -3993,9 +4024,10 @@
                         if(roles[i].childNodes.item(d).nodeName === 'key') {
                             key = roles[i].childNodes.item(d);
                             role.keys.push({
-                                stop: key.getAttribute("stop"),
+                                stop: key.getAttribute("stop") || '1',
                                 route: key.getAttribute("route"),
-                                of: key.getAttribute("of")
+                                of: key.getAttribute("of"), 
+                                branch: key.getAttribute("branch") || '1'
                             });
                         }
                     }
@@ -4031,7 +4063,8 @@
                             var key = schema.createElement("key");
                             key.setAttribute("stop", role.keys[k].stop);
                             key.setAttribute("route", role.keys[k].route);
-                            key.setAttribute("of", role.keys[k].of)
+                            key.setAttribute("of", role.keys[k].of);
+                            key.setAttribute("branch", role.keys[k].branch);
                             roleElement.appendChild(key);
                         }
                     }
@@ -4722,6 +4755,8 @@
                     'Create key from selected',
                     'Creates a key route from the selected item(s) in the model.',
                     function(allComponents) {
+                        if(EventHandler.selectedRoute)
+                            return false;
                         if(allComponents.length < 2)
                             return false;
                         var component, anchors = 0, ties = 0, knots = 0, attributes = 0, roles = 0;
@@ -5634,7 +5669,15 @@
                 },
                 knotRole: function(xml, fragment) {
                     return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
-                }
+                },
+                // WIP: keys sisula
+                key: function(xml, fragment) {
+                    return fragment.getAttribute('of') + 
+                           '|' +
+                           fragment.getAttribute('route') + 
+                           '|' +
+                           fragment.getAttribute('stop');
+                }                
             },
             // used to replace certain element names with others
             replacer: function(name) {

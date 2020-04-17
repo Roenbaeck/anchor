@@ -15,7 +15,7 @@
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
     <anchor mnemonic="PE" descriptor="Performance" identity="int">
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
-            <key stop="1" route="1st" of="PE"/>
+            <key stop="1" route="1st" of="PE" branch="1"/>
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
@@ -26,8 +26,8 @@
             <metadata equivalent="true"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
-            <key stop="1" route="1st" of="ST"/>
-            <key stop="4" route="1st" of="PE"/>
+            <key stop="1" route="1st" of="ST" branch="1"/>
+            <key stop="4" route="1st" of="PE" branch="2"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
@@ -43,7 +43,8 @@
     <anchor mnemonic="PR" descriptor="Program" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
             <metadata equivalent="true"/>
-            <key stop="1" route="1st" of="PR"/>
+            <key stop="1" route="1st" of="PR" branch="1"/>
+            <key stop="7" route="1st" of="PE" branch="3"/>
         </attribute>
     </anchor>
     <tie timeRange="datetime">
@@ -53,10 +54,10 @@
     </tie>
     <tie>
         <anchorRole role="wasHeld" type="PE" identifier="true">
-            <key stop="2" route="1st" of="PE"/>
+            <key stop="2" route="1st" of="PE" branch="2"/>
         </anchorRole>
         <anchorRole role="at" type="ST" identifier="false">
-            <key stop="3" route="1st" of="PE"/>
+            <key stop="3" route="1st" of="PE" branch="2"/>
         </anchorRole>
     </tie>
     <tie>
@@ -64,8 +65,12 @@
         <anchorRole role="of" type="EV" identifier="false"/>
     </tie>
     <tie>
-        <anchorRole role="at" type="PE" identifier="true"/>
-        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
+        <anchorRole role="at" type="PE" identifier="true">
+            <key stop="5" route="1st" of="PE" branch="3"/>
+        </anchorRole>
+        <anchorRole role="wasPlayed" type="PR" identifier="false">
+            <key stop="6" route="1st" of="PE" branch="3"/>
+        </anchorRole>
     </tie>
     <tie>
         <anchorRole role="in" type="PE" identifier="true"/>
