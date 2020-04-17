@@ -346,6 +346,8 @@ while (anchor = schema.nextAnchor()) {
                 if(!schema.anchor[key.of].keys[key.route].stops)
                     schema.anchor[key.of].keys[key.route].stops = {};
                 schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    branch: key.branch,
+                    stop: key.stop,
                     attribute: attribute,
                     anchor: anchor
                 };
@@ -365,6 +367,8 @@ while (tie = schema.nextTie()) {
                 if(!schema.anchor[key.of].keys[key.route].stops)
                     schema.anchor[key.of].keys[key.route].stops = {};
                 schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                    branch: key.branch,
+                    stop: key.stop,
                     role: role,
                     tie: tie
                 }
