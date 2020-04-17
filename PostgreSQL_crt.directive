@@ -1,5 +1,6 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
+SQL/NamingConvention.js
 SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/crt/SetupPositorPartitioning.js
 SQL/PostgreSQL/crt/CreatePositorAndDefault.js

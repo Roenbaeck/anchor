@@ -1,5 +1,6 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
+SQL/NamingConvention.js
 SQL/SQLServer/NamingConvention.js
 SQL/SQLServer/uni/AddEncryption.js
 SQL/SQLServer/clr/Anchor.js
