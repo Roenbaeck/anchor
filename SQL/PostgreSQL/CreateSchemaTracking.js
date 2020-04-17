@@ -1,4 +1,5 @@
 if(schema.serialization) {
+	var jsonSchema = Actions.jsonify(schema.serialization._serialization)
 /*~
 -- SCHEMA EVOLUTION ---------------------------------------------------------------------------------------------------
 --
@@ -22,7 +23,7 @@ INSERT INTO _Schema (
 )
 SELECT
    LOCALTIMESTAMP,
-   '$schema.serialization._serialization';
+   '$jsonSchema';
 
 -- Schema expanded view -----------------------------------------------------------------------------------------------
 -- A view of the schema table that expands the XML attributes into columns
