@@ -1,5 +1,5 @@
 if(schema.serialization) {
-	var jsonSchema = Actions.jsonify(schema.serialization._serialization)
+    var jsonSchema = Actions.jsonify(Model.toXML(false));
 /*~
 -- SCHEMA EVOLUTION ---------------------------------------------------------------------------------------------------
 --
@@ -11,19 +11,22 @@ if(schema.serialization) {
 -- The schema table holds every xml that has been executed against the database
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS _Schema (
-    version serial not null primary key,
+    version int $schema.metadata.identityProperty primary key,
     activation $schema.metadata.chronon not null,
-    schema xml not null
+    schema jsonb not null
 );
    
--- Insert the XML schema (as of now)
+-- Insert the JSON schema (as of now)
 INSERT INTO _Schema (
    activation,
    schema
 )
 SELECT
-   LOCALTIMESTAMP,
+   current_timestamp,
    '$jsonSchema';
+
+-- Index the JSON
+CREATE INDEX IF NOT EXISTS schema_idx ON _Schema USING GIN (schema);
 
 -- Schema expanded view -----------------------------------------------------------------------------------------------
 -- A view of the schema table that expands the XML attributes into columns
