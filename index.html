@@ -47,7 +47,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.6';
+        var VERSION = '0.99.6.1';
 
         // change to false in beta
         var RELEASE = false;
@@ -1234,6 +1234,7 @@
                                 branch: actualBranchNumber.toString()
                             };
                             component.keys.push(key);
+                            component.postfixes.push(maxStopNumber);
                             route.stops[maxStopNumber] = {
                                 component: component,
                                 branch: key.branch, 
@@ -1259,6 +1260,10 @@
                             if(route.stops[stopNumber].component == component) {
                                 var keyIndex = component.keys.indexOf(route.stops[stopNumber].key);
                                 component.keys.splice(keyIndex, 1);
+                                var postfixIndex = component.postfixes.indexOf(stopNumber);
+                                if(postfixIndex >= 0)
+                                    component.postfixes.splice(postfixIndex, 1);
+                                component.postfixes.splice
                                 delete route.stops[stopNumber];
                                 deletesHaveBeenMade = true;
                             }
@@ -1281,19 +1286,8 @@
                         }
                         // we removed the last stop of the route
                         else {
+                            route.remove();
                             var hash = route.start.mnemonic + '|' + route.name;
-                            if(route.routeInput) {
-                                document.body.removeChild(route.routeInput);
-                                delete route.routeInput;
-                            }
-                            if(route.svgKeyRouteText) {
-                                SVGLayer.keys.removeChild(route.svgKeyRouteText);
-                                delete route.svgKeyRouteText;
-                            }
-                            if(route.svgKeyRoute) {
-                                SVGLayer.keys.removeChild(route.svgKeyRoute);
-                                delete route.svgKeyRoute;
-                            }
                             delete Model.routes[hash];
                         }
                     }
@@ -1721,6 +1715,19 @@
                                         this.svgKeyRouteText.appendChild(this.svgKeyRouteText.textPath);
                                         SVGLayer.keys.appendChild(this.svgKeyRouteText);
                                     }
+                                    // add a text box for the route name
+                                    this.routeInput = document.createElement('input');
+                                    this.routeInput.setAttribute('id', 'route');
+                                    this.routeInput.value = this.name;
+                                    this.routeInput.addEventListener('input', function(e) {
+                                        var route = EventHandler.routeSelected();
+                                        Model.changeRouteName(route, e.target.value.trim());
+                                        var hash = (route.start.mnemonic + '|' + route.name).trim();
+                                        route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                                        route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                        route.svgKeyRouteText.text.nodeValue = e.target.value;
+                                    }, false);
+                                    document.body.appendChild(this.routeInput);                                    
                                     for(var stopNumber in this.stops) 
                                         this.stops[stopNumber].component.postfixes.push(stopNumber);
                                     this.hightlighted = true;
@@ -1728,8 +1735,14 @@
                                 }   
                                 else {
                                     if(this.svgKeyRouteText) {
-                                        SVGLayer.keys.removeChild(this.svgKeyRouteText);
+                                        if(SVGLayer.keys.contains(this.svgKeyRouteText))
+                                            SVGLayer.keys.removeChild(this.svgKeyRouteText);
                                         delete this.svgKeyRouteText;
+                                    }
+                                    if(this.routeInput) {
+                                        if(document.body.contains(this.routeInput))
+                                            document.body.removeChild(this.routeInput);
+                                        delete this.routeInput;
                                     }
                                     for(var stopNumber in this.stops) 
                                         this.stops[stopNumber].component.postfixes = [];
@@ -1738,6 +1751,29 @@
                                     DrawingEngine.start(false);
                                 }                         
                             }
+                        }
+                    }
+                    if(!route.remove) {
+                        route.remove = function() {
+                            if(this.hightlighted)
+                                this.toggleHighlight();
+                            if(this.routeInput) {
+                                if(document.body.contains(this.routeInput))
+                                    document.body.removeChild(this.routeInput);
+                                delete this.routeInput;
+                            }
+                            if(this.svgKeyRouteText) {
+                                if(SVGLayer.keys.contains(this.svgKeyRouteText))
+                                    SVGLayer.keys.removeChild(this.svgKeyRouteText);
+                                delete this.svgKeyRouteText;
+                            }
+                            if(this.svgKeyRoute) {
+                                if(SVGLayer.keys.contains(this.svgKeyRoute))
+                                    SVGLayer.keys.removeChild(this.svgKeyRoute);
+                                delete this.svgKeyRoute;
+                            }
+                            var hash = this.start.mnemonic + '|' + this.name;
+                            delete Model.routes[hash];                            
                         }
                     }
                     // this is the actual svg element
@@ -1761,18 +1797,6 @@
                             if(!EventHandler.routeSelected()) {
                                 if(!route.hightlighted) route.toggleHighlight();
                                 EventHandler.selectRoute(route);
-                                // add a text box for the route name
-                                route.routeInput = document.createElement('input');
-                                route.routeInput.setAttribute('id', 'route');
-                                route.routeInput.value = route.name;
-                                route.routeInput.addEventListener('input', function(e) {
-                                    Model.changeRouteName(route, e.target.value.trim());
-                                    var hash = (route.start.mnemonic + '|' + route.name).trim();
-                                    route.svgKeyRoute.setAttributeNS(null, 'id', hash);
-                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
-                                    route.svgKeyRouteText.text.nodeValue = e.target.value;
-                                }, false);
-                                document.body.appendChild(route.routeInput);
                             }
                             else if(EventHandler.routeSelected() == route) {
                                 if(route.hightlighted) route.toggleHighlight();
@@ -2244,18 +2268,8 @@
                     this.removeComponentFromSelection(component);
                 }
                 if(this.selectedRoute) {
-                    if(this.selectedRoute.svgKeyRouteText) {
-                        if(SVGLayer.keys.contains(this.selectedRoute.svgKeyRouteText))
-                            SVGLayer.keys.removeChild(this.selectedRoute.svgKeyRouteText);
-                        delete this.selectedRoute.svgKeyRouteText;
-                    }
-                    if(this.selectedRoute.routeInput) {
-                        if(document.body.contains(this.selectedRoute.routeInput))
-                            document.body.removeChild(this.selectedRoute.routeInput);
-                        delete this.selectedRoute.routeInput;
-                    }
-                    if(this.selectedRoute.hightlighted)
-                        this.selectedRoute.toggleHightlight(); 
+                    if(this.selectedRoute.highlighed)
+                        this.selectedRoute.toggleHighlight();
                     this.selectedRoute = null;
                 }
                 this.setInteraction(null);
