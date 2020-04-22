@@ -84,7 +84,8 @@ SELECT version
 CREATE OR REPLACE VIEW $schema.metadata.encapsulation\._Anchor
 AS
 SELECT s.version
-     , s.activation
+	 , s.activation
+     , s.schema -> 'schema' -> 'metadata' ->> 'temporalization' as temporalization	 
 	 , a.key || '_' || v.descriptor as name
 	 , v.descriptor	
      , a.key as mnemonic	  
@@ -103,7 +104,8 @@ SELECT s.version
 CREATE OR REPLACE VIEW $schema.metadata.encapsulation\._Knot
 AS
 SELECT s.version
-     , s.activation
+	 , s.activation
+     , s.schema -> 'schema' -> 'metadata' ->> 'temporalization' as temporalization	 
 	 , k.key || '_' || v.descriptor as name	 
 	 , v.descriptor
      , k.key as mnemonic	 
@@ -125,7 +127,8 @@ SELECT s.version
 CREATE OR REPLACE VIEW $schema.metadata.encapsulation\._Attribute
 AS
 SELECT s.version
-     , s.activation
+	 , s.activation
+     , s.schema -> 'schema' -> 'metadata' ->> 'temporalization' as temporalization	 
      , a.key || '_' || t.key || '_' || (a.value ->> 'descriptor') || '_' || v.descriptor as name
      , v.descriptor 
      , t.key as mnemonic     
@@ -161,7 +164,8 @@ SELECT s.version
 CREATE OR REPLACE VIEW $schema.metadata.encapsulation\._Tie
 AS
 SELECT s.version
-     , s.activation
+	 , s.activation
+     , s.schema -> 'schema' -> 'metadata' ->> 'temporalization' as temporalization	 
 	 , t.key as name
      , v.metadata ->> 'capsule' as capsule	 
      , case when v."timeRange" is null then false else true end as historized   	 
