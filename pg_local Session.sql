@@ -1,1 +1,2 @@
-select current_date
+select *
+  from "_Anchor"
