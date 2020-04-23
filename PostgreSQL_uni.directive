@@ -5,7 +5,7 @@ SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/DatabaseInitialization.js
 #SQL/PostgreSQL/uni/AddEncryption.js
 #SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
-#SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
+SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
 #SQL/PostgreSQL/uni/CreateKnots.js
 #SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 #SQL/PostgreSQL/uni/CreateTies.js
