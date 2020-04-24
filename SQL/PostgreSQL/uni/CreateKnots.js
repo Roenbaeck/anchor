@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.identityName (
         $knot.identityColumnName
     )
 );
-GO
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
@@ -34,18 +33,18 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hhecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
+    $(knot.hasChecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references $knot.capsule.$knot.identityName($knot.identityColumnName),
+    ) references $knot.capsule\.$knot.identityName($knot.identityColumnName),
     constraint pk$knot.equivalentName primary key (
         $knot.equivalentColumnName ,
         $knot.identityColumnName 
     ),
     constraint uq$knot.equivalentName unique (
         $knot.equivalentColumnName,
-        $(knot.hhecksum())? $knot.checksumColumnName : $knot.valueColumnName
+        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
 ~*/
@@ -59,13 +58,13 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
 CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.name (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hhecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
+    $(knot.hasChecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
         $knot.identityColumnName 
     ),
     constraint uq$knot.name unique (
-        $(knot.hhecksum())? $knot.checksumColumnName : $knot.valueColumnName
+        $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 );
 ~*/
