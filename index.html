@@ -4288,12 +4288,12 @@
           	],
           	PostgreSQL_to_SQLServer: [
                 // exact numbers
-                [/"smallserial|serial2|int2"/ig,       '"smallint"'], // smallserial - smallint identity(1,1)
-                [/"serial|serial4|int|int4"/ig,        '"integer"'], // serial - integer identity(1,1)
-                [/"bigserial|serial8|int8"/ig,         '"bigint"'], // bigserial - bigint identity(1,1)
+                [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
+                [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)
+                [/"bigserial"|"serial8"|"int8"/ig,      '"bigint"'], // bigserial - bigint identity(1,1)
                 // approximate numbers
-                [/"real|float4"/ig,                    '"real"'],
-                [/"double precision|float8"/ig,        '"double precision"'],
+                [/"real"|"float4"/ig,                   '"real"'],
+                [/"double precision"|"float8"/ig,       '"double precision"'],
                 // time types
                 [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
                 [/"timestampz\(([0-9]+)\)"/ig,          '"datetimeoffset($1)"'],
@@ -4309,7 +4309,7 @@
                 // other
                 [/"boolean"/ig,                         '"bit"'],
                 [/"uuid"/ig,                            '"uniqueidentifier"'],
-                [/"json|jsonb"/ig,                      '"nvarchar(max)"']
+                [/"json"|"jsonb"/ig,                    '"nvarchar(max)"']
             ],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
