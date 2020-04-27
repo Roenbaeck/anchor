@@ -4258,17 +4258,56 @@
                 [/"uniqueidentifier"/ig,                '"RAW(16)"']
             ],
             SQLServer_to_PostgreSQL: [
+                // exact numbers
                 [/"tinyint"/ig,                         '"smallint"'],
-                [/"NUMBER\(([0-9]+)\)"/ig,              '"numeric($1)"'],
-                [/"datetime"/ig,                        '"timestamp"'],
+                [/"int"|"integer"/ig,                   '"integer"'],
+                [/"smallmoney"/ig,                      '"money"'],
+                // approximate numbers
+                [/"float"/ig,                           '"double precision"'],
+                // time types
+                [/"smalldatetime"/ig,                   '"timestamp(0)"'],
+                [/"datetime"/ig,                        '"timestamp(3)"'],
                 [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
-                [/"varchar"/ig,                         '"char(1)"'],
+                [/"datetimeoffset\(([0-9]+)\)"/ig,      '"timestamp($1) with time zone"'],
+                // strings
+                [/"varchar\(max\)"/ig,                  '"text"'],
+                [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],
+                [/"nvarchar\(max\)"/ig,                 '"text"'],
+                [/"text"/ig,                            '"text"'],                
+                [/"ntext"/ig,                           '"text"'],
+                [/"nchar\(([0-9]+)\)"/ig,               '"text"'],
+                // binaries
+                [/"binary\(([0-9]+)\)"/ig,              '"bytea"'],
+                [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],
+                [/"varbinary\(max\)"/ig,                '"bytea"'],
+                [/"image"/ig,                           '"bytea"'],
+                // other
+                [/"bit"/ig,                             '"boolean"'],
+                [/"uniqueidentifier"/ig,                '"uuid"'],
+                [/"rowversion|timestamp"/ig,            '"bytea"']                
           	],
           	PostgreSQL_to_SQLServer: [
-                [/"numeric\(([0-9]+)\)"/ig,             '"NUMBER($1)"'],
-                [/"timestamp"/ig,                       '"datetime"'],
+                // exact numbers
+                [/"smallserial"/ig,                    '"smallint"'], // smallint identity(1,1)
+                [/"serial"/ig,                         '"integer"'], // integer identity(1,1)
+                [/"bigserial"/ig,                      '"bigint"'], // bigint identity(1,1)
+                // approximate numbers
+                // time types
                 [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
-                [/"char(1)"/ig,                         '"varchar"'],
+                [/"timestampz\(([0-9]+)\)"/ig,          '"datetimeoffset($1)"'],
+                [/"timestamp\(([0-9]+)\) with time zone"/ig,          '"datetimeoffset($1)"'],
+                // strings
+                [/"character varying\(([0-9]+)\)"/ig,   '"nvarchar($1)"'],
+                [/"varchar\(([0-9]+)\)"/ig,             '"nvarchar($1)"'],
+                [/"text"/ig,                            '"nvarchar(max)"'],                
+                [/"character\(([0-9]+)\)"/ig,           '"nchar($1)"'],
+                [/"char\(([0-9]+)\)"/ig,                '"nchar($1)"'],
+                // binaries
+                [/"bytea"/ig,                           '"varbinary(max)"'],
+                // other
+                [/"boolean"/ig,                         '"bit"'],
+                [/"uuid"/ig,                            '"uniqueidentifier"'],
+                [/"json|jsonb"/ig,                      '"nvarchar(max)"']
             ],
             convert: function(xml, source, target) {
                 var ruleset = this[source + '_to_' + target];
