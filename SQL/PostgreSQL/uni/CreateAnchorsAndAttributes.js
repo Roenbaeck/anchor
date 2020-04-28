@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(MD5(cast($attribute.valueColumnName as text)) as bytea) stored,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea as (cast(MD5(cast($attribute.valueColumnName as text)) as bytea)) stored,
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(MD5(cast($attribute.valueColumnName as text)) as bytea) stored,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea as (cast(MD5(cast($attribute.valueColumnName as text)) as bytea)) stored,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
