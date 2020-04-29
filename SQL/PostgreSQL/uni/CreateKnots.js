@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
     $knot.identityColumnName $knot.identity not null,
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea generated always as (cast(MD5(cast($knot.valueColumnName as text)) as bytea)) stored,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
 CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.name (
     $knot.identityColumnName $knot.identity $knot.identityGenerator not null,
     $knot.valueColumnName $knot.dataRange not null,
-    $(knot.hasChecksum())? $knot.checksumColumnName generated always as cast(MD5(cast($knot.valueColumnName as text)) as bytea) stored,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea generated always as (cast(MD5(cast($knot.valueColumnName as text)) as bytea)) stored,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
         $knot.identityColumnName 
