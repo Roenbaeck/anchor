@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
 -- Static attribute table ---------------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS [$attribute.capsule].[$attribute.name] (
+CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
