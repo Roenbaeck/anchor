@@ -15,33 +15,31 @@ while (knot = schema.nextKnot()) {
 -- Knot equivalence view ----------------------------------------------------------------------------------------------
 -- $knot.name view and parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$knot.capsule$.$knot.name', 'V') IS NULL
-BEGIN
-    EXEC('
-    CREATE VIEW [$knot.capsule].[$knot.name] WITH SCHEMABINDING
-    AS
-    SELECT
-        $(schema.METADATA)? v.$knot.metadataColumnName,
-        i.$knot.identityColumnName,
-        v.$knot.equivalentColumnName,
-        $(knot.hasChecksum())? v.$knot.checksumColumnName,
-        v.$knot.valueColumnName
-    FROM
-        [$knot.capsule].[$knot.identityName] i
-    JOIN
-        [$knot.capsule].[$knot.equivalentName] v
-    ON
-        v.$knot.identityColumnName = i.$knot.identityColumnName;
-    ');
-END
-GO
-IF Object_ID('$knot.capsule$.e$knot.name', 'IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$knot.capsule].[e$knot.name] (
-        @equivalent $schema.metadata.equivalentRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+CREATE OR REPLACE VIEW $knot.capsule\.$knot.name
+AS
+SELECT
+    $(schema.METADATA)? v.$knot.metadataColumnName,
+    i.$knot.identityColumnName,
+    v.$knot.equivalentColumnName,
+    $(knot.hasChecksum())? v.$knot.checksumColumnName,
+    v.$knot.valueColumnName
+FROM
+    $knot.capsule\.$knot.identityName i
+JOIN
+    $knot.capsule\.$knot.equivalentName v
+ON
+    v.$knot.identityColumnName = i.$knot.identityColumnName
+;
+
+CREATE OR REPLACE FUNCTION $knot.capsule\.e$knot.name (
+    equivalent $schema.metadata.equivalentRange
+) RETURNS TABLE (
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType,
+    $knot.identityColumnName $knot.identity, 
+    $knot.equivalentColumnName $schema.metadata.equivalentRange,
+    $(knot.hasChecksum())? $knot.checksumColumnName bytea,
+    $knot.valueColumnName $knot.dataRange
+) AS '
     SELECT
         $(schema.METADATA)? $knot.metadataColumnName,
         $knot.identityColumnName,
@@ -49,12 +47,11 @@ BEGIN
         $(knot.hasChecksum())? $knot.checksumColumnName,
         $knot.valueColumnName
     FROM
-        [$knot.capsule].[$knot.name]
+        $knot.capsule\.$knot.name
     WHERE
-        $knot.equivalentColumnName = @equivalent;
-    ');
-END
-GO
+        $knot.equivalentColumnName = equivalent;
+' LANGUAGE SQL
+;
 ~*/
 
     }
