@@ -10,18 +10,21 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     var attribute;
     while (attribute = anchor.nextAttribute()) {
-        if(schema.EQUIVALENCE && attribute.isEquivalent()) {
+        if(schema.EQUIVALENCE && attribute.isEquivalent() && !attribute.isKnotted()) {
 /*~
 -- Attribute equivalence view -----------------------------------------------------------------------------------------
 -- $attribute.name parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.e$attribute.name', 'IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[e$attribute.name] (
-        @equivalent $schema.metadata.equivalentRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+CREATE OR REPLACE FUNCTION $attribute.capsule\.e$attribute.name (
+    equivalent $schema.metadata.equivalentRange
+) RETURNS TABLE (
+    $attribute.anchorReferenceName $anchor.identity,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
+    $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
+    $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
+    $attribute.valueColumnName  $attribute.dataRange
+) AS '
     SELECT
         $attribute.anchorReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
@@ -30,12 +33,11 @@ BEGIN
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.valueColumnName
     FROM
-        [$attribute.capsule].[$attribute.name]
+        $attribute.capsule\.$attribute.name
     WHERE
-        $attribute.equivalentColumnName = @equivalent;
-    ');
-END
-GO
+        $attribute.equivalentColumnName = equivalent;
+' LANGUAGE SQL
+;
 ~*/
         }
     }
