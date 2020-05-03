@@ -27,7 +27,7 @@ if(restatements) {
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
                         valueColumn = attribute.checksumColumnName;
-                        valueType = 'varbinary(16)';
+                        valueType = 'bytea';
                     }
                     else {
                         valueColumn = attribute.valueColumnName;
@@ -44,74 +44,73 @@ if(restatements) {
 -- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.rf$attribute.name', 'FN') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
-        @id $anchor.identity,
-        $(attribute.isEquivalent())? @eq $schema.metadata.equivalentRange,
-        @value $valueType,
-        @changed $attribute.timeRange
-    )
-    RETURNS tinyint AS
-    BEGIN RETURN (
-        CASE WHEN EXISTS (
+CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
+    id $anchor.identity,
+    $(attribute.isEquivalent() && !attribute.isKnotted())? eq $schema.metadata.equivalentRange,
+    value $valueType,
+    changed $attribute.timeRange
+) RETURNS smallint AS '
+    BEGIN
+        IF EXISTS (
             SELECT
-                @value 
+                value 
             WHERE
-                @value = (
-                    SELECT TOP 1
+                value = (
+                    SELECT
                         pre.$valueColumn
                     FROM
-                        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) pre : [$attribute.capsule].[$attribute.name] pre
+                        $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(eq) pre : $attribute.capsule\.$attribute.name pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = @id
+                        pre.$attribute.anchorReferenceName = id
                     AND
-                        pre.$attribute.changingColumnName < @changed
+                        pre.$attribute.changingColumnName < changed
                     ORDER BY
                         pre.$attribute.changingColumnName DESC
-                )
-        ) OR EXISTS (
+                    LIMIT 1
+            )
+        )
+        OR EXISTS(
             SELECT
-                @value 
+                value 
             WHERE
-                @value = (
-                    SELECT TOP 1
+                value = (
+                    SELECT
                         fol.$valueColumn
                     FROM
-                        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) fol : [$attribute.capsule].[$attribute.name] fol
+                        $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(eq) fol : $attribute.capsule\.$attribute.name fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = @id
+                        fol.$attribute.anchorReferenceName = id
                     AND
-                        fol.$attribute.changingColumnName > @changed
+                        fol.$attribute.changingColumnName > changed
                     ORDER BY
                         fol.$attribute.changingColumnName ASC
-                )
+                    LIMIT 1
+            )
         )
-        THEN 1
-        ELSE 0
-        END
-    );
-    END
-    ');
+        THEN
+            RETURN 1;
+        END IF;
+        
+        RETURN 0;
+
+    END;
+' LANGUAGE plpgsql
+;
 ~*/
                 if(!attribute.isRestatable()) {
 /*~
-    ALTER TABLE [$attribute.capsule].[$attribute.name]
-    ADD CONSTRAINT [rc$attribute.name] CHECK (
-        [$attribute.capsule].[rf$attribute.name] (
-            $attribute.anchorReferenceName,
-            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $valueColumn,
-            $attribute.changingColumnName
-        ) = 0
-    );
+ALTER TABLE $attribute.capsule\.$attribute.name
+ADD CONSTRAINT rc$attribute.name CHECK (
+    $attribute.capsule\.rf$attribute.name(
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.equivalentColumnName,
+        $valueColumn,
+        $attribute.changingColumnName
+    ) = 0
+)
+;
 ~*/
                 }
-/*~
-END
-GO
-~*/
             }
         }
     }

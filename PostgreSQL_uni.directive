@@ -11,7 +11,7 @@ SQL/PostgreSQL/uni/CreateAnchorsAndAttributes.js
 SQL/PostgreSQL/uni/CreateTies.js
 SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
 SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
-#SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
+SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 #SQL/PostgreSQL/uni/CreateKeyGenerators.js
 #SQL/PostgreSQL/uni/CreateAttributeRewinders.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
