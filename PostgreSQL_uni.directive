@@ -13,7 +13,7 @@ SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
 SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
-#SQL/PostgreSQL/uni/CreateAttributeRewinders.js
+SQL/PostgreSQL/uni/CreateAttributePerspectives.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
 #SQL/PostgreSQL/uni/CreateAnchorPerspectives.js
 #SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
