@@ -13,43 +13,24 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
-BEGIN
-    EXEC('
-    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-        @requestedNumberOfIdentities bigint,
-        @metadata $schema.metadata.metadataType
-    ) AS
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
+    requestedNumberOfIdentities bigint,
+    metadata $schema.metadata.metadataType
+) RETURNS void AS '
     BEGIN
-        SET NOCOUNT ON;
-        IF @requestedNumberOfIdentities > 0
-        BEGIN
-            WITH idGenerator (idNumber) AS (
-                SELECT
-                    1
-                UNION ALL
-                SELECT
-                    idNumber + 1
-                FROM
-                    idGenerator
-                WHERE
-                    idNumber < @requestedNumberOfIdentities
-            )
-            INSERT INTO [$anchor.capsule].[$anchor.name] (
+        IF requestedNumberOfIdentities > 0
+        THEN
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.metadataColumnName
             )
-            OUTPUT
-                inserted.$anchor.identityColumnName
             SELECT
-                @metadata
+                metadata
             FROM
-                idGenerator
-            OPTION (maxrecursion 0);
-        END
-    END
-    ');
-END
-GO
+                generate_series(1,requestedNumberOfIdentities);
+        END IF;
+    END;
+' LANGUAGE plpgsql
+;
 ~*/
         }
         else {
@@ -57,42 +38,23 @@ GO
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.k$anchor.name', 'P') IS NULL
-BEGIN
-    EXEC('
-    CREATE PROCEDURE [$anchor.capsule].[k$anchor.name] (
-        @requestedNumberOfIdentities bigint
-    ) AS
+CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
+    requestedNumberOfIdentities bigint
+) RETURNS void AS '
     BEGIN
-        SET NOCOUNT ON;
-        IF @requestedNumberOfIdentities > 0
-        BEGIN
-            WITH idGenerator (idNumber) AS (
-                SELECT
-                    1
-                UNION ALL
-                SELECT
-                    idNumber + 1
-                FROM
-                    idGenerator
-                WHERE
-                    idNumber < @requestedNumberOfIdentities
-            )
-            INSERT INTO [$anchor.capsule].[$anchor.name] (
+        IF requestedNumberOfIdentities > 0
+        THEN
+            INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.dummyColumnName
             )
-            OUTPUT
-                inserted.$anchor.identityColumnName
             SELECT
                 null
             FROM
-                idGenerator
-            OPTION (maxrecursion 0);
-        END
-    END
-    ');
-END
-GO
+                generate_series(1,requestedNumberOfIdentities);
+        END IF;
+    END;
+' LANGUAGE plpgsql
+;
 ~*/
         }
     }

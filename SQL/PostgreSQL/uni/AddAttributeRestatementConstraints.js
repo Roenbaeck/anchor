@@ -99,7 +99,10 @@ CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
 ~*/
                 if(!attribute.isRestatable()) {
 /*~
-ALTER TABLE $attribute.capsule\.$attribute.name
+ALTER TABLE IF EXISTS $attribute.capsule\.$attribute.name
+DROP CONSTRAINT IF EXISTS rc$attribute.name
+;
+ALTER TABLE IF EXISTS $attribute.capsule\.$attribute.name
 ADD CONSTRAINT rc$attribute.name CHECK (
     $attribute.capsule\.rf$attribute.name(
         $attribute.anchorReferenceName,
