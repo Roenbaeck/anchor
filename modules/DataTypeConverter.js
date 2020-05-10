@@ -1,39 +1,157 @@
+/* list of generic data types
+
+// Numeric      min                         max
+tinyint	        0	                        255
+smallint        -32,768	                    32,767
+integer	        -2,147,483,648              2,147,483,647
+bigint	        -9,223,372,036,854,775,808  9,223,372,036,854,775,807
+decimal	        -10^38 +1	                10^38 -1
+numeric	        -10^38 +1	                10^38 -1
+float	        -3.40E + 38	                3.40E + 38
+double	        -1.79E + 308	            1.79E + 308
+
+// Boolean
+boolean         true, yes, on, 1            false, no, off, 0
+
+// Monetary
+money           
+
+// Date/Time
+date	        Stores date in the format YYYY-MM-DD
+time	        Stores time in the format HH:MI:SS
+timetz          Stores time in the format HH:MI:SS, with time zone
+datetime	    Stores date and time information in the format YYYY-MM-DD HH:MI:SS
+timestamp	    Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
+timestamptz     Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone
+interval        Interval time data
+
+// Character
+char	        Fixed length with maximum length of 8000 characters
+varchar	        Variable length storage with maximum length of 8000 characters
+longvarchar     Variable length storage with maximum size of 2GB data
+clob            4GB
+nchar	        Fixed length with maximum length of 4000 characters
+nvarchar	    Variable length storage with maximum length of 4000 characters
+longnvarchar    Variable length storage with maximum size of 1GB data
+nclob           4GB
+
+// Binary
+binary	        Fixed length with maximum length of 8,000 bytes
+varbinary   	Variable length storage with maximum length of 8,000 bytes
+longvarbinary	Variable length storage with maximum size of 2GB data
+blob	        4GB binary data
+
+// Miscellaneous
+xml	            for storing xml data
+json	        for storing JSON data
+array           (offered in SQL99) is a set-length and ordered a collection of elements
+multiset        (added in SQL2003) is a variable-length and unordered collection of elements
+guid            Globally unique identifier
+
+// geotypes ?
+
+*/
+
+// only add a regex when the types are different!
 var DataTypeConverter = {
     MATCH: 0,
     REPLACE: 1,
-    SQLServer_to_Oracle: [
-        // exact numbers
-        [/"tinyint"/ig,                         '"NUMBER(3)"'],
-        [/"smallint"/ig,                        '"NUMBER(5)"'],
-        [/"int"|"integer"/ig,                   '"NUMBER(10)"'],
-        [/"bigint"/ig,                          '"NUMBER(19)"'],
-        [/"decimal\(([0-9]+),\s*([0-9]+)\)"/ig, '"NUMBER($1,$2)"'],
-        [/"decimal\(([0-9]+)\)"/ig,             '"NUMBER($1)"'],                
-        [/"numeric\(([0-9]+),\s*([0-9]+)\)"/ig, '"NUMBER($1,$2)"'],
-        [/"numeric\(([0-9]+)\)"/ig,             '"NUMBER($1)"'],
-        [/"smallmoney"/ig,                      '"NUMBER(10,4)"'],
-        [/"money"/ig,                           '"NUMBER(19,4)"'],
-        // approximate numbers
-        [/"real"/ig,                            '"BINARY_FLOAT"'],
-        [/"float"/ig,                           '"BINARY_DOUBLE"'],
-        // time types
-        [/"smalldatetime"/ig,                   '"TIMESTAMP(3)"'],
-        [/"datetime"/ig,                        '"TIMESTAMP(3)"'],
-        [/"datetime2\(([0-9]+)\)"/ig,           '"TIMESTAMP($1)"'],
-        [/"datetimeoffset\(([0-9]+)\)"/ig,      '"TIMESTAMP($1) WITH TIME ZONE"'],
-        // strings
-        [/"varchar\(([0-9]+)\)"/ig,             '"VARCHAR2($1)"'],
-        [/"varchar\(max\)"/ig,                  '"CLOB"'],
-        [/"text"/ig,                            '"LONG"'],
-        // binaries
-        [/"binary\(([0-9]+)\)"/ig,              '"RAW($1)"'],
-        [/"varbinary\(([0-9]+)\)"/ig,           '"LONG RAW"'],
-        [/"varbinary\(max\)"/ig,                '"BLOB"'],
-        [/"image"/ig,                           '"LONG RAW"'],
-        // other
-        [/"xml"/ig,                             '"XMLTYPE"'],
-        [/"bit"/ig,                             '"NUMBER(1)"'],
-        [/"uniqueidentifier"/ig,                '"RAW(16)"']
+    SQLServer_to_Generic: [
+    // Numeric 
+        [/"int"/ig,                             '"integer"'],
+        [/"real"/ig,                            '"float"'],
+        [/"float"/ig,                           '"double"'],  
+    // Boolean
+        [/"bit"/ig,                             '"boolean"'],       
+    // Monetairy 
+        // money
+        [/"smallmoney"/ig,                      '"money"'],  
+    // Date/Time
+        [/"smalldatetime"/ig,                   '"datetime"'],
+        [/"datetime"/ig,                        '"timestamp"'],
+        [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp($1)"'],
+        [/"datetime2"/ig,                       '"timestamp"'],                
+        [/"datetimeoffset\(([0-9]+)\)"/ig,      '"timestamptz($1)"'],
+        [/"datetimeoffset"/ig,                  '"timestamptz"'],     
+    // Character
+        [/"varchar\(max\)"/ig,                  '"longvarchar"'],   
+        [/"text"/ig,                            '"longvarchar"'],   
+        [/"nvarchar\(max\)"/ig,                 '"longnvarchar"'],   
+        [/"ntext"/ig,                           '"longnvarchar"'],
+    // Binary   
+        [/"varbinary\(max\)"/ig,                '"longvarbinary"'],
+        [/"image"/ig,                           '"longvarbinary"'], 
+    // Miscellaneous
+        [/"uniqueidentifier"/ig,                '"guid"']             
+    ],
+    Generic_to_SQLServer: [
+    // Numeric     
+        [/"float"/ig,                           '"real"'],
+        [/"double"/ig,                          '"float"'], 
+    // Boolean
+        [/"boolean"/ig,                         '"bit"'],
+    // Date/Time
+        [/"timetz\(([0-9]+)\)"/ig,              '"time($1)"'],
+        [/"timetz"/ig,                          '"time"'],
+        [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],    
+        [/"timestamp"/ig,                       '"datetime2"'],
+        [/"timestamptz\(([0-9]+)\)"/ig,         '"datetimeoffset($1)"'],
+        [/"timestamptz"/ig,                     '"datetimeoffset"'],
+    // Character
+        [/"longvarchar"/ig,                     '"varchar(max)"'], 
+        [/"clob"/ig,                            '"varchar(max)"'],         
+        [/"longnvarchar"/ig,                    '"nvarchar(max)"'], 
+        [/"nclob"/ig,                           '"nvarchar(max)"'],   
+    // Binary
+        [/"longvarbinary"/ig,                   '"varbinary(max)"'],
+        [/"blob"/ig,                            '"varbinary(max)"'],       
+    // Miscellaneous
+        [/"json"/ig,                            '"nvarchar(max)"'], // add CHECK (ISJSON(jsonColumn)>0) !
+        [/"array"/ig,                           '"varbinary(max)"'], // convert to table or stingdelimited?    
+        [/"multiset"/ig,                        '"varbinary(max)"'], // convert to table or json document?
+        [/"guid"/ig,                            '"uniqueidentifier"']  
+    ], 
+    Generic_to_Oracle: [
+    // Numeric
+        [/"tinyint"/ig,                         '"number(3)"'],
+        [/"smallint"/ig,                        '"number(5)"'],
+        [/"int"|"integer"/ig,                   '"number(10)"'],
+        [/"bigint"/ig,                          '"number(19)"'],
+        [/"decimal\(([0-9]+),\s*([0-9]+)\)"/ig, '"number($1,$2)"'],
+        [/"decimal\(([0-9]+)\)"/ig,             '"number($1)"'],                
+        [/"numeric\(([0-9]+),\s*([0-9]+)\)"/ig, '"number($1,$2)"'],
+        [/"numeric\(([0-9]+)\)"/ig,             '"number($1)"'],
+        [/"float"/ig,                           '"binary_float"'],
+        [/"double"/ig,                          '"binary_double"'],
+    // Boolean
+        [/"boolean"/ig,                         '"number(1)"'],
+    // Monetairy 
+        [/"money"/ig,                           '"number(19,4)"'],
+    // Date/Time
+        [/"time\(([0-9]+)\)"/ig,                '"timestamp($1)"'],
+        [/"time"/ig,                            '"timestamp"'],     
+        [/"timetz\(([0-9]+)\)"/ig,              '"timestamp($1) with time zone"'],
+        [/"timetz"/ig,                          '"timestamp with time zone"'],
+        [/"datetime"/ig,                        '"date"'],        
+        [/"timestamp\(([0-9]+)\)"/ig,           '"timestamp($1)"'],    
+        [/"timestamp"/ig,                       '"timestamp"'],
+        [/"timestamptz\(([0-9]+)\)"/ig,         '"timestamp($1) with time zone"'],
+        [/"timestamptz"/ig,                     '"timestamp with time zone"'],
+    // Character        
+        [/"varchar\(([0-9]+)\)"/ig,             '"varchar2($1)"'],
+        [/"longvarchar"/ig,                     '"clob"'],                  
+        [/"nvarchar\(([0-9]+)\)"/ig,            '"nvarchar2($1)"'],
+        [/"longnvarchar"/ig,                    '"nclob"'],         
+    // Binary
+        [/"binary\(([0-9]+)\)"/ig,              '"raw($1)"'],
+        [/"varbinary\(([0-9]+)\)"/ig,           '"blob"'],
+        [/"longvarbinary"/ig,                   '"blob"'],
+    // Miscellaneous
+        [/"xml"/ig,                             '"xmltype"'],    
+        [/"json"/ig,                            '"clob"'], // add CHECK (jsonColumn IS JSON)!
+        [/"array"/ig,                           '"blob"'], // create type with nested table?    
+        [/"multiset"/ig,                        '"blob"'], // create type with nested table? 
+        [/"guid"/ig,                            '"raw(16)"']
     ],
     SQLServer_to_PostgreSQL: [
         // exact numbers
@@ -88,20 +206,32 @@ var DataTypeConverter = {
         // binaries
         [/"bytea"/ig,                           '"varbinary(max)"'],
         // other
-        [/"boolean"|"bool"/ig,                         '"bit"'],
+        [/"boolean"|"bool"/ig,                  '"bit"'],
         [/"uuid"/ig,                            '"uniqueidentifier"'],
         [/"json"|"jsonb"/ig,                    '"nvarchar(max)"']
     ],
     convert: function(xml, source, target) {
-        var ruleset = this[source + '_to_' + target];
-        if(!ruleset) {
+        var sourceToGen = this[source + '_to_Generic'];
+        var genToTarget = this['Generic_to_' + target];
+        if(!sourceToGen & !genToTarget) {
             alert('Conversion between ' + source + ' and ' + target + ' is not supported.');
+            return xml;
+        }
+        if(!sourceToGen) {
+            alert('Conversion from ' + source + ' is not supported.');
             return xml;
         }
         var str = (new XMLSerializer()).serializeToString(xml);
         var rule;
-        for(var i = 0; rule = ruleset[i]; i++) {
+        for(var i = 0; rule = sourceToGen[i]; i++) {
             str = str.replace(rule[this.MATCH], rule[this.REPLACE]);
+        }
+        if(!genToTarget) {
+            alert('Conversion to ' + target + ' is not supported.');
+        } else {
+            for(var i = 0; rule = genToTarget[i]; i++) {
+                str = str.replace(rule[this.MATCH], rule[this.REPLACE]);
+            }           
         }
         xml = (new DOMParser()).parseFromString(str, 'text/xml');
         return xml;
