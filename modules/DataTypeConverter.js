@@ -64,7 +64,6 @@ var DataTypeConverter = {
     // Boolean
         [/"bit"/ig,                             '"boolean"'],       
     // Monetairy 
-        // money
         [/"smallmoney"/ig,                      '"money"'],  
     // Date/Time
         [/"smalldatetime"/ig,                   '"datetime"'],
@@ -115,7 +114,7 @@ var DataTypeConverter = {
     // Numeric
         [/"tinyint"/ig,                         '"number(3)"'],
         [/"smallint"/ig,                        '"number(5)"'],
-        [/"int"|"integer"/ig,                   '"number(10)"'],
+        [/"integer"/ig,                         '"number(10)"'],
         [/"bigint"/ig,                          '"number(19)"'],
         [/"decimal\(([0-9]+),\s*([0-9]+)\)"/ig, '"number($1,$2)"'],
         [/"decimal\(([0-9]+)\)"/ig,             '"number($1)"'],                
@@ -151,6 +150,40 @@ var DataTypeConverter = {
         [/"json"/ig,                            '"clob"'], // add CHECK (jsonColumn IS JSON)!
         [/"array"/ig,                           '"blob"'], // create type with nested table?    
         [/"multiset"/ig,                        '"blob"'], // create type with nested table? 
+        [/"guid"/ig,                            '"raw(16)"']
+    ],
+    Oracle_to_Generic: [
+    // Numeric      
+        [/"number\((1|2)(,0)?\)"/ig,            '"tinyint"'],	  
+        [/"number\(([3-5])(,0)?\)"/ig,          '"smallint"'],
+        [/"number\(([6-9])(,0)?\)"/ig,          '"integer"'],       	              
+        [/"number\((1[0-9])(,0)?\)"/ig,         '"bigint"'],
+        [/"number\(([0-9]+),\s*([0-9]+)\)"/ig,  '"decimal($1,$2)"'],          
+        [/"number\(([0-9]+)\)"/ig,              '"decimal($1)"'],
+        [/"number(\(\*\))?"/ig,                 '"double"'],    
+        [/"binary_float"/ig,                    '"float"'],
+        [/"binary_double"/ig,                   '"double"'],
+        [/"float\(([0-9]+)\)"/ig,               '"double"'],        
+    // Boolean
+    // Monetary     
+    // Date/Time
+        [/"date"/ig,                            '"datetime"'], 
+        [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
+        [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],             
+    // Character
+        [/"char\(([0-9]+)\s*(byte|char)?\s*\)"/ig, '"char($1)"'],
+        [/"varchar2\(([0-9]+)\s*(byte|char)?\s*\)"/ig, '"varchar($1)"'],
+        [/"nvarchar2\(([0-9]+)\)"/ig,           '"nvarchar($1)"'],
+        [/"long"/ig,                            '"longvarchar"'],
+    // Binary
+        [/"raw\(([0-9]+)\)"/ig,                 '"binary($1)"'],    
+        [/"long raw"/ig,                        '"longvarbinary"'],  
+        [/"bfile"/ig,                           '"blob"'],                 
+    // Miscellaneous
+        [/"xmltype"/ig,                         '"xml"'],    
+        [/"uritype"/ig,                         '"clob"'], 
+        [/"rowid"/ig,                           '"binary(16)"'], 
+        [/"urowid(\([0-9]+\))?"/ig,             '"longvarbinary"'], 
         [/"guid"/ig,                            '"raw(16)"']
     ],
     SQLServer_to_PostgreSQL: [
