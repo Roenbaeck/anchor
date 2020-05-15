@@ -186,13 +186,11 @@ var DataTypeConverter = {
         [/"urowid(\([0-9]+\))?"/ig,             '"longvarbinary"'], 
         [/"guid"/ig,                            '"raw(16)"']
     ],
-    SQLServer_to_PostgreSQL: [
-        // exact numbers
+    Generic_to_PostgreSQL: [
+    // Numeric 
         [/"tinyint"/ig,                         '"smallint"'],
-        [/"int"|"integer"/ig,                   '"integer"'],
-        [/"smallmoney"/ig,                      '"money"'],
         // approximate numbers
-        [/"float"/ig,                           '"double precision"'],
+        [/"double"/ig,                          '"double precision"'],
         // time types
         [/"smalldatetime"/ig,                   '"timestamp"'],
         [/"datetime"/ig,                        '"timestamp"'],
@@ -202,18 +200,17 @@ var DataTypeConverter = {
         [/"datetimeoffset"/ig,                  '"timestampz"'],                
         // strings
         [/"varchar\(max\)"/ig,                  '"text"'],
-        [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],
-        [/"nvarchar\(max\)"/ig,                 '"text"'],
-        [/"text"/ig,                            '"text"'],                
+        [/"varcnhar\(([0-9]+)\)"/ig,            '"varchar(
+        [/"nclob"/ig,                           '"text"'],
+    // Binary,                            '"text"'],                
         [/"ntext"/ig,                           '"text"'],
         [/"nchar\(([0-9]+)\)"/ig,               '"text"'],
-        // binaries
-        [/"binary\(([0-9]+)\)"/ig,              '"bytea"'],
-        [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],
-        [/"varbinary\(max\)"/ig,                '"bytea"'],
-        [/"image"/ig,                           '"bytea"'],
-        // other
-        [/"bit"/ig,                             '"boolean"'],
+        // longbinaries
+           blobnary\(([0-9]+)\)"/ig,               '"bytea"'],
+    // Miscellaneous  
+        [/"json"/ig,                            '"jsonb"'], // jsonb is faster than json in retreval
+        [/"multiset"/ig,                        '"array"'], // create a table? 
+        [/"guid"/ig,                            '"uuid"'],
         [/"uniqueidentifier"/ig,                '"uuid"'],
         [/"rowversion"/ig,                      '"bytea"'],
         [/"geography"/ig,                       '"bytea"']                
