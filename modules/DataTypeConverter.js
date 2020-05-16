@@ -23,7 +23,6 @@ timetz          Stores time in the format HH:MI:SS, with time zone
 datetime	    Stores date and time information in the format YYYY-MM-DD HH:MI:SS
 timestamp	    Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
 timestamptz     Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone
-interval        Interval time data
 
 // Character
 char	        Fixed length with maximum length of 8000 characters
@@ -32,7 +31,7 @@ longvarchar     Variable length storage with maximum size of 2GB data
 clob            4GB
 nchar	        Fixed length with maximum length of 4000 characters
 nvarchar	    Variable length storage with maximum length of 4000 characters
-longnvarchar    Variable length storage with maximum size of 1GB data
+nlongvarchar    Variable length storage with maximum size of 1GB data
 nclob           4GB
 
 // Binary
@@ -44,8 +43,7 @@ blob	        4GB binary data
 // Miscellaneous
 xml	            for storing xml data
 json	        for storing JSON data
-array           (offered in SQL99) is a set-length and ordered a collection of elements
-multiset        (added in SQL2003) is a variable-length and unordered collection of elements
+array           (offered in SQL99) is fixed-length and ordered collection of elements
 guid            Globally unique identifier
 
 // geotypes ?
@@ -75,8 +73,8 @@ var DataTypeConverter = {
     // Character
         [/"varchar\(max\)"/ig,                  '"longvarchar"'],   
         [/"text"/ig,                            '"longvarchar"'],   
-        [/"nvarchar\(max\)"/ig,                 '"longnvarchar"'],   
-        [/"ntext"/ig,                           '"longnvarchar"'],
+        [/"nvarchar\(max\)"/ig,                 '"nlongvarchar"'],   
+        [/"ntext"/ig,                           '"nlongvarchar"'],
     // Binary   
         [/"varbinary\(max\)"/ig,                '"longvarbinary"'],
         [/"image"/ig,                           '"longvarbinary"'], 
@@ -84,31 +82,45 @@ var DataTypeConverter = {
         [/"uniqueidentifier"/ig,                '"guid"']             
     ],
     Generic_to_SQLServer: [
-    // Numeric     
-        [/"float"/ig,                           '"real"'],
+    // Numeric  
+        //tinyint	                            0	                        255
+        //smallint                              -32,768	                    32,767
+        //integer	                            -2,147,483,648              2,147,483,647
+        //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
+        //decimal	                            -10^38 +1	                10^38 -1
+        //numeric	                            -10^38 +1	                10^38 -1   
+        [/"float"/ig,                     '"real"'],
         [/"double"/ig,                          '"float"'], 
     // Boolean
         [/"boolean"/ig,                         '"bit"'],
     // Date/Time
-        [/"timetz\(([0-9]+)\)"/ig,              '"time($1)"'],
+        //date	                                Stores date in the format YYYY-MM-DD
+        [/"timetz\(([0-9]+)\)"/ig,              '"time($1)"'], 
         [/"timetz"/ig,                          '"time"'],
+        //datetime	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS
         [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],    
         [/"timestamp"/ig,                       '"datetime2"'],
         [/"timestamptz\(([0-9]+)\)"/ig,         '"datetimeoffset($1)"'],
         [/"timestamptz"/ig,                     '"datetimeoffset"'],
     // Character
+        //char	                                Fixed length with maximum length of 8000 characters
+        //varchar	                            Variable length storage with maximum length of 8000 characters
         [/"longvarchar"/ig,                     '"varchar(max)"'], 
-        [/"clob"/ig,                            '"varchar(max)"'],         
-        [/"longnvarchar"/ig,                    '"nvarchar(max)"'], 
+        [/"clob"/ig,                            '"varchar(max)"'], 
+        //nchar	                                Fixed length with maximum length of 4000 characters
+        //nvarchar	                            Variable length storage with maximum length of 4000 characters        
+        [/"nlongvarchar"/ig,                    '"nvarchar(max)"'], 
         [/"nclob"/ig,                           '"nvarchar(max)"'],   
     // Binary
+        //binary	                            Fixed length with maximum length of 8,000 bytes
+        //varbinary   	                        Variable length storage with maximum length of 8,000 bytes
         [/"longvarbinary"/ig,                   '"varbinary(max)"'],
         [/"blob"/ig,                            '"varbinary(max)"'],       
     // Miscellaneous
-        [/"json"/ig,                            '"nvarchar(max)"'], // add CHECK (ISJSON(jsonColumn)>0) !
-        [/"array"/ig,                           '"varbinary(max)"'], // convert to table or stingdelimited?    
-        [/"multiset"/ig,                        '"varbinary(max)"'], // convert to table or json document?
-        [/"guid"/ig,                            '"uniqueidentifier"']  
+        //xml	                                for storing xml data
+        [/"json"/ig,                            '"nvarchar(max)"'], // add CHECK (ISJSON(jsonColumn)>0) !   
+        [/"guid"/ig,                            '"uniqueidentifier"'],
+        [/"[a-z]+[\([0-9]+\)]?\s+array(\[([0-9]*)?\])?"/ig, '"varbinary(max)"'], // convert to table or sting delimited?   
     ], 
     Generic_to_Oracle: [
     // Numeric
@@ -136,20 +148,24 @@ var DataTypeConverter = {
         [/"timestamp"/ig,                       '"timestamp"'],
         [/"timestamptz\(([0-9]+)\)"/ig,         '"timestamp($1) with time zone"'],
         [/"timestamptz"/ig,                     '"timestamp with time zone"'],
-    // Character        
+    // Character
+        //char	                                Fixed length with maximum length of 8000 characters        
         [/"varchar\(([0-9]+)\)"/ig,             '"varchar2($1)"'],
-        [/"longvarchar"/ig,                     '"clob"'],                  
+        [/"longvarchar"/ig,                     '"clob"'],  
+        //clob                                  4GB
+        //nchar	                                Fixed length with maximum length of 4000 characters                        
         [/"nvarchar\(([0-9]+)\)"/ig,            '"nvarchar2($1)"'],
-        [/"longnvarchar"/ig,                    '"nclob"'],         
+        [/"nlongvarchar"/ig,                    '"nclob"'], 
+        //nclob                                 4GB        
     // Binary
         [/"binary\(([0-9]+)\)"/ig,              '"raw($1)"'],
         [/"varbinary\(([0-9]+)\)"/ig,           '"blob"'],
         [/"longvarbinary"/ig,                   '"blob"'],
+        //blob	                                4GB binary data
     // Miscellaneous
         [/"xml"/ig,                             '"xmltype"'],    
         [/"json"/ig,                            '"clob"'], // add CHECK (jsonColumn IS JSON)!
         [/"array"/ig,                           '"blob"'], // create type with nested table?    
-        [/"multiset"/ig,                        '"blob"'], // create type with nested table? 
         [/"guid"/ig,                            '"raw(16)"']
     ],
     Oracle_to_Generic: [
@@ -188,32 +204,45 @@ var DataTypeConverter = {
     ],
     Generic_to_PostgreSQL: [
     // Numeric 
-        [/"tinyint"/ig,                         '"smallint"'],
-        // approximate numbers
+        [/"tinyint[^"]*?"/ig,                   '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
+        //smallint                              -32,768	                    32,767
+        //integer	                            -2,147,483,648              2,147,483,647
+        //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
+        //decimal	                            -10^38 +1	                10^38 -1
+        //numeric	                            -10^38 +1	                10^38 -1          
+        [/"float"/ig,                           '"real"'],
         [/"double"/ig,                          '"double precision"'],
-        // time types
-        [/"smalldatetime"/ig,                   '"timestamp"'],
-        [/"datetime"/ig,                        '"timestamp"'],
-        [/"datetime2\(([0-9]+)\)"/ig,           '"timestamp"'],
-        [/"datetime2"/ig,                       '"timestamp"'],                
-        [/"datetimeoffset\(([0-9]+)\)"/ig,      '"timestampz"'],
-        [/"datetimeoffset"/ig,                  '"timestampz"'],                
-        // strings
-        [/"varchar\(max\)"/ig,                  '"text"'],
-        [/"varcnhar\(([0-9]+)\)"/ig,            '"varchar(
+    // Boolean
+        //boolean                               true, yes, on, 1            false, no, off, 0
+    // Monetary
+        //money 
+    // Date/Time
+        //date	                                Stores date in the format YYYY-MM-DD
+        //time	                                Stores time in the format HH:MI:SS
+        //timetz                                Stores time in the format HH:MI:SS, with time zone
+        [/"datetime"/ig,                        '"timestamp"'], 
+        //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
+        //timestamptz                           Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone  
+    // Character 
+        //char	                                Fixed length with maximum length of 8000 characters
+        //varchar	                            Variable length storage with maximum length of 8000 characters
+        [/"longvarchar"/ig,                     '"text"'],
+        [/"clob"/ig,                            '"text"'],                   
+        [/"nchar\(([0-9]+)\)"/ig,               '"char($1)"'], 
+        [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],         
+        [/"nlongvarchar"/ig,                    '"text"'],
         [/"nclob"/ig,                           '"text"'],
-    // Binary,                            '"text"'],                
-        [/"ntext"/ig,                           '"text"'],
-        [/"nchar\(([0-9]+)\)"/ig,               '"text"'],
-        // longbinaries
-           blobnary\(([0-9]+)\)"/ig,               '"bytea"'],
-    // Miscellaneous  
+    // Binary,  
+        [/"binary\(([0-9]+)\)"/ig,              '"bytea"'],
+        [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],                                                 
+        [/"longvarbinary"/ig,                   '"bytea"'], 
+        [/"blob"/ig,                            '"bytea"'], 
+    // Miscellaneous 
+        //xml	                                for storing xml data 
         [/"json"/ig,                            '"jsonb"'], // jsonb is faster than json in retreval
-        [/"multiset"/ig,                        '"array"'], // create a table? 
-        [/"guid"/ig,                            '"uuid"'],
-        [/"uniqueidentifier"/ig,                '"uuid"'],
-        [/"rowversion"/ig,                      '"bytea"'],
-        [/"geography"/ig,                       '"bytea"']                
+        //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
+        [/"multiset"/ig,                        '"array"'], // array with row construct or create a table? 
+        [/"guid"/ig,                            '"uuid"']             
       ],
       PostgreSQL_to_SQLServer: [
         // exact numbers
