@@ -89,7 +89,7 @@ var DataTypeConverter = {
         //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
         //decimal	                            -10^38 +1	                10^38 -1
         //numeric	                            -10^38 +1	                10^38 -1   
-        [/"float"/ig,                     '"real"'],
+        [/"float"/ig,                           '"real"'],
         [/"double"/ig,                          '"float"'], 
     // Boolean
         [/"boolean"/ig,                         '"bit"'],
@@ -241,7 +241,6 @@ var DataTypeConverter = {
         //xml	                                for storing xml data 
         [/"json"/ig,                            '"jsonb"'], // jsonb is faster than json in retreval
         //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
-        [/"multiset"/ig,                        '"array"'], // array with row construct or create a table? 
         [/"guid"/ig,                            '"uuid"']             
       ],
       PostgreSQL_to_SQLServer: [
