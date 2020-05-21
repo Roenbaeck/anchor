@@ -204,7 +204,7 @@ var DataTypeConverter = {
     ],
     Generic_to_PostgreSQL: [
     // Numeric 
-        [/"tinyint[^"]*?"/ig,                   '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
+        [/"tinyint"/ig,                         '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
         //smallint                              -32,768	                    32,767
         //integer	                            -2,147,483,648              2,147,483,647
         //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
@@ -232,7 +232,7 @@ var DataTypeConverter = {
         [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],         
         [/"nlongvarchar"/ig,                    '"text"'],
         [/"nclob"/ig,                           '"text"'],
-    // Binary,  
+    // Binary 
         [/"binary\(([0-9]+)\)"/ig,              '"bytea"'],
         [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],                                                 
         [/"longvarbinary"/ig,                   '"bytea"'], 
@@ -243,30 +243,35 @@ var DataTypeConverter = {
         //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
         [/"guid"/ig,                            '"uuid"']             
       ],
-      PostgreSQL_to_SQLServer: [
-        // exact numbers
+      PostgreSQL_to_Generic: [
+    // Numeric
         [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
         [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)
         [/"bigserial"|"serial8"|"int8"/ig,      '"bigint"'], // bigserial - bigint identity(1,1)
-        // approximate numbers
-        [/"real"|"float4"/ig,                   '"real"'],
-        [/"double precision"|"float8"/ig,       '"double precision"'],
-        // time types
-        [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],
-        [/"timestampz\(([0-9]+)\)"/ig,          '"datetimeoffset($1)"'],
-        [/"timestamp\(([0-9]+)\) with time zone"/ig,  '"datetimeoffset($1)"'],
-        // strings
+        [/"real"|"float4"/ig,                   '"float"'],
+        [/"double precision"|"float8"/ig,       '"double"'],
+    // Boolean
+    // Monetary     
+    // Date/Time
+        [/"time\(([0-9])\)\s+without\s+time\s+zone"/ig, '"time($1)"'],    
+        [/"time\s+without\s+time\s+zone"/ig,    '"time"'],
+        [/"time\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timetz($1)"'],    
+        [/"time\s+with\s+time\s+zone"/ig,       '"timetz"'],           
+        [/"timestamp\(([0-9])\)\s+without\s+time\s+zone"/ig, '"timestamp($1)"'],    
+        [/"timestamp\s+without\s+time\s+zone"/ig,  '"timestamp"'], 
+        [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
+        [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],    
+    // Character
         [/"character varying\(([0-9]+)\)"/ig,   '"nvarchar($1)"'],
         [/"varchar\(([0-9]+)\)"/ig,             '"nvarchar($1)"'],
-        [/"text"/ig,                            '"nvarchar(max)"'],                
+        [/"text"/ig,                            '"nlongvarchar"'],                
         [/"character\(([0-9]+)\)"/ig,           '"nchar($1)"'],
         [/"char\(([0-9]+)\)"/ig,                '"nchar($1)"'],
-        // binaries
-        [/"bytea"/ig,                           '"varbinary(max)"'],
-        // other
-        [/"boolean"|"bool"/ig,                  '"bit"'],
-        [/"uuid"/ig,                            '"uniqueidentifier"'],
-        [/"json"|"jsonb"/ig,                    '"nvarchar(max)"']
+    // Binary 
+        [/"bytea"/ig,                           '"longvarbinary"'],
+    // Miscellaneous
+        [/"uuid"/ig,                            '"guid"'],
+        [/"jsonb"/ig,                           '"json"']
     ],
     convert: function(xml, source, target) {
         var sourceToGen = this[source + '_to_Generic'];
