@@ -48,6 +48,10 @@ guid            Globally unique identifier
 
 // geotypes ?
 
+// default timestamp and schema
+current_timestamp
+public          Oracle has no default schema.
+
 */
 
 // only add a regex when the types are different!
@@ -79,7 +83,10 @@ var DataTypeConverter = {
         [/"varbinary\(max\)"/ig,                '"longvarbinary"'],
         [/"image"/ig,                           '"longvarbinary"'], 
     // Miscellaneous
-        [/"uniqueidentifier"/ig,                '"guid"']             
+        [/"uniqueidentifier"/ig,                '"guid"'],
+    // default timestamp and capsule      
+        [/"sysdatetime\(\)"/ig,                 '"current_timestamp"'],
+        [/"dbo"/ig,                             '"public"']             
     ],
     Generic_to_SQLServer: [
     // Numeric  
@@ -98,9 +105,11 @@ var DataTypeConverter = {
         [/"timetz\(([0-9]+)\)"/ig,              '"time($1)"'], 
         [/"timetz"/ig,                          '"time"'],
         //datetime	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS
-        [/"timestamp\(([0-9]+)\)"/ig,           '"datetime2($1)"'],    
+        [/"timestamp\(([0-7]+)\)"/ig,           '"datetime2($1)"'], 
+        [/"timestamp\(([8-9]+)\)"/ig,           '"datetime2"'],            
         [/"timestamp"/ig,                       '"datetime2"'],
-        [/"timestamptz\(([0-9]+)\)"/ig,         '"datetimeoffset($1)"'],
+        [/"timestamptz\(([0-7]+)\)"/ig,         '"datetimeoffset($1)"'],
+        [/"timestamptz\(([8-9]+)\)"/ig,         '"datetimeoffset"'],        
         [/"timestamptz"/ig,                     '"datetimeoffset"'],
     // Character
         //char	                                Fixed length with maximum length of 8000 characters
@@ -120,6 +129,9 @@ var DataTypeConverter = {
         //xml	                                for storing xml data
         [/"json"/ig,                            '"nvarchar(max)"'], // add CHECK (ISJSON(jsonColumn)>0) !   
         [/"guid"/ig,                            '"uniqueidentifier"'],
+    // default timestamp and capsule    
+        [/"current_timestamp"/ig,               '"sysdatetime()"'],
+        [/"public"/ig,                          '"dbo"']    
         //[/"[a-z]+[\([0-9]+\)]?\s+array(\[([0-9]*)?\])?"/ig, '"varbinary(max)"'], // convert to table or sting delimited?   
     ], 
     Generic_to_Oracle: [
@@ -183,7 +195,7 @@ var DataTypeConverter = {
     // Boolean
     // Monetary     
     // Date/Time
-        [/"date"|"DATE"/g,                      '"datetime"'], 
+        [/"date"|"DATE"/g,                      '"datetime"'], // Attributes named Date are not to be converted.  
         [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
         [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],             
     // Character
@@ -220,7 +232,10 @@ var DataTypeConverter = {
         //date	                                Stores date in the format YYYY-MM-DD
         //time	                                Stores time in the format HH:MI:SS
         //timetz                                Stores time in the format HH:MI:SS, with time zone
-        [/"datetime"/ig,                        '"timestamp"'], 
+        [/"datetime"/ig,                        '"timestamp"'],
+        [/"datetime"/ig,                        '"timestamp"'],
+        [/"timestamp\(([7-9]+)\)"/ig,           '"timestamp"'],
+        [/"timestamptz\(([7-9]+)\)"/ig,         '"timestamptz"'],     
         //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
         //timestamptz                           Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone  
     // Character 
@@ -243,7 +258,7 @@ var DataTypeConverter = {
         //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
         [/"guid"/ig,                            '"uuid"']             
       ],
-      PostgreSQL_to_Generic: [
+    PostgreSQL_to_Generic: [
     // Numeric
         [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
         [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)
@@ -345,13 +360,10 @@ var DataTypeConverter = {
         [/"timestamp\(([0-9])\)\s+with\s+time\s*zone"/ig, '"timestamptz($1)"'],    
         [/"timestamp\s+with\s+time\s*zone"/ig,  '"timestamptz"'],
     // Character
-        [/"varchar\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"varchar($1)"'], // varchar <= 8000
         [/"varchar\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig, '"longvarchar"'], // varchar > 8000
-        [/"varchar"/ig,                          '"varchar(80)"'], // 
-        [/"character\s+varying\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"varchar($1)"'], // varchar <= 8000        
+        [/"varchar"/ig,                          '"varchar(80)"'], //        
         [/"character\s+varying\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig,   '"longvarchar"'], // varchar > 8000
         [/"character\s+varying"/ig,              '"varchar(80)"'],       
-        [/"char(acter)?\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"char($2)"'],  // char <= 8000
         [/"char(acter)?\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig, '"longvarchar"'], // char > 8000
         [/"char(acter)?"/ig,                     '"char(1)"'], // 
         [/"long\s+varchar\(([0-9]+)\)"/ig,       '"longvarchar"'],
