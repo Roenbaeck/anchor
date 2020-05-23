@@ -43,8 +43,8 @@ blob	        4GB binary data
 // Miscellaneous
 xml	            for storing xml data
 json	        for storing JSON data
-array           (offered in SQL99) is fixed-length and ordered collection of elements
 guid            Globally unique identifier
+//array ?       (offered in SQL99) is fixed-length and ordered collection of elements
 
 // geotypes ?
 
@@ -120,7 +120,7 @@ var DataTypeConverter = {
         //xml	                                for storing xml data
         [/"json"/ig,                            '"nvarchar(max)"'], // add CHECK (ISJSON(jsonColumn)>0) !   
         [/"guid"/ig,                            '"uniqueidentifier"'],
-        [/"[a-z]+[\([0-9]+\)]?\s+array(\[([0-9]*)?\])?"/ig, '"varbinary(max)"'], // convert to table or sting delimited?   
+        //[/"[a-z]+[\([0-9]+\)]?\s+array(\[([0-9]*)?\])?"/ig, '"varbinary(max)"'], // convert to table or sting delimited?   
     ], 
     Generic_to_Oracle: [
     // Numeric
@@ -165,7 +165,7 @@ var DataTypeConverter = {
     // Miscellaneous
         [/"xml"/ig,                             '"xmltype"'],    
         [/"json"/ig,                            '"clob"'], // add CHECK (jsonColumn IS JSON)!
-        [/"array"/ig,                           '"blob"'], // create type with nested table?    
+        //[/"array"/ig,                           '"blob"'], // create type with nested table?    
         [/"guid"/ig,                            '"raw(16)"']
     ],
     Oracle_to_Generic: [
@@ -183,7 +183,7 @@ var DataTypeConverter = {
     // Boolean
     // Monetary     
     // Date/Time
-        [/"date"/ig,                            '"datetime"'], 
+        [/"date"|"DATE"/g,                      '"datetime"'], 
         [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
         [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],             
     // Character
@@ -262,7 +262,7 @@ var DataTypeConverter = {
         [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
         [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],    
     // Character
-        [/"character varying\(([0-9]+)\)"/ig,   '"nvarchar($1)"'],
+        [/"character\s+varying\(([0-9]+)\)"/ig, '"nvarchar($1)"'],
         [/"varchar\(([0-9]+)\)"/ig,             '"nvarchar($1)"'],
         [/"text"/ig,                            '"nlongvarchar"'],                
         [/"character\(([0-9]+)\)"/ig,           '"nchar($1)"'],
@@ -272,6 +272,93 @@ var DataTypeConverter = {
     // Miscellaneous
         [/"uuid"/ig,                            '"guid"'],
         [/"jsonb"/ig,                           '"json"']
+    ],
+    Generic_to_Vertica: [
+    // Numeric      
+        //tinyint	                            0	                        255
+        //smallint                              -32,768	                    32,767
+        //integer	                            -2,147,483,648              2,147,483,647
+        //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
+        //decimal	                            -10^38 +1	                10^38 -1
+        //numeric	                            -10^38 +1	                10^38 -1
+        //float	                                -3.40E + 38	                3.40E + 38
+        [/"double"/ig,                          '"double precision"'],
+    // Boolean
+        //boolean                               true, yes, on, 1            false, no, off, 0
+    // Monetary
+        [/"money"/ig,                           '"money(18,4)"'],           
+    // Date/Time
+        //date	                                Stores date in the format YYYY-MM-DD
+        //time	                                Stores time in the format HH:MI:SS
+        //timetz                                Stores time in the format HH:MI:SS, with time zone
+        //datetime	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS
+        //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
+        //timestamptz                           Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone
+    // Character
+        //char	                                Fixed length with maximum length of 8000 characters
+        //varchar	                            Variable length storage with maximum length of 8000 characters
+        [/"longvarchar"/ig,                     '"long varchar(32000000)"'], // 32 MB max
+        [/"clob"/ig,                            '"long varchar(32000000)"'],
+        [/"nchar\(([0-9]+)\)"/ig,               '"char($1)"'], // should be $1*3
+        [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],         
+        [/"nlongvarchar"/ig,                    '"long varchar(32000000)"'],
+        [/"nclob"/ig,                           '"long varchar(32000000)"'],
+    // Binary
+        //binary	                            Fixed length with maximum length of 8,000 bytes
+        //varbinary   	                        Variable length storage with maximum length of 8,000 bytes
+        [/"longvarbinary"/ig,	                '"long varbinary(32000000)"'],
+        [/"blob"/ig,                            '"long varbinary(32000000)"'],
+    // Miscellaneous
+        [/"xml"/ig,	                            '"long varchar(32000000)"'],
+        [/"json"/ig,	                        '"long varchar(32000000)"'], // Json can be loaded in a flex table!
+        [/"guid"/ig,                            '"uuid"']       
+    ],
+    Vertica_to_Generic:[
+    // Numeric 
+        [/"tinyint"/ig,                         '"bigint"'],
+        [/"smallint"/ig,                        '"bigint"'],
+        [/"int"/ig,                             '"bigint"'],
+        [/"integer"/ig,                         '"bigint"'],  
+        [/"int8"/ig,                            '"bigint"'],  
+        [/"decimal"/ig,                         '"decimal(37,15)"'],         
+        [/"numeric"/ig,                         '"numeric(37,15)"'], 
+        [/"number\(([0-9]+),\s*([0-9]+)\)"/ig,  '"decimal($1,$2)"'],          
+        [/"number\(([0-9]+)\)"/ig,              '"decimal($1)"'],
+        [/"number"/ig,                          '"decimal(38,0)"'],  
+        [/"double precision"/ig,                '"double"'],   
+        [/"float\(([0-9]+)\)"/ig,               '"double"'],
+        [/"float"|"float8"/ig,                  '"double"'],          
+        [/"real"/ig,                            '"double"'],  
+    // Boolean      
+    // Monetary    
+        [/"money\(([0-9]+),\s*([0-4]+)\)"/ig,   '"money"'],          
+        [/"money\(([0-9]+)\)"/ig,               '"money"'],
+    // Date/Time 
+        [/"time\(([0-9])\)\s+without\s+time\s*zone"/ig, '"time($1)"'],    
+        [/"time\s+without\s+time\s*zone"/ig,    '"time"'],
+        [/"time\(([0-9])\)\s+with\s+time\s*zone"/ig, '"timetz($1)"'],    
+        [/"time\s+with\s+time\s*zone"/ig,       '"timetz"'],
+        [/"smalldatetime"/ig,                   '"timestamp"'],
+        [/"datetime"/ig,                        '"timestamp"'], 
+        [/"timestamp\(([0-9])\)\s+without\s+time\s*zone"/ig, '"timestamp($1)"'],    
+        [/"timestamp\s+without\s+time\s*zone"/ig,  '"timestamp"'], 
+        [/"timestamp\(([0-9])\)\s+with\s+time\s*zone"/ig, '"timestamptz($1)"'],    
+        [/"timestamp\s+with\s+time\s*zone"/ig,  '"timestamptz"'],
+    // Character
+        [/"varchar\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"varchar($1)"'], // varchar <= 8000
+        [/"varchar\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig, '"longvarchar"'], // varchar > 8000
+        [/"varchar"/ig,                          '"varchar(80)"'], // 
+        [/"character\s+varying\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"varchar($1)"'], // varchar <= 8000        
+        [/"character\s+varying\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig,   '"longvarchar"'], // varchar > 8000
+        [/"character\s+varying"/ig,              '"varchar(80)"'],       
+        [/"char(acter)?\(([1-7]?[0-9]?[0-9]?[0-9]|8000)\)"/ig, '"char($2)"'],  // char <= 8000
+        [/"char(acter)?\(([8-9][0-9][0-9][1-9]|9000|[1-9][0-9]{4,})\)"/ig, '"longvarchar"'], // char > 8000
+        [/"char(acter)?"/ig,                     '"char(1)"'], // 
+        [/"long\s+varchar\(([0-9]+)\)"/ig,       '"longvarchar"'],
+    // Binary
+        [/"long\s+varbinary\(([0-9]+)\)"/ig,     '"longvarbinary"'],
+    // Miscellaneous 
+        [/"uuid"/ig,                             '"guid"']                            
     ],
     convert: function(xml, source, target) {
         var sourceToGen = this[source + '_to_Generic'];
