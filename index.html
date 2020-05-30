@@ -13,13 +13,57 @@
     <link href='application.css' rel='stylesheet' type='text/css'/>
     <!-- icon -->
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- datalists -->
+    <datalist id='integerList'>
+        <option value='tinyint'>
+        <option value='smallint'>
+        <option value='integer'>
+        <option value='bigint'>        
+    </datalist>
+    <datalist id='datetimeList'>
+        <option value='date'>
+        <option value='datetime'>
+        <option value='datetime2'>
+        <option value='timestamp'>                
+    </datalist>
+    <datalist id='datatypeList'>
+        <option value='bigint'>  
+        <option value='binary'>    
+        <option value='bit'>
+        <option value='blob'>
+        <option value='boolean'>
+        <option value='bigint'>  
+        <option value='char()'>
+        <option value='clob'>
+        <option value='date'>   
+        <option value='datetime'>  
+        <option value='datetime2'>
+        <option value='decimal(,)'>    
+        <option value='double'>  
+        <option value='float'>
+        <option value='integer'>      
+        <option value='json'>
+        <option value='money'>
+        <option value='nchar()'>
+        <option value='nclob'>
+        <option value='nvarchar()'>   
+        <option value='numeric(,)'>
+        <option value='real'>    
+        <option value='smallint'>
+        <option value='text'>    
+        <option value='time'>
+        <option value='timestamp'>
+        <option value='tinyint'>
+        <option value='varchar()'>    
+        <option value='xml'>                         
+    </datalist>
     <!-- polyfill for the functionality going to be removed in SVG 2 -->
     <script src="pathseg.js"></script>
     <!-- run some checks first -->
     <script type="text/javascript" src="modules/DataTypeConverter.js"></script>
     <script type="text/javascript" src="modules/Defaults.js"></script>
     <script type="text/javascript">
-        <!--
+        //<!--
         // check low level management SVG support
         var testElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         if (!testElement || !testElement.viewBox)
@@ -46,7 +90,7 @@
     </script>
 
     <script type="text/javascript">
-        <!--
+        //<!--
         "use strict"; // be safe!
 
         var VERSION = '0.99.6.1';
@@ -1919,7 +1963,7 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'required', 'required']
+                attributes: ['type', 'text', 'required', 'required','list','datatypeList']
             },
             changingRangeEdit: {
                 name: 'Time range',
@@ -1935,7 +1979,7 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'required', 'required']
+                attributes: ['type', 'text', 'required', 'required','list','datetimeList']
             },
             positIdentityEdit: {
                 name: 'Posit identity',
@@ -1951,7 +1995,7 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'required', 'required']
+                attributes: ['type', 'text', 'required', 'required','list','integerList']
             },
             identityEdit: {
                 name: 'Identity',
@@ -1967,7 +2011,7 @@
                 type: 'input',
                 pattern: '.*',
                 event: 'blur',
-                attributes: ['type', 'text', 'required', 'required']
+                attributes: ['type', 'text', 'required', 'required','list','integerList']
             },
             positGeneratorEdit: {
                 name: 'Posit generator',
