@@ -51,32 +51,32 @@ SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceNa
 -- Attribute Point-in-time perspective -------------------------------------------------------------------------------------------------
 -- p$attribute.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $attribute.capsule\.p$attribute.name
-( changingTimepoint $attribute.timeRange
-$(attribute.isEquivalent())? , equivalent $schema.metadata.equivalentRange
-) 
+ CREATE OR REPLACE FUNCTION $attribute.capsule\.p$attribute.name
+      ( changingTimepoint $attribute.timeRange
+      $(attribute.isEquivalent())? , equivalent $schema.metadata.equivalentRange
+      ) 
 RETURNS TABLE
-( $attribute.anchorReferenceName $anchor.identity
-, $attribute.valueColumnName $attributeValueColumnType
-, $attribute.changingColumnName $attribute.timeRange    
-$(schema.METADATA)? , $attribute.metadataColumnName $schema.metadata.metadataType
-$(attribute.isEquivalent() && !attribute.isKnotted())? , $attribute.equivalentColumnName $schema.metadata.equivalentRange
-$(!attribute.isKnotted() && attribute.hasChecksum())? , $attribute.checksumColumnName bytea
-) 
+      ( $attribute.anchorReferenceName $anchor.identity
+      , $attribute.valueColumnName $attributeValueColumnType
+      , $attribute.changingColumnName $attribute.timeRange    
+      $(schema.METADATA)? , $attribute.metadataColumnName $schema.metadata.metadataType
+      $(attribute.isEquivalent() && !attribute.isKnotted())? , $attribute.equivalentColumnName $schema.metadata.equivalentRange
+      $(!attribute.isKnotted() && attribute.hasChecksum())? , $attribute.checksumColumnName bytea
+      ) 
 AS 
 '
-SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceName
-     , $attribute.valueColumnName
-     , $attribute.changingColumnName
-     $(schema.METADATA)? , $attribute.metadataColumnName
-     $(attribute.isEquivalent() && !attribute.isKnotted())? , $attribute.equivalentColumnName
-     $(!attribute.isKnotted() && attribute.hasChecksum())? , $attribute.checksumColumnName
-  FROM $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(equivalent) : $attribute.capsule\.$attribute.name
- WHERE $attribute.changingColumnName <= changingTimepoint
- ORDER 
-    BY $attribute.anchorReferenceName DESC
-     , $attribute.changingColumnName DESC     
-;
+ SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceName
+      , $attribute.valueColumnName
+      , $attribute.changingColumnName
+      $(schema.METADATA)? , $attribute.metadataColumnName
+      $(attribute.isEquivalent() && !attribute.isKnotted())? , $attribute.equivalentColumnName
+      $(!attribute.isKnotted() && attribute.hasChecksum())? , $attribute.checksumColumnName
+   FROM $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(equivalent) : $attribute.capsule\.$attribute.name
+  WHERE $attribute.changingColumnName <= changingTimepoint
+  ORDER 
+     BY $attribute.anchorReferenceName DESC
+      , $attribute.changingColumnName DESC     
+ ;
 ' 
 LANGUAGE SQL STABLE
 ;
@@ -86,7 +86,7 @@ LANGUAGE SQL STABLE
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE VIEW $attribute.capsule\.n$attribute.name AS
 SELECT *
-  FROM $attribute.capsule\.p$attribute.name($schema.metadata.now::$attribute.timeRange);
+  FROM $attribute.capsule\.p$attribute.name($schema.metadata.now::$attribute.timeRange)
 ;
 ~*/
         }

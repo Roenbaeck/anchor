@@ -29,249 +29,242 @@ var anchor;
 while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
--- Drop perspectives --------------------------------------------------------------------------------------------------
-~*/
-    if(schema.EQUIVALENCE) {
-/*~
-IF Object_ID('$anchor.capsule$.ed$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[ed$anchor.name];
-IF Object_ID('$anchor.capsule$.en$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[en$anchor.name];
-IF Object_ID('$anchor.capsule$.ep$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[ep$anchor.name];
-IF Object_ID('$anchor.capsule$.el$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[el$anchor.name];
-~*/
-    }
-/*~
-IF Object_ID('$anchor.capsule$.d$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('$anchor.capsule$.n$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[n$anchor.name];
-IF Object_ID('$anchor.capsule$.p$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('$anchor.capsule$.l$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[l$anchor.name];
-GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -- l$anchor.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[l$anchor.name] WITH SCHEMABINDING AS
-SELECT
-    [$anchor.mnemonic].$anchor.identityColumnName,
-    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+CREATE OR REPLACE VIEW $anchor.capsule\.l$anchor.name AS
+SELECT $anchor.mnemonic\.$anchor.identityColumnName
+     $(schema.METADATA)? , $anchor.mnemonic\.$anchor.metadataColumnName
 ~*/
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
-    $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
-    $(attribute.isDeletable())? cast(null as bit) as $attribute.deletableColumnName,
-    $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
-    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
+     $(schema.IMPROVED)? , $attribute.mnemonic\.$attribute.anchorReferenceName
+     $(schema.METADATA)? , $attribute.mnemonic\.$attribute.metadataColumnName
+     $(attribute.isDeletable())? , cast(null as boolean) as $attribute.deletableColumnName
+     $(attribute.timeRange)? , $attribute.mnemonic\.$attribute.changingColumnName
+     $(attribute.isEquivalent())? , $attribute.mnemonic\.$attribute.equivalentColumnName
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
-    [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+     $(knot.hasChecksum())? , k$attribute.mnemonic\.$knot.checksumColumnName AS $attribute.knotChecksumColumnName
+     $(knot.isEquivalent())? , k$attribute.mnemonic\.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName
+     , k$attribute.mnemonic\.$knot.valueColumnName AS $attribute.knotValueColumnName
+     $(schema.METADATA)? , k$attribute.mnemonic\.$knot.metadataColumnName AS $attribute.knotMetadataColumnName
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
+     $(attribute.hasChecksum())? , $attribute.mnemonic\.$attribute.checksumColumnName
 ~*/
             if(attribute.getEncryptionGroup()) {
 /*~
-    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    --CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+     , $attribute.mnemonic\.$attribute.valueColumnName$(anchor.hasMoreAttributes())?
 ~*/                
             }
         }
 /*~
-FROM
-    [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
-~*/
+  FROM $anchor.capsule\.$anchor.name $anchor.mnemonic
+~*/ 
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[e$attribute.name](0) [$attribute.mnemonic]
+  LEFT 
+  JOIN $attribute.capsule\.e$attribute.name(0) $attribute.mnemonic
 ~*/
             }
             else {
+                if(attribute.isHistorized()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+  LEFT 
+  JOIN $attribute.capsule\.l$attribute.name $attribute.mnemonic
+~*/                    
+                }
+                else {
+/*~
+  LEFT 
+  JOIN $attribute.capsule\.$attribute.name $attribute.mnemonic
 ~*/
+                }
             }
 /*~
-ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
-            if(attribute.isHistorized()) {
-/*~
-AND
-    [$attribute.mnemonic].$attribute.changingColumnName = (
-        SELECT
-            max(sub.$attribute.changingColumnName)
-        FROM
-            $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](0) sub : [$attribute.capsule].[$attribute.name] sub
-        WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-   )~*/
-            }
+    ON $attribute.mnemonic\.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 if(knot.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$knot.capsule].[e$knot.name](0) [k$attribute.mnemonic]
+  LEFT 
+  JOIN $knot.capsule\.e$knot.name(0) k$attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
-    [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
+  LEFT 
+  JOIN $knot.capsule\.$knot.name k$attribute.mnemonic
 ~*/
                 }
 /*~
-ON
-    [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
+    ON k$attribute.mnemonic\.$knot.identityColumnName = $attribute.mnemonic\.$attribute.knotReferenceName~*/
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
             }
         }
 /*~
-GO
+;
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
-    @changingTimepoint $schema.metadata.chronon
-)
-RETURNS TABLE WITH SCHEMABINDING AS RETURN
-SELECT
-    [$anchor.mnemonic].$anchor.identityColumnName,
-    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+ CREATE OR REPLACE FUNCTION $anchor.capsule\.p$anchor.name 
+      ( changingTimepoint $schema.metadata.chronon
+      )
+RETURNS TABLE 
+      ( $anchor.mnemonic\.$anchor.identityColumnName $anchor.identity
+      $(schema.METADATA)? , $anchor.mnemonic\.$anchor.metadataColumnName $schema.metadata.metadataType
 ~*/
-        while (attribute = anchor.nextAttribute()) {
+while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
-    $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
-    $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
-    $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName,
+      $(schema.IMPROVED)? , $attribute.mnemonic\.$attribute.anchorReferenceName $anchor.identity
+      $(schema.METADATA)? , $attribute.mnemonic\.$attribute.metadataColumnName $schema.metadata.metadataType
+      $(attribute.timeRange)? , $attribute.mnemonic\.$attribute.changingColumnName $attribute.timeRange
+      $(attribute.isEquivalent())? , $attribute.mnemonic\.$attribute.equivalentColumnName $schema.metadata.equivalentRange
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? [k$attribute.mnemonic].$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
-    [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+      $(knot.hasChecksum())? , k$attribute.mnemonic\.$knot.checksumColumnName AS $attribute.knotChecksumColumnName bytea
+      $(knot.isEquivalent())? , k$attribute.mnemonic\.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName $schema.metadata.equivalentRange
+      , k$attribute.mnemonic\.$knot.valueColumnName AS $attribute.knotValueColumnName $knot.dataRange
+      $(schema.METADATA)? , k$attribute.mnemonic\.$knot.metadataColumnName AS $attribute.knotMetadataColumnName $schema.metadata.metadataType
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
+      $(attribute.hasChecksum())? $attribute.mnemonic\.$attribute.checksumColumnName bytea
 ~*/
             if(attribute.getEncryptionGroup()) {
 /*~
-    CAST(DECRYPTBYKEY([$attribute.mnemonic].$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+      --CAST(DECRYPTBYKEY($attribute.mnemonic\.$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+      , $attribute.mnemonic\.$attribute.valueColumnName $attribute.dataRange $(anchor.hasMoreAttributes())?
 ~*/                
             }
         }
 /*~
-FROM
-    [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
+      ) 
+AS 
+'
+ SELECT $anchor.mnemonic\.$anchor.identityColumnName
+      $(schema.METADATA)? , $anchor.mnemonic\.$anchor.metadataColumnName
+~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+      $(schema.IMPROVED)? , $attribute.mnemonic\.$attribute.anchorReferenceName
+      $(schema.METADATA)? , $attribute.mnemonic\.$attribute.metadataColumnName
+      $(attribute.timeRange)? , $attribute.mnemonic\.$attribute.changingColumnName
+      $(attribute.isEquivalent())? , $attribute.mnemonic\.$attribute.equivalentColumnName
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+      $(knot.hasChecksum())? , k$attribute.mnemonic\.$knot.checksumColumnName AS $attribute.knotChecksumColumnName
+      $(knot.isEquivalent())? , k$attribute.mnemonic\.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName
+      , k$attribute.mnemonic\.$knot.valueColumnName AS $attribute.knotValueColumnName
+      $(schema.METADATA)? , k$attribute.mnemonic\.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+      $(attribute.hasChecksum())? , $attribute.mnemonic\.$attribute.checksumColumnName
+~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+      --, CAST(DECRYPTBYKEY($attribute.mnemonic\.$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?
+~*/
+            }
+            else {
+/*~
+      , $attribute.mnemonic\.$attribute.valueColumnName$(anchor.hasMoreAttributes())?
+~*/                
+            }
+        }
+/*~
+   FROM $anchor.capsule\.$anchor.name $anchor.mnemonic
 ~*/
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isHistorized()) {
                 if(attribute.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[r$attribute.name](0, @changingTimepoint) [$attribute.mnemonic]
+   LEFT 
+   JOIN $attribute.capsule\.p$attribute.name(0,changingTimepoint) $attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[r$attribute.name](@changingTimepoint) [$attribute.mnemonic]
+   LEFT 
+   JOIN $attribute.capsule\.p$attribute.name(changingTimepoint) $attribute.mnemonic
 ~*/
                 }
 /*~
-ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-AND
-    [$attribute.mnemonic].$attribute.changingColumnName = (
-        SELECT
-            max(sub.$attribute.changingColumnName)
-        FROM
-            $(attribute.isEquivalent())? [$attribute.capsule].[r$attribute.name](0, @changingTimepoint) sub : [$attribute.capsule].[r$attribute.name](@changingTimepoint) sub
-        WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-   )~*/
+     ON $attribute.mnemonic\.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName
+~*/
             }
             else {
                 if(attribute.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[e$attribute.name](0) [$attribute.mnemonic]
+   LEFT 
+   JOIN $attribute.capsule\.e$attribute.name(0) $attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
+   LEFT 
+   JOIN $attribute.capsule\.$attribute.name $attribute.mnemonic
 ~*/
                 }
 /*~
-ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
+     ON $attribute.mnemonic\.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName~*/
             }
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 if(knot.isEquivalent()) {
 /*~
-LEFT JOIN
-    [$knot.capsule].[e$knot.name](0) [k$attribute.mnemonic]
+   LEFT 
+   JOIN $knot.capsule\.e$knot.name(0) k$attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
-LEFT JOIN
-    [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
+   LEFT 
+   JOIN $knot.capsule\.$knot.name k$attribute.mnemonic
 ~*/
                 }
 /*~
-ON
-    [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
+     ON k$attribute.mnemonic\.$knot.identityColumnName = $attribute.mnemonic\.$attribute.knotReferenceName~*/
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
             }
         }
 /*~
-GO
+' 
+LANGUAGE SQL STABLE
+;
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -- n$anchor.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[n$anchor.name]
+CREATE OR REPLACE VIEW $anchor.capsule\.n$anchor.name
 AS
-SELECT
-    *
-FROM
-    [$anchor.capsule].[p$anchor.name]($schema.metadata.now);
-GO
+SELECT *
+  FROM $anchor.capsule\.p$anchor.name($schema.metadata.now)
+;
+
 ~*/
         if(anchor.hasMoreHistorizedAttributes()) {
 /*~

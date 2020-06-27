@@ -15,7 +15,7 @@ SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributePerspectives.js
 #SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
-#SQL/PostgreSQL/uni/CreateAnchorPerspectives.js
+SQL/PostgreSQL/uni/CreateAnchorPerspectives.js
 #SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
 #SQL/PostgreSQL/uni/CreateAttributeTriggers.js
 #SQL/PostgreSQL/uni/CreateAnchorTriggers.js
