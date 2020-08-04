@@ -1,7 +1,7 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
-SQL/NamingConvention.js
 SQL/PostgreSQL/NamingConvention.js
+SQL/NamingConvention.js
 SQL/PostgreSQL/DatabaseInitialization.js
 #SQL/PostgreSQL/uni/AddEncryption.js
 #SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
