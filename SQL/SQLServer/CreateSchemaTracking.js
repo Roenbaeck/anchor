@@ -263,7 +263,7 @@ SELECT
    end as [in],
    [parent]
 FROM
-   [dbo].[_Schema] S
+   [$schema.metadata.encapsulation].[_Schema] S
 CROSS APPLY
    S.[schema].nodes('/schema//key') as Nodeset(keys)
 CROSS APPLY (
