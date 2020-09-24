@@ -47,7 +47,7 @@
         <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.6.2';
+        var VERSION = '0.99.6.3';
 
         // change to false in beta
         var RELEASE = false;
@@ -126,7 +126,8 @@
             deletionSuffix: 'Deleted',
             privacy: 'Ignore', 
             checksum: 'false',
-            encryptionGroup: ''
+            encryptionGroup: '',
+            triggers: 'true'
         };
 
         // global function providing inheritance
@@ -5845,6 +5846,7 @@
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
+                document.getElementById('triggers').checked = Defaults.triggers === 'true';
                 document.getElementById('decisiveness').checked = Defaults.decisiveness === 'true';
                 document.getElementById('entityIntegrity').checked = Defaults.entityIntegrity === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -5885,6 +5887,7 @@
                     this.setAssertiveness('true');
                     this.setMetadataUsage('true');
                     this.setBusinessViews('false');
+                    this.setTriggers('true');
                     this.setDecisiveness('true');
                     this.setEquivalence('false');
                     this.setChangingSuffix('ChangedAt');
@@ -5971,6 +5974,7 @@
                 storage.setItem("equivalentRange", Defaults.equivalentRange);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
+                storage.setItem("triggers", Defaults.triggers);
                 storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("deletability", Defaults.deletability);
@@ -6036,6 +6040,7 @@
                     this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
+                    this.setTriggers(storage.getItem('triggers') || Defaults.triggers);
                     this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
@@ -6285,6 +6290,15 @@
                             "Please note that when business views are used " +
                             "descriptors must follow the same rules of uniqueness as mnemonics do, " +
                             "otherwise naming clashes may occur."
+                    );
+            },
+            setTriggers: function(value, userToggle) {
+                Defaults.triggers = value;
+                if(userToggle && value === 'false')
+                    alert(
+                            "Please note that turning off triggers will leave " +
+                            "more implementation details to the ETL or API using the model, " +
+                            "and the views will no longer accept inserts and updates."
                     );
             },
             setDecisiveness: function(value) {
@@ -7024,6 +7038,7 @@
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
+                <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
                 <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
