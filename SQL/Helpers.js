@@ -385,6 +385,7 @@ schema.IMPROVED = schema.metadata.naming == 'improved';
 schema.PARTITIONING = schema.metadata.partitioning == 'true';
 schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
 schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
+schema.TRIGGERS = schema.metadata.triggers == 'true';
 schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
 schema.DECISIVENESS = schema.metadata.decisiveness === 'true';
 schema.UNI = schema.metadata.temporalization == 'uni';
