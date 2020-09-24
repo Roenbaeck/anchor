@@ -125,7 +125,7 @@ SEGMENTED BY MODULARHASH(${anchorRoles[0].columnName}$) ALL NODES;
             if(role != segmentationRole) otherRoles.push(role);
         }
 /*~
-CREATE PROJECTION ${tie.capsule}$.${tie.name}$__${segmentationRole.columnName}$
+CREATE PROJECTION IF NOT EXISTS ${tie.capsule}$.${tie.name}$__${segmentationRole.columnName}$
 AS
 SELECT
 ~*/
