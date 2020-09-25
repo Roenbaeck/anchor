@@ -328,7 +328,7 @@ AS
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
           SELECT DISTINCT $attribute.anchorReferenceName AS $anchor.identityColumnName
-               , ibute.changingColumnNamenName::.metadata.chrono.chronon ctedTimepoint
+               , $attribute.changingColumnName::$schema.metadata.chronon inspectedTimepoint
                , ''$attribute.mnemonic'' AS mnemonic
             FROM $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(0) : $attribute.capsule\.$attribute.name
            WHERE (selection is null OR selection like ''%$attribute.mnemonic%'')
