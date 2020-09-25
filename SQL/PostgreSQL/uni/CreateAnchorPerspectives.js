@@ -273,40 +273,77 @@ SELECT *
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
-    @intervalStart $schema.metadata.chronon,
-    @intervalEnd $schema.metadata.chronon,
-    @selection varchar(max) = null
-)
-RETURNS TABLE AS RETURN
-SELECT
-    timepoints.inspectedTimepoint,
-    timepoints.mnemonic,
-    [p$anchor.mnemonic].*
-FROM (
+ CREATE OR REPLACE FUNCTION $anchor.capsule\.d$anchor.name 
+      ( intervalStart $schema.metadata.chronon,
+        intervalEnd $schema.metadata.chronon,
+        selection text = null
+      )
+RETURNS TABLE 
+      ( inspectedTimepoint $schema.metadata.chronon
+      , mnemonic text
+      , $anchor.identityColumnName $anchor.identity
+      $(schema.METADATA)? , $anchor.metadataColumnName $schema.metadata.metadataType
 ~*/
-            while (attribute = anchor.nextHistorizedAttribute()) {
+while (attribute = anchor.nextAttribute()) {
 /*~
-    SELECT DISTINCT
-        $attribute.anchorReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](0) : [$attribute.capsule].[$attribute.name]
-    WHERE
-        (@selection is null OR @selection like '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN @intervalStart AND @intervalEnd
-    $(anchor.hasMoreHistorizedAttributes())? UNION
+      $(schema.IMPROVED)? , $attribute.anchorReferenceName $anchor.identity
+      $(schema.METADATA)? , $attribute.metadataColumnName $schema.metadata.metadataType
+      $(attribute.timeRange)? , $attribute.changingColumnName $attribute.timeRange
+      $(attribute.isEquivalent())? , $attribute.equivalentColumnName $schema.metadata.equivalentRange
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+      $(knot.hasChecksum())? , $attribute.knotChecksumColumnName bytea
+      $(knot.isEquivalent())? , $attribute.knotEquivalentColumnName $schema.metadata.equivalentRange
+      , $attribute.knotValueColumnName $knot.dataRange
+      $(schema.METADATA)? , $attribute.knotMetadataColumnName $schema.metadata.metadataType 
 ~*/
             }
 /*~
-) timepoints
-CROSS APPLY
-    [$anchor.capsule].[p$anchor.name](timepoints.inspectedTimepoint) [p$anchor.mnemonic]
-WHERE
-    [p$anchor.mnemonic].$anchor.identityColumnName = timepoints.$anchor.identityColumnName;
-GO
+      $(attribute.hasChecksum())? , $attribute.checksumColumnName bytea
+~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+      --CAST(DECRYPTBYKEY($attribute.mnemonic\.$attribute.valueColumnName) AS $attribute.originalDataRange) AS $attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+      , $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange
+~*/
+/*~$(anchor.hasMoreAttributes())?
+~*/                
+            }
+        }
+        /*~
+      ) 
+AS 
+'
+ SELECT timepoints.inspectedTimepoint
+      , timepoints.mnemonic
+      , p$anchor.mnemonic\.*
+   FROM (
+~*/
+            while (attribute = anchor.nextHistorizedAttribute()) {
+/*~
+          SELECT DISTINCT $attribute.anchorReferenceName AS $anchor.identityColumnName
+               , ibute.changingColumnName::.metadata.chrono.chronon ctedTimepoint
+               , ''$attribute.mnemonic'' AS mnemonic
+            FROM $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(0) : $attribute.capsule\.$attribute.name
+           WHERE (selection is null OR selection like ''%$attribute.mnemonic%'')
+             AND $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
+           $(anchor.hasMoreHistorizedAttributes())? UNION
+~*/
+            }
+/*~
+        ) timepoints
+  CROSS 
+   JOIN LATERAL $anchor.capsule\.p$anchor.name(timepoints.inspectedTimepoint) p$anchor.mnemonic
+  WHERE p$anchor.mnemonic\.$anchor.identityColumnName = timepoints.$anchor.identityColumnName;
+' 
+LANGUAGE SQL STABLE
+;
 ~*/
         }
 // --------------------------------------- DO THE EQUIVALENCE THING ---------------------------------------------------
