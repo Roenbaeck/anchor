@@ -1,3 +1,4 @@
+if(schema.TRIGGERS) {
 /*~
 -- ANCHOR TRIGGERS ---------------------------------------------------------------------------------------------------
 --
@@ -220,14 +221,6 @@ BEGIN
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
-                if(!attribute.isHistorized()) {
-/*~
-    IF (UPDATE($attribute.valueColumnName))
-        RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
-    IF (UPDATE($attribute.knotValueColumnName))
-        RAISERROR('The static column $attribute.knotValueColumnName is not updatable, and only missing values have been added.', 0, 1);
-~*/
-                }
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     BEGIN
@@ -324,12 +317,6 @@ BEGIN
 ~*/
             }
 			else { // not knotted
-                if(!attribute.isHistorized()) {
-/*~
-    IF (UPDATE($attribute.valueColumnName))
-        RAISERROR('The static column $attribute.valueColumnName is not updatable, and only missing values have been added.', 0, 1);
-~*/
-                }
 /*~
     IF(UPDATE($attribute.valueColumnName))
     BEGIN
@@ -489,4 +476,5 @@ END
 GO
 ~*/
     }
+}
 }

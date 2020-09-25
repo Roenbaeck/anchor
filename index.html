@@ -58,11 +58,18 @@
     </datalist>
     <!-- polyfill for the functionality going to be removed in SVG 2 -->
     <script src="pathseg.js"></script>
+    <!-- import required modules -->
+    <script type="text/javascript" src="modules/Inheritance.js"></script>    
+    <script type="text/javascript" src="modules/DataTypeConverter.js"></script>
+    <script type="text/javascript" src="modules/Defaults.js"></script>    
+    <script type="text/javascript" src="modules/LayoutEngine.js"></script>    
+    <script type="text/javascript" src="modules/Map.js"></script>    
+    <script type="text/javascript" src="modules/Sisulator.js"></script>    
     <!-- run some checks first -->
     <script type="text/javascript" src="modules/DataTypeConverter.js"></script>
     <script type="text/javascript" src="modules/Defaults.js"></script>
     <script type="text/javascript">
-        //<!--
+        // <!--
         // check low level management SVG support
         var testElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         if (!testElement || !testElement.viewBox)
@@ -89,10 +96,10 @@
     </script>
 
     <script type="text/javascript">
-        //<!--
+        // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.6.2';
+        var VERSION = '0.99.6.4';
 
         // change to false in beta
         var RELEASE = false;
@@ -126,14 +133,6 @@
                 '\u0030-\u0039\u0660-\u0669\u06f0-\u06f9\u07c0-\u07c9\u0966-\u096f\u09e6-\u09ef\u0a66-\u0a6f\u0ae6-\u0aef\u0b66-\u0b6f\u0be6-\u0bef\u0c66-\u0c6f\u0ce6-\u0cef\u0d66-\u0d6f\u0e50-\u0e59\u0ed0-\u0ed9\u0f20-\u0f29\u1040-\u1049\u1090-\u1099\u17e0-\u17e9\u1810-\u1819\u1946-\u194f\u19d0-\u19d9\u1a80-\u1a89\u1a90-\u1a99\u1b50-\u1b59\u1bb0-\u1bb9\u1c40-\u1c49\u1c50-\u1c59\ua620-\ua629\ua8d0-\ua8d9\ua900-\ua909\ua9d0-\ua9d9\uaa50-\uaa59\uabf0-\uabf9\uff10-\uff19' +
         ']';
 
-
-        // global function providing inheritance
-        function extend(type, supertype){
-            for(var member in supertype.prototype)
-                if(!type.prototype[member])
-                    type.prototype[member] = supertype.prototype[member];
-        }
-
         // helpers for UTF-8, credits to Johan Sundström and the Mozilla Developer Network
         function utf8_to_b64( str ) {
             return window.btoa(unescape(encodeURIComponent( str )));
@@ -141,540 +140,6 @@
         function b64_to_utf8( str ) {
             return decodeURIComponent(escape(window.atob( str )));
         }
-
-        // available node types enumeration with textual representation
-        var NodeType = {
-            UNKNOWN:    0, '0': "Unknown",
-            ANCHOR:     1, '1': "Anchor",
-            KNOT:       2, '2': "Knot",
-            ATTRIBUTE:  3, '3': "Attribute",
-            TIE:        4, '4': "Tie",
-            EDGE:       5, '5': "Edge",
-            PARTITION:  6, '6': "Partition",
-            // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-            mass:       [null, 2, 3, 5, 5, 2, null],
-            charge:     [null, 1, 1, 1, 1, 4, null]
-        };
-
-        // the node type that the layout algorithm expects
-        function Node(id, x, y, type) {
-            this.id = id;
-            this.type = NodeType[type] ? type : 0; // check that the type is defined in NodeType
-            this.xPosition = x;
-            this.yPosition = y;
-            this.edges = [];
-        }
-        Node.prototype = {
-            id: null,
-            type: null,
-            xPosition: null,
-            yPosition: null,
-            xVelocity: 0,
-            yVelocity: 0,
-            velocity: 0,
-            moving: true,
-            unstoppable: false,
-            fixed: false,
-            visible: true,
-            edges: null,
-            stop: function() {
-                this.moving = this.unstoppable;
-            },
-            // movement is propagated to the edges of a node
-            start: function() {
-                this.moving = true;
-                var i = this.edges.length;
-                while(i--) this.edges[i].start();
-            },
-            setUnstoppable: function(unstoppable) {
-                this.unstoppable = unstoppable;
-            },
-            // "static variables"
-            getMass: function() {
-                return NodeType.mass[this.type];
-            },
-            getCharge: function() {
-                return NodeType.charge[this.type];
-            }
-        };
-
-        // an edge connects two nodes
-        function Edge(id, node, otherNode) {
-            // assume that the control point coincide with the center point
-            this.controlPoint = new Node(
-                id,
-                node.xPosition + (otherNode.xPosition - node.xPosition) / 2,
-                node.yPosition + (otherNode.yPosition - node.yPosition) / 2
-            );
-            Node.call(this, id, this.controlPoint.xPosition, this.controlPoint.yPosition, NodeType.EDGE);
-            this.node = node;
-            this.otherNode = otherNode;
-            if(node.edges.indexOf(this) < 0) node.edges.push(this);
-            if(otherNode.edges.indexOf(this) < 0) otherNode.edges.push(this);
-            this.edges.push(node);
-            this.edges.push(otherNode);
-        }
-        Edge.prototype = {
-            node: null,
-            otherNode: null,
-            // overload
-            start: function() {
-                this.moving = true;
-            },
-            // en edge cannot stop until its connected nodes have stopped
-            stop: function() {
-                this.moving = this.node.moving || this.otherNode.moving;
-            }
-        };
-
-        // let the edge inherit from Node
-        extend(Edge, Node);
-
-        // a partition is a collection of nodes that itself behaves like a node
-        function Partition(node, complex) {
-            this.nodes = [node];
-            Node.call(this, 0, node.xPosition, node.yPosition, NodeType.PARTITION);
-            this.xMin = node.xPosition;
-            this.yMin = node.yPosition;
-            this.xMax = node.xPosition;
-            this.yMax = node.yPosition;
-            if(complex) {
-                this.totalMass = node.getMass();
-                this.totalCharge = node.getCharge();
-                this.addNode = this.addComplexNode;
-            }
-            else
-                this.addNode = this.addSimpleNode;
-        }
-        Partition.prototype = {
-            nodes: null,
-            xMin: 0,
-            yMin: 0,
-            xMax: 0,
-            yMax: 0,
-            totalMass: 0,
-            totalCharge: 0,
-            getMass: function() {
-                return this.totalMass;
-            },
-            getCharge: function() {
-                return this.totalCharge;
-            },
-            addNode: null,
-            addSimpleNode: function(node) {
-                // find the center of mass in the partition
-                this.xPosition =
-                        (this.xPosition * this.nodes.length + node.xPosition) /
-                        (this.nodes.length + 1);
-                this.yPosition =
-                        (this.yPosition * this.nodes.length + node.yPosition) /
-                        (this.nodes.length + 1);
-                if(node.xPosition < this.xMin)
-                    this.xMin = node.xPosition;
-                else if(node.xPosition > this.xMax)
-                    this.xMax = node.xPosition;
-                if(node.yPosition < this.yMin)
-                    this.yMin = node.yPosition;
-                else if(node.yPosition > this.yMax)
-                    this.yMax = node.yPosition;
-                this.nodes.push(node);
-            },
-            addComplexNode: function(node) {
-                // find the center of mass in the partition
-                this.xPosition =
-                        (this.xPosition * this.totalMass + node.xPosition * node.getMass()) /
-                        (this.totalMass + node.getMass());
-                this.yPosition =
-                        (this.yPosition * this.totalMass + node.yPosition * node.getMass()) /
-                        (this.totalMass + node.getMass());
-                if(node.xPosition < this.xMin)
-                    this.xMin = node.xPosition;
-                else if(node.xPosition > this.xMax)
-                    this.xMax = node.xPosition;
-                if(node.yPosition < this.yMin)
-                    this.yMin = node.yPosition;
-                else if(node.yPosition > this.yMax)
-                    this.yMax = node.yPosition;
-                this.totalMass += node.getMass();
-                this.totalCharge += node.getCharge();
-                this.nodes.push(node);
-            }
-        };
-
-        // let the partition inherit from Node
-        extend(Partition, Node);
-
-        // create a singleton
-        var LayoutEngine = {
-            // normal distance in pixels
-            normalDistance: 30,
-            // 4 percent damping (simulated friction)
-            damping: 0.96,
-            // stopping velocity is one tenth of a pixel per second
-            stoppingVelocity: 0.1,
-            // minimum starting velocity is a whole pixel
-            minimumStartingVelocity: 1,
-            // maximum starting velocity is higher (to remove "twitching" when few nodes are moving)
-            maximumStartingVelocity: 5,
-            // maximum - minimum starting velocity [set by init]
-            startingVelocityDelta: 4,
-            // calculated as 1/normalDistance^3, assuming that the repelling factor is -1 [set by init]
-            attractionConstant: 0.00003703703704,
-            // size of partitions in number of normal distances
-            partitionFactor: 15,
-            // the stiffness of the edges
-            stiffness: 1,
-            // when the layout has reached equilibrium
-            equilibrium: true,
-            // which layout function to use
-            layout: null,
-            // holds space partitions
-            partitions: null,
-            // size of partitions [set by init]
-            partitionSize: 120,
-            // the effect of the long range force
-            longRangeEffect: 0.25,
-            // fuzziness of the partition size (ranges between +/- fuzziness percentage of partition size)
-            fuzziness: 0.1,
-            // amount of fuzz [set by init]
-            fuzz: 24,
-            // current fuzz-operation, 0 for subtract, 1 for nothing, 2 for add [changes every iteration]
-            fuzzing: 0,
-            init: function() {
-                this.layout = this.simpleLayout;
-                this.attractionConstant = 1/this.normalDistance/this.normalDistance/this.normalDistance;
-                this.partitionSize = this.partitionFactor * this.normalDistance;
-                this.startingVelocityDelta = this.maximumStartingVelocity - this.minimumStartingVelocity;
-                this.fuzz = this.partitionSize * this.fuzziness;
-            },
-            // use our own squaring algorithm rather than Math.pow
-            square: function(value) {
-                return value * value;
-            },
-            // measures distance between two nodes
-            manhattanDistance: function(node, otherNode) {
-                var d = Math.abs(otherNode.xPosition - node.xPosition) +
-                        Math.abs(otherNode.yPosition - node.yPosition);
-                if(d > 0)
-                    return d;
-                // move one node a pixel to the right if both nodes overlap
-                node.xPosition +=1;
-                return 1;
-            },
-            euclideanDistance: function(node, otherNode) {
-                var d = Math.sqrt(this.square(otherNode.xPosition - node.xPosition) +
-                        this.square(otherNode.yPosition - node.yPosition));
-                if(d > 0)
-                    return d;
-                // move one node a pixel to the right if both nodes overlap
-                node.xPosition +=1;
-                return 1;
-            },
-
-            xStiffness: function(node, otherNode, multiplier) {
-                return multiplier * (otherNode.xPosition - node.xPosition);
-            },
-
-            yStiffness: function(node, otherNode, multiplier) {
-                return multiplier * (otherNode.yPosition - node.yPosition);
-            },
-
-            // x component of the repelling force formula
-            xSimpleRepelling: function(node, otherNode) {
-                return (node.xPosition - otherNode.xPosition) / this.square(this.manhattanDistance(node, otherNode));
-            },
-
-            // y component of the repelling force formula
-            ySimpleRepelling: function(node, otherNode) {
-                return (node.yPosition - otherNode.yPosition) / this.square(this.manhattanDistance(node, otherNode));
-            },
-
-            // x component of the attracting force formula
-            xSimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.xPosition - node.xPosition) *
-                        this.manhattanDistance(node, otherNode);
-            },
-
-            // y component of the attracting force formula
-            ySimpleAttracting: function (node, otherNode) {
-                return this.attractionConstant * (otherNode.yPosition - node.yPosition) *
-                        this.manhattanDistance(node, otherNode);
-            },
-            // x component of the repelling force formula
-            xComplexRepelling: function(node, otherNode) {
-                return (node.getCharge() + otherNode.getCharge())/2 * (node.xPosition - otherNode.xPosition) /
-                        this.square(this.euclideanDistance(node, otherNode));
-            },
-
-            // y component of the repelling force formula
-            yComplexRepelling: function(node, otherNode) {
-                return (node.getCharge() + otherNode.getCharge())/2 * (node.yPosition - otherNode.yPosition) /
-                        this.square(this.euclideanDistance(node, otherNode));
-            },
-
-            // x component of the attracting force formula
-            xComplexAttracting: function (node, otherNode) {
-                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant *
-                        (otherNode.xPosition - node.xPosition) * this.euclideanDistance(node, otherNode);
-            },
-
-            // y component of the attracting force formula
-            yComplexAttracting: function (node, otherNode) {
-                return (node.getMass() + otherNode.getMass())/2 * this.attractionConstant *
-                        (otherNode.yPosition - node.yPosition) * this.euclideanDistance(node, otherNode);
-            },
-            // create the square of influence
-            createSquare: function(node, offset) {
-                return {
-                    xMin: node.xPosition - offset,
-                    xMax: node.xPosition + offset,
-                    yMin: node.yPosition - offset,
-                    yMax: node.yPosition + offset
-                };
-            },
-            // check if a node falls within the square of influence
-            withinSquare: function(otherNode, square) {
-                return  otherNode.xPosition >= square.xMin &&
-                        otherNode.xPosition <= square.xMax &&
-                        otherNode.yPosition >= square.yMin &&
-                        otherNode.yPosition <= square.yMax;
-            },
-
-            // calculate all forces and change the velocity and position of the nodes in the array
-            simpleLayout: function(nodes) {
-                this.equilibrium = false;
-
-                var i, j, k, node, otherNode, edge, curvature;
-                var numberOfNodes = nodes.length;
-                var numberOfStoppedNodes = 0;
-
-                // set up partitions
-                this.partitions = {}; // faster than Object.create(null) for some reason
-                this.fuzzing = (this.fuzzing + 1) % 3;
-                var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
-                size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
-                i = numberOfNodes;
-                while(i--) {
-                    node = nodes[i];
-                    // count the number of stopped nodes
-                    if(!node.moving || node.fixed)
-                        numberOfStoppedNodes++;
-                    xPosition = Math.floor(node.xPosition / size);
-                    yPosition = Math.floor(node.yPosition / size);
-                    key = xPosition.toString();
-                    key += '|';
-                    key += yPosition.toString();
-                    partition = this.partitions[key];
-                    if(!partition) {
-                        partition = new Partition(node, false);
-                        this.partitions[key] = partition;
-                    }
-                    else {
-                        partition.addNode(node);
-                    }
-                }
-                var keys = Object.keys(this.partitions);
-                k = keys.length;
-                // calculate the velocity of the partitions
-                while(k--) {
-                    key = keys[k];
-                    partition = this.partitions[key];
-                    j = keys.length;
-                    while(j--) {
-                        otherKey = keys[j];
-                        if(key !== otherKey) {
-                            otherPartition = this.partitions[otherKey];
-                            partition.xVelocity +=
-                                    otherPartition.nodes.length *
-                                            this.xSimpleRepelling(partition, otherPartition);
-                            partition.yVelocity +=
-                                    otherPartition.nodes.length *
-                                            this.ySimpleRepelling(partition, otherPartition);
-                        }
-                    }
-                }
-                var energy = 0;
-                k = keys.length;
-                while(k--) {
-                    key = keys[k];
-                    partition = this.partitions[key];
-                    i = partition.nodes.length;
-                    while(i--) {
-                        node = partition.nodes[i];
-                        // add the long range effect from other partitions, somewhat weakened
-                        node.xVelocity += this.longRangeEffect * partition.xVelocity;
-                        node.yVelocity += this.longRangeEffect * partition.yVelocity;
-                        j = partition.nodes.length;
-                        while(j--) {
-                            if(i !== j) {
-                                otherNode = partition.nodes[j];
-                                // for nodes in the same partition add the repelling velocity
-                                node.xVelocity += this.xSimpleRepelling(node, otherNode);
-                                node.yVelocity += this.ySimpleRepelling(node, otherNode);
-                            }
-                        }
-                        // for edges apply bending force (straightens out edges)
-                        if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
-                            // update the control point
-                            node.controlPoint.xPosition = 2 * node.xPosition -
-                                    node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                            node.controlPoint.yPosition = 2 * node.yPosition -
-                                    node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                            // curvature is higher for a very bent edge (nodes close together)
-                            curvature = this.stiffness / this.manhattanDistance(node.node, node.otherNode);
-                            // attract the edge mid point to the control point
-                            node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
-                            node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
-                        }
-                        // for nodes, add the attracting velocity from all edges
-                        j = node.edges.length;
-                        while (j--) {
-                            edge = node.edges[j];
-                            if (edge.visible) {
-                                node.xVelocity += this.xSimpleAttracting(node, edge) / node.edges.length;
-                                node.yVelocity += this.ySimpleAttracting(node, edge) / node.edges.length;
-                            }
-                        }
-                        // apply damping
-                        node.xVelocity *= this.damping;
-                        node.yVelocity *= this.damping;
-                        node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
-                        // check to see if the node has stopped moving
-                        if(node.velocity <= this.stoppingVelocity) {
-                            node.stop();
-                            node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
-                        }
-                        // the more nodes that have stopped, the larger the starting velocity must be
-                        else if(node.velocity >= this.minimumStartingVelocity +
-                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes) {
-                            node.start();
-                        }
-                        // if the node is moving and not fixed then calculate the new position
-                        if(node.moving && !node.fixed) {
-                            energy += node.velocity;
-                            node.xPosition += node.xVelocity;
-                            node.yPosition += node.yVelocity;
-                        }
-                    }
-                }
-                if(energy < (numberOfNodes - numberOfStoppedNodes) * this.stoppingVelocity)
-                    this.equilibrium = true;
-            },
-            complexLayout: function(nodes) {
-                this.equilibrium = false;
-
-                var i, j, k, node, otherNode, edge, curvature;
-                var numberOfNodes = nodes.length;
-                var numberOfStoppedNodes = 0;
-
-                // set up partitions
-                this.partitions = {}; // faster than Object.create(null) for some reason
-                this.fuzzing = (this.fuzzing + 1) % 3;
-                var key, otherKey, partition, otherPartition, xPosition, yPosition, size;
-                size = this.partitionSize - this.fuzz + this.fuzzing * this.fuzz;
-                i = numberOfNodes;
-                while(i--) {
-                    node = nodes[i];
-                    // count the number of stopped nodes
-                    if(!node.moving || node.fixed)
-                        numberOfStoppedNodes++;
-                    xPosition = Math.floor(node.xPosition / size);
-                    yPosition = Math.floor(node.yPosition / size);
-                    key = xPosition.toString();
-                    key += '|';
-                    key += yPosition.toString();
-                    partition = this.partitions[key];
-                    if(!partition) {
-                        partition = new Partition(node, true); // complex version
-                        this.partitions[key] = partition;
-                    }
-                    else {
-                        partition.addNode(node);
-                    }
-                }
-                var keys = Object.keys(this.partitions);
-                k = keys.length;
-                // calculate the velocity of the partitions
-                while(k--) {
-                    key = keys[k];
-                    partition = this.partitions[key];
-                    j = keys.length;
-                    while(j--) {
-                        otherKey = keys[j];
-                        if(key !== otherKey) {
-                            otherPartition = this.partitions[otherKey];
-                            partition.xVelocity += this.xComplexRepelling(partition, otherPartition);
-                            partition.yVelocity += this.yComplexRepelling(partition, otherPartition);
-                        }
-                    }
-                }
-                var energy = 0;
-                k = keys.length;
-                while(k--) {
-                    key = keys[k];
-                    partition = this.partitions[key];
-                    i = partition.nodes.length;
-                    while(i--) {
-                        node = partition.nodes[i];
-                        // add the long range effect from other partitions, somewhat weakened
-                        node.xVelocity += this.longRangeEffect * partition.xVelocity;
-                        node.yVelocity += this.longRangeEffect * partition.yVelocity;
-                        j = partition.nodes.length;
-                        while(j--) {
-                            if(i !== j) {
-                                otherNode = partition.nodes[j];
-                                // for nodes in the same partition add the repelling velocity
-                                node.xVelocity += this.xComplexRepelling(node, otherNode);
-                                node.yVelocity += this.yComplexRepelling(node, otherNode);
-                            }
-                        }
-                        // for edges apply bending force (straightens out edges)
-                        if(node.type === NodeType.EDGE && node.otherNode.visible && node.node.visible) {
-                            // update the control point
-                            node.controlPoint.xPosition = 2 * node.xPosition -
-                                    node.node.xPosition / 2 - node.otherNode.xPosition / 2;
-                            node.controlPoint.yPosition = 2 * node.yPosition -
-                                    node.node.yPosition / 2 - node.otherNode.yPosition / 2;
-                            // curvature is higher for a very bent edge (nodes close together)
-                            curvature = this.stiffness / this.euclideanDistance(node.node, node.otherNode);
-                            // attract the edge mid point to the control point
-                            node.xVelocity -= this.xStiffness(node, node.controlPoint, curvature);
-                            node.yVelocity -= this.yStiffness(node, node.controlPoint, curvature);
-                        }
-                        // for nodes, add the attracting velocity from all edges
-                        j = node.edges.length;
-                        while (j--) {
-                            edge = node.edges[j];
-                            if (edge.visible) {
-                                node.xVelocity += this.xComplexAttracting(node, edge) / node.edges.length;
-                                node.yVelocity += this.yComplexAttracting(node, edge) / node.edges.length;
-                            }
-                        }
-                        // apply damping
-                        node.xVelocity *= this.damping;
-                        node.yVelocity *= this.damping;
-                        node.velocity = Math.abs(node.xVelocity) + Math.abs(node.yVelocity);
-                        // check to see if the node has stopped moving
-                        if(node.velocity <= this.stoppingVelocity) {
-                            node.stop();
-                            node.velocity = node.xVelocity = node.yVelocity = 0; // zero velocity
-                        }
-                        // the more nodes that have stopped, the larger the starting velocity must be
-                        else if(node.velocity >= this.minimumStartingVelocity +
-                                this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
-                            node.start();
-                        // if the node is moving and not fixed then calculate the new position
-                        if(node.moving && !node.fixed) {
-                            energy += node.velocity;
-                            node.xPosition += node.xVelocity;
-                            node.yPosition += node.yVelocity;
-                        }
-                    }
-                }
-                if(energy < (numberOfNodes - numberOfStoppedNodes) * this.stoppingVelocity)
-                    this.equilibrium = true;
-            }
-        };
 
         var Model = {
             // these are used in the cloud
@@ -5170,12 +4635,19 @@
                     EventHandler.clearSelection();
                 }
             },
-            getDirective: function() {
+            getDirectives: async function(scriptname) {
                 var database = Defaults.databaseTarget;
                 var temporalization = Defaults.temporalization;
-                var directive = database + '_' + temporalization + '.directive';
-                return directive;
-            },
+                var filename = scriptname || database + '_' + temporalization + '.directive';
+
+                var cacheDisabler = '';
+                if(DEBUG) cacheDisabler = '?r=' + Math.random();
+
+                // process and evaluate all sisulas in the directive
+                var response = await fetch(filename + cacheDisabler);
+                var responseText = await response.text();
+                return responseText;
+            },            
             transform: async function (xmlDocument, transformationURL, ownerDocument) {
                 var result;
                 // Added random parameter to prevent caching...
@@ -5540,7 +5012,7 @@
                 new CodePopover(Actions.preformat((new XMLSerializer()).serializeToString(graph)), true);
             },
             generateSQL: function() {
-                Sisulator.sisulate(Model.toXML(true), Actions.getDirective(), document)
+                Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives)
                 .then(sql => {
                     new CodePopover(Actions.preformat(sql), true)
                 });
@@ -5569,7 +5041,7 @@
                 });
             },
             jsonify: function(xml) {
-                var object = Sisulator.objectify(xml, Sisulator.MAP);
+                var object = Sisulator.objectify(xml, MAP);
                 // jsonify the object
                 return JSON.stringify(object, null, 3);
             },
@@ -5580,173 +5052,6 @@
                 pre.appendChild(document.createTextNode(text));
                 fragment.appendChild(pre);
                 return fragment;
-            }
-        };
-
-        var Sisulator = {
-            // the map defines 'keys' for elements that may occur more than once
-            // on the same level in the XML document
-            MAP: {
-                knot: function(xml, fragment) {
-                    return fragment.getAttribute('mnemonic');
-                },
-                anchor: function(xml, fragment) {
-                    return fragment.getAttribute('mnemonic');
-                },
-                attribute: function(xml, fragment) {
-                    return fragment.getAttribute('mnemonic');
-                },
-                tie: function(xml, fragment) {
-                    var roles = xml.evaluate(
-                            '*[@role]',
-                            fragment,
-                            null,
-                            XPathResult.ORDERED_NODE_ITERATOR_TYPE, // document order
-                            null
-                    );
-                    var key = '', role = roles.iterateNext();
-                    while(role) {
-                        key += role.getAttribute('type') + '_' + role.getAttribute('role');
-                        role = roles.iterateNext();
-                        if(role) key += '_';
-                    }
-                    return key;
-                },
-                anchorRole: function(xml, fragment) {
-                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
-                },
-                knotRole: function(xml, fragment) {
-                    return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
-                },
-                // WIP: keys sisula
-                key: function(xml, fragment) {
-                    return fragment.getAttribute('of') + 
-                           '|' +
-                           fragment.getAttribute('route') + 
-                           '|' +
-                           fragment.getAttribute('stop');
-                }                
-            },
-            // used to replace certain element names with others
-            replacer: function(name) {
-                switch(name) {
-                    case 'anchorRoles':
-                        return 'roles';
-                    case 'knotRoles':
-                        return 'roles';
-                    default:
-                        return name;
-                }
-            },
-            // this function will recursively traverse the XML document and
-            // create a 'hash' object that mimics the structure using the given map
-            // to handle siblings using the same tag
-            objectify: function(xml, map) {
-                var listSuffix = 's';
-                function objectifier(xmlFragment, map, object) {
-                    // element node
-                    if(xmlFragment.nodeType === 1) {
-                        // if there are children or attributes we need a container
-                        if(xmlFragment.attributes.length > 0 || xmlFragment.firstChild) {
-                            if(!object[xmlFragment.nodeName])
-                                object[xmlFragment.nodeName] = Object.create(null);
-                            var partialObject = object[xmlFragment.nodeName];
-                            if(typeof map[xmlFragment.nodeName] === 'function') {
-                                var key = map[xmlFragment.nodeName](xml, xmlFragment);
-                                if(key) {
-                                    partialObject = partialObject[key] = Object.create(null);
-                                    partialObject.id = key;
-                                    var name = Sisulator.replacer(
-                                            xmlFragment.nodeName + listSuffix
-                                    );
-                                    // reference the object from the array
-                                    if(!object[name])
-                                        object[name] = [];
-                                    object[name].push(key);
-                                }
-                            }
-                            // process attributes
-                            if (xmlFragment.attributes.length > 0) {
-                                for (var j = 0; j < xmlFragment.attributes.length; j++) {
-                                    var attribute = xmlFragment.attributes.item(j);
-                                    partialObject[attribute.nodeName] = attribute.nodeValue;
-                                }
-                            }
-                            // process children
-                            var child = xmlFragment.firstChild;
-                            if(child) objectifier(child, map, partialObject);
-                        }
-                    }
-                    // text node
-                    else if(xmlFragment.nodeType === 3) {
-                        // add content with underscore naming
-                        if(xmlFragment.nodeValue)
-                            object['_' + xmlFragment.parentNode.nodeName] = xmlFragment.nodeValue;
-                    }
-                    // process siblings
-                    var sibling = xmlFragment.nextSibling;
-                    if(sibling) objectifier(sibling, map, object);
-                    return object;
-                }
-                // just initialize and return the result
-                return objectifier(xml.documentElement, map, {});
-            },
-            sisulate: async function(xml, directive) {
-                // objectify the xml
-                var schema = Sisulator.objectify(xml, Sisulator.MAP).schema;
-                var cacheDisabler = '';
-                if(DEBUG) cacheDisabler = '?r=' + Math.random();
-                // this variable holds the result
-                var _sisula_ = '';
-
-                // process and evaluate all sisulas in the directive
-                var response = await fetch(directive + cacheDisabler);
-                var responseText = await response.text();
-
-                // unify line breaks and match
-                // only non-empty lines that are not comments (starts with #)
-                var scripts = responseText.replace(/\r/g, '').match(/^[^#].+/gm);
-                var script;
-                var splitter = /\/\*~([\s\S]*?)~\*\//g; // split JS /*~ sisula template ~*/ JS
-                // process every sisula
-                for(var s = 0; script = scripts[s]; s++) {
-                    response = await fetch(script.trim() + cacheDisabler);
-                    var sisula = await response.text();
-                    // split language into JavaScript and SQL template components
-                    var sisulets = sisula.split(splitter);
-                    // substitute from SQL template to JavaScript
-                    for(var i = 1; i < sisulets.length; i+=2) {
-                        // honor escaped dollar signs
-                        sisulets[i] = sisulets[i].replace(/[$]{2}/g, '§DOLLAR§'); // escaping dollar signs
-                        sisulets[i] = sisulets[i].replace(/["]{2}/g, '§DOUBLE§'); // escaping double quotes
-                        sisulets[i] = sisulets[i].replace(/["]{1}/g, '§SINGLE§'); // escaping single quotes
-                        sisulets[i] = sisulets[i].replace(/[$]{([\S\s]*?)}[$]/g, '" + $1 + "'); // multi-expression
-                        sisulets[i] = sisulets[i].replace(/[$]\(([\S\s]*?)\)\?[^\S\n]*([^:\n]*)[:]?[^\S\n]*(.*)/g, '" + ($1 ? "$2" : "$3") + "'); // conditional
-                        sisulets[i] = sisulets[i].replace(/[\$]([\w.]*?)(?:([\$])|([^\w.]|$))/g, '" + ($1 ? $1 : "") + "$3'); // single
-                        sisulets[i] = sisulets[i].replace(/(\r\n|\n|\r)/g, '\\n" +\n'); // line breaks
-                        sisulets[i] = sisulets[i].replace(/^/gm, '"'); // start of line
-                        sisulets[i] = '_sisula_+=' + sisulets[i] + '";'; // variable assignment
-                    }
-                    // join the parts together again (now all JavaScript)
-                    sisula = sisulets.join('');
-                    try {
-                        if(DEBUG && console && console.log)
-                            console.log(sisula);
-                        // this eval needs schema and _sisula_ to be defined
-                        eval(sisula);
-                    }
-                    catch(e) {
-                        if(DEBUG && console && console.error && script)
-                            console.error('The script ' + script + ' could not be executed.');
-                        throw e;
-                    }
-                }
-                _sisula_ = _sisula_.replace(/§DOLLAR§/g, '$'); // unescaping dollar signs
-                _sisula_ = _sisula_.replace(/§SINGLE§/g, '\"'); // unescaping double quotes
-                _sisula_ = _sisula_.replace(/§DOUBLE§/g, '"'); // unescaping double quotes
-                _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
-                _sisula_ = _sisula_.replace(/(\S+[^\S\n])(?:[^\S\n]+)/gm, '$1'); // consume multiple spaces, but not indentation
-                return _sisula_;
             }
         };
 
@@ -5779,6 +5084,7 @@
                 document.getElementById('idempotency').checked = Defaults.idempotency === 'true';
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
+                document.getElementById('triggers').checked = Defaults.triggers === 'true';
                 document.getElementById('decisiveness').checked = Defaults.decisiveness === 'true';
                 document.getElementById('entityIntegrity').checked = Defaults.entityIntegrity === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -5819,6 +5125,7 @@
                     this.setAssertiveness('true');
                     this.setMetadataUsage('true');
                     this.setBusinessViews('false');
+                    this.setTriggers('true');
                     this.setDecisiveness('true');
                     this.setEquivalence('false');
                     this.setChangingSuffix('ChangedAt');
@@ -5905,6 +5212,7 @@
                 storage.setItem("equivalentRange", Defaults.equivalentRange);
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
+                storage.setItem("triggers", Defaults.triggers);
                 storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("deletability", Defaults.deletability);
@@ -5970,6 +5278,7 @@
                     this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
+                    this.setTriggers(storage.getItem('triggers') || Defaults.triggers);
                     this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
@@ -6219,6 +5528,15 @@
                             "Please note that when business views are used " +
                             "descriptors must follow the same rules of uniqueness as mnemonics do, " +
                             "otherwise naming clashes may occur."
+                    );
+            },
+            setTriggers: function(value, userToggle) {
+                Defaults.triggers = value;
+                if(userToggle && value === 'false')
+                    alert(
+                            "Please note that turning off triggers will leave " +
+                            "more implementation details to the ETL or API using the model, " +
+                            "and the views will no longer accept inserts and updates."
                     );
             },
             setDecisiveness: function(value) {
@@ -6958,6 +6276,7 @@
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
+                <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
                 <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>

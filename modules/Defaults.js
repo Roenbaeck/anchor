@@ -46,5 +46,7 @@ var Defaults = {
     deletionSuffix: 'Deleted',
     privacy: 'Ignore', 
     checksum: 'false',
-    encryptionGroup: ''
+    encryptionGroup: '',
+    triggers: 'true'
 };
+
