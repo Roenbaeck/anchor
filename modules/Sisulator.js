@@ -50,8 +50,8 @@ var Sisulator = {
         }
         // just initialize and return the result
         return objectifier(xml.documentElement, map, {});
-    },
-    sisulate: function(xml, map, directives) {
+    }, 
+    sisulate: async function(xml, map, directives) {
         // objectify the xml
         var jsonObject = Sisulator.objectify(xml, map);
         // consistent with other line breaks and without comments
@@ -59,7 +59,7 @@ var Sisulator = {
         eval("var " + map.root + " = jsonObject." + map.root);
         // this variable holds the result
         var _sisula_ = '';
-        var scripts = directives();
+        var scripts = await directives();
         scripts = scripts.replace(/\r/g, ''); // unify line breaks
         // only non-empty lines that are not comments (starts with #)
         scripts = scripts.match(/^[^#].+/gm);
@@ -69,7 +69,7 @@ var Sisulator = {
             // process every sisula
             for(var scriptIndex = 0; script = scripts[scriptIndex]; scriptIndex++) {
                 script = script.replace(/^\s+/,'').replace(/\s+$/,''); // trim
-                var sisula = directives(script);
+                var sisula = await directives(script);
                 // make sure everything starts with JavaScript (empty row)
                 sisula = '\n' + sisula;
                 // split language into JavaScript and SQL template components
@@ -90,12 +90,14 @@ var Sisulator = {
                 // join the parts together again (now all JavaScript)
                 sisula = sisulets.join('');
                 try {
+                    if(DEBUG && console && console.log)
+                        console.log(sisula);
                     // this eval needs schema and _sisula_ to be defined
                     eval(sisula);
                 }
                 catch(e) {
-                    alert('Error in script: ' + script);
-                    alert(sisula); // alert was used for debugging sisula code
+                    if(DEBUG && console && console.error && script)
+                        console.error('The script ' + script + ' could not be executed.');
                     throw e;
                 }
             }
@@ -108,4 +110,5 @@ var Sisulator = {
         return _sisula_;
     }
 };
+
 
