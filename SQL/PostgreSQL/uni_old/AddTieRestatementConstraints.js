@@ -1,7 +1,9 @@
 var tie, role, restatements = false;
+
 while (tie = schema.nextHistorizedTie())
-    if(tie.hasMoreValues())
+    if(tie.hasMoreValues()) {
         restatements = true;
+    }
 
 if(restatements) {
 /*~
@@ -24,33 +26,29 @@ if(restatements) {
 ~*/
             while(role = tie.nextRole()) {
 /*~
--- @$role.columnName $(role.isIdentifier())? primary key component : non-key value
+-- $role.columnName $(role.isIdentifier())? primary key component : non-key value
 ~*/
             }
 /*~
--- @changed     the point in time from which this value shall represent a change
+-- changed     the point in time from which this value shall represent a change
 --
 -- rc$tie.name restatement constraint (available only in ties that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.rf$tie.name', 'FN') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$tie.capsule].[rf$tie.name] (
+CREATE OR REPLACE FUNCTION $tie.capsule\.rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-        @$role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
+    _$role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
 ~*/
             }
 /*~
-        @changed $tie.timeRange
-    )
-    RETURNS tinyint AS
+    changed $tie.timeRange
+) RETURNS smallint AS '
     BEGIN RETURN (
         SELECT
             COUNT(*)
         FROM (
-            SELECT TOP 1
+            (SELECT
 ~*/
             while(role = tie.nextValue()) {
 /*~
@@ -59,13 +57,13 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] pre
+                $tie.capsule\.$tie.name pre
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                pre.$role.columnName = @$role.columnName
+                pre.$role.columnName = _$role.columnName
             AND
 ~*/
                 }
@@ -74,10 +72,10 @@ BEGIN
 /*~
             (
 ~*/
-                while(role = tie.nextAnchorRole()) {
+                while(role = tie.nextValue()) {
 /*~
-                    pre.$role.columnName = @$role.columnName
-                $(tie.hasMoreAnchorRoles())? OR
+                    pre.$role.columnName = _$role.columnName
+                $(tie.hasMoreValues())? OR
 ~*/
                 }
 /*~
@@ -86,11 +84,12 @@ BEGIN
 ~*/
             }
 /*~
-                pre.$tie.changingColumnName < @changed
+                pre.$tie.changingColumnName < changed
             ORDER BY
                 pre.$tie.changingColumnName DESC
+            LIMIT 1)
             UNION
-            SELECT TOP 1
+            (SELECT
 ~*/
             while(role = tie.nextValue()) {
 /*~
@@ -99,13 +98,13 @@ BEGIN
             }
 /*~
             FROM
-                [$tie.capsule].[$tie.name] fol
+                $tie.capsule\.$tie.name fol
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                fol.$role.columnName = @$role.columnName
+                fol.$role.columnName = _$role.columnName
             AND
 ~*/
                 }
@@ -114,10 +113,10 @@ BEGIN
 /*~
             (
 ~*/
-                while(role = tie.nextAnchorRole()) {
+                while(role = tie.nextValue()) {
 /*~
-                    fol.$role.columnName = @$role.columnName
-                $(tie.hasMoreAnchorRoles())? OR
+                    fol.$role.columnName = _$role.columnName
+                $(tie.hasMoreValues())? OR
 ~*/
                 }
 /*~
@@ -126,43 +125,42 @@ BEGIN
 ~*/
             }
 /*~
-                fol.$tie.changingColumnName > @changed
+                fol.$tie.changingColumnName > changed
             ORDER BY
                 fol.$tie.changingColumnName ASC
+            LIMIT 1)
         ) s
         WHERE
 ~*/
             while(role = tie.nextValue()) {
 /*~
-            s.$role.columnName = @$role.columnName
+            s.$role.columnName = _$role.columnName
         $(tie.hasMoreValues())? AND
 ~*/
             }
 /*~
     );
-    END
-    ');
 ~*/
             if(!tie.isRestatable()) {
 /*~
-    ALTER TABLE [$tie.capsule].[$tie.name]
-    ADD CONSTRAINT [rc$tie.name] CHECK (
-        [$tie.capsule].[rf$tie.name] (
+        ALTER TABLE $tie.capsule\.$tie.name
+        ADD CONSTRAINT rc$tie.name CHECK (
+            $tie.capsule\.rf$tie.name (
 ~*/
             while(role = tie.nextRole()) {
 /*~
-            $role.columnName,
+                _$role.columnName,
 ~*/
             }
 /*~
-            $tie.changingColumnName
-        ) = 0
-    );
+                $tie.changingColumnName
+            ) = 0
+        );
 ~*/
             }
 /*~
-END
-GO
+    END;
+' LANGUAGE plpgsql;
 ~*/
         }
     }

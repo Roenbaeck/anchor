@@ -1,0 +1,10 @@
+tasks:
+  - init: echo "Replace me with a build script for the project."
+    command: echo "Replace me with something that should run on every start, or just
+      remove me entirely. "
+image:
+  file: .gitpod.Dockerfile
+
+vscode:
+  extensions:
+    - mtxr.sqltools@0.21.7:HWy3THkis6Mjv+N13qbpiA==
