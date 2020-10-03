@@ -1,0 +1,13 @@
+{
+    "sqltools.connections": [
+        {
+            "askForPassword": false,
+            "dialect": "PostgreSQL",
+            "port": 5432,
+            "server": "localhost",
+            "name": "pg_local",
+            "database": "postgres",
+            "username": "gitpod"
+        }
+    ]
+}

@@ -13,6 +13,11 @@ while (anchor = schema.nextAnchor()) {
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint,
+--    $schema.metadata.metadataType
+--);
+
 CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
     requestedNumberOfIdentities bigint,
     metadata $schema.metadata.metadataType
@@ -20,17 +25,27 @@ CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
     BEGIN
         IF requestedNumberOfIdentities > 0
         THEN
+            WITH RECURSIVE idGenerator (idNumber) AS (
+                SELECT
+                    1
+                UNION ALL
+                SELECT
+                    idNumber + 1
+                FROM
+                    idGenerator
+                WHERE
+                    idNumber < requestedNumberOfIdentities
+            )
             INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.metadataColumnName
             )
             SELECT
                 metadata
             FROM
-                generate_series(1,requestedNumberOfIdentities);
+                idGenerator;
         END IF;
     END;
-' LANGUAGE plpgsql
-;
+' LANGUAGE plpgsql;
 ~*/
         }
         else {
@@ -38,23 +53,37 @@ CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
 -- Key Generation Stored Procedure ------------------------------------------------------------------------------------
 -- k$anchor.name identity by surrogate key generation stored procedure
 -----------------------------------------------------------------------------------------------------------------------
+--DROP FUNCTION IF EXISTS $anchor.capsule\.k$anchor.name(
+--    bigint
+--);
+
 CREATE OR REPLACE FUNCTION $anchor.capsule\.k$anchor.name(
     requestedNumberOfIdentities bigint
 ) RETURNS void AS '
     BEGIN
         IF requestedNumberOfIdentities > 0
         THEN
+            WITH RECURSIVE idGenerator (idNumber) AS (
+                SELECT
+                    1
+                UNION ALL
+                SELECT
+                    idNumber + 1
+                FROM
+                    idGenerator
+                WHERE
+                    idNumber < requestedNumberOfIdentities
+            )
             INSERT INTO $anchor.capsule\.$anchor.name (
                 $anchor.dummyColumnName
             )
             SELECT
                 null
             FROM
-                generate_series(1,requestedNumberOfIdentities);
+                idGenerator;
         END IF;
     END;
-' LANGUAGE plpgsql
-;
+' LANGUAGE plpgsql;
 ~*/
         }
     }

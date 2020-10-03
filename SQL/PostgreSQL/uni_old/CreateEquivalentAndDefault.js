@@ -11,14 +11,12 @@ CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation\._$schema.metadata.equ
     constraint pk_$schema.metadata.equivalentSuffix primary key (
         $schema.metadata.equivalentSuffix
     )
-)
-;
--- If the default value already exists do nothing.
+);
+
 INSERT INTO $schema.metadata.encapsulation\._$schema.metadata.equivalentSuffix (
     $schema.metadata.equivalentSuffix
 ) VALUES (
     0 -- the default equivalent
-) ON CONFLICT DO NOTHING
-;
+);
 ~*/
 }
