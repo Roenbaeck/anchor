@@ -189,6 +189,53 @@ a:hover {
     background-color:   rgba(255, 255, 255, 0.8);
 }
 
+#tabularEditor {
+    position:           absolute;
+    overflow:           auto;
+    scroll-behavior:    smooth;
+    top:                40px;
+    left:               3%;
+    width:              94%;
+    height:             90%;
+    display:            flex;
+    flex-wrap:          wrap;
+    flex-direction:     column;
+    align-content:      flex-start;
+    background-color:   rgba(236, 234, 234, 0.9);
+    color:              black;
+    padding:            5px;
+    margin:             0;
+    text-align:         left;
+    border:             2px solid #fff;
+    z-index:            11;
+}
+#tabularEditor .closebutton {
+    display:            inherit;
+    position:           fixed;
+    top:                28px;
+    left:               calc(3% - 15px);
+    z-index:            12;
+}
+#tabularEditor .tabularComponent {
+    flex-grow:          1;
+    flex-shrink:        1;
+    flex-basis:         0px;
+    margin-top:         0px;
+    margin-left:        8px;
+    margin-right:       8px;
+    margin-bottom:      4px;
+}
+#tabularEditor .tabularEditable {
+    margin-top:         0px;
+    margin-left:        0px;
+    margin-right:       2px;
+    margin-bottom:      0px;
+}
+#tabularEditor .tabularEditable:invalid {
+    background-color:   #fbb;
+}
+
+
 .toggler {
     position:           absolute;
     color:              #555;
