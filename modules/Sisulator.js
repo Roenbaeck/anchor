@@ -103,7 +103,7 @@ var Sisulator = {
             }
             _sisula_ = _sisula_.replace(/§DOLLAR§/g, '$'); // unescaping dollar signs
             _sisula_ = _sisula_.replace(/§SINGLE§/g, '\"'); // unescaping double quotes
-            _sisula_ = _sisula_.replace(/§QUOTED§/g, '"'); // unescaping double quotes
+            _sisula_ = _sisula_.replace(/§DOUBLE§/g, '"'); // unescaping double quotes
             _sisula_ = _sisula_.replace(/^\s*[\r\n]/gm, ''); // remove empty lines
             _sisula_ = _sisula_.replace(/(\S+[^\S\n])(?:[^\S\n]+)/gm, '$1'); // consume multiple spaces, but not indentation
         }
