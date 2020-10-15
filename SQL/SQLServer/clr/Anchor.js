@@ -34,7 +34,7 @@ BEGIN
     BEGIN
         EXEC('
         CREATE FUNCTION ${schema.metadata.encapsulation}$.MD5(@binaryData AS varbinary(max))
-        RETURNS varbinary(16) AS RETURN HASHBYTES('MD5', @binaryData)
+        RETURNS varbinary(16) AS RETURN HASHBYTES(''MD5'', @binaryData)
         ');
     END
     ELSE
