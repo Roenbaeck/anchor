@@ -452,7 +452,11 @@ BEGIN
 /*~
     DELETE [$anchor.mnemonic]
     FROM
-        [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]$(!anchor.hasMoreAttributes())?;
+        [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
+    JOIN 
+        deleted d 
+    ON 
+        d.$anchor.identityColumnName = [$anchor.mnemonic].$anchor.identityColumnName$(!anchor.hasMoreAttributes())?;
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
