@@ -86,7 +86,7 @@ BEGIN
         $(attribute.isHistorized())? ISNULL(i.$attribute.changingColumnName, @now),
         ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
         ISNULL(i.$attribute.positingColumnName, @now),
-        ISNULL(ISNULL(i.$attribute.reliabilityColumnName, i.$schema.metadata.reliabilitySuffix), $schema.metadata.deleteReliability),
+        ISNULL(ISNULL(i.$attribute.reliabilityColumnName, i.$schema.metadata.reliabilitySuffix), $schema.metadata.defaultReliability),
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -265,7 +265,7 @@ BEGIN
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
                 WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
                 ELSE i.$attribute.reliabilityColumnName
-            END, $schema.metadata.deleteReliability)
+            END, $schema.metadata.defaultReliability)
         FROM
             inserted i
         LEFT JOIN
