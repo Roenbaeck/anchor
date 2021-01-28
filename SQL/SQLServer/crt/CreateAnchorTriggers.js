@@ -265,7 +265,11 @@ BEGIN
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
                 WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
                 ELSE i.$attribute.reliabilityColumnName
-            END, $schema.metadata.defaultReliability)
+            END, CASE 
+                WHEN UPDATE($attribute.valueColumnName) AND $attribute.valueColumnName IS NULL 
+                THEN $schema.metadata.deleteReliability
+                ELSE $schema.metadata.defaultReliability
+            END)
         FROM
             inserted i
         LEFT JOIN
