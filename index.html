@@ -99,7 +99,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.6.6';
+        var VERSION = '0.99.7';
 
         // change to false in beta
         var RELEASE = false;
@@ -5256,6 +5256,7 @@
                     this.setPositorSuffix('Positor');
                     this.setReliabilityRange('decimal(5,2)');
                     this.setReliabilitySuffix('Reliability');
+                    this.setDefaultReliability('1');
                     this.setDeleteReliability('0');
                     this.setAssertionSuffix('Assertion');
                     this.setPartitioning('false');
@@ -5348,6 +5349,7 @@
                 storage.setItem("checksumSuffix", Defaults.checksumSuffix);
                 storage.setItem("reliabilityRange", Defaults.reliabilityRange);
                 storage.setItem("reliabilitySuffix", Defaults.reliabilitySuffix);
+                storage.setItem("defaultReliability", Defaults.defaultReliability);
                 storage.setItem("deleteReliability", Defaults.deleteReliability);
                 storage.setItem("encryptionGroup", Defaults.encryptionGroup);
                 storage.setItem("assertionSuffix", Defaults.assertionSuffix);
@@ -5410,6 +5412,7 @@
                     this.setChecksumSuffix(storage.getItem('checksumSuffix') || Defaults.checksumSuffix);
                     this.setReliabilityRange(storage.getItem('reliabilityRange') || Defaults.reliabilityRange);
                     this.setReliabilitySuffix(storage.getItem('reliabilitySuffix') || Defaults.reliabilitySuffix);
+                    this.setDefaultReliability(storage.getItem('defaultReliability') || Defaults.defaultReliability);
                     this.setDeleteReliability(storage.getItem('deleteReliability') || Defaults.deleteReliability);
                     this.setAssertionSuffix(storage.getItem('assertionSuffix') || Defaults.assertionSuffix);
                     this.setPartitioning(storage.getItem('partitioning') || Defaults.partitioning);
@@ -5458,6 +5461,9 @@
             },
             setReliabilitySuffix: function(value) {
                 Defaults.reliabilitySuffix = value;
+            },
+            setDefaultReliability: function(value) {
+                Defaults.defaultReliability = value;
             },
             setDeleteReliability: function(value) {
                 Defaults.deleteReliability = value;
@@ -5563,6 +5569,11 @@
                             function() { Settings.setReliabilitySuffix(this.value); }
                     );
                     this.addTextItem(
+                            'defaultReliability', listOfDefaults, beforeItem, ' Default reliability',
+                            "The default value of reliability to use when it is not specified in an insert.",
+                            function() { Settings.setDefaultReliabilty(this.value); }
+                    );
+                    this.addTextItem(
                             'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
                             "The default value of reliability to use when deleting information, " +
                             "which corresponds to being completely uncertain about a posit.",
@@ -5593,6 +5604,7 @@
                     this.removeItem('positorSuffix', listOfDefaults);
                     this.removeItem('reliabilityRange', listOfDefaults);
                     this.removeItem('reliabilitySuffix', listOfDefaults);
+                    this.removeItem('defaultReliability', listOfDefaults);
                     this.removeItem('deleteReliability', listOfDefaults);
                     this.removeItem('assertionSuffix', listOfDefaults);
                     this.removeItem('assertiveness', listOfDefaults);

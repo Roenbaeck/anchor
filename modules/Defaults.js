@@ -18,6 +18,7 @@ var Defaults = {
     positorSuffix: 'Positor',
     reliabilityRange: 'decimal(5,2)',
     reliabilitySuffix: 'Reliability',
+    defaultReliability: '1', // default reliability value for (unspecified) inserts
     deleteReliability: '0', // default reliability value for deletes
     assertionSuffix: 'Assertion',
     partitioning: 'false',
