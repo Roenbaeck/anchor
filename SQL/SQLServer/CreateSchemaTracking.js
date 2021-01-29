@@ -1070,7 +1070,7 @@ DROP PROCEDURE [$schema.metadata.encapsulation].[_DeleteWhereMetadataEquals];
 GO
 
 CREATE PROCEDURE [$schema.metadata.encapsulation]._DeleteWhereMetadataEquals (
-	@metadataID int,
+	@metadataID $schema.metadata.metadataType,
 	@schemaVersion int = null,
 	@includeKnots bit = 0
 )
@@ -1093,7 +1093,7 @@ begin
 			select
 				'l' + name as name,
 				2 as prio,
-				'Metadata_' + name as metadataColumn
+				'$schema.metadata.metadataPrefix' + name as metadataColumn
 			from
 				_Tie
 			where
@@ -1102,7 +1102,7 @@ begin
 			select
 				'l' + name as name,
 				3 as prio,
-				'Metadata_' + mnemonic as metadataColumn
+				'$schema.metadata.metadataPrefix' + mnemonic as metadataColumn
 			from
 				_Anchor
 			where
@@ -1111,7 +1111,7 @@ begin
 			select
 				name,
 				4 as prio,
-				'Metadata_' + mnemonic as metadataColumn
+				'$schema.metadata.metadataPrefix' + mnemonic as metadataColumn
 			from
 				_Knot
 			where
@@ -1122,7 +1122,7 @@ begin
 		select
 			@sql = (
 				select
-					'DELETE FROM ' + name + ' WHERE ' + metadataColumn + ' = ' + cast(@metadataId as varchar(10)) + '; '
+					'DELETE FROM ' + name + ' WHERE ' + metadataColumn + ' = ' + cast(@metadataId as varchar(max)) + '; '
 				from
 					constructs
         order by
