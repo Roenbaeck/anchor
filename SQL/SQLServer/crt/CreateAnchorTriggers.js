@@ -435,6 +435,10 @@ BEGIN
             $schema.metadata.deleteReliability
         FROM
             inserted i
+        JOIN 
+            [$attribute.capsule].[$attribute.positName] p
+        ON
+            p.$attribute.identityColumnName = i.$attribute.identityColumnName
         WHERE
             i.$attribute.valueColumnName is null
     END
