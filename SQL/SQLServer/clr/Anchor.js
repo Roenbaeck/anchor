@@ -28,13 +28,17 @@ DECLARE @version smallint =
         THEN substring(@@VERSION, patindex('% 2[0-2][0-9][0-9] %', @@VERSION) + 1, 4)
         ELSE 0
     END
-IF Object_Id('${schema.metadata.encapsulation}$.MD5', 'FS') IS NULL
+IF Object_Id('${schema.metadata.encapsulation}$.MD5') IS NULL
 BEGIN
     IF(@version >= 2016)
     BEGIN
         EXEC('
         CREATE FUNCTION ${schema.metadata.encapsulation}$.MD5(@binaryData AS varbinary(max))
-        RETURNS varbinary(16) AS RETURN HASHBYTES(''MD5'', @binaryData)
+        RETURNS varbinary(16) 
+        WITH SCHEMABINDING AS
+        BEGIN
+            RETURN HASHBYTES(''MD5'', @binaryData)
+        END
         ');
     END
     ELSE
