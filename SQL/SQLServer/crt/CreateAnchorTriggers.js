@@ -313,7 +313,7 @@ BEGIN
             $(attribute.isHistorized())? p.$attribute.changingColumnName,
             cast(ISNULL(CASE
                 WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
-                WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                $(attribute.isHistorized())? WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
                 WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
@@ -426,7 +426,7 @@ BEGIN
             $(attribute.isHistorized())? p.$attribute.changingColumnName,
             cast(ISNULL(CASE
                 WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
-                WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                $(attribute.isHistorized())? WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
                 WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
