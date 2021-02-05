@@ -522,6 +522,95 @@ BEGIN
 
    create unique clustered index ix_includedConstructs on #includedConstructs([object_id]);
 
+   select distinct
+      c.[object_id],
+      c.qualifiedName,
+      c.unqualifiedName,
+      c.[type], 
+      r.referencing_id as [referenced_by_object_id],
+      n.qualifiedName as referenced_qualifiedName,
+      n.unqualifiedName as referenced_unqualifiedName, 
+      o.[type] as referenced_type
+   into 
+      #referencing_entities
+   from 
+      #includedConstructs c
+    cross apply (
+        select
+         refs.referencing_id
+        from 
+         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') refs
+        where
+         refs.referencing_id <> OBJECT_ID(c.qualifiedName)
+    ) r
+   join -- select top 100 * from 
+         sys.objects o
+      on
+         o.[object_id] = r.referencing_id
+      and
+         o.type not in ('S')
+      join
+         sys.schemas s
+      on 
+         s.schema_id = o.schema_id
+      cross apply (
+         select
+            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
+            cast(o.name as nvarchar(517))
+      ) n (qualifiedName, unqualifiedName);
+
+   create unique clustered index pk_referencing_entities 
+   on #referencing_entities ([object_id], [referenced_by_object_id]);
+
+   declare @inserts int = 1;
+   while (@inserts > 0)
+   begin
+      insert into #referencing_entities
+      select distinct
+         c.[referenced_by_object_id] as [object_id],
+         c.referenced_qualifiedName as qualifiedName,
+         c.referenced_unqualifiedName as unqualifiedName, 
+         c.referenced_type as [type],
+         r.referencing_id as [referenced_by_object_id],
+         n.qualifiedName as referenced_qualifiedName, 
+         n.unqualifiedName as referenced_unqualifiedName, 
+         o.[type] as referenced_type
+      from 
+         #referencing_entities c
+      outer apply (
+         select
+            refs.referencing_id
+         from 
+            sys.dm_sql_referencing_entities(c.referenced_qualifiedName, 'OBJECT') refs
+         where
+            refs.referencing_id <> c.referenced_by_object_id
+      ) r
+      left join 
+         #referencing_entities x
+      on 
+         x.[object_id] = c.[referenced_by_object_id]
+      and
+         x.referenced_by_object_id = r.referencing_id
+      join -- select top 100 * from 
+          sys.objects o
+        on
+          o.[object_id] = r.referencing_id
+        and
+          o.type not in ('S')
+        join
+          sys.schemas s
+        on 
+          s.schema_id = o.schema_id
+        cross apply (
+          select
+            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
+            cast(o.name as nvarchar(517))
+        ) n (qualifiedName, unqualifiedName)
+      where
+         x.[object_id] is null; 
+      set @inserts = @@ROWCOUNT;
+   end;
+
    with relatedUpwards as (
       select
          c.[object_id],
@@ -533,36 +622,17 @@ BEGIN
          #includedConstructs c
       union all
       select
-         o.[object_id],
-         o.[type],
-         n.unqualifiedName,
-         n.qualifiedName,
+         r.referenced_by_object_id,
+         r.referenced_type,
+         r.referenced_unqualifiedName,
+         r.referenced_qualifiedName,
          c.depth + 1 as depth
       from
          relatedUpwards c
-      cross apply (
-         select
-            refs.referencing_id
-         from 
-            sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') refs
-         where
-            refs.referencing_id <> OBJECT_ID(c.qualifiedName)
-      ) r
-      join
-         sys.objects o
-      on
-         o.[object_id] = r.referencing_id
-      and
-         o.type not in ('S')
-      join 
-         sys.schemas s 
-      on 
-         s.schema_id = o.schema_id
-      cross apply (
-         select
-            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
-            cast(o.name as nvarchar(517))
-      ) n (qualifiedName, unqualifiedName)
+     join   
+       #referencing_entities r
+     on 
+        r.[object_id] = c.[object_id]
    )
    select distinct
       [object_id],
@@ -583,30 +653,23 @@ BEGIN
          where
             s.[object_id] = u.[object_id]
       );
-
+   
    create unique clustered index ix_relatedUpwards on #relatedUpwards([object_id]);
 
-   with relatedDownwards as (
-      select
-         cast('Upwards' as varchar(42)) as [relationType],
-         c.[object_id],
-         c.[type],
-         c.unqualifiedName,         
-         c.qualifiedName,
-         c.depth
-      from
-         #relatedUpwards c 
-      union all
-      select
-         cast('Downwards' as varchar(42)) as [relationType],
-         o.[object_id],
-         o.[type],
-         n.unqualifiedName,         
-         n.qualifiedName,
-         c.depth - 1 as depth
-      from
-         relatedDownwards c
-      cross apply (
+   select distinct
+      c.[object_id],
+      c.qualifiedName,
+      c.unqualifiedName, 
+      c.[type],
+      r.referenced_id as [references_object_id],
+      n.qualifiedName as references_qualifiedName, 
+      n.unqualifiedName as references_unqualifiedName, 
+      o.[type] as references_type
+   into -- drop table
+      #referenced_entities
+   from 
+      #includedConstructs c
+    cross apply (
          select 
             refs.referenced_id 
          from
@@ -617,22 +680,103 @@ BEGIN
             refs.referenced_id <> OBJECT_ID(c.qualifiedName)
          and 
             refs.referenced_id not in (select [object_id] from #relatedUpwards)
-      ) r
+    ) r
       join -- select top 100 * from 
-         sys.objects o
-      on
-         o.[object_id] = r.referenced_id
-      and
-         o.type not in ('S')
-      join
-         sys.schemas s
-      on 
-         s.schema_id = o.schema_id
-      cross apply (
-         select
+          sys.objects o
+        on
+          o.[object_id] = r.referenced_id
+        and
+          o.type not in ('S')
+        join
+          sys.schemas s
+        on 
+          s.schema_id = o.schema_id
+        cross apply (
+          select
             cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
             cast(o.name as nvarchar(517))
-      ) n (qualifiedName, unqualifiedName)
+        ) n (qualifiedName, unqualifiedName);
+
+   create unique clustered index pk_referenced_entities 
+   on #referenced_entities ([object_id], [references_object_id]);
+
+   set @inserts = 1;
+   while(@inserts > 0)
+   begin
+      insert into #referenced_entities
+      select distinct
+         c.[references_object_id] as [object_id],
+         c.references_qualifiedName as qualifiedName,
+         c.references_unqualifiedName as unqualifiedName,
+         c.references_type as [type],
+         r.referenced_id as [references_object_id],
+         n.qualifiedName as references_qualifiedName, 
+         n.unqualifiedName as references_unqualifiedName, 
+         o.[type] as references_type
+      from 
+         #referenced_entities c
+      cross apply (
+          select 
+            refs.referenced_id 
+          from
+            sys.dm_sql_referenced_entities(c.references_qualifiedName, 'OBJECT') refs
+          where
+            refs.referenced_minor_id = 0
+          and
+            refs.referenced_id <> c.[references_object_id]
+          and 
+            refs.referenced_id not in (select [object_id] from #relatedUpwards)
+      ) r
+      left join
+         #referenced_entities x
+      on 
+         x.[object_id] = c.[references_object_id]
+      and
+         x.references_object_id = r.referenced_id
+      join -- select top 100 * from 
+          sys.objects o
+        on
+          o.[object_id] = r.referenced_id
+        and
+          o.type not in ('S')
+        join
+          sys.schemas s
+        on 
+          s.schema_id = o.schema_id
+        cross apply (
+          select
+            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
+            cast(o.name as nvarchar(517))
+        ) n (qualifiedName, unqualifiedName)
+      where
+         x.[object_id] is null;
+      set @inserts = @@ROWCOUNT;
+   end;
+
+   with relatedDownwards as (
+      select
+         cast('Upwards' as varchar(42)) as [relationType],
+         c.[object_id],
+         c.[type],
+         c.unqualifiedName, 
+         c.qualifiedName,
+         c.depth
+      from
+         #relatedUpwards c 
+      union all
+      select
+         cast('Downwards' as varchar(42)) as [relationType],
+         r.references_object_id,
+         r.references_type,
+         r.references_unqualifiedName, 
+         r.references_qualifiedName,
+         c.depth - 1 as depth
+      from
+         relatedDownwards c
+     join
+      #referenced_entities r
+     on 
+      r.[object_id] = c.[object_id]
    )
    select distinct
       relationType,
@@ -641,7 +785,7 @@ BEGIN
       unqualifiedName,
       qualifiedName,
       depth
-   into
+   into -- drop table 
       #relatedDownwards
    from
       relatedDownwards d
