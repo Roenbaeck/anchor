@@ -327,9 +327,9 @@ BEGIN
         ON
             p.$attribute.identityColumnName = i.$attribute.identityColumnName
         WHERE
-            i.$attribute.valueColumnName is null
+            (UPDATE($attribute.valueColumnName) AND i.$attribute.valueColumnName is null)
         OR 
-            i.$attribute.knotValueColumnName is null;
+            (UPDATE($attribute.knotValueColumnName) AND i.$attribute.knotValueColumnName is null);
     END
 
 ~*/
