@@ -107,7 +107,7 @@ BEGIN
         'X',
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
-        ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.deleteReliability),
+        ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.defaultReliability),
         isnull(cast(
             case
                 when i.$tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
@@ -496,7 +496,7 @@ BEGIN
 /*~
             THEN $schema.metadata.deleteReliability
             WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName
-            ELSE ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.deleteReliability)
+            ELSE $schema.metadata.defaultReliability
         END
     FROM
         inserted i~*/
