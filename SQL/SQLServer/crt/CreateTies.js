@@ -121,13 +121,13 @@ CREATE TABLE [$tie.capsule].[$tie.annexName] (
     $tie.positingColumnName $schema.metadata.positingRange not null,
     $tie.positorColumnName $schema.metadata.positorRange not null,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-    $tie.assertionColumnName as isnull(cast(
+    $tie.assertionColumnName as cast(
         case
             when $tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+            when $tie.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
             when $tie.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
-            else '?'
         end
-    as char(1)), '?') persisted,
+    as char(1)) persisted,
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
