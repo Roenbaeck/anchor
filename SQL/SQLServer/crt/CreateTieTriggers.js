@@ -168,7 +168,7 @@ BEGIN
                         SELECT TOP 1
                             t.$tie.identityColumnName
                         FROM
-                            [$tie.capsule].[t$tie.name](v.$tie.positorColumnName, $changingParameter, v.$tie.positingColumnName, 1) t
+                            [$tie.capsule].[t$tie.name](v.$tie.positorColumnName, $changingParameter, v.$tie.positingColumnName, v.$tie.assertionColumnName) t
                         WHERE
                             t.$tie.reliabilityColumnName = v.$tie.reliabilityColumnName
                         $(tie.isHistorized())? AND
