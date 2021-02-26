@@ -108,13 +108,14 @@ BEGIN
         ISNULL(i.$tie.positorColumnName, 0),
         ISNULL(i.$tie.positingColumnName, @now),
         ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.defaultReliability),
-        isnull(cast(
+        CAST(
             case
                 when i.$tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+                when i.$tie.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
                 when i.$tie.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
-                else '?'
+                else '+' -- assume that unspecified reliability (NULL) means default
             end
-        as char(1)), '?'),
+        as char(1)),
 ~*/
         while (role = tie.nextRole()) {
 /*~
