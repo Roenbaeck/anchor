@@ -152,13 +152,13 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     $attribute.positingColumnName $schema.metadata.positingRange not null,
     $attribute.positorColumnName $schema.metadata.positorRange not null,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-    $attribute.assertionColumnName as isnull(cast(
+    $attribute.assertionColumnName as cast(
         case
             when $attribute.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+            when $attribute.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
             when $attribute.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
-            else '?'
         end
-    as char(1)), '?') persisted,
+    as char(1)) persisted,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName

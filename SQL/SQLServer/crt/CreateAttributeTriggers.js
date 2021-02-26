@@ -68,8 +68,9 @@ BEGIN
         i.$attribute.reliabilityColumnName,
         case
             when i.$attribute.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+            when i.$attribute.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
             when i.$attribute.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
-            else '?'
+            else '+' -- assume that unspecified reliability (NULL) means default
         end,
         i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
