@@ -97,7 +97,7 @@ WHERE
                 while(role = tie.nextIdentifier()) {
 /*~
             sub.$role.columnName = tie.$role.columnName
-        AND
+        tie.hasMoreIdentifiers()? AND
 ~*/
                 }
             }
