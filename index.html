@@ -99,7 +99,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.7.1';
+        var VERSION = '0.99.8';
 
         // change to false in beta
         var RELEASE = false;
@@ -2806,7 +2806,7 @@
                 // set attributes on the element
                 attribute.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "???" : this.mnemonic);
                 attribute.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
-                if(Defaults.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
                     attribute.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
@@ -2831,7 +2831,7 @@
                 if(Defaults.equivalence === 'true') {
                     metadata.setAttribute("equivalent", this.isEmpty(this.equivalent) ? '' : this.equivalent);
                 }
-                if(Defaults.temporalization === 'crt') {
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') {
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
                     metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
                 }
@@ -2877,7 +2877,7 @@
                         name += 'i';
                     if(this.deletable)
                         name += 'd';
-                    if(Defaults.temporalization === 'crt' && this.assertive)
+                    if((Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') && this.assertive)
                         name += 'a';
                     name += ')';
                 }
@@ -3570,7 +3570,7 @@
             },
             toXML: function(schema) {
                 var tie = schema.createElement("tie");
-                if(Defaults.temporalization === 'crt')
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
                     tie.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 if(this.historized)
                     tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
@@ -3607,7 +3607,7 @@
 
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("capsule", this.encapsulation);
-                if(Defaults.temporalization === 'crt') {
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') {
                     metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
                     metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
                 }
@@ -3636,7 +3636,7 @@
                             name += 'i';
                         if(this.deletable)
                             name += 'd';
-                        if(Defaults.temporalization === 'crt' && this.assertive)
+                        if((Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') && this.assertive)
                             name += 'a';
                         name += ')';
                     }
@@ -5532,7 +5532,7 @@
                 temporalizationSelect.value = value;
                 var listOfDefaults = document.getElementById('listOfDefaults');
                 var beforeItem = document.getElementById('crtSettingsBeforeHere');
-                if(value === 'crt') {
+                if(value === 'crt' || value === 'bi') {
                     this.addTextItem(
                             'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
                             "The 'data type' for identities of posits used throughout the implementation.",
@@ -5548,16 +5548,18 @@
                             "The suffix used for the column storing the point in time a posit was made.",
                             function() { Settings.setPositingSuffix(this.value); }
                     );
-                    this.addTextItem(
-                            'positorRange', listOfDefaults, beforeItem, ' Positor range',
-                            "The positor (one able to correct) 'data type' used throughout the implementation.",
-                            function() { Settings.setPositorRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'positorSuffix', listOfDefaults, beforeItem, ' Positor suffix',
-                            "The suffix used for the column storing the who made a posit.",
-                            function() { Settings.setPositorSuffix(this.value); }
-                    );
+                    if(value === 'crt') {
+                        this.addTextItem(
+                                'positorRange', listOfDefaults, beforeItem, ' Positor range',
+                                "The positor (one able to correct) 'data type' used throughout the implementation.",
+                                function() { Settings.setPositorRange(this.value); }
+                        );
+                        this.addTextItem(
+                                'positorSuffix', listOfDefaults, beforeItem, ' Positor suffix',
+                                "The suffix used for the column storing the who made a posit.",
+                                function() { Settings.setPositorSuffix(this.value); }
+                        );
+                    }
                     this.addTextItem(
                             'reliabilityRange', listOfDefaults, beforeItem, ' Reliability range',
                             "A 'data type' that can hold the desired degrees of reliability.",
@@ -5568,17 +5570,19 @@
                             "The suffix used for the column storing reliability.",
                             function() { Settings.setReliabilitySuffix(this.value); }
                     );
-                    this.addTextItem(
-                            'defaultReliability', listOfDefaults, beforeItem, ' Default reliability',
-                            "The default value of reliability to use when it is not specified in an insert.",
-                            function() { Settings.setDefaultReliabilty(this.value); }
-                    );
-                    this.addTextItem(
-                            'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
-                            "The default value of reliability to use when deleting information, " +
-                            "which corresponds to being completely uncertain about a posit.",
-                            function() { Settings.setDeleteReliabilty(this.value); }
-                    );
+                    if(value === 'crt') {
+                        this.addTextItem(
+                                'defaultReliability', listOfDefaults, beforeItem, ' Default reliability',
+                                "The default value of reliability to use when it is not specified in an insert.",
+                                function() { Settings.setDefaultReliabilty(this.value); }
+                        );
+                        this.addTextItem(
+                                'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
+                                "The default value of reliability to use when deleting information, " +
+                                "which corresponds to being completely uncertain about a posit.",
+                                function() { Settings.setDeleteReliabilty(this.value); }
+                        );
+                    }
                     this.addTextItem(
                             'assertionSuffix', listOfDefaults, beforeItem, ' Assertion suffix',
                             "The suffix used for the computed column storing a single character '+', '-', or '?'," +
@@ -6396,13 +6400,11 @@
                         <option value="improved" selected="selected">Improved</option>
                     </select> Naming convention
                 </li>
-                <li title="Selects if the generated code should be monotemporal (only changing time) or bitemporal (both changing and recording time).">
+                <li title="Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="uni" selected="selected">Unitemporal</option>
-                        <option value="crt">Concurrent-reliance-temporal</option>
-                        <!-- hidden until ported to sisula
                         <option value="bi">Bitemporal</option>
-                        -->
+                        <option value="crt">Concurrent-reliance-temporal</option>
                     </select> Temporalization
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
