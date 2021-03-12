@@ -425,8 +425,6 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
-    IF(UPDATE($tie.assertionColumnName))
-        RAISERROR('The computed assertion column $tie.assertionColumnName is not updatable.', 16, 1);
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
