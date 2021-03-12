@@ -228,7 +228,7 @@ BEGIN
         AND
             fol.$attribute.changingColumnName > @changingTimepoint
         AND
-            pre.$attribute.reliabilityColumnName = 1
+            fol.$attribute.reliabilityColumnName = 1
         ORDER BY
             fol.$attribute.changingColumnName ASC,
             fol.$attribute.positingColumnName DESC
