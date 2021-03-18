@@ -44,7 +44,7 @@ BEGIN
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
         $attribute.positingColumnName desc,
-        $attribute.reliabilityColumnName asc
+        $attribute.reliabilityColumnName desc
     );
     ');
 

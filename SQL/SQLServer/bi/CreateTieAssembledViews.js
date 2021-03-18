@@ -63,7 +63,8 @@ BEGIN
         }
 /*~
         $(tie.timeRange)? $tie.changingColumnName desc,
-        $tie.positingColumnName desc
+        $tie.positingColumnName desc,
+        $tie.reliabilityColumnName desc
     );
     ');
 
