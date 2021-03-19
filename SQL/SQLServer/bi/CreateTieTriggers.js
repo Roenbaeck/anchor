@@ -154,8 +154,8 @@ BEGIN
         SET
             v.$tie.statementTypeColumnName =
                 CASE
-                    WHEN v.$tie.reliabilityColumnName IN (
-                        SELECT TOP 1 WITH TIES 
+                    WHEN v.$tie.reliabilityColumnName = (
+                        SELECT TOP 1 
                             a.$tie.reliabilityColumnName
                         FROM
                             [$tie.capsule].[$tie.annexName] a
@@ -164,7 +164,8 @@ BEGIN
                         AND
                             a.$tie.positingColumnName <= v.$tie.positingColumnName
                         ORDER BY  
-                            a.$tie.positingColumnName DESC 
+                            a.$tie.positingColumnName DESC, 
+                            a.$tie.reliabilityColumnName DESC
                     )
                     THEN 'D' -- duplicate assertion
                     WHEN p.$tie.identityColumnName is not null
