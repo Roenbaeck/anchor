@@ -137,7 +137,7 @@ BEGIN
         ON
             a.$attribute.identityColumnName = p.$attribute.identityColumnName
         AND
-            a.$attribute.positingColumnName = p.$attribute.positingColumnName
+            a.$attribute.positingColumnName = v.$attribute.positingColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
