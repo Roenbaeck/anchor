@@ -17,11 +17,9 @@ var anchor, attribute;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
         var annexStatementTypes = "'N'", positStatementTypes = "'N'";
-        /*
         if(attribute.isAssertive()) {
             annexStatementTypes += ",'D'";
         }
-        */
         if(attribute.isHistorized() && !attribute.isIdempotent()) {
             annexStatementTypes += ",'R'";
             positStatementTypes += ",'R'";
