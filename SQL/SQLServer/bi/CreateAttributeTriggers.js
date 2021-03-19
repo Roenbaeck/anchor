@@ -88,7 +88,7 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN a.$attribute.identityColumnName is not null
+                    WHEN a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
                     THEN 'D' -- duplicate assertion
                     WHEN p.$attribute.anchorReferenceName is not null
                     THEN 'S' -- duplicate statement
@@ -138,8 +138,6 @@ BEGIN
             a.$attribute.identityColumnName = p.$attribute.identityColumnName
         AND
             a.$attribute.positingColumnName = v.$attribute.positingColumnName
-        AND 
-            a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
