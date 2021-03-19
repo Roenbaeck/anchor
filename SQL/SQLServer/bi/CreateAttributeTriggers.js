@@ -90,7 +90,19 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN v.$attribute.reliabilityColumnName = r.$attribute.reliabilityColumnName
+                    WHEN v.$attribute.reliabilityColumnName = (
+                        SELECT TOP 1 
+                            a.$attribute.reliabilityColumnName
+                        FROM 
+                            [$attribute.capsule].[$attribute.annexName] a
+                        WHERE
+                            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+                        AND
+                            a.$attribute.positingColumnName <= v.$attribute.positingColumnName
+                        ORDER BY 
+                            a.$attribute.positingColumnName DESC, 
+                            a.$attribute.reliabilityColumnName DESC
+                    ) 
                     THEN 'D' -- duplicate assertion
                     WHEN p.$attribute.anchorReferenceName is not null
                     THEN 'S' -- duplicate statement
@@ -134,19 +146,6 @@ BEGIN
             $(attribute.isHistorized())? p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = v.$attribute.checksumColumnName : p.$attribute.valueColumnName = v.$attribute.valueColumnName
-        OUTER APPLY (
-            SELECT TOP 1 
-                a.$attribute.reliabilityColumnName
-            FROM 
-                [$attribute.capsule].[$attribute.annexName] a
-            WHERE
-                a.$attribute.identityColumnName = p.$attribute.identityColumnName
-            AND
-                a.$attribute.positingColumnName <= v.$attribute.positingColumnName
-            ORDER BY 
-                a.$attribute.positingColumnName DESC, 
-                a.$attribute.reliabilityColumnName DESC
-        ) r
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
