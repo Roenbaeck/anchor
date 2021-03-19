@@ -90,8 +90,8 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN v.$attribute.reliabilityColumnName = (
-                        SELECT TOP 1 
+                    WHEN v.$attribute.reliabilityColumnName IN (
+                        SELECT TOP 1 WITH TIES
                             a.$attribute.reliabilityColumnName
                         FROM 
                             [$attribute.capsule].[$attribute.annexName] a
@@ -100,8 +100,7 @@ BEGIN
                         AND
                             a.$attribute.positingColumnName <= v.$attribute.positingColumnName
                         ORDER BY 
-                            a.$attribute.positingColumnName DESC, 
-                            a.$attribute.reliabilityColumnName DESC
+                            a.$attribute.positingColumnName DESC
                     ) 
                     THEN 'D' -- duplicate assertion
                     WHEN p.$attribute.anchorReferenceName is not null
