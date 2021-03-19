@@ -124,8 +124,7 @@ CREATE TABLE [$tie.capsule].[$tie.annexName] (
     ) references [$tie.capsule].[$tie.positName]($tie.identityColumnName),
     constraint pk$tie.annexName primary key clustered (
         $tie.identityColumnName asc,
-        $tie.positingColumnName desc, 
-        $tie.reliabilityColumnName desc
+        $tie.positingColumnName desc
     )
 );
 GO
