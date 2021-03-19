@@ -154,7 +154,18 @@ BEGIN
         SET
             v.$tie.statementTypeColumnName =
                 CASE
-                    WHEN a.$tie.identityColumnName is not null
+                    WHEN v.$tie.reliabilityColumnName IN (
+                        SELECT TOP 1 WITH TIES 
+                            a.$tie.reliabilityColumnName
+                        FROM
+                            [$tie.capsule].[$tie.annexName] a
+                        ON 
+                            a.$tie.identityColumnName = p.$tie.identityColumnName
+                        AND
+                            a.$tie.positingColumnName <= v.$tie.positingColumnName
+                        ORDER BY  
+                            a.$tie.positingColumnName DESC 
+                    )
                     THEN 'D' -- duplicate assertion
                     WHEN p.$tie.identityColumnName is not null
                     THEN 'S' -- duplicate statement
@@ -284,14 +295,6 @@ BEGIN
 /*~
         $(tie.isHistorized())? AND
             $(tie.isHistorized())? p.$tie.changingColumnName = v.$tie.changingColumnName
-        LEFT JOIN 
-            [$tie.capsule].[$tie.annexName] a
-        ON 
-            a.$tie.identityColumnName = p.$tie.identityColumnName
-        AND
-            a.$tie.positingColumnName = v.$tie.positingColumnName
-        AND 
-            a.$tie.reliabilityColumnName = v.$tie.reliabilityColumnName
         WHERE
             v.$tie.versionColumnName = @currentVersion;
 
