@@ -132,9 +132,11 @@ BEGIN
 /*~;~*/
         var changingParameter = tie.isHistorized() ? 'v.' + tie.changingColumnName : 'DEFAULT';
         var positStatementTypes = "'N'", annexStatementTypes = "'N'";
+        /*
         if(tie.isAssertive()) {
             annexStatementTypes += ",'D'";
         }
+        */
         if(tie.isHistorized() && !tie.isIdempotent()) {
             positStatementTypes += ",'R'";
             annexStatementTypes += ",'R'";
@@ -152,24 +154,7 @@ BEGIN
         SET
             v.$tie.statementTypeColumnName =
                 CASE
-                    WHEN EXISTS (
-                        SELECT TOP 1
-                            t.$tie.identityColumnName
-                        FROM
-                            [$tie.capsule].[t$tie.name]($changingParameter, v.$tie.positingColumnName) t
-                        WHERE
-                            t.$tie.reliabilityColumnName = v.$tie.reliabilityColumnName
-                        $(tie.isHistorized())? AND
-                            $(tie.isHistorized())? t.$tie.changingColumnName = v.$tie.changingColumnName
-~*/
-        while(role = tie.nextRole()) {
-/*~
-                        AND
-                            t.$role.columnName = v.$role.columnName
-~*/
-        }
-/*~
-                    )
+                    WHEN a.$tie.identityColumnName is not null
                     THEN 'D' -- duplicate assertion
                     WHEN p.$tie.identityColumnName is not null
                     THEN 'S' -- duplicate statement
@@ -299,6 +284,14 @@ BEGIN
 /*~
         $(tie.isHistorized())? AND
             $(tie.isHistorized())? p.$tie.changingColumnName = v.$tie.changingColumnName
+        LEFT JOIN 
+            [$tie.capsule].[$tie.annexName] a
+        ON 
+            a.$tie.identityColumnName = p.$tie.identityColumnName
+        AND
+            a.$tie.positingColumnName = v.$tie.positingColumnName
+        AND 
+            a.$tie.reliabilityColumnName = v.$tie.reliabilityColumnName
         WHERE
             v.$tie.versionColumnName = @currentVersion;
 
