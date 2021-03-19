@@ -156,8 +156,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.annexName] (
     ) references [$attribute.capsule].[$attribute.positName]($attribute.identityColumnName),
     constraint pk$attribute.annexName primary key clustered (
         $attribute.identityColumnName asc,
-        $attribute.positingColumnName desc, 
-        $attribute.reliabilityColumnName desc
+        $attribute.positingColumnName desc
     )
 );
 GO
