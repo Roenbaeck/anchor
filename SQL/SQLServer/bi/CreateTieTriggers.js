@@ -159,7 +159,7 @@ BEGIN
                             a.$tie.reliabilityColumnName
                         FROM
                             [$tie.capsule].[$tie.annexName] a
-                        ON 
+                        WHERE 
                             a.$tie.identityColumnName = p.$tie.identityColumnName
                         AND
                             a.$tie.positingColumnName <= v.$tie.positingColumnName
