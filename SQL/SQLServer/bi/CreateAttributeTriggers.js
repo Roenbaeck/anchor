@@ -88,7 +88,20 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN a.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
+                    WHEN EXISTS (
+                        SELECT TOP 1
+                            t.$attribute.identityColumnName
+                        FROM
+                            [$anchor.capsule].[t$anchor.name]($changingParameter, v.$attribute.positingColumnName) t
+                        WHERE
+                            t.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                        $(attribute.isHistorized())? AND
+                            $(attribute.isHistorized())? t.$attribute.changingColumnName = v.$attribute.changingColumnName
+                        AND
+                            t.$attribute.reliabilityColumnName = v.$attribute.reliabilityColumnName
+                        AND
+                            $(attribute.hasChecksum())? t.$attribute.checksumColumnName = v.$attribute.checksumColumnName : t.$attribute.valueColumnName = v.$attribute.valueColumnName
+                    )
                     THEN 'D' -- duplicate assertion
                     WHEN p.$attribute.anchorReferenceName is not null
                     THEN 'S' -- duplicate statement
@@ -132,12 +145,6 @@ BEGIN
             $(attribute.isHistorized())? p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = v.$attribute.checksumColumnName : p.$attribute.valueColumnName = v.$attribute.valueColumnName
-        LEFT JOIN 
-            [$attribute.capsule].[$attribute.annexName] a
-        ON
-            a.$attribute.identityColumnName = p.$attribute.identityColumnName
-        AND
-            a.$attribute.positingColumnName = p.$attribute.positingColumnName
         WHERE
             v.$attribute.versionColumnName = @currentVersion;
 
