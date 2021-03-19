@@ -154,19 +154,7 @@ BEGIN
         SET
             v.$tie.statementTypeColumnName =
                 CASE
-                    WHEN v.$tie.reliabilityColumnName = (
-                        SELECT TOP 1 
-                            a.$tie.reliabilityColumnName
-                        FROM
-                            [$tie.capsule].[$tie.annexName] a
-                        WHERE 
-                            a.$tie.identityColumnName = p.$tie.identityColumnName
-                        AND
-                            a.$tie.positingColumnName <= v.$tie.positingColumnName
-                        ORDER BY  
-                            a.$tie.positingColumnName DESC, 
-                            a.$tie.reliabilityColumnName DESC
-                    )
+                    WHEN v.$tie.reliabilityColumnName = r.$tie.reliabilityColumnName
                     THEN 'D' -- duplicate assertion
                     WHEN p.$tie.identityColumnName is not null
                     THEN 'S' -- duplicate statement
@@ -296,6 +284,19 @@ BEGIN
 /*~
         $(tie.isHistorized())? AND
             $(tie.isHistorized())? p.$tie.changingColumnName = v.$tie.changingColumnName
+        OUTER APPLY (
+            SELECT TOP 1 
+                a.$tie.reliabilityColumnName
+            FROM
+                [$tie.capsule].[$tie.annexName] a
+            WHERE 
+                a.$tie.identityColumnName = p.$tie.identityColumnName
+            AND
+                a.$tie.positingColumnName <= v.$tie.positingColumnName
+            ORDER BY  
+                a.$tie.positingColumnName DESC, 
+                a.$tie.reliabilityColumnName DESC
+        ) r
         WHERE
             v.$tie.versionColumnName = @currentVersion;
 
