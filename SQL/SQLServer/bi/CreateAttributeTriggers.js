@@ -95,7 +95,7 @@ BEGIN
                             a.$attribute.reliabilityColumnName
                         FROM 
                             [$attribute.capsule].[$attribute.annexName] a
-                        WHERE
+                        ON
                             a.$attribute.identityColumnName = p.$attribute.identityColumnName
                         AND
                             a.$attribute.positingColumnName <= v.$attribute.positingColumnName
