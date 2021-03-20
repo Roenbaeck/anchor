@@ -259,6 +259,7 @@ BEGIN
     ) pre
     WHERE
         t.$tie.statementTypeColumnName = 'P'
+    AND
 ~*/
             while(role = tie.nextValue()) {
 /*~
