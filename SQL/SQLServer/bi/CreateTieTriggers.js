@@ -203,7 +203,7 @@ BEGIN
             }
 /*~
                 ORDER BY
-                    $attribute.positingColumnName
+                    $tie.positingColumnName
             ) as previousReliability
         FROM 
             @inserted
@@ -214,7 +214,7 @@ BEGIN
         } // end of tie is not assertive
 
         // then remove restatements 
-        if(attribute.isIdempotent()) {
+        if(tie.isIdempotent()) {
 /*~
     DELETE t
     FROM 
