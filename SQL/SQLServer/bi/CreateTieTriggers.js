@@ -57,20 +57,20 @@ BEGIN
     if(tie.hasMoreIdentifiers()) {
         while(role = tie.nextIdentifier()) {
 /*~
-            $role.columnName,
+            $role.columnName asc,
 ~*/
         }
     }
     else {
         while(role = tie.nextValue()) {
 /*~
-            $role.columnName,
+            $role.columnName asc,
 ~*/
         }
     }
 /*~
-            $(tie.isHistorized())? $tie.changingColumnName,
-            $tie.positingColumnName
+            $(tie.isHistorized())? $tie.changingColumnName desc,
+            $tie.positingColumnName desc
         )
     );
     INSERT INTO @inserted

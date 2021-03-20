@@ -39,9 +39,9 @@ BEGIN
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
-            $attribute.anchorReferenceName, 
+            $attribute.anchorReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc,
-            $attribute.positingColumnName
+            $attribute.positingColumnName desc
         )
     );
 
@@ -93,7 +93,7 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         'X' -- existing data
     FROM
-        @$attribute.name i
+        (SELECT DISTINCT $attribute.anchorReferenceName FROM @$attribute.name) i
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
