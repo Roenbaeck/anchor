@@ -117,7 +117,7 @@ IF Object_ID('$tie.capsule$.$tie.annexName', 'U') IS NULL
 CREATE TABLE [$tie.capsule].[$tie.annexName] (
     $tie.identityColumnName $tie.identity not null,
     $tie.positingColumnName $schema.metadata.positingRange not null,
-    $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+    $tie.reliabilityColumnName bit not null,
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName

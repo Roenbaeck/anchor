@@ -100,7 +100,7 @@ BEGIN
 ~*/
     while(role = tie.nextRole()) {
 /*~
-        p.$role.columnName = v.$role.columnName
+        p.$role.columnName = i.$role.columnName
     $(tie.hasMoreRoles())? AND
 ~*/
     }
@@ -112,7 +112,7 @@ BEGIN
     ON  
         a.$tie.identityColumnName = p.$tie.identityColumnName
     AND
-        a.$tie.positingColumnName = p.$tie.positingColumnName
+        a.$tie.positingColumnName = i.$tie.positingColumnName
     WHERE -- either the posit or the assertion must be different (exclude the identical)
         (p.$tie.identityColumnName is null OR a.$tie.identityColumnName is null)
     AND
