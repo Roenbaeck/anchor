@@ -236,7 +236,7 @@ BEGIN
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-            h.$role.columnName = a.$role.columnName
+            h.$role.columnName = t.$role.columnName
         AND
 ~*/
                 }
@@ -244,15 +244,15 @@ BEGIN
             else {
                 while(role = tie.nextValue()) {
 /*~
-            h.$role.columnName = a.$role.columnName
+            h.$role.columnName = t.$role.columnName
         AND
 ~*/
                 }
             }
 /*~
-            h.$tie.changingColumnName < a.$tie.changingColumnName
+            h.$tie.changingColumnName < t.$tie.changingColumnName
         AND
-            h.$tie.positingColumnName <= a.$tie.positingColumnName
+            h.$tie.positingColumnName <= t.$tie.positingColumnName
         ORDER BY 
             h.$tie.changingColumnName DESC,
             h.$tie.positingColumnName DESC
