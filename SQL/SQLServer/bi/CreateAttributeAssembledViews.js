@@ -43,8 +43,7 @@ BEGIN
     ON [$attribute.capsule].[$attribute.name] (
         $attribute.anchorReferenceName asc,
         $(attribute.timeRange)? $attribute.changingColumnName desc,
-        $attribute.positingColumnName desc,
-        $attribute.reliabilityColumnName desc
+        $attribute.positingColumnName desc
     );
     ');
 

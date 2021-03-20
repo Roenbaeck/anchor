@@ -92,6 +92,8 @@ WHERE
                 @positingTimepoint
             ) sub
         WHERE
+            sub.$tie.reliabilityColumnName = 1
+        AND
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
@@ -118,8 +120,7 @@ WHERE
 /*~
         ORDER BY
             $(tie.isHistorized())? sub.$tie.changingColumnName DESC,
-            sub.$tie.positingColumnName DESC,
-            sub.$tie.reliabilityColumnName DESC
+            sub.$tie.positingColumnName DESC
     );
 GO
 -- Latest perspective -------------------------------------------------------------------------------------------------
