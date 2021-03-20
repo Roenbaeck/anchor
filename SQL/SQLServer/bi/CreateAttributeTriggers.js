@@ -54,12 +54,12 @@ BEGIN
         i.$attribute.reliabilityColumnName,
         i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
-        case   
-            when p.$attribute.identityColumnName is null 
-            then 'P' -- new posit
-            when a.$attribute.identityColumnName is null
-            then 'A' -- new assertion
-        end
+        CASE   
+            WHEN p.$attribute.identityColumnName is null 
+            THEN 'P' -- new posit
+            WHEN a.$attribute.identityColumnName is null
+            THEN 'A' -- new assertion
+        END
     FROM
         inserted i
     LEFT JOIN
@@ -77,7 +77,7 @@ BEGIN
     AND
         a.$attribute.positingColumnName = i.$attribute.positingColumnName
     WHERE -- either the posit or the assertion must be different (exclude the identical)
-        p.$attribute.identityColumnName is null or a.$attribute.identityColumnName is null;
+        (p.$attribute.identityColumnName is null OR a.$attribute.identityColumnName is null);
 ~*/
         // fill table with entire history in these cases
         if(!attribute.isAssertive() || attribute.isIdempotent()) {
