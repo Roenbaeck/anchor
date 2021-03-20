@@ -69,7 +69,7 @@ BEGIN
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = i.$attribute.checksumColumnName : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
     LEFT JOIN 
         [$attribute.capsule].[$attribute.annexName] a
     ON 
