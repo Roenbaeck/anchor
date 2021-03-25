@@ -133,8 +133,19 @@ BEGIN
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
-    INSERT INTO @$attribute.name
-    SELECT DISTINCT
+    DECLARE @deleted TABLE (
+        $attribute.anchorReferenceName $anchor.identity not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+        $attribute.positingColumnName $schema.metadata.positingRange not null,
+        $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
+        $attribute.statementTypeColumnName char(1) not null
+    );
+
+    INSERT INTO @deleted
+    SELECT 
         x.$attribute.anchorReferenceName,
         $(schema.METADATA)? x.$attribute.metadataColumnName,
         x.$attribute.changingColumnName,
@@ -171,6 +182,9 @@ BEGIN
     ) x
     WHERE
         x.$attribute.statementTypeColumnName = 'X';
+
+    INSERT INTO @inserted
+    SELECT DISTINCT * FROM @deleted;
 ~*/
             }
         }

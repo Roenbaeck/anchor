@@ -200,8 +200,31 @@ BEGIN
         // then remove restatements 
         if(tie.isIdempotent()) {
 /*~
-    INSERT INTO @inserted
-    SELECT DISTINCT
+    DECLARE @deleted TABLE (
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $tie.statementTypeColumnName char(1) not null,
+        $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
+        $tie.positingColumnName $schema.metadata.positingRange not null,
+        $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+~*/
+    while (role = tie.nextRole()) {
+        if(role.knot) {
+            knot = role.knot;
+/*~
+        $role.columnName $knot.identity not null$(tie.hasMoreRoles())?,
+~*/
+        }
+        else {
+            anchor = role.anchor;
+/*~
+        $role.columnName $anchor.identity not null$(tie.hasMoreRoles())?,
+~*/
+        }
+    }
+/*~
+    );
+    INSERT INTO @deleted
+    SELECT 
         $(schema.METADATA)? x.$tie.metadataColumnName,
         'A', -- quench the existing restatement
         x.$tie.changingColumnName,
@@ -270,11 +293,13 @@ BEGIN
     ) x
     WHERE
         x.$tie.statementTypeColumnName = 'X';
+
+    INSERT INTO @inserted
+    SELECT DISTINCT * FROM @deleted;
 ~*/
         }
     }
 /*~
-
     INSERT INTO [$tie.capsule].[$tie.positName] (
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
