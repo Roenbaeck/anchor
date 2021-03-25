@@ -28,6 +28,8 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
 
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
@@ -131,31 +133,44 @@ BEGIN
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
-    DELETE a
-    FROM 
-        @$attribute.name a
-    CROSS APPLY (
-        SELECT TOP 1
-            $valueColumn,
-            $attribute.reliabilityColumnName
-        FROM
-            @$attribute.name h
+    INSERT INTO @$attribute.name
+    SELECT
+        x.$attribute.anchorReferenceName,
+        $(schema.METADATA)? x.$attribute.metadataColumnName,
+        x.$attribute.changingColumnName,
+        @now,
+        0,
+        x.$attribute.valueColumnName,
+        $(attribute.hasChecksum())? x.$attribute.checksumColumnName,
+        'A' -- quench the existing restatement
+    FROM (
+        DELETE a
+        OUTPUT deleted.*
+        FROM 
+            @$attribute.name a
+        CROSS APPLY (
+            SELECT TOP 1
+                $valueColumn,
+                $attribute.reliabilityColumnName
+            FROM
+                @$attribute.name h
+            WHERE
+                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            AND
+                h.$attribute.changingColumnName < a.$attribute.changingColumnName
+            AND
+                h.$attribute.positingColumnName <= a.$attribute.positingColumnName
+            ORDER BY 
+                h.$attribute.changingColumnName DESC,
+                h.$attribute.positingColumnName DESC
+        ) pre
         WHERE
-            h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            a.$valueColumn = pre.$valueColumn
         AND
-            h.$attribute.changingColumnName < a.$attribute.changingColumnName
-        AND
-            h.$attribute.positingColumnName <= a.$attribute.positingColumnName
-        ORDER BY 
-            h.$attribute.changingColumnName DESC,
-            h.$attribute.positingColumnName DESC
-    ) pre
+            pre.$attribute.reliabilityColumnName = 1
+    ) x
     WHERE
-        a.$attribute.statementTypeColumnName = 'P'
-    AND
-        a.$valueColumn = pre.$valueColumn
-    AND
-        pre.$attribute.reliabilityColumnName = 1;
+        x.$attribute.statementTypeColumnName = 'X';
 ~*/
             }
         }
