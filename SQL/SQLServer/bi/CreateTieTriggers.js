@@ -201,7 +201,7 @@ BEGIN
         if(tie.isIdempotent()) {
 /*~
     INSERT INTO @inserted
-    SELECT
+    SELECT DISTINCT
         $(schema.METADATA)? x.$tie.metadataColumnName,
         'A', -- quench the existing restatement
         x.$tie.changingColumnName,

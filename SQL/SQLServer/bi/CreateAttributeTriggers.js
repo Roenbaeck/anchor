@@ -134,7 +134,7 @@ BEGIN
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
     INSERT INTO @$attribute.name
-    SELECT
+    SELECT DISTINCT
         x.$attribute.anchorReferenceName,
         $(schema.METADATA)? x.$attribute.metadataColumnName,
         x.$attribute.changingColumnName,
@@ -142,7 +142,7 @@ BEGIN
         0,
         x.$attribute.valueColumnName,
         $(attribute.hasChecksum())? x.$attribute.checksumColumnName,
-        'A' -- quench the existing restatement
+        'A' -- quench the existing restatements
     FROM (
         DELETE a
         OUTPUT deleted.*
