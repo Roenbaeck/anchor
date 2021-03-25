@@ -178,32 +178,16 @@ BEGIN
             $reliabilityColumn AS currentReliability, 
             LAG($reliabilityColumn, 1) OVER (
                 PARTITION BY 
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                    $role.columnName,
-~*/
-                }
-            }
-            else {
-                while(role = tie.nextValue()) {
-/*~
-                    $role.columnName,
-~*/
-                }
-            }
-/*~
                     $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
-            while(role = tie.nextValue()) {
+            while(role = tie.nextRole()) {
 /*~
-                    $role.columnName$(tie.hasMoreValues())?,
+                    $role.columnName$(tie.hasMoreRoles())?,
 ~*/
             }
 /*~
                 ORDER BY
-                    $tie.positingColumnName
+                    $tie.positingColumnName ASC
             ) as previousReliability
         FROM 
             @inserted
@@ -216,59 +200,76 @@ BEGIN
         // then remove restatements 
         if(tie.isIdempotent()) {
 /*~
-    DELETE t
-    FROM 
-        @inserted t
-    CROSS APPLY (
-        SELECT TOP 1
+    INSERT INTO @inserted
+    SELECT
+        $(schema.METADATA)? x.$tie.metadataColumnName,
+        'A', -- quench the existing restatement
+        x.$tie.changingColumnName,
+        @now,
+        0,
+~*/
+        while (role = tie.nextRole()) {
+/*~
+        x.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
+    FROM (
+        DELETE t
+        OUTPUT deleted.*
+        FROM 
+            @inserted t
+        CROSS APPLY (
+            SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
 /*~
-            $role.columnName,
+                $role.columnName,
 ~*/
             }
 /*~
-            $tie.reliabilityColumnName
-        FROM
-            @inserted h
-        WHERE
+                $tie.reliabilityColumnName
+            FROM
+                @inserted h
+            WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-            h.$role.columnName = t.$role.columnName
-        AND
+                h.$role.columnName = t.$role.columnName
+            AND
 ~*/
                 }
             }
             else {
                 while(role = tie.nextValue()) {
 /*~
-            h.$role.columnName = t.$role.columnName
-        AND
+                h.$role.columnName = t.$role.columnName
+            AND
 ~*/
                 }
             }
 /*~
-            h.$tie.changingColumnName < t.$tie.changingColumnName
-        AND
-            h.$tie.positingColumnName <= t.$tie.positingColumnName
-        ORDER BY 
-            h.$tie.changingColumnName DESC,
-            h.$tie.positingColumnName DESC
-    ) pre
-    WHERE
-        t.$tie.statementTypeColumnName = 'P'
-    AND
+                h.$tie.changingColumnName < t.$tie.changingColumnName
+            AND
+                h.$tie.positingColumnName <= t.$tie.positingColumnName
+            ORDER BY 
+                h.$tie.changingColumnName DESC,
+                h.$tie.positingColumnName DESC
+        ) pre
+        WHERE
 ~*/
             while(role = tie.nextValue()) {
 /*~
-        t.$role.columnName = pre.$role.columnName
-    AND
+            t.$role.columnName = pre.$role.columnName
+        AND
 ~*/
             }
 /*~    
-        pre.$tie.reliabilityColumnName = 1;
+            pre.$tie.reliabilityColumnName = 1
+    ) x
+    WHERE
+        x.$tie.statementTypeColumnName = 'X';
 ~*/
         }
     }
