@@ -183,7 +183,7 @@ BEGIN
     WHERE
         x.$attribute.statementTypeColumnName = 'X';
 
-    INSERT INTO @inserted
+    INSERT INTO @$attribute.name
     SELECT DISTINCT * FROM @deleted;
 ~*/
             }
