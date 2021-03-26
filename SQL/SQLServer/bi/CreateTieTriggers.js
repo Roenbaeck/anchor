@@ -200,6 +200,15 @@ BEGIN
         // then remove restatements 
         if(tie.isIdempotent()) {
 /*~
+    IF EXISTS (
+        SELECT TOP 1 
+            $tie.statementTypeColumnName 
+        FROM 
+            @inserted 
+        WHERE 
+            $tie.statementTypeColumnName IN ('P', 'A')
+    )
+    BEGIN --- (only run if necessary) ---
     DECLARE @deleted TABLE (
         $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $tie.statementTypeColumnName char(1) not null,
@@ -346,6 +355,7 @@ BEGIN
 
     -- add the quenches
     INSERT INTO @inserted SELECT DISTINCT * FROM @deleted;
+    END --- (only run if necessary) ---
 ~*/
         }
     }
