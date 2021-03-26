@@ -132,28 +132,6 @@ BEGIN
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
-    -- first remove existing information that is not in effect
-    DELETE a 
-    FROM (
-        SELECT
-            $attribute.statementTypeColumnName,
-            $attribute.reliabilityColumnName AS currentReliability, 
-            LEAD($attribute.reliabilityColumnName, 1) OVER (
-                PARTITION BY 
-                    $attribute.anchorReferenceName, 
-                    $(attribute.isHistorized())? $attribute.changingColumnName,
-                    $valueColumn
-                ORDER BY
-                    $attribute.positingColumnName ASC
-            ) AS followingReliability
-        FROM
-            @$attribute.name
-    ) a
-    WHERE
-        (a.currentReliability = 0 OR a.followingReliability = 0)
-    AND
-        a.$attribute.statementTypeColumnName = 'X';    
-
     DECLARE @deleted TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -177,7 +155,9 @@ BEGIN
         'A' -- quench the existing restatements
     FROM (
         DELETE a
-        OUTPUT deleted.*
+        OUTPUT 
+            deleted.*,
+            fol.$attribute.reliabilityColumnName AS followingReliability
         FROM 
             @$attribute.name a
         OUTER APPLY (
@@ -197,7 +177,8 @@ BEGIN
         ) pre
         OUTER APPLY (
             SELECT TOP 1
-                h.$valueColumn
+                h.$valueColumn,
+                h.$attribute.reliabilityColumnName
             FROM 
                 @$attribute.name h
             WHERE
@@ -216,7 +197,11 @@ BEGIN
             a.$valueColumn = fol.$valueColumn
     ) x
     WHERE
-        x.$attribute.statementTypeColumnName = 'X';
+        x.$attribute.statementTypeColumnName = 'X'
+    AND
+        x.$attribute.reliabilityColumnName = 1 
+    AND
+        x.followingReliability = 1;
 
     -- add the quenches
     INSERT INTO @$attribute.name SELECT DISTINCT * FROM @deleted;
