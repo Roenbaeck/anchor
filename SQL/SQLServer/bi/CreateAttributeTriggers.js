@@ -132,6 +132,15 @@ BEGIN
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
+    IF EXISTS (
+        SELECT TOP 1 
+            $attribute.statementTypeColumnName 
+        FROM 
+            @$attribute.name
+        WHERE 
+            $attribute.statementTypeColumnName IN ('P', 'A')
+    )
+    BEGIN --- (only run if necessary) ---
     DECLARE @deleted TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -205,6 +214,7 @@ BEGIN
 
     -- add the quenches
     INSERT INTO @$attribute.name SELECT DISTINCT * FROM @deleted;
+    END --- (only run if necessary) ---
 ~*/
             }
         }
