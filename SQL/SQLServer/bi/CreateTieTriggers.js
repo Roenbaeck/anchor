@@ -200,6 +200,33 @@ BEGIN
         // then remove restatements 
         if(tie.isIdempotent()) {
 /*~
+    -- first remove existing information that is not in effect
+    DELETE t
+    FROM (
+        SELECT
+            $tie.statementTypeColumnName,
+            $tie.reliabilityColumnName AS currentReliability, 
+            LEAD($tie.reliabilityColumnName, 1) OVER (
+                PARTITION BY 
+                    $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+            while(role = tie.nextRole()) {
+/*~
+                    $role.columnName$(tie.hasMoreRoles())?,
+~*/
+            }
+/*~
+                ORDER BY
+                    $tie.positingColumnName ASC
+            ) AS followingReliability
+        FROM
+            @inserted
+    ) t
+    WHERE
+        (t.currentReliability = 0 OR t.followingReliability = 0)
+    AND
+        t.$tie.statementTypeColumnName = 'X';    
+
     DECLARE @deleted TABLE (
         $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $tie.statementTypeColumnName char(1) not null,
@@ -242,16 +269,15 @@ BEGIN
         OUTPUT deleted.*
         FROM 
             @inserted t
-        CROSS APPLY (
+        OUTER APPLY (
             SELECT TOP 1
 ~*/
-            while(role = tie.nextValue()) {
+            while(role = tie.nextRole()) {
 /*~
-                $role.columnName,
+                $role.columnName$(tie.hasMoreRoles())?,
 ~*/
             }
 /*~
-                $tie.reliabilityColumnName
             FROM
                 @inserted h
             WHERE
@@ -274,28 +300,72 @@ BEGIN
             }
 /*~
                 h.$tie.changingColumnName < t.$tie.changingColumnName
-            AND
-                h.$tie.positingColumnName <= t.$tie.positingColumnName
+            AND 
+                h.$tie.positingColumnName < t.$tie.positingColumnName
             ORDER BY 
                 h.$tie.changingColumnName DESC,
                 h.$tie.positingColumnName DESC
         ) pre
-        WHERE
+        OUTER APPLY (
+            SELECT TOP 1
 ~*/
-            while(role = tie.nextValue()) {
+            while(role = tie.nextRole()) {
 /*~
-            t.$role.columnName = pre.$role.columnName
-        AND
+                $role.columnName$(tie.hasMoreRoles())?,
 ~*/
             }
-/*~    
-            pre.$tie.reliabilityColumnName = 1
+/*~
+            FROM
+                @inserted h
+            WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+/*~
+                h.$role.columnName = t.$role.columnName
+            AND
+~*/
+                }
+            }
+            else {
+                while(role = tie.nextValue()) {
+/*~
+                h.$role.columnName = t.$role.columnName
+            AND
+~*/
+                }
+            }
+/*~
+                h.$tie.changingColumnName > t.$tie.changingColumnName
+            AND 
+                h.$tie.positingColumnName < t.$tie.positingColumnName
+            ORDER BY 
+                h.$tie.changingColumnName ASC,
+                h.$tie.positingColumnName DESC
+        ) fol
+        WHERE (
+~*/
+            while(role = tie.nextRole()) {
+/*~
+                t.$role.columnName = pre.$role.columnName
+            $(tie.hasMoreRoles())? AND
+~*/
+            }
+/*~     ) OR (
+~*/
+            while(role = tie.nextRole()) {
+/*~
+                t.$role.columnName = fol.$role.columnName
+            $(tie.hasMoreRoles())? AND
+~*/
+            }
+/*~     )
     ) x
     WHERE
         x.$tie.statementTypeColumnName = 'X';
 
-    INSERT INTO @inserted
-    SELECT DISTINCT * FROM @deleted;
+    -- add the quenches
+    INSERT INTO @inserted SELECT DISTINCT * FROM @deleted;
 ~*/
         }
     }

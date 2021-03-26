@@ -108,19 +108,18 @@ BEGIN
             // first remove reassertions
             if(!attribute.isAssertive()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
-                var reliabilityColumn = attribute.reliabilityColumnName;
 /*~
     DELETE a
     FROM (
         SELECT 
-            $reliabilityColumn AS currentReliability, 
-            LAG($reliabilityColumn, 1) OVER (
+            $attribute.reliabilityColumnName AS currentReliability, 
+            LAG($attribute.reliabilityColumnName, 1) OVER (
                 PARTITION BY 
                     $attribute.anchorReferenceName, 
                     $(attribute.isHistorized())? $attribute.changingColumnName,
                     $valueColumn
                 ORDER BY
-                    $attribute.positingColumnName
+                    $attribute.positingColumnName ASC
             ) as previousReliability
         FROM 
             @$attribute.name
@@ -133,6 +132,28 @@ BEGIN
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
+    -- first remove existing information that is not in effect
+    DELETE a 
+    FROM (
+        SELECT
+            $attribute.statementTypeColumnName,
+            $attribute.reliabilityColumnName AS currentReliability, 
+            LEAD($attribute.reliabilityColumnName, 1) OVER (
+                PARTITION BY 
+                    $attribute.anchorReferenceName, 
+                    $(attribute.isHistorized())? $attribute.changingColumnName,
+                    $valueColumn
+                ORDER BY
+                    $attribute.positingColumnName ASC
+            ) AS followingReliability
+        FROM
+            @$attribute.name
+    ) a
+    WHERE
+        (a.currentReliability = 0 OR a.followingReliability = 0)
+    AND
+        a.$attribute.statementTypeColumnName = 'X';    
+
     DECLARE @deleted TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -159,32 +180,46 @@ BEGIN
         OUTPUT deleted.*
         FROM 
             @$attribute.name a
-        CROSS APPLY (
+        OUTER APPLY (
             SELECT TOP 1
-                $valueColumn,
-                $attribute.reliabilityColumnName
-            FROM
+                h.$valueColumn
+            FROM 
                 @$attribute.name h
             WHERE
                 h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
             AND
                 h.$attribute.changingColumnName < a.$attribute.changingColumnName
-            AND
-                h.$attribute.positingColumnName <= a.$attribute.positingColumnName
+            AND 
+                h.$attribute.positingColumnName < a.$attribute.positingColumnName
             ORDER BY 
                 h.$attribute.changingColumnName DESC,
                 h.$attribute.positingColumnName DESC
         ) pre
+        OUTER APPLY (
+            SELECT TOP 1
+                h.$valueColumn
+            FROM 
+                @$attribute.name h
+            WHERE
+                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            AND
+                h.$attribute.changingColumnName > a.$attribute.changingColumnName
+            AND 
+                h.$attribute.positingColumnName < a.$attribute.positingColumnName
+            ORDER BY 
+                h.$attribute.changingColumnName ASC,
+                h.$attribute.positingColumnName DESC
+        ) fol
         WHERE
             a.$valueColumn = pre.$valueColumn
-        AND
-            pre.$attribute.reliabilityColumnName = 1
+        OR
+            a.$valueColumn = fol.$valueColumn
     ) x
     WHERE
         x.$attribute.statementTypeColumnName = 'X';
 
-    INSERT INTO @$attribute.name
-    SELECT DISTINCT * FROM @deleted;
+    -- add the quenches
+    INSERT INTO @$attribute.name SELECT DISTINCT * FROM @deleted;
 ~*/
             }
         }
