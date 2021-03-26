@@ -13,10 +13,11 @@ if(restatements) {
 -- in changing time. Note that restatement checking is not done for
 -- unreliable information as this could prevent demotion.
 --
--- returns      1 for at least one equal surrounding value, 0 for different surrounding values
+-- returns        1 for at least one equal surrounding value, 0 for different surrounding values
 --
--- @posit       the id of the posit that should be checked
--- @posited     the time when this posit was made
+-- @posit         the id of the posit that should be checked
+-- @posited       the time when this posit was made
+-- @reliability   whether this posit is reliable or unreliable
 --
 ~*/
     while (anchor = schema.nextAnchor()) {
@@ -48,7 +49,8 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
         @posit $anchor.identity,
-        @posited $schema.metadata.positingRange
+        @posited $schema.metadata.positingRange,
+        @reliability $schema.metadata.reliabilityRange
     )
     RETURNS tinyint AS
     BEGIN
@@ -65,6 +67,8 @@ BEGIN
         $attribute.identityColumnName = @posit;
     RETURN (
         CASE
+        WHEN @reliability = 0
+        THEN 0
         WHEN EXISTS (
             SELECT
                 @value
@@ -97,7 +101,8 @@ BEGIN
     ADD CONSTRAINT [rc$attribute.annexName] CHECK (
         [$attribute.capsule].[rf$attribute.name] (
             $attribute.identityColumnName,
-            $attribute.positingColumnName
+            $attribute.positingColumnName,
+            $attribute.reliabilityColumnName
         ) = 0
     );
 ~*/
