@@ -200,33 +200,6 @@ BEGIN
         // then remove restatements 
         if(tie.isIdempotent()) {
 /*~
-    -- first remove existing information that is not in effect
-    DELETE t
-    FROM (
-        SELECT
-            $tie.statementTypeColumnName,
-            $tie.reliabilityColumnName AS currentReliability, 
-            LEAD($tie.reliabilityColumnName, 1) OVER (
-                PARTITION BY 
-                    $(tie.isHistorized())? $tie.changingColumnName,
-~*/
-            while(role = tie.nextRole()) {
-/*~
-                    $role.columnName$(tie.hasMoreRoles())?,
-~*/
-            }
-/*~
-                ORDER BY
-                    $tie.positingColumnName ASC
-            ) AS followingReliability
-        FROM
-            @inserted
-    ) t
-    WHERE
-        (t.currentReliability = 0 OR t.followingReliability = 0)
-    AND
-        t.$tie.statementTypeColumnName = 'X';    
-
     DECLARE @deleted TABLE (
         $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
         $tie.statementTypeColumnName char(1) not null,
@@ -266,7 +239,9 @@ BEGIN
 /*~
     FROM (
         DELETE t
-        OUTPUT deleted.*
+        OUTPUT 
+            deleted.*,
+            fol.$tie.reliabilityColumnName AS followingReliability
         FROM 
             @inserted t
         OUTER APPLY (
@@ -308,6 +283,7 @@ BEGIN
         ) pre
         OUTER APPLY (
             SELECT TOP 1
+                h.$tie.reliabilityColumnName,
 ~*/
             while(role = tie.nextRole()) {
 /*~
@@ -362,7 +338,11 @@ BEGIN
 /*~     )
     ) x
     WHERE
-        x.$tie.statementTypeColumnName = 'X';
+        x.$tie.statementTypeColumnName = 'X'
+    AND
+        x.$tie.reliabilityColumnName = 1
+    AND
+        x.followingReliability = 1;
 
     -- add the quenches
     INSERT INTO @inserted SELECT DISTINCT * FROM @deleted;
