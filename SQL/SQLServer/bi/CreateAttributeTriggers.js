@@ -142,7 +142,7 @@ BEGIN
             pre.$attribute.positingColumnName AS previous_$attribute.positingColumnName,
             pre.$attribute.statementTypeColumnName AS previous_$attribute.statementTypeColumnName
         FROM 
-            @IS_IST_Issue_IssueStatus a
+            @$attribute.name a
         CROSS APPLY (
             SELECT TOP 1
                 * 
@@ -238,7 +238,7 @@ BEGIN
         ) pre
         OUTER APPLY (
             SELECT TOP 1
-                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName,
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName, : h.$attribute.valueColumnName,
                 h.$attribute.reliabilityColumnName
             FROM 
                 @$attribute.name h
@@ -287,7 +287,7 @@ BEGIN
 
     UPDATE a
     SET 
-        a.IS_IST_PositedAt = u.previous_IS_IST_PositedAt
+        a.$attribute.positingColumnName = u.previous_$attribute.positingColumnName
     FROM 
         @updated u
     JOIN
