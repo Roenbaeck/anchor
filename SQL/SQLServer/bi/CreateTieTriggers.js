@@ -172,28 +172,115 @@ BEGIN
         if(!tie.isAssertive()) {
             var reliabilityColumn = tie.reliabilityColumnName;
 /*~
-    DELETE t
+    DECLARE @updated TABLE (
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
+        $tie.positingColumnName $schema.metadata.positingRange not null,
+        previous_$tie.positingColumnName $schema.metadata.positingRange not null,
+        $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+~*/
+    while (role = tie.nextRole()) {
+        if(role.knot) {
+            knot = role.knot;
+/*~
+        $role.columnName $knot.identity not null,
+~*/
+        }
+        else {
+            anchor = role.anchor;
+/*~
+        $role.columnName $anchor.identity not null,
+~*/
+        }
+    }
+/*~
+        primary key (
+~*/
+    if(tie.hasMoreIdentifiers()) {
+        while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+    else {
+        while(role = tie.nextValue()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+/*~
+            $(tie.isHistorized())? $tie.changingColumnName desc,
+            $tie.positingColumnName desc
+        )
+    );
+
+    INSERT INTO @updated
+    SELECT
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+        $tie.positingColumnName,
+        previous_$tie.positingColumnName,
+        $tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
     FROM (
-        SELECT 
-            $reliabilityColumn AS currentReliability, 
-            LAG($reliabilityColumn, 1) OVER (
-                PARTITION BY 
-                    $(tie.isHistorized())? $tie.changingColumnName,
+        DELETE a
+        OUTPUT 
+            deleted.*,
+            pre.$tie.positingColumnName AS previous_$tie.positingColumnName,
+            pre.$tie.statementTypeColumnName AS previous_$tie.statementTypeColumnName
+        FROM 
+            @inserted a
+        CROSS APPLY (
+            SELECT TOP 1
+                * 
+            FROM 
+                @inserted s
+            WHERE
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                    $role.columnName$(tie.hasMoreRoles())?,
+                s.$role.columnName = a.$role.columnName
+            AND
 ~*/
             }
 /*~
-                ORDER BY
-                    $tie.positingColumnName ASC
-            ) as previousReliability
-        FROM 
-            @inserted
-    ) t
+                $(tie.isHistorized())? s.$tie.changingColumnName = a.$tie.changingColumnName
+            $(tie.isHistorized())? AND 
+                s.$tie.positingColumnName < a.$tie.positingColumnName
+            ORDER BY 
+                s.$tie.positingColumnName DESC
+        ) pre
+        WHERE
+            a.$tie.reliabilityColumnName = pre.$tie.reliabilityColumnName
+    ) u
     WHERE
-        t.currentReliability = t.previousReliability;
+        u.previous_$tie.statementTypeColumnName = 'A';
+
+    DELETE a
+    FROM 
+        @inserted a
+    JOIN 
+        @updated u
+    ON 
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        u.$role.columnName = a.$role.columnName
+    AND
+~*/
+            }
+/*~
+        $(tie.isHistorized())? U.$tie.changingColumnName = a.$tie.changingColumnName
+    $(tie.isHistorized())? AND 
+        u.previous_$tie.positingColumnName = a.$tie.positingColumnName;
 ~*/                
         } // end of tie is not assertive
 
@@ -383,6 +470,31 @@ BEGIN
         @inserted
     WHERE
         $tie.statementTypeColumnName = 'P';
+
+    UPDATE a
+    SET 
+        a.$tie.positingColumnName = u.previous_$tie.positingColumnName
+    FROM 
+        @updated u
+    JOIN
+        [$tie.capsule].[$tie.positName] p
+    ON
+~*/
+            while(role = tie.nextRole()) {
+/*~
+        p.$role.columnName = u.$role.columnName
+    $(tie.hasMoreRoles())? AND
+~*/
+            }
+/*~     
+    $(tie.isHistorized())? AND
+        $(tie.isHistorized())? p.$tie.changingColumnName = u.$tie.changingColumnName
+    JOIN
+        [$tie.capsule].[$tie.annexName] a
+    ON 
+        a.$tie.identityColumnName = p.$tie.identityColumnName
+    AND
+        a.$tie.positingColumnName = u.$tie.positingColumnName;        
 
     INSERT INTO [$tie.capsule].[$tie.annexName] (
         $(schema.METADATA)? $tie.metadataColumnName,
