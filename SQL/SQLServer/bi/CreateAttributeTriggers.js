@@ -109,23 +109,75 @@ BEGIN
             if(!attribute.isAssertive()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
-    DELETE a
+    DECLARE @updated TABLE (
+        $attribute.anchorReferenceName $anchor.identity not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+        $attribute.positingColumnName $schema.metadata.positingRange not null,
+        $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
+        previous_$attribute.positingColumnName $schema.metadata.positingRange not null,
+        primary key(
+            $attribute.anchorReferenceName asc, 
+            $(attribute.timeRange)? $attribute.changingColumnName desc,
+            $attribute.positingColumnName desc
+        )
+    );
+
+    INSERT INTO @updated
+    SELECT
+        $attribute.anchorReferenceName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $attribute.positingColumnName,
+        $attribute.reliabilityColumnName,
+        $attribute.valueColumnName, 
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
+        previous_$attribute.positingColumnName
     FROM (
-        SELECT 
-            $attribute.reliabilityColumnName AS currentReliability, 
-            LAG($attribute.reliabilityColumnName, 1) OVER (
-                PARTITION BY 
-                    $attribute.anchorReferenceName, 
-                    $(attribute.isHistorized())? $attribute.changingColumnName,
-                    $valueColumn
-                ORDER BY
-                    $attribute.positingColumnName ASC
-            ) as previousReliability
+        DELETE a
+        OUTPUT 
+            deleted.*,
+            pre.$attribute.positingColumnName AS previous_$attribute.positingColumnName,
+            pre.$attribute.statementTypeColumnName AS previous_$attribute.statementTypeColumnName
         FROM 
-            @$attribute.name
-    ) a
+            @$attribute.name a
+        CROSS APPLY (
+            SELECT TOP 1
+                * 
+            FROM 
+                @$attribute.name s
+            WHERE
+                s.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            $(attribute.isHistorized())? AND
+                $(attribute.isHistorized())? s.$attribute.changingColumnName = a.$attribute.changingColumnName
+            AND
+                $(attribute.hasChecksum())? s.$attribute.checksumColumnName = a.$attribute.checksumColumnName : s.$attribute.valueColumnName = a.$attribute.valueColumnName
+            AND 
+                s.$attribute.positingColumnName < a.$attribute.positingColumnName
+            ORDER BY 
+                s.$attribute.positingColumnName DESC
+        ) pre
+        WHERE
+            a.$attribute.reliabilityColumnName = pre.$attribute.reliabilityColumnName
+    ) u
     WHERE
-        a.currentReliability = a.previousReliability;
+        u.previous_$attribute.statementTypeColumnName = 'A';
+
+    DELETE a
+    FROM 
+        @$attribute.name a
+    JOIN 
+        @updated u
+    ON 
+        u.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? u.$attribute.changingColumnName = a.$attribute.changingColumnName
+    AND
+        $(attribute.hasChecksum())? u.$attribute.checksumColumnName = a.$attribute.checksumColumnName : u.$attribute.valueColumnName = a.$attribute.valueColumnName
+    AND 
+        u.previous_$attribute.positingColumnName = a.$attribute.positingColumnName;
 ~*/                
             }
             // then remove restatements 
@@ -171,7 +223,7 @@ BEGIN
             @$attribute.name a
         OUTER APPLY (
             SELECT TOP 1
-                h.$valueColumn
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
                 @$attribute.name h
             WHERE
@@ -186,7 +238,7 @@ BEGIN
         ) pre
         OUTER APPLY (
             SELECT TOP 1
-                h.$valueColumn,
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName, : h.$attribute.valueColumnName,
                 h.$attribute.reliabilityColumnName
             FROM 
                 @$attribute.name h
@@ -201,9 +253,9 @@ BEGIN
                 h.$attribute.positingColumnName DESC
         ) fol
         WHERE
-            a.$valueColumn = pre.$valueColumn
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : a.$attribute.valueColumnName = pre.$attribute.valueColumnName
         OR
-            a.$valueColumn = fol.$valueColumn
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = fol.$attribute.checksumColumnName : a.$attribute.valueColumnName = fol.$attribute.valueColumnName
     ) x
     WHERE
         x.$attribute.statementTypeColumnName = 'X'
@@ -232,6 +284,26 @@ BEGIN
         @$attribute.name
     WHERE
         $attribute.statementTypeColumnName = 'P';
+
+    UPDATE a
+    SET 
+        a.$attribute.positingColumnName = u.previous_$attribute.positingColumnName
+    FROM 
+        @updated u
+    JOIN
+        [$attribute.capsule].[$attribute.positName] p
+    ON
+        u.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? u.$attribute.changingColumnName = p.$attribute.changingColumnName
+    AND
+        $(attribute.hasChecksum())? u.$attribute.checksumColumnName = p.$attribute.checksumColumnName : u.$attribute.valueColumnName = p.$attribute.valueColumnName
+    JOIN
+        [$attribute.capsule].[$attribute.annexName] a
+    ON 
+        a.$attribute.identityColumnName = p.$attribute.identityColumnName
+    AND
+        a.$attribute.positingColumnName = u.$attribute.positingColumnName;
 
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $(schema.METADATA)? $attribute.metadataColumnName,
