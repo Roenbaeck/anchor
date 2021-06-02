@@ -1,0 +1,26 @@
+# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Snowflake/NamingConvention.js
+SQL/Snowflake/uni/CreateEquivalentAndDefault.js
+SQL/Snowflake/uni/CreateKnots.js
+SQL/Snowflake/uni/CreateAnchorsAndAttributes.js
+SQL/Snowflake/uni/CreateTies.js
+# to be done later
+#SQL/Snowflake/uni/CreateKnotEquivalenceViews.js
+#SQL/Snowflake/uni/CreateAttributeEquivalenceViews.js
+#SQL/Snowflake/uni/AddAttributeRestatementConstraints.js
+#SQL/Snowflake/uni/CreateKeyGenerators.js
+#SQL/Snowflake/uni/CreateAttributeRewinders.js
+#SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js
+#SQL/Snowflake/uni/CreateAnchorPerspectives.js
+#SQL/Snowflake/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Snowflake/uni/CreateAttributeTriggers.js
+#SQL/Snowflake/uni/CreateAnchorTriggers.js
+#SQL/Snowflake/uni/AddTieRestatementConstraints.js
+#SQL/Snowflake/biz/DropTieBusinessPerspectives.js
+#SQL/Snowflake/uni/CreateTiePerspectives.js
+#SQL/Snowflake/biz/CreateTieBusinessPerspectives.js
+#SQL/Snowflake/uni/CreateTieTriggers.js
+#SQL/Snowflake/CreateSchemaTracking.js
+#SQL/Snowflake/uni/AddDescriptions.js

@@ -1,5 +1,6 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
+SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
 SQL/Vertica/uni/CreateEquivalentAndDefault.js
 SQL/Vertica/uni/CreateKnots.js

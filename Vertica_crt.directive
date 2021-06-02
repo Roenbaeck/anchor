@@ -1,5 +1,6 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
+SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
 SQL/Vertica/crt/CreatePositorAndDefault.js
 SQL/Vertica/crt/CreateKnots.js
