@@ -1,0 +1,29 @@
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Snowflake/NamingConvention.js
+SQL/Snowflake/crt/CreatePositorAndDefault.js
+SQL/Snowflake/crt/CreateKnots.js
+SQL/Snowflake/crt/CreateAnchorsAndAttributes.js
+SQL/Snowflake/crt/CreateAttributeAssembledProjections.js
+SQL/Snowflake/crt/CreateTies.js
+SQL/Snowflake/crt/CreateTieAssembledProjections.js
+# to be done later
+#SQL/Snowflake/crt/CreateAttributeRewinders.js
+#SQL/Snowflake/crt/AddAttributeRestatementConstraints.js
+#SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js
+#SQL/Snowflake/crt/CreateAnchorPerspectives.js
+#SQL/Snowflake/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Snowflake/crt/CreateKeyGenerators.js
+#SQL/Snowflake/crt/CreateAttributeTriggers.js
+#SQL/Snowflake/crt/CreateAnchorTriggers.js
+#SQL/Snowflake/crt/CreateTies.js
+#SQL/Snowflake/crt/AddTieRestatementConstraints.js
+#SQL/Snowflake/crt/CreateTieRewinders.js
+#SQL/Snowflake/biz/DropTieBusinessPerspectives.js
+#SQL/Snowflake/crt/CreateTiePerspectives.js
+#SQL/Snowflake/biz/CreateTieBusinessPerspectives.js
+#SQL/Snowflake/crt/CreateTieTriggers.js
+#SQL/Snowflake/crt/CreateAttributeSheetStacks.js
+#SQL/Snowflake/CreateSchemaTracking.js
+#SQL/Snowflake/crt/AddDescriptions.js
