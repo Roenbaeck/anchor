@@ -13,7 +13,7 @@ if(restatements) {
 -- in changing time. Note that restatement checking is not done for
 -- unreliable information as this could prevent demotion.
 --
--- Note that if deletes are made, the remaining information will not
+-- If actual deletes are made, the remaining information will not
 -- be checked for restatements.
 --
 ~*/
@@ -84,7 +84,7 @@ BEGIN
             a.$attribute.reliabilityColumnName = 1
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : p.$attribute.valueColumnName = pre.$attribute.valueColumnName
-    )
+    );
     IF @id is not null
     BEGIN
         SET @message = '$attribute.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical previous value';
@@ -123,7 +123,7 @@ BEGIN
             a.$attribute.reliabilityColumnName = 1
         AND
             $(attribute.hasChecksum())? p.$attribute.checksumColumnName = fol.$attribute.checksumColumnName : p.$attribute.valueColumnName = fol.$attribute.valueColumnName
-    )
+    );
     IF @id is not null
     BEGIN
         SET @message = '$attribute.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical following value';
