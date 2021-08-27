@@ -13,11 +13,8 @@ if(restatements) {
 -- in changing time. Note that restatement checking is not done for
 -- unreliable information as this could prevent demotion.
 --
--- returns        1 for at least one equal surrounding value, 0 for different surrounding values
---
--- @posit         the id of the posit that should be checked
--- @posited       the time when this posit was made
--- @reliability   whether this posit is reliable or unreliable
+-- Note that if deletes are made, the remaining information will not
+-- be checked for restatements.
 --
 ~*/
     while (anchor = schema.nextAnchor()) {
@@ -39,78 +36,104 @@ if(restatements) {
                     valueColumn = attribute.knotReferenceName;
                     valueType = knot.identity;
                 }
-/*~
--- Restatement Finder Function and Constraint -------------------------------------------------------------------------
--- rf$attribute.name restatement finder, also used by the insert and update triggers for idempotent attributes
--- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.rf$attribute.name', 'FN') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
-        @posit $anchor.identity,
-        @posited $schema.metadata.positingRange,
-        @reliability $schema.metadata.reliabilityRange
-    )
-    RETURNS tinyint AS
-    BEGIN
-    DECLARE @id $anchor.identity;
-    DECLARE @value $valueType;
-    DECLARE @changed $attribute.timeRange;
-    SELECT
-        @id = $attribute.anchorReferenceName,
-        @value = $valueColumn,
-        @changed = $attribute.changingColumnName
-    FROM
-        [$attribute.capsule].[$attribute.positName]
-    WHERE
-        $attribute.identityColumnName = @posit;
-    RETURN (
-        CASE
-        WHEN @reliability = 0
-        THEN 0
-        WHEN EXISTS (
-            SELECT
-                @value
-            WHERE
-                @value = [$attribute.capsule].[pre$attribute.name] (
-                    @id,
-                    @changed,
-                    @posited
-                )
-        ) OR EXISTS (
-            SELECT
-                @value
-            WHERE
-                @value = [$attribute.capsule].[fol$attribute.name] (
-                    @id,
-                    @changed,
-                    @posited
-                )
-        )
-        THEN 1
-        ELSE 0
-        END
-    );
-    END
-    ');
-~*/
                 if(!attribute.isRestatable()) {
 /*~
-    ALTER TABLE [$attribute.capsule].[$attribute.annexName]
-    ADD CONSTRAINT [rc$attribute.annexName] CHECK (
-        [$attribute.capsule].[rf$attribute.name] (
-            $attribute.identityColumnName,
-            $attribute.positingColumnName,
-            $attribute.reliabilityColumnName
-        ) = 0
-    );
-~*/
-                }
-/*~
+-- Restatement Checking Trigger ---------------------------------------------------------------------------------------
+-- rt_$attribute.name (available only in attributes that cannot have restatements)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.rt_$attribute.name', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name];
+GO
+
+CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name] ON [$attribute.capsule].[$attribute.annexName]
+AFTER INSERT, UPDATE
+AS 
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @message varchar(555);
+    DECLARE @id $attribute.identity;
+
+    -- check previous values
+    SET @id = (
+        SELECT TOP 1
+            a.$attribute.identityColumnName
+        FROM 
+            inserted a
+        JOIN 
+            $attribute.positName p
+        ON 
+            p.$attribute.identityColumnName = a.$attribute.identityColumnName
+        CROSS APPLY (
+            SELECT TOP 1
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
+            FROM 
+                $attribute.name h
+            WHERE
+                h.$attribute.reliabilityColumnName = 1
+            AND
+                h.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+            AND
+                h.$attribute.changingColumnName < p.$attribute.changingColumnName
+            AND 
+                h.$attribute.positingColumnName < a.$attribute.positingColumnName
+            ORDER BY 
+                h.$attribute.changingColumnName DESC,
+                h.$attribute.positingColumnName DESC
+        ) pre
+        WHERE
+            a.$attribute.reliabilityColumnName = 1
+        AND
+            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : p.$attribute.valueColumnName = pre.$attribute.valueColumnName
+    )
+    IF @id is not null
+    BEGIN
+        SET @message = '$attribute.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical previous value';
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+    END
+
+    -- check following values
+    SET @id = (
+        SELECT TOP 1
+            a.$attribute.identityColumnName
+        FROM 
+            inserted a
+        JOIN 
+            $attribute.positName p
+        ON 
+            p.$attribute.identityColumnName = a.$attribute.identityColumnName
+        CROSS APPLY (
+            SELECT TOP 1
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
+            FROM 
+                $attribute.name h
+            WHERE
+                h.$attribute.reliabilityColumnName = 1
+            AND
+                h.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+            AND
+                h.$attribute.changingColumnName > p.$attribute.changingColumnName
+            AND 
+                h.$attribute.positingColumnName < a.$attribute.positingColumnName
+            ORDER BY 
+                h.$attribute.changingColumnName ASC,
+                h.$attribute.positingColumnName DESC
+        ) fol
+        WHERE
+            a.$attribute.reliabilityColumnName = 1
+        AND
+            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = fol.$attribute.checksumColumnName : p.$attribute.valueColumnName = fol.$attribute.valueColumnName
+    )
+    IF @id is not null
+    BEGIN
+        SET @message = '$attribute.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical following value';
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+    END
 END
 GO
 ~*/
+                }
             }
         }
     }
