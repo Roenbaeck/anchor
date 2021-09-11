@@ -470,7 +470,9 @@ BEGIN
         @inserted
     WHERE
         $tie.statementTypeColumnName = 'P';
-
+~*/
+            if(!tie.isAssertive()) {
+/*~
     UPDATE a
     SET 
         a.$tie.positingColumnName = u.previous_$tie.positingColumnName
@@ -480,12 +482,12 @@ BEGIN
         [$tie.capsule].[$tie.positName] p
     ON
 ~*/
-            while(role = tie.nextRole()) {
+                while(role = tie.nextRole()) {
 /*~
         p.$role.columnName = u.$role.columnName
     $(tie.hasMoreRoles())? AND
 ~*/
-            }
+                }
 /*~     
     $(tie.isHistorized())? AND
         $(tie.isHistorized())? p.$tie.changingColumnName = u.$tie.changingColumnName
@@ -495,7 +497,9 @@ BEGIN
         a.$tie.identityColumnName = p.$tie.identityColumnName
     AND
         a.$tie.positingColumnName = u.$tie.positingColumnName;        
-
+~*/
+            }
+/*~
     INSERT INTO [$tie.capsule].[$tie.annexName] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,

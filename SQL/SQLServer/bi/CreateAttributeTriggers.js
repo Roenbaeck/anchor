@@ -284,7 +284,9 @@ BEGIN
         @$attribute.name
     WHERE
         $attribute.statementTypeColumnName = 'P';
-
+~*/
+        if(!attribute.isAssertive()) {
+/*~
     UPDATE a
     SET 
         a.$attribute.positingColumnName = u.previous_$attribute.positingColumnName
@@ -304,7 +306,9 @@ BEGIN
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
         a.$attribute.positingColumnName = u.$attribute.positingColumnName;
-
+~*/
+        }
+/*~
     INSERT INTO [$attribute.capsule].[$attribute.annexName] (
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
