@@ -97,7 +97,7 @@ BEGIN
     );
     IF @id is not null
     BEGIN
-        SET @message = '$tie.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical previous value';
+        SET @message = '$tie.name ($tie.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
@@ -164,7 +164,7 @@ BEGIN
     );
     IF @id is not null
     BEGIN
-        SET @message = '$tie.identityColumnName = ' + cast(@id as varchar(42)) + ' clashes with an identical following value';
+        SET @message = '$tie.name ($tie.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END

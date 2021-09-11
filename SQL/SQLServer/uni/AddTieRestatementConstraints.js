@@ -38,7 +38,13 @@ BEGIN
     -- check previous values
     SET @id = (
         SELECT TOP 1
-            'X' -- TODO: concat the offending values here
+~*/
+            while(role = tie.nextRole()) {
+/*~
+            '$role.columnName = ' + cast(pre.$role.columnName as varchar(111)) $(tie.hasMoreRoles())? + ', ' + 
+~*/
+            }
+/*~
         FROM 
             inserted i
         CROSS APPLY (
@@ -87,7 +93,7 @@ BEGIN
     );
     IF @id is not null
     BEGIN
-        SET @message = '$tie.name has a clash with an identical previous value';
+        SET @message = '$tie.name (' + @id + ') has a clash with an identical previous value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
@@ -95,7 +101,13 @@ BEGIN
     -- check following values
     SET @id = (
         SELECT TOP 1
-            'X' -- TODO: concat the offending values here
+~*/
+            while(role = tie.nextRole()) {
+/*~
+            '$role.columnName = ' + cast(fol.$role.columnName as varchar(111)) $(tie.hasMoreRoles())? + ', ' + 
+~*/
+            }
+/*~
         FROM 
             inserted i
         CROSS APPLY (
@@ -144,7 +156,7 @@ BEGIN
     );
     IF @id is not null
     BEGIN
-        SET @message = '$tie.name has a clash with an identical following value';
+        SET @message = '$tie.name (' + @id + ') has a clash with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
