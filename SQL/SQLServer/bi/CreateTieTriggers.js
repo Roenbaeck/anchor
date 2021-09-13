@@ -140,7 +140,7 @@ BEGIN
     SELECT
         $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
         'X', -- existing data
-        $(tie.isHistorized())? ISNULL(i.$tie.changingColumnName, @now),
+        $(tie.isHistorized())? ISNULL(p.$tie.changingColumnName, @now),
         a.$tie.positingColumnName,
         a.$tie.reliabilityColumnName,
 ~*/
@@ -156,11 +156,21 @@ BEGIN
         [$tie.capsule].[$tie.positName] p
     ON
 ~*/
-        while(role = tie.nextRole()) {
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
 /*~
         p.$role.columnName = i.$role.columnName
-    $(tie.hasMoreRoles())? AND
+    $(tie.hasMoreIdentifiers())? AND
 ~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreValues())? AND
+~*/
+            }
         }
 /*~
     JOIN 
