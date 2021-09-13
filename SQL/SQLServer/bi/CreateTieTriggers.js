@@ -140,7 +140,7 @@ BEGIN
     SELECT
         $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
         'X', -- existing data
-        $(tie.isHistorized())? ISNULL(i.$tie.changingColumnName, @now),
+        $(tie.isHistorized())? ISNULL(p.$tie.changingColumnName, @now),
         a.$tie.positingColumnName,
         a.$tie.reliabilityColumnName,
 ~*/
@@ -156,11 +156,21 @@ BEGIN
         [$tie.capsule].[$tie.positName] p
     ON
 ~*/
-        while(role = tie.nextRole()) {
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
 /*~
         p.$role.columnName = i.$role.columnName
-    $(tie.hasMoreRoles())? AND
+    $(tie.hasMoreIdentifiers())? AND
 ~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreValues())? AND
+~*/
+            }
         }
 /*~
     JOIN 
@@ -470,7 +480,9 @@ BEGIN
         @inserted
     WHERE
         $tie.statementTypeColumnName = 'P';
-
+~*/
+            if(!tie.isAssertive()) {
+/*~
     UPDATE a
     SET 
         a.$tie.positingColumnName = u.previous_$tie.positingColumnName
@@ -480,12 +492,12 @@ BEGIN
         [$tie.capsule].[$tie.positName] p
     ON
 ~*/
-            while(role = tie.nextRole()) {
+                while(role = tie.nextRole()) {
 /*~
         p.$role.columnName = u.$role.columnName
     $(tie.hasMoreRoles())? AND
 ~*/
-            }
+                }
 /*~     
     $(tie.isHistorized())? AND
         $(tie.isHistorized())? p.$tie.changingColumnName = u.$tie.changingColumnName
@@ -495,7 +507,9 @@ BEGIN
         a.$tie.identityColumnName = p.$tie.identityColumnName
     AND
         a.$tie.positingColumnName = u.$tie.positingColumnName;        
-
+~*/
+            }
+/*~
     INSERT INTO [$tie.capsule].[$tie.annexName] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $tie.identityColumnName,

@@ -16,9 +16,7 @@ if(schema.TRIGGERS) {
 var anchor, attribute, encryptionGroup;
 while (anchor = schema.nextAnchor()) {
     while(attribute = anchor.nextAttribute()) {
-        var statementTypes = "'N'";
-        if(attribute.isHistorized() && !attribute.isIdempotent())
-            statementTypes += ",'R'";
+        if(attribute.isHistorized()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name instead of INSERT trigger on $attribute.name
@@ -31,8 +29,8 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @maxVersion int;
-    DECLARE @currentVersion int;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
 ~*/
         if(encryptionGroup = attribute.getEncryptionGroup()) {
 /*~
@@ -46,8 +44,8 @@ BEGIN
         RAISERROR('The key [$encryptionGroup] must be open in order to modify the attribute ${attribute.name}$.', 16, 1);
     END    
 ~*/
-        }
-/*~    
+        }    
+/*~
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
@@ -55,13 +53,13 @@ BEGIN
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
-        $attribute.versionColumnName bigint not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
-            $attribute.versionColumnName,
-            $attribute.anchorReferenceName
+            $attribute.anchorReferenceName asc, 
+            $(attribute.timeRange)? $attribute.changingColumnName desc
         )
     );
+
     INSERT INTO @$attribute.name
     SELECT
         i.$attribute.anchorReferenceName,
@@ -70,128 +68,119 @@ BEGIN
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
         i.$attribute.valueColumnName,
         $(attribute.hasChecksum())? ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))),
-~*/
-        if(attribute.isHistorized()) {
-/*~
-        DENSE_RANK() OVER (
-            PARTITION BY
-                $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-                i.$attribute.anchorReferenceName
-            ORDER BY
-                i.$attribute.changingColumnName ASC
-        ),
-~*/
-        }
-        else {
-/*~
-        ROW_NUMBER() OVER (
-            PARTITION BY
-                $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-                i.$attribute.anchorReferenceName
-            ORDER BY
-                (SELECT 1) ASC -- some undefined order
-        ),
-~*/
-        }
-/*~
-        'X'
+        'P' -- new posit
     FROM
-        inserted i;
-
+        inserted i
+    LEFT JOIN
+        [$attribute.capsule].[$attribute.name] p
+    ON
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
+    AND
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+    WHERE -- the posit must be different (exclude the identical)
+        p.$attribute.anchorReferenceName is null;
+~*/
+        // fill table with entire history in these cases
+        if(attribute.isIdempotent()) {
+            var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
+/*~
+    INSERT INTO @$attribute.name
     SELECT
-        @maxVersion = $(attribute.isHistorized())? max($attribute.versionColumnName), : 1,
-        @currentVersion = 0
-    FROM
-        @$attribute.name;
-    WHILE (@currentVersion < @maxVersion)
-    BEGIN
-        SET @currentVersion = @currentVersion + 1;
-        UPDATE v
-        SET
-            v.$attribute.statementTypeColumnName =
-                CASE
-                    WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
-                    THEN 'D' -- duplicate
-~*/
-        if(attribute.isHistorized()) {
-/*~
-                    WHEN EXISTS ( -- note that this code is identical to the scalar function [$attribute.capsule].[rf$attribute.name]
-                        SELECT TOP 1
-                            42 
-                        WHERE
-                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
-                                SELECT TOP 1
-                                    $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
-                                FROM
-                                    $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](v.$attribute.equivalentColumnName) pre : [$attribute.capsule].[$attribute.name] pre
-                                WHERE
-                                    pre.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                                AND
-                                    pre.$attribute.changingColumnName < v.$attribute.changingColumnName
-                                ORDER BY
-                                    pre.$attribute.changingColumnName DESC
-                            )
-                    ) OR EXISTS (
-                        SELECT TOP 1
-                            42 
-                        WHERE
-                            $(attribute.hasChecksum())? v.$attribute.checksumColumnName = ( : v.$attribute.valueColumnName = (
-                                SELECT TOP 1
-                                    $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
-                                FROM
-                                    $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](v.$attribute.equivalentColumnName) fol : [$attribute.capsule].[$attribute.name] fol
-                                WHERE
-                                    fol.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-                                AND
-                                    fol.$attribute.changingColumnName > v.$attribute.changingColumnName
-                                ORDER BY
-                                    fol.$attribute.changingColumnName ASC
-                            )
-                    )                    
-                    THEN 'R' -- restatement
-~*/
-        }
-/*~
-                    ELSE 'N' -- new statement
-                END
-        FROM
-            @$attribute.name v
-        LEFT JOIN
-            [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-        ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
-        $(attribute.isHistorized())? AND
-            $(attribute.isHistorized())? [$attribute.mnemonic].$attribute.changingColumnName = v.$attribute.changingColumnName
-        $(attribute.isEquivalent())? AND
-            $(attribute.isEquivalent())? [$attribute.mnemonic].$attribute.equivalentColumnName = v.$attribute.equivalentColumnName
-        AND
-            $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName = v.$attribute.checksumColumnName : [$attribute.mnemonic].$attribute.valueColumnName = v.$attribute.valueColumnName
-        WHERE
-            v.$attribute.versionColumnName = @currentVersion;
-
-        INSERT INTO [$attribute.capsule].[$attribute.name] (
-            $attribute.anchorReferenceName,
+        i.$attribute.anchorReferenceName,
+        $(schema.METADATA)? p.$attribute.metadataColumnName,
+        $(attribute.isHistorized())? p.$attribute.changingColumnName,
+        p.$attribute.valueColumnName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
+        'X' -- existing data
+    FROM (
+        SELECT DISTINCT 
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.isHistorized())? $attribute.changingColumnName,
-            $attribute.valueColumnName
-        )
-        SELECT
-            $attribute.anchorReferenceName,
-            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.isHistorized())? $attribute.changingColumnName,
-            $attribute.valueColumnName
-        FROM
+            $attribute.anchorReferenceName 
+        FROM 
             @$attribute.name
+    ) i
+    JOIN
+        [$attribute.capsule].[$attribute.name] p
+    ON
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+    $(attribute.isEquivalent())? AND    
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName;
+
+    DECLARE @deleted TABLE (
+        $attribute.anchorReferenceName $anchor.identity not null,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
+        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null
+    );
+
+    INSERT INTO @deleted
+    SELECT 
+        x.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? x.$attribute.equivalentColumnName,
+        x.$attribute.changingColumnName
+    FROM (
+        DELETE a
+        OUTPUT 
+            deleted.*
+        FROM 
+            @$attribute.name a
+        OUTER APPLY (
+            SELECT TOP 1
+                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
+            FROM 
+                @$attribute.name h
+            WHERE
+                $(attribute.isEquivalent())? h.$attribute.equivalentColumnName = a.$attribute.equivalentColumnName
+            $(attribute.isEquivalent())? AND    
+                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            AND
+                h.$attribute.changingColumnName < a.$attribute.changingColumnName
+            ORDER BY 
+                h.$attribute.changingColumnName DESC
+        ) pre
         WHERE
-            $attribute.versionColumnName = @currentVersion
-        AND
-            $attribute.statementTypeColumnName in ($statementTypes);
-    END
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : a.$attribute.valueColumnName = pre.$attribute.valueColumnName
+    ) x
+    WHERE
+        x.$attribute.statementTypeColumnName = 'X';
+
+    -- remove the quenches (should happen rarely)
+	DELETE a
+	FROM 
+		[$attribute.capsule].[$attribute.name] a
+	JOIN 
+		@deleted d
+	ON 
+		d.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+	AND 
+        $(attribute.isEquivalent())? d.$attribute.equivalentColumnName = a.$attribute.equivalentColumnName
+    $(attribute.isEquivalent())? AND    
+		d.$attribute.changingColumnName = a.$attribute.changingColumnName;        
+~*/
+        } // end of idempotent
+/*~
+    INSERT INTO [$attribute.capsule].[$attribute.name] (
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $attribute.anchorReferenceName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $attribute.anchorReferenceName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.valueColumnName
+    FROM
+        @$attribute.name
+    WHERE
+        $attribute.statementTypeColumnName = 'P';
 END
 GO
 ~*/
+        } // end of historized attribute
     } // end of loop over attributes
 }
 }
