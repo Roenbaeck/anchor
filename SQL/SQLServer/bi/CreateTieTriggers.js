@@ -138,7 +138,7 @@ BEGIN
 /*~
     INSERT INTO @inserted
     SELECT
-        $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
+        $(schema.METADATA)? ISNULL(a.$tie.metadataColumnName, 0),
         'X', -- existing data
         $(tie.isHistorized())? ISNULL(p.$tie.changingColumnName, @now),
         a.$tie.positingColumnName,
@@ -150,8 +150,27 @@ BEGIN
 ~*/
         }
 /*~
-    FROM
-        @inserted i
+    FROM (
+        SELECT DISTINCT
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName$(tie.hasMoreIdentifiers())?,
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+            $role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+        }
+/*~
+        FROM 
+            @inserted 
+    ) i
     JOIN
         [$tie.capsule].[$tie.positName] p
     ON
@@ -617,14 +636,15 @@ BEGIN
         (x.$tie.statementTypeColumnName = 'P' AND x.following_$tie.positingColumnName <> x.$tie.positingColumnName); -- new posit
 
     -- add the quenches
-    INSERT INTO @inserted SELECT DISTINCT * FROM @restated;
-    -- add the retractions
-    INSERT INTO @inserted SELECT DISTINCT * FROM @retracted;
+    INSERT INTO @inserted SELECT * FROM @restated;
     END --- (only run if necessary) ---
 ~*/
         }
     }
 /*~
+    -- add the retractions
+    INSERT INTO @inserted SELECT * FROM @retracted;
+
     INSERT INTO [$tie.capsule].[$tie.positName] (
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/

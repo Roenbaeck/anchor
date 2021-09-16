@@ -38,7 +38,7 @@ BEGIN
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.statementTypeColumnName char(1) not null,
-        primary key(
+        primary key (
             $attribute.anchorReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc,
             $attribute.positingColumnName desc
@@ -394,14 +394,15 @@ BEGIN
         (x.$attribute.statementTypeColumnName = 'P' AND x.following_$attribute.positingColumnName <> x.$attribute.positingColumnName); -- new posit
 
     -- add the quenches
-    INSERT INTO @$attribute.name SELECT DISTINCT * FROM @restated;
-    -- add the retractions
-    INSERT INTO @$attribute.name SELECT DISTINCT * FROM @retracted;
+    INSERT INTO @$attribute.name SELECT * FROM @restated;
     END --- (only run if necessary) ---
 ~*/
             }
         }
 /*~
+    -- add the retractions
+    INSERT INTO @$attribute.name SELECT * FROM @retracted;
+
     INSERT INTO [$attribute.capsule].[$attribute.positName] (
         $attribute.anchorReferenceName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
