@@ -190,7 +190,11 @@ BEGIN
         OR
             (i.$attribute.reliabilityColumnName = 1 AND i.previous_$attribute.reliabilityColumnName = 0)
         );
-
+~*/
+            // first remove reassertions
+            if(!attribute.isAssertive()) {
+                var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
+/*~
     IF EXISTS (
         SELECT TOP 1 
             $attribute.statementTypeColumnName 
@@ -200,11 +204,7 @@ BEGIN
             $attribute.statementTypeColumnName IN ('P', 'A')
     )
     BEGIN --- (only run if necessary) ---
-~*/
-            // first remove reassertions
-            if(!attribute.isAssertive()) {
-                var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
-/*~
+
     DECLARE @updated TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -283,12 +283,23 @@ BEGIN
         $(attribute.hasChecksum())? u.$attribute.checksumColumnName = a.$attribute.checksumColumnName : u.$attribute.valueColumnName = a.$attribute.valueColumnName
     AND 
         u.previous_$attribute.positingColumnName = a.$attribute.positingColumnName;
+    END --- (only run if necessary) ---
 ~*/                
             }
             // then remove restatements 
             if(attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
+    IF EXISTS (
+        SELECT TOP 1 
+            $attribute.statementTypeColumnName 
+        FROM 
+            @$attribute.name
+        WHERE 
+            $attribute.statementTypeColumnName IN ('P', 'A')
+    )
+    BEGIN --- (only run if necessary) ---
+
     DECLARE @restated TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
@@ -383,9 +394,10 @@ BEGIN
         (x.$attribute.statementTypeColumnName = 'P' AND x.following_$attribute.positingColumnName <> x.$attribute.positingColumnName); -- new posit
 
     -- add the quenches
-    INSERT INTO @$attribute.name SELECT DISTINCT * FROM @deleted;
+    INSERT INTO @$attribute.name SELECT DISTINCT * FROM @restated;
     -- add the retractions
     INSERT INTO @$attribute.name SELECT DISTINCT * FROM @retracted;
+    END --- (only run if necessary) ---
 ~*/
             }
         }
@@ -451,8 +463,6 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName = v.$attribute.checksumColumnName : p.$attribute.valueColumnName = v.$attribute.valueColumnName
     WHERE
         $attribute.statementTypeColumnName in ('P', 'A');
-
-    END --- (only run if necessary) ---
 END
 GO
 ~*/
