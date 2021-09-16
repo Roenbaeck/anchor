@@ -53,80 +53,146 @@ BEGIN
     DECLARE @message varchar(555);
     DECLARE @id $attribute.identity;
 
+    DECLARE @$attribute.name TABLE (
+        $attribute.identityColumnName $attribute.identity not null,
+        $attribute.anchorReferenceName $anchor.identity not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+        $attribute.positingColumnName $schema.metadata.positingRange not null,
+        $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
+        primary key (
+            $attribute.anchorReferenceName asc, 
+            $(attribute.timeRange)? $attribute.changingColumnName desc,
+            $attribute.positingColumnName desc
+        ),
+        unique (
+            $attribute.identityColumnName,
+            $attribute.positingColumnName
+        )
+    );
+
+    INSERT INTO @$attribute.name (
+        $attribute.identityColumnName,
+        $attribute.anchorReferenceName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $attribute.positingColumnName,
+        $attribute.reliabilityColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        i.$attribute.identityColumnName,
+        p.$attribute.anchorReferenceName,
+        $(schema.METADATA)? i.$attribute.metadataColumnName,
+        $(attribute.isHistorized())? p.$attribute.changingColumnName,
+        i.$attribute.positingColumnName,
+        i.$attribute.reliabilityColumnName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
+        p.$attribute.valueColumnName
+    FROM 
+        inserted i
+    JOIN 
+        [$attribute.capsule].[$attribute.positName] p
+    ON 
+        p.$attribute.identityColumnName = i.$attribute.identityColumnName; -- the posit has already been created
+
+    INSERT INTO @$attribute.name (
+        $attribute.identityColumnName,
+        $attribute.anchorReferenceName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $attribute.positingColumnName,
+        $attribute.reliabilityColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        p.$attribute.identityColumnName,
+        p.$attribute.anchorReferenceName,
+        $(schema.METADATA)? p.$attribute.metadataColumnName,
+        $(attribute.isHistorized())? p.$attribute.changingColumnName,
+        p.$attribute.positingColumnName,
+        p.$attribute.reliabilityColumnName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
+        p.$attribute.valueColumnName
+    FROM 
+        (SELECT DISTINCT $attribute.anchorReferenceName FROM @$attribute.name) i
+    JOIN
+        [$attribute.capsule].[$attribute.name] p
+    ON 
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    LEFT JOIN 
+        @$attribute.name x
+    ON
+        x.$attribute.identityColumnName = p.$attribute.identityColumnName
+    AND
+        x.$attribute.positingColumnName = p.$attribute.positingColumnName
+    WHERE
+        x.$attribute.identityColumnName is null;
+
+    -- no need to check retracted information
+    DELETE a 
+    FROM 
+        @$attribute.name a
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$attribute.reliabilityColumnName
+        FROM 
+            @$attribute.name x
+        WHERE
+            x.$attribute.identityColumnName = a.$attribute.identityColumnName
+        AND
+            x.$attribute.positingColumnName < a.$attribute.positingColumnName
+        ORDER BY
+            x.$attribute.positingColumnName DESC
+    ) pre    
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$attribute.reliabilityColumnName
+        FROM 
+            @$attribute.name x
+        WHERE
+            x.$attribute.identityColumnName = a.$attribute.identityColumnName
+        AND
+            x.$attribute.positingColumnName > a.$attribute.positingColumnName
+        ORDER BY
+            x.$attribute.positingColumnName ASC
+    ) fol    
+    WHERE
+        (a.$attribute.reliabilityColumnName = 1 AND fol.$attribute.reliabilityColumnName = 0)
+    OR
+        (a.$attribute.reliabilityColumnName = 0 AND pre.$attribute.reliabilityColumnName = 1);
+        
     -- check previous values
     SET @id = (
         SELECT TOP 1
             a.$attribute.identityColumnName
         FROM 
-            inserted a
-        JOIN 
-            $attribute.positName p
-        ON 
-            p.$attribute.identityColumnName = a.$attribute.identityColumnName
+            @$attribute.name a
         CROSS APPLY (
             SELECT TOP 1
                 $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
-                $attribute.name h
+                @$attribute.name h
             WHERE
-                h.$attribute.reliabilityColumnName = 1
-            AND
-                h.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
-            AND
-                h.$attribute.changingColumnName < p.$attribute.changingColumnName
-            AND 
-                h.$attribute.positingColumnName < a.$attribute.positingColumnName
+                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+            $(attribute.isHistorized())? AND
+                $(attribute.isHistorized())? h.$attribute.changingColumnName < a.$attribute.changingColumnName
             ORDER BY 
-                h.$attribute.changingColumnName DESC,
+                $(attribute.isHistorized())? h.$attribute.changingColumnName DESC,
                 h.$attribute.positingColumnName DESC
         ) pre
         WHERE
-            a.$attribute.reliabilityColumnName = 1
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : a.$attribute.valueColumnName = pre.$attribute.valueColumnName
         AND
-            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : p.$attribute.valueColumnName = pre.$attribute.valueColumnName
+            a.$attribute.reliabilityColumnName = 1
     );
     IF @id is not null
     BEGIN
         SET @message = '$attribute.name ($attribute.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
-        RAISERROR(@message, 16, 1);
-        ROLLBACK;
-    END
-
-    -- check following values
-    SET @id = (
-        SELECT TOP 1
-            a.$attribute.identityColumnName
-        FROM 
-            inserted a
-        JOIN 
-            $attribute.positName p
-        ON 
-            p.$attribute.identityColumnName = a.$attribute.identityColumnName
-        CROSS APPLY (
-            SELECT TOP 1
-                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
-            FROM 
-                $attribute.name h
-            WHERE
-                h.$attribute.reliabilityColumnName = 1
-            AND
-                h.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
-            AND
-                h.$attribute.changingColumnName > p.$attribute.changingColumnName
-            AND 
-                h.$attribute.positingColumnName < a.$attribute.positingColumnName
-            ORDER BY 
-                h.$attribute.changingColumnName ASC,
-                h.$attribute.positingColumnName DESC
-        ) fol
-        WHERE
-            a.$attribute.reliabilityColumnName = 1
-        AND
-            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = fol.$attribute.checksumColumnName : p.$attribute.valueColumnName = fol.$attribute.valueColumnName
-    );
-    IF @id is not null
-    BEGIN
-        SET @message = '$attribute.name ($attribute.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END

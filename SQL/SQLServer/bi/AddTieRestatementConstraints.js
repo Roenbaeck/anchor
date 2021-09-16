@@ -35,16 +35,206 @@ BEGIN
     DECLARE @message varchar(555);
     DECLARE @id $tie.identity;
 
+    DECLARE @inserted TABLE (
+        $tie.identityColumnName $tie.identity not null,
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
+        $tie.positingColumnName $schema.metadata.positingRange not null,
+        $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
+~*/
+    while (role = tie.nextRole()) {
+        if(role.knot) {
+            knot = role.knot;
+/*~
+        $role.columnName $knot.identity not null,
+~*/
+        }
+        else {
+            anchor = role.anchor;
+/*~
+        $role.columnName $anchor.identity not null,
+~*/
+        }
+    }
+/*~
+        primary key (
+~*/
+    if(tie.hasMoreIdentifiers()) {
+        while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+    else {
+        while(role = tie.nextValue()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+/*~
+            $(tie.isHistorized())? $tie.changingColumnName desc,
+            $tie.positingColumnName desc
+        ), 
+        unique (   
+            $tie.identityColumnName,
+            $tie.positingColumnName
+        )
+    );
+
+    INSERT INTO @inserted (
+        $tie.identityColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
+    ) 
+    SELECT
+        i.$tie.identityColumnName,
+        $(schema.METADATA)? i.$tie.metadataColumnName,
+        $(tie.isHistorized())? p.$tie.changingColumnName,
+        i.$tie.positingColumnName,
+        i.$tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        p.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
+    FROM
+        inserted i
+    JOIN 
+        [$tie.capsule].[$tie.positName] p
+    ON 
+        p.$tie.identityColumnName = i.$tie.identityColumnName; -- the posit has already been created
+    
+    INSERT INTO @inserted (
+        $tie.identityColumnName,
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
+    ) 
+    SELECT
+        p.$tie.identityColumnName,
+        $(schema.METADATA)? p.$tie.metadataColumnName,
+        $(tie.isHistorized())? p.$tie.changingColumnName,
+        p.$tie.positingColumnName,
+        p.$tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        p.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
+    FROM (
+        SELECT DISTINCT
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName$(tie.hasMoreIdentifiers())?,
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+            $role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+        }
+/*~
+        FROM 
+            @inserted 
+    ) i
+    JOIN
+        [$tie.capsule].[$tie.name] p
+    ON
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreIdentifiers())? AND
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreValues())? AND
+~*/
+            }
+        }
+/*~
+    LEFT JOIN 
+        @inserted x
+    ON
+        x.$tie.identityColumnName = p.$tie.identityColumnName
+    AND
+        x.$tie.positingColumnName = p.$tie.positingColumnName
+    WHERE
+        x.$tie.identityColumnName is null;
+
+    -- no need to check retracted information
+    DELETE a 
+    FROM 
+        @inserted a
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$tie.reliabilityColumnName
+        FROM 
+            @inserted x
+        WHERE
+            x.$tie.identityColumnName = a.$tie.identityColumnName
+        AND
+            x.$tie.positingColumnName < a.$tie.positingColumnName
+        ORDER BY
+            x.$tie.positingColumnName DESC
+    ) pre    
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$tie.reliabilityColumnName
+        FROM 
+            @inserted x
+        WHERE
+            x.$tie.identityColumnName = a.$tie.identityColumnName
+        AND
+            x.$tie.positingColumnName > a.$tie.positingColumnName
+        ORDER BY
+            x.$tie.positingColumnName ASC
+    ) fol    
+    WHERE
+        (a.$tie.reliabilityColumnName = 1 AND fol.$tie.reliabilityColumnName = 0)
+    OR
+        (a.$tie.reliabilityColumnName = 0 AND pre.$tie.reliabilityColumnName = 1);
+
+
     -- check previous values
     SET @id = (
         SELECT TOP 1
             a.$tie.identityColumnName
         FROM 
-            inserted a
-        JOIN 
-            $tie.positName p
-        ON 
-            p.$tie.identityColumnName = a.$tie.identityColumnName
+            @inserted a
         CROSS APPLY (
             SELECT TOP 1
 ~*/
@@ -57,13 +247,11 @@ BEGIN
             FROM
                 $tie.name h
             WHERE
-                h.$tie.reliabilityColumnName = 1
-            AND
 ~*/
             if(tie.hasMoreIdentifiers()) {
                 while(role = tie.nextIdentifier()) {
 /*~
-                h.$role.columnName = p.$role.columnName
+                h.$role.columnName = a.$role.columnName
             AND
 ~*/
                 }
@@ -71,15 +259,13 @@ BEGIN
             else {
                 while(role = tie.nextValue()) {
 /*~
-                h.$role.columnName = p.$role.columnName
+                h.$role.columnName = a.$role.columnName
             AND
 ~*/
                 }
             }
 /*~
-                h.$tie.changingColumnName < p.$tie.changingColumnName
-            AND 
-                h.$tie.positingColumnName < a.$tie.positingColumnName
+                h.$tie.changingColumnName < a.$tie.changingColumnName
             ORDER BY 
                 h.$tie.changingColumnName DESC,
                 h.$tie.positingColumnName DESC
@@ -88,83 +274,16 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-            p.$role.columnName = pre.$role.columnName
+            a.$role.columnName = pre.$role.columnName
         AND
 ~*/
             }
 /*~
-        a.$tie.reliabilityColumnName = 1
+            a.$tie.reliabilityColumnName = 1
     );
     IF @id is not null
     BEGIN
         SET @message = '$tie.name ($tie.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
-        RAISERROR(@message, 16, 1);
-        ROLLBACK;
-    END
-
-    -- check following values
-    SET @id = (
-        SELECT TOP 1
-            a.$tie.identityColumnName
-        FROM 
-            inserted a
-        JOIN 
-            $tie.positName p
-        ON 
-            p.$tie.identityColumnName = a.$tie.identityColumnName
-        CROSS APPLY (
-            SELECT TOP 1
-~*/
-            while(role = tie.nextRole()) {
-/*~
-                $role.columnName$(tie.hasMoreRoles())?,
-~*/
-            }
-/*~
-            FROM
-                $tie.name h
-            WHERE
-                h.$tie.reliabilityColumnName = 1
-            AND
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                h.$role.columnName = p.$role.columnName
-            AND
-~*/
-                }
-            }
-            else {
-                while(role = tie.nextValue()) {
-/*~
-                h.$role.columnName = p.$role.columnName
-            AND
-~*/
-                }
-            }
-/*~
-                h.$tie.changingColumnName > p.$tie.changingColumnName
-            AND 
-                h.$tie.positingColumnName < a.$tie.positingColumnName
-            ORDER BY 
-                h.$tie.changingColumnName ASC,
-                h.$tie.positingColumnName DESC
-        ) fol        
-        WHERE
-~*/
-            while(role = tie.nextRole()) {
-/*~
-            p.$role.columnName = fol.$role.columnName
-        AND
-~*/
-            }
-/*~
-        a.$tie.reliabilityColumnName = 1
-    );
-    IF @id is not null
-    BEGIN
-        SET @message = '$tie.name ($tie.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
