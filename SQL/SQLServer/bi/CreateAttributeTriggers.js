@@ -78,10 +78,7 @@ BEGIN
         a.$attribute.positingColumnName = i.$attribute.positingColumnName
     WHERE -- either the posit or the assertion must be different (exclude the identical)
         (p.$attribute.identityColumnName is null OR a.$attribute.identityColumnName is null);
-~*/
-        // fill table with entire history in these cases
-        if(!attribute.isAssertive() || attribute.isIdempotent()) {
-/*~
+
     INSERT INTO @$attribute.name (
         $attribute.anchorReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
@@ -191,6 +188,7 @@ BEGIN
             (i.$attribute.reliabilityColumnName = 1 AND i.previous_$attribute.reliabilityColumnName = 0)
         );
 ~*/
+        if(!attribute.isAssertive() || attribute.isIdempotent()) {
             // first remove reassertions
             if(!attribute.isAssertive()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
