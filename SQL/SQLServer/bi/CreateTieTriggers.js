@@ -132,9 +132,6 @@ BEGIN
         }
     }
 /*~;~*/
-
-    // fill table with entire history in these cases
-    if(!tie.isAssertive() || tie.isIdempotent()) {
 /*~
     INSERT INTO @inserted
     SELECT
@@ -331,6 +328,7 @@ BEGIN
             (i.$tie.reliabilityColumnName = 1 AND i.previous_$tie.reliabilityColumnName = 0)
         );
 ~*/
+    if(!tie.isAssertive() || tie.isIdempotent()) {
         // first remove reassertions
         if(!tie.isAssertive()) {
             var reliabilityColumn = tie.reliabilityColumnName;
