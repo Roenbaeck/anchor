@@ -343,8 +343,7 @@ BEGIN
             @$attribute.name a
         OUTER APPLY (
             SELECT TOP 1
-                h.$attribute.valueColumnName,
-                h.$attribute.positingColumnName
+                *
             FROM 
                 @$attribute.name h
             WHERE
