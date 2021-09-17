@@ -506,7 +506,7 @@ BEGIN
     INSERT INTO @restated (
         $(schema.METADATA)? $tie.metadataColumnName,
         $tie.statementTypeColumnName,
-        $(tie.isHistorized())? $tie.changingColumnName,
+        $tie.changingColumnName,
         $tie.positingColumnName,
         $tie.reliabilityColumnName,
 ~*/
@@ -520,22 +520,15 @@ BEGIN
     SELECT 
         $(schema.METADATA)? x.$tie.metadataColumnName,
         CASE 
-            WHEN x.$tie.statementTypeColumnName = 'X' THEN 'A' 
-            ELSE x.$tie.statementTypeColumnName 
-        END, 
-        CASE 
-            WHEN x.$tie.statementTypeColumnName = 'X' AND x.previous_$tie.positingColumnName < x.$tie.positingColumnName THEN x.previous_$tie.changingColumnName 
-            ELSE x.$tie.changingColumnName
+            WHEN x.previous_$tie.positingColumnName < x.$tie.positingColumnName THEN 'D' -- physical delete 
+            ELSE 'A' -- logical delete 
         END,
+        x.$tie.changingColumnName,
         CASE 
-            WHEN x.$tie.statementTypeColumnName = 'X' AND x.previous_$tie.positingColumnName < x.$tie.positingColumnName THEN x.$tie.positingColumnName 
-            WHEN x.$tie.statementTypeColumnName = 'X' THEN x.previous_$tie.positingColumnName 
-            ELSE x.$tie.positingColumnName 
+            WHEN x.previous_$tie.positingColumnName < x.$tie.positingColumnName THEN x.$tie.positingColumnName 
+            ELSE x.previous_$tie.positingColumnName 
         END,
-        CASE 
-            WHEN x.$tie.statementTypeColumnName = 'X' THEN 0 
-            ELSE x.$tie.reliabilityColumnName 
-        END, -- quench the existing restatements
+        0, -- quench the existing restatements
 ~*/
         while (role = tie.nextRole()) {
 /*~
@@ -547,9 +540,7 @@ BEGIN
         DELETE a
         OUTPUT 
             deleted.*,
-            pre.$tie.positingColumnName as previous_$tie.positingColumnName,
-            pre.$tie.changingColumnName as previous_$tie.changingColumnName,
-            fol.$tie.positingColumnName as following_$tie.positingColumnName
+            pre.$tie.positingColumnName as previous_$tie.positingColumnName
         FROM 
             @inserted a
         OUTER APPLY (
@@ -581,60 +572,53 @@ BEGIN
                 h.$tie.changingColumnName DESC,
                 h.$tie.positingColumnName DESC
         ) pre
-        OUTER APPLY (
-            SELECT TOP 1
-                h.*
-            FROM 
-                @inserted h
-            WHERE
-~*/
-    if(tie.hasMoreIdentifiers()) {
-        while(role = tie.nextIdentifier()) {
-/*~
-                h.$role.columnName = a.$role.columnName
-            AND
-~*/
-        }
-    }
-    else {
-        while(role = tie.nextValue()) {
-/*~
-                h.$role.columnName = a.$role.columnName
-            AND
-~*/
-        }
-    }
-/*~
-                h.$tie.changingColumnName > a.$tie.changingColumnName
-            ORDER BY 
-                h.$tie.changingColumnName ASC,
-                h.$tie.positingColumnName DESC
-        ) fol
-        WHERE (
+        WHERE 
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                a.$role.columnName = pre.$role.columnName
-            $(tie.hasMoreRoles())? AND
+            a.$role.columnName = pre.$role.columnName
+        $(tie.hasMoreRoles())? AND
 ~*/
             }
-/*~     ) OR (
-~*/
-            while(role = tie.nextRole()) {
-/*~
-                a.$role.columnName = fol.$role.columnName
-            $(tie.hasMoreRoles())? AND
-~*/
-            }
-/*~     )
+/*~     
     ) x
     WHERE
-        (x.$tie.statementTypeColumnName = 'X' AND x.previous_$tie.positingColumnName is not null) -- quench
-    OR
-        (x.$tie.statementTypeColumnName = 'P' AND x.following_$tie.positingColumnName <> x.$tie.positingColumnName); -- new posit
+        x.$tie.statementTypeColumnName = 'X'; -- quench
 
     -- add the quenches
-    INSERT INTO @inserted SELECT * FROM @restated;
+    INSERT INTO @inserted 
+    SELECT 
+        * 
+    FROM (
+        DELETE @restated
+        OUTPUT deleted.*
+        WHERE $tie.statementTypeColumnName = 'A'
+    ) d;
+
+    -- perform any remaining physical deletes 
+    DELETE a
+    FROM 
+        @restated i
+    JOIN
+        [$tie.capsule].[$tie.positName] p
+    ON
+~*/
+    while(role = tie.nextRole()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreRoles())? AND
+~*/
+    }
+/*~
+    $(tie.isHistorized())? AND
+        $(tie.isHistorized())? p.$tie.changingColumnName = i.$tie.changingColumnName
+    JOIN 
+        [$tie.capsule].[$tie.annexName] a
+    ON  
+        a.$tie.identityColumnName = p.$tie.identityColumnName
+    AND
+        a.$tie.positingColumnName = i.$tie.positingColumnName;
+
     END --- (only run if necessary) ---
 ~*/
         }
