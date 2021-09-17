@@ -81,7 +81,7 @@ BEGIN
 ~*/
     while (role = tie.nextRole()) {
 /*~
-        $role.columnName,
+        $role.columnName$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -92,7 +92,7 @@ BEGIN
 ~*/
     while (role = tie.nextRole()) {
 /*~
-        $role.columnName,
+        $role.columnName$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -105,18 +105,18 @@ BEGIN
 ~*/
     while (role = tie.nextRole()) {
 /*~
-        $role.columnName,
+        $role.columnName$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
     )
     SELECT
-        $(schema.METADATA)? $tie.metadataColumnName,
-        $tie.changingColumnName,
+        $(schema.METADATA)? p.$tie.metadataColumnName,
+        p.$tie.changingColumnName,
 ~*/
     while (role = tie.nextRole()) {
 /*~
-        $role.columnName,
+        p.$role.columnName$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -165,7 +165,7 @@ BEGIN
     LEFT JOIN 
         @inserted x
     ON 
-        x.$tie.changingColumnName = p.$tie.changingColumnName,
+        x.$tie.changingColumnName = p.$tie.changingColumnName
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
@@ -180,7 +180,10 @@ BEGIN
 /*~
     AND
         p.$role.columnName = i.$role.columnName
-
+~*/
+            }
+        }
+/*~
     -- check previous values
     SET @id = (
         SELECT TOP 1
