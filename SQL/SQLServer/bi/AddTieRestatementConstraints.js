@@ -28,7 +28,7 @@ DROP TRIGGER [$tie.capsule$].[rt_$tie.name];
 GO
 
 CREATE TRIGGER [$tie.capsule$].[rt_$tie.name] ON [$tie.capsule].[$tie.annexName]
-AFTER INSERT, UPDATE
+AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;

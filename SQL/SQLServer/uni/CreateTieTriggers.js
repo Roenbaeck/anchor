@@ -131,8 +131,27 @@ BEGIN
 ~*/
         }
 /*~
-    FROM
-        @inserted i
+    FROM (
+        SELECT DISTINCT
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName$(tie.hasMoreIdentifiers())?,
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+            $role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+        }
+/*~
+        FROM 
+            @inserted 
+    ) i
     JOIN
         [$tie.capsule].[$tie.name] p
     ON
@@ -155,7 +174,7 @@ BEGIN
         }
         // then remove restatements 
 /*~
-    DECLARE @deleted TABLE (
+    DECLARE @restated TABLE (
         $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
 ~*/
     while (role = tie.nextRole()) {
@@ -174,7 +193,7 @@ BEGIN
     }
 /*~
     );
-    INSERT INTO @deleted
+    INSERT INTO @restated
     SELECT 
         x.$tie.changingColumnName,
 ~*/
@@ -242,7 +261,7 @@ BEGIN
     FROM 
         [$tie.capsule].[$tie.name] t
     JOIN 
-        @deleted d
+        @restated d
     ON 
         d.$tie.changingColumnName = t.$tie.changingColumnName
     AND

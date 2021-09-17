@@ -54,7 +54,8 @@ BEGIN
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.statementTypeColumnName char(1) not null,
-        primary key(
+        primary key (
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
             $attribute.anchorReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc
         )
@@ -75,6 +76,8 @@ BEGIN
         [$attribute.capsule].[$attribute.name] p
     ON
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    $(attribute.isEquivalent())? AND
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
@@ -108,13 +111,13 @@ BEGIN
     $(attribute.isEquivalent())? AND    
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName;
 
-    DECLARE @deleted TABLE (
+    DECLARE @restated TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null
     );
 
-    INSERT INTO @deleted
+    INSERT INTO @restated
     SELECT 
         x.$attribute.anchorReferenceName,
         $(attribute.isEquivalent())? x.$attribute.equivalentColumnName,
@@ -150,7 +153,7 @@ BEGIN
 	FROM 
 		[$attribute.capsule].[$attribute.name] a
 	JOIN 
-		@deleted d
+		@restated d
 	ON 
 		d.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
 	AND 

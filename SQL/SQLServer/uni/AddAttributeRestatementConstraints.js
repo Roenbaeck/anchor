@@ -46,25 +46,97 @@ DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name];
 GO
 
 CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name] ON [$attribute.capsule].[$attribute.name]
-AFTER INSERT, UPDATE
+AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(555);
     DECLARE @id $anchor.identity;
 
+    DECLARE @$attribute.name TABLE (
+        $attribute.anchorReferenceName $anchor.identity not null,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
+        $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
+        $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
+        $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
+        primary key(
+            $attribute.anchorReferenceName asc, 
+            $(attribute.timeRange)? $attribute.changingColumnName desc
+        )
+    );
+
+    INSERT INTO @$attribute.name (
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,        
+        $attribute.valueColumnName
+    )
+    SELECT
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,        
+        $attribute.valueColumnName
+    FROM 
+        inserted;
+
+    INSERT INTO @$attribute.name (
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $(attribute.isHistorized())? $attribute.changingColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName,        
+        $attribute.valueColumnName
+    )
+    SELECT
+        p.$attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
+        $(schema.METADATA)? p.$attribute.metadataColumnName,
+        $(attribute.isHistorized())? p.$attribute.changingColumnName,
+        $(attribute.hasChecksum())? p.$attribute.checksumColumnName,        
+        p.$attribute.valueColumnName
+    FROM (
+        SELECT DISTINCT 
+            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
+            $attribute.anchorReferenceName 
+        FROM 
+            @$attribute.name
+    ) i 
+    JOIN
+        [$attribute.capsule].[$attribute.name] p
+    ON 
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+    $(attribute.isEquivalent())? AND    
+        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    LEFT JOIN 
+        @$attribute.name x
+    ON
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+    $(attribute.isEquivalent())? AND    
+        x.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+    $(attribute.isHistorized())? AND
+        $(attribute.isHistorized())? x.$attribute.changingColumnName = p.$attribute.changingColumnName
+    WHERE
+        x.$attribute.anchorReferenceName is null;
+
     -- check previous values
     SET @id = (
         SELECT TOP 1
             i.$attribute.anchorReferenceName
         FROM 
-            inserted i
+            @$attribute.name i
         CROSS APPLY (
             SELECT TOP 1
                 $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
-                $attribute.name h
+                @$attribute.name h
             WHERE
+                $(attribute.isEquivalent())? h.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+            $(attribute.isEquivalent())? AND    
                 h.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
             AND
                 h.$attribute.changingColumnName < i.$attribute.changingColumnName
@@ -77,34 +149,6 @@ BEGIN
     IF @id is not null
     BEGIN
         SET @message = '$attribute.name ($attribute.anchorReferenceName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
-        RAISERROR(@message, 16, 1);
-        ROLLBACK;
-    END
-
-    -- check following values
-    SET @id = (
-        SELECT TOP 1
-            i.$attribute.anchorReferenceName
-        FROM 
-            inserted i
-        CROSS APPLY (
-            SELECT TOP 1
-                $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
-            FROM 
-                $attribute.name h
-            WHERE
-                h.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-            AND
-                h.$attribute.changingColumnName > i.$attribute.changingColumnName
-            ORDER BY 
-                h.$attribute.changingColumnName ASC
-        ) fol
-        WHERE
-            $(attribute.hasChecksum())? i.$attribute.checksumColumnName = fol.$attribute.checksumColumnName : i.$attribute.valueColumnName = fol.$attribute.valueColumnName
-    );
-    IF @id is not null
-    BEGIN
-        SET @message = '$attribute.name ($attribute.anchorReferenceName = ' + cast(@id as varchar(42)) + ') clashes with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
