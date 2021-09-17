@@ -1,10 +1,10 @@
-var anchor, knot, attribute, restatements = false;
+var anchor, knot, attribute, constraints = false;
 while (anchor = schema.nextAnchor())
     while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized())
-            restatements = true;
+        if(attribute.isHistorized() && !attribute.isRestatable())
+            constraints = true;
 
-if(restatements) {
+if(constraints) {
 /*~
 -- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
 --

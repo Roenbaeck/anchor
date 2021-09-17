@@ -1,9 +1,9 @@
-var tie, role, restatements = false;
+var tie, role, constraints = false;
 while (tie = schema.nextHistorizedTie())
-    if(tie.hasMoreValues())
-        restatements = true;
+    if(tie.hasMoreValues() && !tie.isRestatable())
+        constraints = true;
 
-if(restatements) {
+if(constraints) {
 /*~
 -- TIE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------------
 --
@@ -18,7 +18,7 @@ if(restatements) {
 ~*/
     while (tie = schema.nextHistorizedTie()) {
         // the tie needs to have at least one role outside of the identifier
-        if(tie.hasMoreValues()) {
+        if(tie.hasMoreValues() && !tie.isRestatable()) {
 /*~
 -- Restatement Checking Trigger ---------------------------------------------------------------------------------------
 -- rt_$tie.name (available only in ties that cannot have restatements)
