@@ -275,6 +275,7 @@ BEGIN
         }
 /*~
     INSERT INTO [$tie.capsule].[$tie.name] (
+        $(schema.METADATA)? $tie.metadataColumnName,    
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
             while(role = tie.nextRole()) {
@@ -285,6 +286,7 @@ BEGIN
 /*~
     )
     SELECT
+        $(schema.METADATA)? $tie.metadataColumnName,
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
             while(role = tie.nextRole()) {
