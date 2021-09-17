@@ -32,8 +32,7 @@ AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @message varchar(555);
-    DECLARE @id $tie.identity;
+    DECLARE @message varchar(max);
 
     DECLARE @inserted TABLE (
         $tie.identityColumnName $tie.identity not null,
@@ -228,11 +227,10 @@ BEGIN
     OR
         (a.$tie.reliabilityColumnName = 0 AND pre.$tie.reliabilityColumnName = 1);
 
-
     -- check previous values
-    SET @id = (
+    SET @message = (
         SELECT TOP 1
-            a.$tie.identityColumnName
+            pre.*
         FROM 
             @inserted a
         CROSS APPLY (
@@ -240,10 +238,11 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                $role.columnName$(tie.hasMoreRoles())?,
+                $role.columnName,
 ~*/
             }
 /*~
+                $tie.changingColumnName
             FROM
                 $tie.name h
             WHERE
@@ -280,10 +279,11 @@ BEGIN
             }
 /*~
             a.$tie.reliabilityColumnName = 1
+        FOR XML PATH('')
     );
-    IF @id is not null
+    IF @message is not null
     BEGIN
-        SET @message = '$tie.name ($tie.identityColumnName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
+        SET @message = 'Restatement in $tie.name for: ' + @message;
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
