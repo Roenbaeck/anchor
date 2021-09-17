@@ -185,7 +185,7 @@ BEGIN
     AND (
             (i.$attribute.reliabilityColumnName = 0 AND i.previous_$attribute.reliabilityColumnName = 1)
         OR
-            (i.$attribute.reliabilityColumnName = 1 AND i.previous_$attribute.reliabilityColumnName = 0)
+            (i.$attribute.reliabilityColumnName = 1 AND i.following_$attribute.reliabilityColumnName = 0)
         );
 ~*/
         if(!attribute.isAssertive() || attribute.isIdempotent()) {
@@ -193,6 +193,11 @@ BEGIN
             if(!attribute.isAssertive()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
+    -- remove remaining (dangling) retractions
+	DELETE @$attribute.name 
+	WHERE 
+        $attribute.reliabilityColumnName = 0;
+
     IF EXISTS (
         SELECT TOP 1 
             $attribute.statementTypeColumnName 

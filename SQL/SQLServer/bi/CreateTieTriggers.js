@@ -325,7 +325,7 @@ BEGIN
     AND (
             (i.$tie.reliabilityColumnName = 0 AND i.previous_$tie.reliabilityColumnName = 1)
         OR
-            (i.$tie.reliabilityColumnName = 1 AND i.previous_$tie.reliabilityColumnName = 0)
+            (i.$tie.reliabilityColumnName = 1 AND i.following_$tie.reliabilityColumnName = 0)
         );
 ~*/
     if(!tie.isAssertive() || tie.isIdempotent()) {
@@ -333,6 +333,11 @@ BEGIN
         if(!tie.isAssertive()) {
             var reliabilityColumn = tie.reliabilityColumnName;
 /*~
+    -- remove remaining (dangling) retractions
+	DELETE @inserted 
+	WHERE 
+        $tie.reliabilityColumnName = 0;
+
     IF EXISTS (
         SELECT TOP 1 
             $tie.statementTypeColumnName 
