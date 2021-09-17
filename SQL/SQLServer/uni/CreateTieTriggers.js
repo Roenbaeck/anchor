@@ -121,9 +121,9 @@ BEGIN
 /*~
     INSERT INTO @inserted
     SELECT
-        $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
+        $(schema.METADATA)? p.$tie.metadataColumnName, 
         'X', -- existing data
-        $(tie.isHistorized())? ISNULL(p.$tie.changingColumnName, @now),
+        $(tie.isHistorized())? p.$tie.changingColumnName, 
 ~*/
         while (role = tie.nextRole()) {
 /*~

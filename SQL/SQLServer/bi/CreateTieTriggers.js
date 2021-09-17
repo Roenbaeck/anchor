@@ -135,9 +135,9 @@ BEGIN
 /*~
     INSERT INTO @inserted
     SELECT
-        $(schema.METADATA)? ISNULL(a.$tie.metadataColumnName, 0),
+        $(schema.METADATA)? p.$tie.metadataColumnName,
         'X', -- existing data
-        $(tie.isHistorized())? ISNULL(p.$tie.changingColumnName, @now),
+        $(tie.isHistorized())? p.$tie.changingColumnName,
         a.$tie.positingColumnName,
         a.$tie.reliabilityColumnName,
 ~*/
