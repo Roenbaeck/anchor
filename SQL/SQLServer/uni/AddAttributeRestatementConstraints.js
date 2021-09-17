@@ -50,8 +50,7 @@ AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @message varchar(555);
-    DECLARE @id $anchor.identity;
+    DECLARE @message varchar(max);
 
     DECLARE @$attribute.name TABLE (
         $attribute.anchorReferenceName $anchor.identity not null,
@@ -124,13 +123,16 @@ BEGIN
         x.$attribute.anchorReferenceName is null;
 
     -- check previous values
-    SET @id = (
+    SET @message = (
         SELECT TOP 1
-            i.$attribute.anchorReferenceName
+            pre.*
         FROM 
             @$attribute.name i
         CROSS APPLY (
             SELECT TOP 1
+                $(attribute.isEquivalent())? h.$attribute.equivalentColumnName,
+                h.$attribute.anchorReferenceName,
+                $(attribute.isHistorized())? h.$attribute.changingColumnName,
                 $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
                 @$attribute.name h
@@ -145,10 +147,11 @@ BEGIN
         ) pre
         WHERE
             $(attribute.hasChecksum())? i.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : i.$attribute.valueColumnName = pre.$attribute.valueColumnName
+        FOR XML PATH('')
     );
-    IF @id is not null
+    IF @message is not null
     BEGIN
-        SET @message = '$attribute.name ($attribute.anchorReferenceName = ' + cast(@id as varchar(42)) + ') clashes with an identical previous value';
+        SET @message = 'Restatement in $attribute.name for: ' + @message;
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END

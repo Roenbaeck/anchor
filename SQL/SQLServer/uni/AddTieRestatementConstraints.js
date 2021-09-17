@@ -32,8 +32,7 @@ AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @message varchar(555);
-    DECLARE @id varchar(555);
+    DECLARE @message varchar(max);
 
     DECLARE @inserted TABLE (
         $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
@@ -185,15 +184,9 @@ BEGIN
         }
 /*~
     -- check previous values
-    SET @id = (
+    SET @message = (
         SELECT TOP 1
-~*/
-            while(role = tie.nextRole()) {
-/*~
-            '$role.columnName = ' + cast(pre.$role.columnName as varchar(111)) $(tie.hasMoreRoles())? + ', ' + 
-~*/
-            }
-/*~
+            pre.*
         FROM 
             @inserted i
         CROSS APPLY (
@@ -201,10 +194,11 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-                $role.columnName$(tie.hasMoreRoles())?,
+                $role.columnName,
 ~*/
             }
 /*~
+                $tie.changingColumnName
             FROM
                 @inserted h
             WHERE
@@ -239,10 +233,11 @@ BEGIN
 ~*/
             }
 /*~
+        FOR XML PATH('')
     );
-    IF @id is not null
+    IF @message is not null
     BEGIN
-        SET @message = '$tie.name (' + @id + ') has a clash with an identical previous value';
+        SET @message = 'Restatement in $tie.name for: ' + @message;
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END
