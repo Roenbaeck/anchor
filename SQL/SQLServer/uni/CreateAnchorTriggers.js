@@ -221,6 +221,9 @@ BEGIN
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
+
+                if(attribute.isHistorized() || attribute.isDeletable()) {
+
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     BEGIN
@@ -313,8 +316,10 @@ BEGIN
 /*~
     END
 ~*/
+                } // end of historized or deletable
             }
 			else { // not knotted
+                if(attribute.isHistorized() || attribute.isDeletable()) {
 /*~
     IF(UPDATE($attribute.valueColumnName))
     BEGIN
@@ -414,6 +419,7 @@ BEGIN
 /*~
     END
 ~*/
+                } // end of historized or deletable
             } // end of not knotted
         } // end of while loop over attributes
 /*~
