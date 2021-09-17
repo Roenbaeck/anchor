@@ -374,40 +374,42 @@ BEGIN
 ~*/
                 }
             }
+            if(tie.isHistorized()) {
 /*~
     INSERT INTO [$tie.capsule].[$tie.name] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $(tie.isHistorized())? $tie.changingColumnName,
 ~*/
-            while (role = tie.nextRole()) {
+                while (role = tie.nextRole()) {
 /*~
         $role.columnName$(tie.hasMoreRoles())?,
 ~*/
-            }
+                }
 /*~
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
         $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
 ~*/
-            while (role = tie.nextRole()) {
-                comma = tie.hasMoreRoles() ? ',' : '';
+                while (role = tie.nextRole()) {
+                    comma = tie.hasMoreRoles() ? ',' : '';
 /*~
         $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END${comma}$ : i.$role.columnName${comma}$
 ~*/
-            }
+                }
 /*~
     FROM
         inserted i~*/
-            while (role = tie.nextKnotRole()) {
-                knot = role.knot;
+                while (role = tie.nextKnotRole()) {
+                    knot = role.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [$role.name]
     ON
         [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
-            }
+                }
 /*~;~*/
+            }
         }
         if(tie.isDeletable() && tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
             var timeType = tie.isHistorized() ? tie.timeRange : schema.metadata.chronon;

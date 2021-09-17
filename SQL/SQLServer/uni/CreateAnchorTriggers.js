@@ -224,6 +224,9 @@ BEGIN
 /*~
     IF(UPDATE($attribute.valueColumnName) OR UPDATE($attribute.knotValueColumnName))
     BEGIN
+~*/
+                if(attribute.isHistorized()) {
+/*~
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.anchorReferenceName,
@@ -243,16 +246,10 @@ BEGIN
                 }
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
-~*/
-                if(attribute.isHistorized()) {
-/*~
             cast(ISNULL(CASE
                 WHEN i.$attribute.valueColumnName is null AND [k$knot.mnemonic].$knot.identityColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $attribute.timeRange),
-~*/
-                }
-/*~
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
         FROM
             inserted i
@@ -265,6 +262,7 @@ BEGIN
         WHERE
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null;
 ~*/
+                }
                 if(attribute.isDeletable()) {
                     var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
 /*~
@@ -320,6 +318,9 @@ BEGIN
 /*~
     IF(UPDATE($attribute.valueColumnName))
     BEGIN
+~*/
+                if(attribute.isHistorized()) {
+/*~
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
             $attribute.anchorReferenceName,
@@ -341,15 +342,11 @@ BEGIN
 /*~
             ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
             $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-~*/
-                if(attribute.isHistorized()) {
-/*~
             cast(ISNULL(CASE
                 WHEN i.$attribute.valueColumnName is null THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $attribute.timeRange),
 ~*/
-                }
                 if(attribute.getEncryptionGroup()) {
 /*~
         ENCRYPTBYKEY(KEY_GUID('${attribute.getEncryptionGroup()}$'), cast(i.$attribute.valueColumnName as varbinary(max)))        
@@ -366,6 +363,7 @@ BEGIN
         WHERE
             i.$attribute.valueColumnName is not null;
 ~*/
+                }
                 if(attribute.isDeletable()) {
                     var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
 /*~
