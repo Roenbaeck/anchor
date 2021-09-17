@@ -183,6 +183,9 @@ BEGIN
             }
         }
 /*~
+    WHERE
+        x.$tie.changingColumnName is null;
+
     -- check previous values
     SET @message = (
         SELECT TOP 1
