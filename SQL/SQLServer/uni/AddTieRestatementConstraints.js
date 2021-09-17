@@ -28,12 +28,158 @@ DROP TRIGGER [$tie.capsule$].[rt_$tie.name];
 GO
 
 CREATE TRIGGER [$tie.capsule$].[rt_$tie.name] ON [$tie.capsule].[$tie.name]
-AFTER INSERT, UPDATE
+AFTER INSERT
 AS 
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(555);
     DECLARE @id varchar(555);
+
+    DECLARE @inserted TABLE (
+        $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+        $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange not null,
+~*/
+    while (role = tie.nextRole()) {
+        if(role.knot) {
+            knot = role.knot;
+/*~
+        $role.columnName $knot.identity not null,
+~*/
+        }
+        else {
+            anchor = role.anchor;
+/*~
+        $role.columnName $anchor.identity not null,
+~*/
+        }
+    }
+/*~
+        primary key (
+~*/
+    if(tie.hasMoreIdentifiers()) {
+        while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+    else {
+        while(role = tie.nextValue()) {
+/*~
+            $role.columnName asc,
+~*/
+        }
+    }
+/*~
+            $tie.changingColumnName desc
+        )
+    );
+
+    INSERT INTO @inserted (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+    }
+/*~
+    )
+    SELECT
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+    }
+/*~
+    FROM
+        inserted;
+
+    INSERT INTO @inserted (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+    }
+/*~
+    )
+    SELECT
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $tie.changingColumnName,
+~*/
+    while (role = tie.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+    }
+/*~
+    FROM (
+        SELECT DISTINCT
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+            $role.columnName$(tie.hasMoreIdentifiers())?,
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+            $role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+        }
+/*~
+        FROM 
+            @inserted 
+    ) i
+    JOIN
+        [$tie.capsule].[$tie.name] p
+    ON
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreIdentifiers())? AND
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+        p.$role.columnName = i.$role.columnName
+    $(tie.hasMoreValues())? AND
+~*/
+            }
+        }
+/*~
+    LEFT JOIN 
+        @inserted x
+    ON 
+        x.$tie.changingColumnName = p.$tie.changingColumnName,
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+    AND
+        p.$role.columnName = i.$role.columnName
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+    AND
+        p.$role.columnName = i.$role.columnName
 
     -- check previous values
     SET @id = (
@@ -46,7 +192,7 @@ BEGIN
             }
 /*~
         FROM 
-            inserted i
+            @inserted i
         CROSS APPLY (
             SELECT TOP 1
 ~*/
@@ -57,7 +203,7 @@ BEGIN
             }
 /*~
             FROM
-                $tie.name h
+                @inserted h
             WHERE
 ~*/
             if(tie.hasMoreIdentifiers()) {
@@ -94,69 +240,6 @@ BEGIN
     IF @id is not null
     BEGIN
         SET @message = '$tie.name (' + @id + ') has a clash with an identical previous value';
-        RAISERROR(@message, 16, 1);
-        ROLLBACK;
-    END
-
-    -- check following values
-    SET @id = (
-        SELECT TOP 1
-~*/
-            while(role = tie.nextRole()) {
-/*~
-            '$role.columnName = ' + cast(fol.$role.columnName as varchar(111)) $(tie.hasMoreRoles())? + ', ' + 
-~*/
-            }
-/*~
-        FROM 
-            inserted i
-        CROSS APPLY (
-            SELECT TOP 1
-~*/
-            while(role = tie.nextRole()) {
-/*~
-                $role.columnName$(tie.hasMoreRoles())?,
-~*/
-            }
-/*~
-            FROM
-                $tie.name h
-            WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                h.$role.columnName = i.$role.columnName
-            AND
-~*/
-                }
-            }
-            else {
-                while(role = tie.nextValue()) {
-/*~
-                h.$role.columnName = i.$role.columnName
-            AND
-~*/
-                }
-            }
-/*~
-                h.$tie.changingColumnName > i.$tie.changingColumnName
-            ORDER BY 
-                h.$tie.changingColumnName ASC
-        ) fol        
-        WHERE
-~*/
-            while(role = tie.nextRole()) {
-/*~
-            i.$role.columnName = fol.$role.columnName
-        $(tie.hasMoreRoles())? AND
-~*/
-            }
-/*~
-    );
-    IF @id is not null
-    BEGIN
-        SET @message = '$tie.name (' + @id + ') has a clash with an identical following value';
         RAISERROR(@message, 16, 1);
         ROLLBACK;
     END

@@ -46,7 +46,7 @@ DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name];
 GO
 
 CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name] ON [$attribute.capsule].[$attribute.annexName]
-AFTER INSERT, UPDATE
+AFTER INSERT 
 AS 
 BEGIN
     SET NOCOUNT ON;
