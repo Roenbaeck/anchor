@@ -101,21 +101,19 @@ BEGIN
     WHERE -- the posit must be different (exclude the identical)
 ~*/
     if(tie.hasMoreIdentifiers()) {
-        while(role = tie.nextIdentifier()) {
+        role = tie.nextIdentifier(); 
 /*~
-    $(!tie.isFirstIdentifier())? AND
-        i.$role.columnName is not null~*/
-        }
+        p.$role.columnName is null;
+~*/
+        while(tie.nextIdentifier());
     }
     else {
-        while(role = tie.nextValue()) {
+        role = tie.nextValue(); 
 /*~
-    $(!tie.isFirstValue())? AND
-        i.$role.columnName is not null~*/
-        }
+        p.$role.columnName is null;
+~*/
+        while(tie.nextValue());
     }
-/*~;~*/
-
     // fill table with entire history in these cases
     if(tie.isIdempotent()) {
 /*~
