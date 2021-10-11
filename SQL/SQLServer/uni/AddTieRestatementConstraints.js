@@ -161,30 +161,32 @@ BEGIN
             }
         }
 /*~
-    LEFT JOIN 
-        @inserted x
-    ON 
-        x.$tie.changingColumnName = p.$tie.changingColumnName
+    WHERE NOT EXISTS (
+        SELECT 
+            42
+        FROM
+            @inserted x
+        WHERE 
+            x.$tie.changingColumnName = p.$tie.changingColumnName
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
 /*~
-    AND
-        p.$role.columnName = i.$role.columnName
+        AND
+            p.$role.columnName = i.$role.columnName
 ~*/
             }
         }
         else {
             while(role = tie.nextValue()) {
 /*~
-    AND
-        p.$role.columnName = i.$role.columnName
+        AND
+            p.$role.columnName = i.$role.columnName
 ~*/
             }
         }
 /*~
-    WHERE
-        x.$tie.changingColumnName is null;
+    );
 
     -- check previous values
     SET @message = (

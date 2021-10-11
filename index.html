@@ -99,7 +99,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.9.1';
+        var VERSION = '0.99.9.2';
 
         // change to false in beta
         var RELEASE = false;
@@ -2543,6 +2543,7 @@
             this.editables.push(Editables.assertivenessEdit);
             this.editables.push(Editables.checksumEdit);
             this.editables.push(Editables.deletabilityEdit);
+            this.editables.push(Editables.idempotencyEdit);
             this.editables.push(Editables.encryptionGroupEdit);
             this.editables.push(Editables.equivalenceEdit);
             this.editables.push(Editables.privacyEdit);
@@ -2644,12 +2645,10 @@
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 index = this.editables.indexOf(Editables.restatabilityEdit);
-                if(historized && index < 0) {
+                if(historized && index < 0) 
                     this.editables.push(Editables.restatabilityEdit);
-                    this.editables.push(Editables.idempotencyEdit);
-                }
                 else if (!historized && index >= 0)
-                    this.editables.splice(index, 2);
+                    this.editables.splice(index, 1);
                 if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#attribute_historized' : '#attribute';
@@ -2844,9 +2843,9 @@
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
-                    metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
-                            Defaults.idempotency === 'true' : this.idempotent);
                 }
+                metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
+                        Defaults.idempotency === 'true' : this.idempotent);                
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);                
                 attribute.appendChild(metadata);
@@ -3306,6 +3305,7 @@
             this.editables.push(Editables.positGeneratorEdit);
             this.editables.push(Editables.assertivenessEdit);
             this.editables.push(Editables.deletabilityEdit);
+            this.editables.push(Editables.idempotencyEdit);
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
             this.operations.push('toggleHistorized','addKnot','addAnchor');
@@ -3436,12 +3436,10 @@
                 else if (!historized && index >= 0)
                     this.editables.splice(index, 1);
                 index = this.editables.indexOf(Editables.restatabilityEdit);
-                if(historized && index < 0) {
+                if(historized && index < 0) 
                     this.editables.push(Editables.restatabilityEdit);
-                    this.editables.push(Editables.idempotencyEdit);
-                }
                 else if (!historized && index >= 0)
-                    this.editables.splice(index, 2);
+                    this.editables.splice(index, 1);
                 if(this.changingRange === '')
                     this.changingRange = Defaults.changingRange;
                 var ref = historized ? '#tie_historized' : '#tie';
@@ -3616,11 +3614,11 @@
                 if(this.historized) {
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
-                    metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
-                            Defaults.idempotency === 'true' : this.idempotent);
                 }
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);
+                metadata.setAttribute("idempotent", this.isEmpty(this.idempotent) ?
+                        Defaults.idempotency === 'true' : this.idempotent);
                 tie.appendChild(metadata);
                 this.addLayoutXML(tie, schema);
                 this.addDescriptionXML(tie, schema, this.description);

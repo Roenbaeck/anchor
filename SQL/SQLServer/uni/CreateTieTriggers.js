@@ -303,6 +303,70 @@ END
 GO
 ~*/
     } // enf of historized tie
+    else if (!tie.isHistorized() && tie.isIdempotent()) {
+/*~
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it$tie.name instead of INSERT trigger on $tie.name
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.it_$tie.name', 'TR') IS NOT NULL
+DROP TRIGGER [$tie.capsule].[it_$tie.name];
+GO
+CREATE TRIGGER [$tie.capsule].[it_$tie.name] ON [$tie.capsule].[$tie.name]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO [$tie.capsule].[$tie.name] (
+        $(schema.METADATA)? $tie.metadataColumnName,    
+~*/
+        while(role = tie.nextRole()) {
+    /*~
+        $role.columnName$(tie.hasMoreRoles())?,
+    ~*/
+        }
+    /*~
+    )
+    SELECT
+        $(schema.METADATA)? $tie.metadataColumnName,
+    ~*/
+        while(role = tie.nextRole()) {
+    /*~
+        $role.columnName$(tie.hasMoreRoles())?,
+    ~*/
+    }
+    /*~
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT 
+            42
+        FROM
+            [$tie.capsule].[$tie.name] x
+        WHERE 
+~*/
+        if(tie.hasMoreIdentifiers()) {
+            while(role = tie.nextIdentifier()) {
+/*~
+            x.$role.columnName = i.$role.columnName
+        $(tie.hasMoreIdentifiers())? AND
+~*/
+            }
+        }
+        else {
+            while(role = tie.nextValue()) {
+/*~
+            x.$role.columnName = i.$role.columnName
+        $(tie.hasMoreValues())? AND
+~*/
+            }
+        }
+/*~
+    );
+END
+GO
+~*/       
+    }
 // Here comes the trigger on the latest view, using the trigger above
     var comma = '';
 /*~

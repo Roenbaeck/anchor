@@ -184,6 +184,63 @@ END
 GO
 ~*/
         } // end of historized attribute
+        else if (!attribute.isHistorized() && attribute.isIdempotent()) {
+/*~
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name instead of INSERT trigger on $attribute.name
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.it_$attribute.name', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule].[it_$attribute.name];
+GO
+CREATE TRIGGER [$attribute.capsule].[it_$attribute.name] ON [$attribute.capsule].[$attribute.name]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon;
+    SET @now = $schema.metadata.now;
+~*/
+            if(encryptionGroup = attribute.getEncryptionGroup()) {
+    /*~
+        IF NOT EXISTS (
+            SELECT * FROM sys.openkeys 
+            WHERE [key_name] = '$encryptionGroup' AND [database_id] = DB_ID()
+        ) AND EXISTS (
+            SELECT TOP 1 $attribute.anchorReferenceName FROM inserted
+        )
+        BEGIN
+            RAISERROR('The key [$encryptionGroup] must be open in order to modify the attribute ${attribute.name}$.', 16, 1);
+        END    
+    ~*/
+            }    
+    /*~
+    INSERT INTO [$attribute.capsule].[$attribute.name] (
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.valueColumnName
+    )
+    SELECT
+        $(schema.METADATA)? $attribute.metadataColumnName,
+        $attribute.anchorReferenceName,
+        $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $attribute.valueColumnName
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT 
+            x.$attribute.anchorReferenceName
+        FROM
+            [$attribute.capsule].[$attribute.name] x
+        WHERE
+            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+        $(attribute.isEquivalent())? AND    
+            x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+    );    
+END
+GO       
+~*/
+        } // end of static idempotent attribute
     } // end of loop over attributes
 }
 }
