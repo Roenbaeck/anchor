@@ -111,16 +111,18 @@ BEGIN
         $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
     $(attribute.isEquivalent())? AND    
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-    LEFT JOIN 
-        @$attribute.name x
-    ON
-        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
-    $(attribute.isEquivalent())? AND    
-        x.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
-    $(attribute.isHistorized())? AND
-        $(attribute.isHistorized())? x.$attribute.changingColumnName = p.$attribute.changingColumnName
-    WHERE
-        x.$attribute.anchorReferenceName is null;
+    WHERE NOT EXISTS (
+        SELECT 
+            x.$attribute.anchorReferenceName
+        FROM
+            @$attribute.name x
+        WHERE
+            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+        $(attribute.isEquivalent())? AND    
+            x.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+        $(attribute.isHistorized())? AND
+            $(attribute.isHistorized())? x.$attribute.changingColumnName = p.$attribute.changingColumnName
+    );
 
     -- check previous values
     SET @message = (
