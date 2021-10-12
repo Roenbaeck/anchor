@@ -236,6 +236,8 @@ BEGIN
             $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
             x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        AND
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
     );    
 END
 GO       

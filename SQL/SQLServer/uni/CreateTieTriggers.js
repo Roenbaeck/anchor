@@ -332,7 +332,7 @@ BEGIN
     /*~
         $role.columnName$(tie.hasMoreRoles())?,
     ~*/
-    }
+        }
     /*~
     FROM
         inserted i
@@ -343,21 +343,11 @@ BEGIN
             [$tie.capsule].[$tie.name] x
         WHERE 
 ~*/
-        if(tie.hasMoreIdentifiers()) {
-            while(role = tie.nextIdentifier()) {
+        while(role = tie.nextRole()) {
 /*~
             x.$role.columnName = i.$role.columnName
-        $(tie.hasMoreIdentifiers())? AND
+        $(tie.hasMoreRoles())? AND
 ~*/
-            }
-        }
-        else {
-            while(role = tie.nextValue()) {
-/*~
-            x.$role.columnName = i.$role.columnName
-        $(tie.hasMoreValues())? AND
-~*/
-            }
         }
 /*~
     );
