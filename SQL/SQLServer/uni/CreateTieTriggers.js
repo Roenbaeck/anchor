@@ -85,35 +85,24 @@ BEGIN
 /*~
     FROM
         inserted i
-    LEFT JOIN
-        [$tie.capsule].[$tie.name] p
-    ON
+    WHERE NOT EXISTS (
+        SELECT 
+            42
+        FROM
+            [$tie.capsule].[$tie.name] x
+        WHERE 
 ~*/
-    while(role = tie.nextRole()) {
+        while(role = tie.nextRole()) {
 /*~
-        p.$role.columnName = i.$role.columnName
-    $(tie.hasMoreRoles())? AND
+            x.$role.columnName = i.$role.columnName
+        $(tie.hasMoreRoles())? AND
 ~*/
-    }
+        }
 /*~
-    $(tie.isHistorized())? AND
-        $(tie.isHistorized())? p.$tie.changingColumnName = i.$tie.changingColumnName
-    WHERE -- the posit must be different (exclude the identical)
+        $(tie.isHistorized())? AND
+            $(tie.isHistorized())? x.$tie.changingColumnName = i.$tie.changingColumnName
+    );
 ~*/
-    if(tie.hasMoreIdentifiers()) {
-        role = tie.nextIdentifier(); 
-/*~
-        p.$role.columnName is null;
-~*/
-        while(tie.nextIdentifier());
-    }
-    else {
-        role = tie.nextValue(); 
-/*~
-        p.$role.columnName is null;
-~*/
-        while(tie.nextValue());
-    }
     // fill table with entire history in these cases
     if(tie.isIdempotent()) {
 /*~
