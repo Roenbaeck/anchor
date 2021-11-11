@@ -72,18 +72,20 @@ BEGIN
         'P' -- new posit
     FROM
         inserted i
-    LEFT JOIN
-        [$attribute.capsule].[$attribute.name] p
-    ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
-    $(attribute.isEquivalent())? AND
-        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
-    $(attribute.isHistorized())? AND
-        $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
-    AND
-        $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
-    WHERE -- the posit must be different (exclude the identical)
-        p.$attribute.anchorReferenceName is null;
+    WHERE NOT EXISTS (
+        SELECT 
+            x.$attribute.anchorReferenceName
+        FROM
+            [$attribute.capsule].[$attribute.name] x
+        WHERE
+            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+        $(attribute.isEquivalent())? AND    
+            x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        $(attribute.isHistorized())? AND
+            $(attribute.isHistorized())? x.$attribute.changingColumnName = i.$attribute.changingColumnName
+        AND
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+    ); -- the posit must be different (exclude the identical)
 ~*/
         // fill table with entire history in these cases
         if(attribute.isIdempotent()) {
