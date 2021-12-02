@@ -380,14 +380,15 @@ while (tie = schema.nextTie()) {
 if(DEBUG) console.log(schema);
 
 // "global" variables
-schema.METADATA = schema.metadata.metadataUsage == 'true';
-schema.IMPROVED = schema.metadata.naming == 'improved';
-schema.PARTITIONING = schema.metadata.partitioning == 'true';
-schema.INTEGRITY = schema.metadata.entityIntegrity == 'true';
-schema.BUSINESS_VIEWS = schema.metadata.businessViews == 'true';
-schema.TRIGGERS = schema.metadata.triggers == 'true';
+schema.METADATA = schema.metadata.metadataUsage === 'true';
+schema.IMPROVED = schema.metadata.naming === 'improved';
+schema.PARTITIONING = schema.metadata.partitioning === 'true';
+schema.INTEGRITY = schema.metadata.entityIntegrity === 'true';
+schema.BUSINESS_VIEWS = schema.metadata.businessViews === 'true';
+schema.KNOT_ALIASES = schema.metadata.knotAliases === 'true';
+schema.TRIGGERS = schema.metadata.triggers === 'true';
 schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
 schema.DECISIVENESS = schema.metadata.decisiveness === 'true';
-schema.UNI = schema.metadata.temporalization == 'uni';
-schema.CRT = schema.metadata.temporalization == 'crt';
+schema.UNI = schema.metadata.temporalization === 'uni';
+schema.CRT = schema.metadata.temporalization === 'crt';
 schema.EOT = '\'9999-12-31\''; // End Of Time
