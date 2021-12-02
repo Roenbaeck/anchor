@@ -38,12 +38,16 @@ SELECT
     $(schema.CRT)? [$anchor.mnemonic].Positor,
     [$anchor.mnemonic].$anchor.identityColumnName as [$anchor.businessIdentityColumnName],
 ~*/
-        var knot, attribute;
+        var knot, attribute, knotPresentableName;
         while (attribute = anchor.nextAttribute()) {
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
+                if(schema.KNOT_ALIASES) 
+                    knotPresentableName = attribute.businessName;
+                else
+                    knotPresentableName = attribute.knotBusinessName;
 /*~
-    [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
+    [$anchor.mnemonic].$attribute.knotValueColumnName as [$knotPresentableName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
             else {
@@ -71,6 +75,7 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    $(schema.KNOT_ALIASES)? [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.businessName],
     [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -155,6 +160,7 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    $(schema.KNOT_ALIASES)? [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.businessName],
     [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }
@@ -184,6 +190,7 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
+    $(schema.KNOT_ALIASES)? [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.businessName],
     [$anchor.mnemonic].$attribute.knotValueColumnName as [$attribute.knotBusinessName]$(anchor.hasMoreAttributes())?,
 ~*/
             }

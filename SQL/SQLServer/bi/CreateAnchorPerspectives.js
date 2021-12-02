@@ -71,6 +71,7 @@ SELECT
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(schema.KNOT_ALIASES)? [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.name,
     [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
     $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/

@@ -48,6 +48,7 @@ var Defaults = {
     privacy: 'Ignore', 
     checksum: 'false',
     encryptionGroup: '',
-    triggers: 'true'
+    triggers: 'true', 
+    knotAliases: 'false'
 };
 
