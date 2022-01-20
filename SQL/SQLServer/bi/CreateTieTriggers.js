@@ -328,7 +328,7 @@ BEGIN
             (i.$tie.reliabilityColumnName = 1 AND i.following_$tie.reliabilityColumnName = 0)
         );
 ~*/
-    if(!tie.isAssertive() || tie.isIdempotent()) {
+    if(!tie.isAssertive() || (tie.isHistorized() && tie.isIdempotent())) {
         // first remove reassertions
         if(!tie.isAssertive()) {
             var reliabilityColumn = tie.reliabilityColumnName;
@@ -474,7 +474,7 @@ BEGIN
         } // end of tie is not assertive
 
         // then remove restatements 
-        if(tie.isIdempotent()) {
+        if(tie.isHistorized() && tie.isIdempotent()) {
 /*~
     IF EXISTS (
         SELECT TOP 1 
