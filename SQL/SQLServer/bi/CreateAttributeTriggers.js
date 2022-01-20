@@ -188,7 +188,7 @@ BEGIN
             (i.$attribute.reliabilityColumnName = 1 AND i.following_$attribute.reliabilityColumnName = 0)
         );
 ~*/
-        if(!attribute.isAssertive() || attribute.isIdempotent()) {
+        if(!attribute.isAssertive() || (attribute.isHistorized() && attribute.isIdempotent())) {
             // first remove reassertions
             if(!attribute.isAssertive()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
@@ -290,7 +290,7 @@ BEGIN
 ~*/                
             }
             // then remove restatements 
-            if(attribute.isIdempotent()) {
+            if(attribute.isHistorized() && attribute.isIdempotent()) {
                 var valueColumn = attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName;
 /*~
     IF EXISTS (
