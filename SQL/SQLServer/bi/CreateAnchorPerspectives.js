@@ -70,10 +70,10 @@ SELECT
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(schema.KNOT_ALIASES)? [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.name,
-    [k$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? [$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(schema.KNOT_ALIASES)? [$attribute.mnemonic].$knot.valueColumnName AS $attribute.name,
+    [$attribute.mnemonic].$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? [$attribute.mnemonic].$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -87,36 +87,51 @@ FROM
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-LEFT JOIN
-    [$attribute.capsule].[r$attribute.name](
-        $(attribute.isHistorized())? @changingTimepoint,
-        @positingTimepoint
-    ) [$attribute.mnemonic]
-ON
-    [$attribute.mnemonic].$attribute.identityColumnName = (
-        SELECT TOP 1
-            sub.$attribute.identityColumnName
-        FROM
-            [$attribute.capsule].[r$attribute.name](
-                $(attribute.isHistorized())? @changingTimepoint,
-                @positingTimepoint
-            ) sub
-        WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-        AND
-            sub.$attribute.reliabilityColumnName = 1
-        ORDER BY
-            $(attribute.isHistorized())? sub.$attribute.changingColumnName DESC,
-            sub.$attribute.positingColumnName DESC
-    )~*/
+OUTER APPLY (
+    SELECT TOP 1
+        $(schema.IMPROVED)? [r$attribute.mnemonic].$attribute.anchorReferenceName,
+        $(schema.METADATA)? [r$attribute.mnemonic].$attribute.metadataColumnName,
+        [r$attribute.mnemonic].$attribute.identityColumnName,
+        $(attribute.timeRange)? [r$attribute.mnemonic].$attribute.changingColumnName,
+        [r$attribute.mnemonic].$attribute.positingColumnName,
+        [r$attribute.mnemonic].$attribute.reliabilityColumnName,
+~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-LEFT JOIN
-    [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
-ON
-    [k$attribute.mnemonic].$knot.identityColumnName = [$attribute.mnemonic].$attribute.knotReferenceName~*/
+        $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName,
+        $(schema.KNOT_ALIASES)? [k$attribute.mnemonic].$knot.valueColumnName,
+        [k$attribute.mnemonic].$knot.valueColumnName,
+        $(schema.METADATA)? [k$attribute.mnemonic].$knot.metadataColumnName,
+~*/
             }
+/*~
+        $(attribute.hasChecksum())? [r$attribute.mnemonic].$attribute.checksumColumnName,
+        [r$attribute.mnemonic].$attribute.valueColumnName
+    FROM
+        [$attribute.capsule].[r$attribute.name](
+            $(attribute.isHistorized())? @changingTimepoint,
+            @positingTimepoint
+        ) [r$attribute.mnemonic]
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    JOIN
+        [$knot.capsule].[$knot.name] [k$attribute.mnemonic]
+    ON
+        [k$attribute.mnemonic].$knot.identityColumnName = [r$attribute.mnemonic].$attribute.knotReferenceName
+~*/
+            }
+/*~
+    WHERE
+		[r$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+	AND 
+		[r$attribute.mnemonic].$attribute.reliabilityColumnName = 1
+	ORDER BY
+        $(attribute.isHistorized())? [r$attribute.mnemonic].$attribute.changingColumnName DESC,
+        [r$attribute.mnemonic].$attribute.positingColumnName DESC
+) [$attribute.mnemonic]~*/
             if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
             }

@@ -75,7 +75,7 @@ FROM
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
 /*~
-LEFT JOIN
+JOIN
     [$knot.capsule].[$knot.name] [$role.name]
 ON
     [$role.name].$knot.identityColumnName = tie.$role.columnName
