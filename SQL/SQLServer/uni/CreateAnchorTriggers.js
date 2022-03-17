@@ -147,7 +147,7 @@ BEGIN
         $(attribute.timeRange)? $attribute.changingColumnName,
         $attribute.valueColumnName
     )
-    SELECT
+    SELECT DISTINCT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.anchorReferenceName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
@@ -231,7 +231,7 @@ BEGIN
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
-        SELECT
+        SELECT DISTINCT
 ~*/
                 if(schema.METADATA) {
 /*~
@@ -328,7 +328,7 @@ BEGIN
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
-        SELECT
+        SELECT DISTINCT
 ~*/
                 if(schema.METADATA) {
 /*~
