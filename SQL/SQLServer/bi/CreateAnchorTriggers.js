@@ -204,8 +204,8 @@ BEGIN
 				knot = attribute.knot;
 /*~
     IF (
-        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
-        $(attribute.isHistorized())? UPDATE($attribute.knotValueColumnName) OR
+        UPDATE($attribute.valueColumnName) OR
+        UPDATE($attribute.knotValueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
@@ -260,6 +260,8 @@ BEGIN
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         WHERE
+            $(!attribute.isHistorized())? i.$attribute.identityColumnName is null
+        $(!attribute.isHistorized())? AND
             CASE
                 WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
                 ELSE [k$knot.mnemonic].$knot.identityColumnName
@@ -319,7 +321,7 @@ BEGIN
 			else { // not knotted
 /*~
     IF (
-        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
+        UPDATE($attribute.valueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
@@ -367,6 +369,8 @@ BEGIN
         FROM
             inserted i
         WHERE
+            $(!attribute.isHistorized())? i.$attribute.identityColumnName is null
+        $(!attribute.isHistorized())? AND
             i.$attribute.valueColumnName is not null
     END
 
