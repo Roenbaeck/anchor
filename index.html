@@ -97,7 +97,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.9.8';
+        var VERSION = '0.99.9.9';
 
         // change to false in beta
         var RELEASE = false;
@@ -4799,6 +4799,25 @@
                 save.dispatchEvent(event);
                 (window.URL || window.webkitURL).revokeObjectURL(save.href);
             },
+            loadModelFromGist: async function(gist_id) {
+                var url = "https://api.github.com/gists/" + gist_id;
+                var response = await fetch(url);
+                var responseText = await response.text();
+                const gist = JSON.parse(responseText);
+                // console.log(gist);
+                var raw_url;
+                for (file in gist.files) {
+                    if(gist.files[file].language == 'XML') {
+                        raw_url = gist.files[file].raw_url;
+                        Model.id = gist_id;
+                        Model.name = gist.description;
+                        Model.scope = gist.public == 'true' ? 'public' : 'private';
+                        Model.description = gist.owner.login;
+                        break;
+                    }
+                }
+                this.loadFromURL(raw_url, false);
+            },
             loadXML: async function(url) {
                 var response = await fetch(url);
                 var responseText = await response.text();
@@ -6176,9 +6195,14 @@
 
             // load url or previous model, if any
             var model;
+            if(PARAMETERS.gist) {
+                Actions.loadModelFromGist(PARAMETERS.gist);
+            }
+            /*
             if(PARAMETERS.id) {
                 Actions.loadModelFromCloud(PARAMETERS.id, null, 'public', null, null);
             }
+            */
             else if(model = window.localStorage.getItem("model")) {
                 Model.fromXML(new DOMParser().parseFromString(model, 'text/xml'));
                 Model.id = window.localStorage.getItem("modelId");
