@@ -4805,7 +4805,7 @@
                 var responseText = await response.text();
                 const gist = JSON.parse(responseText);
                 // console.log(gist);
-                var raw_url;
+                var file, raw_url;
                 for (file in gist.files) {
                     if(gist.files[file].language == 'XML') {
                         raw_url = gist.files[file].raw_url;
