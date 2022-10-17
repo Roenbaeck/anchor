@@ -97,7 +97,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.9.9';
+        var VERSION = '0.99.10';
 
         // change to false in beta
         var RELEASE = false;
@@ -995,6 +995,20 @@
                         }
                         component.setImploded(!component.imploded);
                     }
+                }
+                // if at least one imploded component exists
+                // hide key layer, otherwise show key layer
+                var allExloded = true;
+                for(var i = 0; i < this.components.length; i++) {
+                    component = this.components[i];
+                    if(component.imploded) {
+                        SVGLayer.hide('keys');
+                        allExloded = false;
+                        break;
+                    }
+                }                
+                if(allExloded) {
+                    SVGLayer.show('keys');
                 }
                 this.refresh();
                 if(startEngine == null || startEngine)
