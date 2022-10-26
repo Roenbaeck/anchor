@@ -3,3 +3,4 @@
 // set some hard coded defaults if they are missing
 schema.metadata.encapsulation = schema.metadata.encapsulation || 'public';
 schema.metadata.chronon = schema.metadata.chronon || 'datetime';
+schema.metadata.identityProperty = 'IDENTITY(1,1)'

@@ -4,7 +4,7 @@ SQL/NamingConvention.js
 SQL/Snowflake/NamingConvention.js
 SQL/Snowflake/uni/CreateEquivalentAndDefault.js
 SQL/Snowflake/uni/CreateKnots.js
-SQL/Snowflake/uni/CreateAnchorsAndAttributes.js
+SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
 SQL/Snowflake/uni/CreateTies.js
 # to be done later
 #SQL/Snowflake/uni/CreateKnotEquivalenceViews.js

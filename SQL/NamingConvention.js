@@ -19,6 +19,7 @@ while (knot = schema.nextKnot()) {
     knot.equivalentColumnName = knot.mnemonic + D + schema.metadata.equivalentSuffix;
     knot.capsule = knot.metadata.capsule || schema.metadata.encapsulation;
     knot.metadataColumnName = schema.metadata.metadataPrefix + D + knot.mnemonic;
+    knot.recordingColumnName = knot.mnemonic+ D + 'RecordedAt';
     knot.toString = function() { return this.mnemonic; };
 }
 
@@ -48,6 +49,7 @@ while (anchor = schema.nextAnchor()) {
     anchor.capsule = anchor.metadata.capsule || schema.metadata.encapsulation;
     anchor.metadataColumnName = schema.metadata.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.metadata.dummySuffix;
+    anchor.recordingColumnName = anchor.mnemonic + D + 'RecordedAt';
     anchor.businessIdentityColumnName = anchor.descriptor + D + businessIdentity;
     anchor.toString = function() { return this.mnemonic; };
     var attribute;
@@ -61,6 +63,7 @@ while (anchor = schema.nextAnchor()) {
         attribute.checksumColumnName = attribute.uniqueMnemonic + D + schema.metadata.checksumSuffix;
         attribute.identityColumnName = attribute.uniqueMnemonic + D + schema.metadata.identitySuffix;
         attribute.metadataColumnName = schema.metadata.metadataPrefix + D + attribute.uniqueMnemonic;
+        attribute.recordingColumnName = attribute.uniqueMnemonic + D + 'RecordedAt';
         attribute.deletableColumnName = schema.metadata.deletablePrefix + D + attribute.uniqueMnemonic;
         attribute.deletionTimeColumnName = attribute.uniqueMnemonic + D + schema.metadata.deletionSuffix;
         attribute.equivalentColumnName = attribute.uniqueMnemonic + D + schema.metadata.equivalentSuffix;
@@ -208,6 +211,7 @@ while (tie = schema.nextTie()) {
     tie.deletableColumnName = schema.metadata.deletablePrefix + D + tie.name;
     tie.deletionTimeColumnName = tie.name + D + schema.metadata.deletionSuffix;
     tie.metadataColumnName = schema.metadata.metadataPrefix + D + tie.name;
+    tie.recordingColumnName = tie.name + D + 'RecordedAt';
     tie.versionColumnName = tie.name + D + schema.metadata.versionSuffix;
     tie.statementTypeColumnName = tie.name + D + schema.metadata.statementTypeSuffix;
     if(tie.timeRange) {
