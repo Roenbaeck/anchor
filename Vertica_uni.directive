@@ -2,8 +2,8 @@
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
-SQL/Vertica/uni/CreateEquivalentAndDefault.js
-SQL/Vertica/uni/CreateKnots.js
+SQL/PgDerived/uni/CreateEquivalentAndDefault.js
+SQL/PgDerived/uni/CreateKnots.js
 SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
 SQL/Vertica/uni/CreateTies.js
 # to be done later

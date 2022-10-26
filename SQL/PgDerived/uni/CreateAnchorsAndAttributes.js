@@ -31,8 +31,8 @@ while (anchor = schema.nextAnchor()) {
 -- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
-    $anchor.identityColumnName $anchor.identity $(anchor.isGenerator())? $anchor.identityGenerator not null, : not null,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.recordingColumnName $schema.metadata.chronon default $schema.metadata.now,
+    $anchor.identityColumnName $anchor.identity $(anchor.isGenerator())? $anchor.identityGenerator NOT NULL, : NOT NULL,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType NOT NULL, : $anchor.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName 
     )
@@ -56,13 +56,13 @@ CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
                 partitionOptions = '';
             break;
             case 'Vertica':
-                checksumOptions = `int default hash(${attribute.valueColumnName})`;
+                checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
                 indexOptions = '';
                 tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`
                 partitionOptions = schema.PARTITIONING ? `PARTITION BY (${attribute.equivalentColumnName})` : '' ;
             break;                
             case 'Snowflake':
-                checksumOptions = `numeric(19,0) default hash(${attribute.valueColumnName})`;
+                checksumOptions = `numeric(19,0) DEFAULT hash(${attribute.valueColumnName})`;
                 indexOptions = '';
                 tableOptions = `CLUSTER BY (${sortColumns})` ;
                 partitionOptions = '';
@@ -80,12 +80,12 @@ CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
-    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
-    $attribute.valueColumnName $attribute.dataRange not null,
+    $attribute.anchorReferenceName $anchor.identity NOT NULL,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange NOT NULL,
+    $attribute.valueColumnName $attribute.dataRange NOT NULL,
     $(attribute.hasChecksum())? $attribute.checksumColumnName $checksumOptions,
-    $attribute.changingColumnName $attribute.timeRange not null,
-    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null, : $attribute.recordingColumnName $schema.metadata.chronon default $schema.metadata.now,
+    $attribute.changingColumnName $attribute.timeRange NOT NULL,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
@@ -106,10 +106,10 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.knotReferenceName $knot.identity not null,
-    $attribute.changingColumnName $attribute.timeRange not null,
-    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null, : $attribute.recordingColumnName $schema.metadata.chronon default $schema.metadata.now,
+    $attribute.anchorReferenceName $anchor.identity NOT NULL,
+    $attribute.knotReferenceName $knot.identity NOT NULL,
+    $attribute.changingColumnName $attribute.timeRange NOT NULL,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
@@ -133,9 +133,9 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
-    $attribute.knotReferenceName $knot.identity not null,
-    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null, : $attribute.recordingColumnName $schema.metadata.chronon default $schema.metadata.now,
+    $attribute.anchorReferenceName $anchor.identity NOT NULL,
+    $attribute.knotReferenceName $knot.identity NOT NULL,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
@@ -155,11 +155,11 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
-    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
-    $attribute.valueColumnName $attribute.dataRange not null,
+    $attribute.anchorReferenceName $anchor.identity NOT NULL,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange NOT NULL,
+    $attribute.valueColumnName $attribute.dataRange NOT NULL,
     $(attribute.hasChecksum())? $attribute.checksumColumnName $checksumOptions,
-    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null, : $attribute.recordingColumnName $schema.metadata.chronon default $schema.metadata.now,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint fk$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
