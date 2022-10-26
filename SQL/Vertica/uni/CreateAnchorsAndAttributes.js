@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.anchorReferenceName,
         $attribute.changingColumnName
     )
-) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
+) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName 
+  SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
