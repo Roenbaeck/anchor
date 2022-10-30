@@ -1,11 +1,11 @@
 # This is the processing directive for uni-temporal Anchor Modeling in SQL Server
 SQL/Helpers.js
 SQL/NamingConvention.js
-SQL/PgDerived/NamingConvention.js
+SQL/Snowflake/NamingConvention.js
 SQL/PgDerived/uni/CreateEquivalentAndDefault.js
 SQL/PgDerived/uni/CreateKnots.js
 SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
-SQL/Snowflake/uni/CreateTies.js
+SQL/PgDerived/uni/CreateTies.js
 # to be done later
 #SQL/Snowflake/uni/CreateKnotEquivalenceViews.js
 #SQL/Snowflake/uni/CreateAttributeEquivalenceViews.js
