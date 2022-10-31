@@ -20,6 +20,11 @@ while (knot = schema.nextKnot()) {
             tableOptions = '';
             partitionOptions = '';
         break;
+        case 'Redshift':
+            checksumOptions = `varbyte(16) DEFAULT cast(MD5(cast(${knot.valueColumnName} as text)) as varbyte(16))`;
+            tableOptions = `DISTSTYLE ALL SORTKEY(${knot.identityColumnName})`;
+            partitionOptions = '';
+        break;  
         case 'Vertica':
             checksumOptions = `int DEFAULT hash(${knot.valueColumnName})`;
             tableOptions = `ORDER BY ${knot.identityColumnName} UNSEGMENTED ALL NODES`;

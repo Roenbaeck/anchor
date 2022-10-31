@@ -1,4 +1,20 @@
 if(schema.EQUIVALENCE) {
+    // set table options per dialect
+    switch (schema.metadata.databaseTarget) {
+        //case 'PostgreSQL':
+        //break;
+        case 'Redshift':
+            tableOptions = `DISTSTYLE ALL SORTKEY(${schema.metadata.equivalentSuffix})`;
+        break;            
+        case 'Vertica':
+            tableOptions = `ORDER BY ${schema.metadata.equivalentSuffix} UNSEGMENTED ALL NODES`;
+        break;                
+        case 'Snowflake':
+            tableOptions = `CLUSTER BY (${schema.metadata.equivalentSuffix})` ;
+        break;
+        default:
+            tableOptions = '';
+    }
 /*~
 -- EQUIVALENTS METADATA -----------------------------------------------------------------------------------------------
 --
@@ -11,38 +27,18 @@ CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation\._$schema.metadata.equ
     constraint pk_$schema.metadata.equivalentSuffix primary key (
         $schema.metadata.equivalentSuffix
     )
-)
+) $tableOptions
 ;
-~*/
-    // set options per dialect
-    switch (schema.metadata.databaseTarget) {
-        case 'PostgreSQL':
-/*~
+
 -- If the default value already exists do nothing.
-INSERT INTO $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix (
+INSERT INTO $schema.metadata.encapsulation\._$schema.metadata.equivalentSuffix (
     $schema.metadata.equivalentSuffix
-) VALUES (
-    0 -- the default equivalent
-) ON CONFLICT DO NOTHING
+) SELECT d._defaultEquivalent 
+    FROM (SELECT 0 AS _defaultEquivalent) d 
+   WHERE NOT EXISTS (SELECT 1 
+                       FROM $schema.metadata.encapsulation\._$schema.metadata.equivalentSuffix AS e 
+                      WHERE d._defaultEquivalent = e.$schema.metadata.equivalentSuffix
+                    ) 
 ;
 ~*/
-        break;
-        default:
-/*~
-MERGE INTO $schema.metadata.encapsulation._$schema.metadata.equivalentSuffix e
-USING ( SELECT 0 AS _defaultEquivalent ) d
-ON (
-    d._defaultEquivalent = e.$schema.metadata.equivalentSuffix
-)
-WHEN NOT MATCHED THEN
-INSERT (
-    $schema.metadata.equivalentSuffix
-)
-VALUES (
-    d._defaultEquivalent
-);
-~*/
-    }    
-
-
 }

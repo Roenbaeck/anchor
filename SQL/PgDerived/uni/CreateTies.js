@@ -10,8 +10,9 @@
 ~*/
 var tie, tieType;
 while (tie = schema.nextTie()) {
-    if(schema.METADATA)
-        tie.metadataDefinition = tie.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
+    tie.metadataDefinition = schema.METADATA 
+                           ? `${tie.metadataColumnName} ${schema.metadata.metadataType} NOT NULL`
+                           : `${tie.recordingColumnName} ${schema.metadata.chronon} DEFAULT ${schema.metadata.now}`;
     if(tie.isHistorized() && tie.isKnotted()) { 
         tieType = 'Knotted historized tie table '; 
     } else if(tie.isHistorized()) { 
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
     }
 /*~
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
-    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+    $tie.metadataDefinition,
 ~*/
     while (role = tie.nextRole()) {
         var knotReference = '';
@@ -103,6 +104,10 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
     // dialect specific table options
     var tableOptions;
     switch (schema.metadata.databaseTarget) {
+        case 'Redshift':  
+            tableOptions = `DISTSTYLE EVEN INTERLEAVED SORTKEY(${anchorRolesColumnNames.join(', ')})`;
+            // TO DO, check if we can do the same as the Vertica projections but then with materialized views with different distribution keys.
+        break;        
         case 'Snowflake': 
             tableOptions = `CLUSTER BY ${anchorRolesColumnNames.join(', ')}`;
         break;        

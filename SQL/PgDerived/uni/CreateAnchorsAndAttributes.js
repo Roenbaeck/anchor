@@ -17,6 +17,9 @@ while (anchor = schema.nextAnchor()) {
     switch (schema.metadata.databaseTarget) {
         //case 'PostgreSQL':
         //break;
+        case 'Redshift':
+            tableOptions = `DISTSTYLE KEY DISTKEY(${anchor.identityColumnName}) SORTKEY(${anchor.identityColumnName})`;
+        break;            
         case 'Vertica':
             tableOptions = `ORDER BY ${anchor.identityColumnName} SEGMENTED BY MODULARHASH(${anchor.identityColumnName}) ALL NODES`;
         break;                
@@ -55,6 +58,12 @@ CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
                 tableOptions = '';
                 partitionOptions = '';
             break;
+            case 'Redshift':
+                checksumOptions = `varbyte(16) DEFAULT cast(MD5(cast(${attribute.valueColumnName} as text)) as varbyte(16))`;
+                indexOptions = '';
+                tableOptions = `DISTSTYLE KEY DISTKEY(${attribute.anchorReferenceName}) SORTKEY(${sortColumns})`
+                partitionOptions = '';
+            break;             
             case 'Vertica':
                 checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
                 indexOptions = '';

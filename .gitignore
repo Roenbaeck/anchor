@@ -4,3 +4,4 @@
 .settings/org.eclipse.wst.jsdt.ui.superType.name
 .DS_Store
 *.exe
+.vscode/settings.json

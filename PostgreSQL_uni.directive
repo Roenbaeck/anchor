@@ -1,4 +1,4 @@
-# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+# This is the processing directive for uni-temporal Anchor Modeling in PostgreSQL
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/PostgreSQL/NamingConvention.js

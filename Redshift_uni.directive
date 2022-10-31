@@ -1,0 +1,26 @@
+# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Redshift/NamingConvention.js
+SQL/PgDerived/uni/CreateEquivalentAndDefault.js
+SQL/PgDerived/uni/CreateKnots.js
+SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
+SQL/PgDerived/uni/CreateTies.js
+# to be done later
+#SQL/Redshift/uni/CreateKnotEquivalenceViews.js
+#SQL/Redshift/uni/CreateAttributeEquivalenceViews.js
+#SQL/Redshift/uni/AddAttributeRestatementConstraints.js
+#SQL/Redshift/uni/CreateKeyGenerators.js
+#SQL/Redshift/uni/CreateAttributeRewinders.js
+#SQL/Redshift/biz/DropAnchorBusinessPerspectives.js
+#SQL/Redshift/uni/CreateAnchorPerspectives.js
+#SQL/Redshift/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Redshift/uni/CreateAttributeTriggers.js
+#SQL/Redshift/uni/CreateAnchorTriggers.js
+#SQL/Redshift/uni/AddTieRestatementConstraints.js
+#SQL/Redshift/biz/DropTieBusinessPerspectives.js
+#SQL/Redshift/uni/CreateTiePerspectives.js
+#SQL/Redshift/biz/CreateTieBusinessPerspectives.js
+#SQL/Redshift/uni/CreateTieTriggers.js
+#SQL/Redshift/CreateSchemaTracking.js
+#SQL/Redshift/uni/AddDescriptions.js
