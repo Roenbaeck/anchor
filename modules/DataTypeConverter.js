@@ -215,25 +215,98 @@ var DataTypeConverter = {
         [/"guid"/ig,                            '"raw(16)"']
     ],
     Generic_to_PostgreSQL: [
+        // Numeric 
+            [/"tinyint"/ig,                         '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
+            //smallint                              -32,768	                    32,767
+            //integer	                            -2,147,483,648              2,147,483,647
+            //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
+            //decimal	                            -10^38 +1	                10^38 -1
+            //numeric	                            -10^38 +1	                10^38 -1          
+            [/"float"/ig,                           '"real"'],
+            [/"double"/ig,                          '"double precision"'],
+        // Boolean
+            //boolean                               true, yes, on, 1            false, no, off, 0
+        // Monetary
+            //money 
+        // Date/Time
+            //date	                                Stores date in the format YYYY-MM-DD
+            //time	                                Stores time in the format HH:MI:SS
+            //timetz                                Stores time in the format HH:MI:SS, with time zone
+            [/"datetime"/ig,                        '"timestamp"'],
+            [/"datetime"/ig,                        '"timestamp"'],
+            [/"timestamp\(([7-9]+)\)"/ig,           '"timestamp"'],
+            [/"timestamptz\(([7-9]+)\)"/ig,         '"timestamptz"'],     
+            //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
+            //timestamptz                           Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss, with time zone  
+        // Character 
+            //char	                                Fixed length with maximum length of 8000 characters
+            //varchar	                            Variable length storage with maximum length of 8000 characters
+            [/"longvarchar"/ig,                     '"text"'],
+            [/"clob"/ig,                            '"text"'],                   
+            [/"nchar\(([0-9]+)\)"/ig,               '"char($1)"'], 
+            [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],         
+            [/"nlongvarchar"/ig,                    '"text"'],
+            [/"nclob"/ig,                           '"text"'],
+        // Binary 
+            [/"binary\(([0-9]+)\)"/ig,              '"bytea"'],
+            [/"varbinary\(([0-9]+)\)"/ig,           '"bytea"'],                                                 
+            [/"longvarbinary"/ig,                   '"bytea"'], 
+            [/"blob"/ig,                            '"bytea"'], 
+        // Miscellaneous 
+            //xml	                                for storing xml data 
+            [/"json"/ig,                            '"jsonb"'], // jsonb is faster than json in retreval
+            //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
+            [/"guid"/ig,                            '"uuid"']             
+          ],
+        PostgreSQL_to_Generic: [
+        // Numeric
+            [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
+            [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)
+            [/"bigserial"|"serial8"|"int8"/ig,      '"bigint"'], // bigserial - bigint identity(1,1)
+            [/"real"|"float4"/ig,                   '"float"'],
+            [/"double precision"|"float8"/ig,       '"double"'],
+        // Boolean
+        // Monetary     
+        // Date/Time
+            [/"time\(([0-9])\)\s+without\s+time\s+zone"/ig, '"time($1)"'],    
+            [/"time\s+without\s+time\s+zone"/ig,    '"time"'],
+            [/"time\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timetz($1)"'],    
+            [/"time\s+with\s+time\s+zone"/ig,       '"timetz"'],           
+            [/"timestamp\(([0-9])\)\s+without\s+time\s+zone"/ig, '"timestamp($1)"'],    
+            [/"timestamp\s+without\s+time\s+zone"/ig,  '"timestamp"'], 
+            [/"timestamp\(([0-9])\)\s+with\s+time\s+zone"/ig, '"timestamptz($1)"'],    
+            [/"timestamp\s+with\s+time\s+zone"/ig,  '"timestamptz"'],    
+        // Character
+            [/"character\s+varying\(([0-9]+)\)"/ig, '"nvarchar($1)"'],
+            [/"varchar\(([0-9]+)\)"/ig,             '"nvarchar($1)"'],
+            [/"text"/ig,                            '"nlongvarchar"'],                
+            [/"character\(([0-9]+)\)"/ig,           '"nchar($1)"'],
+            [/"char\(([0-9]+)\)"/ig,                '"nchar($1)"'],
+        // Binary 
+            [/"bytea"/ig,                           '"longvarbinary"'],
+        // Miscellaneous
+            [/"uuid"/ig,                            '"guid"'],
+            [/"jsonb"/ig,                           '"json"']
+        ],
+    Generic_to_DuckDB: [
     // Numeric 
-        [/"tinyint"/ig,                         '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
+        //tinyint                               '"smallint"'], // [^"]*?" skip all until " , needed when arrays are possible.
         //smallint                              -32,768	                    32,767
         //integer	                            -2,147,483,648              2,147,483,647
         //bigint	                            -9,223,372,036,854,775,808  9,223,372,036,854,775,807
         //decimal	                            -10^38 +1	                10^38 -1
         //numeric	                            -10^38 +1	                10^38 -1          
-        [/"float"/ig,                           '"real"'],
-        [/"double"/ig,                          '"double precision"'],
+        //[/"float"/ig,                           '"real"'],
+        //[/"double"/ig,                          '"double precision"'],
     // Boolean
         //boolean                               true, yes, on, 1            false, no, off, 0
     // Monetary
-        //money 
+        [/"money"/ig,                           '"decimal(19,4)"'],
     // Date/Time
         //date	                                Stores date in the format YYYY-MM-DD
         //time	                                Stores time in the format HH:MI:SS
         //timetz                                Stores time in the format HH:MI:SS, with time zone
-        [/"datetime"/ig,                        '"timestamp"'],
-        [/"datetime"/ig,                        '"timestamp"'],
+        //[/"datetime"/ig,                        '"timestamp"'],
         [/"timestamp\(([7-9]+)\)"/ig,           '"timestamp"'],
         [/"timestamptz\(([7-9]+)\)"/ig,         '"timestamptz"'],     
         //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
@@ -258,7 +331,7 @@ var DataTypeConverter = {
         //array                                 (offered in SQL99) is fixed-length and ordered collection of elements
         [/"guid"/ig,                            '"uuid"']             
       ],
-    PostgreSQL_to_Generic: [
+    DuckDB_to_Generic: [
     // Numeric
         [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
         [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)

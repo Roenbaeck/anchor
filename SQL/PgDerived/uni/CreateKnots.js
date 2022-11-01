@@ -36,7 +36,7 @@ while (knot = schema.nextKnot()) {
             partitionOptions = '';
         break;
         default:
-            checksumOptions = `bytea generated always as (cast(MD5(cast(${knot.valueColumnName} as text)) as bytea)) stored`;
+            checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
             tableOptions = '';
             partitionOptions = '';
     }

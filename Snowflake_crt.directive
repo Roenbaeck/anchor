@@ -1,4 +1,4 @@
-# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Snowflake
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Snowflake/NamingConvention.js
