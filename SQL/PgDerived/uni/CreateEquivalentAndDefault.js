@@ -1,8 +1,16 @@
 if(schema.EQUIVALENCE) {
     // set table options per dialect
     switch (schema.metadata.databaseTarget) {
-        //case 'PostgreSQL':
-        //break;
+        case 'Citus':
+            tableOptions = `
+; 
+select create_reference_table('${schema.metadata.encapsulation}._${schema.metadata.equivalentSuffix}') 
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${schema.metadata.encapsulation}._${schema.metadata.equivalentSuffix}'::regclass 
+                       and citus_table_type = 'reference'
+                  ) `;
+        break; 
         case 'Redshift':
             tableOptions = `DISTSTYLE ALL SORTKEY(${schema.metadata.equivalentSuffix})`;
         break;            

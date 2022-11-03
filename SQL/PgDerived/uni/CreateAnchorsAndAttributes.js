@@ -9,12 +9,25 @@
 -- Anchors may have zero or more adjoined attributes.
 --
 ~*/
-var anchor, tableOptions, sequenceOptions;
+var anchor, tableOptions, sequenceOptions, knotFk = true;
 while (anchor = schema.nextAnchor()) {
     if(anchor.isGenerator())
         anchor.identityGenerator = schema.metadata.identityProperty;
     // set options per dialect
     switch (schema.metadata.databaseTarget) {
+        case 'Citus':
+            knotFk = false; // FK between reference/local (knot) and distributed tables (anchor and attribute) are not (yet) supported! 
+            anchor.identityGenerator = anchor.isGenerator() ? `DEFAULT(nextval('${anchor.name + '_' + anchor.identityColumnName}_seq'))`:'';
+            tableOptions = `
+; 
+select create_distributed_table('${anchor.capsule}.${anchor.name}', '${anchor.identityColumnName.toLowerCase()}') 
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${anchor.capsule}.${anchor.name}'::regclass 
+                       and citus_table_type = 'distributed'
+                  ) `;
+            sequenceOptions = anchor.isGenerator() ? `CREATE SEQUENCE IF NOT EXISTS ${anchor.name + '_' + anchor.identityColumnName}_seq;`:'';
+        break;
         case 'DuckDB':
             anchor.identityGenerator = anchor.isGenerator() ? `DEFAULT(nextval('${anchor.name + '_' + anchor.identityColumnName}_seq'))`:'';
             tableOptions = '';
@@ -55,6 +68,24 @@ CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
         // set options per dialect
         sortColumns = attribute.anchorReferenceName + (attribute.isHistorized() ? `, ${attribute.changingColumnName}` : '');
         switch (schema.metadata.databaseTarget) {
+            case 'Citus':
+                //  partitioning in PG is not dydnamic! Citus has the create_time_partitions, can maybe used for this.
+                //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
+                //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;
+                checksumOptions = `bytea generated always as (cast(MD5(cast(${attribute.valueColumnName} as text)) as bytea)) stored`;
+                indexOptions = attribute.isKnotted()  
+                             ? `INCLUDE (${attribute.knotReferenceName})` 
+                             : `INCLUDE (${attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName})`;
+                tableOptions = `
+; 
+select create_distributed_table('${attribute.capsule}.${attribute.name}', '${attribute.anchorReferenceName.toLowerCase()}', colocate_with => '${anchor.capsule}.${anchor.name}') 
+    where not exists ( select 1 
+                        from citus_tables 
+                        where table_name = '${attribute.capsule}.${attribute.name}'::regclass 
+                        and citus_table_type = 'distributed'
+                    ) `;
+                partitionOptions = '';
+            break;
             case 'PostgreSQL':
                 //  partitioning in PG is not dydnamic!
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
@@ -130,9 +161,15 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
+ ~*/     
+        if (knotFk) { 
+/*~  
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references $knot.capsule\.$knotTableName ($knot.identityColumnName),
+~*/ 
+        } 
+/*~  
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName ,
         $attribute.changingColumnName 
@@ -156,9 +193,15 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
     constraint fk_A_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
+~*/     
+        if (knotFk) { 
+/*~    
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references $knot.capsule\.$knotTableName ($knot.identityColumnName),
+~*/ 
+        } 
+/*~    
     constraint pk$attribute.name primary key (
         $attribute.anchorReferenceName 
     ) $indexOptions

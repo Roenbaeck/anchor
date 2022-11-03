@@ -15,6 +15,18 @@ while (knot = schema.nextKnot()) {
         knot.identityGenerator = schema.metadata.identityProperty;
     // set options per dialect
     switch (schema.metadata.databaseTarget) {
+        case 'Citus':
+            checksumOptions = `bytea generated always as (cast(MD5(cast(${knot.valueColumnName} as text)) as bytea)) stored`;
+            tableOptions = `
+; 
+select create_reference_table('${knot.capsule}.${knot.identityName}') 
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${knot.capsule}.${knot.identityName}'::regclass 
+                       and citus_table_type = 'reference'
+                  ) `;
+            sequenceOptions = '';
+        break;        
         case 'PostgreSQL':
             checksumOptions = `bytea generated always as (cast(MD5(cast(${knot.valueColumnName} as text)) as bytea)) stored`;
             tableOptions = '';
