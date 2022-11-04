@@ -8,8 +8,19 @@
 -- Ties must have at least two anchor roles and zero or more knot roles.
 --
 ~*/
-var tie, tieType;
+var tie, tieType, firstIdentifierRole, tieFk, tieUq;
+switch (schema.metadata.databaseTarget) {
+    case 'Citus':
+        // distributed tables kan only have uq on distribution key and fk's on distribution key!
+        tieFk = false; 
+        tieUq = false;
+    break;        
+    default:
+        tieFk = true; 
+        tieUq = true;
+}  
 while (tie = schema.nextTie()) {
+    firstIdentifierRole = null
     tie.metadataDefinition = schema.METADATA 
                            ? `${tie.metadataColumnName} ${schema.metadata.metadataType} NOT NULL`
                            : `${tie.recordingColumnName} ${schema.metadata.chronon} DEFAULT ${schema.metadata.now}`;
@@ -47,16 +58,18 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
         if(role.knot) {
             knotReference += role.knot.capsule + '.' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name);
         }
+        if (tieFk) {
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
     ) references $(role.anchor)? $role.anchor.capsule\.$role.anchor.name($role.anchor.identityColumnName), : $knotReference($role.knot.identityColumnName),
 ~*/
+        }
     }
     // one-to-one and we need additional constraints
     if(!tie.hasMoreIdentifiers()) {
         while (role = tie.nextRole()) {
-            if(role.isAnchorRole()) {
+            if(role.isAnchorRole() && tieUq) {
                 if(tie.isHistorized()) {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
@@ -80,6 +93,7 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
 ~*/
     if(tie.hasMoreIdentifiers()) {
         while (role = tie.nextIdentifier()) {
+            if (firstIdentifierRole == null) firstIdentifierRole = role;
 /*~
         $role.columnName~*/
             if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
@@ -104,6 +118,18 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
     // dialect specific table options
     var tableOptions;
     switch (schema.metadata.databaseTarget) {
+        case 'Citus':
+            // pk can only be placed if distribution key is part of the pk. If no first identifier then pick the first anchor role.
+            if (firstIdentifierRole == null) firstIdentifierRole = anchorRoles[0];
+            tableOptions = `
+; 
+select create_distributed_table('${tie.capsule}.${tie.name}', '${firstIdentifierRole.columnName.toLowerCase()}', colocate_with => '${firstIdentifierRole.anchor.capsule}.${firstIdentifierRole.anchor.name}') 
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${tie.capsule}.${tie.name}'::regclass 
+                       and citus_table_type = 'distributed'
+                  ) `;
+        break;        
         case 'Redshift':  
             tableOptions = `DISTSTYLE EVEN INTERLEAVED SORTKEY(${anchorRolesColumnNames.join(', ')})`;
             // TO DO, check if we can do the same as the Vertica projections but then with materialized views with different distribution keys.

@@ -1,4 +1,4 @@
-# This is the processing directive for uni-temporal Anchor Modeling in PostgreSQL
+# This is the processing directive for uni-temporal Anchor Modeling in Citus (MPP extension on PostgreSQL)
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/PostgreSQL/NamingConvention.js
@@ -7,3 +7,4 @@ SQL/PgDerived/uni/CreateEquivalentAndDefault.js
 SQL/PgDerived/uni/CreateKnots.js
 SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
 SQL/PgDerived/uni/CreateTies.js
+SQL/PostgreSQL/CreateSchemaTracking.js
