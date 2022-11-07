@@ -19,8 +19,9 @@
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
+        <identifier route="1st"/>
     </anchor>
-    <anchor mnemonic="EV" descriptor="Event" identity="int"/>
+    <anchor mnemonic="PS" descriptor="Person" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
             <metadata equivalent="true"/>
@@ -46,6 +47,7 @@
             <key stop="1" route="1st" of="PR" branch="1"/>
             <key stop="7" route="1st" of="PE" branch="3"/>
         </attribute>
+        <identifier route="1st"/>
     </anchor>
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
@@ -61,8 +63,8 @@
         </anchorRole>
     </tie>
     <tie>
-        <anchorRole role="subset" type="PE" identifier="false"/>
-        <anchorRole role="of" type="EV" identifier="false"/>
+        <anchorRole role="subset" type="AC" identifier="false"/>
+        <anchorRole role="of" type="PS" identifier="false"/>
     </tie>
     <tie>
         <anchorRole role="at" type="PE" identifier="true">
