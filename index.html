@@ -2953,17 +2953,16 @@
             this.editables.push(Editables.checksumEdit);
             this.editables.push(Editables.privacyEdit);
             this.historized = false;
-            console.log(this.route);
             for(var stop in this.route.stops) {
                 var component = this.route.stops[stop].component;
-                if (component.node.type == NodeType.EDGE && component.historized == true) {
+                if (component.node.type == NodeType.ATTRIBUTE && component.historized == true) {
                     this.historized = true;
                     this.changingRange = component.changingRange;
                     break;
                 }
                 // do we want to historized if is passes through a historized tie?
                 /*
-                if (component.node.type == NodeType.ROLE && component.component.historized == true) {
+                if (component.node.type == NodeType.EDGE && component.component.historized == true) {
                     this.historized = true;
                     this.changingRange = component.component.changingRange;
                     break;
