@@ -2934,7 +2934,7 @@
         // inheritance
         extend(Attribute, Component);
 
-        function Identifier(x, y, anchor, route, historized) {
+        function Identifier(x, y, anchor, route) {
             this.anchor = anchor;
             this.route = Model.routes[anchor.mnemonic + '|' + route];
             if (!this.route) {
@@ -2943,7 +2943,7 @@
             }
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
-            Component.call(this, new Node(this.id, x, y, NodeType.ATTRIBUTE));
+            Component.call(this, new Node(this.id, x, y, NodeType.IDENTIFIER));
             // set members
             this.editables.push(Editables.keySelectEdit);
             this.editables.push(Editables.encapsulationEdit);
@@ -2952,20 +2952,36 @@
             this.editables.push(Editables.assertivenessEdit);
             this.editables.push(Editables.checksumEdit);
             this.editables.push(Editables.privacyEdit);
-            this.historized = historized;
+            this.historized = false;
+            console.log(this.route);
+            for(var stop in this.route.stops) {
+                var component = this.route.stops[stop].component;
+                if (component.node.type == NodeType.EDGE && component.historized == true) {
+                    this.historized = true;
+                    this.changingRange = component.changingRange;
+                    break;
+                }
+                // do we want to historized if is passes through a historized tie?
+                /*
+                if (component.node.type == NodeType.ROLE && component.component.historized == true) {
+                    this.historized = true;
+                    this.changingRange = component.component.changingRange;
+                    break;
+                }
+                */
+            }
             this.assertive = Defaults.assertiveness === 'true';
             this.checksum = Defaults.checksum === 'true';
             this.encapsulation = Defaults.encapsulation;
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
-            this.operations.push('toggleHistorized');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
             this.svg.graphicsElement.component = this;
             this.svg.useElement = document.createElementNS(SVGNS, 'use');
-            var ref = historized ? '#identifier_historized' : '#identifier';
+            var ref = this.historized ? '#identifier_historized' : '#identifier';
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
             this.svg.graphicsElement.appendChild(this.svg.useElement);
             this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
@@ -2987,6 +3003,7 @@
                 this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
             );
             this.nav.control.setTranslate(x, y);
+            this.setHistorized(this.historized);
             this.setNameable(true);
             this.postCreationInitialization();
         }
@@ -3095,16 +3112,13 @@
                     if(element.childNodes.item(i).nodeName === 'description')
                         description = element.childNodes.item(i);
                 var route = element.getAttribute("route");
-                var changingRange = element.getAttribute("timeRange") || '';
-                var historized = changingRange ? true : false;
+                var changingRange = element.getAttribute("timeRange");
                 var parent = element.parentNode;
                 var anchorLookup = Model.getAnchorLookup();
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
-                var identifier = new Identifier(x, y, anchor, route, historized);
+                var identifier = new Identifier(x, y, anchor, route);
                 identifier.setFixed(fixed);
-                identifier.setHistorized(historized);
-                identifier.changingRange = changingRange;
                 identifier.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 identifier.privacy = privacy;
                 identifier.encapsulation = capsule;
@@ -3113,6 +3127,7 @@
                 identifier.encryptionGroup = encryptionGroup;
                 identifier.positIdentity = identity;
                 identifier.positGenerator = generator;
+                if(changingRange) identifier.changingRange = changingRange;
                 Model.addComponent(new Role(identifier, anchor, true));
                 identifier.updateName();
                 return identifier;
@@ -3121,10 +3136,10 @@
                 // create an attribute element
                 var identifer = schema.createElement("identifer");
                 identifer.setAttribute("route", this.route.name);
+                if(this.historized)
+                    attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
                 if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
                     identifer.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
-                if(this.historized)
-                    identifer.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
                         Defaults.privacy : this.privacy);
@@ -3156,12 +3171,6 @@
                     name += this.toString();
                 else
                     name += this.route.name;
-                if(this.historized) {
-                    name += ' (';
-                    if((Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') && this.assertive)
-                        name += 'a';
-                    name += ')';
-                }
                 if(this.postfixes.length > 0) 
                     name += ' [' + this.postfixes.join(', ') + ']'; 
                 return name;
@@ -6642,12 +6651,12 @@
                 <circle r="12"/>
                 <circle r="7"/>
             </g>
-            <g id="identifier" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+            <g id="identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
                 <circle r="10"/>
                 <line x1="-6" y1="0" x2="6" y2="0"/>
                 <line x1="0" y1="-6" x2="0" y2="6"/>
             </g>
-            <g id="identifier_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+            <g id="identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
                 <circle r="12"/>
                 <circle r="7"/>
                 <line x1="-7" y1="0" x2="7" y2="0"/>
@@ -6866,12 +6875,12 @@
                     <circle r="12"/>
                     <circle r="7"/>
                 </g>
-                <g id="nav_identifier" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <g id="nav_identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
                     <circle r="10"/>
                     <line x1="-6" y1="0" x2="6" y2="0"/>
                     <line x1="0" y1="-6" x2="0" y2="6"/>
                 </g>
-                <g id="nav_identifier_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <g id="nav_identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
                     <circle r="12"/>
                     <circle r="7"/>
                     <line x1="-7" y1="0" x2="7" y2="0"/>
