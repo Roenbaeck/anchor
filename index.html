@@ -3136,7 +3136,7 @@
                 var identifer = schema.createElement("identifer");
                 identifer.setAttribute("route", this.route.name);
                 if(this.historized)
-                    attribute.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
+                    identifer.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
                 if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
                     identifer.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 var metadata = schema.createElement("metadata");
@@ -3357,7 +3357,7 @@
 
                 var edge;
                 for(var i = 0; edge = this.node.edges[i]; i++) {
-                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.IDENTIFIER) {
                         var role = Model.nodeToComponent(edge.node);
                         role.addXML(anchor, schema);
                     }
@@ -6651,16 +6651,20 @@
                 <circle r="7"/>
             </g>
             <g id="identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                <circle r="10"/>
-                <line x1="-6" y1="0" x2="6" y2="0"/>
-                <line x1="0" y1="-6" x2="0" y2="6"/>
-            </g>
+                <circle r="13"/>
+                <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <circle r="2.5" transform="translate(0, -3)"/>
+                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                </g>
+        </g>
             <g id="identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                <circle r="12"/>
-                <circle r="7"/>
-                <line x1="-7" y1="0" x2="7" y2="0"/>
-                <line x1="0" y1="-7" x2="0" y2="7"/>
-            </g>
+                <circle r="16"/>
+                <circle r="11"/>
+                <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <circle r="2.5" transform="translate(0, -3)"/>
+                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                </g>
+        </g>
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>
@@ -6875,16 +6879,20 @@
                     <circle r="7"/>
                 </g>
                 <g id="nav_identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                    <circle r="10"/>
-                    <line x1="-6" y1="0" x2="6" y2="0"/>
-                    <line x1="0" y1="-6" x2="0" y2="6"/>
+                    <circle r="13"/>
+                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                        <circle r="2.5" transform="translate(0, -3)"/>
+                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                    </g>
                 </g>
                 <g id="nav_identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                    <circle r="12"/>
-                    <circle r="7"/>
-                    <line x1="-7" y1="0" x2="7" y2="0"/>
-                    <line x1="0" y1="-7" x2="0" y2="7"/>
-                </g>    
+                    <circle r="16"/>
+                    <circle r="11"/>
+                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                        <circle r="2.5" transform="translate(0, -3)"/>
+                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                    </g>
+                </g>
             </defs>
         </svg>
     </div>
