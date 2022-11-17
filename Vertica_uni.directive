@@ -2,8 +2,9 @@
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
-SQL/PgDerived/uni/CreateEquivalentAndDefault.js
-SQL/PgDerived/uni/CreateKnots.js
-SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
+SQL/PgDerived/CreateEquivalentAndDefault.js
+SQL/PgDerived/CreateKnots.js
+SQL/PgDerived/CreateAnchors.js
+SQL/PgDerived/uni/CreateAttributes.js
 SQL/PgDerived/uni/CreateTies.js
-
+SQL/PgDerived/uni/CreateAttributeLatestPerspectives.js

@@ -1,74 +1,21 @@
 /*~
--- ANCHORS AND ATTRIBUTES ---------------------------------------------------------------------------------------------
+-- ATTRIBUTES ---------------------------------------------------------------------------------------------------------
 --
--- Anchors are used to store the identities of entities.
--- Anchors are immutable.
 -- Attributes are used to store values for properties of entities.
 -- Attributes are mutable, their values may change over one or more types of time.
 -- Attributes have four flavors: static, historized, knotted static, and knotted historized.
 -- Anchors may have zero or more adjoined attributes.
 --
 ~*/
-var anchor, tableOptions, sequenceOptions, knotFk = true;
+var anchor, tableOptions, knotFk = true;
 while (anchor = schema.nextAnchor()) {
-    if(anchor.isGenerator())
-        anchor.identityGenerator = schema.metadata.identityProperty;
-    // set options per dialect
-    switch (schema.metadata.databaseTarget) {
-        case 'Citus':
-            knotFk = false; // FK between reference/local (knot) and distributed tables (anchor and attribute) are not (yet) supported! 
-            anchor.identityGenerator = anchor.isGenerator() ? `DEFAULT(nextval('${anchor.name + '_' + anchor.identityColumnName}_seq'))`:'';
-            tableOptions = `
-; 
-select create_distributed_table('${anchor.capsule}.${anchor.name}', '${anchor.identityColumnName.toLowerCase()}') 
- where not exists ( select 1 
-                      from citus_tables 
-                     where table_name = '${anchor.capsule}.${anchor.name}'::regclass 
-                       and citus_table_type = 'distributed'
-                  ) `;
-            sequenceOptions = anchor.isGenerator() ? `CREATE SEQUENCE IF NOT EXISTS ${anchor.name + '_' + anchor.identityColumnName}_seq;`:'';
-        break;
-        case 'DuckDB':
-            anchor.identityGenerator = anchor.isGenerator() ? `DEFAULT(nextval('${anchor.name + '_' + anchor.identityColumnName}_seq'))`:'';
-            tableOptions = '';
-            sequenceOptions = anchor.isGenerator() ? `CREATE SEQUENCE IF NOT EXISTS ${anchor.name + '_' + anchor.identityColumnName}_seq;`:'';
-        break;
-        case 'Redshift':
-            tableOptions = `DISTSTYLE KEY DISTKEY(${anchor.identityColumnName}) SORTKEY(${anchor.identityColumnName})`;
-            sequenceOptions = '';
-        break;            
-        case 'Vertica':
-            tableOptions = `ORDER BY ${anchor.identityColumnName} SEGMENTED BY MODULARHASH(${anchor.identityColumnName}) ALL NODES`;
-            sequenceOptions = '';
-        break;                
-        case 'Snowflake':
-            tableOptions = `CLUSTER BY (${anchor.identityColumnName})` ;
-            sequenceOptions = '';
-        break;
-        default:
-            tableOptions = '';
-            sequenceOptions = '';
-    }
-/*~
--- Anchor table -------------------------------------------------------------------------------------------------------
--- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
------------------------------------------------------------------------------------------------------------------------
-$sequenceOptions
-CREATE TABLE IF NOT EXISTS $anchor.capsule\.$anchor.name (
-    $anchor.identityColumnName $anchor.identity $(anchor.isGenerator())? $anchor.identityGenerator NOT NULL, : NOT NULL,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType NOT NULL, : $anchor.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint pk$anchor.name primary key (
-        $anchor.identityColumnName 
-    )
-) $tableOptions 
-;
-~*/
     var knot, attribute, indexOptions, partitionOptions, sortColumns, checksumOptions;
     while (attribute = anchor.nextAttribute()) {
         // set options per dialect
         sortColumns = attribute.anchorReferenceName + (attribute.isHistorized() ? `, ${attribute.changingColumnName}` : '');
         switch (schema.metadata.databaseTarget) {
             case 'Citus':
+                knotFk = false; // FK between reference/local (knot) and distributed tables (anchor and attribute) are not (yet) supported! 
                 //  partitioning in PG is not dydnamic! Citus has the create_time_partitions, can maybe used for this.
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
                 //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;

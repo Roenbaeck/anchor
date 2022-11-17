@@ -1,27 +1,2 @@
 # This is the processing directive for crt-temporal Anchor Modeling in Redshift
 SQL/Unsupported.js
-#SQL/Helpers.js
-#SQL/NamingConvention.js
-#SQL/Redshift/NamingConvention.js
-#SQL/PgDerived/crt/CreateEquivalentAndDefault.js
-#SQL/PgDerived/crt/CreateKnots.js
-#SQL/PgDerived/crt/CreateAnchorsAndAttributes.js
-#SQL/PgDerived/crt/CreateTies.js
-# to be done later
-#SQL/Redshift/crt/CreateKnotEquivalenceViews.js
-#SQL/Redshift/crt/CreateAttributeEquivalenceViews.js
-#SQL/Redshift/crt/AddAttributeRestatementConstraints.js
-#SQL/Redshift/crt/CreateKeyGenerators.js
-#SQL/Redshift/crt/CreateAttributeRewinders.js
-#SQL/Redshift/biz/DropAnchorBusinessPerspectives.js
-#SQL/Redshift/crt/CreateAnchorPerspectives.js
-#SQL/Redshift/biz/CreateAnchorBusinessPerspectives.js
-#SQL/Redshift/crt/CreateAttributeTriggers.js
-#SQL/Redshift/crt/CreateAnchorTriggers.js
-#SQL/Redshift/crt/AddTieRestatementConstraints.js
-#SQL/Redshift/biz/DropTieBusinessPerspectives.js
-#SQL/Redshift/crt/CreateTiePerspectives.js
-#SQL/Redshift/biz/CreateTieBusinessPerspectives.js
-#SQL/Redshift/crt/CreateTieTriggers.js
-#SQL/Redshift/CreateSchemaTracking.js
-#SQL/Redshift/crt/AddDescriptions.js

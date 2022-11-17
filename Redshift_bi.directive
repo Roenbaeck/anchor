@@ -1,27 +1,2 @@
 # This is the processing directive for bi-temporal Anchor Modeling in Redshift
 SQL/Unsupported.js
-#SQL/Helpers.js
-#SQL/NamingConvention.js
-#SQL/Redshift/NamingConvention.js
-#SQL/PgDerived/bi/CreateEquivalentAndDefault.js
-#SQL/PgDerived/bi/CreateKnots.js
-#SQL/PgDerived/bi/CreateAnchorsAndAttributes.js
-#SQL/PgDerived/bi/CreateTies.js
-# to be done later
-#SQL/Redshift/bi/CreateKnotEquivalenceViews.js
-#SQL/Redshift/bi/CreateAttributeEquivalenceViews.js
-#SQL/Redshift/bi/AddAttributeRestatementConstraints.js
-#SQL/Redshift/bi/CreateKeyGenerators.js
-#SQL/Redshift/bi/CreateAttributeRewinders.js
-#SQL/Redshift/biz/DropAnchorBusinessPerspectives.js
-#SQL/Redshift/bi/CreateAnchorPerspectives.js
-#SQL/Redshift/biz/CreateAnchorBusinessPerspectives.js
-#SQL/Redshift/bi/CreateAttributeTriggers.js
-#SQL/Redshift/bi/CreateAnchorTriggers.js
-#SQL/Redshift/bi/AddTieRestatementConstraints.js
-#SQL/Redshift/biz/DropTieBusinessPerspectives.js
-#SQL/Redshift/bi/CreateTiePerspectives.js
-#SQL/Redshift/biz/CreateTieBusinessPerspectives.js
-#SQL/Redshift/bi/CreateTieTriggers.js
-#SQL/Redshift/CreateSchemaTracking.js
-#SQL/Redshift/bi/AddDescriptions.js

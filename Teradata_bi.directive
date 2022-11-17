@@ -1,0 +1,9 @@
+# This is the processing directive for bi-temporal Anchor Modeling in Teradata
+SQL/Unsupported.js
+#SQL/Helpers.js
+#SQL/NamingConvention.js
+#SQL/Teradata/NamingConvention.js
+#SQL/PgDerived/bi/CreateEquivalentAndDefault.js
+#SQL/PgDerived/bi/CreateKnots.js
+#SQL/PgDerived/bi/CreateAnchorsAndAttributes.js
+#SQL/PgDerived/bi/CreateTies.js

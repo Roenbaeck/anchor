@@ -4,10 +4,11 @@ SQL/NamingConvention.js
 SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/DatabaseInitialization.js
 #SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
-SQL/PgDerived/uni/CreateEquivalentAndDefault.js
-SQL/PgDerived/uni/CreateKnots.js
-SQL/PgDerived/uni/CreateAnchorsAndAttributes.js
-SQL/PgDerived/uni/CreateTies.js
+SQL/Common/CreateEquivalentAndDefault.js
+SQL/Common/CreateKnots.js
+SQL/Common/CreateAnchors.js
+SQL/Common/uni/CreateAttributes.js
+SQL/Common/uni/CreateTies.js
 #SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
 #SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js

@@ -1,8 +1,8 @@
-# This is the processing directive for uni-temporal Anchor Modeling in PostgreSQL
+# This is the processing directive for uni-temporal Anchor Modeling in Teradata
 SQL/Helpers.js
 SQL/NamingConvention.js
-SQL/DuckDB/NamingConvention.js
-SQL/Common/DatabaseInitialization.js
+SQL/Teradata/NamingConvention.js
+SQL/Teradata/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
