@@ -12,7 +12,7 @@ SQL/NamingConvention.js
 SQL/Oracle/NamingConvention.js
 SQL/Oracle/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
-SQL/Oracle/uni/CreateKnots.js
+SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
 #SQL/Oracle/uni/CreateAnchorsAndAttributes.js
 SQL/Oracle/uni/CreateTies.js

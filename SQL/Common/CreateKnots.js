@@ -9,48 +9,84 @@
 -- Knots are unfolded when using equivalence.
 --
  ~*/
-var knot, checksumOptions, tableOptions, partitionOptions;
+var knot, checksumOptions, tableOptions, tableType, ifNotExists, createTablePre, createTablePost;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
         knot.identityGenerator = schema.metadata.identityProperty;
     // set options per dialect
+    createTablePre = '';
+    tableType = '';
+    ifNotExists = 'IF NOT EXISTS'; // default for all PostgreSQL derived dialects
+    tableOptions = '';
+    createTablePost = '';
     switch (schema.metadata.databaseTarget) {
         case 'Citus':
             checksumOptions = `bytea generated always as (cast(MD5(cast(${knot.valueColumnName} as text)) as bytea)) stored`;
-            tableOptions = `
-; 
+            createTablePost = `
 select create_reference_table('${knot.capsule}.${knot.identityName}') 
  where not exists ( select 1 
                       from citus_tables 
                      where table_name = '${knot.capsule}.${knot.identityName}'::regclass 
                        and citus_table_type = 'reference'
-                  ) `;
-            sequenceOptions = '';
+                  ) 
+;`;
+        break;        
+        case 'Oracle':
+            // Oracle has no IF NOT EXIST for tables. We wrap it in an execute immediate.
+            // Then catch the -995 error of existing objects to mimic the IF NOT EXIST.
+            createTablePre = `
+BEGIN 
+EXECUTE IMMEDIATE 
+'
+`;
+
+            createTablePost = `
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE = -955 THEN NULL;
+    ELSE RAISE;
+    END IF;
+END;
+`;
+            ifNotExists = ''; 
+            // We have to add the table option to create an index organized table aka clustered table.
+            tableOptions = `ORGANIZATION INDEX 
+'`;
+            checksumOptions = `varchar2(36) NULL`;
         break;        
         case 'PostgreSQL':
             checksumOptions = `bytea generated always as (cast(MD5(cast(${knot.valueColumnName} as text)) as bytea)) stored`;
-            tableOptions = '';
-            partitionOptions = '';
         break;
         case 'Redshift':
             checksumOptions = `varbyte(16) DEFAULT cast(MD5(cast(${knot.valueColumnName} as text)) as varbyte(16))`;
             tableOptions = `DISTSTYLE ALL SORTKEY(${knot.identityColumnName})`;
-            partitionOptions = '';
         break;  
-        case 'Vertica':
-            checksumOptions = `int DEFAULT hash(${knot.valueColumnName})`;
-            tableOptions = `ORDER BY ${knot.identityColumnName} UNSEGMENTED ALL NODES`;
-            partitionOptions = schema.PARTITIONING ? `PARTITION BY (${knot.equivalentColumnName})` : '' ;
-        break;                
         case 'Snowflake':
             checksumOptions = `numeric(19,0) DEFAULT hash(${knot.valueColumnName})`;
             tableOptions = `CLUSTER BY (${knot.identityColumnName})` ;
-            partitionOptions = '';
-        break;
+        break;  
+        case 'Teradata':
+            // Teradata has no IF NOT EXIST for tables. We check the catalog if the table exists.
+            // Then if it returns rows we skip the create table.
+            createTablePre = `
+SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${knot.capsule.toUpperCase()}' AND TableName = '${knot.name.toUpperCase()}';
+.IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${knot.capsule.toUpperCase()}_${knot.name.toUpperCase()};
+`;
+            createTablePost = `
+.LABEL SKIP_${knot.capsule.toUpperCase()}_${knot.name.toUpperCase()};
+`;   
+            ifNotExists = ''; 
+            tableType = 'MULTISET';
+            tableOptions = `UNIQUE PRIMARY INDEX (${knot.identityColumnName})` ;
+            checksumOptions = `varchar2(36) NULL`;
+        break;                
+        case 'Vertica':
+            checksumOptions = `int DEFAULT hash(${knot.valueColumnName})`;
+            tableOptions = `ORDER BY ${knot.identityColumnName} UNSEGMENTED ALL NODES`
+                         + schema.PARTITIONING ? ` PARTITION BY (${knot.equivalentColumnName})` : '' ;
+        break;                
+
         default:
             checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
-            tableOptions = '';
-            partitionOptions = '';
     }
 
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
@@ -58,7 +94,8 @@ select create_reference_table('${knot.capsule}.${knot.identityName}')
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.identityName (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.identityName (
     $knot.identityColumnName $knot.identity $(knot.isGenerator())? $knot.identityGenerator NOT NULL, : NOT NULL,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType NOT NULL, : $knot.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint pk$knot.identityName primary key (
@@ -66,10 +103,12 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.identityName (
     )
 ) $tableOptions
 ;
+$createTablePost
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.equivalentName (
     $knot.identityColumnName $knot.identity NOT NULL,
     $knot.equivalentColumnName $schema.metadata.equivalentRange NOT NULL,
     $knot.valueColumnName $knot.dataRange NOT NULL,
@@ -86,8 +125,9 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
         $knot.equivalentColumnName,
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
-) $tableOptions $partitionOptions
+) $tableOptions 
 ;
+$createTablePost
 ~*/
 
     } // end of equivalent knot
@@ -96,7 +136,8 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.equivalentName (
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.name (
     $knot.identityColumnName $knot.identity $knot.identityGenerator NOT NULL,
     $knot.valueColumnName $knot.dataRange NOT NULL,
     $(knot.hasChecksum())? $knot.checksumColumnName $checksumOptions,
@@ -109,6 +150,7 @@ CREATE TABLE IF NOT EXISTS $knot.capsule\.$knot.name (
     )
 ) $tableOptions
 ;
+$createTablePost
 ~*/
     } // end of regular knot
 }
