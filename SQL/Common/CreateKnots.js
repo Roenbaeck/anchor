@@ -98,7 +98,7 @@ $createTablePre
 CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.identityName (
     $knot.identityColumnName $knot.identity $(knot.isGenerator())? $knot.identityGenerator NOT NULL, : NOT NULL,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType NOT NULL, : $knot.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint pk$knot.identityName primary key (
+    constraint pk_$knot.identityName primary key (
         $knot.identityColumnName
     )
 ) $tableOptions
@@ -114,14 +114,14 @@ CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.equivalentName (
     $knot.valueColumnName $knot.dataRange NOT NULL,
     $(knot.hasChecksum())? $knot.checksumColumnName $checksumOptions,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType NOT NULL, : $knot.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint fk$knot.equivalentName foreign key (
+    constraint fk_$knot.equivalentName foreign key (
         $knot.identityColumnName
     ) references $knot.capsule\.$knot.identityName($knot.identityColumnName),
-    constraint pk$knot.equivalentName primary key (
+    constraint pk_$knot.equivalentName primary key (
         $knot.equivalentColumnName ,
         $knot.identityColumnName 
     ),
-    constraint uq$knot.equivalentName unique (
+    constraint uq_$knot.equivalentName unique (
         $knot.equivalentColumnName,
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
@@ -142,10 +142,10 @@ CREATE $tableType TABLE $ifNotExists $knot.capsule\.$knot.name (
     $knot.valueColumnName $knot.dataRange NOT NULL,
     $(knot.hasChecksum())? $knot.checksumColumnName $checksumOptions,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType NOT NULL, : $knot.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint pk$knot.name primary key (
+    constraint pk_$knot.name primary key (
         $knot.identityColumnName 
     ),
-    constraint uq$knot.name unique (
+    constraint uq_$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
     )
 ) $tableOptions

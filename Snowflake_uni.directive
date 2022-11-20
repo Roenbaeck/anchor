@@ -2,10 +2,10 @@
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Snowflake/NamingConvention.js
-SQL/PgDerived/DatabaseInitialization.js
-SQL/PgDerived/CreateEquivalentAndDefault.js
-SQL/PgDerived/CreateKnots.js
-SQL/PgDerived/CreateAnchors.js
-SQL/PgDerived/uni/CreateAttributes.js
-SQL/PgDerived/uni/CreateTies.js
-SQL/PgDerived/uni/CreateAttributeLatestPerspectives.js
+SQL/Common/DatabaseInitialization.js
+SQL/Common/CreateEquivalentAndDefault.js
+SQL/Common/CreateKnots.js
+SQL/Common/CreateAnchors.js
+SQL/Common/uni/CreateAttributes.js
+SQL/Common/uni/CreateTies.js
+SQL/Common/uni/CreateAttributeLatestPerspectives.js

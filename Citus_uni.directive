@@ -8,4 +8,5 @@ SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
 SQL/Common/uni/CreateTies.js
+SQL/Common/uni/CreateAttributeLatestPerspectives.js
 SQL/PostgreSQL/CreateSchemaTracking.js

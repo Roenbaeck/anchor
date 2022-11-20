@@ -41,6 +41,7 @@ SELECT ROW_NUMBER() OVER (PARTITION BY ${attribute.anchorReferenceName} ORDER BY
             // The row number variant with qualify              
             case 'Teradata': // Snowflake also
                 createOrReplace = 'REPLACE';
+            case 'Snowflake':    
                 selectTop  = 'SELECT';
                 orderBy = `QUALIFY ROW_NUMBER() OVER (PARTITION BY ${attribute.anchorReferenceName} ORDER BY ${attribute.anchorReferenceName}, ${attribute.changingColumnName} DESC) = 1`;
             break;
