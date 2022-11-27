@@ -7,11 +7,17 @@
 -- Anchors may have zero or more adjoined attributes.
 --
 ~*/
-var anchor, tableOptions, knotFk = true;
+var anchor, tableOptions, tableType, ifNotExists, createTablePre, createTablePost, knotFk = true;
 while (anchor = schema.nextAnchor()) {
     var knot, attribute, indexOptions, partitionOptions, sortColumns, checksumOptions;
     while (attribute = anchor.nextAttribute()) {
         // set options per dialect
+        createTablePre = '';
+        tableType = '';
+        ifNotExists = 'IF NOT EXISTS'; // default for all PostgreSQL derived dialects
+        tableOptions = '';
+        createTablePost = '';
+        indexOptions = '';
         sortColumns = attribute.anchorReferenceName + (attribute.isHistorized() ? `, ${attribute.changingColumnName}` : '');
         switch (schema.metadata.databaseTarget) {
             case 'Citus':
@@ -23,15 +29,35 @@ while (anchor = schema.nextAnchor()) {
                 indexOptions = attribute.isKnotted()  
                              ? `INCLUDE (${attribute.knotReferenceName})` 
                              : `INCLUDE (${attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName})`;
-                tableOptions = `
-; 
+                createTablePost = `
 select create_distributed_table('${attribute.capsule}.${attribute.name}', '${attribute.anchorReferenceName.toLowerCase()}', colocate_with => '${anchor.capsule}.${anchor.name}') 
-    where not exists ( select 1 
-                        from citus_tables 
-                        where table_name = '${attribute.capsule}.${attribute.name}'::regclass 
-                        and citus_table_type = 'distributed'
-                    ) `;
-                partitionOptions = '';
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${attribute.capsule}.${attribute.name}'::regclass 
+                       and citus_table_type = 'distributed'
+                  ) 
+;`;
+            break;
+            case 'Oracle':
+                // Oracle has no IF NOT EXIST for tables. We wrap it in an execute immediate.
+                // Then catch the -995 error of existing objects to mimic the IF NOT EXIST.
+                createTablePre = `
+BEGIN 
+EXECUTE IMMEDIATE 
+'
+`;
+
+            createTablePost = `
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE = -955 THEN NULL;
+    ELSE RAISE;
+    END IF;
+END;
+`;
+                ifNotExists = ''; 
+                // We have to add the table option to create an index organized table aka clustered table.
+                tableOptions = `ORGANIZATION INDEX 
+'`;            
             break;
             case 'PostgreSQL':
                 //  partitioning in PG is not dydnamic!
@@ -41,32 +67,37 @@ select create_distributed_table('${attribute.capsule}.${attribute.name}', '${att
                 indexOptions = attribute.isKnotted()  
                              ? `INCLUDE (${attribute.knotReferenceName})` 
                              : `INCLUDE (${attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName})`;
-                tableOptions = '';
-                partitionOptions = '';
             break;
             case 'Redshift':
                 checksumOptions = `varbyte(16) DEFAULT cast(MD5(cast(${attribute.valueColumnName} as text)) as varbyte(16))`;
-                indexOptions = '';
                 tableOptions = `DISTSTYLE KEY DISTKEY(${attribute.anchorReferenceName}) SORTKEY(${sortColumns})`
-                partitionOptions = '';
-            break;             
-            case 'Vertica':
-                checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
-                indexOptions = '';
-                tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`
-                partitionOptions = schema.PARTITIONING ? `PARTITION BY (${attribute.equivalentColumnName})` : '' ;
-            break;                
+            break; 
+            case 'Teradata':
+                // Teradata has no IF NOT EXIST for tables. We check the catalog if the table exists.
+                // Then if it returns rows we skip the create table.
+                createTablePre = `
+SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${attribute.capsule.toUpperCase()}' AND TableName = '${attribute.name.toUpperCase()}';
+.IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${attribute.capsule.toUpperCase()}_${attribute.name.toUpperCase()};
+`;
+                createTablePost = `
+.LABEL SKIP_${attribute.capsule.toUpperCase()}_${attribute.name.toUpperCase()};
+`;   
+                ifNotExists = ''; 
+                tableType = 'MULTISET';
+                tableOptions = `${attribute.isHistorized() ? '' : 'UNIQUE'} PRIMARY INDEX (${attribute.anchorReferenceName})` ;
+             
+            break;  
             case 'Snowflake':
                 checksumOptions = `numeric(19,0) DEFAULT hash(${attribute.valueColumnName})`;
-                indexOptions = '';
                 tableOptions = `CLUSTER BY (${sortColumns})` ;
-                partitionOptions = '';
-            break;
+            break;                         
+            case 'Vertica':
+                checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
+                tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`
+                             + (schema.PARTITIONING && attribute.isEquivalent()) ? `PARTITION BY (${attribute.equivalentColumnName})` : '' ;
+            break;                
             default:
                 checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
-                indexOptions = '';
-                tableOptions = '';
-                partitionOptions = '';
         }
         
         if(attribute.isHistorized() && !attribute.isKnotted()) {
@@ -74,23 +105,25 @@ select create_distributed_table('${attribute.capsule}.${attribute.name}', '${att
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity NOT NULL,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange NOT NULL,
     $attribute.valueColumnName $attribute.dataRange NOT NULL,
     $(attribute.hasChecksum())? $attribute.checksumColumnName $checksumOptions,
     $attribute.changingColumnName $attribute.timeRange NOT NULL,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint fk$attribute.name foreign key (
+    constraint fk_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
-    constraint pk$attribute.name primary key (
+    constraint pk_$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.anchorReferenceName ,
         $attribute.changingColumnName
     ) $indexOptions
-) $tableOptions $(attribute.isEquivalent())? $partitionOptions
+) $tableOptions 
 ;
+$createTablePost
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -100,7 +133,8 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- Knotted historized attribute table ---------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity NOT NULL,
     $attribute.knotReferenceName $knot.identity NOT NULL,
     $attribute.changingColumnName $attribute.timeRange NOT NULL,
@@ -117,12 +151,13 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 ~*/ 
         } 
 /*~  
-    constraint pk$attribute.name primary key (
+    constraint pk_$attribute.name primary key (
         $attribute.anchorReferenceName ,
         $attribute.changingColumnName 
     ) $indexOptions
 ) $tableOptions
 ;
+$createTablePost
 ~*/
     }
     else if(attribute.isKnotted()) {
@@ -133,7 +168,8 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- Knotted static attribute table -------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity NOT NULL,
     $attribute.knotReferenceName $knot.identity NOT NULL,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
@@ -149,11 +185,12 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 ~*/ 
         } 
 /*~    
-    constraint pk$attribute.name primary key (
+    constraint pk_$attribute.name primary key (
         $attribute.anchorReferenceName 
     ) $indexOptions
 ) $tableOptions
 ;
+$createTablePost
 ~*/
     }
     else {
@@ -161,22 +198,23 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
 -- Static attribute table ---------------------------------------------------------------------------------------------
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $attribute.capsule\.$attribute.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.name (
     $attribute.anchorReferenceName $anchor.identity NOT NULL,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange NOT NULL,
     $attribute.valueColumnName $attribute.dataRange NOT NULL,
     $(attribute.hasChecksum())? $attribute.checksumColumnName $checksumOptions,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
-    constraint fk$attribute.name foreign key (
+    constraint fk_$attribute.name foreign key (
         $attribute.anchorReferenceName
     ) references $anchor.capsule\.$anchor.name ($anchor.identityColumnName),
-    constraint pk$attribute.name primary key (
+    constraint pk_$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName ,
         $attribute.anchorReferenceName 
     ) $indexOptions
-) $tableOptions $(attribute.isEquivalent())? $partitionOptions
+) $tableOptions 
 ;
-
+$createTablePost
 ~*/
     }
 }}

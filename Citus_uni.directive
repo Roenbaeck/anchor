@@ -1,7 +1,7 @@
 # This is the processing directive for uni-temporal Anchor Modeling in Citus (MPP extension on PostgreSQL)
 SQL/Helpers.js
 SQL/NamingConvention.js
-SQL/PostgreSQL/NamingConvention.js
+SQL/Citus/NamingConvention.js
 SQL/Common/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
@@ -9,4 +9,4 @@ SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
 SQL/Common/uni/CreateTies.js
 SQL/Common/uni/CreateAttributeLatestPerspectives.js
-SQL/PostgreSQL/CreateSchemaTracking.js
+SQL/Citus/CreateSchemaTracking.js

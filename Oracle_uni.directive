@@ -14,6 +14,7 @@ SQL/Oracle/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
+SQL/Common/uni/CreateAttributes.js
 #SQL/Oracle/uni/CreateAnchorsAndAttributes.js
 SQL/Oracle/uni/CreateTies.js
 #SQL/Oracle/uni/AddAttributeRestatementConstraints.js   #NOT YET CONVERTED TO ORACLE
