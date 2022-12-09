@@ -121,7 +121,7 @@ SELECT $anchor.mnemonic\.$anchor.identityColumnName
 -- p$anchor.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
  CREATE OR REPLACE FUNCTION $anchor.capsule\.p$anchor.name 
-      ( changingTimepoint $schema.metadata.chronon
+      ( changingTimepoint $schema.metadata.changingRange
       )
 RETURNS TABLE 
       ( $anchor.identityColumnName $anchor.identity
@@ -264,7 +264,7 @@ LANGUAGE SQL STABLE
 CREATE OR REPLACE VIEW $anchor.capsule\.n$anchor.name
 AS
 SELECT *
-  FROM $anchor.capsule\.p$anchor.name($schema.metadata.now::$schema.metadata.chronon)
+  FROM $anchor.capsule\.p$anchor.name($schema.metadata.now::$schema.metadata.changingRange)
 ;
 
 ~*/
@@ -274,12 +274,12 @@ SELECT *
 -- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
  CREATE OR REPLACE FUNCTION $anchor.capsule\.d$anchor.name 
-      ( intervalStart $schema.metadata.chronon,
-        intervalEnd $schema.metadata.chronon,
+      ( intervalStart $schema.metadata.changingRange,
+        intervalEnd $schema.metadata.changingRange,
         selection text = null
       )
 RETURNS TABLE 
-      ( inspectedTimepoint $schema.metadata.chronon
+      ( inspectedTimepoint $schema.metadata.changingRange
       , mnemonic text
       , $anchor.identityColumnName $anchor.identity
       $(schema.METADATA)? , $anchor.metadataColumnName $schema.metadata.metadataType
@@ -328,7 +328,7 @@ AS
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
           SELECT DISTINCT $attribute.anchorReferenceName AS $anchor.identityColumnName
-               , $attribute.changingColumnName::$schema.metadata.chronon inspectedTimepoint
+               , $attribute.changingColumnName::$schema.metadata.changingRange inspectedTimepoint
                , ''$attribute.mnemonic'' AS mnemonic
             FROM $(attribute.isEquivalent())? $attribute.capsule\.e$attribute.name(0) : $attribute.capsule\.$attribute.name
            WHERE (selection is null OR selection like ''%$attribute.mnemonic%'')

@@ -9,8 +9,8 @@ SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
 SQL/Common/uni/CreateTies.js
-#SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
-#SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
+SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
+SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
 SQL/PostgreSQL/uni/CreateKeyGenerators.js
 SQL/PostgreSQL/uni/CreateAttributePerspectives.js
