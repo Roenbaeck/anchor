@@ -9,7 +9,7 @@
 ~*/
 var anchor, tableOptions, tableOptionsAnnex, tableType, ifNotExists, createTablePre, createTablePreAnnex, createTablePost,createTablePostAnnex, nonDistributionKeysAllowed = true, isSharedNoting = false, isAnnex;
 while (anchor = schema.nextAnchor()) {
-    var knot, attribute, indexOptions, partitionOptions, sortColumns, checksumOptions;
+    var knot, attribute, indexOptions, partitionOptions, sortColumns, checksumOptions, assertionOptions, assertionOptionsDefault;
     while (attribute = anchor.nextAttribute()) {
         // set options per dialect
         createTablePre = '';
@@ -23,6 +23,8 @@ while (anchor = schema.nextAnchor()) {
         indexOptions = '';
         sortColumns = attribute.anchorReferenceName + (attribute.isHistorized() ? `, ${attribute.changingColumnName}` : '');
         checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
+        assertionOptions = `char(1) NULL`; // create the column, the ETL should load the +,?,- indication!
+        assertionOptionsDefault = `char(1) DEFAULT case when ${attribute.reliabilityColumnName} > ${schema.metadata.deleteReliability} then '+' when ${attribute.reliabilityColumnName} = ${schema.metadata.deleteReliability} then '?' when ${attribute.reliabilityColumnName} < ${schema.metadata.deleteReliability} then '-' end`;
         switch (schema.metadata.databaseTarget) {
             case 'Citus':
                 isSharedNoting = true;
@@ -31,6 +33,12 @@ while (anchor = schema.nextAnchor()) {
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
                 //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;
                 checksumOptions = `bytea generated always as (cast(MD5(cast(${attribute.valueColumnName} as text)) as bytea)) stored`;
+                assertionOptions =`char(1) generated always as (
+                    case
+                        when ${attribute.reliabilityColumnName} > ${schema.metadata.deleteReliability} then '+'
+                        when ${attribute.reliabilityColumnName} = ${schema.metadata.deleteReliability} then '?'
+                        when ${attribute.reliabilityColumnName} < ${schema.metadata.deleteReliability} then '-'
+                    end ) stored`;                
                 indexOptions = `INCLUDE (${attribute.reliabilityColumnName})`; // indexOptions for the Annex!                            
                 createTablePost = `
 select create_distributed_table('${attribute.capsule}.${attribute.positName}', '${attribute.anchorReferenceName.toLowerCase()}', colocate_with => '${anchor.capsule}.${anchor.name}') 
@@ -73,11 +81,17 @@ END;
                 tableOptionsAnnex = tableOptions;
             break;
             case 'PostgreSQL':
-                //  partitioning in PG is not dydnamic!
+                //  partitioning in PG is not dynamic!
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
                 //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;
                 checksumOptions = `bytea generated always as (cast(MD5(cast(${attribute.valueColumnName} as text)) as bytea)) stored`;
-                indexOptions = `INCLUDE (${attribute.reliabilityColumnName})` ;
+                assertionOptions =`char(1) generated always as (
+                     case
+                         when ${attribute.reliabilityColumnName} > ${schema.metadata.deleteReliability} then '+'
+                         when ${attribute.reliabilityColumnName} = ${schema.metadata.deleteReliability} then '?'
+                         when ${attribute.reliabilityColumnName} < ${schema.metadata.deleteReliability} then '-'
+                     end ) stored`; 
+                indexOptions = `INCLUDE (${attribute.reliabilityColumnName})` ; // indexOptions for the Annex!  
             break;
             case 'Redshift':
                 isSharedNoting = true;
@@ -111,12 +125,14 @@ SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${attribute.
             break;  
             case 'Snowflake':
                 checksumOptions = `numeric(19,0) DEFAULT hash(${attribute.valueColumnName})`;
+                assertionOptions = assertionOptionsDefault;
                 tableOptions = `CLUSTER BY (${sortColumns})` ;
                 tableOptionsAnnex = `CLUSTER BY (${attribute.identityColumnName}, ${attribute.positorColumnName}, ${attribute.positingColumnName})`;
             break;                         
             case 'Vertica':
                 isSharedNoting = true;
                 checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
+                assertionOptions = assertionOptionsDefault;
                 tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`;
                 tableOptionsAnnex = `ORDER BY ${attribute.anchorReferenceName}, ${attribute.identityColumnName}, ${attribute.positorColumnName}, ${attribute.positingColumnName} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`;             
             break;                
@@ -218,7 +234,7 @@ CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.positName (
         $attribute.knotReferenceName
     ) references $knot.capsule\.$knotTableName ($knot.identityColumnName),
     constraint uq_$attribute.positName unique (
-        $attribute.identityColumnName asc
+        $attribute.identityColumnName 
     ),
 ~*/ 
         } 
@@ -279,13 +295,7 @@ CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.annexName (
     $attribute.positingColumnName $schema.metadata.positingRange not null,
     $attribute.positorColumnName $schema.metadata.positorRange not null,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-    $attribute.assertionColumnName as cast(
-        case
-            when $attribute.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
-            when $attribute.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
-            when $attribute.reliabilityColumnName < $schema.metadata.deleteReliability then '-'
-        end
-    as char(1)) persisted,
+    $attribute.assertionColumnName $assertionOptions,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType NOT NULL, : $attribute.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
  ~*/     
  if (nonDistributionKeysAllowed) { 

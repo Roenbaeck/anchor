@@ -1,5 +1,5 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Citus
-SQL/Unsupported.js
+#SQL/Unsupported.js
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Citus/NamingConvention.js
