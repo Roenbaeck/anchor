@@ -8,17 +8,7 @@
 -- Ties must have at least two anchor roles and zero or more knot roles.
 --
 ~*/
-var tie, tieType, firstIdentifierRole, tieFk, tieUq;
-switch (schema.metadata.databaseTarget) {
-    case 'Citus':
-        // distributed tables kan only have uq on distribution key and fk's on distribution key!
-        tieFk = false; 
-        tieUq = false;
-    break;        
-    default:
-        tieFk = true; 
-        tieUq = true;
-}  
+var tie, tieType, firstIdentifierRole, tieFk, tieUq, tableOptions, tableType, ifNotExists, createTablePre, createTablePost;
 while (tie = schema.nextTie()) {
     firstIdentifierRole = null
     tie.metadataDefinition = schema.METADATA 
@@ -33,11 +23,48 @@ while (tie = schema.nextTie()) {
     } else {
         tieType = 'Static tie table ------------'; 
     }
+    // createTablePre and other create options per dialect
+    createTablePre = '';
+    tableType = '';
+    ifNotExists = 'IF NOT EXISTS'; // default for all PostgreSQL derived dialects
+    tableOptions = '';
+    createTablePost = '';
+    tieFk = true; 
+    tieUq = true;
+    switch (schema.metadata.databaseTarget) {
+        case 'Citus':
+            // distributed tables kan only have uq on distribution key and fk's on distribution key!
+            tieFk = false; 
+            tieUq = false;
+        break;   
+        case 'Oracle':
+            // Oracle has no IF NOT EXIST for tables. We wrap it in an execute immediate.
+            // Then catch the -995 error of existing objects to mimic the IF NOT EXIST.
+            createTablePre = `
+BEGIN 
+EXECUTE IMMEDIATE 
+'
+`;
+            ifNotExists = ''; 
+        break;            
+        case 'Teradata':
+            // Teradata has no IF NOT EXIST for tables. We check the catalog if the table exists.
+            // Then if it returns rows we skip the create table.
+            createTablePre = `
+SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${tie.capsule.toUpperCase()}' AND TableName = '${tie.name.toUpperCase()}';
+.IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${tie.capsule.toUpperCase()}_${tie.name.toUpperCase()};
+`;
+            ifNotExists = ''; 
+            tableType = 'MULTISET';
+        break; 
+
+    }  
 /*~
 -- $tieType---------------------------------------------------------------------------------------
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
+$createTablePre
+CREATE $tableType TABLE $ifNotExists $tie.capsule\.$tie.name (
 ~*/
     var role, anchorRoles = [], anchorRolesColumnNames = [];
     while (role = tie.nextRole()) {
@@ -115,25 +142,47 @@ CREATE TABLE IF NOT EXISTS $tie.capsule\.$tie.name (
         $tie.changingColumnName
 ~*/
     }
-    // dialect specific table options
-    var tableOptions;
+    // dialect specific table options & createTablePost options
     switch (schema.metadata.databaseTarget) {
         case 'Citus':
             // pk can only be placed if distribution key is part of the pk. If no first identifier then pick the first anchor role.
             if (firstIdentifierRole == null) firstIdentifierRole = anchorRoles[0];
-            tableOptions = `
-; 
+            createTablePost = `
 select create_distributed_table('${tie.capsule}.${tie.name}', '${firstIdentifierRole.columnName.toLowerCase()}', colocate_with => '${firstIdentifierRole.anchor.capsule}.${firstIdentifierRole.anchor.name}') 
  where not exists ( select 1 
                       from citus_tables 
                      where table_name = '${tie.capsule}.${tie.name}'::regclass 
                        and citus_table_type = 'distributed'
-                  ) `;
-        break;        
+                  ) 
+;`;
+        break;
+        case 'Oracle':
+            // Oracle has no IF NOT EXIST for tables. We wrap it in an execute immediate.
+            // Then catch the -995 error of existing objects to mimic the IF NOT EXIST.
+        createTablePost = `
+EXCEPTION WHEN OTHERS THEN
+IF SQLCODE = -955 THEN NULL;
+ELSE RAISE;
+END IF;
+END;
+`;
+            // We have to add the table option to create an index organized table aka clustered table.
+            tableOptions = `ORGANIZATION INDEX 
+'`;            
+        break;                
         case 'Redshift':  
             tableOptions = `DISTSTYLE EVEN INTERLEAVED SORTKEY(${anchorRolesColumnNames.join(', ')})`;
             // TO DO, check if we can do the same as the Vertica projections but then with materialized views with different distribution keys.
-        break;        
+        break;    
+        case 'Teradata':
+            // Teradata has no IF NOT EXIST for tables. We check the catalog if the table exists.
+            // Then if it returns rows we skip the create table.
+            createTablePost = `
+.LABEL SKIP_${tie.capsule.toUpperCase()}_${tie.name.toUpperCase()};
+`;   
+            tableOptions = `PRIMARY INDEX (${anchorRoles[0].columnName})` ;
+         
+        break;              
         case 'Snowflake': 
             tableOptions = `CLUSTER BY ${anchorRolesColumnNames.join(', ')}`;
         break;        
@@ -147,6 +196,7 @@ select create_distributed_table('${tie.capsule}.${tie.name}', '${firstIdentifier
     )
 ) $tableOptions
 ;
+$createTablePost
 ~*/
 
 // dialect specific projections
