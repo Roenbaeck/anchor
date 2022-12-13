@@ -40,7 +40,7 @@ while (tie = schema.nextTie()) {
 CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
 ~*/
-    var role;
+    var role,anchorRoles = [];
     while (role = tie.nextRole()) {
 /*~
     $role.columnName $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
 ~*/
     while (role = tie.nextRole()) {
+        if(role.anchor) anchorRoles.push(role);
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName

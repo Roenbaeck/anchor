@@ -1,2 +1,11 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in DuckDB
-SQL/Unsupported.js
+#SQL/Unsupported.js
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/DuckDB/NamingConvention.js
+SQL/Common/DatabaseInitialization.js
+SQL/Common/CreatePositorAndDefault.js
+SQL/Common/CreateKnots.js
+SQL/Common/CreateAnchors.js
+SQL/Common/crt/CreateAttributes.js
+#SQL/Common/crt/CreateTies.js

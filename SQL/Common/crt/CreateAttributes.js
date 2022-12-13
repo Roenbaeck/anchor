@@ -7,19 +7,22 @@
 -- Anchors may have zero or more adjoined attributes.
 --
 ~*/
-var anchor, tableOptions, tableOptionsAnnex, tableType, ifNotExists, createTablePre, createTablePost, nonDistributionKeysAllowed = true, isSharedNoting = false, isAnnex;
+var anchor, tableOptions, tableOptionsAnnex, tableType, ifNotExists, createTablePre, createTablePreAnnex, createTablePost,createTablePostAnnex, nonDistributionKeysAllowed = true, isSharedNoting = false, isAnnex;
 while (anchor = schema.nextAnchor()) {
     var knot, attribute, indexOptions, partitionOptions, sortColumns, checksumOptions;
     while (attribute = anchor.nextAttribute()) {
         // set options per dialect
         createTablePre = '';
+        createTablePreAnnex = '';
         tableType = '';
         ifNotExists = 'IF NOT EXISTS'; // default for all PostgreSQL derived dialects
         tableOptions = '';
         tableOptionsAnnex = '';
         createTablePost = '';
+        createTablePostAnnex = '';
         indexOptions = '';
         sortColumns = attribute.anchorReferenceName + (attribute.isHistorized() ? `, ${attribute.changingColumnName}` : '');
+        checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
         switch (schema.metadata.databaseTarget) {
             case 'Citus':
                 isSharedNoting = true;
@@ -28,14 +31,20 @@ while (anchor = schema.nextAnchor()) {
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
                 //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;
                 checksumOptions = `bytea generated always as (cast(MD5(cast(${attribute.valueColumnName} as text)) as bytea)) stored`;
-                indexOptions = attribute.isKnotted()  
-                             ? `INCLUDE (${attribute.knotReferenceName})` 
-                             : `INCLUDE (${attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName})`;
+                indexOptions = `INCLUDE (${attribute.reliabilityColumnName})`; // indexOptions for the Annex!                            
                 createTablePost = `
 select create_distributed_table('${attribute.capsule}.${attribute.positName}', '${attribute.anchorReferenceName.toLowerCase()}', colocate_with => '${anchor.capsule}.${anchor.name}') 
  where not exists ( select 1 
                       from citus_tables 
                      where table_name = '${attribute.capsule}.${attribute.positName}'::regclass 
+                       and citus_table_type = 'distributed'
+                  ) 
+;`;
+                createTablePostAnnex = `
+select create_distributed_table('${attribute.capsule}.${attribute.annexName}', '${attribute.anchorReferenceName.toLowerCase()}', colocate_with => '${anchor.capsule}.${anchor.name}') 
+ where not exists ( select 1 
+                      from citus_tables 
+                     where table_name = '${attribute.capsule}.${attribute.annexName}'::regclass 
                        and citus_table_type = 'distributed'
                   ) 
 ;`;
@@ -48,32 +57,33 @@ BEGIN
 EXECUTE IMMEDIATE 
 '
 `;
-
-            createTablePost = `
+                createTablePreAnnex = createTablePre;
+                createTablePost = `
 EXCEPTION WHEN OTHERS THEN
     IF SQLCODE = -955 THEN NULL;
     ELSE RAISE;
     END IF;
 END;
 `;
+                createTablePostAnnex = createTablePost;
                 ifNotExists = ''; 
                 // We have to add the table option to create an index organized table aka clustered table.
                 tableOptions = `ORGANIZATION INDEX 
-'`;            
+'`;             
+                tableOptionsAnnex = tableOptions;
             break;
             case 'PostgreSQL':
                 //  partitioning in PG is not dydnamic!
                 //  partition = schema.PARTITIONING ? ` PARTITION BY LIST (${attribute.equivalentColumnName})` : '' ;
                 //  partition = schema.PARTITIONING ? ` PARTITION BY RANGE (${attribute.equivalentColumnName})` : '' ;
                 checksumOptions = `bytea generated always as (cast(MD5(cast(${attribute.valueColumnName} as text)) as bytea)) stored`;
-                indexOptions = attribute.isKnotted()  
-                             ? `INCLUDE (${attribute.knotReferenceName})` 
-                             : `INCLUDE (${attribute.hasChecksum() ? attribute.checksumColumnName : attribute.valueColumnName})`;
+                indexOptions = `INCLUDE (${attribute.reliabilityColumnName})` ;
             break;
             case 'Redshift':
                 isSharedNoting = true;
                 checksumOptions = `varbyte(16) DEFAULT cast(MD5(cast(${attribute.valueColumnName} as text)) as varbyte(16))`;
-                tableOptions = `DISTSTYLE KEY DISTKEY(${attribute.anchorReferenceName}) SORTKEY(${sortColumns})`
+                tableOptions = `DISTSTYLE KEY DISTKEY(${attribute.anchorReferenceName}) SORTKEY(${sortColumns})`;
+                tableOptionsAnnex = `DISTSTYLE KEY DISTKEY(${attribute.anchorReferenceName}) SORTKEY(${attribute.anchorReferenceName}, ${attribute.identityColumnName}, ${attribute.positorColumnName}, ${attribute.positingColumnName})`;
             break; 
             case 'Teradata':
                 isSharedNoting = true;
@@ -83,26 +93,33 @@ END;
 SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${attribute.capsule.toUpperCase()}' AND TableName = '${attribute.positName.toUpperCase()}';
 .IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${attribute.capsule.toUpperCase()}_${attribute.positName.toUpperCase()};
 `;
+                createTablePreAnnex = `
+SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${attribute.capsule.toUpperCase()}' AND TableName = '${attribute.annexName.toUpperCase()}';
+.IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${attribute.capsule.toUpperCase()}_${attribute.annexName.toUpperCase()};
+`;
                 createTablePost = `
 .LABEL SKIP_${attribute.capsule.toUpperCase()}_${attribute.positName.toUpperCase()};
 `;   
+                createTablePostAnnex = `
+.LABEL SKIP_${attribute.capsule.toUpperCase()}_${attribute.annexName.toUpperCase()};
+`;   
                 ifNotExists = ''; 
                 tableType = 'MULTISET';
-                tableOptions = `${attribute.isHistorized() ? '' : 'UNIQUE'} PRIMARY INDEX (${attribute.anchorReferenceName})` ;
+                tableOptions = `PRIMARY INDEX (${attribute.anchorReferenceName})`
+                tableOptionsAnnex = tableOptions
              
             break;  
             case 'Snowflake':
                 checksumOptions = `numeric(19,0) DEFAULT hash(${attribute.valueColumnName})`;
                 tableOptions = `CLUSTER BY (${sortColumns})` ;
+                tableOptionsAnnex = `CLUSTER BY (${attribute.identityColumnName}, ${attribute.positorColumnName}, ${attribute.positingColumnName})`;
             break;                         
             case 'Vertica':
                 isSharedNoting = true;
                 checksumOptions = `int DEFAULT hash(${attribute.valueColumnName})`;
-                tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`
-                             + (schema.PARTITIONING && attribute.isEquivalent()) ? `PARTITION BY (${attribute.equivalentColumnName})` : '' ;
+                tableOptions = `ORDER BY ${sortColumns} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`;
+                tableOptionsAnnex = `ORDER BY ${attribute.anchorReferenceName}, ${attribute.identityColumnName}, ${attribute.positorColumnName}, ${attribute.positingColumnName} SEGMENTED BY MODULARHASH(${attribute.anchorReferenceName}) ALL NODES`;             
             break;                
-            default:
-                checksumOptions = `varchar(36) NULL`; // create the column, the ETL should load the MD5 hash!
         }
         
         if(attribute.isHistorized() && !attribute.isKnotted()) {
@@ -255,7 +272,7 @@ $createTablePost
 -- Attribute annex table ----------------------------------------------------------------------------------------------
 -- $attribute.annexName table (of $attribute.positName on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
-$createTablePre
+$createTablePreAnnex
 CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.annexName (
     $(isSharedNoting)? $attribute.anchorReferenceName $anchor.identity NOT NULL, -- added to have the attribute annex distibuted on the same key as the Anchor and Posit tables!
     $attribute.identityColumnName $attribute.identity not null,
@@ -284,9 +301,9 @@ CREATE $tableType TABLE $ifNotExists $attribute.capsule\.$attribute.annexName (
         $attribute.identityColumnName ,
         $attribute.positorColumnName ,
         $attribute.positingColumnName 
-    )
+    ) $indexOptions
 ) $tableOptionsAnnex 
 ;
-$createTablePost
+$createTablePostAnnex
 ~*/    
 }}

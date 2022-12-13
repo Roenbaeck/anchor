@@ -1,9 +1,11 @@
 # This is the processing directive for crt-temporal Anchor Modeling in Teradata
-SQL/Unsupported.js
-#SQL/Helpers.js
-#SQL/NamingConvention.js
-#SQL/Teradata/NamingConvention.js
-#SQL/PgDerived/crt/CreateEquivalentAndDefault.js
-#SQL/PgDerived/crt/CreateKnots.js
-#SQL/PgDerived/crt/CreateAnchorsAndAttributes.js
-#SQL/PgDerived/crt/CreateTies.js
+#SQL/Unsupported.js
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Teradata/NamingConvention.js
+SQL/Teradata/DatabaseInitialization.js
+SQL/Common/CreatePositorAndDefault.js
+SQL/Common/CreateKnots.js
+SQL/Common/CreateAnchors.js
+SQL/Common/crt/CreateAttributes.js
+#SQL/Common/crt/CreateTies.js

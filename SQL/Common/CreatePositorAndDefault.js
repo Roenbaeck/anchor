@@ -46,7 +46,7 @@ END;
             // Teradata has no IF NOT EXIST for tables. We check the catalog if the table exists.
             // Then if it returns rows we skip the create table.
             createTablePre = `
-SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${schema.metadata.encapsulation.toUpperCase()}' AND TableName = '${schema.metadata.positorSuffix.toUpperCase()}';
+SELECT 1 FROM DBC.TablesV WHERE TableKind = 'T' AND DatabaseName = '${schema.metadata.encapsulation.toUpperCase()}' AND TableName = '_${schema.metadata.positorSuffix.toUpperCase()}';
 .IF ACTIVITYCOUNT > 0 THEN .GOTO SKIP_${schema.metadata.encapsulation.toUpperCase()}_${schema.metadata.positorSuffix.toUpperCase()};
 `;
             createTablePost = `
@@ -84,11 +84,11 @@ $createTablePost
 -- If the default value already exists do nothing.
 INSERT INTO $schema.metadata.encapsulation\._$schema.metadata.positorSuffix (
     $schema.metadata.positorSuffix
-) SELECT d._defaultEquivalent 
-    FROM (SELECT 0 AS _defaultEquivalent $fromDummy) d 
+) SELECT d.default_Positor 
+    FROM (SELECT 0 AS default_Positor $fromDummy) d 
    WHERE NOT EXISTS (SELECT 1 
                        FROM $schema.metadata.encapsulation\._$schema.metadata.positorSuffix AS e 
-                      WHERE d._defaultEquivalent = e.$schema.metadata.positorSuffix
+                      WHERE d.default_Positor = e.$schema.metadata.positorSuffix
                     ) 
 ;
 ~*/

@@ -1,2 +1,11 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Oracle
-SQL/Unsupported.js
+#SQL/Unsupported.js
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Oracle/NamingConvention.js
+SQL/Oracle/DatabaseInitialization.js
+SQL/Common/CreatePositorAndDefault.js
+SQL/Common/CreateKnots.js
+SQL/Common/CreateAnchors.js
+SQL/Common/crt/CreateAttributes.js
+#SQL/Common/crt/CreateTies.js

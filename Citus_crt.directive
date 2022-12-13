@@ -4,7 +4,6 @@ SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Citus/NamingConvention.js
 SQL/Common/DatabaseInitialization.js
-#SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
 SQL/Common/CreatePositorAndDefault.js
 SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
