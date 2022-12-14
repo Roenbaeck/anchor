@@ -8,4 +8,4 @@ SQL/Common/CreatePositorAndDefault.js
 SQL/Common/CreateKnots.js
 SQL/Common/CreateAnchors.js
 SQL/Common/crt/CreateAttributes.js
-#SQL/Common/crt/CreateTies.js
+SQL/Common/crt/CreateTies.js
