@@ -315,10 +315,10 @@ CREATE $tableType TABLE $ifNotExists ${tie.capsule}$.$tie.annexName (
     constraint fk_$tie.annexName foreign key (
         $tie.identityColumnName
     ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
-    constraint pk_$tie.annexName primary key clustered (
-        $tie.identityColumnName asc,
-        $tie.positorColumnName asc,
-        $tie.positingColumnName desc
+    constraint pk_$tie.annexName primary key (
+        $tie.identityColumnName ,
+        $tie.positorColumnName ,
+        $tie.positingColumnName 
     ) $indexOptions
 ) $tableOptions
 ;
