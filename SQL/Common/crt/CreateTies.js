@@ -122,42 +122,50 @@ CREATE $tableType TABLE $ifNotExists $tie.capsule\.$tie.positName (
             $tie.identityColumnName
     ),
 ~*/
-    }
+
 /*~
     constraint pk_$tie.name primary key (    
 ~*/
-    if(tie.hasMoreIdentifiers()) {
-        while (role = tie.nextIdentifier()) {
-            if (firstIdentifierRole == null) firstIdentifierRole = role;
+        if(tie.hasMoreIdentifiers()) {
+            while (role = tie.nextIdentifier()) {
+                if (firstIdentifierRole == null) firstIdentifierRole = role;
 /*~
         $role.columnName~*/
-            if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
+                if(tie.hasMoreIdentifiers() || tie.isHistorized()) {
                 /*~,~*/
+                }
             }
         }
-    }
-    else {
-        while (role = tie.nextRole()) {
+        else {
+            while (role = tie.nextRole()) {
 /*~
         $role.columnName~*/
-            if(tie.hasMoreRoles() || tie.isHistorized()) {
+                if(tie.hasMoreRoles() || tie.isHistorized()) {
                 /*~,~*/
+                }
             }
         }
-    }
-    if(tie.isHistorized()) {
+        if(tie.isHistorized()) {
 /*~
         $tie.changingColumnName
 ~*/
-    }
+        }
+/*~
+    )
+~*/ 
+    } else {
+/*~
+    constraint pk_$tie.positName primary key (
+            $tie.identityColumnName
+    )
+~*/        
+    } 
     // dialect specific table options & createTablePost options
     switch (schema.metadata.databaseTarget) {
         case 'Citus':
             // other option could be distribute on the generated id? But then we need an other PK or skip the PK! But it creates a round robin distribution!
-            // pk can only be placed if distribution key is part of the pk. If no first identifier then pick the first anchor role.
-            if (firstIdentifierRole == null) firstIdentifierRole = anchorRoles[0];
             createTablePost = `
-select create_distributed_table('${tie.capsule}.${tie.positName}', '${firstIdentifierRole.columnName.toLowerCase()}', colocate_with => '${firstIdentifierRole.anchor.capsule}.${firstIdentifierRole.anchor.name}') 
+select create_distributed_table('${tie.capsule}.${tie.positName}', '${tie.identityColumnName.toLowerCase()}') 
  where not exists ( select 1 
                       from citus_tables 
                      where table_name = '${tie.capsule}.${tie.positName}'::regclass 
@@ -205,7 +213,6 @@ END;
             tableOptions = '';
     }    
 /*~
-    )
 ) $tableOptions
 ;
 $createTablePost
@@ -223,7 +230,7 @@ $createTablePost
         case 'Citus':
             // other option could be distribute on the generated id? But then we need an other PK or skip the PK! But it creates a round robin distribution!
             createTablePost = `
-select create_distributed_table('${tie.capsule}.${tie.annexName}', '${tie.identityColumnName.toLowerCase()}') 
+select create_distributed_table('${tie.capsule}.${tie.annexName}', '${tie.identityColumnName.toLowerCase()}', colocate_with => '${tie.capsule}.${tie.positName}') 
 where not exists ( select 1 
                 from citus_tables 
                 where table_name = '${tie.capsule}.${tie.annexName}'::regclass 
