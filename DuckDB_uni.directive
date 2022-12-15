@@ -5,7 +5,9 @@ SQL/DuckDB/NamingConvention.js
 SQL/Common/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
+SQL/Common/CreateKnotViews.js
 SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
+SQL/Common/uni/CreateAttributeViews.js
 SQL/Common/uni/CreateTies.js
-SQL/Common/uni/CreateAttributeLatestPerspectives.js
+SQL/Common/uni/CreateAnchorViews.js

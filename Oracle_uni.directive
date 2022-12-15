@@ -13,17 +13,10 @@ SQL/Oracle/NamingConvention.js
 SQL/Oracle/DatabaseInitialization.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
+SQL/Common/CreateKnotViews.js
 SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
-#SQL/Oracle/uni/CreateAnchorsAndAttributes.js
+SQL/Common/uni/CreateAttributeViews.js
 SQL/Common/uni/CreateTies.js
-#SQL/Oracle/uni/AddAttributeRestatementConstraints.js   #NOT YET CONVERTED TO ORACLE
-#SQL/Oracle/uni/CreateKeyGenerators.js                  #NOT YET CONVERTED TO ORACLE
-#SQL/Oracle/uni/CreateAttributeRewinders.js             #NOT YET CONVERTED TO ORACLE
-SQL/Oracle/uni/CreateAnchorPerspectives.js
-SQL/Oracle/uni/CreateAnchorTriggers.js
-#SQL/Oracle/uni/AddTieRestatementConstraints.js         #NOT YET CONVERTED TO ORACLE
-SQL/Oracle/uni/CreateTiePerspectives.js
-SQL/Oracle/uni/CreateTieTriggers.js
-#SQL/Oracle/CreateSchemaTracking.js                     #NOT YET CONVERTED TO ORACLE
-#SQL/Oracle/uni/CreateTestData.js
+SQL/Common/uni/CreateAnchorViews.js
+

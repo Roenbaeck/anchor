@@ -6,9 +6,13 @@ SQL/PostgreSQL/DatabaseInitialization.js
 #SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
 SQL/Common/CreateEquivalentAndDefault.js
 SQL/Common/CreateKnots.js
+SQL/Common/CreateKnotViews.js
 SQL/Common/CreateAnchors.js
 SQL/Common/uni/CreateAttributes.js
+SQL/Common/uni/CreateAttributeViews.js
 SQL/Common/uni/CreateTies.js
+SQL/Common/uni/CreateAnchorViews.js
+###
 SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
 SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
 SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
