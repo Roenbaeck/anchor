@@ -3,3 +3,4 @@
 schema.metadata.encapsulation = schema.metadata.encapsulation || 'main';
 schema.metadata.chronon = schema.metadata.chronon || 'timestamp';
 schema.metadata.identityProperty = ''
+schema.EOT = '\'infinity\''; // End Of Time
