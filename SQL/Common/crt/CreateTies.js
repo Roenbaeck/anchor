@@ -318,7 +318,7 @@ CREATE $tableType TABLE $ifNotExists ${tie.capsule}$.$tie.annexName (
     $tie.positorColumnName $schema.metadata.positorRange not null,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
     $tie.assertionColumnName $assertionOptions,
-    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType NOT NULL, : $tie.recordingColumnName $schema.metadata.chronon DEFAULT $schema.metadata.now,
     constraint fk_$tie.annexName foreign key (
         $tie.identityColumnName
     ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
