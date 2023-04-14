@@ -97,7 +97,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.10';
+        var VERSION = '0.99.11';
 
         // change to false in beta
         var RELEASE = false;
@@ -446,6 +446,10 @@
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
                     // keys must be added last since they may provide a path through many of the above
                     this.prepareKeys();
+                    // and after keys, identifiers
+                    var identifiers = xml.getElementsByTagName('identifier');
+                    for (i = 0; i < identifiers.length; i++)
+                        this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -1372,10 +1376,11 @@
             }
         };
 
-        function createOption(value) {
+        function createOption(value, text) {
             var o = document.createElement('option');
             o.value = value;
-            o.text = value;
+            if(!text) text = value;
+            o.text = text;
             return o;
         };
 
@@ -1709,6 +1714,22 @@
                     createOption('Pseudonymize'),
                     createOption('Encrypt')
                 ]
+            },
+            keySelectEdit: {
+                name: 'Select key',
+                description:
+                        'Selects which key this identifier should be built from.',
+                setMember: function (element, component) { component.setRoute(element.value); },
+                getMember: function (component) { return component.getRoute(); },
+                setElement: function (element, component) { element.value = component.getRoute(); },
+                getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'select',
+                pattern: null, // anything and nothing are all fine
+                event: 'click',
+                attributes: [],
+                prepare: function(component) { component.prepareEditing(this) },
+                elements: [] // needs to be set by the creating component in prepareEditing()
             }
         };
 
@@ -2913,6 +2934,263 @@
         // inheritance
         extend(Attribute, Component);
 
+        function Identifier(x, y, anchor, route) {
+            this.anchor = anchor;
+            this.route = Model.routes[anchor.mnemonic + '|' + route];
+            if (!this.route) {
+                console.error("There is no route named: " + route + " on the anchor: " + anchor.descriptor);
+                return; // error here
+            }
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.IDENTIFIER));
+            // set members
+            this.editables.push(Editables.keySelectEdit);
+            this.editables.push(Editables.encapsulationEdit);
+            this.editables.push(Editables.positIdentityEdit);
+            this.editables.push(Editables.positGeneratorEdit);
+            this.editables.push(Editables.assertivenessEdit);
+            this.editables.push(Editables.checksumEdit);
+            this.editables.push(Editables.privacyEdit);
+            this.historized = false;
+            for(var stop in this.route.stops) {
+                var component = this.route.stops[stop].component;
+                if (component.node.type == NodeType.ATTRIBUTE && component.historized == true) {
+                    this.historized = true;
+                    this.changingRange = component.changingRange;
+                    break;
+                }
+                // do we want to historized if is passes through a historized tie?
+                /*
+                if (component.node.type == NodeType.EDGE && component.component.historized == true) {
+                    this.historized = true;
+                    this.changingRange = component.component.changingRange;
+                    break;
+                }
+                */
+            }
+            this.assertive = Defaults.assertiveness === 'true';
+            this.checksum = Defaults.checksum === 'true';
+            this.encapsulation = Defaults.encapsulation;
+            this.privacy = Defaults.privacy;
+            this.positIdentity = Defaults.positIdentity;
+            this.positGenerator = Defaults.positGenerator === 'true';
+            // set up SVG graphics
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            // expando property as a reference back to the underlying component for use in event handlers
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            var ref = this.historized ? '#identifier_historized' : '#identifier';
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 5;
+            this.svg.yOffset = 2;
+            // set up NAV graphics
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
+            this.setHistorized(this.historized);
+            this.setNameable(true);
+            this.postCreationInitialization();
+        }
+        Identifier.prototype = {
+            changingRange: '',
+            positIdentity: '',
+            positGenerator: true,
+            historized: false,
+            assertive: true,
+            checksum: false,
+            encapsulation: Defaults.encapsulation,
+            privacy: Defaults.privacy,
+            route: null,
+            anchor: null,
+            isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
+                return true;
+            },
+            isConforming: function() {
+                var i, edge, anchor, otherNode, otherComponent;
+                // first find the anchor
+                for(i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
+                    if(otherNode.type === NodeType.ANCHOR) {
+                        anchor = Model.nodeToComponent(otherNode);
+                        break;
+                    }
+                }
+                // probably check that key exists
+                return true;
+            },
+            prepareEditing: function(editable) {
+                editable.elements.length = 0;
+                for (var r in Model.routes) {
+                    if (r.slice(0, 2) == this.anchor.mnemonic) {
+                        editable.elements.push(createOption(r, Model.routes[r].name));
+                    }
+                }
+            },
+            setRoute: function(qualifiedRoute) {
+                this.route = Model.routes[qualifiedRoute];
+            },
+            getRoute: function() {
+                return this.anchor.mnemonic + '|' + this.route.name;
+            },
+            setHistorized: function(historized) {
+                var index = this.editables.indexOf(Editables.changingRangeEdit);
+                if(historized && index < 0)
+                    this.editables.push(Editables.changingRangeEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
+                index = this.editables.indexOf(Editables.restatabilityEdit);
+                if(historized && index < 0) 
+                    this.editables.push(Editables.restatabilityEdit);
+                else if (!historized && index >= 0)
+                    this.editables.splice(index, 1);
+                if(this.changingRange === '')
+                    this.changingRange = Defaults.changingRange;
+                var ref = historized ? '#identifier_historized' : '#identifier';
+                this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
+                this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
+                DrawingEngine.invalidateMiniature();
+                this.historized = historized;
+            },
+            getHistorized: function() {
+                return this.historized;
+            },
+            fromXML: function(element) {
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? fixed === 'true' : false;
+                var metadata;
+                var privacy = Defaults.privacy;
+                var capsule = Defaults.encapsulation;
+                var encryptionGroup = Defaults.encryptionGroup;
+                var assertive = Defaults.assertiveness === 'true';
+                var checksum = Defaults.checksum === 'true';
+                var generator = Defaults.positGenerator === 'true';
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    privacy = metadata.getAttribute("privacy") || privacy;
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                    encryptionGroup = metadata.getAttribute("encryptionGroup") || encryptionGroup;
+                    var _checksum = metadata.getAttribute("checksum");
+                    checksum = _checksum ? _checksum === 'true' : checksum;
+                    var _generator = metadata.getAttribute("generator");
+                    generator = _generator ? _generator === 'true' : generator;
+                    var _assertive = metadata.getAttribute("assertive");
+                    assertive = _assertive ? _assertive === 'true' : assertive;
+                }
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'description')
+                        description = element.childNodes.item(i);
+                var route = element.getAttribute("route");
+                var changingRange = element.getAttribute("timeRange");
+                var parent = element.parentNode;
+                var anchorLookup = Model.getAnchorLookup();
+                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
+                var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var identifier = new Identifier(x, y, anchor, route);
+                identifier.setFixed(fixed);
+                identifier.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                identifier.privacy = privacy;
+                identifier.encapsulation = capsule;
+                identifier.assertive = assertive;
+                identifier.checksum = checksum;
+                identifier.encryptionGroup = encryptionGroup;
+                identifier.positIdentity = identity;
+                identifier.positGenerator = generator;
+                if(changingRange) identifier.changingRange = changingRange;
+                Model.addComponent(new Role(identifier, anchor, true));
+                identifier.updateName();
+                return identifier;
+            },
+            addXML: function(element, schema) {
+                // create an attribute element
+                var identifer = schema.createElement("identifer");
+                identifer.setAttribute("route", this.route.name);
+                if(this.historized)
+                    identifer.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
+                    identifer.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
+                        Defaults.privacy : this.privacy);
+                if(!this.isEmpty(this.encryptionGroup)) {
+                    metadata.setAttribute("encryptionGroup", this.encryptionGroup);
+                }
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
+                if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi') {
+                    metadata.setAttribute("generator", this.isEmpty(this.positGenerator) ? '' : this.positGenerator);
+                    metadata.setAttribute("assertive", this.isEmpty(this.assertive) ? '' : this.assertive);
+                }
+                if(this.checksum) {
+                    metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
+                            false : this.checksum);
+                }
+                if(this.historized) {
+                    metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
+                            Defaults.restatability === 'true' : this.restatable);
+                }
+                identifer.appendChild(metadata);
+                this.addLayoutXML(identifer, schema);
+                this.addDescriptionXML(identifer, schema, this.description);
+                element.appendChild(identifer);
+            },
+            contextualName: function() {
+                var name = '';
+                if(Settings.showMnemonics)
+                    name += this.toString();
+                else
+                    name += this.route.name;
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
+                return name;
+            },
+            toString: function() {
+                var anchor, edge;
+                for(var i = 0; edge = this.node.edges[i]; i++)
+                    if(edge.otherNode.type === NodeType.ANCHOR)
+                        anchor = Model.nodeToComponent(edge.otherNode);
+                return anchor.mnemonic + "_" + anchor.descriptor + "_" + this.route.name;
+            },
+            draw: function(image) {
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+            }
+        };
+
+        // inheritance
+        extend(Identifier, Component);
+
+
+
         function Anchor(x, y) {
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
@@ -3079,7 +3357,7 @@
 
                 var edge;
                 for(var i = 0; edge = this.node.edges[i]; i++) {
-                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.IDENTIFIER) {
                         var role = Model.nodeToComponent(edge.node);
                         role.addXML(anchor, schema);
                     }
@@ -4420,6 +4698,9 @@
                         this.showEditables = true;
                         var element = document.createElement(editable.type);
                         element.className = 'editable';
+                        if(editable.prepare) {
+                            editable.prepare(hoveredComponent);
+                        }
                         if(editable.pattern) {
                             element.setAttribute('pattern', editable.pattern);
                         }
@@ -4578,7 +4859,8 @@
                         var editables = this.editables.getElementsByClassName('editable');
                         if(editables.length > 0) {
                             editables[0].focus();
-                            editables[0].setSelectionRange(0, editables[0].value.length);
+                            if(editables[0].setSelectionRange)
+                                editables[0].setSelectionRange(0, editables[0].value.length);
                         }
                     }
                     window.removeEventListener('keypress', EventHandler.keypress, false);
@@ -6344,6 +6626,10 @@
             <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                 <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
             </g>
+            <g id="stream" style="fill:#b55;">
+                <rect width="30" height="30" transform="translate(-15, -15)"/>
+                <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#fff;"/>
+            </g>
             <g id="anchor" style="fill:#b55;">
                 <rect width="20" height="20" transform="translate(-10, -10)"/>
             </g>
@@ -6364,6 +6650,21 @@
                 <circle r="12"/>
                 <circle r="7"/>
             </g>
+            <g id="identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                <circle r="13"/>
+                <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <circle r="2.5" transform="translate(0, -3)"/>
+                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                </g>
+        </g>
+            <g id="identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                <circle r="16"/>
+                <circle r="11"/>
+                <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <circle r="2.5" transform="translate(0, -3)"/>
+                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                </g>
+        </g>
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>
@@ -6576,6 +6877,21 @@
                 <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="12"/>
                     <circle r="7"/>
+                </g>
+                <g id="nav_identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                    <circle r="13"/>
+                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                        <circle r="2.5" transform="translate(0, -3)"/>
+                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                    </g>
+                </g>
+                <g id="nav_identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                    <circle r="16"/>
+                    <circle r="11"/>
+                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                        <circle r="2.5" transform="translate(0, -3)"/>
+                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                    </g>
                 </g>
             </defs>
         </svg>

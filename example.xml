@@ -19,11 +19,13 @@
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
+        <identifier route="1st"/>
     </anchor>
-    <anchor mnemonic="EV" descriptor="Event" identity="int"/>
+    <anchor mnemonic="PN" descriptor="Person" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
             <metadata equivalent="true"/>
+            <key stop="1" route="2nd" of="ST" branch="1"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
             <key stop="1" route="1st" of="ST" branch="1"/>
@@ -32,6 +34,8 @@
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
         <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL"/>
+        <identifier route="1st"/>
+        <identifier route="2nd"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
@@ -39,6 +43,7 @@
         </attribute>
         <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
         <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV"/>
+        <identifier route="1st"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
@@ -46,7 +51,17 @@
             <key stop="1" route="1st" of="PR" branch="1"/>
             <key stop="7" route="1st" of="PE" branch="3"/>
         </attribute>
+        <identifier route="1st"/>
     </anchor>
+    <!-- cannot be identifier = true in a stream 
+    <stream mnemonic="PS" descriptor="PerformanceStream" identity="int">
+        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
+        <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
+        <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
+        <anchorRole role="wasPlayed" type="PR" identifier="false">
+        <anchorRole role="heldAt" type="ST" identifier="false">        
+    </stream>
+    -->
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
         <anchorRole role="with" type="AC" identifier="false"/>
@@ -61,8 +76,8 @@
         </anchorRole>
     </tie>
     <tie>
-        <anchorRole role="subset" type="PE" identifier="false"/>
-        <anchorRole role="of" type="EV" identifier="false"/>
+        <anchorRole role="subset" type="AC" identifier="false"/>
+        <anchorRole role="of" type="PN" identifier="false"/>
     </tie>
     <tie>
         <anchorRole role="at" type="PE" identifier="true">
