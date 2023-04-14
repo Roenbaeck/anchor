@@ -1278,5 +1278,188 @@ begin
 	exec(@sql);
 end
 go
+
+if OBJECT_ID('$schema.metadata.encapsulation$._FindWhatToRemove', 'P') is not null
+drop proc [$schema.metadata.encapsulation].[_FindWhatToRemove];
+go
+--  _FindWhatToRemove finds what else to remove given 
+--  some input data containing data about to be removed.
+--
+--	Note that the table #removed must be created and 
+--	have at least one row before calling this SP. This 
+--	table will be populated with additional rows during
+--	the walking of the ties.
+--
+--	Parameters: 
+--
+--	@current	The mnemonic of the anchor in which to 
+--				start the tie walking.
+--	@forbid	Comma separated list of anchor mnemonics
+--				that never should be walked over.
+--				(optional)
+--	@visited	Keeps track of which anchors have been
+--				visited. Should never be passed to the
+--				procedure.
+--
+--	----------------------------------------------------
+--	-- EXAMPLE USAGE
+--	----------------------------------------------------
+--	if object_id('tempdb..#visited') is not null
+--	drop table #visited;
+--
+--	create table #visited (
+--		Visited varchar(max), 
+--		CurrentRole varchar(42),
+--		CurrentMnemonic char(2),
+--		Occurrences int, 
+--		Tie varchar(555), 
+--		AnchorRole varchar(42),
+--		AnchorMnemonic char(2), 
+--		VisitingOrder int
+--	);
+--
+--	if object_id('tempdb..#removed') is not null
+--	drop table #removed;
+--	create table #removed (
+--		AnchorMnemonic char(2), 
+--		AnchorID int, 
+--		primary key (
+--			AnchorMnemonic,
+--			AnchorID
+--		)
+--	);
+--
+--	insert into #removed 
+--	values ('CO', 3);
+--
+--	insert into #visited
+--	EXEC _FindWhatToRemove 'CO', 'AA';
+--
+--	select * from #visited;
+--	select * from #removed;
+
+create proc [$schema.metadata.encapsulation].[_FindWhatToRemove] (
+	@current char(2), 
+	@forbid varchar(max) = null,
+	@visited varchar(max) = null
+)
+as 
+begin
+	-- dummy creation to make intellisense work 
+	if object_id('tempdb..#removed') is null
+	create table #removed (
+		AnchorMnemonic char(2), 
+		AnchorID int, 
+		primary key (
+			AnchorMnemonic,
+			AnchorID
+		)
+	);
+
+	set @visited = isnull(@visited, '');
+	if @visited not like '%-' + @current + '%'
+	begin
+		set @visited = @visited + '-' + @current;
+		declare @version int = (select max(version) from _Schema);
+		declare @ties xml = (
+			select
+				*
+			from (
+				select [schema].query('//tie[anchorRole[@type = sql:variable("@current")]]')
+				from _Schema
+				where version = @version
+			) t (ties)
+		);
+		select 
+			@visited as Visited,
+			Tie.value('../anchorRole[@type = sql:variable("@current")][1]/@role', 'varchar(42)') as CurrentRole,
+			@current as CurrentMnemonic,
+			cast(null as int) as Occurrences,
+			replace(Tie.query('
+				for $$tie in ..
+				return <name> {
+					for $$anchorRole in $$tie/anchorRole
+					return concat($$anchorRole/@type, "_", $$anchorRole/@role)
+				} </name>
+			').value('name[1]', 'varchar(555)'), ' ', '_') as Tie,
+			Tie.value('@role', 'varchar(42)') as AnchorRole,
+			Tie.value('@type', 'char(2)') as AnchorMnemonic, 
+			row_number() over (order by (select 1)) as VisitingOrder
+		into #walk
+		from @ties.nodes('tie/anchorRole[@type != sql:variable("@current")]') AS t (Tie)
+
+		delete #walk where @forbid + ',' like '%' + AnchorMnemonic + ',%';
+
+		declare @update varchar(max) = (
+			select '
+				update #walk
+				set Occurrences = (
+					select count(*)
+					from ' + Tie + ' t
+					join #removed x
+					on x.AnchorMnemonic = ''' + CurrentMnemonic + '''
+					and x.AnchorId = t.' + CurrentMnemonic + '_ID_' + CurrentRole + '
+				)
+				where Tie = ''' + Tie + '''
+			' as [text()]
+			from #walk
+			for xml path(''), type
+		).value('.', 'varchar(max)');
+		
+		exec(@update);
+
+		select 
+			substring(Visited, 2, len(Visited)-1) as Visited, 
+			CurrentRole, 
+			CurrentMnemonic, 
+			Occurrences,
+			Tie, 
+			AnchorRole, 
+			AnchorMnemonic, 
+			VisitingOrder
+		from #walk;
+
+		declare @i int = 0;
+		declare @max int = (select max(VisitingOrder) from #walk);
+		declare @next char(2);
+		declare @occurrences int = 0;
+		declare @insert varchar(max);
+		declare @tie varchar(555);
+		declare @anchor_column varchar(555);
+		declare @current_column varchar(555);
+		while @i < @max
+		begin
+			set @i = @i + 1;
+
+			select 
+				@occurrences = Occurrences,
+				@tie = Tie,
+				@next = AnchorMnemonic, 
+				@anchor_column = AnchorMnemonic + '_ID_' + AnchorRole, 
+				@current_column = CurrentMnemonic + '_ID_' + CurrentRole
+			from #walk
+			where VisitingOrder = @i;
+
+			if @occurrences > 0
+			begin
+				set @insert = '
+					insert into #removed (AnchorMnemonic, AnchorID)
+					select ''' + @next + ''', t.' + @anchor_column + '
+					from ' + @tie + ' t
+					join #removed x
+					on x.AnchorMnemonic = ''' + @current + '''
+					and x.AnchorId = t.' + @current_column + '
+					left join #removed seen
+					on seen.AnchorMnemonic = ''' + @next + '''
+					and seen.AnchorId = t.' + @anchor_column + '
+					where seen.AnchorId is null; 
+				';
+				exec(@insert);
+				exec _FindWhatToRemove @next, @forbid, @visited;
+			end
+		end
+	end
+end
+go
 ~*/
 }
