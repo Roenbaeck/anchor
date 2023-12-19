@@ -7,6 +7,7 @@ var NodeType = {
     TIE:        4, '4': "Tie",
     EDGE:       5, '5': "Edge",
     PARTITION:  6, '6': "Partition",
+    IDENTIFIER: 7, '7': "Identifier",
     // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
     mass:       [null, 2, 3, 5, 5, 2, null],
     charge:     [null, 1, 1, 1, 1, 4, null]
