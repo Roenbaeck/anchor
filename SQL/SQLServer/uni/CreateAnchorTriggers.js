@@ -147,7 +147,7 @@ BEGIN
         $(attribute.timeRange)? $attribute.changingColumnName,
         $attribute.valueColumnName
     )
-    SELECT DISTINCT
+    SELECT $(!attribute.hasChecksum())?DISTINCT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         i.$attribute.anchorReferenceName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
@@ -231,7 +231,7 @@ BEGIN
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
-        SELECT DISTINCT
+        SELECT $(!attribute.hasChecksum())?DISTINCT
 ~*/
                 if(schema.METADATA) {
 /*~
@@ -328,7 +328,7 @@ BEGIN
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
-        SELECT DISTINCT
+        SELECT $(!attribute.hasChecksum())?DISTINCT
 ~*/
                 if(schema.METADATA) {
 /*~
@@ -451,32 +451,40 @@ BEGIN
 ~*/
         }
 /*~
+    DECLARE @deleted TABLE (
+        $anchor.identityColumnName $anchor.identity NOT NULL PRIMARY KEY
+    );
+
+    INSERT INTO @deleted ($anchor.identityColumnName)
+    SELECT a.$anchor.identityColumnName
+    FROM (
+        SELECT [$anchor.mnemonic].$anchor.identityColumnName
+        FROM [$anchor.capsule].[$anchor.name] [$anchor.mnemonic] WITH(NOLOCK)
+~*/
+        if(anchor.hasMoreAttributes()) {
+/*~
+        WHERE
+~*/
+        }
+        while (attribute = anchor.nextAttribute()) {
+/*~
+        NOT EXISTS (
+            SELECT TOP 1 $attribute.anchorReferenceName
+            FROM [$attribute.capsule].[$attribute.name] WITH(NOLOCK)
+            WHERE $attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+        )
+        $(anchor.hasMoreAttributes())?AND
+~*/            
+        }
+/*~
+    ) a
+    JOIN deleted d
+    ON d.$anchor.identityColumnName = a.$anchor.identityColumnName;
+
     DELETE [$anchor.mnemonic]
-    FROM
-        [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
-    JOIN 
-        deleted d 
-    ON 
-        d.$anchor.identityColumnName = [$anchor.mnemonic].$anchor.identityColumnName$(!anchor.hasMoreAttributes())?;
-~*/
-        while (attribute = anchor.nextAttribute()) {
-/*~
-    LEFT JOIN
-        [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
-    ON
-        [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
-~*/
-        }
-/*~
-    $(anchor.hasMoreAttributes())? WHERE
-~*/
-        while (attribute = anchor.nextAttribute()) {
-/*~
-        [$attribute.mnemonic].$attribute.anchorReferenceName is null$(!anchor.hasMoreAttributes())?;
-    $(anchor.hasMoreAttributes())? AND
-~*/
-        }
-/*~
+    FROM [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
+    JOIN @deleted d
+    ON d.$anchor.identityColumnName = [$anchor.mnemonic].$anchor.identityColumnName;
 END
 GO
 ~*/
