@@ -930,7 +930,7 @@ begin
 	select
 		@version = max([version])
 	from
-		_Schema;
+		[$schema.metadata.encapsulation]._Schema;
 
 	-- declare and set other variables we need
 	declare @equivalentSuffix varchar(42);
@@ -945,7 +945,7 @@ begin
 		@positSuffix = positSuffix,
 		@temporalization = temporalization
 	from
-		_Schema_Expanded
+		[$schema.metadata.encapsulation]._Schema_Expanded
 	where
 		[version] = @version;
 
@@ -961,7 +961,7 @@ begin
 				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R
 			end
 		from
-			_Knot x
+			[$schema.metadata.encapsulation]._Knot x
 		cross apply (
 			select stuff((
 				select
@@ -997,7 +997,7 @@ begin
 			'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + '(' + [columns] + ')' + @R +
 			'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @equivalentSuffix + ';' + @R
 		from
-			_Knot x
+			[$schema.metadata.encapsulation]._Knot x
 		cross apply (
 			select stuff((
 				select
@@ -1031,7 +1031,7 @@ begin
 				when [generator] = 'true' then 'SET IDENTITY_INSERT ' + [capsule] + '.' + [name] + ' OFF;' + @R
 			end
 		from
-			_Anchor x
+			[$schema.metadata.encapsulation]._Anchor x
 		cross apply (
 			select stuff((
 				select
@@ -1067,7 +1067,7 @@ begin
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
 				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
 			from
-				_Attribute x
+				[$schema.metadata.encapsulation]._Attribute x
 			cross apply (
 				select stuff((
 					select
@@ -1106,7 +1106,7 @@ begin
 				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
 			from
-				_Attribute x
+				[$schema.metadata.encapsulation]._Attribute x
 			cross apply (
 				select stuff((
 					select
@@ -1143,7 +1143,7 @@ begin
 				'INSERT INTO ' + [capsule] + '.' + [name] + '_' + @annexSuffix + '(' + [annexColumns] + ')' + @R +
 				'SELECT ' + [annexColumns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + '_' + @annexSuffix + ';' + @R
 			from
-				_Tie x
+				[$schema.metadata.encapsulation]._Tie x
 			cross apply (
 				select stuff((
 					select
@@ -1182,7 +1182,7 @@ begin
 				'INSERT INTO ' + [capsule] + '.' + [name] + '(' + [columns] + ')' + @R +
 				'SELECT ' + [columns] + ' FROM ' + @source + '.' + [capsule] + '.' + [name] + ';' + @R
 			from
-				_Tie x
+				[$schema.metadata.encapsulation]._Tie x
 			cross apply (
 				select stuff((
 					select
@@ -1230,7 +1230,7 @@ begin
 			select
 				@schemaVersion = max(Version)
 			from
-				_Schema;
+				[$schema.metadata.encapsulation]._Schema;
 		end;
 
 		with constructs as (
@@ -1239,7 +1239,7 @@ begin
 				2 as prio,
 				'$schema.metadata.metadataPrefix' + name as metadataColumn
 			from
-				_Tie
+				[$schema.metadata.encapsulation]._Tie
 			where
 				[version] = @schemaVersion
 			union all
@@ -1248,7 +1248,7 @@ begin
 				3 as prio,
 				'$schema.metadata.metadataPrefix' + mnemonic as metadataColumn
 			from
-				_Anchor
+				[$schema.metadata.encapsulation]._Anchor
 			where
 				[version] = @schemaVersion
 			union all
@@ -1257,7 +1257,7 @@ begin
 				4 as prio,
 				'$schema.metadata.metadataPrefix' + mnemonic as metadataColumn
 			from
-				_Knot
+				[$schema.metadata.encapsulation]._Knot
 			where
 				[version] = @schemaVersion
 			and
@@ -1360,13 +1360,13 @@ begin
 	if @visited not like '%-' + @current + '%'
 	begin
 		set @visited = @visited + '-' + @current;
-		declare @version int = (select max(version) from _Schema);
+		declare @version int = (select max(version) from [$schema.metadata.encapsulation]._Schema);
 		declare @ties xml = (
 			select
 				*
 			from (
 				select [schema].query('//tie[anchorRole[@type = sql:variable("@current")]]')
-				from _Schema
+				from [$schema.metadata.encapsulation]._Schema
 				where version = @version
 			) t (ties)
 		);
@@ -1459,6 +1459,116 @@ begin
 			end
 		end
 	end
+end
+go
+
+if OBJECT_ID('$schema.metadata.encapsulation._GenerateDeleteScript') is not null
+drop proc [$schema.metadata.encapsulation]._GenerateDeleteScript;
+go
+
+--  _GenerateDeleteScript creates delete statements 
+-- that can be used to empty a database or parts of 
+-- a database.
+--
+--	Parameters: 
+--
+--	@anchorList	An optional parameter specified as a 
+--             list of anchors to be deleted. If not
+--             specified, delete statements will be
+--             generated for all anchors.
+-- 
+-- EXAMPLE:
+-- _GenerateDeleteScript @anchorList = 'AC PE'
+--
+create proc [$schema.metadata.encapsulation]._GenerateDeleteScript (
+	@anchorList varchar(max) = null
+)
+as
+begin
+	declare @batchSize int = 100000;
+	declare @currentVersion int = (
+		select max([version]) from _Schema
+	);
+
+	select a.[capsule] + '.' + a.[name] as qualifiedName, a.[mnemonic], a.[generator]
+	into #anchor 
+	from [$schema.metadata.encapsulation]._Anchor a
+	where a.[version] = @currentVersion
+	and (@anchorList is null or @anchorList like '%' + a.[mnemonic] + '%');
+
+	select b.[capsule] + '.' + b.[name] as qualifiedName, b.[generator], b.[knotRange]
+	into #attribute
+	from [$schema.metadata.encapsulation]._Attribute b
+	join #anchor a
+	on a.[mnemonic] = b.[anchorMnemonic]
+	where b.[version] = @currentVersion;
+
+	select distinct t.[capsule] + '.' + t.[name] as qualifiedName, t.[generator], t.[knots]
+	into #tie 
+	from [$schema.metadata.encapsulation]._Tie t
+	join #anchor a
+	on t.[anchors] like '%' + a.[mnemonic] + '%'
+	where t.[version] = @currentVersion;
+
+	select distinct k.[capsule] + '.' + k.[name] as qualifiedName, k.[generator]
+	into #knot
+	from [$schema.metadata.encapsulation]._Knot k
+	outer apply (
+		select qualifiedName 
+		from #tie t
+		where t.[knots] like '%' + k.[mnemonic] + '%'
+	) kt
+	left join #attribute a
+	on a.[knotRange] = k.[mnemonic]
+	where k.[version] = @currentVersion
+	and (kt.qualifiedName is not null or a.qualifiedName is not null)
+	and not exists (
+		select top 1 t.[knots]
+		from [$schema.metadata.encapsulation]._Tie t
+		where t.[version] = @currentVersion
+		and t.[knots] like '%' + k.[mnemonic] + '%'
+		and t.[capsule] + '.' + t.[name] not in (
+			select qualifiedName from #tie
+		)
+	)
+	and not exists (
+		select top 1 a.[mnemonic]
+		from [$schema.metadata.encapsulation]._Attribute a
+		where a.[version] = @currentVersion
+		and a.[knotRange] = k.[mnemonic]
+		and a.[capsule] + '.' + a.[name] not in (
+			select qualifiedName from #attribute
+		)
+	);
+
+	select 
+		case 
+			when ROW_NUMBER() over (order by ordering, qualifiedName) = 1
+			then 'DECLARE @deletedRows INT; ' + CHAR(13)
+			else ''
+		end +
+		'SET @deletedRows = 1; ' + CHAR(13) +
+		'WHILE @deletedRows != 0 ' + CHAR(13) +
+		'BEGIN' + CHAR(13) +
+		CHAR(9) + 'DELETE TOP (' + cast(@batchSize as varchar(10)) + ') ' + qualifiedName + '; ' + CHAR(13) +
+		CHAR(9) + 'SET @deletedRows = @@ROWCOUNT; ' + CHAR(13) +
+		'END' + CHAR(13) +
+		case 
+			when [generator] = 'true'
+			then 'DBCC CHECKIDENT (''' + qualifiedName + ''', RESEED, 0); ' + CHAR(13) 
+			else ''
+		end as [text()] 
+	from (
+		select 1 as ordering, qualifiedName, [generator] from #attribute
+		union all
+		select 2 as ordering, qualifiedName, [generator] from #tie
+		union all
+		select 3 as ordering, qualifiedName, [generator] from #anchor
+		union all
+		select 4 as ordering, qualifiedName, [generator] from #knot
+	) x
+	order by ordering, qualifiedName asc
+	for xml path('');
 end
 go
 ~*/
