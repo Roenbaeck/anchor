@@ -1462,7 +1462,7 @@ begin
 end
 go
 
-if OBJECT_ID('$schema.metadata.encapsulation._GenerateDeleteScript') is not null
+if OBJECT_ID('$schema.metadata.encapsulation$._GenerateDeleteScript') is not null
 drop proc [$schema.metadata.encapsulation]._GenerateDeleteScript;
 go
 
