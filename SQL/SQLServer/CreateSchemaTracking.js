@@ -428,7 +428,7 @@ IF Object_ID('$schema.metadata.encapsulation$._GenerateDropScript', 'P') IS NOT 
 DROP PROCEDURE [$schema.metadata.encapsulation].[_GenerateDropScript];
 GO
 
-CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
+CREATE PROCEDURE [$schema.metadata.encapsulation].[_GenerateDropScript] (
    @exclusionPattern varchar(42) = '%.[[][_]%', -- exclude Metadata by default
    @inclusionPattern varchar(42) = '%', -- include everything by default
    @directions varchar(42) = 'Upwards, Downwards', -- do both up and down by default
@@ -436,473 +436,331 @@ CREATE PROCEDURE [$schema.metadata.encapsulation]._GenerateDropScript (
 )
 AS
 BEGIN
-   set nocount on;
-   select
-      ordinal,
-      unqualifiedName,
-      qualifiedName
-   into 
-      #constructs
-   from (
-      select distinct
-         10 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + ']' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Attribute
-      union all
-      select distinct
-         11 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Attribute
-      union all
-      select distinct
-         12 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Attribute
-      union all
-      select distinct
-         20 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + ']' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Tie
-      union all
-      select distinct
-         21 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + '_Annex]' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Tie
-      union all
-      select distinct
-         22 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + '_Posit]' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Tie
-      union all
-      select distinct
-         30 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + ']' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Knot
-      union all
-      select distinct
-         40 as ordinal,
-         name as unqualifiedName,
-         '[' + capsule + '].[' + name + ']' as qualifiedName
-      from
-         [$schema.metadata.encapsulation]._Anchor
-   ) t;
+	set nocount on;
 
-   select
-      c.ordinal,
-      cast(c.unqualifiedName as nvarchar(517)) as unqualifiedName,
-      cast(c.qualifiedName as nvarchar(517)) as qualifiedName,
-      o.[object_id],
-      o.[type]
-   into
-      #includedConstructs
-   from
-      #constructs c
-   join
-      sys.objects o
-   on
-      o.[object_id] = OBJECT_ID(c.qualifiedName)
-   and 
-      o.[type] = 'U'
-   where
-      OBJECT_ID(c.qualifiedName) = OBJECT_ID(isnull(@qualifiedName, c.qualifiedName));
+	drop table if exists #entities;
+	create table #entities (
+		[object_id] int not null unique,
+		[schema] varchar(42) not null,
+		[entity] varchar(555) not null,
+		[type] varchar(10) not null,
+		qualifiedName varchar(597) not null,
+		primary key (
+			[schema],
+			[entity]
+		)
+	);
 
-   create unique clustered index ix_includedConstructs on #includedConstructs([object_id]);
+	insert into #entities (
+		[object_id],
+		[schema], 
+		[entity],
+		[type],
+		qualifiedName
+	)
+	select 
+		o.[object_id],
+		s.[name],
+		o.[name],
+		o.[type],
+		n.qualifiedName
+	from sys.objects o
+	join sys.schemas s
+	on s.schema_id = o.schema_id
+	cross apply (
+		values (
+			'[' + s.[name] + '].[' + o.[name] + ']'
+		)
+	) n (qualifiedName)
+	where o.[type] not in ('S', 'IT');
 
-   select distinct
-      c.[object_id],
-      c.qualifiedName,
-      c.unqualifiedName,
-      c.[type], 
-      r.referencing_id as [referenced_by_object_id],
-      n.qualifiedName as referenced_qualifiedName,
-      n.unqualifiedName as referenced_unqualifiedName, 
-      o.[type] as referenced_type
-   into 
-      #referencing_entities
-   from 
-      #includedConstructs c
-    cross apply (
-        select
-         refs.referencing_id
-        from 
-         sys.dm_sql_referencing_entities(c.qualifiedName, 'OBJECT') refs
-        where
-         refs.referencing_id <> OBJECT_ID(c.qualifiedName)
-    ) r
-   join -- select top 100 * from 
-         sys.objects o
-      on
-         o.[object_id] = r.referencing_id
-      and
-         o.type not in ('S')
-      join
-         sys.schemas s
-      on 
-         s.schema_id = o.schema_id
-      cross apply (
-         select
-            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
-            cast(o.name as nvarchar(517))
-      ) n (qualifiedName, unqualifiedName);
+	drop table if exists #exclusions;
+	create table #exclusions (
+		[object_id] int not null unique,
+		[schema] varchar(42) not null,
+		[entity] varchar(555) not null,
+		qualifiedName varchar(597) not null,
+		primary key (
+			[schema],
+			[entity]
+		)
+	);
 
-   create unique clustered index pk_referencing_entities 
-   on #referencing_entities ([object_id], [referenced_by_object_id]);
+	insert into #exclusions (
+		[object_id],
+		[schema], 
+		[entity],
+		qualifiedName
+	)
+	select 
+		[object_id],
+		[schema], 
+		[entity],
+		qualifiedName
+	from #entities
+	where qualifiedName like @exclusionPattern;
 
-   declare @inserts int = 1;
-   while (@inserts > 0)
-   begin
-      insert into #referencing_entities
-      select distinct
-         c.[referenced_by_object_id] as [object_id],
-         c.referenced_qualifiedName as qualifiedName,
-         c.referenced_unqualifiedName as unqualifiedName, 
-         c.referenced_type as [type],
-         r.referencing_id as [referenced_by_object_id],
-         n.qualifiedName as referenced_qualifiedName, 
-         n.unqualifiedName as referenced_unqualifiedName, 
-         o.[type] as referenced_type
-      from 
-         #referencing_entities c
-      outer apply (
-         select
-            refs.referencing_id
-         from 
-            sys.dm_sql_referencing_entities(c.referenced_qualifiedName, 'OBJECT') refs
-         where
-            refs.referencing_id <> c.referenced_by_object_id
-      ) r
-      left join 
-         #referencing_entities x
-      on 
-         x.[object_id] = c.[referenced_by_object_id]
-      and
-         x.referenced_by_object_id = r.referencing_id
-      join -- select top 100 * from 
-          sys.objects o
-        on
-          o.[object_id] = r.referencing_id
-        and
-          o.type not in ('S')
-        join
-          sys.schemas s
-        on 
-          s.schema_id = o.schema_id
-        cross apply (
-          select
-            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
-            cast(o.name as nvarchar(517))
-        ) n (qualifiedName, unqualifiedName)
-      where
-         x.[object_id] is null; 
-      set @inserts = @@ROWCOUNT;
-   end;
+	-- select * from #exclusions;
 
-   with relatedUpwards as (
-      select
-         c.[object_id],
-         c.[type],
-         c.unqualifiedName,
-         c.qualifiedName,
-         1 as depth
-      from
-         #includedConstructs c
-      union all
-      select
-         r.referenced_by_object_id,
-         r.referenced_type,
-         r.referenced_unqualifiedName,
-         r.referenced_qualifiedName,
-         c.depth + 1 as depth
-      from
-         relatedUpwards c
-     join   
-       #referencing_entities r
-     on 
-        r.[object_id] = c.[object_id]
-   )
-   select distinct
-      [object_id],
-      [type],
-      unqualifiedName,
-      qualifiedName,
-      depth
-   into
-      #relatedUpwards
-   from
-      relatedUpwards u
-   where
-      depth = (
-         select
-            MAX(depth)
-         from
-            relatedUpwards s
-         where
-            s.[object_id] = u.[object_id]
-      );
-   
-   create unique clustered index ix_relatedUpwards on #relatedUpwards([object_id]);
+	drop table if exists #inclusions;
+	create table #inclusions (
+		[object_id] int not null unique,
+		[schema] varchar(42) not null,
+		[entity] varchar(555) not null,
+		qualifiedName varchar(597) not null,
+		primary key (
+			[schema],
+			[entity]
+		)
+	);
 
-   select distinct
-      c.[object_id],
-      c.qualifiedName,
-      c.unqualifiedName, 
-      c.[type],
-      r.referenced_id as [references_object_id],
-      n.qualifiedName as references_qualifiedName, 
-      n.unqualifiedName as references_unqualifiedName, 
-      o.[type] as references_type
-   into -- drop table
-      #referenced_entities
-   from 
-      #includedConstructs c
-    cross apply (
-         select 
-            refs.referenced_id 
-         from
-            sys.dm_sql_referenced_entities(c.qualifiedName, 'OBJECT') refs
-         where
-            refs.referenced_minor_id = 0
-         and
-            refs.referenced_id <> OBJECT_ID(c.qualifiedName)
-         and 
-            refs.referenced_id not in (select [object_id] from #relatedUpwards)
-    ) r
-      join -- select top 100 * from 
-          sys.objects o
-        on
-          o.[object_id] = r.referenced_id
-        and
-          o.type not in ('S')
-        join
-          sys.schemas s
-        on 
-          s.schema_id = o.schema_id
-        cross apply (
-          select
-            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
-            cast(o.name as nvarchar(517))
-        ) n (qualifiedName, unqualifiedName);
+	insert into #inclusions (
+		[object_id],
+		[schema], 
+		[entity],
+		qualifiedName
+	)
+	select 
+		[object_id],
+		[schema], 
+		[entity],
+		qualifiedName
+	from #entities e
+	where coalesce(@qualifiedName, qualifiedName) in (qualifiedName, [schema] + '.' + [entity])
+	and not exists (
+		select top 1 [entity] from #exclusions where [schema] = e.[schema] and [entity] = e.[entity]
+	);
 
-   create unique clustered index pk_referenced_entities 
-   on #referenced_entities ([object_id], [references_object_id]);
+	-- select * from #inclusions;
 
-   set @inserts = 1;
-   while(@inserts > 0)
-   begin
-      insert into #referenced_entities
-      select distinct
-         c.[references_object_id] as [object_id],
-         c.references_qualifiedName as qualifiedName,
-         c.references_unqualifiedName as unqualifiedName,
-         c.references_type as [type],
-         r.referenced_id as [references_object_id],
-         n.qualifiedName as references_qualifiedName, 
-         n.unqualifiedName as references_unqualifiedName, 
-         o.[type] as references_type
-      from 
-         #referenced_entities c
-      cross apply (
-          select 
-            refs.referenced_id 
-          from
-            sys.dm_sql_referenced_entities(c.references_qualifiedName, 'OBJECT') refs
-          where
-            refs.referenced_minor_id = 0
-          and
-            refs.referenced_id <> c.[references_object_id]
-          and 
-            refs.referenced_id not in (select [object_id] from #relatedUpwards)
-      ) r
-      left join
-         #referenced_entities x
-      on 
-         x.[object_id] = c.[references_object_id]
-      and
-         x.references_object_id = r.referenced_id
-      join -- select top 100 * from 
-          sys.objects o
-        on
-          o.[object_id] = r.referenced_id
-        and
-          o.type not in ('S')
-        join
-          sys.schemas s
-        on 
-          s.schema_id = o.schema_id
-        cross apply (
-          select
-            cast('[' + s.name + '].[' + o.name + ']' as nvarchar(517)),
-            cast(o.name as nvarchar(517))
-        ) n (qualifiedName, unqualifiedName)
-      where
-         x.[object_id] is null;
-      set @inserts = @@ROWCOUNT;
-   end;
+	drop table if exists #downward;
+	create table #downward (
+		referenced_id int not null unique, 
+		referenced_schema_name varchar(42) not null,
+		referenced_entity_name varchar(555) not null,
+		[level] smallint not null, 
+		[direction] char(1) not null, 
+		primary key (
+			referenced_schema_name,
+			referenced_entity_name
+		)
+	);
 
-   with relatedDownwards as (
-      select
-         cast('Upwards' as varchar(42)) as [relationType],
-         c.[object_id],
-         c.[type],
-         c.unqualifiedName, 
-         c.qualifiedName,
-         c.depth
-      from
-         #relatedUpwards c 
-      union all
-      select
-         cast('Downwards' as varchar(42)) as [relationType],
-         r.references_object_id,
-         r.references_type,
-         r.references_unqualifiedName, 
-         r.references_qualifiedName,
-         c.depth - 1 as depth
-      from
-         relatedDownwards c
-     join
-      #referenced_entities r
-     on 
-      r.[object_id] = c.[object_id]
-   )
-   select distinct
-      relationType,
-      [object_id],
-      [type],
-      unqualifiedName,
-      qualifiedName,
-      depth
-   into -- drop table 
-      #relatedDownwards
-   from
-      relatedDownwards d
-   where
-      depth = (
-         select
-            MIN(depth)
-         from
-            relatedDownwards s
-         where
-            s.[object_id] = d.[object_id]
-      );
+	with downward as (
+		select 
+			r.referenced_schema_name, 
+			r.referenced_entity_name, 
+			-2 as [level], 
+			'D' as direction, 
+			r.referenced_id
+		from #inclusions 
+		cross apply sys.dm_sql_referenced_entities(qualifiedName, 'OBJECT') r
+		where r.referenced_minor_id = 0 and r.is_incomplete = 0 and r.referenced_id is not null and r.referenced_schema_name is not null
+		union all
+		select 
+			r.referenced_schema_name, 
+			r.referenced_entity_name, 
+			d.[level] - 2, 
+			d.direction, 
+			r.referenced_id
+		from downward d
+		cross apply sys.dm_sql_referenced_entities(d.referenced_schema_name + '.' + d.referenced_entity_name, 'OBJECT') r
+		where r.referenced_minor_id = 0 and r.is_incomplete = 0 and r.referenced_id is not null and r.referenced_schema_name is not null
+	)
+	insert into #downward (
+		referenced_id, 
+		referenced_schema_name, 
+		referenced_entity_name, 
+		[level], 
+		[direction]
+	)
+	select 
+		referenced_id,
+		referenced_schema_name, 
+		referenced_entity_name, 
+		max([level]) as [level],
+		min([direction]) as [direction]
+	from (
+		select referenced_id, referenced_schema_name, referenced_entity_name, [level], [direction] from downward
+		union all
+		select [object_id], [schema], [entity], 0, 'D' from #inclusions
+	) d
+	where not exists (
+		select top 1 [entity] from #exclusions where [schema] = referenced_schema_name and [entity] = referenced_entity_name
+	)
+	group by 
+		referenced_id,
+		referenced_schema_name, 
+		referenced_entity_name;
 
-   create unique clustered index ix_relatedDownwards on #relatedDownwards([object_id]);
+	-- select * from #downward order by level desc;
 
-   select distinct
-      [object_id],
-      [type],
-      [unqualifiedName],
-      [qualifiedName],
-      [depth]
-   into
-      #affectedObjects
-   from
-      #relatedDownwards d
-   where
-      [qualifiedName] not like @exclusionPattern
-   and
-      [qualifiedName] like @inclusionPattern
-   and
-      @directions like '%' + [relationType] + '%';
+	drop table if exists #entities_at_level;
+	create table #entities_at_level (
+		[schema] varchar(42) not null,
+		[entity] varchar(555) not null,
+		qualifiedName varchar(597) not null,
+		[level] int null,
+		primary key (
+			[schema],
+			[entity]
+		)
+	);
 
-   create unique clustered index ix_affectedObjects on #affectedObjects([object_id]);
+	insert into #entities_at_level (
+		[schema], 
+		[entity],
+		qualifiedName,
+		[level]
+	)
+	select 
+		e.[schema], 
+		e.[entity],
+		e.qualifiedName,
+		d.[level]
+	from #entities e
+	left join #downward d
+	on d.referenced_schema_name = e.[schema]
+	and d.referenced_entity_name = e.[entity]
+	where not exists (
+		select top 1 [entity] from #exclusions where [schema] = e.[schema] and [entity] = e.[entity]
+	);
 
-   select distinct
-      objectType,
-      unqualifiedName,
-      qualifiedName,
-      dropOrder
-   into
-      #dropList
-   from (
-      select
-         t.objectType,
-         o.unqualifiedName,
-         o.qualifiedName,
-         dense_rank() over (
-            order by
-               o.depth desc,
-               case o.[type]
-                  when 'C'  then 0 -- CHECK CONSTRAINT
-                  when 'TR' then 1 -- SQL_TRIGGER
-                  when 'P'  then 2 -- SQL_STORED_PROCEDURE
-                  when 'V'  then 3 -- VIEW
-                  when 'IF' then 4 -- SQL_INLINE_TABLE_VALUED_FUNCTION
-                  when 'FN' then 5 -- SQL_SCALAR_FUNCTION
-                  when 'PK' then 6 -- PRIMARY_KEY_CONSTRAINT
-                  when 'UQ' then 7 -- UNIQUE_CONSTRAINT
-                  when 'F'  then 8 -- FOREIGN_KEY_CONSTRAINT
-                  when 'U'  then 9 -- USER_TABLE
-               end asc,
-               isnull(c.ordinal, 0) asc
-         ) as dropOrder
-      from
-         #affectedObjects o
-      left join
-         #includedConstructs c
-      on
-         c.[object_id] = o.[object_id]
-      cross apply (
-         select
-            case o.[type]
-               when 'C'  then 'CHECK'
-               when 'TR' then 'TRIGGER'
-               when 'V'  then 'VIEW'
-               when 'IF' then 'FUNCTION'
-               when 'FN' then 'FUNCTION'
-               when 'P'  then 'PROCEDURE'
-               when 'PK' then 'CONSTRAINT'
-               when 'UQ' then 'CONSTRAINT'
-               when 'F'  then 'CONSTRAINT'
-               when 'U'  then 'TABLE'
-            end
-         ) t (objectType)
-      where
-         t.objectType in (
-            'CHECK',
-            'VIEW',
-            'FUNCTION',
-            'PROCEDURE',
-            'TABLE'
-         )
-   ) r;
+	drop table if exists #upward;
+	create table #upward (
+		referenced_id int not null unique, 
+		referenced_schema_name varchar(42) not null,
+		referenced_entity_name varchar(555) not null,
+		[level] smallint not null, 
+		[direction] char(1) not null, 
+		primary key (
+			referenced_schema_name,
+			referenced_entity_name
+		)
+	);
 
-   select
-      case 
-         when d.objectType = 'CHECK'
-         then 'ALTER TABLE ' + p.parentName + ' DROP CONSTRAINT ' + d.unqualifiedName
-         else 'DROP ' + d.objectType + ' ' + d.qualifiedName
-      end + ';' + CHAR(13) as [text()]
-   from
-      #dropList d
-   join
-      sys.objects o
-   on
-      o.[object_id] = OBJECT_ID(d.qualifiedName)
-   join
-      sys.schemas s
-   on
-      s.[schema_id] = o.[schema_id]
-   cross apply (
-      select
-         '[' + s.name + '].[' + OBJECT_NAME(o.parent_object_id) + ']'
-   ) p (parentName)
-   order by
-      d.dropOrder asc
-   for xml path('');
+	with upward as (
+		select 
+			referenced_schema_name, 
+			referenced_entity_name, 
+			[level], 
+			direction, 
+			referenced_id
+		from #downward
+		union all
+		select 
+			cast(r.referencing_schema_name as varchar(42)), 
+			cast(r.referencing_entity_name as varchar(555)), 
+			cast(u.[level] + 2 as smallint), -- series becomes 0, 2, 4, 6, ...
+			cast('U' as char(1)), 
+			r.referencing_id
+		from upward u
+		cross apply sys.dm_sql_referencing_entities(u.referenced_schema_name + '.' + u.referenced_entity_name, 'OBJECT') r
+		join #entities_at_level e
+		on e.[schema] = r.referencing_schema_name and e.[entity] = r.referencing_entity_name
+		and (e.[level] is null or u.[level] + 2 > e.[level])
+		where r.referencing_id <> OBJECT_ID(u.referenced_schema_name + '.' + u.referenced_entity_name)
+	)
+	insert into #upward (
+		referenced_id, 
+		referenced_schema_name, 
+		referenced_entity_name, 
+		[level], 
+		[direction]
+	)
+	select 
+		referenced_id,
+		referenced_schema_name, 
+		referenced_entity_name, 
+		max([level]) as [level],
+		min([direction]) as [direction]
+	from upward 
+	where referenced_schema_name + '.' + referenced_entity_name like @inclusionPattern
+	group by 
+		referenced_id,
+		referenced_schema_name, 
+		referenced_entity_name;
+
+	with adjustment as (
+		select 
+			u.referenced_id,
+			fk.referenced_object_id,
+			1 as adjustment
+		from #upward u
+		join sys.foreign_keys fk
+		on fk.parent_object_id = u.referenced_id
+		union all 
+		select
+			a.referenced_object_id,
+			fk.referenced_object_id, 
+			a.adjustment + 2 -- series becomes 1, 3, 5, 7, ... so ends up between already defined order
+		from adjustment a
+		join sys.foreign_keys fk
+		on fk.parent_object_id = a.referenced_object_id
+	)
+	update u
+		set u.[level] = u.[level] + a.adjustment
+	from #upward u
+	join adjustment a
+	on a.referenced_id = u.referenced_id;
+
+	select
+		case 
+			when t.objectType = 'CHECK'
+			then 'ALTER TABLE ' + n.parentName + ' DROP CONSTRAINT ' + u.referenced_entity_name
+			else 'DROP ' + t.objectType + ' ' + n.qualifiedName
+		end + ';' + CHAR(13) as [text()]
+	from #upward u
+	join sys.objects o
+	on o.object_id = u.referenced_id
+	cross apply (
+		values (
+			'[' + u.referenced_schema_name + '].[' + u.referenced_entity_name + ']',
+			'[' + u.referenced_schema_name + '].[' + OBJECT_NAME(o.parent_object_id) + ']'
+		)
+	) n (qualifiedName, parentName)
+	cross apply (
+		select
+		case o.[type]
+			when 'C'  then 'CHECK'
+			when 'TR' then 'TRIGGER'
+			when 'V'  then 'VIEW'
+			when 'IF' then 'FUNCTION'
+			when 'FN' then 'FUNCTION'
+			when 'P'  then 'PROCEDURE'
+			when 'PK' then 'CONSTRAINT'
+			when 'UQ' then 'CONSTRAINT'
+			when 'F'  then 'CONSTRAINT'
+			when 'U'  then 'TABLE'
+		end
+		) t (objectType)
+	where @directions like '%' + u.direction + '%'
+	and t.objectType in (
+			'CHECK',
+			'VIEW',
+			'FUNCTION',
+			'PROCEDURE',
+			'TABLE'
+		)
+	order by 
+		[referenced_schema_name],
+		[level] desc, 
+		[direction] asc,
+		case [type]
+			when 'C'  then 0 -- CHECK CONSTRAINT
+			when 'TR' then 1 -- SQL_TRIGGER
+			when 'P'  then 2 -- SQL_STORED_PROCEDURE
+			when 'V'  then 3 -- VIEW
+			when 'IF' then 4 -- SQL_INLINE_TABLE_VALUED_FUNCTION
+			when 'FN' then 5 -- SQL_SCALAR_FUNCTION
+			when 'PK' then 6 -- PRIMARY_KEY_CONSTRAINT
+			when 'UQ' then 7 -- UNIQUE_CONSTRAINT
+			when 'F'  then 8 -- FOREIGN_KEY_CONSTRAINT
+			when 'U'  then 9 -- USER_TABLE
+		end asc,
+		[referenced_entity_name]
+	for xml path('');
+
 END
 GO
 -- Database Copy Script Generator -------------------------------------------------------------------------------------
