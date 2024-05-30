@@ -438,7 +438,6 @@ AS
 BEGIN
 	set nocount on;
 
-	drop table if exists #entities;
 	create table #entities (
 		[object_id] int not null unique,
 		[schema] varchar(42) not null,
@@ -474,7 +473,6 @@ BEGIN
 	) n (qualifiedName)
 	where o.[type] not in ('S', 'IT');
 
-	drop table if exists #exclusions;
 	create table #exclusions (
 		[object_id] int not null unique,
 		[schema] varchar(42) not null,
@@ -502,7 +500,6 @@ BEGIN
 
 	-- select * from #exclusions;
 
-	drop table if exists #inclusions;
 	create table #inclusions (
 		[object_id] int not null unique,
 		[schema] varchar(42) not null,
@@ -533,7 +530,6 @@ BEGIN
 
 	-- select * from #inclusions;
 
-	drop table if exists #downward;
 	create table #downward (
 		referenced_id int not null unique, 
 		referenced_schema_name varchar(42) not null,
@@ -595,7 +591,6 @@ BEGIN
 
 	-- select * from #downward order by level desc;
 
-	drop table if exists #entities_at_level;
 	create table #entities_at_level (
 		[schema] varchar(42) not null,
 		[entity] varchar(555) not null,
@@ -626,7 +621,6 @@ BEGIN
 		select top 1 [entity] from #exclusions where [schema] = e.[schema] and [entity] = e.[entity]
 	);
 
-	drop table if exists #upward;
 	create table #upward (
 		referenced_id int not null unique, 
 		referenced_schema_name varchar(42) not null,
