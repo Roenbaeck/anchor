@@ -86,7 +86,7 @@ BEGIN
     FROM
         inserted i
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             42
         FROM
             [$tie.capsule].[$tie.name] x
@@ -326,7 +326,7 @@ BEGIN
     FROM
         inserted i
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             42
         FROM
             [$tie.capsule].[$tie.name] x
