@@ -1230,8 +1230,8 @@ begin
 			replace(Tie.query('
 				for $$tie in ..
 				return <name> {
-					for $$anchorRole in $$tie/anchorRole
-					return concat($$anchorRole/@type, "_", $$anchorRole/@role)
+					for $$role in ($$tie/anchorRole, $$tie/knotRole)
+					return concat($$role/@type, "_", $$role/@role)
 				} </name>
 			').value('name[1]', 'varchar(555)'), ' ', '_') as Tie,
 			Tie.value('@role', 'varchar(42)') as AnchorRole,
@@ -1296,7 +1296,7 @@ begin
 			begin
 				set @insert = '
 					insert into #removed (AnchorMnemonic, AnchorID)
-					select ''' + @next + ''', t.' + @anchor_column + '
+					select distinct ''' + @next + ''', t.' + @anchor_column + '
 					from ' + @tie + ' t
 					join #removed x
 					on x.AnchorMnemonic = ''' + @current + '''
