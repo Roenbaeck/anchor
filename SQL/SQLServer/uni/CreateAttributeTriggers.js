@@ -73,12 +73,12 @@ BEGIN
     FROM
         inserted i
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             x.$attribute.anchorReferenceName
         FROM
             [$attribute.capsule].[$attribute.name] x
         WHERE
-            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+            $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
             x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
         $(attribute.isHistorized())? AND
@@ -230,12 +230,12 @@ BEGIN
     FROM
         inserted i
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             x.$attribute.anchorReferenceName
         FROM
             [$attribute.capsule].[$attribute.name] x
         WHERE
-            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+            $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
             x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
         AND

@@ -162,7 +162,7 @@ BEGIN
         }
 /*~
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             42
         FROM
             @inserted x
@@ -173,7 +173,7 @@ BEGIN
             while(role = tie.nextIdentifier()) {
 /*~
         AND
-            p.$role.columnName = i.$role.columnName
+            x.$role.columnName = i.$role.columnName
 ~*/
             }
         }
@@ -181,7 +181,7 @@ BEGIN
             while(role = tie.nextValue()) {
 /*~
         AND
-            p.$role.columnName = i.$role.columnName
+            x.$role.columnName = i.$role.columnName
 ~*/
             }
         }

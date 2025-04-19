@@ -112,7 +112,7 @@ BEGIN
     $(attribute.isEquivalent())? AND    
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
     WHERE NOT EXISTS (
-        SELECT 
+        SELECT TOP 1
             x.$attribute.anchorReferenceName
         FROM
             @$attribute.name x
