@@ -56,8 +56,6 @@
         <option value='varchar()'>    
         <option value='xml'>                         
     </datalist>
-    <!-- polyfill for the functionality going to be removed in SVG 2 -->
-    <script src="pathseg.js"></script>
     <!-- import required modules -->
     <script type="text/javascript" src="modules/Inheritance.js"></script>    
     <script type="text/javascript" src="modules/DataTypeConverter.js"></script>
@@ -2176,7 +2174,6 @@
             selectionElement: null,
             fixationElement: null,
             pathElement: null,
-            pathControl: null,
             forceElement: null,
             makeInteractive: function() {
                 this.highlightElement = document.createElementNS(SVGNS, 'use');
@@ -3978,10 +3975,6 @@
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
                     ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-            this.svg.pathControl = {
-                m: this.svg.pathElement.pathSegList.getItem(0),
-                q: this.svg.pathElement.pathSegList.getItem(1)
-            };
             SVGLayer.edges.appendChild(this.svg.pathElement);
             if(this.tied) {
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -4009,10 +4002,6 @@
             this.nav.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
                     ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-            this.nav.pathControl = {
-                m: this.nav.pathElement.pathSegList.getItem(0),
-                q: this.nav.pathElement.pathSegList.getItem(1)
-            };
             NAVLayer.edges.appendChild(this.nav.pathElement);
             this.postCreationInitialization();
         }
@@ -4064,12 +4053,20 @@
                 var otherNode = this.node.otherNode;
                 var controlPoint = this.node.controlPoint;
                 var role = this.node;
-                image.pathControl.m.x = node.xPosition;
-                image.pathControl.m.y = node.yPosition;
-                image.pathControl.q.x1 = controlPoint.xPosition;
-                image.pathControl.q.y1 = controlPoint.yPosition;
-                image.pathControl.q.x = otherNode.xPosition;
-                image.pathControl.q.y = otherNode.yPosition;
+                if (image.pathElement.setPathData) {
+                    var pathData = image.pathElement.getPathData();
+                    pathData[0].values[0] = node.xPosition;
+                    pathData[0].values[1] = node.yPosition;
+                    pathData[1].values[0] = controlPoint.xPosition;
+                    pathData[1].values[1] = controlPoint.yPosition;
+                    pathData[1].values[2] = otherNode.xPosition;
+                    pathData[1].values[3] = otherNode.yPosition;
+                    image.pathElement.setPathData(pathData);
+                } else {
+                    image.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
+                        ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
+                        ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
+                }
                 if(this.tied && image.control) {
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
