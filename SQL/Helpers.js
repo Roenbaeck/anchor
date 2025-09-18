@@ -2,6 +2,7 @@
 schema._iterator = {};
 schema._iterator.knot = 0;
 schema._iterator.anchor = 0;
+schema._iterator.nexus = 0;
 schema._iterator.attribute = 0;
 schema._iterator.historizedAttribute = 0;
 schema._iterator.tie = 0;
@@ -64,6 +65,114 @@ while(anchor = schema.nextAnchor()) {
     anchor.historizedAttributes = [];
     anchor.isGenerator = function() {
         return this.metadata.generator == 'true';
+    };
+}
+
+// set up helpers for nexuses
+schema.nextNexus = function() {
+    var list = schema.nexuses;
+    if(!list) return null;
+    if(schema._iterator.nexus == list.length) {
+        schema._iterator.nexus = 0;
+        return null;
+    }
+    return schema.nexus[list[schema._iterator.nexus++]];
+};
+schema.hasMoreNexuses = function() {
+    var list = schema.nexuses;
+    if(!list) return false;
+    return schema._iterator.nexus < list.length;
+};
+schema.isFirstNexus = function() {
+    return schema._iterator.nexus == 1;
+};
+
+var nexus;
+while(nexus = schema.nextNexus()) {
+    nexus.historizedAttributes = [];
+    nexus.isGenerator = function() {
+        return this.metadata.generator == 'true';
+    };
+}
+
+// set up helpers for nexus attributes
+while (nexus = schema.nextNexus()) {
+    nexus.nextAttribute = function() {
+        if(!this.attributes) return null;
+        if(schema._iterator.attribute == this.attributes.length) {
+            schema._iterator.attribute = 0;
+            return null;
+        }
+        return this.attribute[this.attributes[schema._iterator.attribute++]];
+    };
+    nexus.hasMoreAttributes = function() {
+        if(!this.attributes) return false;
+        return schema._iterator.attribute < this.attributes.length;
+    };
+    nexus.isFirstAttribute = function() {
+        return schema._iterator.attribute == 1;
+    };
+}
+
+var nxAttribute;
+while (nexus = schema.nextNexus()) {
+    while(nxAttribute = nexus.nextAttribute()) {
+        nxAttribute.isGenerator = function() {
+            return this.metadata.generator == 'true';
+        };
+        nxAttribute.isKnotted = function() {
+            return !!this['knotRange'];
+        };
+        nxAttribute.isIdempotent = function() {
+            return this.metadata.idempotent == 'true';
+        };
+        nxAttribute.isAssertive = function() {
+            return this.metadata.assertive == 'true';
+        };
+        nxAttribute.isEquivalent = function() {
+            return this.metadata.equivalent == 'true';
+        };
+        nxAttribute.isDeletable = function() {
+            return this.metadata.deletable == 'true';
+        };
+        nxAttribute.isRestatable = function() {
+            return this.metadata.restatable == 'true';
+        };
+        nxAttribute.hasChecksum = function() {
+            return this.metadata.checksum == 'true';
+        };
+        nxAttribute.isHistorized = function() {
+            return !!this['timeRange'];
+        };
+        nxAttribute.getEncryptionGroup = function() {
+            if(!this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0) 
+                return;
+            return this.metadata.encryptionGroup;
+        };
+        if(nxAttribute.isHistorized())
+            nexus.historizedAttributes.push(nxAttribute.mnemonic);
+        if(nxAttribute.isKnotted())
+            nxAttribute.knot = schema.knot[nxAttribute.knotRange];
+        if(nxAttribute.getEncryptionGroup()) {
+            nxAttribute.originalDataRange = nxAttribute.dataRange;
+            nxAttribute.dataRange = 'varbinary(max)';
+        }
+    }
+}
+
+while (nexus = schema.nextNexus()) {
+    nexus.nextHistorizedAttribute = function() {
+        if(schema._iterator.historizedAttribute == this.historizedAttributes.length) {
+            schema._iterator.historizedAttribute = 0;
+            return null;
+        }
+        return this.attribute[this.historizedAttributes[schema._iterator.historizedAttribute++]];
+    };
+    nexus.hasMoreHistorizedAttributes = function() {
+        return schema._iterator.historizedAttribute < this.historizedAttributes.length;
+    };
+    nexus.isFirstHistorizedAttribute = function() {
+        return schema._iterator.historizedAttribute == 1;
     };
 }
 
@@ -248,14 +357,16 @@ while (tie = schema.nextTie()) {
             return schema.knot[this.type] != null;
         };
         role.isAnchorRole = function() {
-            return schema.anchor[this.type] != null;
+            // now includes nexus semantics (treat nexus like anchor for tie purposes)
+            return (schema.anchor[this.type] != null) || (schema.nexus && schema.nexus[this.type] != null);
         };
         if(schema.hasMoreKnots() && schema.knot[role.type]) {
             role.knot = schema.knot[role.type];
             tie.knotRoles.push(role.id);
         }
-        else if(schema.hasMoreAnchors() && schema.anchor[role.type]) {
-            role.anchor = schema.anchor[role.type];
+        else if((schema.hasMoreAnchors() && schema.anchor[role.type]) || (schema.hasMoreNexuses && schema.hasMoreNexuses() && schema.nexus && schema.nexus[role.type])) {
+            // unify anchor/nexus under role.anchor reference for downstream sisulets
+            role.anchor = schema.anchor[role.type] || schema.nexus[role.type];
             tie.anchorRoles.push(role.id);
         }
         if(role.isIdentifier())
@@ -339,17 +450,20 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.key) {
             for(keyIdentifier in attribute.key) {
                 key = attribute.key[keyIdentifier];
-                if(!schema.anchor[key.of].keys) 
-                    schema.anchor[key.of].keys = {};
-                if(!schema.anchor[key.of].keys[key.route])
-                    schema.anchor[key.of].keys[key.route] = {};
-                if(!schema.anchor[key.of].keys[key.route].stops)
-                    schema.anchor[key.of].keys[key.route].stops = {};
-                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                // Determine key target (anchor or nexus)
+                var keyTarget = (schema.anchor && schema.anchor[key.of]) ? schema.anchor[key.of] : (schema.nexus && schema.nexus[key.of] ? schema.nexus[key.of] : null);
+                if(!keyTarget) continue; // unknown target
+                if(!keyTarget.keys)
+                    keyTarget.keys = {};
+                if(!keyTarget.keys[key.route])
+                    keyTarget.keys[key.route] = {};
+                if(!keyTarget.keys[key.route].stops)
+                    keyTarget.keys[key.route].stops = {};
+                keyTarget.keys[key.route].stops[key.stop] = {
                     branch: key.branch,
                     stop: key.stop,
                     attribute: attribute,
-                    anchor: anchor
+                    anchor: anchor // original anchor context (even if target is nexus)
                 };
             }
         }
@@ -360,13 +474,15 @@ while (tie = schema.nextTie()) {
         if(role.key) {
             for(keyIdentifier in role.key) {
                 key = role.key[keyIdentifier];
-                if(!schema.anchor[key.of].keys) 
-                    schema.anchor[key.of].keys = {};
-                if(!schema.anchor[key.of].keys[key.route])
-                    schema.anchor[key.of].keys[key.route] = {};
-                if(!schema.anchor[key.of].keys[key.route].stops)
-                    schema.anchor[key.of].keys[key.route].stops = {};
-                schema.anchor[key.of].keys[key.route].stops[key.stop] = {
+                var keyTarget = (schema.anchor && schema.anchor[key.of]) ? schema.anchor[key.of] : (schema.nexus && schema.nexus[key.of] ? schema.nexus[key.of] : null);
+                if(!keyTarget) continue;
+                if(!keyTarget.keys)
+                    keyTarget.keys = {};
+                if(!keyTarget.keys[key.route])
+                    keyTarget.keys[key.route] = {};
+                if(!keyTarget.keys[key.route].stops)
+                    keyTarget.keys[key.route].stops = {};
+                keyTarget.keys[key.route].stops[key.stop] = {
                     branch: key.branch,
                     stop: key.stop,
                     role: role,

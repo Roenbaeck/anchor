@@ -11,6 +11,9 @@ var MAP = {
         anchor: function(xml, fragment) {
             return fragment.getAttribute('mnemonic');
         },
+        nexus: function(xml, fragment) {
+            return fragment.getAttribute('mnemonic');
+        },
         attribute: function(xml, fragment) {
             return fragment.getAttribute('mnemonic');
         },
@@ -52,6 +55,8 @@ var MAP = {
                 return 'roles';
             case 'knotRoles':
                 return 'roles';
+            case 'nexuss': // objectifier naive plural of nexus
+                return 'nexuses';
             default:
                 return name;
         }
