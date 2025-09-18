@@ -452,9 +452,9 @@
                     // keys must be added last since they may provide a path through many of the above
                     this.prepareKeys();
                     // and after keys, identifiers
-                    var identifiers = xml.getElementsByTagName('identifier');
-                    for (i = 0; i < identifiers.length; i++)
-                        this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
+                        var identifiers = xml.getElementsByTagName('identifier');
+                        for (i = 0; i < identifiers.length; i++)
+                            this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -3028,11 +3028,16 @@
         extend(Attribute, Component);
 
         function Identifier(x, y, anchor, route) {
+            if(!anchor) {
+                console.warn('[Identifier] Aborting creation: no anchor supplied for route "' + route + '"');
+                return; // abort
+            }
             this.anchor = anchor;
-            this.route = Model.routes[anchor.mnemonic + '|' + route];
+            var qualified = anchor.mnemonic + '|' + route;
+            this.route = Model.routes[qualified];
             if (!this.route) {
-                console.error("There is no route named: " + route + " on the anchor: " + anchor.descriptor);
-                return; // error here
+                console.warn('[Identifier] Missing route "' + route + '" for anchor ' + anchor.mnemonic + '. Qualified key: ' + qualified + '. Available routes:', Object.keys(Model.routes));
+                return; // abort so caller can skip safely
             }
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
@@ -3210,7 +3215,12 @@
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
                 var identifier = new Identifier(x, y, anchor, route);
-                identifier.setFixed(fixed);
+                if(!identifier) {
+                    console.warn('[Identifier.fromXML] Skipped identifier for anchor', anchor && anchor.mnemonic, 'route="' + route + '" (route missing).');
+                    return null;
+                } else {
+                    identifier.setFixed(fixed);
+                }
                 identifier.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 identifier.privacy = privacy;
                 identifier.encapsulation = capsule;
@@ -3225,13 +3235,13 @@
                 return identifier;
             },
             addXML: function(element, schema) {
-                // create an attribute element
-                var identifer = schema.createElement("identifer");
-                identifer.setAttribute("route", this.route.name);
+                // create an identifier element (correct spelling)
+                var identifierEl = schema.createElement("identifier");
+                identifierEl.setAttribute("route", this.route.name);
                 if(this.historized)
-                    identifer.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
+                    identifierEl.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
                 if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
-                    identifer.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
+                    identifierEl.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
                         Defaults.privacy : this.privacy);
@@ -3252,10 +3262,10 @@
                     metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
                             Defaults.restatability === 'true' : this.restatable);
                 }
-                identifer.appendChild(metadata);
-                this.addLayoutXML(identifer, schema);
-                this.addDescriptionXML(identifer, schema, this.description);
-                element.appendChild(identifer);
+                identifierEl.appendChild(metadata);
+                this.addLayoutXML(identifierEl, schema);
+                this.addDescriptionXML(identifierEl, schema, this.description);
+                element.appendChild(identifierEl);
             },
             contextualName: function() {
                 var name = '';
@@ -7053,7 +7063,7 @@
                     <circle r="2.5" transform="translate(0, -3)"/>
                     <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
                 </g>
-        </g>
+            </g>
             <g id="identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
                 <circle r="16"/>
                 <circle r="11"/>
@@ -7061,7 +7071,7 @@
                     <circle r="2.5" transform="translate(0, -3)"/>
                     <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
                 </g>
-        </g>
+            </g>
             <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
                 <circle r="30"/>
             </g>

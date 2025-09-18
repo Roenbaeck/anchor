@@ -23,7 +23,7 @@
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
             <key stop="1" route="1st" of="ST" branch="1"/>
-            <key stop="4" route="1st" of="EV" branch="2"/>
+            <key stop="3" route="1st" of="EV" branch="2"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
@@ -43,17 +43,24 @@
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
             <metadata equivalent="true"/>
             <key stop="1" route="1st" of="PR" branch="1"/>
-            <key stop="7" route="1st" of="EV" branch="3"/>
+            <key stop="5" route="1st" of="EV" branch="3"/>
         </attribute>
         <identifier route="1st"/>
     </anchor>
     <nexus mnemonic="EV" descriptor="Event" identity="int">
-        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
+        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
+            <key stop="1" route="1st" of="PE" branch="1"/>
+        </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
-        <anchorRole role="heldAt" type="ST" identifier="false"/>
-        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
+        <anchorRole role="wasHeldAt" type="ST" identifier="false">
+            <key stop="2" route="1st" of="EV" branch="2"/>
+        </anchorRole>
+        <anchorRole role="wasPlayed" type="PR" identifier="false">
+            <key stop="4" route="1st" of="EV" branch="3"/>
+        </anchorRole>
         <knotRole role="of" type="ETY" identifier="false"/>
+        <identifier route="1st"/>
     </nexus>
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
