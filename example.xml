@@ -13,6 +13,7 @@
     </knot>
     <knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)"/>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
+    <knot mnemonic="ETY" descriptor="EventType" identity="tinyint" dataRange="varchar(42)"/>
 
     <anchor mnemonic="PN" descriptor="Person" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
@@ -52,7 +53,7 @@
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
         <anchorRole role="heldAt" type="ST" identifier="false"/>
         <anchorRole role="wasPlayed" type="PR" identifier="false"/>
-        <anchorRole role="wasCast" type="AC" identifier="true"/>
+        <knotRole role="of" type="ETY" identifier="false"/>
     </nexus>
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
