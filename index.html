@@ -200,7 +200,7 @@
                 var component;
                 for(var i = 0; i < this.components.length; i++) {
                     component = this.components[i];
-                    if(component instanceof Anchor)
+                    if(component instanceof Anchor || component instanceof Nexus)
                         anchorLookup[component.mnemonic] = component;
                 }
                 return anchorLookup;
@@ -436,9 +436,16 @@
                     var anchors = xml.getElementsByTagName('anchor');
                     for (i = 0; i < anchors.length; i++)
                         this.addComponent(Anchor.prototype.fromXML(anchors[i]));
+                    var nexus = xml.getElementsByTagName('nexus');
+                    for (i = 0; i < nexus.length; i++)
+                        this.addComponent(Nexus.prototype.fromXML(nexus[i]));
                     var attributes = xml.getElementsByTagName('attribute');
-                    for (i = 0; i < attributes.length; i++)
-                        this.addComponent(Attribute.prototype.fromXML(attributes[i]));
+                    for (i = 0; i < attributes.length; i++) {
+                        // Skip attributes that are children of nexus elements (they're handled by nexus)
+                        if (attributes[i].parentNode.nodeName !== 'nexus') {
+                            this.addComponent(Attribute.prototype.fromXML(attributes[i]));
+                        }
+                    }
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
@@ -892,6 +899,24 @@
                 DrawingEngine.start(true);
                 return false; // do not close menu
             },
+            addNexus: function(components) {
+                var dx, dy, component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var nexus = new Nexus(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(nexus);
+                    var role = new Role(nexus, component, true);
+                    this.addComponent(role);
+                }
+                this.recordState();
+                this.refresh();
+                DrawingEngine.start(true);
+                return false; // do not close menu
+            },
             addKnot: function(components) {
                 var dx, dy, component, node;
                 for(var i = 0; i < components.length; i++) {
@@ -1284,10 +1309,16 @@
                         }, false);
                         SVGLayer.keys.appendChild(route.svgKeyRoute);
                     }
+                    if(!route.start || !route.start.node) {
+                        continue; // Skip routes with invalid start components
+                    }
                     var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
                     var stop, currentBranch; 
                     for(var stopNumber in route.stops) {
                         stop = route.stops[stopNumber];
+                        if(!stop.component || !stop.component.node) {
+                            continue; // Skip stops with invalid components
+                        }
                         if(stop.branch != currentBranch) {
                             stops += ' M' + 
                                 route.start.node.xPosition.toFixed(2) + ',' + 
@@ -1740,6 +1771,10 @@
             lastY: null,
             scaleX: null,
             scaleY: null,
+            // track the initial pointer position when preparing a drag so a pure click
+            // (no or sub-pixel movement) does not accidentally trigger dragging
+            dragStartX: null,
+            dragStartY: null,
             // WIP: keys event
             selectedRoute: null,
             selectRoute: function(key) {
@@ -1826,6 +1861,7 @@
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
+                    component.svg.graphicsElement.addEventListener('dblclick', EventHandler.doubleClickComponent, false);
                     component.showContextMenu(component, EventHandler.selectedComponents, EventHandler.selectedRoute);
                     DrawingEngine.setCursor('pointer');
                 }
@@ -1835,6 +1871,9 @@
                 event.preventDefault();
                 if(EventHandler.getInteraction() === "beginInteraction") {
                     EventHandler.setInteraction("prepareDragging");
+                    // remember initial pointer position to distinguish click vs drag
+                    EventHandler.dragStartX = event.clientX;
+                    EventHandler.dragStartY = event.clientY;
                     var component, i;
                     for(i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         if(event.shiftKey) {
@@ -1851,8 +1890,24 @@
                         component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
                     }
                     SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
+                    // Attach a one-time mouseup listener to conclude dragging or treat as click
+                    window.addEventListener('mouseup', EventHandler.mouseupComponent, false);
                 }
                 event.stopPropagation();
+            },
+            mouseupComponent: function(event) {
+                // Conclude dragging logic: if we never transitioned into whileDragging,
+                // let the click handler toggle fixation; otherwise finalize drag.
+                window.removeEventListener('mouseup', EventHandler.mouseupComponent, false);
+                if(EventHandler.getInteraction() === 'prepareDragging') {
+                    // Synthesize a click (browser will still fire click after mouseup on same element)
+                    // but we ensure interaction state is not stuck
+                    EventHandler.setInteraction('awaitClick');
+                }
+                else if(EventHandler.getInteraction() === 'whileDragging') {
+                    EventHandler.setInteraction('completeDragging');
+                    // Keep fixation state as already set during dragging; end interaction soon after click fires
+                }
             },
             whileDragging: function(event) {
                 event.preventDefault();
@@ -1867,17 +1922,25 @@
                                 component.node.yPosition = svgPoint.y;
                                 component.setFixed(true);
                                 component.node.setUnstoppable(true);
-                                Model.invalidateComponent(component);
                                 DrawingEngine.start(true);
                             }
                             else if(EventHandler.getInteraction() === "prepareDragging") {
-                                if(LayoutEngine.manhattanDistance(component.node, {
-                                    xPosition: svgPoint.x,
-                                    yPosition: svgPoint.y
-                                }) > 10) {
-                                    EventHandler.setInteraction("whileDragging");
-                                    DrawingEngine.setCursor('move');
+                                // Determine drag start purely on screen-space pixel movement.
+                                // The previous Manhattan distance (layout-space) check caused
+                                // premature drag initiation for Nexus after it had been moved
+                                // because minor pointer jitter translated into larger coordinate
+                                // deltas due to transform offsets. Using only a small pixel
+                                // threshold creates uniform behavior across component types.
+                                var pixelDeltaX = Math.abs(event.clientX - EventHandler.dragStartX);
+                                var pixelDeltaY = Math.abs(event.clientY - EventHandler.dragStartY);
+                                var pixelDistance = (pixelDeltaX > pixelDeltaY ? pixelDeltaX : pixelDeltaY); // max axis movement
+                                var DRAG_PIXEL_THRESHOLD = 5; // conservative threshold for intentional drag
+                                if(pixelDistance < DRAG_PIXEL_THRESHOLD) {
+                                    // Still treat as click preparation (no drag yet)
+                                    continue;
                                 }
+                                EventHandler.setInteraction("whileDragging");
+                                DrawingEngine.setCursor('move');
                             } // switch behavior if we actually move the thing a fair distance
                         }
                     }
@@ -1886,16 +1949,24 @@
             },
             clickComponent: function(event) {
                 event.preventDefault();
-                if(EventHandler.getInteraction() !== "whileDragging" && !event.shiftKey) {
+                // Single click now only finalizes drag (if any) or selects; fixation moved to double-click
+                if(EventHandler.getInteraction() === "whileDragging") {
+                    EventHandler.setInteraction("completeDragging");
+                } else if(EventHandler.getInteraction() === 'prepareDragging' || EventHandler.getInteraction() === 'awaitClick') {
+                    // treat as simple selection click; no fixation toggle
+                    EventHandler.setInteraction("clicked");
+                }
+                event.stopPropagation();
+            },
+            doubleClickComponent: function(event) {
+                event.preventDefault();
+                if(!event.shiftKey) {
                     var component, i = EventHandler.interactedComponents.length;
                     while(i--) {
                         component = EventHandler.interactedComponents[i];
                         component.setFixed(!component.getFixed());
                     }
-                    EventHandler.setInteraction("toggledFixation");
-                }
-                else {
-                    EventHandler.setInteraction("completeDragging");
+                    EventHandler.setInteraction('toggledFixation');
                 }
                 event.stopPropagation();
             },
@@ -1912,11 +1983,15 @@
                         component.hideContextMenu();
                         component.node.setUnstoppable(false);
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
+                        component.svg.graphicsElement.removeEventListener('dblclick', EventHandler.doubleClickComponent, false);
                     }
                     EventHandler.clearInteraction();
                     SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    window.removeEventListener('mouseup', EventHandler.mouseupComponent, false);
                     SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
+                    EventHandler.dragStartX = null;
+                    EventHandler.dragStartY = null;
                     DrawingEngine.setCursor('default');
                 }
                 if(event) event.stopPropagation();
@@ -2109,6 +2184,10 @@
                         else if(Operations.isSupported("addTieAndAnchor", allComponents))
                             Model.addTieAndAnchor(allComponents);
                         break;
+                    case "n":
+                        if(Operations.isSupported("addNexus", allComponents))
+                            Model.addNexus(allComponents);
+                        break;
                     case "c":
                         if(Operations.isSupported("connect", allComponents)) {
                             var i, operation, validator;
@@ -2146,7 +2225,13 @@
                             Model.erase(allComponents);
                         break;
                     case "p":
-                        component.setFixed(!component.fixed);
+                        // Toggle fixation for all selected/interacted components
+                        var j, comp;
+                        for(j = 0; comp = allComponents[j]; j++) {
+                            if(comp.setFixed && comp.getFixed) {
+                                comp.setFixed(!comp.getFixed());
+                            }
+                        }
                         DrawingEngine.start(false);
                         break;
                 }
@@ -2816,7 +2901,10 @@
                 var anchorLookup = Model.getAnchorLookup();
                 var knotLookup = Model.getKnotLookup();
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
-                Model.addComponent(new Role(attribute, anchor, true));
+                // Only create role if anchor exists (skip attributes belonging to nexus)
+                if(anchor) {
+                    Model.addComponent(new Role(attribute, anchor, true));
+                }
                 if(knotted) {
                     var grandparent = parent.parentNode;
                     var knots = grandparent.getElementsByTagName("knot");
@@ -3201,7 +3289,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode', 'addToKey', 'createKey');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor','addNexus','explode', 'addToKey', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3838,21 +3926,23 @@
                             break; // only one should match
                         }
                     }
-                    for(d = 0; d < roles[i].childNodes.length; d++) {
-                        if(roles[i].childNodes.item(d).nodeName === 'description')
-                            description = roles[i].childNodes.item(d);
-                        // WIP: keys
-                        if(roles[i].childNodes.item(d).nodeName === 'key') {
-                            key = roles[i].childNodes.item(d);
-                            role.keys.push({
-                                stop: key.getAttribute("stop") || '1',
-                                route: key.getAttribute("route"),
-                                of: key.getAttribute("of"), 
-                                branch: key.getAttribute("branch") || '1'
-                            });
+                    if(role) {
+                        for(d = 0; d < roles[i].childNodes.length; d++) {
+                            if(roles[i].childNodes.item(d).nodeName === 'description')
+                                description = roles[i].childNodes.item(d);
+                            // WIP: keys
+                            if(roles[i].childNodes.item(d).nodeName === 'key') {
+                                key = roles[i].childNodes.item(d);
+                                role.keys.push({
+                                    stop: key.getAttribute("stop") || '1',
+                                    route: key.getAttribute("route"),
+                                    of: key.getAttribute("of"), 
+                                    branch: key.getAttribute("branch") || '1'
+                                });
+                            }
                         }
+                        role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                     }
-                    role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 }
             },
             toXML: function(schema) {
@@ -3953,6 +4043,233 @@
         // inheritance
         extend(Tie, Component);
 
+        function Nexus(x, y) {
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.NEXUS));
+            this.mnemonic = '?' + this.getId();
+            this.descriptor = '!Unnamed!';
+            this.identity = Defaults.identity;
+            this.generator = true;
+            this.encapsulation = Defaults.encapsulation;
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
+            this.editables.push(Editables.identityEdit);
+            this.editables.push(Editables.generatorEdit);
+            this.operations.push('addAttribute','addKnot','addAnchor','explode');
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_nexus');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
+            this.setNameable(true);
+            this.svg.nameElement.setAttributeNS(null, 'class', 'nexus');
+            this.postCreationInitialization();
+        }
+        Nexus.prototype = {
+            mnemonic: '',
+            descriptor: '',
+            identity: Defaults.identity,
+            generator: true,
+            encapsulation: Defaults.encapsulation,
+            isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
+                return true;
+            },
+            setImploded: function(imploded) {
+                this.imploded = imploded;
+                if(imploded) {
+                    if(this.operations.indexOf('addAttribute') >= 0)
+                        this.operations.splice(this.operations.indexOf('addAttribute'), 1);
+                }
+                else {
+                    this.operations.push('addAttribute');
+                }
+            },
+            draw: function(image) {
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(this.imploded) {
+                    image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus_imploded');
+                }
+                else {
+                    image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
+                }
+            },
+            toXML: function(schema) {
+                // create a nexus element
+                var nexus = schema.createElement("nexus");
+                // set attributes on the element
+                nexus.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "??" : this.mnemonic);
+                nexus.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                nexus.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
+
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
+                nexus.appendChild(metadata);
+
+                var edge;
+                for(var i = 0; edge = this.node.edges[i]; i++) {
+                    if (edge.node.type === NodeType.ATTRIBUTE) {
+                        var attribute = Model.nodeToComponent(edge.node);
+                        attribute.addXML(nexus, schema);
+                    }
+                    else if (edge.otherNode.type === NodeType.ANCHOR) {
+                        var role = Model.nodeToComponent(edge);
+                        var anchorRole = schema.createElement("anchorRole");
+                        anchorRole.setAttribute("role", this.isEmpty(role.role) ? "!role" + role.id + "!" : role.role);
+                        anchorRole.setAttribute("type", role.otherComponent.mnemonic);
+                        anchorRole.setAttribute("identifier", role.identifier);
+                        if(role.coloring !== '#000000') {
+                            anchorRole.setAttribute("coloring", role.coloring);
+                        }
+                        nexus.appendChild(anchorRole);
+                    }
+                }
+                this.addLayoutXML(nexus, schema);
+                return nexus;
+            },
+            fromXML: function(element) {
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? fixed === 'true' : false;
+                var metadata, capsule = Defaults.encapsulation, generator = true;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                    generator = metadata.getAttribute("generator") ?
+                            metadata.getAttribute("generator") === 'true' : generator;
+                }
+                var mnemonic = element.getAttribute("mnemonic") || "??";
+                var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
+                var identity = element.getAttribute("identity") || '';
+                var nexus = new Nexus(x, y);
+                nexus.setFixed(fixed);
+                nexus.mnemonic = mnemonic;
+                nexus.descriptor = descriptor;
+                nexus.identity = identity;
+                nexus.generator = generator;
+                nexus.encapsulation = capsule;
+                
+                // Parse attributes (similar to Anchor)
+                var attributes = element.getElementsByTagName("attribute");
+                for(i = 0; i < attributes.length; i++) {
+                    var attribute = Attribute.prototype.fromXML(attributes[i]);
+                    Model.addComponent(attribute);
+                    Model.addComponent(new Role(attribute, nexus, true));
+                }
+                
+                // Parse anchor roles (similar to Tie)
+                var grandparent = element.parentNode;
+                var anchorRoles = element.getElementsByTagName("anchorRole");
+                if(anchorRoles && anchorRoles.length > 0) {
+                    this.parseRoles(
+                        nexus,
+                        anchorRoles, 
+                        Model.getAnchorLookup(), 
+                        grandparent.getElementsByTagName("anchor")
+                    );
+                }
+                
+                nexus.updateName();
+                return nexus;
+            },
+            parseRoles: function(nexus, roles, lookup, refs) {
+                var i, j, d, type, role, roleName, identifier, description, coloring, referred, key;
+                for(i = 0; i < roles.length; i++) {
+                    type = roles[i].getAttribute("type") || "??";
+                    roleName = roles[i].getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    identifier = roles[i].getAttribute("identifier") || false;
+                    coloring = roles[i].getAttribute("coloring") || "#000000";
+                    for(j = 0; j < refs.length; j++) {
+                        if(refs[j].getAttribute("mnemonic") === type) {
+                            referred = lookup[refs[j].getAttribute("mnemonic")];
+                            if(referred) {
+                                role = new Role(nexus, referred, (identifier === "true"));
+                                role.role = roleName;
+                                role.setColoring(coloring);
+                                Model.addComponent(role);
+                                role.updateName();
+                            }
+                            break; // only one should match
+                        }
+                    }
+                    if(role) {
+                        for(d = 0; d < roles[i].childNodes.length; d++) {
+                            if(roles[i].childNodes.item(d).nodeName === 'description')
+                                description = roles[i].childNodes.item(d);
+                            // WIP: keys
+                            if(roles[i].childNodes.item(d).nodeName === 'key') {
+                                key = roles[i].childNodes.item(d);
+                                role.keys.push({
+                                    stop: key.getAttribute("stop") || '1',
+                                    route: key.getAttribute("route"),
+                                    of: key.getAttribute("of"), 
+                                    branch: key.getAttribute("branch") || '1'
+                                });
+                            }
+                        }
+                        role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                    }
+                }
+            },
+            toString: function() {
+                return this.mnemonic + "_" + this.descriptor;
+            },
+            contextualName: function() {
+                var name;
+                if(Settings.showMnemonics)
+                    name = this.toString();
+                else
+                    name = this.descriptor;
+                if(this.imploded)
+                    name = "(" + name + ")";
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
+                return name;
+            }
+        };
+
+        // inheritance
+        extend(Nexus, Component);
+
         function Role(component, otherComponent, identifier) {
             this.id = UniqueIdentity.nextId();
             var node = component.node;
@@ -3967,7 +4284,9 @@
             this.keys = [];
             this.editables.push(Editables.roleEdit, Editables.coloringEdit);
             this.operations.push('toggleIdentifier', 'makeFirstRole', 'addToKey', 'removeFromKey', 'createKey');
-            this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
+            this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) ||
+                       (node.type === NodeType.NEXUS && otherNode.type === NodeType.ANCHOR) ||
+                       (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS);
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
@@ -4560,6 +4879,9 @@
                 ['addTieAndAnchor',
                     'Add <u>t</u>ied anchor',
                     'Add a tie with a connected anchor to the selected anchor(s).'],
+                ['addNexus',
+                    'Add <u>n</u>exus',
+                    'Add a nexus connected to the selected anchor(s).'],
                 ['toggleIdentifier',
                     'Toggle <u>i</u>dentifier',
                     'Toggles whether the selected role(s) should be a part of the primary key or not.'],
@@ -6626,9 +6948,12 @@
             <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                 <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
             </g>
-            <g id="stream" style="fill:#b55;">
+            <g id="nexus" style="fill:#b55;">
                 <rect width="30" height="30" transform="translate(-15, -15)"/>
-                <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#fff;"/>
+                <rect width="18" height="18" transform="rotate(45) translate(-9, -9)" style="fill:#fff;"/>
+            </g>
+            <g id="nexus_imploded" style="fill:#633;">
+                <path d="M 0 0 Q 18 6 36 0 Q 30 18 36 36 Q 18 30 0 36 Q 6 18 0 0" transform="translate(-18, -18)"/>
             </g>
             <g id="anchor" style="fill:#b55;">
                 <rect width="20" height="20" transform="translate(-10, -10)"/>
@@ -6870,6 +7195,10 @@
                 <g id="nav_tie_historized">
                     <rect width="22" height="22" transform="rotate(45) translate(-11, -11)" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;"/>
                     <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#a8a8a8;"/>
+                </g>
+                <g id="nav_nexus" style="fill:#b55;">
+                    <rect width="20" height="20" transform="translate(-10, -10)"/>
+                    <rect width="9" height="9" transform="rotate(45) translate(-4.5, -4.5)" style="fill:#fff;"/>
                 </g>
                 <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
                     <circle r="10"/>

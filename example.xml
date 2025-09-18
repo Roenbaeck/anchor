@@ -13,14 +13,7 @@
     </knot>
     <knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)"/>
     <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
-    <anchor mnemonic="PE" descriptor="Performance" identity="int">
-        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
-            <key stop="1" route="1st" of="PE" branch="1"/>
-        </attribute>
-        <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
-        <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
-        <identifier route="1st"/>
-    </anchor>
+
     <anchor mnemonic="PN" descriptor="Person" identity="int"/>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
@@ -29,7 +22,7 @@
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
             <key stop="1" route="1st" of="ST" branch="1"/>
-            <key stop="4" route="1st" of="PE" branch="2"/>
+            <key stop="4" route="1st" of="EV" branch="2"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
@@ -49,46 +42,29 @@
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
             <metadata equivalent="true"/>
             <key stop="1" route="1st" of="PR" branch="1"/>
-            <key stop="7" route="1st" of="PE" branch="3"/>
+            <key stop="7" route="1st" of="EV" branch="3"/>
         </attribute>
         <identifier route="1st"/>
     </anchor>
-    <!-- cannot be identifier = true in a stream 
-    <stream mnemonic="PS" descriptor="PerformanceStream" identity="int">
+    <nexus mnemonic="EV" descriptor="Event" identity="int">
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime"/>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
         <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
-        <anchorRole role="wasPlayed" type="PR" identifier="false">
-        <anchorRole role="heldAt" type="ST" identifier="false">        
-    </stream>
-    -->
+        <anchorRole role="heldAt" type="ST" identifier="false"/>
+        <anchorRole role="wasPlayed" type="PR" identifier="false"/>
+        <anchorRole role="wasCast" type="AC" identifier="true"/>
+    </nexus>
     <tie timeRange="datetime">
         <anchorRole role="exclusive" type="AC" identifier="false"/>
         <anchorRole role="with" type="AC" identifier="false"/>
         <knotRole role="currently" type="ONG" identifier="false"/>
     </tie>
     <tie>
-        <anchorRole role="wasHeld" type="PE" identifier="true">
-            <key stop="2" route="1st" of="PE" branch="2"/>
-        </anchorRole>
-        <anchorRole role="at" type="ST" identifier="false">
-            <key stop="3" route="1st" of="PE" branch="2"/>
-        </anchorRole>
-    </tie>
-    <tie>
         <anchorRole role="subset" type="AC" identifier="false"/>
         <anchorRole role="of" type="PN" identifier="false"/>
     </tie>
     <tie>
-        <anchorRole role="at" type="PE" identifier="true">
-            <key stop="5" route="1st" of="PE" branch="3"/>
-        </anchorRole>
-        <anchorRole role="wasPlayed" type="PR" identifier="false">
-            <key stop="6" route="1st" of="PE" branch="3"/>
-        </anchorRole>
-    </tie>
-    <tie>
-        <anchorRole role="in" type="PE" identifier="true"/>
+        <anchorRole role="in" type="EV" identifier="true"/>
         <anchorRole role="wasCast" type="AC" identifier="true"/>
     </tie>
     <tie timeRange="datetime">
@@ -108,6 +84,6 @@
     <tie>
         <anchorRole role="content" type="PR" identifier="false"/>
         <anchorRole role="location" type="ST" identifier="false"/>
-        <anchorRole role="of" type="PE" identifier="true"/>
+        <anchorRole role="of" type="EV" identifier="true"/>
     </tie>
 </schema>
