@@ -3959,6 +3959,14 @@
                             }
                         }
                         role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                        // Enforce identifier=false for direct nexus links (NEXUS-ANCHOR/KNOT)
+                        var rn = role.node.node, ro = role.node.otherNode;
+                        if((rn.type === NodeType.NEXUS && (ro.type === NodeType.ANCHOR || ro.type === NodeType.KNOT)) ||
+                           (ro.type === NodeType.NEXUS && (rn.type === NodeType.ANCHOR || rn.type === NodeType.KNOT))) {
+                            role.setIdentifier(false);
+                            var idx2 = role.operations.indexOf('toggleIdentifier');
+                            if(idx2 >= 0) role.operations.splice(idx2, 1);
+                        }
                     }
                 }
             },
@@ -4285,6 +4293,14 @@
                             }
                         }
                         role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                        // Enforce identifier=false for direct nexus links (NEXUS-ANCHOR/KNOT)
+                        var tn = role.node.node, to = role.node.otherNode;
+                        if((tn.type === NodeType.NEXUS && (to.type === NodeType.ANCHOR || to.type === NodeType.KNOT)) ||
+                           (to.type === NodeType.NEXUS && (tn.type === NodeType.ANCHOR || tn.type === NodeType.KNOT))) {
+                            role.setIdentifier(false);
+                            var idx3 = role.operations.indexOf('toggleIdentifier');
+                            if(idx3 >= 0) role.operations.splice(idx3, 1);
+                        }
                     }
                 }
             },
@@ -4327,6 +4343,15 @@
                        (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS) ||
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.KNOT) ||
                        (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS);
+            // Enforce identifier=false for direct Nexus-Anchor and Nexus-Knot roles (both directions)
+            var directNexus = (node.type === NodeType.NEXUS && (otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.KNOT)) ||
+                              (otherNode.type === NodeType.NEXUS && (node.type === NodeType.ANCHOR || node.type === NodeType.KNOT));
+            if(directNexus) {
+                this.identifier = false;
+                // Remove toggleIdentifier operation if present
+                var idx = this.operations.indexOf('toggleIdentifier');
+                if(idx >= 0) this.operations.splice(idx, 1);
+            }
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
@@ -6944,6 +6969,13 @@
                     pointer-events:     none;
                 }
                 .anchor {
+                    font-style:         italic;
+                    font-weight:        bold;
+                    stroke:             none;
+                    fill:               #c80514;
+                    pointer-events:     none;
+                }
+                .nexus {
                     font-style:         italic;
                     font-weight:        bold;
                     stroke:             none;
