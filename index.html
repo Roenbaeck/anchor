@@ -4049,6 +4049,9 @@
                 return this.role;
             },
             draw: function(image) {
+                // Sync controlPoint with the laid out Edge position
+                this.node.controlPoint.xPosition = this.node.xPosition;
+                this.node.controlPoint.yPosition = this.node.yPosition;
                 var node = this.node.node;
                 var otherNode = this.node.otherNode;
                 var controlPoint = this.node.controlPoint;
