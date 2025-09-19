@@ -39,6 +39,11 @@ var MAP = {
         knotRole: function(xml, fragment) {
             return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
         },
+        // Unified role element (new serialization). Backward compatible with legacy anchorRole/knotRole.
+        role: function(xml, fragment) {
+            // Uses same composite key logic (type + role name)
+            return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+        },
         // WIP: keys sisula
         key: function(xml, fragment) {
             return fragment.getAttribute('of') + 

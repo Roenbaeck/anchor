@@ -95,7 +95,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.17';
+        var VERSION = '0.100.1';
 
         // change to false in beta
         var RELEASE = false;
@@ -169,7 +169,7 @@
             },
             addKey: function(component, key) {
                 var hash = key.of + '|' + key.route; // ugly concat, but that's life
-                var anchorLookup = this.getAnchorLookup();
+                var anchorLookup = this.getLookup('entity');
                 if(!this.routes[hash]) {
                     this.routes[hash] = {
                         name: key.route,
@@ -195,25 +195,50 @@
                     stop.key.route = name;
                 }
             },
-            getAnchorLookup: function() {
-                var anchorLookup = Object.create(null);
-                var component;
+            // Generic lookup infrastructure
+            _lookups: null,
+            _lookupsDirty: true,
+            rebuildLookups: function() {
+                var lookups = {
+                    anchor: Object.create(null),
+                    nexus: Object.create(null),
+                    knot: Object.create(null),
+                    attribute: Object.create(null),
+                    tie: Object.create(null),
+                    entity: Object.create(null) // merged anchor + nexus
+                };
                 for(var i = 0; i < this.components.length; i++) {
-                    component = this.components[i];
-                    if(component instanceof Anchor || component instanceof Nexus)
-                        anchorLookup[component.mnemonic] = component;
+                    var c = this.components[i];
+                    if(c instanceof Anchor) {
+                        lookups.anchor[c.mnemonic] = c;
+                        lookups.entity[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Nexus) {
+                        lookups.nexus[c.mnemonic] = c;
+                        // treat nexus as entity
+                        lookups.entity[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Knot) {
+                        lookups.knot[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Attribute) {
+                        lookups.attribute[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Tie) {
+                        // Ties may not need mnemonic uniqueness like anchors, but keep reference
+                        lookups.tie[c.id] = c;
+                    }
                 }
-                return anchorLookup;
+                this._lookups = lookups;
+                this._lookupsDirty = false;
             },
-            getKnotLookup: function() {
-                var knotLookup = Object.create(null);
-                var component;
-                for(var i = 0; i < this.components.length; i++) {
-                    component = this.components[i];
-                    if(component instanceof Knot)
-                        knotLookup[component.mnemonic] = component;
-                }
-                return knotLookup;
+            markLookupsDirty: function() {
+                this._lookupsDirty = true;
+            },
+            getLookup: function(kind) {
+                kind = kind || 'entity';
+                if(this._lookupsDirty || !this._lookups) this.rebuildLookups();
+                return this._lookups[kind] || Object.create(null);
             },
             nodeToComponent: function(node) {
                 return this.idToComponent[node.id];
@@ -305,6 +330,8 @@
                 if(component) {
                     this.components.push(component);
                     this.idToComponent[component.id] = component;
+                    // component set changed: mark lookups dirty so future getLookup() calls rebuild
+                    this.markLookupsDirty();
                     // WIP: keys
                     if(this.interactive && component.keys && component.keys.length > 0) {
                         for(var i = 0; i < component.keys.length; i++)
@@ -334,6 +361,8 @@
                 component.hide();
                 this.deleteElementFromArray(this.components, component);
                 delete this.idToComponent[component.id];
+                // component removed: mark lookups dirty
+                this.markLookupsDirty();
                 this.refresh();
             },
             deleteElementFromArray: function(array, element) {
@@ -466,8 +495,119 @@
                     this.explode(allComponents, false);
                     this.setInteractive(true);
                     this.refresh();
+                    // Post-load integrity validation (logs orphan identifiers and other anomalies)
+                    if(console && console.groupCollapsed) console.groupCollapsed('Model integrity check');
+                    try { this.validateIntegrity(); } catch(e) { if(console) console.warn('Integrity check failed:', e); }
+                    if(console && console.groupEnd) console.groupEnd();
                     if(DEBUG) console.log(this);
                 }
+            },
+            validateIntegrity: function() {
+                var self = this;
+                function issue(level, code, msg, ctx) {
+                    var line = '[Integrity][' + code + '] ' + msg + (ctx ? ' ' + JSON.stringify(ctx) : '');
+                    switch(level) {
+                        case 'error': console.error(line); break;
+                        case 'warn': console.warn(line); break;
+                        default: console.info(line); break;
+                    }
+                    summary[level]++;
+                }
+                var summary = { error:0, warn:0, info:0 };
+                var mnemonicSeen = Object.create(null);
+                // Precompute lookups (fresh)
+                var anchorLookup = this.getLookup('anchor');
+                var nexusLookup = this.getLookup('nexus');
+                var knotLookup = this.getLookup('knot');
+                var entityLookup = this.getLookup('entity');
+                // 1. Uniqueness & validity of mnemonics for entity/knot
+                for(var k in entityLookup) {
+                    if(mnemonicSeen[k]) issue('error','DUPLICATE_MNEMONIC','Duplicate entity mnemonic', { mnemonic:k });
+                    mnemonicSeen[k] = true;
+                }
+                for(var kk in knotLookup) {
+                    if(mnemonicSeen[kk]) issue('error','DUPLICATE_MNEMONIC','Mnemonic reused between entity and knot', { mnemonic:kk });
+                    mnemonicSeen[kk] = true;
+                }
+                // 2. Component specific validations
+                for(var i = 0; i < this.components.length; i++) {
+                    var c = this.components[i];
+                    // Skip edges (Roles handled separately)
+                    if(c.node.type === NodeType.EDGE) continue;
+                    // Attribute: must have parent anchor or nexus edge + route keys sanity
+                    if(c instanceof Attribute) {
+                        var parent = null;
+                        if(c.node && c.node.edges) {
+                            for(var ae=0; ae<c.node.edges.length; ae++) {
+                                var edgeA = c.node.edges[ae];
+                                var otherA = edgeA.otherNode === c.node ? edgeA.node : edgeA.otherNode;
+                                if(otherA.type === NodeType.ANCHOR || otherA.type === NodeType.NEXUS) {
+                                    parent = self.nodeToComponent(otherA);
+                                    break;
+                                }
+                            }
+                        }
+                        if(!parent) issue('warn','ATTRIBUTE_PARENT','Attribute missing parent entity',{ id:c.id, mnemonic:c.mnemonic });
+                        // Key references inside attribute
+                        if(c.keys) {
+                            for(var ak=0; ak<c.keys.length; ak++) {
+                                var keyRef = c.keys[ak];
+                                if(!entityLookup[keyRef.of]) issue('error','KEY_OF_UNKNOWN','Key references unknown entity',{ componentId:c.id, of:keyRef.of });
+                                if(!keyRef.route) issue('warn','KEY_ROUTE_EMPTY','Key missing route name',{ componentId:c.id });
+                            }
+                        }
+                    }
+                    // Identifier validation (existing rules extended)
+                    if(c instanceof Identifier) {
+                        var entityRef = c.entity; // anchor or nexus
+                        var edgeCount = 0, edgeEntity = null;
+                        if(c.node && c.node.edges) {
+                            for(var e = 0; e < c.node.edges.length; e++) {
+                                var edge = c.node.edges[e];
+                                var other = edge.otherNode === c.node ? edge.node : edge.otherNode;
+                                if(other.type === NodeType.ANCHOR || other.type === NodeType.NEXUS) {
+                                    edgeEntity = self.nodeToComponent(other);
+                                    edgeCount++;
+                                }
+                            }
+                        }
+                        if(!entityRef || !edgeEntity || edgeCount !== 1) {
+                            issue('warn','IDENTIFIER_ORPHAN','Orphan or malformed Identifier',{ id:c.id, route:(c.route?c.route.name:null), edgeCount:edgeCount, entityRef: entityRef ? entityRef.mnemonic : null, edgeEntity: edgeEntity ? edgeEntity.mnemonic : null });
+                        }
+                    }
+                    // Tie validation
+                    if(c instanceof Tie) {
+                        // Roles uniqueness by (mnemonic, roleName)
+                        var rolePairs = Object.create(null);
+                        var edges = c.node.edges || [];
+                        for(var te=0; te<edges.length; te++) {
+                            var roleComp = self.nodeToComponent(edges[te]);
+                            if(!(roleComp instanceof Role)) continue;
+                            var otherNode = edges[te].otherNode === c.node ? edges[te].node : edges[te].otherNode;
+                            var otherComp = self.nodeToComponent(otherNode);
+                            var key = (otherComp ? otherComp.mnemonic : '?') + '|' + roleComp.role;
+                            if(rolePairs[key]) issue('error','TIE_ROLE_DUP','Duplicate role name for same participant',{ tie:c.toString(), role:roleComp.role, participant: otherComp ? otherComp.mnemonic : '?' });
+                            rolePairs[key] = true;
+                        }
+                    }
+                }
+                // 3. Role edge reciprocity / identifier constraints
+                for(var r=0; r < this.components.length; r++) {
+                    var rc = this.components[r];
+                    if(rc instanceof Role) {
+                        // Ensure its edge exists in both node edge arrays
+                        var nodeA = rc.node.node; var nodeB = rc.node.otherNode;
+                        if(nodeA.edges.indexOf(rc.node) < 0 || nodeB.edges.indexOf(rc.node) < 0)
+                            issue('error','ROLE_EDGE_RECIPROCITY','Role edge missing in one endpoint list',{ roleId:rc.id });
+                        // Direct nexus role identifier already forced false earlier; double-check
+                        var tn = nodeA.type, to = nodeB.type;
+                        var directNexus = (tn === NodeType.NEXUS && (to === NodeType.ANCHOR || to === NodeType.KNOT)) ||
+                                          (to === NodeType.NEXUS && (tn === NodeType.ANCHOR || tn === NodeType.KNOT));
+                        if(directNexus && rc.identifier) issue('warn','ROLE_DIRECT_NEXUS_IDENTIFIER','Direct nexus role should not be identifier',{ roleId:rc.id });
+                    }
+                }
+                if(summary.error === 0 && summary.warn === 0) console.info('[Integrity] All checks passed.');
+                else console.info('[Integrity] Summary errors=' + summary.error + ' warnings=' + summary.warn + ' infos=' + summary.info);
             },
             erase: function(components) {
                 DrawingEngine.stop();
@@ -2900,8 +3040,8 @@
                 attribute.encryptionGroup = encryptionGroup;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
-                var anchorLookup = Model.getAnchorLookup();
-                var knotLookup = Model.getKnotLookup();
+                var anchorLookup = Model.getLookup('entity');
+                var knotLookup = Model.getLookup('knot');
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
                 // Only create role if anchor exists (skip attributes belonging to nexus)
                 if(anchor) {
@@ -3027,16 +3167,16 @@
         // inheritance
         extend(Attribute, Component);
 
-        function Identifier(x, y, anchor, route) {
-            if(!anchor) {
-                console.warn('[Identifier] Aborting creation: no anchor supplied for route "' + route + '"');
+        function Identifier(x, y, entity, route) { // entity may be Anchor or Nexus
+            if(!entity) {
+                console.warn('[Identifier] Aborting creation: no entity supplied for route "' + route + '"');
                 return; // abort
             }
-            this.anchor = anchor;
-            var qualified = anchor.mnemonic + '|' + route;
+            this.entity = entity; // unified property replaces anchor
+            var qualified = entity.mnemonic + '|' + route;
             this.route = Model.routes[qualified];
             if (!this.route) {
-                console.warn('[Identifier] Missing route "' + route + '" for anchor ' + anchor.mnemonic + '. Qualified key: ' + qualified + '. Available routes:', Object.keys(Model.routes));
+                console.warn('[Identifier] Missing route "' + route + '" for entity ' + entity.mnemonic + '. Qualified key: ' + qualified + '. Available routes:', Object.keys(Model.routes));
                 return; // abort so caller can skip safely
             }
             this.id = UniqueIdentity.nextId();
@@ -3114,7 +3254,7 @@
             encapsulation: Defaults.encapsulation,
             privacy: Defaults.privacy,
             route: null,
-            anchor: null,
+            entity: null,
             isInteractive: function() {
                 return true;
             },
@@ -3136,8 +3276,10 @@
             },
             prepareEditing: function(editable) {
                 editable.elements.length = 0;
+                if(!this.entity) return;
+                var prefix = this.entity.mnemonic + '|';
                 for (var r in Model.routes) {
-                    if (r.slice(0, 2) == this.anchor.mnemonic) {
+                    if (r.indexOf(prefix) === 0) {
                         editable.elements.push(createOption(r, Model.routes[r].name));
                     }
                 }
@@ -3146,7 +3288,7 @@
                 this.route = Model.routes[qualifiedRoute];
             },
             getRoute: function() {
-                return this.anchor.mnemonic + '|' + this.route.name;
+                return (this.entity ? this.entity.mnemonic : '??') + '|' + (this.route ? this.route.name : '?');
             },
             setHistorized: function(historized) {
                 var index = this.editables.indexOf(Editables.changingRangeEdit);
@@ -3211,12 +3353,12 @@
                 var route = element.getAttribute("route");
                 var changingRange = element.getAttribute("timeRange");
                 var parent = element.parentNode;
-                var anchorLookup = Model.getAnchorLookup();
-                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
+                var entityLookup = Model.getLookup('entity');
+                var entity = entityLookup[parent.getAttribute("mnemonic")];
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
-                var identifier = new Identifier(x, y, anchor, route);
+                var identifier = new Identifier(x, y, entity, route);
                 if(!identifier) {
-                    console.warn('[Identifier.fromXML] Skipped identifier for anchor', anchor && anchor.mnemonic, 'route="' + route + '" (route missing).');
+                    console.warn('[Identifier.fromXML] Skipped identifier for entity', entity && entity.mnemonic, 'route="' + route + '" (route missing).');
                     return null;
                 } else {
                     identifier.setFixed(fixed);
@@ -3230,7 +3372,7 @@
                 identifier.positIdentity = identity;
                 identifier.positGenerator = generator;
                 if(changingRange) identifier.changingRange = changingRange;
-                Model.addComponent(new Role(identifier, anchor, true));
+                Model.addComponent(new Role(identifier, entity, true));
                 identifier.updateName();
                 return identifier;
             },
@@ -3278,11 +3420,24 @@
                 return name;
             },
             toString: function() {
-                var anchor, edge;
-                for(var i = 0; edge = this.node.edges[i]; i++)
-                    if(edge.otherNode.type === NodeType.ANCHOR)
-                        anchor = Model.nodeToComponent(edge.otherNode);
-                return anchor.mnemonic + "_" + anchor.descriptor + "_" + this.route.name;
+                // Prefer the explicitly stored entity reference set in the constructor
+                var anchor = this.entity;
+                // Fallback: derive from current edges (legacy behavior)
+                if(!anchor) {
+                    var edge;
+                    for(var i = 0; edge = this.node.edges[i]; i++) {
+                        if(edge.otherNode.type === NodeType.ANCHOR) {
+                            anchor = Model.nodeToComponent(edge.otherNode);
+                            break;
+                        }
+                    }
+                }
+                if(!anchor) {
+                    // Orphaned identifier (edge construction order or data issue); return safe placeholder
+                    return '!OrphanIdentifier!' + (this.route && this.route.name ? '_' + this.route.name : '');
+                }
+                var routeName = (this.route && this.route.name) ? this.route.name : '?';
+                return anchor.mnemonic + '_' + anchor.descriptor + '_' + routeName;
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
@@ -3906,31 +4061,56 @@
                 tie.positGenerator = generator;
                 tie.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 var grandparent = element.parentNode.parentNode;
-                var anchorRoles = element.getElementsByTagName("anchorRole");
-                if(anchorRoles && anchorRoles.length > 0) {
-                    // Combine anchors and nexuses for lookup resolution
-                    var anchorRefList = grandparent.getElementsByTagName("anchor");
-                    var nexusRefList = grandparent.getElementsByTagName("nexus");
-                    // Build a temporary NodeList-like array merging both
-                    var combined = [];
-                    for(var c = 0; c < anchorRefList.length; c++) combined.push(anchorRefList[c]);
-                    for(var n = 0; n < nexusRefList.length; n++) combined.push(nexusRefList[n]);
-                    // Reuse the anchor lookup which also contains nexuses via getAnchorLookup extension
-                    this.parseRoles(
-                        tie,
-                        anchorRoles,
-                        Model.getAnchorLookup(),
-                        combined
-                    );
+                // unified role elements
+                var unifiedRoles = element.getElementsByTagName('role');
+                if(unifiedRoles && unifiedRoles.length > 0) {
+                    // Infer classification: if mnemonic in knot lookup -> knot; else if in anchor or nexus lookup -> entity
+                    var anchorLookup2 = Model.getLookup('entity'); // extended to include nexus mnemonics earlier
+                    var knotLookup2 = Model.getLookup('knot');
+                    // Build refs arrays for parseRoles calls
+                    var anchorRefList2 = grandparent.getElementsByTagName('anchor');
+                    var nexusRefList2 = grandparent.getElementsByTagName('nexus');
+                    var knotRefList2 = grandparent.getElementsByTagName('knot');
+                    var combined2 = [];
+                    for(var c2 = 0; c2 < anchorRefList2.length; c2++) combined2.push(anchorRefList2[c2]);
+                    for(var n2 = 0; n2 < nexusRefList2.length; n2++) combined2.push(nexusRefList2[n2]);
+                    var entityRoles = [];
+                    var knotRolesNew = [];
+                    for(var ur = 0; ur < unifiedRoles.length; ur++) {
+                        var tMnemonic = unifiedRoles[ur].getAttribute('type');
+                        if(knotLookup2 && knotLookup2[tMnemonic]) knotRolesNew.push(unifiedRoles[ur]);
+                        else entityRoles.push(unifiedRoles[ur]);
+                    }
+                    if(entityRoles.length > 0) this.parseRoles(tie, entityRoles, anchorLookup2, combined2);
+                    if(knotRolesNew.length > 0) this.parseRoles(tie, knotRolesNew, knotLookup2, knotRefList2);
                 }
-                var knotRoles = element.getElementsByTagName("knotRole");
-                if(knotRoles && knotRoles.length > 0)
-                    this.parseRoles(
+                else { // legacy anchorRole/knotRole
+                    var anchorRoles = element.getElementsByTagName("anchorRole");
+                    if(anchorRoles && anchorRoles.length > 0) {
+                        // Combine anchors and nexuses for lookup resolution
+                        var anchorRefList = grandparent.getElementsByTagName("anchor");
+                        var nexusRefList = grandparent.getElementsByTagName("nexus");
+                        // Build a temporary NodeList-like array merging both
+                        var combined = [];
+                        for(var c = 0; c < anchorRefList.length; c++) combined.push(anchorRefList[c]);
+                        for(var n = 0; n < nexusRefList.length; n++) combined.push(nexusRefList[n]);
+                        // Reuse the entity lookup (anchors + nexuses)
+                        this.parseRoles(
                             tie,
-                            knotRoles, 
-                            Model.getKnotLookup(), 
-                            grandparent.getElementsByTagName("knot")
-                    );
+                            anchorRoles,
+                            Model.getLookup('entity'),
+                            combined
+                        );
+                    }
+                    var knotRoles = element.getElementsByTagName("knotRole");
+                    if(knotRoles && knotRoles.length > 0)
+                        this.parseRoles(
+                                tie,
+                                knotRoles, 
+                                Model.getLookup('knot'), 
+                                grandparent.getElementsByTagName("knot")
+                        );
+                }
                 tie.updateName();
                 return tie;
             },
@@ -3945,6 +4125,16 @@
                     for(j = 0; j < refs.length; j++) {
                         if(refs[j].getAttribute("mnemonic") === type) {
                             referred = lookup[refs[j].getAttribute("mnemonic")];
+                            if(!referred) {
+                                // Potentially stale lookup (component added earlier in XML). Rebuild once.
+                                Model.markLookupsDirty();
+                                var refreshed = (lookup === Model.getLookup('knot')) ? Model.getLookup('knot') : Model.getLookup('entity');
+                                referred = refreshed[type];
+                            }
+                            if(!referred) {
+                                // Cannot resolve target component; skip this role gracefully.
+                                break;
+                            }
                             role = new Role(tie, referred, (identifier === "true"));
                             role.role = roleName;
                             role.setColoring(coloring);
@@ -3988,14 +4178,11 @@
                     tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 var edges = this.node.edges;
                 for(var i = 0; i < edges.length; i++) {
-                    var roleElement;
                     var node = edges[i].otherNode;
                     var role = Model.nodeToComponent(edges[i]);
                     var component = Model.nodeToComponent(node);
-                    if(node.type === NodeType.ANCHOR || node.type === NodeType.NEXUS)
-                        roleElement = schema.createElement("anchorRole");
-                    else if(node.type === NodeType.KNOT)
-                        roleElement = schema.createElement("knotRole");
+                    // unified role element (no explicit kind attribute; infer by mnemonic on load)
+                    var roleElement = schema.createElement("role");
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
                     roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
                     if(role.coloring !== '#000000')
@@ -4174,27 +4361,16 @@
                         var attribute = Model.nodeToComponent(edge.node);
                         attribute.addXML(nexus, schema);
                     }
-                    else if (edge.otherNode.type === NodeType.ANCHOR) {
-                        var role = Model.nodeToComponent(edge);
-                        var anchorRole = schema.createElement("anchorRole");
-                        anchorRole.setAttribute("role", this.isEmpty(role.role) ? "!role" + role.id + "!" : role.role);
-                        anchorRole.setAttribute("type", role.otherComponent.mnemonic);
-                        anchorRole.setAttribute("identifier", role.identifier);
-                        if(role.coloring !== '#000000') {
-                            anchorRole.setAttribute("coloring", role.coloring);
+                    else if (edge.otherNode.type === NodeType.ANCHOR || edge.otherNode.type === NodeType.KNOT) {
+                        var r = Model.nodeToComponent(edge);
+                        var roleElement = schema.createElement('role');
+                        roleElement.setAttribute('role', this.isEmpty(r.role) ? '!role' + r.id + '!' : r.role);
+                        roleElement.setAttribute('type', r.otherComponent.mnemonic);
+                        roleElement.setAttribute('identifier', r.identifier);
+                        if(r.coloring !== '#000000') {
+                            roleElement.setAttribute('coloring', r.coloring);
                         }
-                        nexus.appendChild(anchorRole);
-                    }
-                    else if (edge.otherNode.type === NodeType.KNOT) {
-                        var knotRole = Model.nodeToComponent(edge);
-                        var knotRoleElement = schema.createElement("knotRole");
-                        knotRoleElement.setAttribute("role", this.isEmpty(knotRole.role) ? "!role" + knotRole.id + "!" : knotRole.role);
-                        knotRoleElement.setAttribute("type", knotRole.otherComponent.mnemonic);
-                        knotRoleElement.setAttribute("identifier", knotRole.identifier);
-                        if(knotRole.coloring !== '#000000') {
-                            knotRoleElement.setAttribute("coloring", knotRole.coloring);
-                        }
-                        nexus.appendChild(knotRoleElement);
+                        nexus.appendChild(roleElement);
                     }
                 }
                 this.addLayoutXML(nexus, schema);
@@ -4241,26 +4417,44 @@
                     Model.addComponent(new Role(attribute, nexus, true));
                 }
                 
-                // Parse anchor roles (similar to Tie)
+                // Parse roles (unified or legacy)
                 var grandparent = element.parentNode;
-                var anchorRoles = element.getElementsByTagName("anchorRole");
-                if(anchorRoles && anchorRoles.length > 0) {
-                    this.parseRoles(
-                        nexus,
-                        anchorRoles, 
-                        Model.getAnchorLookup(), 
-                        grandparent.getElementsByTagName("anchor")
-                    );
+                var unifiedRolesNexus = element.getElementsByTagName('role');
+                if(unifiedRolesNexus && unifiedRolesNexus.length > 0) {
+                    var anchorRefsNexus = grandparent.getElementsByTagName('anchor');
+                    var knotRefsNexus = grandparent.getElementsByTagName('knot');
+                    var anchorLookupNexus = Model.getLookup('entity');
+                    var knotLookupNexus = Model.getLookup('knot');
+                    var entityRolesNexus = [];
+                    var knotRolesNexus = [];
+                    for(var urx = 0; urx < unifiedRolesNexus.length; urx++) {
+                        var tMnemonic2 = unifiedRolesNexus[urx].getAttribute('type');
+                        if(knotLookupNexus && knotLookupNexus[tMnemonic2]) knotRolesNexus.push(unifiedRolesNexus[urx]);
+                        else entityRolesNexus.push(unifiedRolesNexus[urx]);
+                    }
+                    if(entityRolesNexus.length > 0) this.parseRoles(nexus, entityRolesNexus, anchorLookupNexus, anchorRefsNexus);
+                    if(knotRolesNexus.length > 0) this.parseRoles(nexus, knotRolesNexus, knotLookupNexus, knotRefsNexus);
                 }
-                // Parse knot roles
-                var knotRoles = element.getElementsByTagName("knotRole");
-                if(knotRoles && knotRoles.length > 0) {
-                    this.parseRoles(
-                        nexus,
-                        knotRoles,
-                        Model.getKnotLookup(),
-                        grandparent.getElementsByTagName("knot")
-                    );
+                else {
+                    // legacy parsing
+                    var anchorRolesLegacy = element.getElementsByTagName("anchorRole");
+                    if(anchorRolesLegacy && anchorRolesLegacy.length > 0) {
+                        this.parseRoles(
+                            nexus,
+                            anchorRolesLegacy, 
+                            Model.getLookup('entity'), 
+                            grandparent.getElementsByTagName("anchor")
+                        );
+                    }
+                    var knotRolesLegacy = element.getElementsByTagName("knotRole");
+                    if(knotRolesLegacy && knotRolesLegacy.length > 0) {
+                        this.parseRoles(
+                            nexus,
+                            knotRolesLegacy,
+                            Model.getLookup('knot'), 
+                            grandparent.getElementsByTagName("knot")
+                        );
+                    }
                 }
                 
                 nexus.updateName();
@@ -5354,15 +5548,20 @@
                 var components = Model.components.slice();
                 components.sort(
                     function(a, b) {
-                        var nameA = a.encapsulation + '.' + a.toString();
-                        var nameB = b.encapsulation + '.' + b.toString();
+                        var aStr, bStr;
+                        try { aStr = a.toString(); } catch(e) { aStr = '!ERR!'; }
+                        try { bStr = b.toString(); } catch(e) { bStr = '!ERR!'; }
+                        var nameA = a.encapsulation + '.' + aStr;
+                        var nameB = b.encapsulation + '.' + bStr;
                         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
                     }
                 );
                 for(var i = 0; component = components[i]; i++) {
                     node = component.node;
-                    if(component.toString() && node.type !== NodeType.EDGE) {
-                        var fullName = component.encapsulation + '.' + component.toString();
+                    var safeString;
+                    try { safeString = component.toString(); } catch(e) { safeString = ''; }
+                    if(safeString && node.type !== NodeType.EDGE) {
+                        var fullName = component.encapsulation + '.' + safeString;
                         if(component.incomplete)
                             fullName = "* " + fullName;
                         var option = new Option(fullName, component.id);
