@@ -6113,6 +6113,7 @@
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('triggers').checked = Defaults.triggers === 'true';
+                document.getElementById('naturalKeyAttributes').checked = Defaults.naturalKeyAttributes === 'true';
                 document.getElementById('decisiveness').checked = Defaults.decisiveness === 'true';
                 document.getElementById('entityIntegrity').checked = Defaults.entityIntegrity === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -6155,6 +6156,7 @@
                     this.setBusinessViews('false');
                     this.setKnotAliases('false');
                     this.setTriggers('true');
+                    this.setNaturalKeyAttributes('false');
                     this.setDecisiveness('true');
                     this.setEquivalence('false');
                     this.setChangingSuffix('ChangedAt');
@@ -6243,6 +6245,7 @@
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
                 storage.setItem("triggers", Defaults.triggers);
+                storage.setItem("naturalKeyAttributes", Defaults.naturalKeyAttributes);
                 storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("deletability", Defaults.deletability);
@@ -6311,6 +6314,7 @@
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                     this.setKnotAliases(storage.getItem('knotAliases') || Defaults.knotAliases);
                     this.setTriggers(storage.getItem('triggers') || Defaults.triggers);
+                    this.setNaturalKeyAttributes(storage.getItem('naturalKeyAttributes') || Defaults.naturalKeyAttributes);
                     this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
