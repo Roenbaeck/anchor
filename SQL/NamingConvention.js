@@ -203,7 +203,10 @@ while (anchor = schema.nextAnchor()) {
         var role, key, route, stop, component;
         for(route in anchor.keys) {
             key = anchor.keys[route];
-            key.name = 'key' + D + anchor.mnemonic + D + route;
+            key.name = 'key' + D + anchor.mnemonic + D + anchor.descriptor + D + route;
+            // Physical table name for materialized natural key attributes (drop 'key' prefix)
+            key.tableName = anchor.mnemonic + D + anchor.descriptor + D + route;
+            key.changingColumnName = anchor.mnemonic + D + schema.metadata.changingSuffix;
             for(stop in key.stops) {
                 component = key.stops[stop];
                 if(component.attribute) {
@@ -259,7 +262,9 @@ var role;
         var role, key, route, stop, component;
         for(route in nexus.keys) {
             key = nexus.keys[route];
-            key.name = 'key' + D + nexus.mnemonic + D + route;
+            key.name = 'key' + D + nexus.mnemonic + D + nexus.descriptor + D + route;
+            key.tableName = nexus.mnemonic + D + nexus.descriptor + D + route;
+            key.changingColumnName = nexus.mnemonic + D + schema.metadata.changingSuffix;
             for(stop in key.stops) {
                 component = key.stops[stop];
                 if(component.attribute) {

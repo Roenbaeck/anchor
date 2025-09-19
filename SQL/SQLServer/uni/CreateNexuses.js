@@ -16,7 +16,7 @@ while (nexus = schema.nextNexus()) {
         nexus.identityGenerator = 'IDENTITY(1,1)';
 /*~
 -- Nexus table -------------------------------------------------------------------------------------------------------
--- $nexus.name table (with ${(nexus.attributes ? nexus.attributes.length : 0)}$ attributes)
+-- $nexus.name table (with ${(nexus.attributes ? nexus.attributes.length : 0)}$ attributes and ${(nexus.roles ? nexus.roles.length : 0)}$ roles)
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$nexus.capsule$.$nexus.name', 'U') IS NULL
 CREATE TABLE [$nexus.capsule].[$nexus.name] (

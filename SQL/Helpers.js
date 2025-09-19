@@ -383,9 +383,13 @@ while(tie = schema.nextTie()) {
     tie.values = [];
     tie.knotRoles = [];
     tie.anchorRoles = [];
-    // new role groupings
+    // role grouping vectors
     tie.nexusRoles = [];
     tie.entityRoles = [];
+    // role maps (populate during classification)
+    tie.knotRole = {};
+    tie.anchorRole = {};
+    tie.nexusRole = {};
     tie.isGenerator = function() {
         return this.metadata.generator == 'true';
     };
@@ -434,13 +438,8 @@ while(tie = schema.nextTie()) {
             schema._iterator.tie_role = 0;
             return null;
         }
-        var anchorRole, knotRole;
-        if(this.anchorRole)
-            anchorRole = this.anchorRole[this.roles[schema._iterator.tie_role]];
-        if(this.knotRole)
-            knotRole = this.knotRole[this.roles[schema._iterator.tie_role]];
-        schema._iterator.tie_role++;
-        return anchorRole || knotRole;
+        var rid = this.roles[schema._iterator.tie_role++];
+        return this.knotRole[rid] || this.anchorRole[rid] || this.nexusRole[rid] || null;
     };
     tie.hasMoreRoles = function() {
         if(!this.roles) return false;
@@ -452,47 +451,44 @@ while(tie = schema.nextTie()) {
 }
 
 var role;
+// classify tie roles and populate grouping vectors + maps
 while (tie = schema.nextTie()) {
-    while(role = tie.nextRole()) {
+    if(!tie.roles || tie._classifiedRoles) continue;
+    for(var i = 0; i < tie.roles.length; i++) {
+        var rid = tie.roles[i];
+        var role = tie.role && tie.role[rid];
+        if(!role) continue;
         role.isIdentifier = function() {
             return this.identifier == 'true';
         };
         role.isKnotRole = function() {
             return schema.knot[this.type] != null;
         };
-        role.isAnchorRole = function() { // anchors only
-            return schema.anchor[this.type] != null;
-        };
-        role.isNexusRole = function() {
-            return schema.nexus && schema.nexus[this.type] != null;
-        };
-        role.isEntityRole = function() { // anchor or nexus
-            return this.isAnchorRole() || this.isNexusRole();
-        };
+        role.isAnchorRole = function() { return schema.anchor[this.type] != null; };
+        role.isNexusRole = function() { return schema.nexus && schema.nexus[this.type] != null; };
+        role.isEntityRole = function() { return this.isAnchorRole() || this.isNexusRole(); };
         if(role.isKnotRole()) {
             role.knot = schema.knot[role.type];
+            tie.knotRole[role.id] = role;
             tie.knotRoles.push(role.id);
         }
         else if(role.isAnchorRole()) {
             role.anchor = schema.anchor[role.type];
             role.entity = role.anchor;
+            tie.anchorRole[role.id] = role;
             tie.anchorRoles.push(role.id);
             tie.entityRoles.push(role.id);
         }
         else if(role.isNexusRole()) {
-            // nexus specific reference
             role.nexus = schema.nexus[role.type];
             role.entity = role.nexus;
-            if(!tie.nexusRole) tie.tie_nexusRole = {};
             tie.nexusRole[role.id] = role;
             tie.nexusRoles.push(role.id);
             tie.entityRoles.push(role.id);
         }
-        if(role.isIdentifier())
-            tie.identifiers.push(role.id);
-        else
-            tie.values.push(role.id);
+        if(role.isIdentifier()) tie.identifiers.push(role.id); else tie.values.push(role.id);
     }
+    tie._classifiedRoles = true;
 }
 
 while (tie = schema.nextTie()) {
@@ -535,11 +531,11 @@ while (tie = schema.nextTie()) {
         return schema._iterator.value == 1;
     };
     tie.nextKnotRole = function() {
-        if(schema._iterator.tie_knotRole== this.knotRoles.length) {
-            schema._iterator.tie_knotRole= 0;
+        if(schema._iterator.tie_knotRole == this.knotRoles.length) {
+            schema._iterator.tie_knotRole = 0;
             return null;
         }
-        return this.knotRole[this.knotRoles[schema._iterator.knotRole++]];
+        return this.knotRole[this.knotRoles[schema._iterator.tie_knotRole++]];
     };
     tie.hasMoreKnotRoles = function() {
         return schema._iterator.tie_knotRole< this.knotRoles.length;
@@ -552,7 +548,7 @@ while (tie = schema.nextTie()) {
             schema._iterator.tie_anchorRole = 0;
             return null;
         }
-        return this.anchorRole[this.anchorRoles[schema._iterator.anchorRole++]];
+        return this.anchorRole[this.anchorRoles[schema._iterator.tie_anchorRole++]];
     };
     tie.hasMoreAnchorRoles = function() {
         return schema._iterator.tie_anchorRole < this.anchorRoles.length;
@@ -563,12 +559,11 @@ while (tie = schema.nextTie()) {
     // iterators for nexus roles
     tie.nextNexusRole = function() {
         if(!this.nexusRoles) return null;
-        if(!schema._iterator.nexusRole) schema._iterator.tie_nexusRole = 0;
         if(schema._iterator.tie_nexusRole == this.nexusRoles.length) {
             schema._iterator.tie_nexusRole = 0;
             return null;
         }
-        return this.tie_nexusRole && this.nexusRole[this.nexusRoles[schema._iterator.nexusRole++]];
+        return this.nexusRole[this.nexusRoles[schema._iterator.tie_nexusRole++]];
     };
     tie.hasMoreNexusRoles = function() {
         if(!this.nexusRoles) return false;
@@ -581,19 +576,15 @@ while (tie = schema.nextTie()) {
     // iterators for entity roles (anchor + nexus)
     tie.nextEntityRole = function() {
         if(!this.entityRoles) return null;
-        if(!schema._iterator.entityRole) schema._iterator.tie_entityRole = 0;
         if(schema._iterator.tie_entityRole == this.entityRoles.length) {
             schema._iterator.tie_entityRole = 0;
             return null;
         }
-        var id = this.entityRoles[schema._iterator.entityRole++];
-        // entityRole could reside in anchorRole or nexusRole map; resolve
-        var r = (this.tie_anchorRole && this.anchorRole[id]) || (this.tie_nexusRole && this.nexusRole[id]);
-        return r;
+        var id = this.entityRoles[schema._iterator.tie_entityRole++];
+        return this.anchorRole[id] || this.nexusRole[id] || null;
     };
     tie.hasMoreEntityRoles = function() {
         if(!this.entityRoles) return false;
-        if(!schema._iterator.entityRole) schema._iterator.tie_entityRole = 0;
         return schema._iterator.tie_entityRole < this.entityRoles.length;
     };
     tie.isFirstEntityRole = function() {
@@ -653,6 +644,31 @@ while (tie = schema.nextTie()) {
 
 if(DEBUG) console.log(schema);
 
+    // Derive key level properties (historization) for anchors and nexuses
+    var _entityWithKeys, _routeId, _component;
+    function _decorateKeys(entity) {
+        if(!entity || !entity.keys) return;
+        for(_routeId in entity.keys) {
+            var _key = entity.keys[_routeId];
+            var historized = false;
+            if(_key.stops) {
+                for(var _stopId in _key.stops) {
+                    _component = _key.stops[_stopId];
+                    if(_component.attribute && _component.attribute.timeRange) {
+                        historized = true; break;
+                    }
+                }
+            }
+            _key.historized = historized;
+        }
+    }
+    if(schema.anchor) {
+        for(var _anchorName in schema.anchor) _decorateKeys(schema.anchor[_anchorName]);
+    }
+    if(schema.nexus) {
+        for(var _nexusName in schema.nexus) _decorateKeys(schema.nexus[_nexusName]);
+    }
+
 // "global" variables
 schema.METADATA = schema.metadata.metadataUsage === 'true';
 schema.IMPROVED = schema.metadata.naming === 'improved';
@@ -661,6 +677,7 @@ schema.INTEGRITY = schema.metadata.entityIntegrity === 'true';
 schema.BUSINESS_VIEWS = schema.metadata.businessViews === 'true';
 schema.KNOT_ALIASES = schema.metadata.knotAliases === 'true';
 schema.TRIGGERS = schema.metadata.triggers === 'true';
+schema.NATURAL_KEY_ATTRIBUTES = schema.metadata.naturalKeyAttributes === 'true';
 schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
 schema.DECISIVENESS = schema.metadata.decisiveness === 'true';
 schema.UNI = schema.metadata.temporalization === 'uni';

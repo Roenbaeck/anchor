@@ -6594,6 +6594,13 @@
                             "and the views will no longer accept inserts and updates."
                     );
             },
+            setNaturalKeyAttributes: function(value, userToggle) {
+                Defaults.naturalKeyAttributes = value;
+                if(userToggle && value === 'true') {
+                    // Optional: brief informational notice (kept minimal to avoid alert fatigue)
+                    console.log('Natural key attribute table generation enabled.');
+                }
+            },
             setDecisiveness: function(value) {
                 Defaults.decisiveness = value;
             },
@@ -7366,6 +7373,7 @@
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
                 <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" onchange="Settings.setKnotAliases(this.checked ? 'true' : 'false', true)"/> Use knot aliases</li>
                 <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
+                <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" onchange="Settings.setNaturalKeyAttributes(this.checked ? 'true' : 'false', true)"/> Create natural key attributes</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
                 <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
