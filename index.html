@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="viewport" content="user-scalable=no, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="HandheldFriendly" content="true">    
     <title>Anchor Modeler</title>
     <!-- web fonts -->
@@ -7124,17 +7124,21 @@
             DrawingEngine.start(true);
         }
 
-        // make sure our exit function is called when the page is unloaded
+        // Persist model/settings before navigation while still allowing a confirmation
         window.onbeforeunload = function() {
             if(ASKBEFOREUNLOAD)
                 return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
             else
                 ASKBEFOREUNLOAD = true;
         };
-
-        window.onunload = function() {
-            save(this, false);
-        };
+        // Use pagehide (fires for bfcache) instead of deprecated unload; also visibilitychange fallback
+        function persistOnPageHide(evt) {
+            try { save(window, false); } catch(e) { /* swallow to not block navigation */ }
+        }
+        window.addEventListener('pagehide', persistOnPageHide, {capture:false});
+        document.addEventListener('visibilitychange', function(){
+            if(document.visibilityState === 'hidden') persistOnPageHide();
+        });
 
         function save(window, popup) {
             window.localStorage.clear();
@@ -7520,7 +7524,7 @@
     </div>
 
     <div id="logotype" class="unselectable">
-        <img width="100%" src="Anchor.svg" type="image/svg+xml"/>
+    <img width="100%" src="Anchor.svg" type="image/svg+xml" alt="Anchor Modeling logotype"/>
     </div>
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->

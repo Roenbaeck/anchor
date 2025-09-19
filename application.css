@@ -1,10 +1,9 @@
 html {
-    -webkit-text-size-adjust: none;
     touch-action: manipulation;
 }
 
 body {
-    font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
+    font:               12px "Open Sans", "Helvetica Neue", sans-serif;
     line-height:        1.88889;
     color:              #000000;
     background:         #f9f8f7;
@@ -13,9 +12,6 @@ body {
     padding:            0;
 }
 
-* {
-    target-new:         tab ! important;
-}
 
 a:link, a:active, a:visited {
     color:              #b55;
@@ -27,11 +23,11 @@ a:hover {
 }
 
 .unselectable {
-    user-select:        none;
-    -moz-user-select:   none;
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select:    none;
+    -moz-user-select:     none;
+    -khtml-user-select:   none;
+    -webkit-user-select:  none;
+    -ms-user-select:      none;
+    user-select:          none;
 }
 
 .invisible {
@@ -665,9 +661,7 @@ legend {
 #controls .playing {
     background-color:   #fa5;
 }
-#controls .pausing {
-    /* just go back to normal */
-}
+/* Removed empty #controls .pausing ruleset (no differing styles from base state) */
 #controls div {
     cursor:             pointer;
     position:           relative;
