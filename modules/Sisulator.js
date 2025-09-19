@@ -89,15 +89,62 @@ var Sisulator = {
                 }
                 // join the parts together again (now all JavaScript)
                 sisula = sisulets.join('');
+                // optional annotation for better diagnostics
+                var annotated = sisula.split('\n').map(function(line, idx) {
+                    return '/*' + (idx+1).toString().padStart(5, ' ') + ' */ ' + line;
+                }).join('\n');
                 try {
-                    if(DEBUG && console && console.log)
-                        console.log(sisula);
+                    if(DEBUG && console && console.log) {
+                        console.log('--- Transformed sisula (begin) ---');
+                        console.log(annotated);
+                        console.log('--- Transformed sisula (end) ---');
+                    }
                     // this eval needs schema and _sisula_ to be defined
                     eval(sisula);
                 }
                 catch(e) {
-                    if(DEBUG && console && console.error && script)
-                        console.error('The script ' + script + ' could not be executed.');
+                    if(console && console.error && script) {
+                        var buf = [];
+                        buf.push('The script ' + script + ' could not be executed.');
+                        if(e && e.name === 'SyntaxError') {
+                            var stack = e.stack || '';
+                            // attempt to extract line/column from various browser stack patterns
+                            // patterns handled:
+                            //   <anonymous>:line:col  (Chrome eval)
+                            //   eval code:line:col    (Firefox eval)
+                            //   VM###:line:col        (Chrome inline script with VM id)
+                            //   (.*):line:col         (generic fallback without path filtering)
+                            var lineMatch = stack.match(/<anonymous>:(\d+):(\d+)/) ||
+                                            stack.match(/eval code:(\d+):(\d+)/) ||
+                                            stack.match(/VM\d+:(\d+):(\d+)/) ||
+                                            stack.match(/\b(?:at |@).*:(\d+):(\d+)/);
+                            var lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : null;
+                            buf.push('SyntaxError: ' + e.message + (lineNumber ? (' (approx transformed JS line ' + lineNumber + ')') : ''));
+                            if(lineNumber) {
+                                var lines = annotated.split('\n');
+                                var start = Math.max(0, lineNumber - 4);
+                                var end = Math.min(lines.length, lineNumber + 3);
+                                buf.push('--- Context (' + (start+1) + '-' + end + ') ---');
+                                for(var ctx = start; ctx < end; ctx++) {
+                                    var marker = (ctx + 1 === lineNumber) ? '  <== ERROR' : '';
+                                    buf.push(lines[ctx] + marker);
+                                }
+                                buf.push('--- End Context ---');
+                            } else {
+                                var all = annotated.split('\n');
+                                var head = all.slice(0, 20);
+                                var tail = all.slice(-20);
+                                buf.push('Showing first 20 transformed lines:');
+                                head.forEach(function(l){ buf.push(l); });
+                                buf.push('...');
+                                buf.push('Showing last 20 transformed lines:');
+                                tail.forEach(function(l){ buf.push(l); });
+                            }
+                        } else {
+                            buf.push('Error: ' + e.message);
+                        }
+                        console.error(buf.join('\n'));
+                    }
                     throw e;
                 }
             }

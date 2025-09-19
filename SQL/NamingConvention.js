@@ -103,8 +103,7 @@ while (anchor = schema.nextAnchor()) {
 
 // NEXUS naming (mirrors anchors)
 var nexus;
-var _nextNexusFn = schema.nextNexus ? schema.nextNexus : null;
-while (_nextNexusFn && (nexus = _nextNexusFn())) {
+while (nexus = schema.nextNexus()) {
     if(!nexus || !nexus.mnemonic) continue;
     nexus.name = nexus.mnemonic + D + nexus.descriptor;
     nexus.businessName = nexus.descriptor;
@@ -222,7 +221,40 @@ while (anchor = schema.nextAnchor()) {
 
 // second pass over nexus to set key names
 var nexus;
-while (schema.nextNexus && (nexus = schema.nextNexus())) {
+while (nexus = schema.nextNexus()) {
+var role;
+    while (role = nexus.nextRole()) {
+        role.name = role.type + D + role.role;
+        if(role.knot) {
+            role.businessName = role.role + D + (role.knot ? role.knot.descriptor : 'UnknownKnot');
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else if(role.anchor) {
+            role.businessName = role.anchor.descriptor + D + role.role;
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else {
+            // Fallback for roles that do not resolve to anchor or knot (e.g., nexus associations not yet modeled like ties)
+            role.businessName = (role.role || 'role') + D + 'Unknown';
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;
+        if(role.knot) {
+            knot = role.knot;
+            if(schema.IMPROVED) {
+                role.knotValueColumnName = role.role + D + knot.valueColumnName;
+                role.knotMetadataColumnName = role.role + D + knot.metadataColumnName;
+                role.knotEquivalentColumnName = role.role + D + knot.equivalentColumnName;
+                role.knotChecksumColumnName = role.role + D + knot.checksumColumnName;
+            }
+            else {
+                role.knotValueColumnName = knot.valueColumnName;
+                role.knotMetadataColumnName = knot.metadataColumnName;
+                role.knotEquivalentColumnName = knot.equivalentColumnName;
+                role.knotChecksumColumnName = knot.checksumColumnName;
+            }
+        }
+    }
     if(nexus.keys) {
         var role, key, route, stop, component;
         for(route in nexus.keys) {

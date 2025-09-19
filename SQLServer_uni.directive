@@ -8,6 +8,7 @@ SQL/SQLServer/uni/SetupEquivalentPartitioning.js
 SQL/SQLServer/uni/CreateEquivalentAndDefault.js
 SQL/SQLServer/uni/CreateKnots.js
 SQL/SQLServer/uni/CreateAnchorsAndAttributes.js
+SQL/SQLServer/uni/CreateNexuses.js
 SQL/SQLServer/uni/CreateTies.js
 SQL/SQLServer/uni/CreateKeys.js
 SQL/SQLServer/uni/CreateKnotEquivalenceViews.js

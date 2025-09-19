@@ -39,7 +39,7 @@ BEGIN
 ~*/
             while(role = tie.nextRole()) {
 /*~
-        @$role.columnName $(role.anchor)? $role.anchor.identity, : $role.knot.identity,
+    @$role.columnName $(role.entity)? $role.entity.identity, : $role.knot.identity,
 ~*/
             }
 /*~

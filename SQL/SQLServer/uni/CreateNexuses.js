@@ -21,6 +21,32 @@ while (nexus = schema.nextNexus()) {
 IF Object_ID('$nexus.capsule$.$nexus.name', 'U') IS NULL
 CREATE TABLE [$nexus.capsule].[$nexus.name] (
     $nexus.identityColumnName $nexus.identity $nexus.identityGenerator not null,
+~*/
+    var role;
+    while (role = nexus.nextRole()) {
+/*~
+    $role.columnName $(role.entity)? $role.entity.identity not null, : $role.knot.identity not null,~*/
+        if(!nexus.hasMoreRoles()) {
+/*~
+~*/
+        }
+    }
+    // emit foreign key constraints for each role
+    while (role = nexus.nextRole()) {
+        var knotReference = '';
+        if(role.knot) {
+            knotReference += '[' + role.knot.capsule + '].[' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) + ']';
+        }
+/*~
+    constraint ${(nexus.name + '_fk' + role.name)}$ foreign key (
+        $role.columnName
+    ) references $(role.entity)? [$role.entity.capsule].[$role.entity.name]($role.entity.identityColumnName), : $knotReference($role.knot.identityColumnName),~*/
+        if(!nexus.hasMoreRoles()) {
+/*~
+~*/
+        }
+    }
+/*~
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null, : $nexus.dummyColumnName bit null,
     constraint pk$nexus.name primary key (
         $nexus.identityColumnName asc

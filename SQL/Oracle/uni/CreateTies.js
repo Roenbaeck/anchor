@@ -42,7 +42,7 @@ begin -- Create table with pk column
     var role;
     while (role = tie.nextRole()) {
 /*~
-            $role.columnName $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
+            $role.columnName $(role.entity)? $role.entity.identity not null, : $role.knot.identity not null,
 ~*/
     }
 /*~
@@ -55,7 +55,7 @@ begin -- Create table with pk column
 /*~
             constraint ${('FK' + i + '_' + tie.name + role.name).substr(0,30)}$ foreign key (
                 $role.columnName
-            ) references $(role.anchor)? $role.anchor.name($role.anchor.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
+            ) references $(role.entity)? $role.entity.name($role.entity.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints

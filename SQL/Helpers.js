@@ -1,4 +1,4 @@
-// set up some iterators for the different components
+ // set up some iterators for the different components
 schema._iterator = {};
 schema._iterator.knot = 0;
 schema._iterator.anchor = 0;
@@ -7,9 +7,19 @@ schema._iterator.attribute = 0;
 schema._iterator.historizedAttribute = 0;
 schema._iterator.tie = 0;
 schema._iterator.historizedTie = 0;
-schema._iterator.role = 0;
-schema._iterator.knotRole = 0;
-schema._iterator.anchorRole = 0;
+// iterators specific to tie roles
+schema._iterator.tie_role = 0;
+schema._iterator.tie_knotRole= 0;
+schema._iterator.tie_anchorRole = 0;
+schema._iterator.tie_nexusRole = 0; // new iterator for nexus roles
+schema._iterator.tie_entityRole = 0; // new iterator for entity (anchor+nexus) roles
+// iterators specific to nexus roles
+schema._iterator.nexus_role = 0;
+schema._iterator.nexus_knotRole = 0;
+schema._iterator.nexus_anchorRole = 0;
+schema._iterator.nexus_nexusRole = 0; // new iterator for nexus roles
+schema._iterator.nexus_entityRole = 0;
+// other iterators
 schema._iterator.identifier = 0;
 schema._iterator.value = 0;
 
@@ -93,6 +103,13 @@ while(nexus = schema.nextNexus()) {
     nexus.isGenerator = function() {
         return this.metadata.generator == 'true';
     };
+    nexus.identifiers = [];
+    nexus.values = [];
+    nexus.knotRoles = [];
+    nexus.anchorRoles = [];
+    // new role groupings
+    nexus.nexusRoles = [];
+    nexus.entityRoles = [];
 }
 
 // set up helpers for nexus attributes
@@ -111,6 +128,46 @@ while (nexus = schema.nextNexus()) {
     };
     nexus.isFirstAttribute = function() {
         return schema._iterator.attribute == 1;
+    };
+    // generic role iterator for nexus
+    nexus.nextRole = function() {
+        if(!this.roles) return null;
+        if(schema._iterator.nexus_role == this.roles.length) {
+            schema._iterator.nexus_role = 0;
+            return null;
+        }
+        return this.role[this.roles[schema._iterator.nexus_role++]];
+    };
+    nexus.hasMoreRoles = function() {
+        if(!this.roles) return false;
+        return schema._iterator.nexus_role < this.roles.length;
+    };
+    nexus.isFirstRole = function() {
+        return schema._iterator.nexus_role == 1;
+    };
+    nexus.nextEntityRole = function() {
+        if(!this.entityRoles) return null;
+        if(schema._iterator.nexus_entityRole == this.entityRoles.length) {
+            schema._iterator.nexus_entityRole = 0;
+            return null;
+        }
+        return this.role[this.entityRoles[schema._iterator.nexus_entityRole++]];
+    };
+    nexus.hasMoreEntityRoles = function() {
+        if(!this.entityRoles) return false;
+        return schema._iterator.nexus_entityRole < this.entityRoles.length;
+    };
+    nexus.nextKnotRole = function() {
+        if(!this.knotRoles) return null;
+        if(schema._iterator.nexus_knotRole == this.knotRoles.length) {
+            schema._iterator.nexus_knotRole = 0;
+            return null;
+        }
+        return this.role[this.knotRoles[schema._iterator.nexus_knotRole++]];
+    };
+    nexus.hasMoreKnotRoles = function() {
+        if(!this.knotRoles) return false;
+        return schema._iterator.nexus_knotRole < this.knotRoles.length;
     };
 }
 
@@ -158,6 +215,50 @@ while (nexus = schema.nextNexus()) {
             nxAttribute.dataRange = 'varbinary(max)';
         }
     }
+}
+
+// classify nexus roles and populate role grouping vectors (identifiers, values, knot/anchor/nexus/entity)
+while (nexus = schema.nextNexus()) {
+    if(!nexus.roles || nexus._classifiedRoles) continue;
+    for(var i = 0; i < nexus.roles.length; i++) {
+        var rid = nexus.roles[i];
+        var role = nexus.role && nexus.role[rid];
+        if(!role) continue;
+        // predicate helpers (mirroring tie roles)
+        role.isIdentifier = function() { return this.identifier == 'true'; };
+        role.isKnotRole = function() { return schema.knot[this.type] != null; };
+        role.isAnchorRole = function() { return schema.anchor[this.type] != null; };
+        role.isNexusRole = function() { return schema.nexus && schema.nexus[this.type] != null; };
+        role.isEntityRole = function() { return this.isAnchorRole() || this.isNexusRole(); };
+        if(role.isKnotRole()) {
+            role.knot = schema.knot[role.type];
+            if(!nexus.knotRole) nexus.knotRole = {};
+            nexus.knotRole[role.id] = role;
+            nexus.knotRoles.push(role.id);
+        }
+        else if(role.isAnchorRole()) {
+            role.anchor = schema.anchor[role.type];
+            role.entity = role.anchor;
+            if(!nexus.anchorRole) nexus.anchorRole = {};
+            nexus.anchorRole[role.id] = role;
+            nexus.anchorRoles.push(role.id);
+            nexus.entityRoles.push(role.id);
+        }
+        else if(role.isNexusRole()) {
+            role.nexus = schema.nexus[role.type];
+            role.entity = role.nexus;
+            if(!nexus.nexusRole) nexus.nexusRole = {};
+            nexus.nexusRole[role.id] = role;
+            nexus.nexusRoles.push(role.id);
+            nexus.entityRoles.push(role.id);
+        }
+        // identifier vs value grouping (if applicable for nexus semantics)
+        if(role.isIdentifier())
+            nexus.identifiers.push(role.id);
+        else
+            nexus.values.push(role.id);
+    }
+    nexus._classifiedRoles = true;
 }
 
 while (nexus = schema.nextNexus()) {
@@ -282,6 +383,9 @@ while(tie = schema.nextTie()) {
     tie.values = [];
     tie.knotRoles = [];
     tie.anchorRoles = [];
+    // new role groupings
+    tie.nexusRoles = [];
+    tie.entityRoles = [];
     tie.isGenerator = function() {
         return this.metadata.generator == 'true';
     };
@@ -326,24 +430,24 @@ schema.isFirstHistorizedTie = function() {
 while(tie = schema.nextTie()) {
     tie.nextRole = function() {
         if(!this.roles) return null;
-        if(schema._iterator.role == this.roles.length) {
-            schema._iterator.role = 0;
+        if(schema._iterator.tie_role == this.roles.length) {
+            schema._iterator.tie_role = 0;
             return null;
         }
         var anchorRole, knotRole;
         if(this.anchorRole)
-            anchorRole = this.anchorRole[this.roles[schema._iterator.role]];
+            anchorRole = this.anchorRole[this.roles[schema._iterator.tie_role]];
         if(this.knotRole)
-            knotRole = this.knotRole[this.roles[schema._iterator.role]];
-        schema._iterator.role++;
+            knotRole = this.knotRole[this.roles[schema._iterator.tie_role]];
+        schema._iterator.tie_role++;
         return anchorRole || knotRole;
     };
     tie.hasMoreRoles = function() {
         if(!this.roles) return false;
-        return schema._iterator.role < this.roles.length;
+        return schema._iterator.tie_role < this.roles.length;
     };
     tie.isFirstRole = function() {
-        return schema._iterator.role == 1;
+        return schema._iterator.tie_role == 1;
     };
 }
 
@@ -356,18 +460,33 @@ while (tie = schema.nextTie()) {
         role.isKnotRole = function() {
             return schema.knot[this.type] != null;
         };
-        role.isAnchorRole = function() {
-            // now includes nexus semantics (treat nexus like anchor for tie purposes)
-            return (schema.anchor[this.type] != null) || (schema.nexus && schema.nexus[this.type] != null);
+        role.isAnchorRole = function() { // anchors only
+            return schema.anchor[this.type] != null;
         };
-        if(schema.hasMoreKnots() && schema.knot[role.type]) {
+        role.isNexusRole = function() {
+            return schema.nexus && schema.nexus[this.type] != null;
+        };
+        role.isEntityRole = function() { // anchor or nexus
+            return this.isAnchorRole() || this.isNexusRole();
+        };
+        if(role.isKnotRole()) {
             role.knot = schema.knot[role.type];
             tie.knotRoles.push(role.id);
         }
-        else if((schema.hasMoreAnchors() && schema.anchor[role.type]) || (schema.hasMoreNexuses && schema.hasMoreNexuses() && schema.nexus && schema.nexus[role.type])) {
-            // unify anchor/nexus under role.anchor reference for downstream sisulets
-            role.anchor = schema.anchor[role.type] || schema.nexus[role.type];
+        else if(role.isAnchorRole()) {
+            role.anchor = schema.anchor[role.type];
+            role.entity = role.anchor;
             tie.anchorRoles.push(role.id);
+            tie.entityRoles.push(role.id);
+        }
+        else if(role.isNexusRole()) {
+            // nexus specific reference
+            role.nexus = schema.nexus[role.type];
+            role.entity = role.nexus;
+            if(!tie.nexusRole) tie.tie_nexusRole = {};
+            tie.nexusRole[role.id] = role;
+            tie.nexusRoles.push(role.id);
+            tie.entityRoles.push(role.id);
         }
         if(role.isIdentifier())
             tie.identifiers.push(role.id);
@@ -416,30 +535,69 @@ while (tie = schema.nextTie()) {
         return schema._iterator.value == 1;
     };
     tie.nextKnotRole = function() {
-        if(schema._iterator.knotRole == this.knotRoles.length) {
-            schema._iterator.knotRole = 0;
+        if(schema._iterator.tie_knotRole== this.knotRoles.length) {
+            schema._iterator.tie_knotRole= 0;
             return null;
         }
         return this.knotRole[this.knotRoles[schema._iterator.knotRole++]];
     };
     tie.hasMoreKnotRoles = function() {
-        return schema._iterator.knotRole < this.knotRoles.length;
+        return schema._iterator.tie_knotRole< this.knotRoles.length;
     };
     tie.isFirstKnotRole = function() {
-        return schema._iterator.knotRole == 1;
+        return schema._iterator.tie_knotRole== 1;
     };
     tie.nextAnchorRole = function() {
-        if(schema._iterator.anchorRole == this.anchorRoles.length) {
-            schema._iterator.anchorRole = 0;
+        if(schema._iterator.tie_anchorRole == this.anchorRoles.length) {
+            schema._iterator.tie_anchorRole = 0;
             return null;
         }
         return this.anchorRole[this.anchorRoles[schema._iterator.anchorRole++]];
     };
     tie.hasMoreAnchorRoles = function() {
-        return schema._iterator.anchorRole < this.anchorRoles.length;
+        return schema._iterator.tie_anchorRole < this.anchorRoles.length;
     };
     tie.isFirstAnchorRole = function() {
-        return schema._iterator.anchorRole == 1;
+        return schema._iterator.tie_anchorRole == 1;
+    };
+    // iterators for nexus roles
+    tie.nextNexusRole = function() {
+        if(!this.nexusRoles) return null;
+        if(!schema._iterator.nexusRole) schema._iterator.tie_nexusRole = 0;
+        if(schema._iterator.tie_nexusRole == this.nexusRoles.length) {
+            schema._iterator.tie_nexusRole = 0;
+            return null;
+        }
+        return this.tie_nexusRole && this.nexusRole[this.nexusRoles[schema._iterator.nexusRole++]];
+    };
+    tie.hasMoreNexusRoles = function() {
+        if(!this.nexusRoles) return false;
+        if(!schema._iterator.nexusRole) schema._iterator.tie_nexusRole = 0;
+        return schema._iterator.tie_nexusRole < this.nexusRoles.length;
+    };
+    tie.isFirstNexusRole = function() {
+        return schema._iterator.tie_nexusRole == 1;
+    };
+    // iterators for entity roles (anchor + nexus)
+    tie.nextEntityRole = function() {
+        if(!this.entityRoles) return null;
+        if(!schema._iterator.entityRole) schema._iterator.tie_entityRole = 0;
+        if(schema._iterator.tie_entityRole == this.entityRoles.length) {
+            schema._iterator.tie_entityRole = 0;
+            return null;
+        }
+        var id = this.entityRoles[schema._iterator.entityRole++];
+        // entityRole could reside in anchorRole or nexusRole map; resolve
+        var r = (this.tie_anchorRole && this.anchorRole[id]) || (this.tie_nexusRole && this.nexusRole[id]);
+        return r;
+    };
+    tie.hasMoreEntityRoles = function() {
+        if(!this.entityRoles) return false;
+        if(!schema._iterator.entityRole) schema._iterator.tie_entityRole = 0;
+        return schema._iterator.tie_entityRole < this.entityRoles.length;
+    };
+    tie.isFirstEntityRole = function() {
+        return schema._iterator.tie_entityRole == 1;
     };
 }
 
