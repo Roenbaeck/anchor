@@ -6131,6 +6131,18 @@
                 document.getElementById('deletionSuffix').value = Defaults.deletionSuffix;
                 document.getElementById('encryptionGroup').value = Defaults.encryptionGroup;
                 document.getElementById('naming').value = Defaults.naming;
+                // Populate temporalization-dependent inputs (static elements always present)
+                document.getElementById('positIdentity').value = Defaults.positIdentity;
+                document.getElementById('positingRange').value = Defaults.positingRange;
+                document.getElementById('positingSuffix').value = Defaults.positingSuffix;
+                document.getElementById('positorRange').value = Defaults.positorRange;
+                document.getElementById('positorSuffix').value = Defaults.positorSuffix;
+                document.getElementById('reliabilityRange').value = Defaults.reliabilityRange;
+                document.getElementById('reliabilitySuffix').value = Defaults.reliabilitySuffix;
+                document.getElementById('defaultReliability').value = Defaults.defaultReliability;
+                document.getElementById('deleteReliability').value = Defaults.deleteReliability;
+                document.getElementById('assertionSuffix').value = Defaults.assertionSuffix;
+                document.getElementById('assertiveness').checked = Defaults.assertiveness === 'true';
             },
             resetDefaults: function(warn) {
                 var reset = false;
@@ -6450,93 +6462,17 @@
             setTemporalization: function(value) {
                 Defaults.temporalization = value;
                 var temporalizationSelect = document.getElementById('temporalization');
-                temporalizationSelect.value = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('crtSettingsBeforeHere');
-                if(value === 'crt' || value === 'bi') {
-                    this.addTextItem(
-                            'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
-                            "The 'data type' for identities of posits used throughout the implementation.",
-                            function() { Settings.setPositIdentityRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'positingRange', listOfDefaults, beforeItem, ' Positing time range',
-                            "The positing time (corrections) 'data type' used throughout the implementation.",
-                            function() { Settings.setPositingRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'positingSuffix', listOfDefaults, beforeItem, ' Positing time suffix',
-                            "The suffix used for the column storing the point in time a posit was made.",
-                            function() { Settings.setPositingSuffix(this.value); }
-                    );
-                    if(value === 'crt') {
-                        this.addTextItem(
-                                'positorRange', listOfDefaults, beforeItem, ' Positor range',
-                                "The positor (one able to correct) 'data type' used throughout the implementation.",
-                                function() { Settings.setPositorRange(this.value); }
-                        );
-                        this.addTextItem(
-                                'positorSuffix', listOfDefaults, beforeItem, ' Positor suffix',
-                                "The suffix used for the column storing the who made a posit.",
-                                function() { Settings.setPositorSuffix(this.value); }
-                        );
-                    }
-                    this.addTextItem(
-                            'reliabilityRange', listOfDefaults, beforeItem, ' Reliability range',
-                            "A 'data type' that can hold the desired degrees of reliability.",
-                            function() { Settings.setReliabilityRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'reliabilitySuffix', listOfDefaults, beforeItem, ' Reliability suffix',
-                            "The suffix used for the column storing reliability.",
-                            function() { Settings.setReliabilitySuffix(this.value); }
-                    );
-                    if(value === 'crt') {
-                        this.addTextItem(
-                                'defaultReliability', listOfDefaults, beforeItem, ' Default reliability',
-                                "The default value of reliability to use when it is not specified in an insert.",
-                                function() { Settings.setDefaultReliabilty(this.value); }
-                        );
-                        this.addTextItem(
-                                'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
-                                "The default value of reliability to use when deleting information, " +
-                                "which corresponds to being completely uncertain about a posit.",
-                                function() { Settings.setDeleteReliabilty(this.value); }
-                        );
-                    }
-                    this.addTextItem(
-                            'assertionSuffix', listOfDefaults, beforeItem, ' Assertion suffix',
-                            "The suffix used for the computed column storing a single character '+', '-', or '?'," +
-                            "indicating whether an assertion is positive, negative, or completely uncertain.",
-                            function() { Settings.setAssertionSuffix(this.value); }
-                    );
-                    this.addBoolItem(
-                            'assertiveness', listOfDefaults, beforeItem, ' Assertiveness',
-                            "Default for new items. Assertive items get new annex rows every time a posit " +
-                            "is made with a different positing time. Non-assertive items must also have a " +
-                            "different reliability.",
-                            function() { Settings.setAssertiveness(this.checked ? 'true' : 'false'); }
-                    );
-                    Editables.setEditability(Editables.positIdentityEdit, true);
-                    Editables.setEditability(Editables.positGeneratorEdit, true);
-                    Editables.setEditability(Editables.assertivenessEdit, true);
-                }
-                else {
-                    this.removeItem('positIdentity', listOfDefaults);
-                    this.removeItem('positingRange', listOfDefaults);
-                    this.removeItem('positingSuffix', listOfDefaults);
-                    this.removeItem('positorRange', listOfDefaults);
-                    this.removeItem('positorSuffix', listOfDefaults);
-                    this.removeItem('reliabilityRange', listOfDefaults);
-                    this.removeItem('reliabilitySuffix', listOfDefaults);
-                    this.removeItem('defaultReliability', listOfDefaults);
-                    this.removeItem('deleteReliability', listOfDefaults);
-                    this.removeItem('assertionSuffix', listOfDefaults);
-                    this.removeItem('assertiveness', listOfDefaults);
-                    Editables.setEditability(Editables.positIdentityEdit, false);
-                    Editables.setEditability(Editables.positGeneratorEdit, false);
-                    Editables.setEditability(Editables.assertivenessEdit, false);
-                }
+                if(temporalizationSelect) temporalizationSelect.value = value;
+                // toggle body class for CSS-driven visibility
+                var body = document.body;
+                body.classList.remove('temporal-uni','temporal-bi','temporal-crt');
+                body.classList.add('temporal-' + value);
+                // Ensure temporalization-dependent inputs reflect defaults when becoming visible
+                this.init();
+                var enable = (value === 'crt' || value === 'bi');
+                Editables.setEditability(Editables.positIdentityEdit, enable);
+                Editables.setEditability(Editables.positGeneratorEdit, enable);
+                Editables.setEditability(Editables.assertivenessEdit, enable);
             },
             setDeletablePrefix: function(value) {
                 Defaults.deletablePrefix = value;
@@ -7195,6 +7131,12 @@
                     fill:               #000;
                     pointer-events:     none;
                 }
+                /* Temporalization visibility control */
+                body.temporal-uni #listOfDefaults li.bi,
+                body.temporal-uni #listOfDefaults li.crt { display:none !important; }
+                /* In bi mode hide only items that are exclusively crt (have crt but not bi) */
+                body.temporal-bi #listOfDefaults li.crt:not(.bi) { display:none !important; }
+                /* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
                 .edge {
                     pointer-events:     none;
                 }
@@ -7445,6 +7387,18 @@
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
                 <li title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
                 <li title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
+                <!-- Temporalization dependent items (static, visibility controlled by body class) -->
+                <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" onblur="Settings.setPositIdentityRange(this.value)"/> Posit identity</li>
+                <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" onblur="Settings.setPositingRange(this.value)"/> Positing time range</li>
+                <li class="bi crt" title="The suffix used for the column storing the point in time a posit was made."><input id="positingSuffix" class="inputDefaults" type="text" onblur="Settings.setPositingSuffix(this.value)"/> Positing time suffix</li>
+                <li class="crt" title="The positor (one able to correct) 'data type' used throughout the implementation."><input id="positorRange" class="inputDefaults" type="text" onblur="Settings.setPositorRange(this.value)"/> Positor range</li>
+                <li class="crt" title="The suffix used for the column storing the who made a posit."><input id="positorSuffix" class="inputDefaults" type="text" onblur="Settings.setPositorSuffix(this.value)"/> Positor suffix</li>
+                <li class="bi crt" title="A 'data type' that can hold the desired degrees of reliability."><input id="reliabilityRange" class="inputDefaults" type="text" onblur="Settings.setReliabilityRange(this.value)"/> Reliability range</li>
+                <li class="bi crt" title="The suffix used for the column storing reliability."><input id="reliabilitySuffix" class="inputDefaults" type="text" onblur="Settings.setReliabilitySuffix(this.value)"/> Reliability suffix</li>
+                <li class="crt" title="The default value of reliability to use when it is not specified in an insert."><input id="defaultReliability" class="inputDefaults" type="text" onblur="Settings.setDefaultReliability(this.value)"/> Default reliability</li>
+                <li class="crt" title="The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit."><input id="deleteReliability" class="inputDefaults" type="text" onblur="Settings.setDeleteReliability(this.value)"/> Complete uncertainty</li>
+                <li class="bi crt" title="The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain."><input id="assertionSuffix" class="inputDefaults" type="text" onblur="Settings.setAssertionSuffix(this.value)"/> Assertion suffix</li>
+                <li class="bi crt" title="Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" onchange="Settings.setAssertiveness(this.checked ? 'true' : 'false')"/> Assertiveness</li>
                 <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
