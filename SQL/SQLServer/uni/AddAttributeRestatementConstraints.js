@@ -1,8 +1,7 @@
-var anchor, knot, attribute, constraints = false;
-while (anchor = schema.nextAnchor())
-    while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized() && !attribute.isRestatable())
-            constraints = true;
+var knot, attribute, constraints = false;
+while (attribute = schema.nextAttribute())
+    if(attribute.isHistorized && attribute.isHistorized() && !(attribute.isRestatable && attribute.isRestatable()))
+        constraints = true;
 
 if(constraints) {
 /*~
@@ -17,9 +16,8 @@ if(constraints) {
 -- be checked for restatements.
 --
 ~*/
-    while (anchor = schema.nextAnchor()) {
-        while(attribute = anchor.nextAttribute()) {
-            if(attribute.isHistorized()) {
+    while (attribute = schema.nextAttribute()) {
+        if(attribute.isHistorized && attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
@@ -36,7 +34,7 @@ if(constraints) {
                     valueColumn = attribute.knotReferenceName;
                     valueType = knot.identity;
                 }
-                if(!attribute.isRestatable()) {
+                if(!(attribute.isRestatable && attribute.isRestatable())) {
 /*~
 -- Restatement Checking Trigger ---------------------------------------------------------------------------------------
 -- rt_$attribute.name (available only in attributes that cannot have restatements)
@@ -161,7 +159,6 @@ END
 GO
 ~*/
                 }
-            }
         }
     }
 }

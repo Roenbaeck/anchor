@@ -23,6 +23,9 @@ schema._iterator.nexus_entityRole = 0;
 schema._iterator.identifier = 0;
 schema._iterator.value = 0;
 
+// unified attribute collection (anchor + nexus) for later global iteration/refactor
+schema.allAttributes = [];
+
 // set up helpers for knots
 schema.nextKnot = function() {
     if(!schema.knots) return null;
@@ -214,6 +217,13 @@ while (nexus = schema.nextNexus()) {
             nxAttribute.originalDataRange = nxAttribute.dataRange;
             nxAttribute.dataRange = 'varbinary(max)';
         }
+        // parent enrichment (nexus)
+        nxAttribute.parentType = 'nexus';
+        nxAttribute.parentIdentityRange = nexus.identity;
+        nxAttribute.parentIdentityColumnName = nexus.identityColumnName;
+        nxAttribute.parent = nexus;
+        // add to global collection
+        schema.allAttributes.push(nxAttribute);
     }
 }
 
@@ -339,8 +349,39 @@ while (anchor = schema.nextAnchor()) {
             attribute.originalDataRange = attribute.dataRange;
             attribute.dataRange = 'varbinary(max)';
         }
+        // parent enrichment (anchor)
+        attribute.parentType = 'anchor';
+        attribute.parentIdentityRange = anchor.identity;
+        attribute.parentIdentityColumnName = anchor.identityColumnName;
+        attribute.parent = anchor;
+        // add to global collection
+        schema.allAttributes.push(attribute);
     }
 }
+
+// Global attribute iterator helpers (schema-level, independent of per-parent attribute iterators)
+schema._iterator.globalAttribute = 0;
+schema.nextAttribute = function() {
+    if(!schema.allAttributes) return null;
+    if(schema._iterator.globalAttribute >= schema.allAttributes.length) {
+        schema._iterator.globalAttribute = 0;
+        return null;
+    }
+    return schema.allAttributes[schema._iterator.globalAttribute++];
+};
+schema.hasMoreAttributes = function() {
+    if(!schema.allAttributes) return false;
+    return schema._iterator.globalAttribute < schema.allAttributes.length;
+};
+schema.isFirstAttribute = function() {
+    return schema._iterator.globalAttribute == 1;
+};
+
+// Convenience enumerator
+schema.forEachAttribute = function(callback) {
+    if(!schema.allAttributes) return;
+    for(var i=0;i<schema.allAttributes.length;i++) callback(schema.allAttributes[i], i);
+};
 
 while (anchor = schema.nextAnchor()) {
     anchor.nextHistorizedAttribute = function() {
