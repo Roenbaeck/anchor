@@ -13,10 +13,10 @@ body {
 }
 
 /* Temporalization visibility control */
-body.temporal-uni #listOfDefaults li.bi,
-body.temporal-uni #listOfDefaults li.crt { display:none !important; }
+body.temporal-uni li.bi,
+body.temporal-uni li.crt { display:none !important; }
 /* In bi mode hide only items that are exclusively crt (have crt but not bi) */
-body.temporal-bi #listOfDefaults li.crt:not(.bi) { display:none !important; }
+body.temporal-bi  li.crt:not(.bi) { display:none !important; }
 /* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
 
 
@@ -648,9 +648,8 @@ legend {
 }
 .submenu li:hover {
     color:              white;
-    background-color:   rgba(128, 128, 128, 0.8);
+    background-color:   #b55;
     text-decoration:    none;
-    text-shadow:        0px 0px 6px #555;
 }
 .submenu select {
     width:              108px;
@@ -670,12 +669,12 @@ legend {
 
 /* (Desktop keeps original 32px line-height; touch overrides inside media query below) */
 
-/* Slightly larger submenu items for finger comfort */
+/* Moderated submenu item sizing (was 34px line-height, now reduced for density) */
 .submenu li {
-    min-height:         34px;         /* ensures taller row */
-    line-height:        34px;
-    padding-top:        2px;
-    padding-bottom:     2px;
+    min-height:         30px;         /* balance readability + compactness */
+    line-height:        30px;
+    padding-top:        1px;
+    padding-bottom:     1px;
 }
 
 /* Remove tap highlight flash on mobile WebKit */

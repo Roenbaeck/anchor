@@ -1454,21 +1454,23 @@
                         continue; // Skip routes with invalid start components
                     }
                     var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
+                    // Collect and deterministically order stops by branch then numeric stop number
+                    var orderedStops = Object.keys(route.stops).map(function(k){ return route.stops[k]; });
+                    orderedStops.sort(function(a,b){
+                        var ba = parseInt(a.branch || '1'), bb = parseInt(b.branch || '1');
+                        if(ba !== bb) return ba - bb;
+                        var sa = parseInt(a.key.stop || '0'), sb = parseInt(b.key.stop || '0');
+                        return sa - sb;
+                    });
                     var stop, currentBranch; 
-                    for(var stopNumber in route.stops) {
-                        stop = route.stops[stopNumber];
-                        if(!stop.component || !stop.component.node) {
-                            continue; // Skip stops with invalid components
-                        }
+                    for(var os = 0; os < orderedStops.length; os++) {
+                        stop = orderedStops[os];
+                        if(!stop.component || !stop.component.node) continue; // Skip invalid
                         if(stop.branch != currentBranch) {
-                            stops += ' M' + 
-                                route.start.node.xPosition.toFixed(2) + ',' + 
-                                route.start.node.yPosition.toFixed(2);
+                            stops += ' M' + route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
                             currentBranch = stop.branch;
                         }
-                        stops += ' ' + 
-                            stop.component.node.xPosition.toFixed(2) + ',' + 
-                            stop.component.node.yPosition.toFixed(2);
+                        stops += ' ' + stop.component.node.xPosition.toFixed(2) + ',' + stop.component.node.yPosition.toFixed(2);
                     }
                     route.svgKeyRoute.setAttributeNS(null, 'd', 'M' + stops);
                 }
@@ -4370,6 +4372,17 @@
                         roleElement.setAttribute('identifier', r.identifier);
                         if(r.coloring !== '#000000') {
                             roleElement.setAttribute('coloring', r.coloring);
+                        }
+                        // Serialize any key definitions on nexus roles (parity with Tie.toXML)
+                        if(r.keys && r.keys.length > 0) {
+                            for(var k = 0; k < r.keys.length; k++) {
+                                var keyElem = schema.createElement('key');
+                                keyElem.setAttribute('stop', r.keys[k].stop);
+                                keyElem.setAttribute('route', r.keys[k].route);
+                                keyElem.setAttribute('of', r.keys[k].of);
+                                keyElem.setAttribute('branch', r.keys[k].branch);
+                                roleElement.appendChild(keyElem);
+                            }
                         }
                         nexus.appendChild(roleElement);
                     }
@@ -7325,7 +7338,7 @@
                 <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
                 <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" onchange="Settings.setNaturalKeyAttributes(this.checked ? 'true' : 'false', true)"/> Create natural key attributes</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
-                <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
+                <li class="crt" title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="Actions.generateSQL()"> SQL code</li>
