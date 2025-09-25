@@ -19,6 +19,9 @@ SQL/SQLServer/uni/CreateAttributeRewinders.js
 SQL/SQLServer/biz/DropAnchorBusinessPerspectives.js
 SQL/SQLServer/uni/CreateAnchorPerspectives.js
 SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.js
+SQL/SQLServer/biz/DropNexusBusinessPerspectives.js
+SQL/SQLServer/uni/CreateNexusPerspectives.js
+SQL/SQLServer/biz/CreateNexusBusinessPerspectives.js
 SQL/SQLServer/uni/CreateAttributeTriggers.js
 SQL/SQLServer/uni/CreateAnchorTriggers.js
 SQL/SQLServer/uni/AddTieRestatementConstraints.js

@@ -936,6 +936,7 @@
                     node = component.node;
                     if(node.type === NodeType.EDGE) {
                         edge = node;
+                        // Only meaningful for ties; ignore for nexus related edges
                         if(tie = edge.node.type === NodeType.TIE ? this.nodeToComponent(edge.node) :
                                  edge.otherNode.type === NodeType.TIE ? this.nodeToComponent(edge.otherNode) :
                                  null) {
@@ -4547,6 +4548,11 @@
                        (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS) ||
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.KNOT) ||
                        (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS);
+            // Remove makeFirstRole if this edge does not involve an actual tie (ordering only affects tie naming)
+            if(node.type !== NodeType.TIE && otherNode.type !== NodeType.TIE) {
+                var mfrIdx = this.operations.indexOf('makeFirstRole');
+                if(mfrIdx >= 0) this.operations.splice(mfrIdx, 1);
+            }
             // Enforce identifier=false for direct Nexus-Anchor and Nexus-Knot roles (both directions)
             var directNexus = (node.type === NodeType.NEXUS && (otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.KNOT)) ||
                               (otherNode.type === NodeType.NEXUS && (node.type === NodeType.ANCHOR || node.type === NodeType.KNOT));
