@@ -12,6 +12,13 @@ body {
     padding:            0;
 }
 
+/* Temporalization visibility control */
+body.temporal-uni #listOfDefaults li.bi,
+body.temporal-uni #listOfDefaults li.crt { display:none !important; }
+/* In bi mode hide only items that are exclusively crt (have crt but not bi) */
+body.temporal-bi #listOfDefaults li.crt:not(.bi) { display:none !important; }
+/* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
+
 
 a:link, a:active, a:visited {
     color:              #b55;

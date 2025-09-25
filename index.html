@@ -7131,12 +7131,6 @@
                     fill:               #000;
                     pointer-events:     none;
                 }
-                /* Temporalization visibility control */
-                body.temporal-uni #listOfDefaults li.bi,
-                body.temporal-uni #listOfDefaults li.crt { display:none !important; }
-                /* In bi mode hide only items that are exclusively crt (have crt but not bi) */
-                body.temporal-bi #listOfDefaults li.crt:not(.bi) { display:none !important; }
-                /* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
                 .edge {
                     pointer-events:     none;
                 }
