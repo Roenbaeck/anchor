@@ -97,3 +97,73 @@ GO
         }
     }
 }
+
+// Include nexuses (they also have identity columns and may be configured for generation)
+var nexus;
+while (schema.nextNexus && (nexus = schema.nextNexus())) {
+    if(nexus.isGenerator && nexus.isGenerator()) {
+        if(schema.METADATA) {
+/*~
+-- Key Generation Stored Procedure ------------------------------------------------------------------------------------
+-- k$nexus.name identity by surrogate key generation stored procedure (nexus)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$nexus.capsule$.k$nexus.name', 'P') IS NULL
+BEGIN
+    EXEC(''
+    CREATE PROCEDURE [$nexus.capsule].[k$nexus.name] (
+        @requestedNumberOfIdentities bigint,
+        @metadata $schema.metadata.metadataType
+    ) AS
+    BEGIN
+        SET NOCOUNT ON;
+        IF @requestedNumberOfIdentities > 0
+        BEGIN
+            WITH idGenerator (idNumber) AS (
+                SELECT 1
+                UNION ALL SELECT idNumber + 1 FROM idGenerator WHERE idNumber < @requestedNumberOfIdentities
+            )
+            INSERT INTO [$nexus.capsule].[$nexus.name] (
+                $nexus.metadataColumnName
+            )
+            OUTPUT inserted.$nexus.identityColumnName
+            SELECT @metadata FROM idGenerator OPTION (maxrecursion 0);
+        END
+    END
+    '');
+END
+GO
+~*/
+        }
+        else {
+/*~
+-- Key Generation Stored Procedure ------------------------------------------------------------------------------------
+-- k$nexus.name identity by surrogate key generation stored procedure (nexus)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$nexus.capsule$.k$nexus.name', 'P') IS NULL
+BEGIN
+    EXEC(''
+    CREATE PROCEDURE [$nexus.capsule].[k$nexus.name] (
+        @requestedNumberOfIdentities bigint
+    ) AS
+    BEGIN
+        SET NOCOUNT ON;
+        IF @requestedNumberOfIdentities > 0
+        BEGIN
+            WITH idGenerator (idNumber) AS (
+                SELECT 1
+                UNION ALL SELECT idNumber + 1 FROM idGenerator WHERE idNumber < @requestedNumberOfIdentities
+            )
+            INSERT INTO [$nexus.capsule].[$nexus.name] (
+                $nexus.dummyColumnName
+            )
+            OUTPUT inserted.$nexus.identityColumnName
+            SELECT null FROM idGenerator OPTION (maxrecursion 0);
+        END
+    END
+    '');
+END
+GO
+~*/
+        }
+    }
+}
