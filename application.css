@@ -111,6 +111,8 @@ body.dark #minigraph g#edges * { stroke:#d4d4d6 !important; }
 /* Miniature adjustments */
 body.dark #miniature { background:#2a2b2f; }
 body.dark #minigraph text { fill:#ddd; }
+/* Miniature viewport rectangle contrast in dark theme */
+body.dark #minigraph #viewport { stroke:#ffffff !important; stroke-width:1px !important; vector-effect:non-scaling-stroke; }
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
