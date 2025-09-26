@@ -77,7 +77,7 @@ body.dark .collapsed { background-color:#333; }
 body.dark .expanded { background-color:#c33; }
 
 /* Status elements */
-body.dark #model { background-color:#1e1f22; color:#f2f2f3; box-shadow:0 0 2px rgba(0,0,0,0.6); }
+body.dark #model { background-color:#1e1f22; color:#f2f2f3; }
 body.dark #cloud { color:#f2f2f3; }
 
 /* Graph specific colors (edge strokes etc.) adapt subtly */
@@ -99,8 +99,6 @@ body.dark #graph [style*="fill:#ffffff"] { fill:#222 !important; }
 /* Historized inner circles (were white) get slightly lighter dark tone for differentiation */
 body.dark #graph circle[fill="#fff"],
 body.dark #graph circle[style*="fill:#fff"] { fill:#262626 !important; }
-/* Debug partitions adapt */
-body.dark #graph #debugPartitions { fill:#202124; stroke:#333; }
 /* Miniature overrides */
 body.dark #minigraph [fill="#fff"],
 body.dark #minigraph [style*="fill:#fff"],
@@ -131,6 +129,12 @@ body.dark #graph #many { stroke:#e0e0e2 !important; }
 #graph .routeSelected { cursor: text; }
 body.dark #graph .route { cursor: pointer; }
 body.dark #graph .routeSelected { cursor: text; }
+
+/* Debug partitions (force aggregation cells) */
+/* Light theme defaults */
+svg#graph .partitions { fill:#fff8f8; stroke:#f4ebeb; }
+/* Dark theme adaptation: lower contrast, subtle outline */
+body.dark svg#graph .partitions { fill:#2a2b30; stroke:#3a3b40; }
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
