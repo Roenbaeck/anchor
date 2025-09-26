@@ -90,7 +90,7 @@ body.dark #graph .anchor,
 body.dark #graph .nexus { fill:#b55 !important; }
 
 /* Dark theme: improve contrast for edges and darken previously white fills */
-body.dark #graph g#edges * { stroke:#d4d4d6 !important; }
+body.dark #graph g#edges * { stroke:#b4b4b6 !important; }
 /* Any element explicitly filled white becomes a dark neutral to avoid glare */
 body.dark #graph [fill="#fff"],
 body.dark #graph [style*="fill:#fff"],
@@ -106,7 +106,7 @@ body.dark #minigraph [fill="#fff"],
 body.dark #minigraph [style*="fill:#fff"],
 body.dark #minigraph [fill="#ffffff"],
 body.dark #minigraph [style*="fill:#ffffff"] { fill:#222 !important; }
-body.dark #minigraph g#edges * { stroke:#d4d4d6 !important; }
+body.dark #minigraph g#edges * { stroke:#b4b4b6 !important; }
 
 /* Miniature adjustments */
 body.dark #miniature { background:#2a2b2f; }
@@ -115,6 +115,11 @@ body.dark #minigraph text { fill:#ddd; }
 body.dark #minigraph #viewport { stroke:#ffffff !important; stroke-width:1px !important; vector-effect:non-scaling-stroke; }
 /* Fixation (pinned) indicator dot: original inline fill is black; force white in dark theme for contrast */
 body.dark #graph #fixation circle { fill:#ffffff !important; }
+/* Bubble (small 8px circle used in graph) – original inline fill is light (#f9f8f7); tone it down in dark mode */
+body.dark #graph #bubble circle { fill:#303134 !important; }
+/* Cardinality indicators (one/many) inside bubble: brighten strokes for dark mode */
+body.dark #graph #one,
+body.dark #graph #many { stroke:#d0d0d2 !important; }
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
