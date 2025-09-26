@@ -81,7 +81,8 @@ body.dark #model { background-color:#1e1f22; color:#f2f2f3; }
 body.dark #cloud { color:#f2f2f3; }
 
 /* Graph specific colors (edge strokes etc.) adapt subtly */
-body.dark svg#graph { background:#1e1f22; }
+/* Dark theme: let SVG be transparent so underlying watermark (#disclaimer) can show through */
+body.dark svg#graph { background:transparent; }
 body.dark #graph .label { fill:#f2f2f3; }
 body.dark #graph text { fill:#e0e0e0; }
 body.dark #graph .node { stroke:#ccc; }
@@ -280,8 +281,11 @@ a:hover {
     color:              white;
     top:                42px;
     left:               16px;
-    z-index:            0;
+    z-index:            0; 
+    pointer-events:     none; /* ensure it never blocks graph interaction */
 }
+/* Dark theme: slightly dimmed but clearly visible */
+body.dark #disclaimer { color:rgba(255,255,255,0.03); }
 
 /* the logotype 'ANCHOR' */
 #logotype {
