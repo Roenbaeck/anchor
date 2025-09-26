@@ -19,6 +19,10 @@ body.temporal-uni li.crt { display:none !important; }
 body.temporal-bi  li.crt:not(.bi) { display:none !important; }
 /* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
 
+/* Uni-only items: give them class 'uni' so they hide in bi/crt modes */
+body.temporal-bi  li.uni,
+body.temporal-crt li.uni { display:none !important; }
+
 /* Metadata / equivalence visibility control
     Metadata specific options (li.metadata) are only shown when body has class 'metadata'.
     Equivalence specific options (li.equivalence) are only shown when body has class 'equivalence'.

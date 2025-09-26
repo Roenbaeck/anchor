@@ -6492,6 +6492,8 @@
                 Editables.setEditability(Editables.positIdentityEdit, enable);
                 Editables.setEditability(Editables.positGeneratorEdit, enable);
                 Editables.setEditability(Editables.assertivenessEdit, enable);
+                // Deletability only in uni-temporal
+                Editables.setEditability(Editables.deletabilityEdit, value === 'uni');
             },
             setDeletablePrefix: function(value) {
                 Defaults.deletablePrefix = value;
@@ -7376,7 +7378,7 @@
                 <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
                 <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
+                <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
                 <li title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
                 <!-- Temporalization dependent items (static, visibility controlled by body class) -->
                 <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" onblur="Settings.setPositIdentityRange(this.value)"/> Posit identity</li>
