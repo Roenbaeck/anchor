@@ -73,7 +73,7 @@ SELECT
 ~*/
             }
 /*~
-    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
         // Attribute projections
@@ -206,7 +206,7 @@ SELECT
 ~*/
             }
 /*~
-    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
