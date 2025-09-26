@@ -4465,9 +4465,14 @@
 
                 var edge;
                 for(var i = 0; edge = this.node.edges[i]; i++) {
-                    if (edge.node.type === NodeType.ATTRIBUTE) {
-                        var attribute = Model.nodeToComponent(edge.node);
-                        attribute.addXML(nexus, schema);
+                    // Attributes and Identifiers are always on edge.node side (Role constructed with node=attribute/identifier, otherNode=entity)
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.IDENTIFIER) {
+                        var comp = Model.nodeToComponent(edge.node);
+                        // Attribute and Identifier components both implement addXML(element,schema)
+                        // so we can call it generically here.
+                        if(comp && typeof comp.addXML === 'function') {
+                            comp.addXML(nexus, schema);
+                        }
                     }
                     else if (edge.otherNode.type === NodeType.ANCHOR || edge.otherNode.type === NodeType.KNOT) {
                         var r = Model.nodeToComponent(edge);
