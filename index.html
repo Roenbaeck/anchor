@@ -1360,19 +1360,7 @@
                                         this.svgKeyRouteText.appendChild(this.svgKeyRouteText.textPath);
                                         SVGLayer.keys.appendChild(this.svgKeyRouteText);
                                     }
-                                    // add a text box for the route name
-                                    this.routeInput = document.createElement('input');
-                                    this.routeInput.setAttribute('id', 'route');
-                                    this.routeInput.value = this.name;
-                                    this.routeInput.addEventListener('input', function(e) {
-                                        var route = EventHandler.routeSelected();
-                                        Model.changeRouteName(route, e.target.value.trim());
-                                        var hash = (route.start.mnemonic + '|' + route.name).trim();
-                                        route.svgKeyRoute.setAttributeNS(null, 'id', hash);
-                                        route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
-                                        route.svgKeyRouteText.text.nodeValue = e.target.value;
-                                    }, false);
-                                    document.body.appendChild(this.routeInput);                                    
+                                    // Delay creating input until explicit selection (click)
                                     for(var stopNumber in this.stops) 
                                         this.stops[stopNumber].component.postfixes.push(stopNumber);
                                     this.hightlighted = true;
@@ -1385,6 +1373,10 @@
                                         delete this.svgKeyRouteText;
                                     }
                                     if(this.routeInput) {
+                                        if(this._routeResizeHandler) {
+                                            window.removeEventListener('resize', this._routeResizeHandler, false);
+                                            delete this._routeResizeHandler;
+                                        }
                                         if(document.body.contains(this.routeInput))
                                             document.body.removeChild(this.routeInput);
                                         delete this.routeInput;
@@ -1398,11 +1390,120 @@
                             }
                         }
                     }
+                    // Lazy input creation helper
+                    if(!route.ensureRouteInput) {
+                        route.ensureRouteInput = function() {
+                            if(this.routeInput || !this.hightlighted) return;
+                            var selfRoute = this;
+                            this.routeInput = document.createElement('input');
+                            this.routeInput.setAttribute('id', 'route');
+                            this.routeInput.placeholder = 'Route name';
+                            this.routeInput.value = this.name;
+                            function computeComponentScreenPosition(component) {
+                                if(!component) return {x:window.scrollX + window.innerWidth/2, y:window.scrollY + window.innerHeight/2};
+                                var node = component.node ? component.node : component;
+                                if(typeof node.xPosition !== 'number' || typeof node.yPosition !== 'number') return {x:window.scrollX + window.innerWidth/2, y:window.scrollY + window.innerHeight/2};
+                                var vb = SVG.viewBox.baseVal;
+                                var svgRect = SVG.getBoundingClientRect();
+                                var scaleX = svgRect.width / vb.width;
+                                var scaleY = svgRect.height / vb.height;
+                                return { x: svgRect.left + (node.xPosition - vb.x) * scaleX + window.scrollX, y: svgRect.top + (node.yPosition - vb.y) * scaleY + window.scrollY };
+                            }
+                            try {
+                                var comp = this.start ? (this.start.component ? this.start.component : this.start) : null;
+                                var center = computeComponentScreenPosition(comp);
+                                var provisionalWidth = Math.max(120, this.name.length * 9 + 30);
+                                var input = this.routeInput;
+                                input.style.position = 'absolute';
+                                input.style.width = provisionalWidth + 'px';
+                                input.style.zIndex = 10000;
+                                input.style.boxSizing = 'border-box';
+                                input.style.padding = '2px 6px';
+                                input.style.fontSize = '12px';
+                                input.style.lineHeight = '1.2';
+                                input.style.right = 'auto';
+                                input.style.bottom = 'auto';
+                                document.body.appendChild(input);
+                                var h = input.offsetHeight || 22;
+                                var top = center.y - h - 8;
+                                if(top < window.scrollY + 4) top = center.y + 8;
+                                var left = center.x - provisionalWidth/2;
+                                this._routeInputStatic = { left:left, top:top, width:provisionalWidth };
+                                input.style.left = left + 'px';
+                                input.style.top = top + 'px';
+                            } catch(e) {
+                                var input = this.routeInput;
+                                if(!document.body.contains(input)) document.body.appendChild(input);
+                                var vw = window.innerWidth, vh = window.innerHeight;
+                                input.style.position = 'absolute';
+                                input.style.left = (window.scrollX + vw/2 - 100) + 'px';
+                                input.style.top = (window.scrollY + vh/2 - 15) + 'px';
+                                input.style.width = '200px';
+                                this._routeInputStatic = { left:window.scrollX + vw/2 - 100, top:window.scrollY + vh/2 - 15, width:200 };
+                            }
+                            this.routeInput.addEventListener('input', function(e) {
+                                var route = EventHandler.routeSelected();
+                                if(!route) return;
+                                var raw = e.target.value;
+                                var trimmed = raw.trim();
+                                if(trimmed.length) {
+                                    Model.changeRouteName(route, trimmed);
+                                    var hash = (route.start.mnemonic + '|' + route.name).trim();
+                                    route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.text.nodeValue = raw;
+                                } else {
+                                    route.svgKeyRouteText.text.nodeValue = ' ';
+                                }
+                            }, false);
+                            // Handle Enter (commit & close) and Escape (cancel close without change)
+                            this.routeInput.addEventListener('keydown', function(e){
+                                var route = EventHandler.routeSelected();
+                                if(!route) return;
+                                if(e.key === 'Enter') {
+                                    // Commit already applied via input handler; just close & deselect
+                                    e.preventDefault();
+                                    // simulate deselect: toggle highlight off and clear selection
+                                    if(route.hightlighted) route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                } else if(e.key === 'Escape') {
+                                    e.preventDefault();
+                                    // Revert visual label if emptied but not committed (trim again)
+                                    if(!route.name || !route.name.trim()) {
+                                        route.svgKeyRouteText.text.nodeValue = route.name ? route.name : ' ';
+                                    }
+                                    if(route.hightlighted) route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                }
+                            }, false);
+                            this._routeResizeHandler = function(){
+                                if(!(selfRoute && selfRoute.routeInput)) return;
+                                try {
+                                    var comp = selfRoute.start ? (selfRoute.start.component ? selfRoute.start.component : selfRoute.start) : null;
+                                    var center = computeComponentScreenPosition(comp);
+                                    var h = selfRoute.routeInput.offsetHeight || 22;
+                                    var top = center.y - h - 8;
+                                    if(top < window.scrollY + 4) top = center.y + 8;
+                                    var left = center.x - selfRoute._routeInputStatic.width/2;
+                                    selfRoute._routeInputStatic.left = left;
+                                    selfRoute._routeInputStatic.top = top;
+                                    selfRoute.routeInput.style.left = left + 'px';
+                                    selfRoute.routeInput.style.top = top + 'px';
+                                } catch(e) {}
+                            };
+                            window.addEventListener('resize', this._routeResizeHandler, false);
+                            try { this.routeInput.focus(); this.routeInput.select(); } catch(e) {}
+                        };
+                    }
                     if(!route.remove) {
                         route.remove = function() {
                             if(this.hightlighted)
                                 this.toggleHighlight();
                             if(this.routeInput) {
+                                if(this._routeResizeHandler) {
+                                    window.removeEventListener('resize', this._routeResizeHandler, false);
+                                    delete this._routeResizeHandler;
+                                }
                                 if(document.body.contains(this.routeInput))
                                     document.body.removeChild(this.routeInput);
                                 delete this.routeInput;
@@ -1442,10 +1543,14 @@
                             if(!EventHandler.routeSelected()) {
                                 if(!route.hightlighted) route.toggleHighlight();
                                 EventHandler.selectRoute(route);
+                                if(route.ensureRouteInput) route.ensureRouteInput();
                             }
                             else if(EventHandler.routeSelected() == route) {
-                                if(route.hightlighted) route.toggleHighlight();
-                                EventHandler.clearSelection();
+                                // Already selected: maybe deselect on second click
+                                if(route.hightlighted) {
+                                    route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                }
                             }
                         }, false);
                         SVGLayer.keys.appendChild(route.svgKeyRoute);

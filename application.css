@@ -126,6 +126,12 @@ body.dark #graph .routeSelected { stroke-width:42; }
 body.dark #graph #one,
 body.dark #graph #many { stroke:#e0e0e2 !important; }
 
+/* Route cursors: pointer when hoverable, text-like cursor when selected/editing */
+#graph .route { cursor: pointer; }
+#graph .routeSelected { cursor: text; }
+body.dark #graph .route { cursor: pointer; }
+body.dark #graph .routeSelected { cursor: text; }
+
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
 body.dark ::-webkit-scrollbar-track { background:#2a2b2f; }
