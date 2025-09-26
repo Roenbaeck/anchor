@@ -5781,6 +5781,18 @@
             applyTheme: function(theme) {
                 Settings.currentTheme = theme;
                 document.body.classList.toggle('dark', theme === 'dark');
+                // Update theme toggle menu item text/title if present
+                var item = document.getElementById('themeToggleItem');
+                if(item) {
+                    if(theme === 'dark') {
+                        item.textContent = 'Switch to light mode';
+                        item.setAttribute('title', 'Switch interface to light theme');
+                    }
+                    else {
+                        item.textContent = 'Switch to dark mode';
+                        item.setAttribute('title', 'Switch interface to dark theme');
+                    }
+                }
             },
             toggleTheme: function() {
                 this.applyTheme(Settings.currentTheme === 'dark' ? 'light' : 'dark');
@@ -7457,7 +7469,7 @@
                 </li>
                 <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings(true)">Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
-                <li title="Toggle between light and dark theme" onclick="Actions.toggleTheme()">Toggle theme</li>
+                <li id="themeToggleItem" title="Switch interface to dark theme" onclick="Actions.toggleTheme()">Switch to dark mode</li>
             </ul>
         </div>
     </div>
