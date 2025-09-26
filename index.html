@@ -5776,6 +5776,19 @@
                 Actions.modelStatusText = document.createTextNode(status);
                 statusElement.appendChild(Actions.modelStatusText);
             },
+            // THEME MANAGEMENT -----------------------------------------------
+            currentTheme: 'light',
+            applyTheme: function(theme) {
+                Settings.currentTheme = theme;
+                document.body.classList.toggle('dark', theme === 'dark');
+            },
+            toggleTheme: function() {
+                this.applyTheme(Settings.currentTheme === 'dark' ? 'light' : 'dark');
+            },
+            initTheme: function(theme) {
+                if(theme === 'dark') this.applyTheme('dark');
+                else this.applyTheme('light');
+            },
             cloudStatusText: null,
             checkCloudConnectionStatus: function(redirect) {
                 window.status = "Contacting Cloud...";
@@ -6974,6 +6987,11 @@
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
+            // initialize theme (light/dark)
+            if(window.Actions && typeof Actions.initTheme === 'function') {
+                var storedTheme = window.localStorage.getItem("theme");
+                Actions.initTheme(storedTheme ? storedTheme : 'light');
+            }
             // Show initial status explicitly (before any model load) so user sees "Local editing mode"
             if(window.Actions && typeof Actions.setModelStatus === 'function') {
                 Actions.lastLocalFilename = null;
@@ -7112,6 +7130,8 @@
                 window.localStorage.setItem("modelKeywords", Model.keywords);
             if(Model.description)
                 window.localStorage.setItem("modelDescription", Model.description);
+            if(Settings.currentTheme)     
+                window.localStorage.setItem("theme", Settings.currentTheme);    
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
             if(popup)
@@ -7437,6 +7457,7 @@
                 </li>
                 <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings(true)">Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
+                <li title="Toggle between light and dark theme" onclick="Actions.toggleTheme()">Toggle theme</li>
             </ul>
         </div>
     </div>

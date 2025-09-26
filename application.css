@@ -12,6 +12,120 @@ body {
     padding:            0;
 }
 
+/* ==========================
+     Dark Theme (opt-in via body.dark)
+     ========================== */
+body.dark {
+        color:              #f2f2f3;
+        background:         #1e1f22;
+}
+body.dark a:link,
+body.dark a:active,
+body.dark a:visited { color:#ff8888; }
+body.dark a:hover { color:#ffb0b0; }
+
+/* Panels, menus, overlays */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #tabularEditor,
+body.dark #miniature,
+body.dark #model,
+body.dark #cloud,
+body.dark #search input,
+body.dark #search select,
+body.dark #loadingOverlay { background-color:rgba(50,51,56,0.92); color:#f2f2f3; }
+
+body.dark #loadingOverlay { backdrop-filter:blur(2px); }
+body.dark #loadingSpinner { border-color:#444; border-top-color:#ff6666; }
+
+/* Borders / outlines */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #tabularEditor,
+body.dark #tabularEditor .closebutton,
+body.dark #miniature { border-color:#3a3b40; }
+
+/* Shadows softened */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #miniature,
+body.dark .collapsed { box-shadow:0 4px 14px rgba(0,0,0,0.6); }
+
+/* Menu text / hovers */
+body.dark .menu { color:#f2f2f3; }
+body.dark .menu:hover { color:#fff; }
+body.dark .submenu li { color:#f2f2f3; }
+body.dark .submenu li:hover { background-color:#b55; color:#fff; }
+body.dark .submenu a { color:#f2f2f3; }
+body.dark .submenu a:hover { color:#fff; text-shadow:0 0 6px #ff8888; }
+
+/* Inputs */
+body.dark input,
+body.dark select,
+body.dark textarea { background:#2a2b2f; color:#f2f2f3; border:1px solid #555; }
+body.dark input:focus,
+body.dark select:focus,
+body.dark textarea:focus { outline:1px solid #ff6666; }
+body.dark input:invalid { background-color:#5a1e1e; }
+
+/* Toggle / buttons inside menus */
+body.dark .toggler { border-color:#888; background:#333; color:#eee; }
+body.dark .collapsed { background-color:#333; }
+body.dark .expanded { background-color:#c33; }
+
+/* Status elements */
+body.dark #model { background-color:#1e1f22; color:#f2f2f3; box-shadow:0 0 2px rgba(0,0,0,0.6); }
+body.dark #cloud { color:#f2f2f3; }
+
+/* Graph specific colors (edge strokes etc.) adapt subtly */
+body.dark svg#graph { background:#1e1f22; }
+body.dark #graph .label { fill:#f2f2f3; }
+body.dark #graph text { fill:#e0e0e0; }
+body.dark #graph .node { stroke:#ccc; }
+/* Preserve anchor and nexus name color (brand red) in dark theme */
+body.dark #graph .anchor,
+body.dark #graph .nexus { fill:#b55 !important; }
+
+/* Dark theme: improve contrast for edges and darken previously white fills */
+body.dark #graph g#edges * { stroke:#d4d4d6 !important; }
+/* Any element explicitly filled white becomes a dark neutral to avoid glare */
+body.dark #graph [fill="#fff"],
+body.dark #graph [style*="fill:#fff"],
+body.dark #graph [fill="#ffffff"],
+body.dark #graph [style*="fill:#ffffff"] { fill:#222 !important; }
+/* Historized inner circles (were white) get slightly lighter dark tone for differentiation */
+body.dark #graph circle[fill="#fff"],
+body.dark #graph circle[style*="fill:#fff"] { fill:#262626 !important; }
+/* Debug partitions adapt */
+body.dark #graph #debugPartitions { fill:#202124; stroke:#333; }
+/* Miniature overrides */
+body.dark #minigraph [fill="#fff"],
+body.dark #minigraph [style*="fill:#fff"],
+body.dark #minigraph [fill="#ffffff"],
+body.dark #minigraph [style*="fill:#ffffff"] { fill:#222 !important; }
+body.dark #minigraph g#edges * { stroke:#d4d4d6 !important; }
+
+/* Miniature adjustments */
+body.dark #miniature { background:#2a2b2f; }
+body.dark #minigraph text { fill:#ddd; }
+
+/* Scrollbars (WebKit) */
+body.dark ::-webkit-scrollbar { width:10px; }
+body.dark ::-webkit-scrollbar-track { background:#2a2b2f; }
+body.dark ::-webkit-scrollbar-thumb { background:#555; border-radius:5px; }
+body.dark ::-webkit-scrollbar-thumb:hover { background:#666; }
+
+/* Loading overlay text color inherited; ensure indicator text */
+body.dark #loadingIndicator { color:#f2f2f3; }
+
+/* Prevent white flashes in transitions */
+@media (prefers-reduced-motion:no-preference) {
+    body.dark { transition:background-color .25s ease, color .25s ease; }
+}
+
 /* Temporalization visibility control */
 body.temporal-uni li.bi,
 body.temporal-uni li.crt { display:none !important; }
@@ -197,6 +311,12 @@ a:hover {
 }
 #contextMenu .items {
     margin:             10px 10px 5px 10px;
+}
+#contextMenu .items tr, #contextMenu .items td {
+    background:         transparent !important; /* remove banding */
+}
+body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
+    background:         transparent !important;
 }
 #contextMenu .topper {
     font:               10px sans-serif;
