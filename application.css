@@ -134,7 +134,15 @@ body.dark #graph .routeSelected { cursor: text; }
 /* Light theme defaults */
 svg#graph .partitions { fill:#fff8f8; stroke:#f4ebeb; }
 /* Dark theme adaptation: lower contrast, subtle outline */
-body.dark svg#graph .partitions { fill:#2a2b30; stroke:#3a3b40; }
+body.dark svg#graph .partitions { fill:#170103; stroke:#280205; }
+
+/* Debug force vectors (physics velocity/force arrows) */
+svg#graph .forceVector { stroke:#fcc; stroke-width:6; }
+body.dark svg#graph .forceVector { stroke:#622; stroke-width:6; }
+
+/* Arrowhead marker theming (matches updated force vector styling) */
+svg#graph marker#arrowhead path { fill:#fcc; }
+body.dark svg#graph marker#arrowhead path { fill:#622; }
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }

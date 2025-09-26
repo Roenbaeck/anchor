@@ -2525,6 +2525,8 @@
             showDebug: function(imageLayer) {
                 this.forceElement = document.createElementNS(SVGNS, 'line');
                 this.forceElement.setAttributeNS(null, 'marker-end', 'url(#arrowhead)');
+                // Add class so stroke color & opacity can be theme-controlled via CSS
+                this.forceElement.classList.add('forceVector');
                 if(!imageLayer.contains(this.forceElement))
                     imageLayer.appendChild(this.forceElement);
             },
