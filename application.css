@@ -117,9 +117,14 @@ body.dark #minigraph #viewport { stroke:#ffffff !important; stroke-width:1px !im
 body.dark #graph #fixation circle { fill:#ffffff !important; }
 /* Bubble (small 8px circle used in graph) – original inline fill is light (#f9f8f7); tone it down in dark mode */
 body.dark #graph #bubble circle { fill:#303134 !important; }
+/* Key route paths: in dark mode use subtle light strokes that get brighter on overlap */
+body.dark #graph .route { stroke:rgba(255,255,255,0.08) !important; }
+body.dark #graph .routeSelected { stroke:rgba(255,160,160,0.30) !important; }
+/* Provide a slightly thicker selected route halo if desired (matches original 42 vs 32) */
+body.dark #graph .routeSelected { stroke-width:42; }
 /* Cardinality indicators (one/many) inside bubble: brighten strokes for dark mode */
 body.dark #graph #one,
-body.dark #graph #many { stroke:#d0d0d2 !important; }
+body.dark #graph #many { stroke:#e0e0e2 !important; }
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
