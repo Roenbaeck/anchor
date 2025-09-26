@@ -5509,46 +5509,7 @@
             }
         };
 
-        var FileHandler = {
-            reader: null,
-            handleFiles: function(files) {
-                this.reader = new FileReader();
-                this.reader.onload = function(e) { FileHandler.fileLoaded(e); };
-                this.reader.onerror = function(e) {
-                    if(console && console.error)
-                        console.error("File could not be read! Code " + event.target.error.code);
-                };
-                this.reader.readAsText(files[0]);
-            },
-            replaceInput: function(parent, input) {
-                var newInput = document.createElement('input');
-                newInput.className = 'fileSelect';
-                newInput.setAttribute('type', 'file');
-                newInput.addEventListener('change', function() {
-                    FileHandler.handleFiles(this.files);
-                    FileHandler.replaceInput(this.parentNode, this);
-                }, false);
-                parent.replaceChild(newInput, input);
-            },
-            fileLoaded: function(event) {
-                var xml;
-                try {
-                    var parser = new DOMParser();
-                    xml = parser.parseFromString(this.reader.result, "text/xml");
-                }
-                catch(exception) {
-                    alert(exception);
-                }
-                Model.uncloud();
-                Model.clearStates();
-                Model.fromXML(xml);
-                Actions.setModelStatus();
-                Actions.resetZoom();
-                Actions.centerModel();
-                DrawingEngine.taint();
-                DrawingEngine.start(false);
-            }
-        };
+        // Legacy FileHandler removed: functionality consolidated into Actions._applyLoadedModel and modern file input script.
 
         var Actions = {
             startKeyboardEvents: function() {
@@ -5735,29 +5696,81 @@
                 var xml = new DOMParser().parseFromString(responseText, 'text/xml');
                 return xml;                
             },
+            _applyLoadedModel: function(xml, layout) {
+                layout = typeof layout !== 'undefined' ? layout : false;
+                EventHandler.clearSelection();
+                SVGLayer.clearAll();
+                NAVLayer.clearAll();
+                // Reset any previous cloud/local metadata so old names do not linger
+                Model.uncloud();
+                Model.name = null;
+                Model.keywords = null;
+                Model.description = null;
+                Model.scope = 'private';
+                Model.clearStates();
+                Model.fromXML(xml);
+                Actions.setModelStatus();
+                Actions.resetZoom();
+                Actions.centerModel();
+                DrawingEngine.taint();
+                DrawingEngine.start(layout);
+                this.hideLoading();
+            },
             loadFromURL: function (url, layout) {
                 layout = typeof layout !== 'undefined' ? layout : false;
+                // Treat example.xml like a local file name for status purposes
+                if(url === 'example.xml')
+                    this.lastLocalFilename = 'example.xml';
+                else
+                    this.lastLocalFilename = null; // avoid stale filename when loading other sources
+                if(this.loading) return; // guard against double-clicks
+                this.showLoading('Loading ' + (this.lastLocalFilename || url) + '…');
                 this.loadXML(url)
                 .then(xml => {
-                    EventHandler.clearSelection();
-                    SVGLayer.clearAll();
-                    NAVLayer.clearAll();
-                    Model.uncloud();
-                    Model.clearStates();
-                    Model.fromXML(xml);
-                    Actions.setModelStatus();
-                    Actions.resetZoom();
-                    Actions.centerModel();
-                    DrawingEngine.taint();
-                    DrawingEngine.start(layout);
+                    this._applyLoadedModel(xml, layout);
+                })
+                .catch(err => {
+                    console.error('Failed to load model from URL', err);
+                    alert('Failed to load model: ' + err.message);
+                    this.hideLoading();
                 });
             },
             modelStatusText: null,
+            lastLocalFilename: null,
+            loading: false,
+            showLoading: function(message) {
+                var overlay = document.getElementById('loadingOverlay');
+                var label = document.getElementById('loadingIndicator');
+                if(!overlay || !label) return;
+                if(!message) message = 'Loading…';
+                label.textContent = message;
+                overlay.style.display = 'block';
+                document.body.setAttribute('aria-busy', 'true');
+                this.loading = true;
+            },
+            hideLoading: function() {
+                var overlay = document.getElementById('loadingOverlay');
+                if(overlay) overlay.style.display = 'none';
+                document.body.removeAttribute('aria-busy');
+                this.loading = false;
+            },
+            newModel: function() {
+                if(this.loading) return; // do nothing if a load is in progress
+                this.lastLocalFilename = null;
+                Model.name = null;
+                Model.keywords = null;
+                Model.description = null;
+                Model.scope = 'private';
+                Model.setupMinimal(true);
+                this.setModelStatus();
+            },
             setModelStatus: function() {
                 var statusElement = document.getElementById("model");
                 var status = "Local editing mode";
                 if(Model.name && Model.id)
                     status = "Cloud mode, editing " + Model.scope + " model: " + Model.name;
+                else if(this.lastLocalFilename)
+                    status += " (" + this.lastLocalFilename + ")";
                 if(Actions.modelStatusText)
                     statusElement.removeChild(Actions.modelStatusText);
                 Actions.modelStatusText = document.createTextNode(status);
@@ -6961,6 +6974,11 @@
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
+            // Show initial status explicitly (before any model load) so user sees "Local editing mode"
+            if(window.Actions && typeof Actions.setModelStatus === 'function') {
+                Actions.lastLocalFilename = null;
+                Actions.setModelStatus();
+            }
 
             // find any parameters passed in the url
             var gets = window.location.search.substring(1);
@@ -7050,6 +7068,8 @@
                 Model.scope = window.localStorage.getItem("modelScope");
                 Model.keywords = window.localStorage.getItem("modelKeywords");
                 Model.description = window.localStorage.getItem("modelDescription");
+                // Update status with restored model name if any
+                Actions.setModelStatus();
             }
             else
                 Actions.loadFromURL('example.xml');
@@ -7259,14 +7279,14 @@
     <div id="header" class="unselectable">
         <div id="file" class="menu">File
             <ul class="submenu">
-                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Model.setupMinimal(true)">New model...</li>
+                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Actions.newModel()">New model...</li>
+                <script>/* updated below */</script>
                 <!--
                 <li title="Load a publicly stored model from the Google Cloud connection." onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                 <li title="Load a privately stored model from the Google Cloud connection. Requires that you log in to your Google account." onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                 <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                 -->
-                <li><i>Load model from local file:</i></li>
-                <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" onclick="document.getElementById('modelFileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('modelFileInput').click();event.preventDefault();}">Load model from local file...</li>
                 <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
                 <li title="Save model XML definition to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
                 <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
@@ -7485,5 +7505,69 @@
     <div id="model" class="unselectable">
         <!-- filled dynamically -->
     </div>
+    <!-- Loading overlay (hidden by default) -->
+    <div id="loadingOverlay" aria-hidden="true" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.75);backdrop-filter:blur(2px);">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Open Sans',sans-serif;text-align:center;">
+            <div id="loadingSpinner" style="width:48px;height:48px;margin:0 auto 12px;border:6px solid #e3d7d7;border-top-color:#c80514;border-radius:50%;animation:anchor-spin 0.9s linear infinite;"></div>
+            <div id="loadingIndicator" style="font-size:14px;color:#333;">Loading…</div>
+        </div>
+    </div>
+    <style>
+        @keyframes anchor-spin { to { transform: rotate(360deg); } }
+    </style>
+    <!-- Hidden file input for loading local model files (single file only) -->
+    <input id="modelFileInput" type="file" accept=".xml,text/xml,application/xml" style="display:none" aria-hidden="true" />
+    <!-- Live region for announcing loaded filename (improves accessibility) -->
+    <div id="fileLoadStatus" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" aria-live="polite" aria-atomic="true"></div>
+    <script>
+    (function(){
+        const input = document.getElementById('modelFileInput');
+        const statusRegion = document.getElementById('fileLoadStatus');
+        if(!input) return;
+
+        async function loadFile(file){
+            if(!file) return;
+            if(Actions.loading) return; // prevent concurrent loads
+            Actions.showLoading('Loading ' + file.name + '…');
+            try {
+                const text = await file.text(); // modern File API, returns Promise
+                const xml = new DOMParser().parseFromString(text, 'text/xml');
+                // Basic parse error detection (presence of parsererror element)
+                if(xml.getElementsByTagName('parsererror').length){
+                    throw new Error('XML parse error');
+                }
+                Actions.lastLocalFilename = file.name;
+                Actions._applyLoadedModel(xml, false);
+                statusRegion.textContent = 'Loaded ' + file.name;
+            } catch(err){
+                console.error('Failed to load file', err);
+                alert('Failed to load model: ' + err.message);
+                Actions.hideLoading();
+            } finally {
+                // allow selecting same file again
+                input.value = '';
+            }
+        }
+
+        function handleFileList(fileList){
+            if(!fileList || !fileList.length) return;
+            // restrict strictly to the first file
+            loadFile(fileList[0]);
+        }
+
+        input.addEventListener('change', e => handleFileList(e.target.files));
+
+        // Optional drag & drop support
+        document.addEventListener('dragover', e => { e.preventDefault(); });
+        document.addEventListener('drop', e => {
+            if(!e.dataTransfer) return;
+            const files = e.dataTransfer.files;
+            if(files && files.length){
+                e.preventDefault();
+                handleFileList(files);
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

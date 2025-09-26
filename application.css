@@ -160,15 +160,21 @@ a:hover {
     z-index:            10;
 }
 
-/* shows model name if cloud based or local */
+/* shows model name or local editing status
+   Repositioned to bottom right under the miniature for visual balance */
 #model {
     font:               8pt sans-serif;
     position:           absolute;
     color:              black;
-    text-align:         left;
-    bottom:             54px;
-    left:               12px;
-    display:            block;
+    text-align:         right;
+    bottom:             6px;      /* same vertical offset as logotype */
+    right:              42px;     /* align with miniature's right edge */
+    left:               auto;
+    display:            inline-block; /* shrink wrap for background box */
+    background-color:   #f9f8f7; /* opaque box matching main background */
+    padding:            2px 6px; /* small breathing room around text */
+    border-radius:      3px;     /* subtle rounding */
+    pointer-events:     none;    /* don't block interactions with canvas beneath */
     z-index:            10;
 }
 
