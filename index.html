@@ -3291,7 +3291,7 @@
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.IDENTIFIER));
             // set members
-            this.editables.push(Editables.keySelectEdit);
+            // Removed keySelectEdit: identifiers are bound to their defining key route; editing route is not allowed.
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
@@ -3399,18 +3399,14 @@
                 return (this.entity ? this.entity.mnemonic : '??') + '|' + (this.route ? this.route.name : '?');
             },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(Editables.changingRangeEdit);
-                if(historized && index < 0)
-                    this.editables.push(Editables.changingRangeEdit);
-                else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
-                index = this.editables.indexOf(Editables.restatabilityEdit);
-                if(historized && index < 0) 
-                    this.editables.push(Editables.restatabilityEdit);
-                else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
-                if(this.changingRange === '')
-                    this.changingRange = Defaults.changingRange;
+                // Identifiers may be historized implicitly if any stop attribute is historized, but
+                // their time range and restatable properties are not user-editable (always schema metadata chronon).
+                // Ensure legacy editables are removed if present.
+                var idx = this.editables.indexOf(Editables.changingRangeEdit);
+                if(idx >= 0) this.editables.splice(idx,1);
+                idx = this.editables.indexOf(Editables.restatabilityEdit);
+                if(idx >= 0) this.editables.splice(idx,1);
+                if(this.changingRange === '' && historized) this.changingRange = Defaults.changingRange; // internal use only
                 var ref = historized ? '#identifier_historized' : '#identifier';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
                 this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
@@ -3488,8 +3484,10 @@
                 // create an identifier element (correct spelling)
                 var identifierEl = schema.createElement("identifier");
                 identifierEl.setAttribute("route", this.route.name);
-                if(this.historized)
-                    identifierEl.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
+                // NOTE: timeRange attribute for identifiers has been deprecated.
+                // Historizaton of an identifier is derived from its key route (presence of historized stops)
+                // and no longer serialized explicitly. We keep reading legacy timeRange on load for backward compatibility
+                // but we do not emit it anymore.
                 if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
                     identifierEl.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 var metadata = schema.createElement("metadata");
@@ -3508,10 +3506,7 @@
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
                             false : this.checksum);
                 }
-                if(this.historized) {
-                    metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
-                            Defaults.restatability === 'true' : this.restatable);
-                }
+                // Removed restatable for identifiers: historization is derived and identifier restatability is not user-controlled.
                 identifierEl.appendChild(metadata);
                 this.addLayoutXML(identifierEl, schema);
                 this.addDescriptionXML(identifierEl, schema, this.description);
