@@ -538,13 +538,18 @@ while (tie = schema.nextTie()) {
             schema._iterator.identifier = 0;
             return null;
         }
-        var anchorRole, knotRole;
+        var anchorRole, knotRole, nexusRole, genericRole;
+        var currentId = this.identifiers[schema._iterator.identifier];
         if(this.anchorRole)
-            anchorRole = this.anchorRole[this.identifiers[schema._iterator.identifier]];
+            anchorRole = this.anchorRole[currentId];
         if(this.knotRole)
-            knotRole = this.knotRole[this.identifiers[schema._iterator.identifier]];
+            knotRole = this.knotRole[currentId];
+        if(this.nexusRole)
+            nexusRole = this.nexusRole[currentId];
+        if(!anchorRole && !knotRole && !nexusRole && this.role)
+            genericRole = this.role[currentId];
         schema._iterator.identifier++;
-        return anchorRole || knotRole;
+        return anchorRole || knotRole || nexusRole || genericRole || null;
     };
     tie.hasMoreIdentifiers = function() {
         return schema._iterator.identifier < this.identifiers.length;
@@ -557,13 +562,18 @@ while (tie = schema.nextTie()) {
             schema._iterator.value = 0;
             return null;
         }
-        var anchorRole, knotRole;
+        var anchorRole, knotRole, nexusRole, genericRole;
+        var currentVal = this.values[schema._iterator.value];
         if(this.anchorRole)
-            anchorRole = this.anchorRole[this.values[schema._iterator.value]];
+            anchorRole = this.anchorRole[currentVal];
         if(this.knotRole)
-            knotRole = this.knotRole[this.values[schema._iterator.value]];
+            knotRole = this.knotRole[currentVal];
+        if(this.nexusRole)
+            nexusRole = this.nexusRole[currentVal];
+        if(!anchorRole && !knotRole && !nexusRole && this.role)
+            genericRole = this.role[currentVal];
         schema._iterator.value++;
-        return anchorRole || knotRole;
+        return anchorRole || knotRole || nexusRole || genericRole || null;
     };
     tie.hasMoreValues = function() {
         return schema._iterator.value < this.values.length;
