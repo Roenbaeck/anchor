@@ -19,6 +19,13 @@ body.temporal-uni li.crt { display:none !important; }
 body.temporal-bi  li.crt:not(.bi) { display:none !important; }
 /* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
 
+/* Metadata / equivalence visibility control
+    Metadata specific options (li.metadata) are only shown when body has class 'metadata'.
+    Equivalence specific options (li.equivalence) are only shown when body has class 'equivalence'.
+    This mirrors how temporalization toggles classes on <body>. */
+body:not(.metadata)    li.metadata { display:none !important; }
+body:not(.equivalence) li.equivalence { display:none !important; }
+
 
 a:link, a:active, a:visited {
     color:              #b55;

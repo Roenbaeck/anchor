@@ -6190,6 +6190,8 @@
                     this.setNaturalKeyAttributes('false');
                     this.setDecisiveness('true');
                     this.setEquivalence('false');
+                    this.setEquivalentRange('tinyint');
+                    this.setEquivalentSuffix('EQ');
                     this.setChangingSuffix('ChangedAt');
                     this.setIdentitySuffix('ID');
                     this.setPositIdentityRange('int');
@@ -6342,12 +6344,16 @@
                     this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
                     this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
+                    this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                    this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                     this.setKnotAliases(storage.getItem('knotAliases') || Defaults.knotAliases);
                     this.setTriggers(storage.getItem('triggers') || Defaults.triggers);
                     this.setNaturalKeyAttributes(storage.getItem('naturalKeyAttributes') || Defaults.naturalKeyAttributes);
                     this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
+                    this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
+                    this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                     this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                     this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
@@ -6380,7 +6386,7 @@
                     NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 2;
                     NodeType.charge[NodeType.EDGE] = 1 * storage.getItem('edgeCharge') || 4;
                     // must be done after Defaults have been populated with previously stored values
-                    this.setTemporalization(storage.getItem('temporalization') || 'uni');
+                    this.setTemporalization(storage.getItem('temporalization') || Defaults.temporalization);
                 }
                 this.init();
             },
@@ -6507,24 +6513,11 @@
             },
             setMetadataUsage: function(value) {
                 Defaults.metadataUsage = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
-                if(value === 'true') {
-                    this.addTextItem(
-                            'metadataPrefix', listOfDefaults, beforeItem, ' Metadata prefix',
-                            "The prefix used for the columns that store a metadata reference.",
-                            function() { Settings.setMetadataPrefix(this.value); }
-                    );
-                    this.addTextItem(
-                            'metadataType', listOfDefaults, beforeItem, ' Metadata type',
-                            "The 'data type' of the metadata column.",
-                            function() { Settings.setMetadataType(this.value); }
-                    );
-                }
-                else {
-                    this.removeItem('metadataPrefix', listOfDefaults);
-                    this.removeItem('metadataType', listOfDefaults);
-                }
+                var body = document.body;
+                // Toggle dedicated body class for equivalence-specific UI items
+                if (value === 'true') body.classList.add('metadata');
+                else body.classList.remove('metadata');
+                this.init();
             },
             setBusinessViews: function(value, userToggle) {
                 Defaults.businessViews = value;
@@ -6565,26 +6558,13 @@
             },
             setEquivalence: function(value) {
                 Defaults.equivalence = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
-                if(value === 'true') {
-                    this.addTextItem(
-                            'equivalentSuffix', listOfDefaults, beforeItem, ' Equivalents suffix',
-                            "The suffix used for the columns that store equivalents.",
-                            function() { Settings.setEquivalentSuffix(this.value); }
-                    );
-                    this.addTextItem(
-                            'equivalentRange', listOfDefaults, beforeItem, ' Equivalents range',
-                            "The 'data type' of the equivalents column.",
-                            function() { Settings.setEquivalentRange(this.value); }
-                    );
-                    Editables.setEditability(Editables.equivalenceEdit, true);
-                }
-                else {
-                    this.removeItem('equivalentSuffix', listOfDefaults);
-                    this.removeItem('equivalentRange', listOfDefaults);
-                    Editables.setEditability(Editables.equivalenceEdit, false);
-                }
+                var body = document.body;
+                // Toggle dedicated body class for equivalence-specific UI items
+                if (value === 'true') body.classList.add('equivalence');
+                else body.classList.remove('equivalence');
+                this.init();
+                var enable = (value === 'true');
+                Editables.setEditability(Editables.equivalenceEdit, enable);
             },
             setDeletability: function(value) {
                 Defaults.deletability = value;
@@ -7379,7 +7359,7 @@
         </div>
 
         <div id="defaults" class="menu">Defaults
-            <ul id="listOfDefaults" class="submenu">
+            <ul class="submenu">
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing time suffix</li>
                 <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
@@ -7390,7 +7370,11 @@
                 <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" onblur="Settings.setDeletionSuffix(this.value)"/> Deletion suffix</li>
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
-                <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
+                <li class="equivalence" title="The suffix used for the columns that store equivalents."><input id="equivalentSuffix" class="inputDefaults" type="text" onblur="Settings.setEquivalentSuffix(this.value)"/> Equivalents suffix</li>
+                <li class="equivalence" title="The 'data type' of the equivalents column."><input id="equivalentRange" class="inputDefaults" type="text" onblur="Settings.setEquivalentRange(this.value)"/> Equivalents range</li>
+                <li class="metadata" title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
                 <li title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
                 <li title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
