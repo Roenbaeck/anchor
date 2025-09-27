@@ -2012,7 +2012,12 @@
                 name: 'Chronicle ordinal',
                 description:
                         'The ordinal number for this chronicle provider. 0 means not a provider, 1+ means provider with that order.',
-                setMember: function (element, component) { component.component.chronicle = parseInt(element.value) || 0; },
+                setMember: function (element, component) { 
+                    component.component.chronicle = parseInt(element.value) || 0;
+                    if (component.svg.textElement) {
+                        component.svg.textElement.textContent = component.component.chronicle || '';
+                    }
+                },
                 getMember: function (component) { return component.component.chronicle; },
                 setElement: function (element, component) { element.value = component.component.chronicle; },
                 getElement: function (element) { return element.value; },
@@ -2941,6 +2946,7 @@
             this.positGenerator = Defaults.positGenerator === 'true';
             this.chronicle = 0;
             this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey', 'createKey');
+            // Note: 'toggleHistorized' will be removed automatically if the attribute connects to a Nexus (see Role construction adjustments if added)
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -3021,6 +3027,18 @@
                 return true;
             },
             setHistorized: function(historized) {
+                // Prevent historization for attributes that belong to a Nexus (event attributes are immutable)
+                if(historized) {
+                    for(var i = 0; i < this.node.edges.length; i++) {
+                        var e = this.node.edges[i];
+                        var otherNode = (e.node === this.node ? e.otherNode : e.node);
+                        if(otherNode.type === NodeType.NEXUS) {
+                            // Silently ignore request (could alternatively warn)
+                            historized = false;
+                            break;
+                        }
+                    }
+                }
                 var index = this.editables.indexOf(Editables.changingRangeEdit);
                 if(historized && index < 0)
                     this.editables.push(Editables.changingRangeEdit);
@@ -3120,8 +3138,6 @@
                     assertive = _assertive ? _assertive === 'true' : assertive;
                     var _equivalent = metadata.getAttribute("equivalent");
                     equivalent = _equivalent ? _equivalent === 'true' : equivalent;
-                    var _chronicle = metadata.getAttribute("chronicle");
-                    chronicle = _chronicle ? parseInt(_chronicle) : 0;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3136,6 +3152,8 @@
                 var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var chronicle = element.getAttribute("chronicle");
+                chronicle = chronicle ? parseInt(chronicle) : 0;
                 var attribute = new Attribute(x, y, historized);
                 // WIP: keys
                 for(i = 0; i < element.childNodes.length; i++) {
@@ -3210,6 +3228,9 @@
                 else {
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
                 }
+                if(this.chronicle > 0) {
+                    attribute.setAttribute("chronicle", this.chronicle);
+                }
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
                         Defaults.privacy : this.privacy);
@@ -3237,9 +3258,6 @@
                         Defaults.idempotency === 'true' : this.idempotent);                
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);                
-                if(this.chronicle > 0) {
-                    metadata.setAttribute("chronicle", this.chronicle);
-                }
                 attribute.appendChild(metadata);
                 // WIP: keys
                 if(this.keys && this.keys.length > 0) {
@@ -4687,11 +4705,10 @@
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.ANCHOR) ||
                        (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS) ||
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.KNOT) ||
-                       (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS) ||
-                       (node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
-                       (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE);
-            this.chronicable = (node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
-                                  (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE);
+                       (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS);
+            this.chronicable = ((node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+                                  (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE)) &&
+                                 !component.historized;
             if(this.chronicable) {
                 this.editables.push(Editables.chronicleEdit);
             } else {
@@ -4699,6 +4716,12 @@
                 this.operations.push('toggleIdentifier');
             }
             this.operations.push('addToKey', 'removeFromKey', 'createKey');
+            // Remove historization toggle for Attribute–Nexus edges (attributes on events are immutable)
+            if((node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+               (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE)) {
+                var thIdx = this.component.operations ? this.component.operations.indexOf('toggleHistorized') : -1;
+                if(thIdx >= 0) this.component.operations.splice(thIdx, 1);
+            }
             // Remove makeFirstRole if this edge does not involve an actual tie (ordering only affects tie naming)
             if(node.type !== NodeType.TIE && otherNode.type !== NodeType.TIE) {
                 var mfrIdx = this.operations.indexOf('makeFirstRole');
@@ -4727,20 +4750,11 @@
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
                 this.svg.graphicsElement.component = this;
                 var bubble = document.createElementNS(SVGNS, 'use');
-                bubble.setAttributeNS(XLINKNS, 'xlink:href', this.chronicable ? '#bubbleOutline' : '#bubble');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
-                if(this.chronicable) {
-                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ''); // hide cardinality
-                    this.svg.textElement = document.createElementNS(SVGNS, 'text');
-                    this.svg.textElement.setAttributeNS(null, 'class', 'chronicleLabel');
-                    this.svg.textElement.setAttributeNS(null, 'text-anchor', 'middle');
-                    this.svg.textElement.setAttributeNS(null, 'dominant-baseline', 'central');
-                    this.svg.textElement.textContent = this.component.chronicle || '';
-                    this.svg.graphicsElement.appendChild(this.svg.textElement);
-                }
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
                 this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
@@ -4750,10 +4764,31 @@
                 this.svg.boundingBox = this.svg.graphicsElement.getBBox();
                 this.svg.xOffset = 2;
                 this.svg.yOffset = 2;
-                if(!this.chronicable) {
-                    this.setNameable(true);
-                    this.svg.nameElement.setAttributeNS(null, 'class', 'role');
-                }
+                this.setNameable(true);
+                this.svg.nameElement.setAttributeNS(null, 'class', 'role');
+            }
+            else if (this.chronicable) {
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
+                var bubble = document.createElementNS(SVGNS, 'use');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubbleOutline');
+                this.svg.graphicsElement.appendChild(bubble);
+                this.svg.textElement = document.createElementNS(SVGNS, 'text');
+                this.svg.textElement.setAttributeNS(null, 'class', 'chronicleLabel');
+                this.svg.textElement.setAttributeNS(null, 'text-anchor', 'middle');
+                this.svg.textElement.setAttributeNS(null, 'dominant-baseline', 'central');
+                this.svg.textElement.textContent = this.component.chronicle || '';
+                this.svg.graphicsElement.appendChild(this.svg.textElement);
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                    this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+                );
+                this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
+                this.setNameable(false);
             }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
@@ -4788,7 +4823,7 @@
                 }
             },
             isInteractive: function() {
-                return this.tied;
+                return this.tied || this.chronicable;
             },
             isDraggable: function() {
                 return false;
@@ -4831,7 +4866,7 @@
                 if(this.chronicable && image.textElement) {
                     image.textElement.textContent = this.component.chronicle || '';
                 }
-                if(this.tied && image.control) {
+                if((this.tied || this.chronicable) && image.control) {
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
             }
