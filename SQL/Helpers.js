@@ -225,6 +225,42 @@ while (nexus = schema.nextNexus()) {
         // add to global collection
         schema.allAttributes.push(nxAttribute);
     }
+    // Chronicle support: collect static (non-historized) attributes with a positive chronicle number
+    nexus._chronicleSorted = null; // lazy cache
+    nexus._chronicleIndex = 0;
+    nexus._buildChronicleList = function() {
+        var list = [];
+        if(this.attributes) {
+            for(var i=0;i<this.attributes.length;i++) {
+                var aid = this.attributes[i];
+                var attr = this.attribute[aid];
+                if(!attr) continue;
+                var chron = attr.chronicle ? Number(attr.chronicle) : 0;
+                // Exclude historized (should not exist for nexus now) and zero/NaN
+                if(chron > 0 && !attr.timeRange) {
+                    list.push(attr);
+                }
+            }
+        }
+        list.sort(function(a,b){ return Number(a.chronicle)-Number(b.chronicle); });
+        this._chronicleSorted = list;
+        this._chronicleIndex = 0;
+    };
+    nexus.nextChronicle = function() {
+        if(!this._chronicleSorted) this._buildChronicleList();
+        if(this._chronicleIndex >= this._chronicleSorted.length) {
+            this._chronicleIndex = 0;
+            return null;
+        }
+        return this._chronicleSorted[this._chronicleIndex++];
+    };
+    nexus.hasMoreChronicles = function() {
+        if(!this._chronicleSorted) this._buildChronicleList();
+        return this._chronicleIndex < this._chronicleSorted.length;
+    };
+    nexus.isFirstChronicle = function() {
+        return this._chronicleIndex == 1; // first returned increments index to 1
+    };
 }
 
 // classify nexus roles and populate role grouping vectors (identifiers, values, knot/anchor/nexus/entity)
