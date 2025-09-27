@@ -48,7 +48,7 @@
         <identifier route="1st"/>
     </anchor>
     <nexus mnemonic="EV" descriptor="Event" identity="int">
-        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime">
+        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime" chronicle="1">
             <key stop="1" route="1st" of="EV" branch="1"/>
         </attribute>
         <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
