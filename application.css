@@ -47,6 +47,10 @@ body.dark #tabularEditor,
 body.dark #tabularEditor .closebutton,
 body.dark #miniature { border-color:#3a3b40; }
 
+body.dark #bubbleOutline circle { fill:#2a2b2f; stroke:#aaa; }
+
+#bubbleOutline circle { fill:#f9f8f7; stroke:#544; stroke-width:1px; }
+
 /* Shadows softened */
 body.dark #header,
 body.dark .submenu,
@@ -190,6 +194,12 @@ text.routeText {
 /* Fine-tune baseline if fonts render slightly off; adjust dy as needed */
 text.routeText > textPath { dominant-baseline: middle; }
 
+/* Chronon provider labels on nexus-attribute edges */
+.chronicleLabel {
+    font-size:          10px;
+    fill:               currentColor;
+    pointer-events:     none;
+}
 
 a:link, a:active, a:visited {
     color:              #b55;

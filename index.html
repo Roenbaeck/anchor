@@ -2007,6 +2007,20 @@
                 attributes: [],
                 prepare: function(component) { component.prepareEditing(this) },
                 elements: [] // needs to be set by the creating component in prepareEditing()
+            },
+            chronicleEdit: {
+                name: 'Chronicle ordinal',
+                description:
+                        'The ordinal number for this chronicle provider. 0 means not a provider, 1+ means provider with that order.',
+                setMember: function (element, component) { component.component.chronicle = parseInt(element.value) || 0; },
+                getMember: function (component) { return component.component.chronicle; },
+                setElement: function (element, component) { element.value = component.component.chronicle; },
+                getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'input',
+                pattern: '[0-9]*',
+                event: 'blur',
+                attributes: ['type', 'number', 'min', '0']
             }
         };
 
@@ -2925,6 +2939,7 @@
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
+            this.chronicle = 0;
             this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -3083,6 +3098,7 @@
                 var equivalent = Defaults.equivalence === 'true';
                 var checksum = Defaults.checksum === 'true';
                 var generator = Defaults.positGenerator === 'true';
+                var chronicle = 0;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
@@ -3104,6 +3120,8 @@
                     assertive = _assertive ? _assertive === 'true' : assertive;
                     var _equivalent = metadata.getAttribute("equivalent");
                     equivalent = _equivalent ? _equivalent === 'true' : equivalent;
+                    var _chronicle = metadata.getAttribute("chronicle");
+                    chronicle = _chronicle ? parseInt(_chronicle) : 0;
                 }
                 var description;
                 for(i = 0; i < element.childNodes.length; i++)
@@ -3150,6 +3168,7 @@
                 attribute.encryptionGroup = encryptionGroup;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
+                attribute.chronicle = chronicle;
                 var anchorLookup = Model.getLookup('entity');
                 var knotLookup = Model.getLookup('knot');
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
@@ -3218,6 +3237,9 @@
                         Defaults.idempotency === 'true' : this.idempotent);                
                 metadata.setAttribute("deletable", this.isEmpty(this.deletable) ?
                         Defaults.deletability === 'true' : this.deletable);                
+                if(this.chronicle > 0) {
+                    metadata.setAttribute("chronicle", this.chronicle);
+                }
                 attribute.appendChild(metadata);
                 // WIP: keys
                 if(this.keys && this.keys.length > 0) {
@@ -4661,17 +4683,28 @@
             this.otherComponent = otherComponent;
             this.identifier = identifier;
             this.keys = [];
-            this.editables.push(Editables.roleEdit, Editables.coloringEdit);
-            this.operations.push('toggleIdentifier', 'makeFirstRole', 'addToKey', 'removeFromKey', 'createKey');
             this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) ||
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.ANCHOR) ||
                        (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS) ||
                        (node.type === NodeType.NEXUS && otherNode.type === NodeType.KNOT) ||
-                       (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS);
+                       (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS) ||
+                       (node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+                       (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE);
+            this.chronicable = (node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+                                  (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE);
+            if(this.chronicable) {
+                this.editables.push(Editables.chronicleEdit);
+            } else {
+                this.editables.push(Editables.roleEdit, Editables.coloringEdit);
+                this.operations.push('toggleIdentifier');
+            }
+            this.operations.push('addToKey', 'removeFromKey', 'createKey');
             // Remove makeFirstRole if this edge does not involve an actual tie (ordering only affects tie naming)
             if(node.type !== NodeType.TIE && otherNode.type !== NodeType.TIE) {
                 var mfrIdx = this.operations.indexOf('makeFirstRole');
                 if(mfrIdx >= 0) this.operations.splice(mfrIdx, 1);
+            } else {
+                this.operations.push('makeFirstRole');
             }
             // Enforce identifier=false for direct Nexus-Anchor and Nexus-Knot roles (both directions)
             var directNexus = (node.type === NodeType.NEXUS && (otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.KNOT)) ||
@@ -4694,11 +4727,20 @@
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
                 this.svg.graphicsElement.component = this;
                 var bubble = document.createElementNS(SVGNS, 'use');
-                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', this.chronicable ? '#bubbleOutline' : '#bubble');
                 this.svg.graphicsElement.appendChild(bubble);
                 this.svg.useElement = document.createElementNS(SVGNS, 'use');
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
                 this.svg.graphicsElement.appendChild(this.svg.useElement);
+                if(this.chronicable) {
+                    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ''); // hide cardinality
+                    this.svg.textElement = document.createElementNS(SVGNS, 'text');
+                    this.svg.textElement.setAttributeNS(null, 'class', 'chronicleLabel');
+                    this.svg.textElement.setAttributeNS(null, 'text-anchor', 'middle');
+                    this.svg.textElement.setAttributeNS(null, 'dominant-baseline', 'central');
+                    this.svg.textElement.textContent = this.component.chronicle || '';
+                    this.svg.graphicsElement.appendChild(this.svg.textElement);
+                }
                 this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
                 SVGLayer.edges.appendChild(this.svg.graphicsElement);
                 this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
@@ -4708,8 +4750,10 @@
                 this.svg.boundingBox = this.svg.graphicsElement.getBBox();
                 this.svg.xOffset = 2;
                 this.svg.yOffset = 2;
-                this.setNameable(true);
-                this.svg.nameElement.setAttributeNS(null, 'class', 'role');
+                if(!this.chronicable) {
+                    this.setNameable(true);
+                    this.svg.nameElement.setAttributeNS(null, 'class', 'role');
+                }
             }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
@@ -4783,6 +4827,9 @@
                     image.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                         ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
                         ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
+                }
+                if(this.chronicable && image.textElement) {
+                    image.textElement.textContent = this.component.chronicle || '';
                 }
                 if(this.tied && image.control) {
                     image.control.setTranslate(role.xPosition, role.yPosition);
@@ -5576,7 +5623,7 @@
                         var editables = this.editables.getElementsByClassName('editable');
                         if(editables.length > 0) {
                             editables[0].focus();
-                            if(editables[0].setSelectionRange)
+                            if(editables[0].setSelectionRange && editables[0].type !== 'number')
                                 editables[0].setSelectionRange(0, editables[0].value.length);
                         }
                     }
@@ -7393,6 +7440,9 @@
                 <circle r="1.5"/>
             </g>
             <g id="bubble" style="fill:#f9f8f7; stroke:none;">
+                <circle r="8"/>
+            </g>
+            <g id="bubbleOutline">
                 <circle r="8"/>
             </g>
             <g id="one" style="stroke:#544; stroke-width:1px;">
