@@ -52,6 +52,54 @@ DROP FUNCTION [$nexus.capsule].[p$nexus.name];
 IF Object_ID('$nexus.capsule$.l$nexus.name', 'V') IS NOT NULL
 DROP VIEW [$nexus.capsule].[l$nexus.name];
 GO
+~*/
+        // Chronicle uniqueness projection (roles + chronicle static attributes)
+        if(nexus.hasMoreChronicles && nexus.hasMoreChronicles()) {
+/*~
+IF OBJECT_ID('$nexus.capsule$.uq$nexus.name', 'V') IS NOT NULL
+DROP VIEW [$nexus.capsule].[uq$nexus.name];
+GO
+CREATE VIEW [$nexus.capsule].[uq$nexus.name] WITH SCHEMABINDING AS
+SELECT
+~*/
+            // Project role foreign keys
+            while(role = nexus.nextRole && nexus.nextRole()) {
+/*~    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles()? , : )
+~*/
+            }
+            // Project chronicle value columns
+            var chron;
+            while(chron = nexus.nextChronicle && nexus.nextChronicle()) {
+/*~    [$chron.mnemonic].$chron.valueColumnName$(nexus.hasMoreChronicles()? , : )
+~*/
+            }
+/*~FROM
+    [$nexus.capsule].[$nexus.name] [$nexus.mnemonic]
+~*/
+            // Join chronicle attribute tables (inner join guarantees presence)
+            while(chron = nexus.nextChronicle && nexus.nextChronicle()) {
+/*~INNER JOIN [$chron.capsule].[$chron.name] [$chron.mnemonic]
+    ON [$chron.mnemonic].$chron.anchorReferenceName = [$nexus.mnemonic].$nexus.identityColumnName
+~*/
+            }
+/*~GO
+CREATE UNIQUE NONCLUSTERED INDEX UQ_$nexus.name
+ON [$nexus.capsule].[uq$nexus.name](
+~*/
+            // Index columns: roles first, then chronicle values
+            while(role = nexus.nextRole && nexus.nextRole()) {
+/*~    $role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles()? , : )
+~*/
+            }
+            while(chron = nexus.nextChronicle && nexus.nextChronicle()) {
+/*~    $chron.valueColumnName$(nexus.hasMoreChronicles()? , : )
+~*/
+            }
+/*~);
+GO
+~*/
+        }
+/*~
 -- Latest perspective -----------------------------------------------------------------------------------------------
 -- l$nexus.name viewed by the latest available information (may include future versions)
 ----------------------------------------------------------------------------------------------------------------------
