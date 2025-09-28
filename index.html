@@ -103,6 +103,9 @@
         // set to true to show debugging information
         var DEBUG = false;
 
+        // the startup theme
+        var THEME = 'dark';
+
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
         var XLINKNS = "http://www.w3.org/1999/xlink";
@@ -2128,7 +2131,6 @@
                     SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
                     component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
                     component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
-                    component.svg.graphicsElement.addEventListener('dblclick', EventHandler.doubleClickComponent, false);
                     component.showContextMenu(component, EventHandler.selectedComponents, EventHandler.selectedRoute);
                     DrawingEngine.setCursor('pointer');
                 }
@@ -2225,18 +2227,6 @@
                 }
                 event.stopPropagation();
             },
-            doubleClickComponent: function(event) {
-                event.preventDefault();
-                if(!event.shiftKey) {
-                    var component, i = EventHandler.interactedComponents.length;
-                    while(i--) {
-                        component = EventHandler.interactedComponents[i];
-                        component.setFixed(!component.getFixed());
-                    }
-                    EventHandler.setInteraction('toggledFixation');
-                }
-                event.stopPropagation();
-            },
             clickHighlight: function(event) {
                 // nothing assigned to this action right now
             },
@@ -2250,7 +2240,6 @@
                         component.hideContextMenu();
                         component.node.setUnstoppable(false);
                         component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
-                        component.svg.graphicsElement.removeEventListener('dblclick', EventHandler.doubleClickComponent, false);
                     }
                     EventHandler.clearInteraction();
                     SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
@@ -4467,6 +4456,28 @@
             isDraggable: function() {
                 return true;
             },
+            isConforming: function() {
+                // A Nexus must have at least one chronicled attribute (attribute.chronicle > 0)
+                // Traverse edges and look for any connected Attribute component with chronicle > 0.
+                var edges = this.node && this.node.edges ? this.node.edges : [];
+                for (var i = 0; i < edges.length; i++) {
+                    var edge = edges[i];
+                    // Attributes can appear on either side depending on construction order
+                    if (edge.node && edge.node.type === NodeType.ATTRIBUTE) {
+                        var attr = Model.nodeToComponent(edge.node);
+                        if (attr && typeof attr.chronicle === 'number' && attr.chronicle > 0)
+                            return true;
+                    }
+                    if (edge.otherNode && edge.otherNode.type === NodeType.ATTRIBUTE) {
+                        var attr2 = Model.nodeToComponent(edge.otherNode);
+                        if (attr2 && typeof attr2.chronicle === 'number' && attr2.chronicle > 0)
+                            return true;
+                    }
+                }
+                // No chronicled attribute found; ask user to confirm continuing, mirroring style in other isConforming methods.
+                return !confirm("The nexus " + this + " has no chronicled attribute (chronicle > 0). " +
+                        "At least one chronicled attribute is necessary to capture temporal progression.");
+            },
             setImploded: function(imploded) {
                 this.imploded = imploded;
                 if(imploded) {
@@ -5966,7 +5977,7 @@
                 statusElement.appendChild(Actions.modelStatusText);
             },
             // THEME MANAGEMENT -----------------------------------------------
-            currentTheme: 'light',
+            currentTheme: THEME,
             applyTheme: function(theme) {
                 Settings.currentTheme = theme;
                 document.body.classList.toggle('dark', theme === 'dark');
