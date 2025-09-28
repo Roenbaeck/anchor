@@ -47,9 +47,7 @@ body.dark #tabularEditor,
 body.dark #tabularEditor .closebutton,
 body.dark #miniature { border-color:#3a3b40; }
 
-body.dark #bubbleOutline circle { fill:#2a2b2f; stroke:#aaa; }
-
-#bubbleOutline circle { fill:#f9f8f7; stroke:#544; stroke-width:1px; }
+/* bubbleOutline styles moved to svg.css */
 
 /* Shadows softened */
 body.dark #header,
@@ -87,67 +85,7 @@ body.dark #cloud { color:#f2f2f3; }
 /* Graph specific colors (edge strokes etc.) adapt subtly */
 /* Dark theme: let SVG be transparent so underlying watermark (#disclaimer) can show through */
 body.dark svg#graph { background:transparent; }
-body.dark #graph .label { fill:#f2f2f3; }
-body.dark #graph text { fill:#e0e0e0; }
-body.dark #graph .node { stroke:#ccc; }
-/* Preserve anchor and nexus name color (brand red) in dark theme */
-body.dark #graph .anchor,
-body.dark #graph .nexus { fill:#b55 !important; }
-
-/* Dark theme: improve contrast for edges and darken previously white fills */
-body.dark #graph g#edges * { stroke:#b4b4b6 !important; }
-/* Any element explicitly filled white becomes a dark neutral to avoid glare */
-body.dark #graph [fill="#fff"],
-body.dark #graph [style*="fill:#fff"],
-body.dark #graph [fill="#ffffff"],
-body.dark #graph [style*="fill:#ffffff"] { fill:#222 !important; }
-/* Historized inner circles (were white) get slightly lighter dark tone for differentiation */
-body.dark #graph circle[fill="#fff"],
-body.dark #graph circle[style*="fill:#fff"] { fill:#262626 !important; }
-/* Miniature overrides */
-body.dark #minigraph [fill="#fff"],
-body.dark #minigraph [style*="fill:#fff"],
-body.dark #minigraph [fill="#ffffff"],
-body.dark #minigraph [style*="fill:#ffffff"] { fill:#222 !important; }
-body.dark #minigraph g#edges * { stroke:#b4b4b6 !important; }
-
-/* Miniature adjustments */
-body.dark #miniature { background:#2a2b2f; }
-body.dark #minigraph text { fill:#ddd; }
-/* Miniature viewport rectangle contrast in dark theme */
-body.dark #minigraph #viewport { stroke:#ffffff !important; stroke-width:1px !important; vector-effect:non-scaling-stroke; }
-/* Fixation (pinned) indicator dot: original inline fill is black; force white in dark theme for contrast */
-body.dark #graph #fixation circle { fill:#ffffff !important; }
-/* Bubble (small 8px circle used in graph) – original inline fill is light (#f9f8f7); tone it down in dark mode */
-body.dark #graph #bubble circle { fill:#303134 !important; }
-/* Key route paths: in dark mode use subtle light strokes that get brighter on overlap */
-body.dark #graph .route { stroke:rgba(255,255,255,0.08) !important; }
-body.dark #graph .routeSelected { stroke:rgba(255,160,160,0.30) !important; }
-/* Provide a slightly thicker selected route halo if desired (matches original 42 vs 32) */
-body.dark #graph .routeSelected { stroke-width:42; }
-/* Cardinality indicators (one/many) inside bubble: brighten strokes for dark mode */
-body.dark #graph #one,
-body.dark #graph #many { stroke:#e0e0e2 !important; }
-
-/* Route cursors: pointer when hoverable, text-like cursor when selected/editing */
-#graph .route { cursor: pointer; }
-#graph .routeSelected { cursor: text; }
-body.dark #graph .route { cursor: pointer; }
-body.dark #graph .routeSelected { cursor: text; }
-
-/* Debug partitions (force aggregation cells) */
-/* Light theme defaults */
-svg#graph .partitions { fill:#fff8f8; stroke:#f4ebeb; }
-/* Dark theme adaptation: lower contrast, subtle outline */
-body.dark svg#graph .partitions { fill:#170103; stroke:#280205; }
-
-/* Debug force vectors (physics velocity/force arrows) */
-svg#graph .forceVector { stroke:#fcc; stroke-width:6; }
-body.dark svg#graph .forceVector { stroke:#622; stroke-width:6; }
-
-/* Arrowhead marker theming (matches updated force vector styling) */
-svg#graph marker#arrowhead path { fill:#fcc; }
-body.dark svg#graph marker#arrowhead path { fill:#622; }
+/* SVG graph specific styling moved to svg.css */
 
 /* Scrollbars (WebKit) */
 body.dark ::-webkit-scrollbar { width:10px; }
