@@ -109,7 +109,7 @@ while (schema.nextNexus && (nexus = schema.nextNexus())) {
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$nexus.capsule$.k$nexus.name', 'P') IS NULL
 BEGIN
-    EXEC(''
+    EXEC('
     CREATE PROCEDURE [$nexus.capsule].[k$nexus.name] (
         @requestedNumberOfIdentities bigint,
         @metadata $schema.metadata.metadataType
@@ -129,7 +129,7 @@ BEGIN
             SELECT @metadata FROM idGenerator OPTION (maxrecursion 0);
         END
     END
-    '');
+    ');
 END
 GO
 ~*/
@@ -141,7 +141,7 @@ GO
 -----------------------------------------------------------------------------------------------------------------------
 IF Object_ID('$nexus.capsule$.k$nexus.name', 'P') IS NULL
 BEGIN
-    EXEC(''
+    EXEC('
     CREATE PROCEDURE [$nexus.capsule].[k$nexus.name] (
         @requestedNumberOfIdentities bigint
     ) AS
@@ -160,7 +160,7 @@ BEGIN
             SELECT null FROM idGenerator OPTION (maxrecursion 0);
         END
     END
-    '');
+    ');
 END
 GO
 ~*/

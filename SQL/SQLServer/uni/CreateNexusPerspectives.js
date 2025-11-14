@@ -64,13 +64,13 @@ SELECT
 ~*/
             // Project role foreign keys
             while(role = nexus.nextRole && nexus.nextRole()) {
-/*~    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles()? , : )
+/*~    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles())?,
 ~*/
             }
             // Project chronicle value columns
             var chron;
             while(chron = nexus.nextChronicle && nexus.nextChronicle()) {
-/*~    [$chron.mnemonic].$chron.valueColumnName$(nexus.hasMoreChronicles()? , : )
+/*~    [$chron.mnemonic].$chron.valueColumnName$(nexus.hasMoreChronicles())?,
 ~*/
             }
 /*~FROM
@@ -83,16 +83,16 @@ SELECT
 ~*/
             }
 /*~GO
-CREATE UNIQUE NONCLUSTERED INDEX UQ_$nexus.name
+CREATE UNIQUE CLUSTERED INDEX UQ_$nexus.name
 ON [$nexus.capsule].[uq$nexus.name](
 ~*/
             // Index columns: roles first, then chronicle values
             while(role = nexus.nextRole && nexus.nextRole()) {
-/*~    $role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles()? , : )
+/*~    $role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreChronicles())?,
 ~*/
             }
             while(chron = nexus.nextChronicle && nexus.nextChronicle()) {
-/*~    $chron.valueColumnName$(nexus.hasMoreChronicles()? , : )
+/*~    $chron.valueColumnName$(nexus.hasMoreChronicles())?,
 ~*/
             }
 /*~);
