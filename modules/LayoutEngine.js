@@ -8,9 +8,10 @@ var NodeType = {
     EDGE:       5, '5': "Edge",
     PARTITION:  6, '6': "Partition",
     IDENTIFIER: 7, '7': "Identifier",
+    NEXUS:      8, '8': "Nexus",
     // "static variables" masses and charges, for example NodeType.mass[NodeType.ANCHOR];
-    mass:       [null, 2, 3, 5, 5, 2, null],
-    charge:     [null, 1, 1, 1, 1, 4, null]
+    mass:       [null, 2, 3, 5, 5, 2, null, 1, 2],
+    charge:     [null, 1, 1, 1, 1, 4, null, 1, 1]
 };
 
 // the node type that the layout algorithm expects

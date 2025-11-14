@@ -11,6 +11,9 @@ var MAP = {
         anchor: function(xml, fragment) {
             return fragment.getAttribute('mnemonic');
         },
+        nexus: function(xml, fragment) {
+            return fragment.getAttribute('mnemonic');
+        },
         attribute: function(xml, fragment) {
             return fragment.getAttribute('mnemonic');
         },
@@ -36,6 +39,11 @@ var MAP = {
         knotRole: function(xml, fragment) {
             return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
         },
+        // Unified role element (new serialization). Backward compatible with legacy anchorRole/knotRole.
+        role: function(xml, fragment) {
+            // Uses same composite key logic (type + role name)
+            return fragment.getAttribute('type') + '_' + fragment.getAttribute('role');
+        },
         // WIP: keys sisula
         key: function(xml, fragment) {
             return fragment.getAttribute('of') + 
@@ -52,6 +60,8 @@ var MAP = {
                 return 'roles';
             case 'knotRoles':
                 return 'roles';
+            case 'nexuss': // objectifier naive plural of nexus
+                return 'nexuses';
             default:
                 return name;
         }

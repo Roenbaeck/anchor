@@ -22,11 +22,10 @@ GO
 ~*/
     }
 }
+// Anchor descriptions (unchanged table-level, but keep anchor loop for anchors only)
 var anchor;
 while (anchor = schema.nextAnchor()) {
-    if(anchor.description &&
-       anchor.description._description &&
-       anchor.description._description.length > 0) {
+    if(anchor.description && anchor.description._description && anchor.description._description.length > 0) {
 /*~
 BEGIN TRY
 EXEC sp_dropextendedproperty
@@ -41,27 +40,6 @@ EXEC sp_addextendedproperty
 @level1type = N'Table',  @level1name = '$anchor.name';
 GO
 ~*/
-    }
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
-        if(attribute.description &&
-           attribute.description._description &&
-           attribute.description._description.length > 0) {
-/*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$attribute.capsule',
-@level1type = N'Table',  @level1name = '$attribute.name';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$attribute.description._description',
-@level0type = N'Schema', @level0name = '$attribute.capsule',
-@level1type = N'Table',  @level1name = '$attribute.name';
-GO
-~*/
-        }
     }
 }
 var tie;
@@ -106,5 +84,46 @@ EXEC sp_addextendedproperty
 GO
 ~*/
         }
+    }
+}
+
+// Nexus table descriptions
+var nexus;
+while (schema.nextNexus && (nexus = schema.nextNexus())) {
+    if(nexus.description && nexus.description._description && nexus.description._description.length > 0) {
+/*~
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$nexus.capsule',
+@level1type = N'Table',  @level1name = '$nexus.name';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$nexus.description._description',
+@level0type = N'Schema', @level0name = '$nexus.capsule',
+@level1type = N'Table',  @level1name = '$nexus.name';
+GO
+~*/
+    }
+}
+
+// All attribute descriptions (anchor + nexus) via global iterator
+while (attribute = schema.nextAttribute()) {
+    if(attribute.description && attribute.description._description && attribute.description._description.length > 0) {
+/*~
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$attribute.capsule',
+@level1type = N'Table',  @level1name = '$attribute.name';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$attribute.description._description',
+@level0type = N'Schema', @level0name = '$attribute.capsule',
+@level1type = N'Table',  @level1name = '$attribute.name';
+GO
+~*/
     }
 }

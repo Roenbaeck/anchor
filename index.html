@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="viewport" content="user-scalable=no, shrink-to-fit=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="HandheldFriendly" content="true">    
     <title>Anchor Modeler</title>
     <!-- web fonts -->
@@ -11,6 +11,7 @@
     <link href='https://fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
     <!-- styling -->
     <link href='application.css' rel='stylesheet' type='text/css'/>
+    <link href='svg.css' rel='stylesheet' type='text/css'/>
     <!-- icon -->
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <!-- datalists -->
@@ -56,8 +57,6 @@
         <option value='varchar()'>    
         <option value='xml'>                         
     </datalist>
-    <!-- polyfill for the functionality going to be removed in SVG 2 -->
-    <script src="pathseg.js"></script>
     <!-- import required modules -->
     <script type="text/javascript" src="modules/Inheritance.js"></script>    
     <script type="text/javascript" src="modules/DataTypeConverter.js"></script>
@@ -97,13 +96,16 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.99.16';
+        var VERSION = '0.100.1';
 
         // change to false in beta
         var RELEASE = false;
 
         // set to true to show debugging information
         var DEBUG = false;
+
+        // the startup theme
+        var THEME = 'dark';
 
         // used when creating svg elements
         var SVGNS = "http://www.w3.org/2000/svg";
@@ -171,7 +173,7 @@
             },
             addKey: function(component, key) {
                 var hash = key.of + '|' + key.route; // ugly concat, but that's life
-                var anchorLookup = this.getAnchorLookup();
+                var anchorLookup = this.getLookup('entity');
                 if(!this.routes[hash]) {
                     this.routes[hash] = {
                         name: key.route,
@@ -197,25 +199,50 @@
                     stop.key.route = name;
                 }
             },
-            getAnchorLookup: function() {
-                var anchorLookup = Object.create(null);
-                var component;
+            // Generic lookup infrastructure
+            _lookups: null,
+            _lookupsDirty: true,
+            rebuildLookups: function() {
+                var lookups = {
+                    anchor: Object.create(null),
+                    nexus: Object.create(null),
+                    knot: Object.create(null),
+                    attribute: Object.create(null),
+                    tie: Object.create(null),
+                    entity: Object.create(null) // merged anchor + nexus
+                };
                 for(var i = 0; i < this.components.length; i++) {
-                    component = this.components[i];
-                    if(component instanceof Anchor)
-                        anchorLookup[component.mnemonic] = component;
+                    var c = this.components[i];
+                    if(c instanceof Anchor) {
+                        lookups.anchor[c.mnemonic] = c;
+                        lookups.entity[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Nexus) {
+                        lookups.nexus[c.mnemonic] = c;
+                        // treat nexus as entity
+                        lookups.entity[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Knot) {
+                        lookups.knot[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Attribute) {
+                        lookups.attribute[c.mnemonic] = c;
+                    }
+                    else if(c instanceof Tie) {
+                        // Ties may not need mnemonic uniqueness like anchors, but keep reference
+                        lookups.tie[c.id] = c;
+                    }
                 }
-                return anchorLookup;
+                this._lookups = lookups;
+                this._lookupsDirty = false;
             },
-            getKnotLookup: function() {
-                var knotLookup = Object.create(null);
-                var component;
-                for(var i = 0; i < this.components.length; i++) {
-                    component = this.components[i];
-                    if(component instanceof Knot)
-                        knotLookup[component.mnemonic] = component;
-                }
-                return knotLookup;
+            markLookupsDirty: function() {
+                this._lookupsDirty = true;
+            },
+            getLookup: function(kind) {
+                kind = kind || 'entity';
+                if(this._lookupsDirty || !this._lookups) this.rebuildLookups();
+                return this._lookups[kind] || Object.create(null);
             },
             nodeToComponent: function(node) {
                 return this.idToComponent[node.id];
@@ -307,6 +334,8 @@
                 if(component) {
                     this.components.push(component);
                     this.idToComponent[component.id] = component;
+                    // component set changed: mark lookups dirty so future getLookup() calls rebuild
+                    this.markLookupsDirty();
                     // WIP: keys
                     if(this.interactive && component.keys && component.keys.length > 0) {
                         for(var i = 0; i < component.keys.length; i++)
@@ -336,6 +365,8 @@
                 component.hide();
                 this.deleteElementFromArray(this.components, component);
                 delete this.idToComponent[component.id];
+                // component removed: mark lookups dirty
+                this.markLookupsDirty();
                 this.refresh();
             },
             deleteElementFromArray: function(array, element) {
@@ -438,18 +469,25 @@
                     var anchors = xml.getElementsByTagName('anchor');
                     for (i = 0; i < anchors.length; i++)
                         this.addComponent(Anchor.prototype.fromXML(anchors[i]));
+                    var nexus = xml.getElementsByTagName('nexus');
+                    for (i = 0; i < nexus.length; i++)
+                        this.addComponent(Nexus.prototype.fromXML(nexus[i]));
                     var attributes = xml.getElementsByTagName('attribute');
-                    for (i = 0; i < attributes.length; i++)
-                        this.addComponent(Attribute.prototype.fromXML(attributes[i]));
+                    for (i = 0; i < attributes.length; i++) {
+                        // Skip attributes that are children of nexus elements (they're handled by nexus)
+                        if (attributes[i].parentNode.nodeName !== 'nexus') {
+                            this.addComponent(Attribute.prototype.fromXML(attributes[i]));
+                        }
+                    }
                     var ties = xml.getElementsByTagName('tie');
                     for (i = 0; i < ties.length; i++)
                         this.addComponent(Tie.prototype.fromXML(ties[i]));
                     // keys must be added last since they may provide a path through many of the above
                     this.prepareKeys();
                     // and after keys, identifiers
-                    var identifiers = xml.getElementsByTagName('identifier');
-                    for (i = 0; i < identifiers.length; i++)
-                        this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
+                        var identifiers = xml.getElementsByTagName('identifier');
+                        for (i = 0; i < identifiers.length; i++)
+                            this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
                     // implode nodes
                     var component, allComponents = [];
                     for(i = 0; component = this.components[i]; i++) {
@@ -461,8 +499,119 @@
                     this.explode(allComponents, false);
                     this.setInteractive(true);
                     this.refresh();
+                    // Post-load integrity validation (logs orphan identifiers and other anomalies)
+                    if(console && console.groupCollapsed) console.groupCollapsed('Model integrity check');
+                    try { this.validateIntegrity(); } catch(e) { if(console) console.warn('Integrity check failed:', e); }
+                    if(console && console.groupEnd) console.groupEnd();
                     if(DEBUG) console.log(this);
                 }
+            },
+            validateIntegrity: function() {
+                var self = this;
+                function issue(level, code, msg, ctx) {
+                    var line = '[Integrity][' + code + '] ' + msg + (ctx ? ' ' + JSON.stringify(ctx) : '');
+                    switch(level) {
+                        case 'error': console.error(line); break;
+                        case 'warn': console.warn(line); break;
+                        default: console.info(line); break;
+                    }
+                    summary[level]++;
+                }
+                var summary = { error:0, warn:0, info:0 };
+                var mnemonicSeen = Object.create(null);
+                // Precompute lookups (fresh)
+                var anchorLookup = this.getLookup('anchor');
+                var nexusLookup = this.getLookup('nexus');
+                var knotLookup = this.getLookup('knot');
+                var entityLookup = this.getLookup('entity');
+                // 1. Uniqueness & validity of mnemonics for entity/knot
+                for(var k in entityLookup) {
+                    if(mnemonicSeen[k]) issue('error','DUPLICATE_MNEMONIC','Duplicate entity mnemonic', { mnemonic:k });
+                    mnemonicSeen[k] = true;
+                }
+                for(var kk in knotLookup) {
+                    if(mnemonicSeen[kk]) issue('error','DUPLICATE_MNEMONIC','Mnemonic reused between entity and knot', { mnemonic:kk });
+                    mnemonicSeen[kk] = true;
+                }
+                // 2. Component specific validations
+                for(var i = 0; i < this.components.length; i++) {
+                    var c = this.components[i];
+                    // Skip edges (Roles handled separately)
+                    if(c.node.type === NodeType.EDGE) continue;
+                    // Attribute: must have parent anchor or nexus edge + route keys sanity
+                    if(c instanceof Attribute) {
+                        var parent = null;
+                        if(c.node && c.node.edges) {
+                            for(var ae=0; ae<c.node.edges.length; ae++) {
+                                var edgeA = c.node.edges[ae];
+                                var otherA = edgeA.otherNode === c.node ? edgeA.node : edgeA.otherNode;
+                                if(otherA.type === NodeType.ANCHOR || otherA.type === NodeType.NEXUS) {
+                                    parent = self.nodeToComponent(otherA);
+                                    break;
+                                }
+                            }
+                        }
+                        if(!parent) issue('warn','ATTRIBUTE_PARENT','Attribute missing parent entity',{ id:c.id, mnemonic:c.mnemonic });
+                        // Key references inside attribute
+                        if(c.keys) {
+                            for(var ak=0; ak<c.keys.length; ak++) {
+                                var keyRef = c.keys[ak];
+                                if(!entityLookup[keyRef.of]) issue('error','KEY_OF_UNKNOWN','Key references unknown entity',{ componentId:c.id, of:keyRef.of });
+                                if(!keyRef.route) issue('warn','KEY_ROUTE_EMPTY','Key missing route name',{ componentId:c.id });
+                            }
+                        }
+                    }
+                    // Identifier validation (existing rules extended)
+                    if(c instanceof Identifier) {
+                        var entityRef = c.entity; // anchor or nexus
+                        var edgeCount = 0, edgeEntity = null;
+                        if(c.node && c.node.edges) {
+                            for(var e = 0; e < c.node.edges.length; e++) {
+                                var edge = c.node.edges[e];
+                                var other = edge.otherNode === c.node ? edge.node : edge.otherNode;
+                                if(other.type === NodeType.ANCHOR || other.type === NodeType.NEXUS) {
+                                    edgeEntity = self.nodeToComponent(other);
+                                    edgeCount++;
+                                }
+                            }
+                        }
+                        if(!entityRef || !edgeEntity || edgeCount !== 1) {
+                            issue('warn','IDENTIFIER_ORPHAN','Orphan or malformed Identifier',{ id:c.id, route:(c.route?c.route.name:null), edgeCount:edgeCount, entityRef: entityRef ? entityRef.mnemonic : null, edgeEntity: edgeEntity ? edgeEntity.mnemonic : null });
+                        }
+                    }
+                    // Tie validation
+                    if(c instanceof Tie) {
+                        // Roles uniqueness by (mnemonic, roleName)
+                        var rolePairs = Object.create(null);
+                        var edges = c.node.edges || [];
+                        for(var te=0; te<edges.length; te++) {
+                            var roleComp = self.nodeToComponent(edges[te]);
+                            if(!(roleComp instanceof Role)) continue;
+                            var otherNode = edges[te].otherNode === c.node ? edges[te].node : edges[te].otherNode;
+                            var otherComp = self.nodeToComponent(otherNode);
+                            var key = (otherComp ? otherComp.mnemonic : '?') + '|' + roleComp.role;
+                            if(rolePairs[key]) issue('error','TIE_ROLE_DUP','Duplicate role name for same participant',{ tie:c.toString(), role:roleComp.role, participant: otherComp ? otherComp.mnemonic : '?' });
+                            rolePairs[key] = true;
+                        }
+                    }
+                }
+                // 3. Role edge reciprocity / identifier constraints
+                for(var r=0; r < this.components.length; r++) {
+                    var rc = this.components[r];
+                    if(rc instanceof Role) {
+                        // Ensure its edge exists in both node edge arrays
+                        var nodeA = rc.node.node; var nodeB = rc.node.otherNode;
+                        if(nodeA.edges.indexOf(rc.node) < 0 || nodeB.edges.indexOf(rc.node) < 0)
+                            issue('error','ROLE_EDGE_RECIPROCITY','Role edge missing in one endpoint list',{ roleId:rc.id });
+                        // Direct nexus role identifier already forced false earlier; double-check
+                        var tn = nodeA.type, to = nodeB.type;
+                        var directNexus = (tn === NodeType.NEXUS && (to === NodeType.ANCHOR || to === NodeType.KNOT)) ||
+                                          (to === NodeType.NEXUS && (tn === NodeType.ANCHOR || tn === NodeType.KNOT));
+                        if(directNexus && rc.identifier) issue('warn','ROLE_DIRECT_NEXUS_IDENTIFIER','Direct nexus role should not be identifier',{ roleId:rc.id });
+                    }
+                }
+                if(summary.error === 0 && summary.warn === 0) console.info('[Integrity] All checks passed.');
+                else console.info('[Integrity] Summary errors=' + summary.error + ' warnings=' + summary.warn + ' infos=' + summary.info);
             },
             erase: function(components) {
                 DrawingEngine.stop();
@@ -791,6 +940,7 @@
                     node = component.node;
                     if(node.type === NodeType.EDGE) {
                         edge = node;
+                        // Only meaningful for ties; ignore for nexus related edges
                         if(tie = edge.node.type === NodeType.TIE ? this.nodeToComponent(edge.node) :
                                  edge.otherNode.type === NodeType.TIE ? this.nodeToComponent(edge.otherNode) :
                                  null) {
@@ -887,6 +1037,24 @@
                     var anchor = new Anchor(node.xPosition + 2*dx, node.yPosition + 2*dy);
                     this.addComponent(anchor);
                     role = new Role(tie, anchor, true);
+                    this.addComponent(role);
+                }
+                this.recordState();
+                this.refresh();
+                DrawingEngine.start(true);
+                return false; // do not close menu
+            },
+            addNexus: function(components) {
+                var dx, dy, component, node;
+                for(var i = 0; i < components.length; i++) {
+                    component = components[i];
+                    node = component.node;
+                    this.lastAngle = (this.lastAngle + 0.5) % 14;
+                    dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
+                    dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
+                    var nexus = new Nexus(node.xPosition + dx, node.yPosition + dy);
+                    this.addComponent(nexus);
+                    var role = new Role(nexus, component, true);
                     this.addComponent(role);
                 }
                 this.recordState();
@@ -1068,7 +1236,7 @@
                 this.viewport.setAttributeNS(null, 'y', SVG.viewBox.baseVal.y);
                 this.viewport.setAttributeNS(null, 'width', SVG.viewBox.baseVal.width);
                 this.viewport.setAttributeNS(null, 'height', SVG.viewBox.baseVal.height);
-                this.viewport.setAttributeNS(null, 'style', 'stroke: red; stroke-width: 2px; fill: none;');
+                this.viewport.setAttributeNS(null, 'style', 'stroke: red; stroke-width: 1px; fill: none; vector-effect: non-scaling-stroke;');
                 this.initialized = true;
             },
             taint: function() {
@@ -1196,19 +1364,7 @@
                                         this.svgKeyRouteText.appendChild(this.svgKeyRouteText.textPath);
                                         SVGLayer.keys.appendChild(this.svgKeyRouteText);
                                     }
-                                    // add a text box for the route name
-                                    this.routeInput = document.createElement('input');
-                                    this.routeInput.setAttribute('id', 'route');
-                                    this.routeInput.value = this.name;
-                                    this.routeInput.addEventListener('input', function(e) {
-                                        var route = EventHandler.routeSelected();
-                                        Model.changeRouteName(route, e.target.value.trim());
-                                        var hash = (route.start.mnemonic + '|' + route.name).trim();
-                                        route.svgKeyRoute.setAttributeNS(null, 'id', hash);
-                                        route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
-                                        route.svgKeyRouteText.text.nodeValue = e.target.value;
-                                    }, false);
-                                    document.body.appendChild(this.routeInput);                                    
+                                    // Delay creating input until explicit selection (click)
                                     for(var stopNumber in this.stops) 
                                         this.stops[stopNumber].component.postfixes.push(stopNumber);
                                     this.hightlighted = true;
@@ -1221,6 +1377,10 @@
                                         delete this.svgKeyRouteText;
                                     }
                                     if(this.routeInput) {
+                                        if(this._routeResizeHandler) {
+                                            window.removeEventListener('resize', this._routeResizeHandler, false);
+                                            delete this._routeResizeHandler;
+                                        }
                                         if(document.body.contains(this.routeInput))
                                             document.body.removeChild(this.routeInput);
                                         delete this.routeInput;
@@ -1234,11 +1394,120 @@
                             }
                         }
                     }
+                    // Lazy input creation helper
+                    if(!route.ensureRouteInput) {
+                        route.ensureRouteInput = function() {
+                            if(this.routeInput || !this.hightlighted) return;
+                            var selfRoute = this;
+                            this.routeInput = document.createElement('input');
+                            this.routeInput.setAttribute('id', 'route');
+                            this.routeInput.placeholder = 'Route name';
+                            this.routeInput.value = this.name;
+                            function computeComponentScreenPosition(component) {
+                                if(!component) return {x:window.scrollX + window.innerWidth/2, y:window.scrollY + window.innerHeight/2};
+                                var node = component.node ? component.node : component;
+                                if(typeof node.xPosition !== 'number' || typeof node.yPosition !== 'number') return {x:window.scrollX + window.innerWidth/2, y:window.scrollY + window.innerHeight/2};
+                                var vb = SVG.viewBox.baseVal;
+                                var svgRect = SVG.getBoundingClientRect();
+                                var scaleX = svgRect.width / vb.width;
+                                var scaleY = svgRect.height / vb.height;
+                                return { x: svgRect.left + (node.xPosition - vb.x) * scaleX + window.scrollX, y: svgRect.top + (node.yPosition - vb.y) * scaleY + window.scrollY };
+                            }
+                            try {
+                                var comp = this.start ? (this.start.component ? this.start.component : this.start) : null;
+                                var center = computeComponentScreenPosition(comp);
+                                var provisionalWidth = Math.max(120, this.name.length * 9 + 30);
+                                var input = this.routeInput;
+                                input.style.position = 'absolute';
+                                input.style.width = provisionalWidth + 'px';
+                                input.style.zIndex = 10000;
+                                input.style.boxSizing = 'border-box';
+                                input.style.padding = '2px 6px';
+                                input.style.fontSize = '12px';
+                                input.style.lineHeight = '1.2';
+                                input.style.right = 'auto';
+                                input.style.bottom = 'auto';
+                                document.body.appendChild(input);
+                                var h = input.offsetHeight || 22;
+                                var top = center.y - h - 8;
+                                if(top < window.scrollY + 4) top = center.y + 8;
+                                var left = center.x - provisionalWidth/2;
+                                this._routeInputStatic = { left:left, top:top, width:provisionalWidth };
+                                input.style.left = left + 'px';
+                                input.style.top = top + 'px';
+                            } catch(e) {
+                                var input = this.routeInput;
+                                if(!document.body.contains(input)) document.body.appendChild(input);
+                                var vw = window.innerWidth, vh = window.innerHeight;
+                                input.style.position = 'absolute';
+                                input.style.left = (window.scrollX + vw/2 - 100) + 'px';
+                                input.style.top = (window.scrollY + vh/2 - 15) + 'px';
+                                input.style.width = '200px';
+                                this._routeInputStatic = { left:window.scrollX + vw/2 - 100, top:window.scrollY + vh/2 - 15, width:200 };
+                            }
+                            this.routeInput.addEventListener('input', function(e) {
+                                var route = EventHandler.routeSelected();
+                                if(!route) return;
+                                var raw = e.target.value;
+                                var trimmed = raw.trim();
+                                if(trimmed.length) {
+                                    Model.changeRouteName(route, trimmed);
+                                    var hash = (route.start.mnemonic + '|' + route.name).trim();
+                                    route.svgKeyRoute.setAttributeNS(null, 'id', hash);
+                                    route.svgKeyRouteText.textPath.setAttributeNS(null, 'href', '#' + hash);
+                                    route.svgKeyRouteText.text.nodeValue = raw;
+                                } else {
+                                    route.svgKeyRouteText.text.nodeValue = ' ';
+                                }
+                            }, false);
+                            // Handle Enter (commit & close) and Escape (cancel close without change)
+                            this.routeInput.addEventListener('keydown', function(e){
+                                var route = EventHandler.routeSelected();
+                                if(!route) return;
+                                if(e.key === 'Enter') {
+                                    // Commit already applied via input handler; just close & deselect
+                                    e.preventDefault();
+                                    // simulate deselect: toggle highlight off and clear selection
+                                    if(route.hightlighted) route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                } else if(e.key === 'Escape') {
+                                    e.preventDefault();
+                                    // Revert visual label if emptied but not committed (trim again)
+                                    if(!route.name || !route.name.trim()) {
+                                        route.svgKeyRouteText.text.nodeValue = route.name ? route.name : ' ';
+                                    }
+                                    if(route.hightlighted) route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                }
+                            }, false);
+                            this._routeResizeHandler = function(){
+                                if(!(selfRoute && selfRoute.routeInput)) return;
+                                try {
+                                    var comp = selfRoute.start ? (selfRoute.start.component ? selfRoute.start.component : selfRoute.start) : null;
+                                    var center = computeComponentScreenPosition(comp);
+                                    var h = selfRoute.routeInput.offsetHeight || 22;
+                                    var top = center.y - h - 8;
+                                    if(top < window.scrollY + 4) top = center.y + 8;
+                                    var left = center.x - selfRoute._routeInputStatic.width/2;
+                                    selfRoute._routeInputStatic.left = left;
+                                    selfRoute._routeInputStatic.top = top;
+                                    selfRoute.routeInput.style.left = left + 'px';
+                                    selfRoute.routeInput.style.top = top + 'px';
+                                } catch(e) {}
+                            };
+                            window.addEventListener('resize', this._routeResizeHandler, false);
+                            try { this.routeInput.focus(); this.routeInput.select(); } catch(e) {}
+                        };
+                    }
                     if(!route.remove) {
                         route.remove = function() {
                             if(this.hightlighted)
                                 this.toggleHighlight();
                             if(this.routeInput) {
+                                if(this._routeResizeHandler) {
+                                    window.removeEventListener('resize', this._routeResizeHandler, false);
+                                    delete this._routeResizeHandler;
+                                }
                                 if(document.body.contains(this.routeInput))
                                     document.body.removeChild(this.routeInput);
                                 delete this.routeInput;
@@ -1278,27 +1547,39 @@
                             if(!EventHandler.routeSelected()) {
                                 if(!route.hightlighted) route.toggleHighlight();
                                 EventHandler.selectRoute(route);
+                                if(route.ensureRouteInput) route.ensureRouteInput();
                             }
                             else if(EventHandler.routeSelected() == route) {
-                                if(route.hightlighted) route.toggleHighlight();
-                                EventHandler.clearSelection();
+                                // Already selected: maybe deselect on second click
+                                if(route.hightlighted) {
+                                    route.toggleHighlight();
+                                    EventHandler.clearSelection();
+                                }
                             }
                         }, false);
                         SVGLayer.keys.appendChild(route.svgKeyRoute);
                     }
+                    if(!route.start || !route.start.node) {
+                        continue; // Skip routes with invalid start components
+                    }
                     var stops = route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
+                    // Collect and deterministically order stops by branch then numeric stop number
+                    var orderedStops = Object.keys(route.stops).map(function(k){ return route.stops[k]; });
+                    orderedStops.sort(function(a,b){
+                        var ba = parseInt(a.branch || '1'), bb = parseInt(b.branch || '1');
+                        if(ba !== bb) return ba - bb;
+                        var sa = parseInt(a.key.stop || '0'), sb = parseInt(b.key.stop || '0');
+                        return sa - sb;
+                    });
                     var stop, currentBranch; 
-                    for(var stopNumber in route.stops) {
-                        stop = route.stops[stopNumber];
+                    for(var os = 0; os < orderedStops.length; os++) {
+                        stop = orderedStops[os];
+                        if(!stop.component || !stop.component.node) continue; // Skip invalid
                         if(stop.branch != currentBranch) {
-                            stops += ' M' + 
-                                route.start.node.xPosition.toFixed(2) + ',' + 
-                                route.start.node.yPosition.toFixed(2);
+                            stops += ' M' + route.start.node.xPosition.toFixed(2) + ',' + route.start.node.yPosition.toFixed(2);
                             currentBranch = stop.branch;
                         }
-                        stops += ' ' + 
-                            stop.component.node.xPosition.toFixed(2) + ',' + 
-                            stop.component.node.yPosition.toFixed(2);
+                        stops += ' ' + stop.component.node.xPosition.toFixed(2) + ',' + stop.component.node.yPosition.toFixed(2);
                     }
                     route.svgKeyRoute.setAttributeNS(null, 'd', 'M' + stops);
                 }
@@ -1730,6 +2011,25 @@
                 attributes: [],
                 prepare: function(component) { component.prepareEditing(this) },
                 elements: [] // needs to be set by the creating component in prepareEditing()
+            },
+            chronicleEdit: {
+                name: 'Chronicle ordinal',
+                description:
+                        'The ordinal number for this chronicle provider. 0 means not a provider, 1+ means provider with that order.',
+                setMember: function (element, component) { 
+                    component.component.chronicle = parseInt(element.value) || 0;
+                    if (component.svg.textElement) {
+                        component.svg.textElement.textContent = component.component.chronicle || '';
+                    }
+                },
+                getMember: function (component) { return component.component.chronicle; },
+                setElement: function (element, component) { element.value = component.component.chronicle; },
+                getElement: function (element) { return element.value; },
+                editable: true,
+                type: 'input',
+                pattern: '[0-9]*',
+                event: 'blur',
+                attributes: ['type', 'number', 'min', '0']
             }
         };
 
@@ -1742,6 +2042,10 @@
             lastY: null,
             scaleX: null,
             scaleY: null,
+            // track the initial pointer position when preparing a drag so a pure click
+            // (no or sub-pixel movement) does not accidentally trigger dragging
+            dragStartX: null,
+            dragStartY: null,
             // WIP: keys event
             selectedRoute: null,
             selectRoute: function(key) {
@@ -1837,6 +2141,9 @@
                 event.preventDefault();
                 if(EventHandler.getInteraction() === "beginInteraction") {
                     EventHandler.setInteraction("prepareDragging");
+                    // remember initial pointer position to distinguish click vs drag
+                    EventHandler.dragStartX = event.clientX;
+                    EventHandler.dragStartY = event.clientY;
                     var component, i;
                     for(i = 0; component = EventHandler.interactedComponents[i]; i++) {
                         if(event.shiftKey) {
@@ -1853,8 +2160,24 @@
                         component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
                     }
                     SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
+                    // Attach a one-time mouseup listener to conclude dragging or treat as click
+                    window.addEventListener('mouseup', EventHandler.mouseupComponent, false);
                 }
                 event.stopPropagation();
+            },
+            mouseupComponent: function(event) {
+                // Conclude dragging logic: if we never transitioned into whileDragging,
+                // let the click handler toggle fixation; otherwise finalize drag.
+                window.removeEventListener('mouseup', EventHandler.mouseupComponent, false);
+                if(EventHandler.getInteraction() === 'prepareDragging') {
+                    // Synthesize a click (browser will still fire click after mouseup on same element)
+                    // but we ensure interaction state is not stuck
+                    EventHandler.setInteraction('awaitClick');
+                }
+                else if(EventHandler.getInteraction() === 'whileDragging') {
+                    EventHandler.setInteraction('completeDragging');
+                    // Keep fixation state as already set during dragging; end interaction soon after click fires
+                }
             },
             whileDragging: function(event) {
                 event.preventDefault();
@@ -1869,17 +2192,25 @@
                                 component.node.yPosition = svgPoint.y;
                                 component.setFixed(true);
                                 component.node.setUnstoppable(true);
-                                Model.invalidateComponent(component);
                                 DrawingEngine.start(true);
                             }
                             else if(EventHandler.getInteraction() === "prepareDragging") {
-                                if(LayoutEngine.manhattanDistance(component.node, {
-                                    xPosition: svgPoint.x,
-                                    yPosition: svgPoint.y
-                                }) > 10) {
-                                    EventHandler.setInteraction("whileDragging");
-                                    DrawingEngine.setCursor('move');
+                                // Determine drag start purely on screen-space pixel movement.
+                                // The previous Manhattan distance (layout-space) check caused
+                                // premature drag initiation for Nexus after it had been moved
+                                // because minor pointer jitter translated into larger coordinate
+                                // deltas due to transform offsets. Using only a small pixel
+                                // threshold creates uniform behavior across component types.
+                                var pixelDeltaX = Math.abs(event.clientX - EventHandler.dragStartX);
+                                var pixelDeltaY = Math.abs(event.clientY - EventHandler.dragStartY);
+                                var pixelDistance = (pixelDeltaX > pixelDeltaY ? pixelDeltaX : pixelDeltaY); // max axis movement
+                                var DRAG_PIXEL_THRESHOLD = 5; // conservative threshold for intentional drag
+                                if(pixelDistance < DRAG_PIXEL_THRESHOLD) {
+                                    // Still treat as click preparation (no drag yet)
+                                    continue;
                                 }
+                                EventHandler.setInteraction("whileDragging");
+                                DrawingEngine.setCursor('move');
                             } // switch behavior if we actually move the thing a fair distance
                         }
                     }
@@ -1888,16 +2219,12 @@
             },
             clickComponent: function(event) {
                 event.preventDefault();
-                if(EventHandler.getInteraction() !== "whileDragging" && !event.shiftKey) {
-                    var component, i = EventHandler.interactedComponents.length;
-                    while(i--) {
-                        component = EventHandler.interactedComponents[i];
-                        component.setFixed(!component.getFixed());
-                    }
-                    EventHandler.setInteraction("toggledFixation");
-                }
-                else {
+                // Single click now only finalizes drag (if any) or selects; fixation moved to double-click
+                if(EventHandler.getInteraction() === "whileDragging") {
                     EventHandler.setInteraction("completeDragging");
+                } else if(EventHandler.getInteraction() === 'prepareDragging' || EventHandler.getInteraction() === 'awaitClick') {
+                    // treat as simple selection click; no fixation toggle
+                    EventHandler.setInteraction("clicked");
                 }
                 event.stopPropagation();
             },
@@ -1917,8 +2244,11 @@
                     }
                     EventHandler.clearInteraction();
                     SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
+                    window.removeEventListener('mouseup', EventHandler.mouseupComponent, false);
                     SVG.removeEventListener('mouseover', EventHandler.endInteraction, false);
                     window.removeEventListener('keypress', EventHandler.keypress, false);
+                    EventHandler.dragStartX = null;
+                    EventHandler.dragStartY = null;
                     DrawingEngine.setCursor('default');
                 }
                 if(event) event.stopPropagation();
@@ -2111,6 +2441,10 @@
                         else if(Operations.isSupported("addTieAndAnchor", allComponents))
                             Model.addTieAndAnchor(allComponents);
                         break;
+                    case "n":
+                        if(Operations.isSupported("addNexus", allComponents))
+                            Model.addNexus(allComponents);
+                        break;
                     case "c":
                         if(Operations.isSupported("connect", allComponents)) {
                             var i, operation, validator;
@@ -2148,7 +2482,13 @@
                             Model.erase(allComponents);
                         break;
                     case "p":
-                        component.setFixed(!component.fixed);
+                        // Toggle fixation for all selected/interacted components
+                        var j, comp;
+                        for(j = 0; comp = allComponents[j]; j++) {
+                            if(comp.setFixed && comp.getFixed) {
+                                comp.setFixed(!comp.getFixed());
+                            }
+                        }
                         DrawingEngine.start(false);
                         break;
                 }
@@ -2176,7 +2516,6 @@
             selectionElement: null,
             fixationElement: null,
             pathElement: null,
-            pathControl: null,
             forceElement: null,
             makeInteractive: function() {
                 this.highlightElement = document.createElementNS(SVGNS, 'use');
@@ -2195,6 +2534,8 @@
             showDebug: function(imageLayer) {
                 this.forceElement = document.createElementNS(SVGNS, 'line');
                 this.forceElement.setAttributeNS(null, 'marker-end', 'url(#arrowhead)');
+                // Add class so stroke color & opacity can be theme-controlled via CSS
+                this.forceElement.classList.add('forceVector');
                 if(!imageLayer.contains(this.forceElement))
                     imageLayer.appendChild(this.forceElement);
             },
@@ -2593,7 +2934,9 @@
             this.privacy = Defaults.privacy;
             this.positIdentity = Defaults.positIdentity;
             this.positGenerator = Defaults.positGenerator === 'true';
+            this.chronicle = 0;
             this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey', 'createKey');
+            // Note: 'toggleHistorized' will be removed automatically if the attribute connects to a Nexus (see Role construction adjustments if added)
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             // expando property as a reference back to the underlying component for use in event handlers
@@ -2651,14 +2994,16 @@
             },
             isConforming: function() {
                 var i, edge, anchor, otherNode, otherComponent;
-                // first find the anchor
+                // first find the anchor or nexus parent
                 for(i = 0; edge = this.node.edges[i]; i++) {
                     otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
-                    if(otherNode.type === NodeType.ANCHOR) {
+                    if(otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.NEXUS) {
                         anchor = Model.nodeToComponent(otherNode);
                         break;
                     }
                 }
+                // If no parent anchor/nexus, skip uniqueness check (attribute not yet fully connected)
+                if(!anchor || !anchor.node) return true;
                 // then check mnemonic uniqueness
                 for(i = 0; edge = anchor.node.edges[i]; i++) {
                     otherNode = (edge.node === anchor.node ? edge.otherNode : edge.node);
@@ -2672,6 +3017,18 @@
                 return true;
             },
             setHistorized: function(historized) {
+                // Prevent historization for attributes that belong to a Nexus (event attributes are immutable)
+                if(historized) {
+                    for(var i = 0; i < this.node.edges.length; i++) {
+                        var e = this.node.edges[i];
+                        var otherNode = (e.node === this.node ? e.otherNode : e.node);
+                        if(otherNode.type === NodeType.NEXUS) {
+                            // Silently ignore request (could alternatively warn)
+                            historized = false;
+                            break;
+                        }
+                    }
+                }
                 var index = this.editables.indexOf(Editables.changingRangeEdit);
                 if(historized && index < 0)
                     this.editables.push(Editables.changingRangeEdit);
@@ -2749,6 +3106,7 @@
                 var equivalent = Defaults.equivalence === 'true';
                 var checksum = Defaults.checksum === 'true';
                 var generator = Defaults.positGenerator === 'true';
+                var chronicle = 0;
                 for(i = 0; i < element.childNodes.length; i++)
                     if(element.childNodes.item(i).nodeName === 'metadata')
                         metadata = element.childNodes.item(i);
@@ -2784,6 +3142,8 @@
                 var dataRange = element.getAttribute("dataRange") || '';
                 var parent = element.parentNode;
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
+                var chronicle = element.getAttribute("chronicle");
+                chronicle = chronicle ? parseInt(chronicle) : 0;
                 var attribute = new Attribute(x, y, historized);
                 // WIP: keys
                 for(i = 0; i < element.childNodes.length; i++) {
@@ -2816,10 +3176,14 @@
                 attribute.encryptionGroup = encryptionGroup;
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
-                var anchorLookup = Model.getAnchorLookup();
-                var knotLookup = Model.getKnotLookup();
+                attribute.chronicle = chronicle;
+                var anchorLookup = Model.getLookup('entity');
+                var knotLookup = Model.getLookup('knot');
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
-                Model.addComponent(new Role(attribute, anchor, true));
+                // Only create role if anchor exists (skip attributes belonging to nexus)
+                if(anchor) {
+                    Model.addComponent(new Role(attribute, anchor, true));
+                }
                 if(knotted) {
                     var grandparent = parent.parentNode;
                     var knots = grandparent.getElementsByTagName("knot");
@@ -2853,6 +3217,9 @@
                 }
                 else {
                     attribute.setAttribute("dataRange", this.isEmpty(this.dataRange) ? '' : this.dataRange);
+                }
+                if(this.chronicle > 0) {
+                    attribute.setAttribute("chronicle", this.chronicle);
                 }
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
@@ -2920,11 +3287,17 @@
                 return name;
             },
             toString: function() {
-                var anchor, edge;
-                for(var i = 0; edge = this.node.edges[i]; i++)
-                    if(edge.otherNode.type === NodeType.ANCHOR)
-                        anchor = Model.nodeToComponent(edge.otherNode);
-                return anchor.mnemonic + "_" + this.mnemonic + "_" + anchor.descriptor + "_" + this.descriptor;
+                var parent, edge, otherNode;
+                for(var i = 0; edge = this.node.edges[i]; i++) {
+                    otherNode = (edge.node === this.node ? edge.otherNode : edge.node);
+                    if(otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.NEXUS) {
+                        parent = Model.nodeToComponent(otherNode);
+                        break;
+                    }
+                }
+                // Fallback if parent not yet connected (during creation/deletion)
+                if(!parent) return this.mnemonic + "_" + this.descriptor;
+                return parent.mnemonic + "_" + this.mnemonic + "_" + parent.descriptor + "_" + this.descriptor;
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
@@ -2934,18 +3307,23 @@
         // inheritance
         extend(Attribute, Component);
 
-        function Identifier(x, y, anchor, route) {
-            this.anchor = anchor;
-            this.route = Model.routes[anchor.mnemonic + '|' + route];
+        function Identifier(x, y, entity, route) { // entity may be Anchor or Nexus
+            if(!entity) {
+                console.warn('[Identifier] Aborting creation: no entity supplied for route "' + route + '"');
+                return; // abort
+            }
+            this.entity = entity; // unified property replaces anchor
+            var qualified = entity.mnemonic + '|' + route;
+            this.route = Model.routes[qualified];
             if (!this.route) {
-                console.error("There is no route named: " + route + " on the anchor: " + anchor.descriptor);
-                return; // error here
+                console.warn('[Identifier] Missing route "' + route + '" for entity ' + entity.mnemonic + '. Qualified key: ' + qualified + '. Available routes:', Object.keys(Model.routes));
+                return; // abort so caller can skip safely
             }
             this.id = UniqueIdentity.nextId();
             // call the parent constructor
             Component.call(this, new Node(this.id, x, y, NodeType.IDENTIFIER));
             // set members
-            this.editables.push(Editables.keySelectEdit);
+            // Removed keySelectEdit: identifiers are bound to their defining key route; editing route is not allowed.
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.positIdentityEdit);
             this.editables.push(Editables.positGeneratorEdit);
@@ -3016,7 +3394,7 @@
             encapsulation: Defaults.encapsulation,
             privacy: Defaults.privacy,
             route: null,
-            anchor: null,
+            entity: null,
             isInteractive: function() {
                 return true;
             },
@@ -3038,8 +3416,10 @@
             },
             prepareEditing: function(editable) {
                 editable.elements.length = 0;
+                if(!this.entity) return;
+                var prefix = this.entity.mnemonic + '|';
                 for (var r in Model.routes) {
-                    if (r.slice(0, 2) == this.anchor.mnemonic) {
+                    if (r.indexOf(prefix) === 0) {
                         editable.elements.push(createOption(r, Model.routes[r].name));
                     }
                 }
@@ -3048,21 +3428,17 @@
                 this.route = Model.routes[qualifiedRoute];
             },
             getRoute: function() {
-                return this.anchor.mnemonic + '|' + this.route.name;
+                return (this.entity ? this.entity.mnemonic : '??') + '|' + (this.route ? this.route.name : '?');
             },
             setHistorized: function(historized) {
-                var index = this.editables.indexOf(Editables.changingRangeEdit);
-                if(historized && index < 0)
-                    this.editables.push(Editables.changingRangeEdit);
-                else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
-                index = this.editables.indexOf(Editables.restatabilityEdit);
-                if(historized && index < 0) 
-                    this.editables.push(Editables.restatabilityEdit);
-                else if (!historized && index >= 0)
-                    this.editables.splice(index, 1);
-                if(this.changingRange === '')
-                    this.changingRange = Defaults.changingRange;
+                // Identifiers may be historized implicitly if any stop attribute is historized, but
+                // their time range and restatable properties are not user-editable (always schema metadata chronon).
+                // Ensure legacy editables are removed if present.
+                var idx = this.editables.indexOf(Editables.changingRangeEdit);
+                if(idx >= 0) this.editables.splice(idx,1);
+                idx = this.editables.indexOf(Editables.restatabilityEdit);
+                if(idx >= 0) this.editables.splice(idx,1);
+                if(this.changingRange === '' && historized) this.changingRange = Defaults.changingRange; // internal use only
                 var ref = historized ? '#identifier_historized' : '#identifier';
                 this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
                 this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
@@ -3113,11 +3489,16 @@
                 var route = element.getAttribute("route");
                 var changingRange = element.getAttribute("timeRange");
                 var parent = element.parentNode;
-                var anchorLookup = Model.getAnchorLookup();
-                var anchor = anchorLookup[parent.getAttribute("mnemonic")];
+                var entityLookup = Model.getLookup('entity');
+                var entity = entityLookup[parent.getAttribute("mnemonic")];
                 var identity = element.getAttribute("identity") || Defaults.positIdentity;
-                var identifier = new Identifier(x, y, anchor, route);
-                identifier.setFixed(fixed);
+                var identifier = new Identifier(x, y, entity, route);
+                if(!identifier) {
+                    console.warn('[Identifier.fromXML] Skipped identifier for entity', entity && entity.mnemonic, 'route="' + route + '" (route missing).');
+                    return null;
+                } else {
+                    identifier.setFixed(fixed);
+                }
                 identifier.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 identifier.privacy = privacy;
                 identifier.encapsulation = capsule;
@@ -3127,18 +3508,20 @@
                 identifier.positIdentity = identity;
                 identifier.positGenerator = generator;
                 if(changingRange) identifier.changingRange = changingRange;
-                Model.addComponent(new Role(identifier, anchor, true));
+                Model.addComponent(new Role(identifier, entity, true));
                 identifier.updateName();
                 return identifier;
             },
             addXML: function(element, schema) {
-                // create an attribute element
-                var identifer = schema.createElement("identifer");
-                identifer.setAttribute("route", this.route.name);
-                if(this.historized)
-                    identifer.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);                
+                // create an identifier element (correct spelling)
+                var identifierEl = schema.createElement("identifier");
+                identifierEl.setAttribute("route", this.route.name);
+                // NOTE: timeRange attribute for identifiers has been deprecated.
+                // Historizaton of an identifier is derived from its key route (presence of historized stops)
+                // and no longer serialized explicitly. We keep reading legacy timeRange on load for backward compatibility
+                // but we do not emit it anymore.
                 if(Defaults.temporalization === 'crt' || Defaults.temporalization === 'bi')
-                    identifer.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
+                    identifierEl.setAttribute("identity", this.isEmpty(this.positIdentity) ? '' : this.positIdentity);
                 var metadata = schema.createElement("metadata");
                 metadata.setAttribute("privacy", this.isEmpty(this.privacy) ?
                         Defaults.privacy : this.privacy);
@@ -3155,14 +3538,11 @@
                     metadata.setAttribute("checksum", this.isEmpty(this.checksum) ?
                             false : this.checksum);
                 }
-                if(this.historized) {
-                    metadata.setAttribute("restatable", this.isEmpty(this.restatable) ?
-                            Defaults.restatability === 'true' : this.restatable);
-                }
-                identifer.appendChild(metadata);
-                this.addLayoutXML(identifer, schema);
-                this.addDescriptionXML(identifer, schema, this.description);
-                element.appendChild(identifer);
+                // Removed restatable for identifiers: historization is derived and identifier restatability is not user-controlled.
+                identifierEl.appendChild(metadata);
+                this.addLayoutXML(identifierEl, schema);
+                this.addDescriptionXML(identifierEl, schema, this.description);
+                element.appendChild(identifierEl);
             },
             contextualName: function() {
                 var name = '';
@@ -3175,11 +3555,24 @@
                 return name;
             },
             toString: function() {
-                var anchor, edge;
-                for(var i = 0; edge = this.node.edges[i]; i++)
-                    if(edge.otherNode.type === NodeType.ANCHOR)
-                        anchor = Model.nodeToComponent(edge.otherNode);
-                return anchor.mnemonic + "_" + anchor.descriptor + "_" + this.route.name;
+                // Prefer the explicitly stored entity reference set in the constructor
+                var anchor = this.entity;
+                // Fallback: derive from current edges (legacy behavior)
+                if(!anchor) {
+                    var edge;
+                    for(var i = 0; edge = this.node.edges[i]; i++) {
+                        if(edge.otherNode.type === NodeType.ANCHOR) {
+                            anchor = Model.nodeToComponent(edge.otherNode);
+                            break;
+                        }
+                    }
+                }
+                if(!anchor) {
+                    // Orphaned identifier (edge construction order or data issue); return safe placeholder
+                    return '!OrphanIdentifier!' + (this.route && this.route.name ? '_' + this.route.name : '');
+                }
+                var routeName = (this.route && this.route.name) ? this.route.name : '?';
+                return anchor.mnemonic + '_' + anchor.descriptor + '_' + routeName;
             },
             draw: function(image) {
                 image.control.setTranslate(this.node.xPosition, this.node.yPosition);
@@ -3204,7 +3597,7 @@
             this.editables.push(Editables.generatorEdit);
             this.encapsulation = Defaults.encapsulation;
             this.identity = Defaults.identity;
-            this.operations.push('addAttribute','addTie','addTieAndAnchor','explode', 'addToKey', 'createKey');
+            this.operations.push('addAttribute','addTie','addTieAndAnchor','addNexus','explode', 'addToKey', 'createKey');
             // set up SVG graphics
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -3803,22 +4196,56 @@
                 tie.positGenerator = generator;
                 tie.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 var grandparent = element.parentNode.parentNode;
-                var anchorRoles = element.getElementsByTagName("anchorRole");
-                if(anchorRoles && anchorRoles.length > 0) 
-                    this.parseRoles(
+                // unified role elements
+                var unifiedRoles = element.getElementsByTagName('role');
+                if(unifiedRoles && unifiedRoles.length > 0) {
+                    // Infer classification: if mnemonic in knot lookup -> knot; else if in anchor or nexus lookup -> entity
+                    var anchorLookup2 = Model.getLookup('entity'); // extended to include nexus mnemonics earlier
+                    var knotLookup2 = Model.getLookup('knot');
+                    // Build refs arrays for parseRoles calls
+                    var anchorRefList2 = grandparent.getElementsByTagName('anchor');
+                    var nexusRefList2 = grandparent.getElementsByTagName('nexus');
+                    var knotRefList2 = grandparent.getElementsByTagName('knot');
+                    var combined2 = [];
+                    for(var c2 = 0; c2 < anchorRefList2.length; c2++) combined2.push(anchorRefList2[c2]);
+                    for(var n2 = 0; n2 < nexusRefList2.length; n2++) combined2.push(nexusRefList2[n2]);
+                    var entityRoles = [];
+                    var knotRolesNew = [];
+                    for(var ur = 0; ur < unifiedRoles.length; ur++) {
+                        var tMnemonic = unifiedRoles[ur].getAttribute('type');
+                        if(knotLookup2 && knotLookup2[tMnemonic]) knotRolesNew.push(unifiedRoles[ur]);
+                        else entityRoles.push(unifiedRoles[ur]);
+                    }
+                    if(entityRoles.length > 0) this.parseRoles(tie, entityRoles, anchorLookup2, combined2);
+                    if(knotRolesNew.length > 0) this.parseRoles(tie, knotRolesNew, knotLookup2, knotRefList2);
+                }
+                else { // legacy anchorRole/knotRole
+                    var anchorRoles = element.getElementsByTagName("anchorRole");
+                    if(anchorRoles && anchorRoles.length > 0) {
+                        // Combine anchors and nexuses for lookup resolution
+                        var anchorRefList = grandparent.getElementsByTagName("anchor");
+                        var nexusRefList = grandparent.getElementsByTagName("nexus");
+                        // Build a temporary NodeList-like array merging both
+                        var combined = [];
+                        for(var c = 0; c < anchorRefList.length; c++) combined.push(anchorRefList[c]);
+                        for(var n = 0; n < nexusRefList.length; n++) combined.push(nexusRefList[n]);
+                        // Reuse the entity lookup (anchors + nexuses)
+                        this.parseRoles(
                             tie,
-                            anchorRoles, 
-                            Model.getAnchorLookup(), 
-                            grandparent.getElementsByTagName("anchor")
-                    );
-                var knotRoles = element.getElementsByTagName("knotRole");
-                if(knotRoles && knotRoles.length > 0)
-                    this.parseRoles(
-                            tie,
-                            knotRoles, 
-                            Model.getKnotLookup(), 
-                            grandparent.getElementsByTagName("knot")
-                    );
+                            anchorRoles,
+                            Model.getLookup('entity'),
+                            combined
+                        );
+                    }
+                    var knotRoles = element.getElementsByTagName("knotRole");
+                    if(knotRoles && knotRoles.length > 0)
+                        this.parseRoles(
+                                tie,
+                                knotRoles, 
+                                Model.getLookup('knot'), 
+                                grandparent.getElementsByTagName("knot")
+                        );
+                }
                 tie.updateName();
                 return tie;
             },
@@ -3833,6 +4260,16 @@
                     for(j = 0; j < refs.length; j++) {
                         if(refs[j].getAttribute("mnemonic") === type) {
                             referred = lookup[refs[j].getAttribute("mnemonic")];
+                            if(!referred) {
+                                // Potentially stale lookup (component added earlier in XML). Rebuild once.
+                                Model.markLookupsDirty();
+                                var refreshed = (lookup === Model.getLookup('knot')) ? Model.getLookup('knot') : Model.getLookup('entity');
+                                referred = refreshed[type];
+                            }
+                            if(!referred) {
+                                // Cannot resolve target component; skip this role gracefully.
+                                break;
+                            }
                             role = new Role(tie, referred, (identifier === "true"));
                             role.role = roleName;
                             role.setColoring(coloring);
@@ -3841,21 +4278,31 @@
                             break; // only one should match
                         }
                     }
-                    for(d = 0; d < roles[i].childNodes.length; d++) {
-                        if(roles[i].childNodes.item(d).nodeName === 'description')
-                            description = roles[i].childNodes.item(d);
-                        // WIP: keys
-                        if(roles[i].childNodes.item(d).nodeName === 'key') {
-                            key = roles[i].childNodes.item(d);
-                            role.keys.push({
-                                stop: key.getAttribute("stop") || '1',
-                                route: key.getAttribute("route"),
-                                of: key.getAttribute("of"), 
-                                branch: key.getAttribute("branch") || '1'
-                            });
+                    if(role) {
+                        for(d = 0; d < roles[i].childNodes.length; d++) {
+                            if(roles[i].childNodes.item(d).nodeName === 'description')
+                                description = roles[i].childNodes.item(d);
+                            // WIP: keys
+                            if(roles[i].childNodes.item(d).nodeName === 'key') {
+                                key = roles[i].childNodes.item(d);
+                                role.keys.push({
+                                    stop: key.getAttribute("stop") || '1',
+                                    route: key.getAttribute("route"),
+                                    of: key.getAttribute("of"), 
+                                    branch: key.getAttribute("branch") || '1'
+                                });
+                            }
+                        }
+                        role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                        // Enforce identifier=false for direct nexus links (NEXUS-ANCHOR/KNOT)
+                        var rn = role.node.node, ro = role.node.otherNode;
+                        if((rn.type === NodeType.NEXUS && (ro.type === NodeType.ANCHOR || ro.type === NodeType.KNOT)) ||
+                           (ro.type === NodeType.NEXUS && (rn.type === NodeType.ANCHOR || rn.type === NodeType.KNOT))) {
+                            role.setIdentifier(false);
+                            var idx2 = role.operations.indexOf('toggleIdentifier');
+                            if(idx2 >= 0) role.operations.splice(idx2, 1);
                         }
                     }
-                    role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
                 }
             },
             toXML: function(schema) {
@@ -3866,14 +4313,11 @@
                     tie.setAttribute("timeRange", this.isEmpty(this.changingRange) ? '' : this.changingRange);
                 var edges = this.node.edges;
                 for(var i = 0; i < edges.length; i++) {
-                    var roleElement;
                     var node = edges[i].otherNode;
                     var role = Model.nodeToComponent(edges[i]);
                     var component = Model.nodeToComponent(node);
-                    if(node.type === NodeType.ANCHOR)
-                        roleElement = schema.createElement("anchorRole");
-                    else if(node.type === NodeType.KNOT)
-                        roleElement = schema.createElement("knotRole");
+                    // unified role element (no explicit kind attribute; infer by mnemonic on load)
+                    var roleElement = schema.createElement("role");
                     roleElement.setAttribute("role", this.isEmpty(role.role) ? "!role" + UniqueIdentity.nextId() + "!" : role.role);
                     roleElement.setAttribute("type", this.isEmpty(component.mnemonic) ? "???" : component.mnemonic);
                     if(role.coloring !== '#000000')
@@ -3956,6 +4400,307 @@
         // inheritance
         extend(Tie, Component);
 
+        function Nexus(x, y) {
+            this.id = UniqueIdentity.nextId();
+            // call the parent constructor
+            Component.call(this, new Node(this.id, x, y, NodeType.NEXUS));
+            this.mnemonic = '?' + this.getId();
+            this.descriptor = '!Unnamed!';
+            this.identity = Defaults.identity;
+            this.generator = true;
+            this.encapsulation = Defaults.encapsulation;
+            this.editables.push(Editables.descriptorEdit);
+            this.editables.push(Editables.twoMnemonicEdit);
+            this.editables.push(Editables.encapsulationEdit);
+            this.editables.push(Editables.identityEdit);
+            this.editables.push(Editables.generatorEdit);
+            this.operations.push('addAttribute','addKnot','addAnchor','explode');
+            // SVG
+            this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.svg.graphicsElement.component = this;
+            this.svg.useElement = document.createElementNS(SVGNS, 'use');
+            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
+            this.svg.graphicsElement.appendChild(this.svg.useElement);
+            this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+            SVGLayer.nodes.appendChild(this.svg.graphicsElement);
+            this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.svg.control.setTranslate(x, y);
+            this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+            this.svg.xOffset = 6;
+            this.svg.yOffset = 0;
+            // NAV
+            this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
+            this.nav.graphicsElement.component = this;
+            this.nav.useElement = document.createElementNS(SVGNS, 'use');
+            this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_nexus');
+            this.nav.graphicsElement.appendChild(this.nav.useElement);
+            NAVLayer.nodes.appendChild(this.nav.graphicsElement);
+            this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
+                this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
+            );
+            this.nav.control.setTranslate(x, y);
+            this.setNameable(true);
+            this.svg.nameElement.setAttributeNS(null, 'class', 'nexus');
+            this.postCreationInitialization();
+        }
+        Nexus.prototype = {
+            mnemonic: '',
+            descriptor: '',
+            identity: Defaults.identity,
+            generator: true,
+            encapsulation: Defaults.encapsulation,
+            isInteractive: function() {
+                return true;
+            },
+            isDraggable: function() {
+                return true;
+            },
+            isConforming: function() {
+                // A Nexus must have at least one chronicled attribute (attribute.chronicle > 0)
+                // Traverse edges and look for any connected Attribute component with chronicle > 0.
+                var edges = this.node && this.node.edges ? this.node.edges : [];
+                for (var i = 0; i < edges.length; i++) {
+                    var edge = edges[i];
+                    // Attributes can appear on either side depending on construction order
+                    if (edge.node && edge.node.type === NodeType.ATTRIBUTE) {
+                        var attr = Model.nodeToComponent(edge.node);
+                        if (attr && typeof attr.chronicle === 'number' && attr.chronicle > 0)
+                            return true;
+                    }
+                    if (edge.otherNode && edge.otherNode.type === NodeType.ATTRIBUTE) {
+                        var attr2 = Model.nodeToComponent(edge.otherNode);
+                        if (attr2 && typeof attr2.chronicle === 'number' && attr2.chronicle > 0)
+                            return true;
+                    }
+                }
+                // No chronicled attribute found; ask user to confirm continuing, mirroring style in other isConforming methods.
+                return !confirm("The nexus " + this + " has no chronicled attribute (chronicle > 0). " +
+                        "At least one chronicled attribute is necessary to capture temporal progression.");
+            },
+            setImploded: function(imploded) {
+                this.imploded = imploded;
+                if(imploded) {
+                    if(this.operations.indexOf('addAttribute') >= 0)
+                        this.operations.splice(this.operations.indexOf('addAttribute'), 1);
+                }
+                else {
+                    this.operations.push('addAttribute');
+                }
+            },
+            draw: function(image) {
+                image.control.setTranslate(this.node.xPosition, this.node.yPosition);
+                if(this.imploded) {
+                    image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus_imploded');
+                }
+                else {
+                    image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
+                }
+            },
+            toXML: function(schema) {
+                // create a nexus element
+                var nexus = schema.createElement("nexus");
+                // set attributes on the element
+                nexus.setAttribute("mnemonic", this.isEmpty(this.mnemonic) ? "??" : this.mnemonic);
+                nexus.setAttribute("descriptor", this.isEmpty(this.descriptor) ? "!Unnamed!" : this.descriptor);
+                nexus.setAttribute("identity", this.isEmpty(this.identity) ? "" : this.identity);
+
+                var metadata = schema.createElement("metadata");
+                metadata.setAttribute("capsule", this.isEmpty(this.encapsulation) ?
+                        Defaults.encapsulation : this.encapsulation);
+                metadata.setAttribute("generator", this.isEmpty(this.generator) ? false : this.generator);
+                nexus.appendChild(metadata);
+
+                var edge;
+                for(var i = 0; edge = this.node.edges[i]; i++) {
+                    // Attributes and Identifiers are always on edge.node side (Role constructed with node=attribute/identifier, otherNode=entity)
+                    if (edge.node.type === NodeType.ATTRIBUTE || edge.node.type === NodeType.IDENTIFIER) {
+                        var comp = Model.nodeToComponent(edge.node);
+                        // Attribute and Identifier components both implement addXML(element,schema)
+                        // so we can call it generically here.
+                        if(comp && typeof comp.addXML === 'function') {
+                            comp.addXML(nexus, schema);
+                        }
+                    }
+                    else if (edge.otherNode.type === NodeType.ANCHOR || edge.otherNode.type === NodeType.KNOT) {
+                        var r = Model.nodeToComponent(edge);
+                        var roleElement = schema.createElement('role');
+                        roleElement.setAttribute('role', this.isEmpty(r.role) ? '!role' + r.id + '!' : r.role);
+                        roleElement.setAttribute('type', r.otherComponent.mnemonic);
+                        roleElement.setAttribute('identifier', r.identifier);
+                        if(r.coloring !== '#000000') {
+                            roleElement.setAttribute('coloring', r.coloring);
+                        }
+                        // Serialize any key definitions on nexus roles (parity with Tie.toXML)
+                        if(r.keys && r.keys.length > 0) {
+                            for(var k = 0; k < r.keys.length; k++) {
+                                var keyElem = schema.createElement('key');
+                                keyElem.setAttribute('stop', r.keys[k].stop);
+                                keyElem.setAttribute('route', r.keys[k].route);
+                                keyElem.setAttribute('of', r.keys[k].of);
+                                keyElem.setAttribute('branch', r.keys[k].branch);
+                                roleElement.appendChild(keyElem);
+                            }
+                        }
+                        nexus.appendChild(roleElement);
+                    }
+                }
+                this.addLayoutXML(nexus, schema);
+                return nexus;
+            },
+            fromXML: function(element) {
+                var x, y, fixed, i, layout;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'layout')
+                        layout = element.childNodes.item(i);
+                if(layout) {
+                    x = layout.getAttribute("x");
+                    y = layout.getAttribute("y");
+                    fixed = layout.getAttribute("fixed");
+                }
+                x = x ? Number(x) : Math.random() * window.innerWidth;
+                y = y ? Number(y) : Math.random() * window.innerHeight;
+                fixed = fixed ? fixed === 'true' : false;
+                var metadata, capsule = Defaults.encapsulation, generator = true;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'metadata')
+                        metadata = element.childNodes.item(i);
+                if(metadata) {
+                    capsule = metadata.getAttribute("capsule") || capsule;
+                    generator = metadata.getAttribute("generator") ?
+                            metadata.getAttribute("generator") === 'true' : generator;
+                }
+                var mnemonic = element.getAttribute("mnemonic") || "??";
+                var descriptor = element.getAttribute("descriptor") || "!Unnamed!";
+                var identity = element.getAttribute("identity") || '';
+                var nexus = new Nexus(x, y);
+                nexus.setFixed(fixed);
+                nexus.mnemonic = mnemonic;
+                nexus.descriptor = descriptor;
+                nexus.identity = identity;
+                nexus.generator = generator;
+                nexus.encapsulation = capsule;
+                
+                // Parse attributes (similar to Anchor)
+                var attributes = element.getElementsByTagName("attribute");
+                for(i = 0; i < attributes.length; i++) {
+                    var attribute = Attribute.prototype.fromXML(attributes[i]);
+                    Model.addComponent(attribute);
+                    Model.addComponent(new Role(attribute, nexus, true));
+                }
+                
+                // Parse roles (unified or legacy)
+                var grandparent = element.parentNode;
+                var unifiedRolesNexus = element.getElementsByTagName('role');
+                if(unifiedRolesNexus && unifiedRolesNexus.length > 0) {
+                    var anchorRefsNexus = grandparent.getElementsByTagName('anchor');
+                    var knotRefsNexus = grandparent.getElementsByTagName('knot');
+                    var anchorLookupNexus = Model.getLookup('entity');
+                    var knotLookupNexus = Model.getLookup('knot');
+                    var entityRolesNexus = [];
+                    var knotRolesNexus = [];
+                    for(var urx = 0; urx < unifiedRolesNexus.length; urx++) {
+                        var tMnemonic2 = unifiedRolesNexus[urx].getAttribute('type');
+                        if(knotLookupNexus && knotLookupNexus[tMnemonic2]) knotRolesNexus.push(unifiedRolesNexus[urx]);
+                        else entityRolesNexus.push(unifiedRolesNexus[urx]);
+                    }
+                    if(entityRolesNexus.length > 0) this.parseRoles(nexus, entityRolesNexus, anchorLookupNexus, anchorRefsNexus);
+                    if(knotRolesNexus.length > 0) this.parseRoles(nexus, knotRolesNexus, knotLookupNexus, knotRefsNexus);
+                }
+                else {
+                    // legacy parsing
+                    var anchorRolesLegacy = element.getElementsByTagName("anchorRole");
+                    if(anchorRolesLegacy && anchorRolesLegacy.length > 0) {
+                        this.parseRoles(
+                            nexus,
+                            anchorRolesLegacy, 
+                            Model.getLookup('entity'), 
+                            grandparent.getElementsByTagName("anchor")
+                        );
+                    }
+                    var knotRolesLegacy = element.getElementsByTagName("knotRole");
+                    if(knotRolesLegacy && knotRolesLegacy.length > 0) {
+                        this.parseRoles(
+                            nexus,
+                            knotRolesLegacy,
+                            Model.getLookup('knot'), 
+                            grandparent.getElementsByTagName("knot")
+                        );
+                    }
+                }
+                
+                nexus.updateName();
+                return nexus;
+            },
+            parseRoles: function(nexus, roles, lookup, refs) {
+                var i, j, d, type, role, roleName, identifier, description, coloring, referred, key;
+                for(i = 0; i < roles.length; i++) {
+                    type = roles[i].getAttribute("type") || "??";
+                    roleName = roles[i].getAttribute("role");
+                    if(!roleName || roleName.match(/![^role].*!/)) roleName = "!role" + UniqueIdentity.nextId() + "!";
+                    identifier = roles[i].getAttribute("identifier") || false;
+                    coloring = roles[i].getAttribute("coloring") || "#000000";
+                    for(j = 0; j < refs.length; j++) {
+                        if(refs[j].getAttribute("mnemonic") === type) {
+                            referred = lookup[refs[j].getAttribute("mnemonic")];
+                            if(referred) {
+                                role = new Role(nexus, referred, (identifier === "true"));
+                                role.role = roleName;
+                                role.setColoring(coloring);
+                                Model.addComponent(role);
+                                role.updateName();
+                            }
+                            break; // only one should match
+                        }
+                    }
+                    if(role) {
+                        for(d = 0; d < roles[i].childNodes.length; d++) {
+                            if(roles[i].childNodes.item(d).nodeName === 'description')
+                                description = roles[i].childNodes.item(d);
+                            // WIP: keys
+                            if(roles[i].childNodes.item(d).nodeName === 'key') {
+                                key = roles[i].childNodes.item(d);
+                                role.keys.push({
+                                    stop: key.getAttribute("stop") || '1',
+                                    route: key.getAttribute("route"),
+                                    of: key.getAttribute("of"), 
+                                    branch: key.getAttribute("branch") || '1'
+                                });
+                            }
+                        }
+                        role.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+                        // Enforce identifier=false for direct nexus links (NEXUS-ANCHOR/KNOT)
+                        var tn = role.node.node, to = role.node.otherNode;
+                        if((tn.type === NodeType.NEXUS && (to.type === NodeType.ANCHOR || to.type === NodeType.KNOT)) ||
+                           (to.type === NodeType.NEXUS && (tn.type === NodeType.ANCHOR || tn.type === NodeType.KNOT))) {
+                            role.setIdentifier(false);
+                            var idx3 = role.operations.indexOf('toggleIdentifier');
+                            if(idx3 >= 0) role.operations.splice(idx3, 1);
+                        }
+                    }
+                }
+            },
+            toString: function() {
+                return this.mnemonic + "_" + this.descriptor;
+            },
+            contextualName: function() {
+                var name;
+                if(Settings.showMnemonics)
+                    name = this.toString();
+                else
+                    name = this.descriptor;
+                if(this.imploded)
+                    name = "(" + name + ")";
+                if(this.postfixes.length > 0) 
+                    name += ' [' + this.postfixes.join(', ') + ']'; 
+                return name;
+            }
+        };
+
+        // inheritance
+        extend(Nexus, Component);
+
         function Role(component, otherComponent, identifier) {
             this.id = UniqueIdentity.nextId();
             var node = component.node;
@@ -3968,9 +4713,43 @@
             this.otherComponent = otherComponent;
             this.identifier = identifier;
             this.keys = [];
-            this.editables.push(Editables.roleEdit, Editables.coloringEdit);
-            this.operations.push('toggleIdentifier', 'makeFirstRole', 'addToKey', 'removeFromKey', 'createKey');
-            this.tied = node.type === NodeType.TIE || otherNode.type === NodeType.TIE;
+            this.tied = (node.type === NodeType.TIE || otherNode.type === NodeType.TIE) ||
+                       (node.type === NodeType.NEXUS && otherNode.type === NodeType.ANCHOR) ||
+                       (node.type === NodeType.ANCHOR && otherNode.type === NodeType.NEXUS) ||
+                       (node.type === NodeType.NEXUS && otherNode.type === NodeType.KNOT) ||
+                       (node.type === NodeType.KNOT && otherNode.type === NodeType.NEXUS);
+            this.chronicable = ((node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+                                  (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE)) &&
+                                 !component.historized;
+            if(this.chronicable) {
+                this.editables.push(Editables.chronicleEdit);
+            } else {
+                this.editables.push(Editables.roleEdit, Editables.coloringEdit);
+                this.operations.push('toggleIdentifier');
+            }
+            this.operations.push('addToKey', 'removeFromKey', 'createKey');
+            // Remove historization toggle for Attribute–Nexus edges (attributes on events are immutable)
+            if((node.type === NodeType.ATTRIBUTE && otherNode.type === NodeType.NEXUS) ||
+               (node.type === NodeType.NEXUS && otherNode.type === NodeType.ATTRIBUTE)) {
+                var thIdx = this.component.operations ? this.component.operations.indexOf('toggleHistorized') : -1;
+                if(thIdx >= 0) this.component.operations.splice(thIdx, 1);
+            }
+            // Remove makeFirstRole if this edge does not involve an actual tie (ordering only affects tie naming)
+            if(node.type !== NodeType.TIE && otherNode.type !== NodeType.TIE) {
+                var mfrIdx = this.operations.indexOf('makeFirstRole');
+                if(mfrIdx >= 0) this.operations.splice(mfrIdx, 1);
+            } else {
+                this.operations.push('makeFirstRole');
+            }
+            // Enforce identifier=false for direct Nexus-Anchor and Nexus-Knot roles (both directions)
+            var directNexus = (node.type === NodeType.NEXUS && (otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.KNOT)) ||
+                              (otherNode.type === NodeType.NEXUS && (node.type === NodeType.ANCHOR || node.type === NodeType.KNOT));
+            if(directNexus) {
+                this.identifier = false;
+                // Remove toggleIdentifier operation if present
+                var idx = this.operations.indexOf('toggleIdentifier');
+                if(idx >= 0) this.operations.splice(idx, 1);
+            }
             // SVG
             this.svg.pathElement = document.createElementNS(SVGNS, 'path');
             this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
@@ -3978,10 +4757,6 @@
             this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
                     ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-            this.svg.pathControl = {
-                m: this.svg.pathElement.pathSegList.getItem(0),
-                q: this.svg.pathElement.pathSegList.getItem(1)
-            };
             SVGLayer.edges.appendChild(this.svg.pathElement);
             if(this.tied) {
                 this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
@@ -4004,15 +4779,34 @@
                 this.setNameable(true);
                 this.svg.nameElement.setAttributeNS(null, 'class', 'role');
             }
+            else if (this.chronicable) {
+                this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
+                this.svg.graphicsElement.component = this;
+                var bubble = document.createElementNS(SVGNS, 'use');
+                bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubbleOutline');
+                this.svg.graphicsElement.appendChild(bubble);
+                this.svg.textElement = document.createElementNS(SVGNS, 'text');
+                this.svg.textElement.setAttributeNS(null, 'class', 'chronicleLabel');
+                this.svg.textElement.setAttributeNS(null, 'text-anchor', 'middle');
+                this.svg.textElement.setAttributeNS(null, 'dominant-baseline', 'central');
+                this.svg.textElement.textContent = this.component.chronicle || '';
+                this.svg.graphicsElement.appendChild(this.svg.textElement);
+                this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
+                SVGLayer.edges.appendChild(this.svg.graphicsElement);
+                this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
+                    this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
+                );
+                this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
+                this.svg.boundingBox = this.svg.graphicsElement.getBBox();
+                this.svg.xOffset = 2;
+                this.svg.yOffset = 2;
+                this.setNameable(false);
+            }
             // NAV
             this.nav.pathElement = document.createElementNS(SVGNS, 'path');
             this.nav.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
                     ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
                     ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-            this.nav.pathControl = {
-                m: this.nav.pathElement.pathSegList.getItem(0),
-                q: this.nav.pathElement.pathSegList.getItem(1)
-            };
             NAVLayer.edges.appendChild(this.nav.pathElement);
             this.postCreationInitialization();
         }
@@ -4041,7 +4835,7 @@
                 }
             },
             isInteractive: function() {
-                return this.tied;
+                return this.tied || this.chronicable;
             },
             isDraggable: function() {
                 return false;
@@ -4060,17 +4854,31 @@
                 return this.role;
             },
             draw: function(image) {
+                // Sync controlPoint with the laid out Edge position
+                this.node.controlPoint.xPosition = this.node.xPosition;
+                this.node.controlPoint.yPosition = this.node.yPosition;
                 var node = this.node.node;
                 var otherNode = this.node.otherNode;
                 var controlPoint = this.node.controlPoint;
                 var role = this.node;
-                image.pathControl.m.x = node.xPosition;
-                image.pathControl.m.y = node.yPosition;
-                image.pathControl.q.x1 = controlPoint.xPosition;
-                image.pathControl.q.y1 = controlPoint.yPosition;
-                image.pathControl.q.x = otherNode.xPosition;
-                image.pathControl.q.y = otherNode.yPosition;
-                if(this.tied && image.control) {
+                if (image.pathElement.setPathData) {
+                    var pathData = image.pathElement.getPathData();
+                    pathData[0].values[0] = node.xPosition;
+                    pathData[0].values[1] = node.yPosition;
+                    pathData[1].values[0] = controlPoint.xPosition;
+                    pathData[1].values[1] = controlPoint.yPosition;
+                    pathData[1].values[2] = otherNode.xPosition;
+                    pathData[1].values[3] = otherNode.yPosition;
+                    image.pathElement.setPathData(pathData);
+                } else {
+                    image.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
+                        ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
+                        ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
+                }
+                if(this.chronicable && image.textElement) {
+                    image.textElement.textContent = this.component.chronicle || '';
+                }
+                if((this.tied || this.chronicable) && image.control) {
                     image.control.setTranslate(role.xPosition, role.yPosition);
                 }
             }
@@ -4560,6 +5368,9 @@
                 ['addTieAndAnchor',
                     'Add <u>t</u>ied anchor',
                     'Add a tie with a connected anchor to the selected anchor(s).'],
+                ['addNexus',
+                    'Add <u>n</u>exus',
+                    'Add a nexus connected to the selected anchor(s).'],
                 ['toggleIdentifier',
                     'Toggle <u>i</u>dentifier',
                     'Toggles whether the selected role(s) should be a part of the primary key or not.'],
@@ -4859,7 +5670,7 @@
                         var editables = this.editables.getElementsByClassName('editable');
                         if(editables.length > 0) {
                             editables[0].focus();
-                            if(editables[0].setSelectionRange)
+                            if(editables[0].setSelectionRange && editables[0].type !== 'number')
                                 editables[0].setSelectionRange(0, editables[0].value.length);
                         }
                     }
@@ -4899,46 +5710,7 @@
             }
         };
 
-        var FileHandler = {
-            reader: null,
-            handleFiles: function(files) {
-                this.reader = new FileReader();
-                this.reader.onload = function(e) { FileHandler.fileLoaded(e); };
-                this.reader.onerror = function(e) {
-                    if(console && console.error)
-                        console.error("File could not be read! Code " + event.target.error.code);
-                };
-                this.reader.readAsText(files[0]);
-            },
-            replaceInput: function(parent, input) {
-                var newInput = document.createElement('input');
-                newInput.className = 'fileSelect';
-                newInput.setAttribute('type', 'file');
-                newInput.addEventListener('change', function() {
-                    FileHandler.handleFiles(this.files);
-                    FileHandler.replaceInput(this.parentNode, this);
-                }, false);
-                parent.replaceChild(newInput, input);
-            },
-            fileLoaded: function(event) {
-                var xml;
-                try {
-                    var parser = new DOMParser();
-                    xml = parser.parseFromString(this.reader.result, "text/xml");
-                }
-                catch(exception) {
-                    alert(exception);
-                }
-                Model.uncloud();
-                Model.clearStates();
-                Model.fromXML(xml);
-                Actions.setModelStatus();
-                Actions.resetZoom();
-                Actions.centerModel();
-                DrawingEngine.taint();
-                DrawingEngine.start(false);
-            }
-        };
+        // Legacy FileHandler removed: functionality consolidated into Actions._applyLoadedModel and modern file input script.
 
         var Actions = {
             startKeyboardEvents: function() {
@@ -4957,15 +5729,20 @@
                 var components = Model.components.slice();
                 components.sort(
                     function(a, b) {
-                        var nameA = a.encapsulation + '.' + a.toString();
-                        var nameB = b.encapsulation + '.' + b.toString();
+                        var aStr, bStr;
+                        try { aStr = a.toString(); } catch(e) { aStr = '!ERR!'; }
+                        try { bStr = b.toString(); } catch(e) { bStr = '!ERR!'; }
+                        var nameA = a.encapsulation + '.' + aStr;
+                        var nameB = b.encapsulation + '.' + bStr;
                         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
                     }
                 );
                 for(var i = 0; component = components[i]; i++) {
                     node = component.node;
-                    if(component.toString() && node.type !== NodeType.EDGE) {
-                        var fullName = component.encapsulation + '.' + component.toString();
+                    var safeString;
+                    try { safeString = component.toString(); } catch(e) { safeString = ''; }
+                    if(safeString && node.type !== NodeType.EDGE) {
+                        var fullName = component.encapsulation + '.' + safeString;
                         if(component.incomplete)
                             fullName = "* " + fullName;
                         var option = new Option(fullName, component.id);
@@ -4981,9 +5758,66 @@
                 selector.value = selected;
             },
             toSVGDataURL: function(image) {
+                // Clone the live SVG so we don't mutate what's on screen
                 var graph = image.cloneNode(true);
+                // Remove transient viewport helper if present
                 var viewport = graph.getElementById('viewport');
                 if(viewport) graph.removeChild(viewport);
+                try {
+                    // Inline computed styles so that theme-dependent CSS (e.g. dark mode) is preserved
+                    // Collect all elements from original and clone in DOM order (querySelectorAll is depth-first)
+                    var originalEls = image.querySelectorAll('*');
+                    var cloneEls = graph.querySelectorAll('*');
+                    var len = Math.min(originalEls.length, cloneEls.length);
+                    // Properties worth preserving for visual fidelity
+                    var STYLE_PROPS = [
+                        'fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray',
+                        'stroke-dashoffset','opacity','fill-opacity','stroke-opacity','font-family','font-size',
+                        'font-weight','font-style','text-anchor','dominant-baseline'
+                    ];
+                    for(var i = 0; i < len; i++) {
+                        var origEl = originalEls[i];
+                        var cloneEl = cloneEls[i];
+                        // Skip if this is a <defs> subtree symbol definition; those often already have inline styles
+                        // but DO process if a symbol relies entirely on external CSS (#bubbleOutline case)
+                        var inDefs = false;
+                        var p = cloneEl.parentNode;
+                        while(p) { if(p.tagName === 'defs' || p.tagName === 'DEFS') { inDefs = true; break; } p = p.parentNode; }
+                        // Only inline for defs if element has no explicit fill/stroke attributes AND no style specifying them
+                        var needsInlineInDefs = inDefs && !(cloneEl.hasAttribute('fill') || cloneEl.hasAttribute('stroke'));
+                        if(inDefs && !needsInlineInDefs) continue;
+                        var cs;
+                        try { cs = window.getComputedStyle(origEl); } catch(e) { continue; }
+                        if(!cs) continue;
+                        var existingStyle = cloneEl.getAttribute('style') || '';
+                        var styleParts = [];
+                        for(var j = 0; j < STYLE_PROPS.length; j++) {
+                            var prop = STYLE_PROPS[j];
+                            // Avoid overwriting if already explicitly set inline
+                            var hasInline = /(^|;|\s)\s*"?'+prop+'"?\s*:/.test(existingStyle); // crude check
+                            if(hasInline) continue;
+                            var val = cs.getPropertyValue(prop);
+                            if(!val) continue;
+                            // We previously skipped fill:none, which caused default black fills in exported SVG
+                            // when external CSS was not present (e.g., for key route paths). Always include fill:none now.
+                            if(prop === 'stroke' && (val === 'none' || val === '')) continue; // still skip meaningless strokes
+                            if(prop === 'fill' && val === '') continue; // skip empty, but allow 'none'
+                            styleParts.push(prop + ':' + val);
+                        }
+                        // Defensive: ensure routes explicitly get fill:none even if something above failed
+                        if(/\brouteSelected\b|\broute\b/.test(cloneEl.getAttribute('class')||'')) {
+                            var alreadyHasFill = /(^|;|\s)\s*fill\s*:/.test(existingStyle) || styleParts.some(function(s){return s.indexOf('fill:')===0;});
+                            if(!alreadyHasFill) styleParts.unshift('fill:none');
+                        }
+                        if(styleParts.length > 0) {
+                            // Merge with existing style (place new first so existing can override if desired)
+                            var merged = styleParts.join(';') + (existingStyle ? ';' + existingStyle : '');
+                            cloneEl.setAttribute('style', merged);
+                        }
+                    }
+                } catch(inlineErr) {
+                    if(DEBUG) console.warn('SVG export style inlining failed', inlineErr);
+                }
                 var svg = (new XMLSerializer()).serializeToString(graph);
                 return "data:image/svg+xml;base64," + btoa(svg);
             },
@@ -5120,33 +5954,110 @@
                 var xml = new DOMParser().parseFromString(responseText, 'text/xml');
                 return xml;                
             },
+            _applyLoadedModel: function(xml, layout) {
+                layout = typeof layout !== 'undefined' ? layout : false;
+                EventHandler.clearSelection();
+                SVGLayer.clearAll();
+                NAVLayer.clearAll();
+                // Reset any previous cloud/local metadata so old names do not linger
+                Model.uncloud();
+                Model.name = null;
+                Model.keywords = null;
+                Model.description = null;
+                Model.scope = 'private';
+                Model.clearStates();
+                Model.fromXML(xml);
+                Actions.setModelStatus();
+                Actions.resetZoom();
+                Actions.centerModel();
+                DrawingEngine.taint();
+                DrawingEngine.start(layout);
+                this.hideLoading();
+            },
             loadFromURL: function (url, layout) {
                 layout = typeof layout !== 'undefined' ? layout : false;
+                // Treat example.xml like a local file name for status purposes
+                if(url === 'example.xml')
+                    this.lastLocalFilename = 'example.xml';
+                else
+                    this.lastLocalFilename = null; // avoid stale filename when loading other sources
+                if(this.loading) return; // guard against double-clicks
+                this.showLoading('Loading ' + (this.lastLocalFilename || url) + '…');
                 this.loadXML(url)
                 .then(xml => {
-                    EventHandler.clearSelection();
-                    SVGLayer.clearAll();
-                    NAVLayer.clearAll();
-                    Model.uncloud();
-                    Model.clearStates();
-                    Model.fromXML(xml);
-                    Actions.setModelStatus();
-                    Actions.resetZoom();
-                    Actions.centerModel();
-                    DrawingEngine.taint();
-                    DrawingEngine.start(layout);
+                    this._applyLoadedModel(xml, layout);
+                })
+                .catch(err => {
+                    console.error('Failed to load model from URL', err);
+                    alert('Failed to load model: ' + err.message);
+                    this.hideLoading();
                 });
             },
             modelStatusText: null,
+            lastLocalFilename: null,
+            loading: false,
+            showLoading: function(message) {
+                var overlay = document.getElementById('loadingOverlay');
+                var label = document.getElementById('loadingIndicator');
+                if(!overlay || !label) return;
+                if(!message) message = 'Loading…';
+                label.textContent = message;
+                overlay.style.display = 'block';
+                document.body.setAttribute('aria-busy', 'true');
+                this.loading = true;
+            },
+            hideLoading: function() {
+                var overlay = document.getElementById('loadingOverlay');
+                if(overlay) overlay.style.display = 'none';
+                document.body.removeAttribute('aria-busy');
+                this.loading = false;
+            },
+            newModel: function() {
+                if(this.loading) return; // do nothing if a load is in progress
+                this.lastLocalFilename = null;
+                Model.name = null;
+                Model.keywords = null;
+                Model.description = null;
+                Model.scope = 'private';
+                Model.setupMinimal(true);
+                this.setModelStatus();
+            },
             setModelStatus: function() {
                 var statusElement = document.getElementById("model");
                 var status = "Local editing mode";
                 if(Model.name && Model.id)
                     status = "Cloud mode, editing " + Model.scope + " model: " + Model.name;
+                else if(this.lastLocalFilename)
+                    status += " (" + this.lastLocalFilename + ")";
                 if(Actions.modelStatusText)
                     statusElement.removeChild(Actions.modelStatusText);
                 Actions.modelStatusText = document.createTextNode(status);
                 statusElement.appendChild(Actions.modelStatusText);
+            },
+            // THEME MANAGEMENT -----------------------------------------------
+            currentTheme: THEME,
+            applyTheme: function(theme) {
+                Settings.currentTheme = theme;
+                document.body.classList.toggle('dark', theme === 'dark');
+                // Update theme toggle menu item text/title if present
+                var item = document.getElementById('themeToggleItem');
+                if(item) {
+                    if(theme === 'dark') {
+                        item.textContent = 'Switch to light mode';
+                        item.setAttribute('title', 'Switch interface to light theme');
+                    }
+                    else {
+                        item.textContent = 'Switch to dark mode';
+                        item.setAttribute('title', 'Switch interface to dark theme');
+                    }
+                }
+            },
+            toggleTheme: function() {
+                this.applyTheme(Settings.currentTheme === 'dark' ? 'light' : 'dark');
+            },
+            initTheme: function(theme) {
+                if(theme === 'dark') this.applyTheme('dark');
+                else this.applyTheme('light');
             },
             cloudStatusText: null,
             checkCloudConnectionStatus: function(redirect) {
@@ -5517,6 +6428,7 @@
                 document.getElementById('metadataUsage').checked = Defaults.metadataUsage === 'true';
                 document.getElementById('businessViews').checked = Defaults.businessViews === 'true';
                 document.getElementById('triggers').checked = Defaults.triggers === 'true';
+                document.getElementById('naturalKeyAttributes').checked = Defaults.naturalKeyAttributes === 'true';
                 document.getElementById('decisiveness').checked = Defaults.decisiveness === 'true';
                 document.getElementById('entityIntegrity').checked = Defaults.entityIntegrity === 'true';
                 document.getElementById('equivalence').checked = Defaults.equivalence === 'true';
@@ -5528,6 +6440,18 @@
                 document.getElementById('deletionSuffix').value = Defaults.deletionSuffix;
                 document.getElementById('encryptionGroup').value = Defaults.encryptionGroup;
                 document.getElementById('naming').value = Defaults.naming;
+                // Populate temporalization-dependent inputs (static elements always present)
+                document.getElementById('positIdentity').value = Defaults.positIdentity;
+                document.getElementById('positingRange').value = Defaults.positingRange;
+                document.getElementById('positingSuffix').value = Defaults.positingSuffix;
+                document.getElementById('positorRange').value = Defaults.positorRange;
+                document.getElementById('positorSuffix').value = Defaults.positorSuffix;
+                document.getElementById('reliabilityRange').value = Defaults.reliabilityRange;
+                document.getElementById('reliabilitySuffix').value = Defaults.reliabilitySuffix;
+                document.getElementById('defaultReliability').value = Defaults.defaultReliability;
+                document.getElementById('deleteReliability').value = Defaults.deleteReliability;
+                document.getElementById('assertionSuffix').value = Defaults.assertionSuffix;
+                document.getElementById('assertiveness').checked = Defaults.assertiveness === 'true';
             },
             resetDefaults: function(warn) {
                 var reset = false;
@@ -5559,8 +6483,11 @@
                     this.setBusinessViews('false');
                     this.setKnotAliases('false');
                     this.setTriggers('true');
+                    this.setNaturalKeyAttributes('false');
                     this.setDecisiveness('true');
                     this.setEquivalence('false');
+                    this.setEquivalentRange('tinyint');
+                    this.setEquivalentSuffix('EQ');
                     this.setChangingSuffix('ChangedAt');
                     this.setIdentitySuffix('ID');
                     this.setPositIdentityRange('int');
@@ -5647,6 +6574,7 @@
                 storage.setItem("metadataUsage", Defaults.metadataUsage);
                 storage.setItem("businessViews", Defaults.businessViews);
                 storage.setItem("triggers", Defaults.triggers);
+                storage.setItem("naturalKeyAttributes", Defaults.naturalKeyAttributes);
                 storage.setItem("decisiveness", Defaults.decisiveness);
                 storage.setItem("equivalence", Defaults.equivalence);
                 storage.setItem("deletability", Defaults.deletability);
@@ -5712,11 +6640,16 @@
                     this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
                     this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setMetadataUsage(storage.getItem('metadataUsage') || Defaults.metadataUsage);
+                    this.setMetadataType(storage.getItem('metadataType') || Defaults.metadataType);
+                    this.setMetadataPrefix(storage.getItem('metadataPrefix') || Defaults.metadataPrefix);
                     this.setBusinessViews(storage.getItem('businessViews') || Defaults.businessViews);
                     this.setKnotAliases(storage.getItem('knotAliases') || Defaults.knotAliases);
                     this.setTriggers(storage.getItem('triggers') || Defaults.triggers);
+                    this.setNaturalKeyAttributes(storage.getItem('naturalKeyAttributes') || Defaults.naturalKeyAttributes);
                     this.setDecisiveness(storage.getItem('decisiveness') || Defaults.decisiveness);
                     this.setEquivalence(storage.getItem('equivalence') || Defaults.equivalence);
+                    this.setEquivalentRange(storage.getItem('equivalentRange') || Defaults.equivalentRange);
+                    this.setEquivalentSuffix(storage.getItem('equivalentSuffix') || Defaults.equivalentSuffix);
                     this.setChangingSuffix(storage.getItem('changingSuffix') || Defaults.changingSuffix);
                     this.setIdentitySuffix(storage.getItem('identitySuffix') || Defaults.identitySuffix);
                     this.setPositIdentityRange(storage.getItem('positIdentity') || Defaults.positIdentity);
@@ -5749,7 +6682,7 @@
                     NodeType.mass[NodeType.EDGE] = 1 * storage.getItem('edgeMass') || 2;
                     NodeType.charge[NodeType.EDGE] = 1 * storage.getItem('edgeCharge') || 4;
                     // must be done after Defaults have been populated with previously stored values
-                    this.setTemporalization(storage.getItem('temporalization') || 'uni');
+                    this.setTemporalization(storage.getItem('temporalization') || Defaults.temporalization);
                 }
                 this.init();
             },
@@ -5844,93 +6777,19 @@
             setTemporalization: function(value) {
                 Defaults.temporalization = value;
                 var temporalizationSelect = document.getElementById('temporalization');
-                temporalizationSelect.value = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('crtSettingsBeforeHere');
-                if(value === 'crt' || value === 'bi') {
-                    this.addTextItem(
-                            'positIdentity', listOfDefaults, beforeItem, ' Posit identity',
-                            "The 'data type' for identities of posits used throughout the implementation.",
-                            function() { Settings.setPositIdentityRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'positingRange', listOfDefaults, beforeItem, ' Positing time range',
-                            "The positing time (corrections) 'data type' used throughout the implementation.",
-                            function() { Settings.setPositingRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'positingSuffix', listOfDefaults, beforeItem, ' Positing time suffix',
-                            "The suffix used for the column storing the point in time a posit was made.",
-                            function() { Settings.setPositingSuffix(this.value); }
-                    );
-                    if(value === 'crt') {
-                        this.addTextItem(
-                                'positorRange', listOfDefaults, beforeItem, ' Positor range',
-                                "The positor (one able to correct) 'data type' used throughout the implementation.",
-                                function() { Settings.setPositorRange(this.value); }
-                        );
-                        this.addTextItem(
-                                'positorSuffix', listOfDefaults, beforeItem, ' Positor suffix',
-                                "The suffix used for the column storing the who made a posit.",
-                                function() { Settings.setPositorSuffix(this.value); }
-                        );
-                    }
-                    this.addTextItem(
-                            'reliabilityRange', listOfDefaults, beforeItem, ' Reliability range',
-                            "A 'data type' that can hold the desired degrees of reliability.",
-                            function() { Settings.setReliabilityRange(this.value); }
-                    );
-                    this.addTextItem(
-                            'reliabilitySuffix', listOfDefaults, beforeItem, ' Reliability suffix',
-                            "The suffix used for the column storing reliability.",
-                            function() { Settings.setReliabilitySuffix(this.value); }
-                    );
-                    if(value === 'crt') {
-                        this.addTextItem(
-                                'defaultReliability', listOfDefaults, beforeItem, ' Default reliability',
-                                "The default value of reliability to use when it is not specified in an insert.",
-                                function() { Settings.setDefaultReliabilty(this.value); }
-                        );
-                        this.addTextItem(
-                                'deleteReliability', listOfDefaults, beforeItem, ' Complete uncertainty',
-                                "The default value of reliability to use when deleting information, " +
-                                "which corresponds to being completely uncertain about a posit.",
-                                function() { Settings.setDeleteReliabilty(this.value); }
-                        );
-                    }
-                    this.addTextItem(
-                            'assertionSuffix', listOfDefaults, beforeItem, ' Assertion suffix',
-                            "The suffix used for the computed column storing a single character '+', '-', or '?'," +
-                            "indicating whether an assertion is positive, negative, or completely uncertain.",
-                            function() { Settings.setAssertionSuffix(this.value); }
-                    );
-                    this.addBoolItem(
-                            'assertiveness', listOfDefaults, beforeItem, ' Assertiveness',
-                            "Default for new items. Assertive items get new annex rows every time a posit " +
-                            "is made with a different positing time. Non-assertive items must also have a " +
-                            "different reliability.",
-                            function() { Settings.setAssertiveness(this.checked ? 'true' : 'false'); }
-                    );
-                    Editables.setEditability(Editables.positIdentityEdit, true);
-                    Editables.setEditability(Editables.positGeneratorEdit, true);
-                    Editables.setEditability(Editables.assertivenessEdit, true);
-                }
-                else {
-                    this.removeItem('positIdentity', listOfDefaults);
-                    this.removeItem('positingRange', listOfDefaults);
-                    this.removeItem('positingSuffix', listOfDefaults);
-                    this.removeItem('positorRange', listOfDefaults);
-                    this.removeItem('positorSuffix', listOfDefaults);
-                    this.removeItem('reliabilityRange', listOfDefaults);
-                    this.removeItem('reliabilitySuffix', listOfDefaults);
-                    this.removeItem('defaultReliability', listOfDefaults);
-                    this.removeItem('deleteReliability', listOfDefaults);
-                    this.removeItem('assertionSuffix', listOfDefaults);
-                    this.removeItem('assertiveness', listOfDefaults);
-                    Editables.setEditability(Editables.positIdentityEdit, false);
-                    Editables.setEditability(Editables.positGeneratorEdit, false);
-                    Editables.setEditability(Editables.assertivenessEdit, false);
-                }
+                if(temporalizationSelect) temporalizationSelect.value = value;
+                // toggle body class for CSS-driven visibility
+                var body = document.body;
+                body.classList.remove('temporal-uni','temporal-bi','temporal-crt');
+                body.classList.add('temporal-' + value);
+                // Ensure temporalization-dependent inputs reflect defaults when becoming visible
+                this.init();
+                var enable = (value === 'crt' || value === 'bi');
+                Editables.setEditability(Editables.positIdentityEdit, enable);
+                Editables.setEditability(Editables.positGeneratorEdit, enable);
+                Editables.setEditability(Editables.assertivenessEdit, enable);
+                // Deletability only in uni-temporal
+                Editables.setEditability(Editables.deletabilityEdit, value === 'uni');
             },
             setDeletablePrefix: function(value) {
                 Defaults.deletablePrefix = value;
@@ -5952,24 +6811,11 @@
             },
             setMetadataUsage: function(value) {
                 Defaults.metadataUsage = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
-                if(value === 'true') {
-                    this.addTextItem(
-                            'metadataPrefix', listOfDefaults, beforeItem, ' Metadata prefix',
-                            "The prefix used for the columns that store a metadata reference.",
-                            function() { Settings.setMetadataPrefix(this.value); }
-                    );
-                    this.addTextItem(
-                            'metadataType', listOfDefaults, beforeItem, ' Metadata type',
-                            "The 'data type' of the metadata column.",
-                            function() { Settings.setMetadataType(this.value); }
-                    );
-                }
-                else {
-                    this.removeItem('metadataPrefix', listOfDefaults);
-                    this.removeItem('metadataType', listOfDefaults);
-                }
+                var body = document.body;
+                // Toggle dedicated body class for equivalence-specific UI items
+                if (value === 'true') body.classList.add('metadata');
+                else body.classList.remove('metadata');
+                this.init();
             },
             setBusinessViews: function(value, userToggle) {
                 Defaults.businessViews = value;
@@ -5998,31 +6844,25 @@
                             "and the views will no longer accept inserts and updates."
                     );
             },
+            setNaturalKeyAttributes: function(value, userToggle) {
+                Defaults.naturalKeyAttributes = value;
+                if(userToggle && value === 'true') {
+                    // Optional: brief informational notice (kept minimal to avoid alert fatigue)
+                    console.log('Natural key attribute table generation enabled.');
+                }
+            },
             setDecisiveness: function(value) {
                 Defaults.decisiveness = value;
             },
             setEquivalence: function(value) {
                 Defaults.equivalence = value;
-                var listOfDefaults = document.getElementById('listOfDefaults');
-                var beforeItem = document.getElementById('metadataSettingsBeforeHere');
-                if(value === 'true') {
-                    this.addTextItem(
-                            'equivalentSuffix', listOfDefaults, beforeItem, ' Equivalents suffix',
-                            "The suffix used for the columns that store equivalents.",
-                            function() { Settings.setEquivalentSuffix(this.value); }
-                    );
-                    this.addTextItem(
-                            'equivalentRange', listOfDefaults, beforeItem, ' Equivalents range',
-                            "The 'data type' of the equivalents column.",
-                            function() { Settings.setEquivalentRange(this.value); }
-                    );
-                    Editables.setEditability(Editables.equivalenceEdit, true);
-                }
-                else {
-                    this.removeItem('equivalentSuffix', listOfDefaults);
-                    this.removeItem('equivalentRange', listOfDefaults);
-                    Editables.setEditability(Editables.equivalenceEdit, false);
-                }
+                var body = document.body;
+                // Toggle dedicated body class for equivalence-specific UI items
+                if (value === 'true') body.classList.add('equivalence');
+                else body.classList.remove('equivalence');
+                this.init();
+                var enable = (value === 'true');
+                Editables.setEditability(Editables.equivalenceEdit, enable);
             },
             setDeletability: function(value) {
                 Defaults.deletability = value;
@@ -6417,6 +7257,16 @@
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
+            // initialize theme (light/dark)
+            if(window.Actions && typeof Actions.initTheme === 'function') {
+                var storedTheme = window.localStorage.getItem("theme");
+                Actions.initTheme(storedTheme ? storedTheme : 'light');
+            }
+            // Show initial status explicitly (before any model load) so user sees "Local editing mode"
+            if(window.Actions && typeof Actions.setModelStatus === 'function') {
+                Actions.lastLocalFilename = null;
+                Actions.setModelStatus();
+            }
 
             // find any parameters passed in the url
             var gets = window.location.search.substring(1);
@@ -6449,15 +7299,12 @@
             SVGLayer.hide('debug');
             SVGLayer.hide('debugPartitions');
 
-            // some inherited properties
-            SVGLayer.edges.style.stroke = '#000';
-            SVGLayer.edges.style.strokeWidth = '1px';
-            SVGLayer.edges.style.fill = 'none';
+            // edges base styling now defined in svg.css (#graph g#edges ...)
             SVGLayer.debug.style.stroke = '#fcc';
             SVGLayer.debug.style.strokeWidth = '7px';
             SVGLayer.debug.style.strokeLinecap = 'round';
-            SVGLayer.debugPartitions.style.fill = '#fff8f8';
-            SVGLayer.debugPartitions.style.stroke = '#f4ebeb';
+            // Partition debug visualization styling moved to CSS; only dynamic strokeWidth kept inline.
+            SVGLayer.debugPartitions.setAttribute('class','partitions');
             SVGLayer.debugPartitions.style.strokeWidth = LayoutEngine.fuzz;
             SVGLayer.names.setAttributeNS(null, 'class', 'label');
 
@@ -6475,10 +7322,7 @@
             NAVLayer.addLayer('nodes');
             NAVLayer.addLayer('viewport');
 
-            // some inherited properties
-            NAVLayer.edges.style.stroke = '#000';
-            NAVLayer.edges.style.strokeWidth = '1px';
-            NAVLayer.edges.style.fill = 'none';
+            // nav edges base styling now defined in svg.css (#minigraph g#edges ...)
 
             DrawingEngine.init();
             // load previous scale and transform
@@ -6506,6 +7350,8 @@
                 Model.scope = window.localStorage.getItem("modelScope");
                 Model.keywords = window.localStorage.getItem("modelKeywords");
                 Model.description = window.localStorage.getItem("modelDescription");
+                // Update status with restored model name if any
+                Actions.setModelStatus();
             }
             else
                 Actions.loadFromURL('example.xml');
@@ -6517,17 +7363,21 @@
             DrawingEngine.start(true);
         }
 
-        // make sure our exit function is called when the page is unloaded
+        // Persist model/settings before navigation while still allowing a confirmation
         window.onbeforeunload = function() {
             if(ASKBEFOREUNLOAD)
                 return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
             else
                 ASKBEFOREUNLOAD = true;
         };
-
-        window.onunload = function() {
-            save(this, false);
-        };
+        // Use pagehide (fires for bfcache) instead of deprecated unload; also visibilitychange fallback
+        function persistOnPageHide(evt) {
+            try { save(window, false); } catch(e) { /* swallow to not block navigation */ }
+        }
+        window.addEventListener('pagehide', persistOnPageHide, {capture:false});
+        document.addEventListener('visibilitychange', function(){
+            if(document.visibilityState === 'hidden') persistOnPageHide();
+        });
 
         function save(window, popup) {
             window.localStorage.clear();
@@ -6544,6 +7394,8 @@
                 window.localStorage.setItem("modelKeywords", Model.keywords);
             if(Model.description)
                 window.localStorage.setItem("modelDescription", Model.description);
+            if(Settings.currentTheme)     
+                window.localStorage.setItem("theme", Settings.currentTheme);    
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
             if(popup)
@@ -6565,127 +7417,28 @@
                     viewBox="0 0 10 10" refX="0" refY="5"
                     markerUnits="strokeWidth"
                     markerWidth="4" markerHeight="3"
-                    orient="auto" fill="#fcc">
+                    orient="auto">
                 <path d="M 0 0 L 10 5 L 0 10 z" />
             </marker>
-            <style type="text/css">
-                .label {
-                    font-size:          8pt;
-                    font-family:        "Open Sans", "Verdana", "Helvetica Neue", sans-serif;
-                    font-weight:        normal;
-                    text-anchor:        left;
-                    dominant-baseline:  middle;
-                    fill:               #000;
-                    pointer-events:     none;
-                }
-                .edge {
-                    pointer-events:     none;
-                }
-                .anchor {
-                    font-style:         italic;
-                    font-weight:        bold;
-                    stroke:             none;
-                    fill:               #c80514;
-                    pointer-events:     none;
-                }
-                .role {
-                    font-style:         italic;
-                    stroke:             none;
-                    fill:               #000;
-                    pointer-events:     none;
-                }
-                .route {
-                    fill:               none;
-                    stroke:             rgba(42, 0, 0, 0.07);
-                    stroke-width:       32;
-                    stroke-linecap:     round;
-                    stroke-linejoin:    round;
-                }
-                .routeSelected {
-                    fill:               none;
-                    stroke:             rgba(242, 101, 101, 0.2);
-                    stroke-width:       42;
-                    stroke-linecap:     round;
-                    stroke-linejoin:    round;
-                }
-                .routeText {
-                    font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
-                    font-size:          20pt;
-                    font-weight:        normal;
-                    fill:               white;
-                    dominant-baseline:  middle;
-                    pointer-events:     none;
-                }
-                .bad {
-                    fill:               #e00;
-                }
-                .end {
-                    text-anchor:        end;
-                }
-            </style>
-            <g id="knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
-                <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
-            </g>
-            <g id="stream" style="fill:#b55;">
-                <rect width="30" height="30" transform="translate(-15, -15)"/>
-                <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#fff;"/>
-            </g>
-            <g id="anchor" style="fill:#b55;">
-                <rect width="20" height="20" transform="translate(-10, -10)"/>
-            </g>
-            <g id="anchor_imploded" style="fill:#633;">
-                <path d="M 0 0 Q 12 4 24 0 Q 20 12 24 24 Q 12 20 0 24 Q 4 12 0 0" transform="translate(-12, -12)"/>
-            </g>
-            <g id="tie" style="fill:#a8a8a8;">
-                <rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
-            </g>
-            <g id="tie_historized">
-                <rect width="22" height="22" transform="rotate(45) translate(-11, -11)" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;"/>
-                <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#a8a8a8;"/>
-            </g>
-            <g id="attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
-                <circle r="10"/>
-            </g>
-            <g id="attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
-                <circle r="12"/>
-                <circle r="7"/>
-            </g>
-            <g id="identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                <circle r="13"/>
-                <g style="fill:#a8a8a8; stroke-width:0px;">
-                    <circle r="2.5" transform="translate(0, -3)"/>
-                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
-                </g>
-        </g>
-            <g id="identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
-                <circle r="16"/>
-                <circle r="11"/>
-                <g style="fill:#a8a8a8; stroke-width:0px;">
-                    <circle r="2.5" transform="translate(0, -3)"/>
-                    <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
-                </g>
-        </g>
-            <g id="highlight" style="stroke:#ede5e5; stroke-width:10px; fill:#fff;">
-                <circle r="30"/>
-            </g>
-            <g id="selection" style="fill:#ede5e5;">
-                <circle r="30"/>
-                <circle r="30" style="stroke:#000; stroke-width:1px;"/>
-            </g>
-            <g id="fixation" style="fill:#000;">
-                <circle r="1.5"/>
-            </g>
-            <g id="bubble" style="fill:#f9f8f7; stroke:none;">
-                <circle r="8"/>
-            </g>
-            <g id="one" style="stroke:#544; stroke-width:1px;">
-                <line x1="0" y1="-3" x2="0" y2="3"/>
-            </g>
-            <g id="many" style="stroke:#544; stroke-width:1px;">
-                <line x1="-3" y1="-3" x2="3" y2="-3"/>
-                <line x1="-3" y1="0" x2="3" y2="0"/>
-                <line x1="-3" y1="3" x2="3" y2="3"/>
-            </g>
+            <!-- SVG styling moved to external svg.css -->
+            <g id="knot"><rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/></g>
+            <g id="nexus"><rect width="30" height="30" transform="translate(-15, -15)"/><rect width="18" height="18" transform="rotate(45) translate(-9, -9)"/></g>
+            <g id="nexus_imploded"><path d="M 0 0 Q 18 6 36 0 Q 30 18 36 36 Q 18 30 0 36 Q 6 18 0 0" transform="translate(-18, -18)"/></g>
+            <g id="anchor"><rect width="20" height="20" transform="translate(-10, -10)"/></g>
+            <g id="anchor_imploded"><path d="M 0 0 Q 12 4 24 0 Q 20 12 24 24 Q 12 20 0 24 Q 4 12 0 0" transform="translate(-12, -12)"/></g>
+            <g id="tie"><rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/></g>
+            <g id="tie_historized"><rect width="22" height="22" transform="rotate(45) translate(-11, -11)"/><rect width="14" height="14" transform="rotate(45) translate(-7, -7)"/></g>
+            <g id="attribute"><circle r="10"/></g>
+            <g id="attribute_historized"><circle r="12"/><circle r="7"/></g>
+            <g id="identifier"><circle r="13"/><g><circle r="2.5" transform="translate(0, -3)"/><polygon points="0,-2 -2,5 2,5"/></g></g>
+            <g id="identifier_historized"><circle r="16"/><circle r="11"/><g><circle r="2.5" transform="translate(0, -3)"/><polygon points="0,-2 -2,5 2,5"/></g></g>
+            <g id="highlight"><circle r="30"/></g>
+            <g id="selection"><circle r="30"/><circle r="30"/></g>
+            <g id="fixation"><circle r="1.5"/></g>
+            <g id="bubble"><circle r="8"/></g>
+            <g id="bubbleOutline"><circle r="8"/></g>
+            <g id="one"><line x1="0" y1="-3" x2="0" y2="3"/></g>
+            <g id="many"><line x1="-3" y1="-3" x2="3" y2="-3"/><line x1="-3" y1="0" x2="3" y2="0"/><line x1="-3" y1="3" x2="3" y2="3"/></g>
         </defs>
         <!-- layers are appended here -->
     </svg>
@@ -6701,14 +7454,14 @@
     <div id="header" class="unselectable">
         <div id="file" class="menu">File
             <ul class="submenu">
-                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Model.setupMinimal(true)">New model...</li>
+                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Actions.newModel()">New model...</li>
+                <script>/* updated below */</script>
                 <!--
                 <li title="Load a publicly stored model from the Google Cloud connection." onclick="Actions.listModelsInCloud('public')">Load public model from cloud...</li>
                 <li title="Load a privately stored model from the Google Cloud connection. Requires that you log in to your Google account." onclick="Actions.listModelsInCloud('private')">Load private model from cloud...</li>
                 <li title="Save the current model in the Google Cloud, either publicly or privately. If it already exists you will be given the option to overwrite the old model." onclick="Actions.saveModelInCloud(true)">Save model in cloud...</li>
                 -->
-                <li><i>Load model from local file:</i></li>
-                <li title="Load a model from an XML file accessible from your local computer."><input type="file" class="fileSelect" onchange="FileHandler.handleFiles(this.files); FileHandler.replaceInput(this.parentNode, this);"/></li>
+                <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" onclick="document.getElementById('modelFileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('modelFileInput').click();event.preventDefault();}">Load model from local file...</li>
                 <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
                 <li title="Save model XML definition to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
                 <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
@@ -6737,10 +7490,10 @@
                 <li title="Selects the target database for the generated SQL code.">
                     <select id="database" onchange="Settings.setDatabase(this.value, true)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
-                        <option value="Oracle">Oracle</option>
-                        <option value="PostgreSQL">PostgreSQL</option>
-                        <option value="Vertica">Vertica</option>
-                        <option value="Snowflake">Snowflake</option>
+                        <option value="Oracle" disabled style="display:none">Oracle</option>
+                        <option value="PostgreSQL" disabled style="display:none">PostgreSQL</option>
+                        <option value="Vertica" disabled style="display:none">Vertica</option>
+                        <option value="Snowflake" disabled style="display:none">Snowflake</option>
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
@@ -6752,16 +7505,17 @@
                 <li title="Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="uni" selected="selected">Unitemporal</option>
-                        <option value="bi">Bitemporal</option>
-                        <option value="crt">Concurrent-reliance-temporal</option>
+                        <option value="bi" disabled style="display:none">Bitemporal</option>
+                        <option value="crt" disabled style="display:none">Concurrent-reliance-temporal</option>
                     </select> Temporalization
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
                 <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
                 <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" onchange="Settings.setKnotAliases(this.checked ? 'true' : 'false', true)"/> Use knot aliases</li>
                 <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
+                <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" onchange="Settings.setNaturalKeyAttributes(this.checked ? 'true' : 'false', true)"/> Create natural key attributes</li>
                 <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
-                <li title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
+                <li class="crt" title="With decisiveness a positor may only hold a single belief within each assertion class (positive, negative, uncertain). With indecisiveness the same positor may hold multiple beliefs at a single positing time. In order to then still be consistent, the total reliability or all beliefs at a given point in time needs an upper limit."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="Actions.generateSQL()"> SQL code</li>
@@ -6802,7 +7556,7 @@
         </div>
 
         <div id="defaults" class="menu">Defaults
-            <ul id="listOfDefaults" class="submenu">
+            <ul class="submenu">
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing time suffix</li>
                 <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
@@ -6813,10 +7567,26 @@
                 <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" onblur="Settings.setDeletionSuffix(this.value)"/> Deletion suffix</li>
                 <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
                 <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
-                <li id="metadataSettingsBeforeHere" title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
+                <li class="equivalence" title="The suffix used for the columns that store equivalents."><input id="equivalentSuffix" class="inputDefaults" type="text" onblur="Settings.setEquivalentSuffix(this.value)"/> Equivalents suffix</li>
+                <li class="equivalence" title="The 'data type' of the equivalents column."><input id="equivalentRange" class="inputDefaults" type="text" onblur="Settings.setEquivalentRange(this.value)"/> Equivalents range</li>
+                <li class="metadata" title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
+                <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
+                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
+                <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
                 <li title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
+                <!-- Temporalization dependent items (static, visibility controlled by body class) -->
+                <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" onblur="Settings.setPositIdentityRange(this.value)"/> Posit identity</li>
+                <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" onblur="Settings.setPositingRange(this.value)"/> Positing time range</li>
+                <li class="bi crt" title="The suffix used for the column storing the point in time a posit was made."><input id="positingSuffix" class="inputDefaults" type="text" onblur="Settings.setPositingSuffix(this.value)"/> Positing time suffix</li>
+                <li class="crt" title="The positor (one able to correct) 'data type' used throughout the implementation."><input id="positorRange" class="inputDefaults" type="text" onblur="Settings.setPositorRange(this.value)"/> Positor range</li>
+                <li class="crt" title="The suffix used for the column storing the who made a posit."><input id="positorSuffix" class="inputDefaults" type="text" onblur="Settings.setPositorSuffix(this.value)"/> Positor suffix</li>
+                <li class="bi crt" title="A 'data type' that can hold the desired degrees of reliability."><input id="reliabilityRange" class="inputDefaults" type="text" onblur="Settings.setReliabilityRange(this.value)"/> Reliability range</li>
+                <li class="bi crt" title="The suffix used for the column storing reliability."><input id="reliabilitySuffix" class="inputDefaults" type="text" onblur="Settings.setReliabilitySuffix(this.value)"/> Reliability suffix</li>
+                <li class="crt" title="The default value of reliability to use when it is not specified in an insert."><input id="defaultReliability" class="inputDefaults" type="text" onblur="Settings.setDefaultReliability(this.value)"/> Default reliability</li>
+                <li class="crt" title="The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit."><input id="deleteReliability" class="inputDefaults" type="text" onblur="Settings.setDeleteReliability(this.value)"/> Complete uncertainty</li>
+                <li class="bi crt" title="The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain."><input id="assertionSuffix" class="inputDefaults" type="text" onblur="Settings.setAssertionSuffix(this.value)"/> Assertion suffix</li>
+                <li class="bi crt" title="Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" onchange="Settings.setAssertiveness(this.checked ? 'true' : 'false')"/> Assertiveness</li>
                 <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
             </ul>
         </div>
@@ -6842,6 +7612,7 @@
                 </li>
                 <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings(true)">Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
+                <li id="themeToggleItem" title="Switch interface to dark theme" onclick="Actions.toggleTheme()">Switch to dark mode</li>
             </ul>
         </div>
     </div>
@@ -6858,39 +7629,43 @@
              width="1"
              height="1">
             <defs id="nav_graphics">
-                <g id="nav_knot" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <g id="nav_knot">
                     <rect width="20" height="20" rx="5" ry="5" transform="translate(-10, -10)"/>
                 </g>
-                <g id="nav_anchor" style="fill:#b55;">
+                <g id="nav_anchor">
                     <rect width="20" height="20" transform="translate(-10, -10)"/>
                 </g>
-                <g id="nav_tie" style="fill:#a8a8a8;">
+                <g id="nav_tie">
                     <rect width="20" height="20" transform="rotate(45) translate(-10, -10)"/>
                 </g>
                 <g id="nav_tie_historized">
-                    <rect width="22" height="22" transform="rotate(45) translate(-11, -11)" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;"/>
-                    <rect width="14" height="14" transform="rotate(45) translate(-7, -7)" style="fill:#a8a8a8;"/>
+                    <rect width="22" height="22" transform="rotate(45) translate(-11, -11)"/>
+                    <rect width="14" height="14" transform="rotate(45) translate(-7, -7)"/>
                 </g>
-                <g id="nav_attribute" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <g id="nav_nexus">
+                    <rect width="20" height="20" transform="translate(-10, -10)"/>
+                    <rect width="9" height="9" transform="rotate(45) translate(-4.5, -4.5)"/>
+                </g>
+                <g id="nav_attribute">
                     <circle r="10"/>
                 </g>
-                <g id="nav_attribute_historized" style="fill:#fff; stroke:#f88; stroke-width:2px;">
+                <g id="nav_attribute_historized">
                     <circle r="12"/>
                     <circle r="7"/>
                 </g>
-                <g id="nav_identifier" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                <g id="nav_identifier">
                     <circle r="13"/>
-                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <g>
                         <circle r="2.5" transform="translate(0, -3)"/>
-                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                        <polygon points="0,-2 -2,5 2,5"/>
                     </g>
                 </g>
-                <g id="nav_identifier_historized" style="fill:#fff; stroke:#a8a8a8; stroke-width:2px;">
+                <g id="nav_identifier_historized">
                     <circle r="16"/>
                     <circle r="11"/>
-                    <g style="fill:#a8a8a8; stroke-width:0px;">
+                    <g>
                         <circle r="2.5" transform="translate(0, -3)"/>
-                        <polygon points="0,-2 -2,5 2,5" style="stroke-width:1px; stroke-linejoin:round; stroke-linecap:round;"/>
+                        <polygon points="0,-2 -2,5 2,5"/>
                     </g>
                 </g>
             </defs>
@@ -6898,7 +7673,7 @@
     </div>
 
     <div id="logotype" class="unselectable">
-        <img width="100%" src="Anchor.svg" type="image/svg+xml"/>
+    <img width="100%" src="Anchor.svg" type="image/svg+xml" alt="Anchor Modeling logotype"/>
     </div>
     <div id="cloud" class="unselectable" onclick="Actions.checkCloudConnectionStatus(true)">
         <!-- filled dynamically -->
@@ -6906,5 +7681,69 @@
     <div id="model" class="unselectable">
         <!-- filled dynamically -->
     </div>
+    <!-- Loading overlay (hidden by default) -->
+    <div id="loadingOverlay" aria-hidden="true" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.75);backdrop-filter:blur(2px);">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Open Sans',sans-serif;text-align:center;">
+            <div id="loadingSpinner" style="width:48px;height:48px;margin:0 auto 12px;border:6px solid #e3d7d7;border-top-color:#c80514;border-radius:50%;animation:anchor-spin 0.9s linear infinite;"></div>
+            <div id="loadingIndicator" style="font-size:14px;color:#333;">Loading…</div>
+        </div>
+    </div>
+    <style>
+        @keyframes anchor-spin { to { transform: rotate(360deg); } }
+    </style>
+    <!-- Hidden file input for loading local model files (single file only) -->
+    <input id="modelFileInput" type="file" accept=".xml,text/xml,application/xml" style="display:none" aria-hidden="true" />
+    <!-- Live region for announcing loaded filename (improves accessibility) -->
+    <div id="fileLoadStatus" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" aria-live="polite" aria-atomic="true"></div>
+    <script>
+    (function(){
+        const input = document.getElementById('modelFileInput');
+        const statusRegion = document.getElementById('fileLoadStatus');
+        if(!input) return;
+
+        async function loadFile(file){
+            if(!file) return;
+            if(Actions.loading) return; // prevent concurrent loads
+            Actions.showLoading('Loading ' + file.name + '…');
+            try {
+                const text = await file.text(); // modern File API, returns Promise
+                const xml = new DOMParser().parseFromString(text, 'text/xml');
+                // Basic parse error detection (presence of parsererror element)
+                if(xml.getElementsByTagName('parsererror').length){
+                    throw new Error('XML parse error');
+                }
+                Actions.lastLocalFilename = file.name;
+                Actions._applyLoadedModel(xml, false);
+                statusRegion.textContent = 'Loaded ' + file.name;
+            } catch(err){
+                console.error('Failed to load file', err);
+                alert('Failed to load model: ' + err.message);
+                Actions.hideLoading();
+            } finally {
+                // allow selecting same file again
+                input.value = '';
+            }
+        }
+
+        function handleFileList(fileList){
+            if(!fileList || !fileList.length) return;
+            // restrict strictly to the first file
+            loadFile(fileList[0]);
+        }
+
+        input.addEventListener('change', e => handleFileList(e.target.files));
+
+        // Optional drag & drop support
+        document.addEventListener('dragover', e => { e.preventDefault(); });
+        document.addEventListener('drop', e => {
+            if(!e.dataTransfer) return;
+            const files = e.dataTransfer.files;
+            if(files && files.length){
+                e.preventDefault();
+                handleFileList(files);
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

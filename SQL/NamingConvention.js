@@ -101,6 +101,68 @@ while (anchor = schema.nextAnchor()) {
     }
 }
 
+// NEXUS naming (mirrors anchors)
+var nexus;
+while (nexus = schema.nextNexus()) {
+    if(!nexus || !nexus.mnemonic) continue;
+    nexus.name = nexus.mnemonic + D + nexus.descriptor;
+    nexus.businessName = nexus.descriptor;
+    nexus.identityColumnName = nexus.mnemonic + D + schema.metadata.identitySuffix;
+    nexus.capsule = nexus.metadata.capsule || schema.metadata.encapsulation;
+    nexus.metadataColumnName = schema.metadata.metadataPrefix + D + nexus.mnemonic;
+    nexus.dummyColumnName = nexus.mnemonic + D + schema.metadata.dummySuffix;
+    nexus.businessIdentityColumnName = nexus.descriptor + D + businessIdentity;
+    nexus.toString = function() { return this.mnemonic; };
+    var nxAttribute;
+    while (nexus.nextAttribute && (nxAttribute = nexus.nextAttribute())) {
+        nxAttribute.uniqueMnemonic = nexus.mnemonic + D + nxAttribute.mnemonic;
+        nxAttribute.name = nxAttribute.uniqueMnemonic + D + nexus.descriptor + D + nxAttribute.descriptor;
+        nxAttribute.deletionName = nxAttribute.name + D + schema.metadata.deletionSuffix;
+        nxAttribute.businessName = nxAttribute.descriptor;
+        nxAttribute.positName = nxAttribute.name + D + schema.metadata.positSuffix;
+        nxAttribute.annexName = nxAttribute.name + D + schema.metadata.annexSuffix;
+        nxAttribute.checksumColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.checksumSuffix;
+        nxAttribute.identityColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.identitySuffix;
+        nxAttribute.metadataColumnName = schema.metadata.metadataPrefix + D + nxAttribute.uniqueMnemonic;
+        nxAttribute.deletableColumnName = schema.metadata.deletablePrefix + D + nxAttribute.uniqueMnemonic;
+        nxAttribute.deletionTimeColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.deletionSuffix;
+        nxAttribute.equivalentColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.equivalentSuffix;
+        nxAttribute.versionColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.versionSuffix;
+        nxAttribute.positingColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.positingSuffix;
+        nxAttribute.positorColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.positorSuffix;
+        nxAttribute.reliabilityColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.reliabilitySuffix;
+        nxAttribute.assertionColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.assertionSuffix;
+        nxAttribute.statementTypeColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
+        if(schema.IMPROVED) {
+            nxAttribute.anchorReferenceName = nxAttribute.uniqueMnemonic + D + nexus.mnemonic + D + schema.metadata.identitySuffix;
+            if(nxAttribute.isKnotted()) {
+                knot = nxAttribute.knot;
+                nxAttribute.knotReferenceName = nxAttribute.uniqueMnemonic + D + nxAttribute.knotRange + D + schema.metadata.identitySuffix;
+                nxAttribute.knotValueColumnName = nxAttribute.uniqueMnemonic + D + knot.name;
+                nxAttribute.knotEquivalentColumnName = nxAttribute.uniqueMnemonic + D + knot.equivalentColumnName;
+                nxAttribute.knotChecksumColumnName = nxAttribute.uniqueMnemonic + D + knot.checksumColumnName;
+                nxAttribute.knotMetadataColumnName = nxAttribute.uniqueMnemonic + D + knot.metadataColumnName;
+                nxAttribute.knotBusinessName = nxAttribute.businessName + D + knot.businessName;
+            }
+        }
+        else {
+            nxAttribute.anchorReferenceName = nexus.identityColumnName;
+            if(nxAttribute.isKnotted()) {
+                knot = nxAttribute.knot;
+                nxAttribute.knotReferenceName = nxAttribute.knotRange + D + schema.metadata.identitySuffix;
+                nxAttribute.knotValueColumnName = knot.name;
+                nxAttribute.knotMetadataColumnName = knot.metadataColumnName;
+            }
+        }
+        nxAttribute.valueColumnName = nxAttribute.knotReferenceName || nxAttribute.name;
+        if(nxAttribute.isHistorized()) {
+            nxAttribute.changingColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.changingSuffix;
+        }
+        nxAttribute.capsule = nxAttribute.metadata.capsule || schema.metadata.encapsulation;
+        nxAttribute.toString = function() { return this.mnemonic; };
+    }
+}
+
 // warn about naming clashes for business names
 if(schema.BUSINESS_VIEWS) {
     var anchors = {};
@@ -141,7 +203,10 @@ while (anchor = schema.nextAnchor()) {
         var role, key, route, stop, component;
         for(route in anchor.keys) {
             key = anchor.keys[route];
-            key.name = 'key' + D + anchor.mnemonic + D + route;
+            key.name = 'key' + D + anchor.mnemonic + D + anchor.descriptor + D + route;
+            // Physical table name for materialized natural key attributes (drop 'key' prefix)
+            key.tableName = anchor.mnemonic + D + anchor.descriptor + D + route;
+            key.changingColumnName = anchor.mnemonic + D + schema.metadata.changingSuffix;
             for(stop in key.stops) {
                 component = key.stops[stop];
                 if(component.attribute) {
@@ -157,6 +222,64 @@ while (anchor = schema.nextAnchor()) {
     }
 } 
 
+// second pass over nexus to set key names
+var nexus;
+while (nexus = schema.nextNexus()) {
+var role;
+    while (role = nexus.nextRole()) {
+        role.name = role.type + D + role.role;
+        if(role.knot) {
+            role.businessName = role.role + D + (role.knot ? role.knot.descriptor : 'UnknownKnot');
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else if(role.anchor) {
+            role.businessName = role.anchor.descriptor + D + role.role;
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else {
+            // Fallback for roles that do not resolve to anchor or knot (e.g., nexus associations not yet modeled like ties)
+            role.businessName = (role.role || 'role') + D + 'Unknown';
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;
+        if(role.knot) {
+            knot = role.knot;
+            if(schema.IMPROVED) {
+                role.knotValueColumnName = role.role + D + knot.valueColumnName;
+                role.knotMetadataColumnName = role.role + D + knot.metadataColumnName;
+                role.knotEquivalentColumnName = role.role + D + knot.equivalentColumnName;
+                role.knotChecksumColumnName = role.role + D + knot.checksumColumnName;
+            }
+            else {
+                role.knotValueColumnName = knot.valueColumnName;
+                role.knotMetadataColumnName = knot.metadataColumnName;
+                role.knotEquivalentColumnName = knot.equivalentColumnName;
+                role.knotChecksumColumnName = knot.checksumColumnName;
+            }
+        }
+    }
+    if(nexus.keys) {
+        var role, key, route, stop, component;
+        for(route in nexus.keys) {
+            key = nexus.keys[route];
+            key.name = 'key' + D + nexus.mnemonic + D + nexus.descriptor + D + route;
+            key.tableName = nexus.mnemonic + D + nexus.descriptor + D + route;
+            key.changingColumnName = nexus.mnemonic + D + schema.metadata.changingSuffix;
+            for(stop in key.stops) {
+                component = key.stops[stop];
+                if(component.attribute) {
+                    component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
+                    if(component.attribute.timeRange) {
+                        component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
+                    }
+                    component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName + D + schema.metadata.changingSuffix;
+                }
+                role = component.role; // may be undefined for pure attribute stops
+            }
+        }
+    }
+}
+
 var tie;
 while (tie = schema.nextTie()) {
     var name = '', bName = '';
@@ -164,11 +287,16 @@ while (tie = schema.nextTie()) {
     while (role = tie.nextRole()) {
         role.name = role.type + D + role.role;
         if(role.knot) {
-            role.businessName = role.role + D + role.knot.descriptor;
+            role.businessName = role.role + D + (role.knot ? role.knot.descriptor : 'UnknownKnot');
+            role.businessColumnName = role.businessName + D + businessIdentity;
+        }
+        else if(role.anchor) {
+            role.businessName = role.anchor.descriptor + D + role.role;
             role.businessColumnName = role.businessName + D + businessIdentity;
         }
         else {
-            role.businessName = role.anchor.descriptor + D + role.role;
+            // Fallback for roles that do not resolve to anchor or knot (e.g., nexus associations not yet modeled like ties)
+            role.businessName = (role.role || 'role') + D + 'Unknown';
             role.businessColumnName = role.businessName + D + businessIdentity;
         }
         role.columnName = role.type + D + schema.metadata.identitySuffix + D + role.role;

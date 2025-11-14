@@ -13,9 +13,8 @@ if(schema.TRIGGERS) {
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor, attribute, encryptionGroup;
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
+var attribute, encryptionGroup;
+while (attribute = schema.nextAttribute()) {
         if(attribute.isHistorized()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
@@ -47,7 +46,7 @@ BEGIN
         }    
 /*~
     DECLARE @$attribute.name TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.anchorReferenceName $attribute.parentIdentityRange not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
@@ -114,7 +113,7 @@ BEGIN
         p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName;
 
     DECLARE @restated TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.anchorReferenceName $attribute.parentIdentityRange not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null
     );
@@ -185,8 +184,8 @@ BEGIN
 END
 GO
 ~*/
-        } // end of historized attribute
-        else if (!attribute.isHistorized() && attribute.isIdempotent()) {
+    } // end of historized attribute
+    else if (!attribute.isHistorized() && attribute.isIdempotent()) {
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name instead of INSERT trigger on $attribute.name
@@ -245,6 +244,5 @@ END
 GO       
 ~*/
         } // end of static idempotent attribute
-    } // end of loop over attributes
 }
 }

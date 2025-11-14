@@ -1,10 +1,9 @@
 html {
-    -webkit-text-size-adjust: none;
     touch-action: manipulation;
 }
 
 body {
-    font:               8pt "Open Sans", "Helvetica Neue", sans-serif;
+    font:               12px "Open Sans", "Helvetica Neue", sans-serif;
     line-height:        1.88889;
     color:              #000000;
     background:         #f9f8f7;
@@ -13,8 +12,131 @@ body {
     padding:            0;
 }
 
-* {
-    target-new:         tab ! important;
+/* ==========================
+     Dark Theme (opt-in via body.dark)
+     ========================== */
+body.dark {
+        color:              #f2f2f3;
+        background:         #1e1f22;
+}
+body.dark a:link,
+body.dark a:active,
+body.dark a:visited { color:#ff8888; }
+body.dark a:hover { color:#ffb0b0; }
+
+/* Panels, menus, overlays */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #tabularEditor,
+body.dark #miniature,
+body.dark #model,
+body.dark #cloud,
+body.dark #search input,
+body.dark #search select,
+body.dark #loadingOverlay { background-color:rgba(50,51,56,0.92); color:#f2f2f3; }
+
+body.dark #loadingOverlay { backdrop-filter:blur(2px); }
+body.dark #loadingSpinner { border-color:#444; border-top-color:#ff6666; }
+
+/* Borders / outlines */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #tabularEditor,
+body.dark #tabularEditor .closebutton,
+body.dark #miniature { border-color:#3a3b40; }
+
+/* bubbleOutline styles moved to svg.css */
+
+/* Shadows softened */
+body.dark #header,
+body.dark .submenu,
+body.dark #contextMenu,
+body.dark #miniature,
+body.dark .collapsed { box-shadow:0 4px 14px rgba(0,0,0,0.6); }
+
+/* Menu text / hovers */
+body.dark .menu { color:#f2f2f3; }
+body.dark .menu:hover { color:#fff; }
+body.dark .submenu li { color:#f2f2f3; }
+body.dark .submenu li:hover { background-color:#b55; color:#fff; }
+body.dark .submenu a { color:#f2f2f3; }
+body.dark .submenu a:hover { color:#fff; text-shadow:0 0 6px #ff8888; }
+
+/* Inputs */
+body.dark input,
+body.dark select,
+body.dark textarea { background:#2a2b2f; color:#f2f2f3; border:1px solid #555; }
+body.dark input:focus,
+body.dark select:focus,
+body.dark textarea:focus { outline:1px solid #ff6666; }
+body.dark input:invalid { background-color:#5a1e1e; }
+
+/* Toggle / buttons inside menus */
+body.dark .toggler { border-color:#888; background:#333; color:#eee; }
+body.dark .collapsed { background-color:#333; }
+body.dark .expanded { background-color:#c33; }
+
+/* Status elements */
+body.dark #model { background-color:#1e1f22; color:#f2f2f3; }
+body.dark #cloud { color:#f2f2f3; }
+
+/* Graph specific colors (edge strokes etc.) adapt subtly */
+/* Dark theme: let SVG be transparent so underlying watermark (#disclaimer) can show through */
+body.dark svg#graph { background:transparent; }
+/* SVG graph specific styling moved to svg.css */
+
+/* Scrollbars (WebKit) */
+body.dark ::-webkit-scrollbar { width:10px; }
+body.dark ::-webkit-scrollbar-track { background:#2a2b2f; }
+body.dark ::-webkit-scrollbar-thumb { background:#555; border-radius:5px; }
+body.dark ::-webkit-scrollbar-thumb:hover { background:#666; }
+
+/* Loading overlay text color inherited; ensure indicator text */
+body.dark #loadingIndicator { color:#f2f2f3; }
+
+/* Prevent white flashes in transitions */
+@media (prefers-reduced-motion:no-preference) {
+    body.dark { transition:background-color .25s ease, color .25s ease; }
+}
+
+/* Temporalization visibility control */
+body.temporal-uni li.bi,
+body.temporal-uni li.crt { display:none !important; }
+/* In bi mode hide only items that are exclusively crt (have crt but not bi) */
+body.temporal-bi  li.crt:not(.bi) { display:none !important; }
+/* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
+
+/* Uni-only items: give them class 'uni' so they hide in bi/crt modes */
+body.temporal-bi  li.uni,
+body.temporal-crt li.uni { display:none !important; }
+
+/* Metadata / equivalence visibility control
+    Metadata specific options (li.metadata) are only shown when body has class 'metadata'.
+    Equivalence specific options (li.equivalence) are only shown when body has class 'equivalence'.
+    This mirrors how temporalization toggles classes on <body>. */
+body:not(.metadata)    li.metadata { display:none !important; }
+body:not(.equivalence) li.equivalence { display:none !important; }
+
+/* Route key labels (text on key routes) */
+text.routeText {
+    font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
+    font-size:          20pt;
+    font-weight:        normal;
+    fill:               white;
+    dominant-baseline:  middle;
+    pointer-events:     none;
+}
+
+/* Fine-tune baseline if fonts render slightly off; adjust dy as needed */
+text.routeText > textPath { dominant-baseline: middle; }
+
+/* Chronon provider labels on nexus-attribute edges */
+.chronicleLabel {
+    font-size:          10px;
+    fill:               currentColor;
+    pointer-events:     none;
 }
 
 a:link, a:active, a:visited {
@@ -27,11 +149,11 @@ a:hover {
 }
 
 .unselectable {
-    user-select:        none;
-    -moz-user-select:   none;
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select:    none;
+    -moz-user-select:     none;
+    -khtml-user-select:   none;
+    -webkit-user-select:  none;
+    -ms-user-select:      none;
+    user-select:          none;
 }
 
 .invisible {
@@ -120,8 +242,11 @@ a:hover {
     color:              white;
     top:                42px;
     left:               16px;
-    z-index:            0;
+    z-index:            0; 
+    pointer-events:     none; /* ensure it never blocks graph interaction */
 }
+/* Dark theme: slightly dimmed but clearly visible */
+body.dark #disclaimer { color:rgba(255,255,255,0.03); }
 
 /* the logotype 'ANCHOR' */
 #logotype {
@@ -146,15 +271,21 @@ a:hover {
     z-index:            10;
 }
 
-/* shows model name if cloud based or local */
+/* shows model name or local editing status
+   Repositioned to bottom right under the miniature for visual balance */
 #model {
     font:               8pt sans-serif;
     position:           absolute;
     color:              black;
-    text-align:         left;
-    bottom:             54px;
-    left:               12px;
-    display:            block;
+    text-align:         right;
+    bottom:             6px;      /* same vertical offset as logotype */
+    right:              42px;     /* align with miniature's right edge */
+    left:               auto;
+    display:            inline-block; /* shrink wrap for background box */
+    background-color:   #f9f8f7; /* opaque box matching main background */
+    padding:            2px 6px; /* small breathing room around text */
+    border-radius:      3px;     /* subtle rounding */
+    pointer-events:     none;    /* don't block interactions with canvas beneath */
     z-index:            10;
 }
 
@@ -177,6 +308,12 @@ a:hover {
 }
 #contextMenu .items {
     margin:             10px 10px 5px 10px;
+}
+#contextMenu .items tr, #contextMenu .items td {
+    background:         transparent !important; /* remove banding */
+}
+body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
+    background:         transparent !important;
 }
 #contextMenu .topper {
     font:               10px sans-serif;
@@ -604,7 +741,8 @@ legend {
 }
 .submenu {
     display:            none;
-    position:           relative;
+    position:           relative;      /* anchor to parent .menu */
+    top:                0; 
     background-color:   rgba(236, 234, 234, 0.9);
     white-space:        nowrap;
     border:             2px solid #fff;
@@ -612,6 +750,11 @@ legend {
     -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
     -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
     z-index:            9;
+    /* Constrain height to viewport and enable internal scrolling */
+    max-height:         calc(100vh - 60px); /* header (32px) + breathing room */
+    overflow-y:         auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 .menu:hover > .submenu {
     display:            block;
@@ -639,9 +782,8 @@ legend {
 }
 .submenu li:hover {
     color:              white;
-    background-color:   rgba(128, 128, 128, 0.8);
+    background-color:   #b55;
     text-decoration:    none;
-    text-shadow:        0px 0px 6px #555;
 }
 .submenu select {
     width:              108px;
@@ -652,6 +794,95 @@ legend {
 .submenu .inputDefaults {
     width:              104px;
 }
+
+/* =============================================================
+   Touch & small-screen menu enhancements (CSS-only, no markup change)
+   These rules progressively enhance usability on coarse pointers /
+   devices without reliable hover. Desktop hover behavior remains.
+   ------------------------------------------------------------- */
+
+/* (Desktop keeps original 32px line-height; touch overrides inside media query below) */
+
+/* Moderated submenu item sizing (was 34px line-height, now reduced for density) */
+.submenu li {
+    min-height:         30px;         /* balance readability + compactness */
+    line-height:        30px;
+    padding-top:        1px;
+    padding-bottom:     1px;
+}
+
+/* Remove tap highlight flash on mobile WebKit */
+.menu, .submenu li, .submenu a, .submenu input, .submenu select {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Accessibility: show focus outline if menu items become focusable later */
+.menu:focus {
+    outline:            3px solid #fa5;
+    outline-offset:     2px;
+}
+
+/* On devices that lack hover or have coarse pointer, present menus as
+   stacked, always-expanded panels to avoid hover dependency. */
+@media (hover: none), (any-hover: none), (pointer: coarse) {
+    /* Larger hit areas on touch devices */
+    .menu {
+        line-height:    40px;         /* bigger tap target */
+        padding-left:   12px;
+        padding-right:  12px;
+    }
+    /* Stack top-level menus vertically, full-width container feel */
+    #file, #actions, #generate, #defaults, #settings, #about {
+        display:        block;
+        position:       static;       /* ignore earlier absolute offsets */
+        left:           auto !important;
+        right:          auto !important;
+        top:            auto !important;
+        width:          100%;
+        max-width:      480px;
+        margin:         0 auto 6px auto;
+        background:     #b55;
+        color:          #fff;
+        border-radius:  4px;
+        box-sizing:     border-box;
+    }
+    .menu + .menu { margin-top: 0; }
+    .menu:hover { font-style: normal; } /* hover meaningless on touch */
+
+    /* Always show submenu; convert to block panel */
+    .menu > .submenu {
+        display:        block !important;
+        position:       static;       /* override absolute in desktop mode */
+        background:     rgba(255,255,255,0.92);
+        border:         1px solid #ddd;
+        box-shadow:     none;
+        margin:         0;
+        padding:        4px 0 8px 0;
+        /* Use a taller adaptive max-height on touch; desktop rule already sets viewport constraint */
+        max-height:     min(500px, calc(100vh - 80px));
+        overflow-y:     auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .submenu li {
+        background:     transparent;
+        color:          #222;
+    }
+    .submenu li:hover {
+        background:     #b55;
+        color:          #fff;
+    }
+    /* Larger form controls for touch */
+    .submenu select,
+    .submenu input {
+        font-size:      14px;
+        line-height:    20px;
+    }
+    #listOfDefaults,
+    #listOfSettings { padding-top: 2px; }
+}
+
+/* ============================================================= */
 
 #controls {
     position:           absolute;
@@ -665,9 +896,7 @@ legend {
 #controls .playing {
     background-color:   #fa5;
 }
-#controls .pausing {
-    /* just go back to normal */
-}
+/* Removed empty #controls .pausing ruleset (no differing styles from base state) */
 #controls div {
     cursor:             pointer;
     position:           relative;

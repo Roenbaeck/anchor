@@ -181,7 +181,7 @@ prompt Populate TIE l$tie.name;
 ~*/
         }
 /*~
-        $(role.anchor)? $role.columnName\.$role.anchor.identityColumnName: $role.columnName\.$role.knot.identityColumnName AS $role.columnName~*//*~$(tie.hasMoreRoles())?,
+    $(role.entity)? $role.columnName\.$role.entity.identityColumnName: $role.columnName\.$role.knot.identityColumnName AS $role.columnName~*//*~$(tie.hasMoreRoles())?,
 ~*/
     }
     
@@ -190,7 +190,7 @@ prompt Populate TIE l$tie.name;
 ~*/
     while (role = tie.nextRole()) {
 /*~
-        $(role.anchor)? $role.anchor.name $role.columnName: $role.knot.name $role.columnName~*//*~$(tie.hasMoreRoles())?,
+    $(role.entity)? $role.entity.name $role.columnName: $role.knot.name $role.columnName~*//*~$(tie.hasMoreRoles())?,
 ~*/
     }
     var i = 0, l_currentIdentityColumn = '', l_previousIdentityColumn = ''

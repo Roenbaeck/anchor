@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     var role;
     while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.anchor)? $role.anchor.identity not null, : $role.knot.identity not null,
+    $role.columnName $(role.entity)? $role.entity.identity not null, : $role.knot.identity not null,
 ~*/
     }
 /*~
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.anchor)? ${role.anchor.capsule}$.$role.anchor.name($role.anchor.identityColumnName), : ${role.knot.capsule}$.$role.knot.name($role.knot.identityColumnName),
+    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : ${role.knot.capsule}$.$role.knot.name($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints

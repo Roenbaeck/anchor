@@ -1,8 +1,7 @@
-var anchor, knot, attribute, constraints = false;
-while (anchor = schema.nextAnchor())
-    while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized() && !attribute.isRestatable())
-            constraints = true;
+var knot, attribute, constraints = false;
+while (attribute = schema.nextAttribute())
+    if(attribute.isHistorized && attribute.isHistorized() && !(attribute.isRestatable && attribute.isRestatable()))
+        constraints = true;
 
 if(constraints) {
 /*~
@@ -17,9 +16,9 @@ if(constraints) {
 -- be checked for restatements.
 --
 ~*/
-    while (anchor = schema.nextAnchor()) {
-        while(attribute = anchor.nextAttribute()) {
-            if(attribute.isHistorized()) {
+    while (attribute = schema.nextAttribute()) {
+        var entity = attribute.parent;
+        if(attribute.isHistorized && attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
@@ -36,7 +35,7 @@ if(constraints) {
                     valueColumn = attribute.knotReferenceName;
                     valueType = knot.identity;
                 }
-                if(!attribute.isRestatable()) {
+                if(!(attribute.isRestatable && attribute.isRestatable())) {
 /*~
 -- Restatement Checking Trigger ---------------------------------------------------------------------------------------
 -- rt_$attribute.name (available only in attributes that cannot have restatements)
@@ -53,20 +52,20 @@ BEGIN
     DECLARE @message varchar(max);
 
     DECLARE @$attribute.name TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $entity.identity not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         primary key(
-            $attribute.anchorReferenceName asc, 
+            $attribute.entityReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc
         )
     );
 
     INSERT INTO @$attribute.name (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
@@ -74,7 +73,7 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
@@ -84,7 +83,7 @@ BEGIN
         inserted;
 
     INSERT INTO @$attribute.name (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
@@ -92,7 +91,7 @@ BEGIN
         $attribute.valueColumnName
     )
     SELECT
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
         $(schema.METADATA)? p.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
@@ -101,7 +100,7 @@ BEGIN
     FROM (
         SELECT DISTINCT 
             $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
-            $attribute.anchorReferenceName 
+            $attribute.entityReferenceName 
         FROM 
             @$attribute.name
     ) i 
@@ -110,16 +109,16 @@ BEGIN
     ON 
         $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
     $(attribute.isEquivalent())? AND    
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
     WHERE NOT EXISTS (
         SELECT TOP 1
-            x.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName
         FROM
             @$attribute.name x
         WHERE
             $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
-            x.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName = p.$attribute.entityReferenceName
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? x.$attribute.changingColumnName = p.$attribute.changingColumnName
     );
@@ -133,7 +132,7 @@ BEGIN
         CROSS APPLY (
             SELECT TOP 1
                 $(attribute.isEquivalent())? h.$attribute.equivalentColumnName,
-                h.$attribute.anchorReferenceName,
+                h.$attribute.entityReferenceName,
                 $(attribute.isHistorized())? h.$attribute.changingColumnName,
                 $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
@@ -141,7 +140,7 @@ BEGIN
             WHERE
                 $(attribute.isEquivalent())? h.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
             $(attribute.isEquivalent())? AND    
-                h.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+                h.$attribute.entityReferenceName = i.$attribute.entityReferenceName
             AND
                 h.$attribute.changingColumnName < i.$attribute.changingColumnName
             ORDER BY 
@@ -161,7 +160,6 @@ END
 GO
 ~*/
                 }
-            }
         }
     }
 }

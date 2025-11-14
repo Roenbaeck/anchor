@@ -49,6 +49,7 @@ var Defaults = {
     checksum: 'false',
     encryptionGroup: '',
     triggers: 'true', 
-    knotAliases: 'false'
+    knotAliases: 'false',
+    naturalKeyAttributes: 'false'
 };
 

@@ -6,11 +6,9 @@
 -- @equivalent  the equivalent that you want to retrieve data for
 --
  ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
-        if(schema.EQUIVALENCE && attribute.isEquivalent()) {
+var attribute;
+while (attribute = schema.nextAttribute()) {
+    if(schema.EQUIVALENCE && attribute.isEquivalent && attribute.isEquivalent()) {
 /*~
 -- Attribute equivalence view -----------------------------------------------------------------------------------------
 -- $attribute.name parametrized view
@@ -37,6 +35,5 @@ BEGIN
 END
 GO
 ~*/
-        }
     }
 }
