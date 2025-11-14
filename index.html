@@ -7490,10 +7490,10 @@
                 <li title="Selects the target database for the generated SQL code.">
                     <select id="database" onchange="Settings.setDatabase(this.value, true)">
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
-                        <option value="Oracle">Oracle</option>
-                        <option value="PostgreSQL">PostgreSQL</option>
-                        <option value="Vertica">Vertica</option>
-                        <option value="Snowflake">Snowflake</option>
+                        <option value="Oracle" disabled style="display:none">Oracle</option>
+                        <option value="PostgreSQL" disabled style="display:none">PostgreSQL</option>
+                        <option value="Vertica" disabled style="display:none">Vertica</option>
+                        <option value="Snowflake" disabled style="display:none">Snowflake</option>
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
@@ -7505,8 +7505,8 @@
                 <li title="Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).">
                     <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
                         <option value="uni" selected="selected">Unitemporal</option>
-                        <option value="bi">Bitemporal</option>
-                        <option value="crt">Concurrent-reliance-temporal</option>
+                        <option value="bi" disabled style="display:none">Bitemporal</option>
+                        <option value="crt" disabled style="display:none">Concurrent-reliance-temporal</option>
                     </select> Temporalization
                 </li>
                 <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
