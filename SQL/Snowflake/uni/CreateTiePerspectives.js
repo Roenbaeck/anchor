@@ -19,10 +19,10 @@ SELECT
         if(role.knot) {
             knot = role.knot;
 /*~
-    $(knot.hasChecksum())? $role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    $role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(knot.isEquivalent())? $role.name.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
-    $(schema.METADATA)? $role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? ${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    ${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(knot.isEquivalent())? ${role.name}$.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
+    $(schema.METADATA)? ${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
         }
 /*~
@@ -49,7 +49,7 @@ LEFT JOIN
         }
 /*~
 ON
-    $role.name.$knot.identityColumnName = tie.$role.columnName
+    ${role.name}$.$knot.identityColumnName = tie.$role.columnName
 ~*/
     }
     if(tie.isHistorized()) {
@@ -120,10 +120,10 @@ SELECT
         if(role.knot) {
             knot = role.knot;
 /*~
-    $(knot.hasChecksum())? $role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    $role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(knot.isEquivalent())? $role.name.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
-    $(schema.METADATA)? $role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? ${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    ${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(knot.isEquivalent())? ${role.name}$.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
+    $(schema.METADATA)? ${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
         }
 /*~
@@ -150,7 +150,7 @@ LEFT JOIN
         }
 /*~
 ON
-    $role.name.$knot.identityColumnName = tie.$role.columnName
+    ${role.name}$.$knot.identityColumnName = tie.$role.columnName
 ~*/
     }
     if(tie.isHistorized()) {
@@ -242,10 +242,10 @@ SELECT
             if(role.knot) {
                 knot = role.knot;
 /*~
-    $(knot.hasChecksum())? $role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    $role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(knot.isEquivalent())? $role.name.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
-    $(schema.METADATA)? $role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? ${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    ${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(knot.isEquivalent())? ${role.name}$.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
+    $(schema.METADATA)? ${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -272,7 +272,7 @@ LEFT JOIN
             }
 /*~
 ON
-    $role.name.$knot.identityColumnName = tie.$role.columnName
+    ${role.name}$.$knot.identityColumnName = tie.$role.columnName
 ~*/
         }
 /*~
@@ -355,10 +355,10 @@ SELECT
             if(role.knot) {
                 knot = role.knot;
 /*~
-    $(knot.hasChecksum())? $role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    $role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(knot.isEquivalent())? $role.name.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
-    $(schema.METADATA)? $role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? ${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    ${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(knot.isEquivalent())? ${role.name}$.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
+    $(schema.METADATA)? ${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
@@ -385,7 +385,7 @@ LEFT JOIN
             }
 /*~
 ON
-    $role.name.$knot.identityColumnName = tie.$role.columnName
+    ${role.name}$.$knot.identityColumnName = tie.$role.columnName
 ~*/
         }
         if(tie.isHistorized()) {
@@ -504,10 +504,10 @@ SELECT
                 if(role.knot) {
                     knot = role.knot;
 /*~
-    $(knot.hasChecksum())? $role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    $role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(knot.isEquivalent())? $role.name.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
-    $(schema.METADATA)? $role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? ${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    ${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(knot.isEquivalent())? ${role.name}$.$knot.equivalentColumnName AS $role.knotEquivalentColumnName,
+    $(schema.METADATA)? ${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
                 }
 /*~
@@ -534,7 +534,7 @@ LEFT JOIN
                 }
 /*~
 ON
-    $role.name.$knot.identityColumnName = tie.$role.columnName
+    ${role.name}$.$knot.identityColumnName = tie.$role.columnName
 ~*/
             }
 /*~

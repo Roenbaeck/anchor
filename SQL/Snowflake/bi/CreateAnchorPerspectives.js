@@ -45,29 +45,29 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    $anchor.mnemonic.$anchor.identityColumnName,
-    $(schema.METADATA)? $anchor.mnemonic.$anchor.metadataColumnName,
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
-    $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
-    $attribute.mnemonic.$attribute.identityColumnName,
-    $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
-    $attribute.mnemonic.$attribute.positingColumnName,
-    $attribute.mnemonic.$attribute.reliabilityColumnName,
+    $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${attribute.mnemonic}$.$attribute.metadataColumnName,
+    ${attribute.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${attribute.mnemonic}$.$attribute.changingColumnName,
+    ${attribute.mnemonic}$.$attribute.positingColumnName,
+    ${attribute.mnemonic}$.$attribute.reliabilityColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    k$attribute.mnemonic.$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? k$attribute.mnemonic.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${attribute.mnemonic}$.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    k${attribute.mnemonic}$.$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? k${attribute.mnemonic}$.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    $(attribute.hasChecksum())? ${attribute.mnemonic}$.$attribute.checksumColumnName,
+    ${attribute.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -82,7 +82,7 @@ LEFT JOIN
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
-    $attribute.mnemonic.$attribute.identityColumnName = (
+    ${attribute.mnemonic}$.$attribute.identityColumnName = (
         SELECT
             sub.$attribute.identityColumnName
         FROM
@@ -91,7 +91,7 @@ ON
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
-            sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
         AND
             sub.$attribute.reliabilityColumnName = 1
         ORDER BY
@@ -105,7 +105,7 @@ ON
 LEFT JOIN
     ${knot.capsule}$.$knot.name k$attribute.mnemonic
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
+    k${attribute.mnemonic}$.$knot.identityColumnName = ${attribute.mnemonic}$.$attribute.knotReferenceName~*/
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
@@ -249,7 +249,7 @@ CROSS JOIN LATERAL
         $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
 WHERE
-    $anchor.mnemonic.$anchor.identityColumnName = tp.$anchor.identityColumnName
+    ${anchor.mnemonic}$.$anchor.identityColumnName = tp.$anchor.identityColumnName
 $$
 ;
 ~*/

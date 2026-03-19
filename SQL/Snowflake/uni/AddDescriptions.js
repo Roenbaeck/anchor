@@ -57,7 +57,7 @@ COMMENT ON TABLE ${tie.capsule}$.$tie.name IS '$tie.description._description';
            role.description._description &&
            role.description._description.length > 0) {
 /*~
-COMMENT ON COLUMN ${tie.capsule}$.$tie.name.$role.columnName IS '$role.description._description';
+COMMENT ON COLUMN ${tie.capsule}$.${tie.name}$.$role.columnName IS '$role.description._description';
 ~*/
         }
     }

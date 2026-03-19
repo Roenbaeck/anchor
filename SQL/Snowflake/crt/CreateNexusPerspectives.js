@@ -64,45 +64,45 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    $nexus.mnemonic.$nexus.identityColumnName,
-    $(schema.METADATA)? $nexus.mnemonic.$nexus.metadataColumnName,
+    ${nexus.mnemonic}$.$nexus.identityColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
 ~*/
         while (role = nexus.nextRole && nexus.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    $(knot.hasChecksum())? k$role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
-    k$role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(schema.METADATA)? k$role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${role.name}$.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    k${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(schema.METADATA)? k${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
             }
 /*~
-    $nexus.mnemonic.$role.columnName$(nexus.hasMoreAttributes())?,
+    ${nexus.mnemonic}$.$role.columnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
-    $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
-    $attribute.mnemonic.$attribute.identityColumnName,
-    $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
-    $attribute.mnemonic.$attribute.positingColumnName,
-    $attribute.mnemonic.$attribute.positorColumnName,
-    $attribute.mnemonic.$attribute.reliabilityColumnName,
-    $attribute.mnemonic.$attribute.assertionColumnName,
-    $attribute.mnemonic.$attribute.reliableColumnName,
+    $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${attribute.mnemonic}$.$attribute.metadataColumnName,
+    ${attribute.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${attribute.mnemonic}$.$attribute.changingColumnName,
+    ${attribute.mnemonic}$.$attribute.positingColumnName,
+    ${attribute.mnemonic}$.$attribute.positorColumnName,
+    ${attribute.mnemonic}$.$attribute.reliabilityColumnName,
+    ${attribute.mnemonic}$.$attribute.assertionColumnName,
+    ${attribute.mnemonic}$.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    k$attribute.mnemonic.$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? k$attribute.mnemonic.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${attribute.mnemonic}$.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    k${attribute.mnemonic}$.$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? k${attribute.mnemonic}$.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
+    $(attribute.hasChecksum())? ${attribute.mnemonic}$.$attribute.checksumColumnName,
+    ${attribute.mnemonic}$.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -115,7 +115,7 @@ FROM
 LEFT JOIN
     ${knot.capsule}$.$knot.name k$role.name
 ON
-    k$role.name.$knot.identityColumnName = $nexus.mnemonic.$role.columnName
+    k${role.name}$.$knot.identityColumnName = ${nexus.mnemonic}$.$role.columnName
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -127,7 +127,7 @@ LEFT JOIN
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
-    $attribute.mnemonic.$attribute.identityColumnName = (
+    ${attribute.mnemonic}$.$attribute.identityColumnName = (
         SELECT
             sub.$attribute.identityColumnName
         FROM
@@ -137,7 +137,7 @@ ON
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
-            sub.$attribute.entityReferenceName = $nexus.mnemonic.$nexus.identityColumnName
+            sub.$attribute.entityReferenceName = ${nexus.mnemonic}$.$nexus.identityColumnName
         AND
             sub.$attribute.assertionColumnName = coalesce(assertion, sub.$attribute.assertionColumnName)
         ORDER BY
@@ -151,7 +151,7 @@ ON
 LEFT JOIN
     ${knot.capsule}$.$knot.name k$attribute.mnemonic
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
+    k${attribute.mnemonic}$.$knot.identityColumnName = ${attribute.mnemonic}$.$attribute.knotReferenceName~*/
             }
             if(!(nexus.hasMoreAttributes && nexus.hasMoreAttributes())) {
                 /*~
@@ -360,7 +360,7 @@ CROSS JOIN LATERAL
         '+'
     )) $nexus.mnemonic
 WHERE
-    $nexus.mnemonic.$nexus.identityColumnName = tp.$nexus.identityColumnName
+    ${nexus.mnemonic}$.$nexus.identityColumnName = tp.$nexus.identityColumnName
 $$
 ;
 ~*/

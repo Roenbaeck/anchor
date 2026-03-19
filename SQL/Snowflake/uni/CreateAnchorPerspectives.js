@@ -13,29 +13,29 @@ while (anchor = schema.nextAnchor()) {
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
-    $anchor.mnemonic.$anchor.identityColumnName,
-    $(schema.METADATA)? $anchor.mnemonic.$anchor.metadataColumnName,
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
         var attribute, knot;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
-    $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
-    $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
-    $(attribute.isEquivalent())? $attribute.mnemonic.$attribute.equivalentColumnName,
+    $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${attribute.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? ${attribute.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? ${attribute.mnemonic}$.$attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? k$attribute.mnemonic.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
-    k$attribute.mnemonic.$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? k$attribute.mnemonic.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${attribute.mnemonic}$.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? k${attribute.mnemonic}$.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
+    k${attribute.mnemonic}$.$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? k${attribute.mnemonic}$.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    $(attribute.hasChecksum())? ${attribute.mnemonic}$.$attribute.checksumColumnName,
+    ${attribute.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -58,17 +58,17 @@ LEFT JOIN
             }
 /*~
 ON
-    $attribute.mnemonic.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName~*/
+    ${attribute.mnemonic}$.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName~*/
             if(attribute.isHistorized()) {
 /*~
 AND
-    $attribute.mnemonic.$attribute.changingColumnName = (
+    ${attribute.mnemonic}$.$attribute.changingColumnName = (
         SELECT
             max(sub.$attribute.changingColumnName)
         FROM
             $(attributeEquivalent)? TABLE(${attribute.capsule}$.e$attribute.name(0)) sub : ${attribute.capsule}$.$attribute.name sub
         WHERE
-            sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
    )~*/
             }
             if(attribute.isKnotted()) {
@@ -87,7 +87,7 @@ LEFT JOIN
                 }
 /*~
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
+    k${attribute.mnemonic}$.$knot.identityColumnName = ${attribute.mnemonic}$.$attribute.knotReferenceName~*/
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~;~*/
@@ -130,28 +130,28 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    $anchor.mnemonic.$anchor.identityColumnName,
-    $(schema.METADATA)? $anchor.mnemonic.$anchor.metadataColumnName,
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
-    $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
-    $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
-    $(attribute.isEquivalent())? $attribute.mnemonic.$attribute.equivalentColumnName,
+    $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${attribute.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? ${attribute.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? ${attribute.mnemonic}$.$attribute.equivalentColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? k$attribute.mnemonic.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
-    k$attribute.mnemonic.$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? k$attribute.mnemonic.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${attribute.mnemonic}$.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? k${attribute.mnemonic}$.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
+    k${attribute.mnemonic}$.$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? k${attribute.mnemonic}$.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
             }
 /*~
-    $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    $(attribute.hasChecksum())? ${attribute.mnemonic}$.$attribute.checksumColumnName,
+    ${attribute.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -175,15 +175,26 @@ LEFT JOIN
                 }
 /*~
 ON
-    $attribute.mnemonic.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+    ${attribute.mnemonic}$.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
 AND
-    $attribute.mnemonic.$attribute.changingColumnName = (
+    ${attribute.mnemonic}$.$attribute.changingColumnName = (
         SELECT
             max(sub.$attribute.changingColumnName)
         FROM
-            $(historizedEquivalent)? TABLE(${attribute.capsule}$.r$attribute.name(0, changingTimepoint::$attribute.timeRange)) sub : TABLE(${attribute.capsule}$.r$attribute.name(changingTimepoint::$attribute.timeRange)) sub
+~*/
+                if(historizedEquivalent) {
+/*~
+            TABLE(${attribute.capsule}$.r$attribute.name(0, changingTimepoint::$attribute.timeRange)) sub
+~*/
+                }
+                else {
+/*~
+            TABLE(${attribute.capsule}$.r$attribute.name(changingTimepoint::$attribute.timeRange)) sub
+~*/
+                }
+/*~
         WHERE
-            sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
    )~*/
             }
             else {
@@ -201,7 +212,7 @@ LEFT JOIN
                 }
 /*~
 ON
-    $attribute.mnemonic.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName~*/
+    ${attribute.mnemonic}$.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName~*/
             }
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -219,7 +230,7 @@ LEFT JOIN
                 }
 /*~
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
+    k${attribute.mnemonic}$.$knot.identityColumnName = ${attribute.mnemonic}$.$attribute.knotReferenceName~*/
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
@@ -283,7 +294,7 @@ $$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
-    p$anchor.mnemonic.*
+    p${anchor.mnemonic}$.*
 FROM (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
@@ -307,7 +318,7 @@ FROM (
 CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.p$anchor.name(timepoints.inspectedTimepoint)) p$anchor.mnemonic
 WHERE
-    p$anchor.mnemonic.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
+    p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
 $$
 ;
 ~*/
@@ -392,28 +403,28 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    $anchor.mnemonic.$anchor.identityColumnName,
-    $(schema.METADATA)? $anchor.mnemonic.$anchor.metadataColumnName,
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
             while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
-    $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
-    $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
-    $(attribute.isEquivalent())? $attribute.mnemonic.$attribute.equivalentColumnName,
+    $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${attribute.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? ${attribute.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? ${attribute.mnemonic}$.$attribute.equivalentColumnName,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
-    $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
-    $(knot.isEquivalent())? k$attribute.mnemonic.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
-    k$attribute.mnemonic.$knot.valueColumnName AS $attribute.knotValueColumnName,
-    $(schema.METADATA)? k$attribute.mnemonic.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
+    $(knot.hasChecksum())? k${attribute.mnemonic}$.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? k${attribute.mnemonic}$.$knot.equivalentColumnName AS $attribute.knotEquivalentColumnName,
+    k${attribute.mnemonic}$.$knot.valueColumnName AS $attribute.knotValueColumnName,
+    $(schema.METADATA)? k${attribute.mnemonic}$.$knot.metadataColumnName AS $attribute.knotMetadataColumnName,
 ~*/
                 }
 /*~
-    $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    $(attribute.hasChecksum())? ${attribute.mnemonic}$.$attribute.checksumColumnName,
+    ${attribute.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
 ~*/
             }
 /*~
@@ -437,15 +448,26 @@ LEFT JOIN
                     }
 /*~
 ON
-    $attribute.mnemonic.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+    ${attribute.mnemonic}$.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
 AND
-    $attribute.mnemonic.$attribute.changingColumnName = (
+    ${attribute.mnemonic}$.$attribute.changingColumnName = (
         SELECT
             max(sub.$attribute.changingColumnName)
         FROM
-            $(hasEquivalent)? TABLE(${attribute.capsule}$.r$attribute.name(equivalent, changingTimepoint::$attribute.timeRange)) sub : TABLE(${attribute.capsule}$.r$attribute.name(changingTimepoint::$attribute.timeRange)) sub
+~*/
+                    if(hasEquivalent) {
+/*~
+            TABLE(${attribute.capsule}$.r$attribute.name(equivalent, changingTimepoint::$attribute.timeRange)) sub
+~*/
+                    }
+                    else {
+/*~
+            TABLE(${attribute.capsule}$.r$attribute.name(changingTimepoint::$attribute.timeRange)) sub
+~*/
+                    }
+/*~
         WHERE
-            sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName
    )~*/
                 }
                 else {
@@ -463,7 +485,7 @@ LEFT JOIN
                     }
 /*~
 ON
-    $attribute.mnemonic.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName~*/
+    ${attribute.mnemonic}$.$attribute.entityReferenceName = ${anchor.mnemonic}$.$anchor.identityColumnName~*/
                 }
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
@@ -481,7 +503,7 @@ LEFT JOIN
                     }
 /*~
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
+    k${attribute.mnemonic}$.$knot.identityColumnName = ${attribute.mnemonic}$.$attribute.knotReferenceName~*/
                 }
                 if(!anchor.hasMoreAttributes()) {
                     /*~
@@ -578,7 +600,7 @@ $$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
-    p$anchor.mnemonic.*
+    p${anchor.mnemonic}$.*
 FROM (
 ~*/
                 while (attribute = anchor.nextHistorizedAttribute()) {
@@ -602,7 +624,7 @@ FROM (
 CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, timepoints.inspectedTimepoint)) p$anchor.mnemonic
 WHERE
-    p$anchor.mnemonic.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
+    p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
 $$
 ;
 ~*/

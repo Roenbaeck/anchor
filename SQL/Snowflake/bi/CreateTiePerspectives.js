@@ -46,8 +46,8 @@ SELECT
         if(role.knot) {
             knot = role.knot;
 /*~
-    k$role.name.$knot.valueColumnName AS $role.knotValueColumnName,
-    $(schema.METADATA)? k$role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+    k${role.name}$.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(schema.METADATA)? k${role.name}$.$knot.metadataColumnName AS $role.knotMetadataColumnName,
 ~*/
         }
 /*~
@@ -67,7 +67,7 @@ FROM
 LEFT JOIN
     ${knot.capsule}$.$knot.name k$role.name
 ON
-    k$role.name.$knot.identityColumnName = t.$role.columnName
+    k${role.name}$.$knot.identityColumnName = t.$role.columnName
 ~*/
     }
 /*~
