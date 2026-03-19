@@ -9,10 +9,8 @@
 -- @changingTimepoint   the point in changing time to rewind to
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
+var attribute;
+while (attribute = schema.nextAttribute()) {
         if(attribute.isHistorized()) {
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
@@ -42,5 +40,4 @@ END
 GO
 ~*/
         }
-    }
 }

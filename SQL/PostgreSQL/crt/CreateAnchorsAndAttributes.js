@@ -39,18 +39,18 @@ GO
 IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.positName primary key nonclustered (
         $attribute.identityColumnName asc
     ),
     constraint uq$attribute.positName unique clustered (
-        $attribute.anchorReferenceName asc,
+        $attribute.entityReferenceName asc,
         $attribute.changingColumnName desc,
         $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
@@ -67,11 +67,11 @@ GO
 IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk_A_$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
@@ -80,7 +80,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
         $attribute.identityColumnName asc
     ),
     constraint uq$attribute.positName unique clustered (
-        $attribute.anchorReferenceName asc,
+        $attribute.entityReferenceName asc,
         $attribute.changingColumnName desc,
         $attribute.knotReferenceName asc
     )
@@ -97,10 +97,10 @@ GO
 IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
@@ -109,7 +109,7 @@ CREATE TABLE [$attribute.capsule].[$attribute.positName] (
         $attribute.identityColumnName asc
     ),
     constraint uq$attribute.positName unique clustered (
-        $attribute.anchorReferenceName asc,
+        $attribute.entityReferenceName asc,
         $attribute.knotReferenceName asc
     )
 );
@@ -124,17 +124,17 @@ GO
 IF Object_ID('$attribute.capsule$.$attribute.positName', 'U') IS NULL
 CREATE TABLE [$attribute.capsule].[$attribute.positName] (
     $attribute.identityColumnName $attribute.identity $attribute.identityGenerator not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($attribute.valueColumnName as varbinary(max))) as varbinary(16)) persisted,
     constraint fk$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references [$anchor.capsule].[$anchor.name]($anchor.identityColumnName),
     constraint pk$attribute.positName primary key nonclustered (
         $attribute.identityColumnName asc
     ),
     constraint uq$attribute.positName unique clustered (
-        $attribute.anchorReferenceName asc,
+        $attribute.entityReferenceName asc,
         $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
 );

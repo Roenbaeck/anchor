@@ -204,13 +204,13 @@ AS
                 if(attribute.isEquivalent()) {
 /*~
    LEFT 
-   JOIN $attribute.capsule\.p$attribute.name(0,changingTimepoint) $attribute.mnemonic
+    JOIN $attribute.capsule\.p$attribute.name(0,changingTimepoint::$attribute.timeRange) $attribute.mnemonic
 ~*/
                 }
                 else {
 /*~
    LEFT 
-   JOIN $attribute.capsule\.p$attribute.name(changingTimepoint) $attribute.mnemonic
+    JOIN $attribute.capsule\.p$attribute.name(changingTimepoint::$attribute.timeRange) $attribute.mnemonic
 ~*/
                 }
 /*~

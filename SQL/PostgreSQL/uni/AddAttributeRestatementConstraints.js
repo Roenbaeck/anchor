@@ -1,8 +1,7 @@
-var anchor, knot, attribute, restatements = false;
-while (anchor = schema.nextAnchor())
-    while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized())
-            restatements = true;
+var knot, attribute, parent, restatements = false;
+while (attribute = schema.nextAttribute())
+    if(attribute.isHistorized())
+        restatements = true;
 
 if(restatements) {
 /*~
@@ -20,9 +19,9 @@ if(restatements) {
 -- @changed     the point in time from which this value shall represent a change
 --
 ~*/
-    while (anchor = schema.nextAnchor()) {
-        while(attribute = anchor.nextAttribute()) {
-            if(attribute.isHistorized()) {
+    while (attribute = schema.nextAttribute()) {
+        parent = attribute.parent;
+        if(attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
@@ -45,7 +44,7 @@ if(restatements) {
 -- rc$attribute.name restatement constraint (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
-    id $anchor.identity,
+    id $parent.identity,
     $(attribute.isEquivalent() && !attribute.isKnotted())? eq $schema.metadata.equivalentRange,
     value $valueType,
     changed $attribute.timeRange
@@ -115,7 +114,6 @@ ADD CONSTRAINT rc$attribute.name CHECK (
 ~*/
                 }
             }
-        }
     }
 }
 
