@@ -1,20 +1,17 @@
 /*~
 -- ANCHOR TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
 --
--- Snowflake-native CRT anchor perspectives: time traveling (t), latest (l), point-in-time (p),
+-- Snowflake-native BI anchor perspectives: time traveling (t), latest (l), point-in-time (p),
 -- now (n), and difference (d).
+--
 ~*/
 var anchor;
 while (anchor = schema.nextAnchor()) {
     if(anchor.hasMoreAttributes()) {
 /*~
--- Time traveling perspective -----------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.t$anchor.name (
-    positor $schema.metadata.positorRange,
     changingTimepoint $schema.metadata.chronon,
-    positingTimepoint $schema.metadata.positingRange,
-    assertion string
+    positingTimepoint $schema.metadata.positingRange
 )
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
@@ -28,10 +25,7 @@ RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
     $attribute.positingColumnName $schema.metadata.positingRange,
-    $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -61,10 +55,7 @@ SELECT
     $attribute.mnemonic.$attribute.identityColumnName,
     $(attribute.timeRange)? $attribute.mnemonic.$attribute.changingColumnName,
     $attribute.mnemonic.$attribute.positingColumnName,
-    $attribute.mnemonic.$attribute.positorColumnName,
     $attribute.mnemonic.$attribute.reliabilityColumnName,
-    $attribute.mnemonic.$attribute.assertionColumnName,
-    $attribute.mnemonic.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -87,7 +78,6 @@ FROM
 /*~
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
-        positor,
         $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
@@ -97,14 +87,13 @@ ON
             sub.$attribute.identityColumnName
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
-                positor,
                 $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
             sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
         AND
-            sub.$attribute.assertionColumnName = coalesce(assertion, sub.$attribute.assertionColumnName)
+            sub.$attribute.reliabilityColumnName = 1
         ORDER BY
             $(attribute.isHistorized())? sub.$attribute.changingColumnName DESC,
             sub.$attribute.positingColumnName DESC
@@ -127,31 +116,21 @@ $$
         }
 /*~
 
--- Latest perspective -------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
-    p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     $anchor.mnemonic.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.t$anchor.name(
-        p.$schema.metadata.positorSuffix,
         $schema.EOT::$schema.metadata.chronon,
-        $schema.EOT::$schema.metadata.positingRange,
-        '+'
+        $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
 ;
 
--- Point-in-time perspective ------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.p$anchor.name (
     changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE (
-    $schema.metadata.positorSuffix $schema.metadata.positorRange,
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -163,10 +142,7 @@ RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
     $attribute.positingColumnName $schema.metadata.positingRange,
-    $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -186,50 +162,35 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     $anchor.mnemonic.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.t$anchor.name(
-        p.$schema.metadata.positorSuffix,
         changingTimepoint::$schema.metadata.chronon,
-        $schema.EOT::$schema.metadata.positingRange,
-        '+'
+        $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
 $$
 ;
 
--- Now perspective ----------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
-    p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     $anchor.mnemonic.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.t$anchor.name(
-        p.$schema.metadata.positorSuffix,
         $schema.metadata.now::$schema.metadata.chronon,
-        $schema.EOT::$schema.metadata.positingRange,
-        '+'
+        $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
 ;
 ~*/
         if(anchor.hasMoreHistorizedAttributes()) {
 /*~
--- Difference perspective ---------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon,
     selection string
 )
 RETURNS TABLE (
-    $schema.metadata.positorSuffix $schema.metadata.positorRange,
     inspectedTimepoint $schema.metadata.chronon,
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -241,10 +202,7 @@ RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
     $attribute.positingColumnName $schema.metadata.positingRange,
-    $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
@@ -264,18 +222,13 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    p.$schema.metadata.positorSuffix,
-    timepoints.inspectedTimepoint,
+    tp.inspectedTimepoint,
     $anchor.mnemonic.*
-FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-JOIN
-(
+FROM (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.positorColumnName AS positor,
         $attribute.entityReferenceName AS $anchor.identityColumnName,
         $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
         '$attribute.mnemonic' AS mnemonic
@@ -289,18 +242,14 @@ JOIN
 ~*/
             }
 /*~
-) timepoints
-ON
-    timepoints.positor = p.$schema.metadata.positorSuffix
+) tp
 CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.t$anchor.name(
-        timepoints.positor,
-        timepoints.inspectedTimepoint::$schema.metadata.chronon,
-        $schema.EOT::$schema.metadata.positingRange,
-        '+'
+        tp.inspectedTimepoint::$schema.metadata.chronon,
+        $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
 WHERE
-    $anchor.mnemonic.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
+    $anchor.mnemonic.$anchor.identityColumnName = tp.$anchor.identityColumnName
 $$
 ;
 ~*/

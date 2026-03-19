@@ -1,29 +1,42 @@
 /*~
--- ANCHOR TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
+-- NEXUS TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------------
 --
--- Snowflake-native CRT anchor perspectives: time traveling (t), latest (l), point-in-time (p),
+-- Snowflake-native CRT nexus perspectives: time traveling (t), latest (l), point-in-time (p),
 -- now (n), and difference (d).
+--
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    if(anchor.hasMoreAttributes()) {
+var nexus, role, knot, attribute;
+while (schema.nextNexus && (nexus = schema.nextNexus())) {
+    if(nexus.hasMoreAttributes && nexus.hasMoreAttributes()) {
 /*~
 -- Time traveling perspective -----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION ${anchor.capsule}$.t$anchor.name (
+CREATE OR REPLACE FUNCTION ${nexus.capsule}$.t$nexus.name (
     positor $schema.metadata.positorRange,
     changingTimepoint $schema.metadata.chronon,
     positingTimepoint $schema.metadata.positingRange,
     assertion string
 )
 RETURNS TABLE (
-    $anchor.identityColumnName $anchor.identity,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
+    $nexus.identityColumnName $nexus.identity,
+    $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
 ~*/
-        var knot, attribute;
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
 /*~
-    $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity,
+    $(knot.hasChecksum())? $role.knotChecksumColumnName numeric(19,0),
+    $role.knotValueColumnName $knot.dataRange,
+    $(schema.METADATA)? $role.knotMetadataColumnName $schema.metadata.metadataType,
+~*/
+            }
+/*~
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName $nexus.identity,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
@@ -33,7 +46,7 @@ RETURNS TABLE (
     $attribute.assertionColumnName string,
     $attribute.reliableColumnName int,
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? $attribute.knotChecksumColumnName numeric(19,0),
@@ -43,7 +56,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -51,10 +64,23 @@ RETURNS TABLE (
 AS
 $$
 SELECT
-    $anchor.mnemonic.$anchor.identityColumnName,
-    $(schema.METADATA)? $anchor.mnemonic.$anchor.metadataColumnName,
+    $nexus.mnemonic.$nexus.identityColumnName,
+    $(schema.METADATA)? $nexus.mnemonic.$nexus.metadataColumnName,
 ~*/
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? k$role.name.$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    k$role.name.$knot.valueColumnName AS $role.knotValueColumnName,
+    $(schema.METADATA)? k$role.name.$knot.metadataColumnName AS $role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $nexus.mnemonic.$role.columnName$(nexus.hasMoreAttributes())?,
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
     $(schema.IMPROVED)? $attribute.mnemonic.$attribute.entityReferenceName,
     $(schema.METADATA)? $attribute.mnemonic.$attribute.metadataColumnName,
@@ -66,7 +92,7 @@ SELECT
     $attribute.mnemonic.$attribute.assertionColumnName,
     $attribute.mnemonic.$attribute.reliableColumnName,
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? k$attribute.mnemonic.$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
@@ -76,14 +102,23 @@ SELECT
             }
 /*~
     $(attribute.hasChecksum())? $attribute.mnemonic.$attribute.checksumColumnName,
-    $attribute.mnemonic.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    $attribute.mnemonic.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
 FROM
-    ${anchor.capsule}$.$anchor.name $anchor.mnemonic
+    ${nexus.capsule}$.$nexus.name $nexus.mnemonic
 ~*/
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextKnotRole && nexus.nextKnotRole()) {
+            knot = role.knot;
+/*~
+LEFT JOIN
+    ${knot.capsule}$.$knot.name k$role.name
+ON
+    k$role.name.$knot.identityColumnName = $nexus.mnemonic.$role.columnName
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
@@ -102,7 +137,7 @@ ON
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
-            sub.$attribute.entityReferenceName = $anchor.mnemonic.$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = $nexus.mnemonic.$nexus.identityColumnName
         AND
             sub.$attribute.assertionColumnName = coalesce(assertion, sub.$attribute.assertionColumnName)
         ORDER BY
@@ -110,7 +145,7 @@ ON
             sub.$attribute.positingColumnName DESC
         LIMIT 1
     )~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
 LEFT JOIN
@@ -118,7 +153,7 @@ LEFT JOIN
 ON
     k$attribute.mnemonic.$knot.identityColumnName = $attribute.mnemonic.$attribute.knotReferenceName~*/
             }
-            if(!anchor.hasMoreAttributes()) {
+            if(!(nexus.hasMoreAttributes && nexus.hasMoreAttributes())) {
                 /*~
 $$
 ;
@@ -129,36 +164,49 @@ $$
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    $nexus.mnemonic.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.t$anchor.name(
+    TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         $schema.EOT::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange,
         '+'
-    )) $anchor.mnemonic
+    )) $nexus.mnemonic
 ;
 
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION ${anchor.capsule}$.p$anchor.name (
+CREATE OR REPLACE FUNCTION ${nexus.capsule}$.p$nexus.name (
     changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
-    $anchor.identityColumnName $anchor.identity,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
+    $nexus.identityColumnName $nexus.identity,
+    $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
 ~*/
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
 /*~
-    $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity,
+    $(knot.hasChecksum())? $role.knotChecksumColumnName numeric(19,0),
+    $role.knotValueColumnName $knot.dataRange,
+    $(schema.METADATA)? $role.knotMetadataColumnName $schema.metadata.metadataType,
+~*/
+            }
+/*~
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName $nexus.identity,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
@@ -168,7 +216,7 @@ RETURNS TABLE (
     $attribute.assertionColumnName string,
     $attribute.reliableColumnName int,
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? $attribute.knotChecksumColumnName numeric(19,0),
@@ -178,7 +226,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -187,43 +235,43 @@ AS
 $$
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    $nexus.mnemonic.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.t$anchor.name(
+    TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange,
         '+'
-    )) $anchor.mnemonic
+    )) $nexus.mnemonic
 $$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    $nexus.mnemonic.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.t$anchor.name(
+    TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange,
         '+'
-    )) $anchor.mnemonic
+    )) $nexus.mnemonic
 ;
 ~*/
-        if(anchor.hasMoreHistorizedAttributes()) {
+        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
+CREATE OR REPLACE FUNCTION ${nexus.capsule}$.d$nexus.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon,
     selection string
@@ -231,12 +279,25 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     inspectedTimepoint $schema.metadata.chronon,
-    $anchor.identityColumnName $anchor.identity,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
+    $nexus.identityColumnName $nexus.identity,
+    $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
 ~*/
-            while (attribute = anchor.nextAttribute()) {
+            while (role = nexus.nextRole && nexus.nextRole()) {
+                if(role.knot) {
+                    knot = role.knot;
 /*~
-    $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity,
+    $(knot.hasChecksum())? $role.knotChecksumColumnName numeric(19,0),
+    $role.knotValueColumnName $knot.dataRange,
+    $(schema.METADATA)? $role.knotMetadataColumnName $schema.metadata.metadataType,
+~*/
+                }
+/*~
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+~*/
+            }
+            while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName $nexus.identity,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
     $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
@@ -246,7 +307,7 @@ RETURNS TABLE (
     $attribute.assertionColumnName string,
     $attribute.reliableColumnName int,
 ~*/
-                if(attribute.isKnotted()) {
+                if(attribute.isKnotted && attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? $attribute.knotChecksumColumnName numeric(19,0),
@@ -256,7 +317,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
 ~*/
             }
 /*~
@@ -265,18 +326,17 @@ AS
 $$
 SELECT
     p.$schema.metadata.positorSuffix,
-    timepoints.inspectedTimepoint,
-    $anchor.mnemonic.*
+    tp.inspectedTimepoint,
+    $nexus.mnemonic.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-JOIN
-(
+JOIN (
 ~*/
-            while (attribute = anchor.nextHistorizedAttribute()) {
+            while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
         $attribute.positorColumnName AS positor,
-        $attribute.entityReferenceName AS $anchor.identityColumnName,
+        $attribute.entityReferenceName AS $nexus.identityColumnName,
         $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
         '$attribute.mnemonic' AS mnemonic
     FROM
@@ -285,22 +345,22 @@ JOIN
         (selection IS NULL OR selection LIKE '%$attribute.mnemonic%')
     AND
         $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
-    $(anchor.hasMoreHistorizedAttributes())? UNION
+    $(nexus.hasMoreHistorizedAttributes())? UNION
 ~*/
             }
 /*~
-) timepoints
+) tp
 ON
-    timepoints.positor = p.$schema.metadata.positorSuffix
+    tp.positor = p.$schema.metadata.positorSuffix
 CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.t$anchor.name(
-        timepoints.positor,
-        timepoints.inspectedTimepoint::$schema.metadata.chronon,
+    TABLE(${nexus.capsule}$.t$nexus.name(
+        tp.positor,
+        tp.inspectedTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange,
         '+'
-    )) $anchor.mnemonic
+    )) $nexus.mnemonic
 WHERE
-    $anchor.mnemonic.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
+    $nexus.mnemonic.$nexus.identityColumnName = tp.$nexus.identityColumnName
 $$
 ;
 ~*/

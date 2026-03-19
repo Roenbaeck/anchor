@@ -20,176 +20,226 @@ while (tie = schema.nextTie()) {
 -- Tie posit rewinder -------------------------------------------------------------------------------------------------
 -- r$tie.positName rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.r$tie.positName','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$tie.capsule].[r$tie.positName] (
-        @changingTimepoint $tie.timeRange = '$schema.EOT'
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.positName (
+    changingTimepoint $tie.timeRange
+)
+RETURNS TABLE (
+    $tie.identityColumnName $tie.identity,
     SELECT
         $tie.identityColumnName,
 ~*/
-        while (role = tie.nextRole()) {
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
 /*~
         $role.columnName,
 ~*/
+    $tie.changingColumnName $tie.timeRange
+)
+AS
+$$
+SELECT
+    $tie.identityColumnName,
+~*/
+        while (role = tie.nextRole()) {
+/*~
+    $role.columnName,
+~*/
         }
 /*~
-        $tie.changingColumnName
-    FROM
-        [$tie.capsule].[$tie.positName]
-    WHERE
-        $tie.changingColumnName <= @changingTimepoint;
-    ');
+    $tie.changingColumnName
+FROM
+    ${tie.capsule}$.$tie.positName
+WHERE
+    $tie.changingColumnName <= changingTimepoint
+$$
+;
+
 END
 GO
 -- Tie posit forwarder ------------------------------------------------------------------------------------------------
--- f$tie.positName forwarding over changing time function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.f$tie.positName','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$tie.capsule].[f$tie.positName] (
-        @changingTimepoint $tie.timeRange = '$schema.EOT'
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.positName (
+    changingTimepoint $tie.timeRange
+)
+RETURNS TABLE (
+    $tie.identityColumnName $tie.identity,
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $tie.identityColumnName,
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        $role.columnName,
+    $tie.changingColumnName $tie.timeRange
+)
+AS
+$$
+SELECT
+    $tie.identityColumnName,
+~*/
+        while (role = tie.nextRole()) {
+/*~
+    $role.columnName,
 ~*/
         }
 /*~
-        $tie.changingColumnName
-    FROM
-        [$tie.capsule].[$tie.positName]
-    WHERE
+    $tie.changingColumnName
+FROM
+    ${tie.capsule}$.$tie.positName
+WHERE
+    $tie.changingColumnName > changingTimepoint
+$$
+;
         $tie.changingColumnName > @changingTimepoint;
     ');
 END
 GO
 ~*/
     }
-/*~
--- Tie annex rewinder -------------------------------------------------------------------------------------------------
--- r$tie.annexName rewinding over positing time function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.r$tie.annexName','IF') IS NULL
-BEGIN
-    EXEC('
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.annexName (
+    positingTimepoint $schema.metadata.positingRange
+)
+RETURNS TABLE (
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
+    $tie.identityColumnName $tie.identity,
+    $tie.positingColumnName $schema.metadata.positingRange,
+    $tie.positorColumnName $schema.metadata.positorRange,
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
+    $tie.assertionColumnName string,
+    $tie.reliableColumnName int
+)
+AS
+$$
     CREATE FUNCTION [$tie.capsule].[r$tie.annexName] (
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
         $(schema.METADATA)? $tie.metadataColumnName,
-        $tie.identityColumnName,
-        $tie.positingColumnName,
-        $tie.positorColumnName,
-        $tie.reliabilityColumnName,
+        $tie.assertionColumnName,
         $tie.reliableColumnName
-    FROM
-        [$tie.capsule].[$tie.annexName]
-    WHERE
+        $tie.positingColumnName,
+        ${tie.capsule}$.$tie.annexName
+        $tie.reliabilityColumnName,
+        $tie.positingColumnName <= positingTimepoint
+$$
+;
+
         $tie.positingColumnName <= @positingTimepoint;
     ');
 END
-GO
--- Tie assembled rewinder ---------------------------------------------------------------------------------------------
--- r$tie.name rewinding over changing and positing time function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.r$tie.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$tie.capsule].[r$tie.name] (
-        @positor $schema.metadata.positorRange = 0,
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.name (
+    positor $schema.metadata.positorRange,
+    $(tie.isHistorized())? changingTimepoint $tie.timeRange,
+    positingTimepoint $schema.metadata.positingRange
+)
+RETURNS TABLE (
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
+    $tie.identityColumnName $tie.identity,
         $(tie.isHistorized())? @changingTimepoint $tie.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
     SELECT
         $(schema.METADATA)? a.$tie.metadataColumnName,
         p.$tie.identityColumnName,
+    $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
+    $tie.positingColumnName $schema.metadata.positingRange,
+    $tie.positorColumnName $schema.metadata.positorRange,
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
+    $tie.assertionColumnName string,
+    $tie.reliableColumnName int
+)
+AS
+$$
+SELECT
+    $(schema.METADATA)? a.$tie.metadataColumnName,
+    p.$tie.identityColumnName,
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        p.$role.columnName,
+    p.$role.columnName,
 ~*/
         }
 /*~
-        $(tie.isHistorized())? p.$tie.changingColumnName,
-        a.$tie.positingColumnName,
-        a.$tie.positorColumnName,
-        a.$tie.reliabilityColumnName,
-        a.$tie.reliableColumnName
-    FROM
-        $(tie.isHistorized())? [$tie.capsule].[r$tie.positName](@changingTimepoint) p : [$tie.capsule].[$tie.positName] p
-    JOIN
-        [$tie.capsule].[r$tie.annexName](@positingTimepoint) a
-    ON
-        a.$tie.identityColumnName = p.$tie.identityColumnName
-    AND
-        a.$tie.positorColumnName = @positor
-    AND
-        a.$tie.positingColumnName = (
-            SELECT TOP 1
-                sub.$tie.positingColumnName
-            FROM
-                [$tie.capsule].[r$tie.annexName](@positingTimepoint) sub
-            WHERE
-                sub.$tie.identityColumnName = p.$tie.identityColumnName
-            AND
+    $(tie.isHistorized())? p.$tie.changingColumnName,
+    a.$tie.positingColumnName,
+    a.$tie.positorColumnName,
+    a.$tie.reliabilityColumnName,
+    a.$tie.assertionColumnName,
+    a.$tie.reliableColumnName
+FROM
+    $(tie.isHistorized())? TABLE(${tie.capsule}$.r$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
+JOIN
+    TABLE(${tie.capsule}$.r$tie.annexName(positingTimepoint)) a
+ON
+    a.$tie.identityColumnName = p.$tie.identityColumnName
+AND
+    a.$tie.positorColumnName = positor
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.$tie.identityColumnName
+        ORDER BY a.$tie.positingColumnName DESC
+    ) = 1
+$$
+;
+
                 sub.$tie.positorColumnName = @positor
             ORDER BY
                 sub.$tie.positingColumnName DESC
-        )
-    ');
-END
-GO
--- Tie assembled forwarder --------------------------------------------------------------------------------------------
--- f$tie.name forwarding over changing and positing time function
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$tie.capsule$.f$tie.name','IF') IS NULL
-BEGIN
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.name (
+    positor $schema.metadata.positorRange,
+    $(tie.isHistorized())? changingTimepoint $tie.timeRange,
+    positingTimepoint $schema.metadata.positingRange
+)
+RETURNS TABLE (
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
+    $tie.identityColumnName $tie.identity,
     EXEC('
     CREATE FUNCTION [$tie.capsule].[f$tie.name] (
         @positor $schema.metadata.positorRange = 0,
-        $(tie.isHistorized())? @changingTimepoint $tie.timeRange = '$schema.EOT',
+    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
-    SELECT
-        $(schema.METADATA)? a.$tie.metadataColumnName,
-        p.$tie.identityColumnName,
+    $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
+    $tie.positingColumnName $schema.metadata.positingRange,
+    $tie.positorColumnName $schema.metadata.positorRange,
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
+    $tie.assertionColumnName string,
+    $tie.reliableColumnName int
+)
+AS
+$$
+SELECT
+    $(schema.METADATA)? a.$tie.metadataColumnName,
+    p.$tie.identityColumnName,
 ~*/
         while (role = tie.nextRole()) {
 /*~
-        p.$role.columnName,
+    p.$role.columnName,
 ~*/
         }
 /*~
-        $(tie.isHistorized())? p.$tie.changingColumnName,
-        a.$tie.positingColumnName,
-        a.$tie.positorColumnName,
-        a.$tie.reliabilityColumnName,
-        a.$tie.reliableColumnName
-    FROM
-        $(tie.isHistorized())? [$tie.capsule].[f$tie.positName](@changingTimepoint) p : [$tie.capsule].[$tie.positName] p
-    JOIN
-        [$tie.capsule].[r$tie.annexName](@positingTimepoint) a
-    ON
-        a.$tie.identityColumnName = p.$tie.identityColumnName
-    AND
-        a.$tie.positorColumnName = @positor
-    AND
-        a.$tie.positingColumnName = (
-            SELECT TOP 1
-                sub.$tie.positingColumnName
-            FROM
-                [$tie.capsule].[r$tie.annexName](@positingTimepoint) sub
+    $(tie.isHistorized())? p.$tie.changingColumnName,
+    a.$tie.positingColumnName,
+    a.$tie.positorColumnName,
+    a.$tie.reliabilityColumnName,
+    a.$tie.assertionColumnName,
+    a.$tie.reliableColumnName
+FROM
+    $(tie.isHistorized())? TABLE(${tie.capsule}$.f$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
+JOIN
+    TABLE(${tie.capsule}$.r$tie.annexName(positingTimepoint)) a
+ON
+    a.$tie.identityColumnName = p.$tie.identityColumnName
+AND
+    a.$tie.positorColumnName = positor
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.$tie.identityColumnName
+        ORDER BY a.$tie.positingColumnName DESC
+    ) = 1
+$$
+;
             WHERE
                 sub.$tie.identityColumnName = p.$tie.identityColumnName
             AND

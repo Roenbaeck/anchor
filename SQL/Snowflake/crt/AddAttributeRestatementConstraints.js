@@ -60,7 +60,7 @@ BEGIN
     DECLARE @value $valueType;
     DECLARE @changed $attribute.timeRange;
     SELECT
-        @id = $attribute.anchorReferenceName,
+        @id = $attribute.entityReferenceName,
         @value = $valueColumn,
         @changed = $attribute.changingColumnName
     FROM
@@ -85,7 +85,7 @@ BEGIN
                             @posited
                         ) pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = @id
+                        pre.$attribute.entityReferenceName = @id
                     AND
                         pre.$attribute.changingColumnName < @changed
                     AND
@@ -108,7 +108,7 @@ BEGIN
                             @posited
                         ) fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = @id
+                        fol.$attribute.entityReferenceName = @id
                     AND
                         fol.$attribute.changingColumnName > @changed
                     AND

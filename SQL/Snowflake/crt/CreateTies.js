@@ -38,7 +38,7 @@ while (tie = schema.nextTie()) {
 -- $tie.positName table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
-    $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
+    $tie.identityColumnName $(tie.isGenerator())? $tie.identity $tie.identityGenerator not null, : $tie.identity not null,
 ~*/
     var role;
     while (role = tie.nextRole()) {
@@ -50,10 +50,11 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
 ~*/
     while (role = tie.nextRole()) {
+        var knotTableName = role.knot ? (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) : '';
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : ${role.knot.capsule}$.$role.knot.name($role.knot.identityColumnName),
+    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : ${role.knot.capsule}$.$knotTableName($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -70,76 +71,35 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
                 }
                 else {
 /*~
-    constraint ${tie.positName + '_uq' + role.name}$ unique (
-        $role.columnName
+                constraint pk$tie.positName primary key (
+                    $tie.identityColumnName
     ),
-~*/
+                constraint uq$tie.name unique (
                 }
             }
         }
-    }
+                    $role.columnName~*/
 /*~
     constraint pk$tie.positName primary key nonclustered (
         $tie.identityColumnName asc
     ),
     constraint uq$tie.name unique clustered (
 ~*/
-    while (role = tie.nextIdentifier()) {
+                    $tie.changingColumnName~*/
 /*~
         $role.columnName asc~*/
         if(tie.hasMoreIdentifiers() || tie.hasMoreValues() || tie.isHistorized()) {
             /*~,~*/
         }
     }
-    if(tie.isHistorized()) {
+                    $role.columnName~*/
 /*~
         $tie.changingColumnName desc~*/
         if(tie.hasMoreValues()) {
             /*~,~*/
         }
     }
-    while (role = tie.nextValue()) {
-/*~
-        $role.columnName asc~*/
-        if(tie.hasMoreValues()) {
-            /*~,~*/
-        }
-    }
-/*~
-    )
-) ORDER BY
-~*/
-    var r;
-    for(r = 0; role = anchorRoles[r]; r++) {
-/*~
-    $role.columnName$(r != anchorRoles.length - 1)?,
-~*/
-    }
-/*~
-SEGMENTED BY MODULARHASH(${anchorRoles[0].columnName}$) ALL NODES;
-~*/
-    var segmentationRole, otherRoles;
-    for(var i = 1; segmentationRole = anchorRoles[i]; i++) {
-        otherRoles = [];
-        for(r = 0; role = anchorRoles[r]; r++) {
-            if(role != segmentationRole) otherRoles.push(role);
-        }
-/*~
-CREATE PROJECTION IF NOT EXISTS ${tie.capsule}$.${tie.name}$__${segmentationRole.columnName}$
-AS
-SELECT
-~*/
-        while (role = tie.nextRole()) {
-/*~
-    $role.columnName$(tie.hasMoreRoles())?,
-~*/
-        }
-/*~
-FROM
-    ${tie.capsule}$.$tie.name
-ORDER BY
-    $segmentationRole.columnName,
-~*/
+            );
         for(r = 0; role = otherRoles[r]; r++) {
 /*~
     $role.columnName$(r != otherRoles.length - 1)?,
@@ -150,23 +110,29 @@ SEGMENTED BY MODULARHASH(${segmentationRole.columnName}$) ALL NODES;
 ~*/
     }
 /*~
--- Tie annex table ----------------------------------------------------------------------------------------------------
+                $tie.assertionColumnName string default (
 -- $tie.annexName table
------------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.annexName (
+                        when $tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+                        when $tie.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
+                        else '-'
     $tie.identityColumnName $tie.identity not null,
-    $tie.positingColumnName $schema.metadata.positingRange not null,
+                ),
+                $tie.reliableColumnName int default (
+                    case
+                        when $tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
+                        else 1
+                    end
+                ),
     $tie.positorColumnName $schema.metadata.positorRange not null,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
     $tie.reliableColumnName as isnull(cast(
         case
-            when $tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
-            else 1
-        end
-    as tinyint), 1) persisted,
+                constraint pk$tie.annexName primary key (
+                    $tie.identityColumnName,
+                    $tie.positorColumnName,
+                    $tie.positingColumnName
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
-    constraint fk$tie.annexName foreign key (
-        $tie.identityColumnName
+            ) CLUSTER BY ($tie.identityColumnName, $tie.positorColumnName, $tie.positingColumnName);
     ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
     constraint pk$tie.annexName primary key clustered (
         $tie.identityColumnName asc,

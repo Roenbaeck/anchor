@@ -3,22 +3,12 @@
 ~*/
 var knot;
 while (knot = schema.nextKnot()) {
+    var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
     if(knot.description &&
        knot.description._description &&
        knot.description._description.length > 0) {
 /*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$knot.capsule',
-@level1type = N'Table',  @level1name = $(knot.isEquivalent())? '$knot.identityName'; : '$knot.name';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$knot.description._description',
-@level0type = N'Schema', @level0name = '$knot.capsule',
-@level1type = N'Table',  @level1name = $(knot.isEquivalent())? '$knot.identityName'; : '$knot.name';
-GO
+COMMENT ON TABLE ${knot.capsule}$.$knotTableName IS '$knot.description._description';
 ~*/
     }
 }
@@ -28,40 +18,28 @@ while (anchor = schema.nextAnchor()) {
        anchor.description._description &&
        anchor.description._description.length > 0) {
 /*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$anchor.capsule',
-@level1type = N'Table',  @level1name = '$anchor.name';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$anchor.description._description',
-@level0type = N'Schema', @level0name = '$anchor.capsule',
-@level1type = N'Table',  @level1name = '$anchor.name';
-GO
+COMMENT ON TABLE ${anchor.capsule}$.$anchor.name IS '$anchor.description._description';
 ~*/
     }
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
-        if(attribute.description &&
-           attribute.description._description &&
-           attribute.description._description.length > 0) {
+}
+var attribute;
+while (attribute = schema.nextAttribute()) {
+    if(attribute.description &&
+       attribute.description._description &&
+       attribute.description._description.length > 0) {
 /*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$attribute.capsule',
-@level1type = N'Table',  @level1name = '$attribute.name';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$attribute.description._description',
-@level0type = N'Schema', @level0name = '$attribute.capsule',
-@level1type = N'Table',  @level1name = '$attribute.name';
-GO
+COMMENT ON TABLE ${attribute.capsule}$.$attribute.name IS '$attribute.description._description';
 ~*/
-        }
+    }
+}
+var nexus;
+while (nexus = schema.nextNexus()) {
+    if(nexus.description &&
+       nexus.description._description &&
+       nexus.description._description.length > 0) {
+/*~
+COMMENT ON TABLE ${nexus.capsule}$.$nexus.name IS '$nexus.description._description';
+~*/
     }
 }
 var tie;
@@ -70,18 +48,7 @@ while (tie = schema.nextTie()) {
        tie.description._description &&
        tie.description._description.length > 0) {
 /*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$tie.capsule',
-@level1type = N'Table',  @level1name = '$tie.name';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$tie.description._description',
-@level0type = N'Schema', @level0name = '$tie.capsule',
-@level1type = N'Table',  @level1name = '$tie.name';
-GO
+COMMENT ON TABLE ${tie.capsule}$.$tie.name IS '$tie.description._description';
 ~*/
     }
     var role;
@@ -90,20 +57,7 @@ GO
            role.description._description &&
            role.description._description.length > 0) {
 /*~
-BEGIN TRY
-EXEC sp_dropextendedproperty
-@name = N'MS_Description',
-@level0type = N'Schema', @level0name = '$tie.capsule',
-@level1type = N'Table',  @level1name = '$tie.name',
-@level2type = N'Column', @level2name = '$role.columnName';
-END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
-EXEC sp_addextendedproperty
-@name = N'MS_Description',
-@value = '$role.description._description',
-@level0type = N'Schema', @level0name = '$tie.capsule',
-@level1type = N'Table',  @level1name = '$tie.name',
-@level2type = N'Column', @level2name = '$role.columnName';
-GO
+COMMENT ON COLUMN ${tie.capsule}$.$tie.name.$role.columnName IS '$role.description._description';
 ~*/
         }
     }

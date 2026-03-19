@@ -1,76 +1,58 @@
 /*~
--- ANCHORS AND ATTRIBUTES ---------------------------------------------------------------------------------------------
+-- ATTRIBUTES ---------------------------------------------------------------------------------------------------------
 --
--- Anchors are used to store the identities of entities.
--- Anchors are immutable.
--- Attributes are used to store values for properties of entities.
--- Attributes are mutable, their values may change over one or more types of time.
+-- Attributes are mutable properties on anchors or nexuses.
 -- Attributes have four flavors: static, historized, knotted static, and knotted historized.
--- Anchors may have zero or more adjoined attributes.
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    if(anchor.isGenerator())
-        anchor.identityGenerator = 'IDENTITY(1,1)';
-/*~
--- Anchor table -------------------------------------------------------------------------------------------------------
--- $anchor.name table (with ${(anchor.attributes ? anchor.attributes.length : 0)}$ attributes)
------------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
-    $anchor.identityColumnName $(anchor.isGenerator())? $anchor.identityGenerator not null, : $anchor.identity not null,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null, : $anchor.dummyColumnName boolean null,
-    constraint pk$anchor.name primary key (
-        $anchor.identityColumnName
-    )
-) ORDER BY $anchor.identityColumnName SEGMENTED BY MODULARHASH($anchor.identityColumnName) ALL NODES;
-~*/
-    var knot, attribute;
-    while (attribute = anchor.nextAttribute()) {
-        if(attribute.isGenerator())
-            attribute.identityGenerator = 'IDENTITY(1,1)';
-        if(attribute.isHistorized() && !attribute.isKnotted()) {
+var attribute, parent, knot;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;
+    if(attribute.isGenerator())
+        attribute.identityGenerator = 'IDENTITY(1,1)';
+    if(attribute.isHistorized() && !attribute.isKnotted()) {
 /*~
 -- Historized attribute posit table -----------------------------------------------------------------------------------
--- $attribute.positName table (on $anchor.name)
+-- $attribute.positName table (on $parent.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
-    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.entityReferenceName $anchor.identity not null,
+    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,
+    $attribute.entityReferenceName $parent.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
+    $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0) default hash($attribute.valueColumnName),
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
-        $attribute.entityReferenceName asc,
-        $attribute.changingColumnName desc,
-        $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
+        $attribute.entityReferenceName,
+        $attribute.changingColumnName,
+        $(attribute.hasChecksum())? $attribute.checksumColumnName : $attribute.valueColumnName
     )
-) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
+) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
         knot = attribute.knot;
+        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
 /*~
 -- Knotted historized attribute posit table ---------------------------------------------------------------------------
--- $attribute.positName table (on $anchor.name)
+-- $attribute.positName table (on $parent.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
-    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.entityReferenceName $anchor.identity not null,
+    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,
+    $attribute.entityReferenceName $parent.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk_A_$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knot.name($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
@@ -79,25 +61,26 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.changingColumnName,
         $attribute.knotReferenceName
     )
-) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
+) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
 ~*/
     }
     else if(attribute.isKnotted()) {
         knot = attribute.knot;
+        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
 /*~
 -- Knotted static attribute posit table -------------------------------------------------------------------------------
--- $attribute.positName table (on $anchor.name)
+-- $attribute.positName table (on $parent.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
-    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.entityReferenceName $anchor.identity not null,
+    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,
+    $attribute.entityReferenceName $parent.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knot.name($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
@@ -105,47 +88,54 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.entityReferenceName,
         $attribute.knotReferenceName
     )
-) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
     else {
 /*~
 -- Static attribute posit table -----------------------------------------------------------------------------------
--- $attribute.positName table (on $anchor.name)
+-- $attribute.positName table (on $parent.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
-    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.entityReferenceName $anchor.identity not null,
+    $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,
+    $attribute.entityReferenceName $parent.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
-    $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
+    $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0) default hash($attribute.valueColumnName),
     constraint fk$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
         $attribute.entityReferenceName,
-        $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
+        $(attribute.hasChecksum())? $attribute.checksumColumnName : $attribute.valueColumnName
     )
-) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
 /*~
 -- Attribute annex table ----------------------------------------------------------------------------------------------
--- $attribute.annexName table (of $attribute.positName on $anchor.name)
+-- $attribute.annexName table (of $attribute.positName on $parent.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.annexName (
     $attribute.identityColumnName $attribute.identity not null,
     $attribute.positingColumnName $schema.metadata.positingRange not null,
     $attribute.positorColumnName $schema.metadata.positorRange not null,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-    $attribute.reliableColumnName int default isnull(
+    $attribute.assertionColumnName string default (
+        case
+            when $attribute.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
+            when $attribute.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
+            else '-'
+        end
+    ),
+    $attribute.reliableColumnName int default (
         case
             when $attribute.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
             else 1
         end
-    , 1),
+    ),
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName
@@ -155,7 +145,6 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.annexName (
         $attribute.positorColumnName,
         $attribute.positingColumnName
     )
-) ORDER BY $attribute.identityColumnName, $attribute.positorColumnName, $attribute.positingColumnName SEGMENTED BY MODULARHASH($attribute.identityColumnName) ALL NODES
-PARTITION BY ($attribute.positorColumnName);
+) CLUSTER BY ($attribute.identityColumnName, $attribute.positorColumnName, $attribute.positingColumnName);
 ~*/
-}}
+}

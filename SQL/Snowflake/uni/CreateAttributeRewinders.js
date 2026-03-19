@@ -9,23 +9,29 @@
 -- @changingTimepoint   the point in changing time to rewind to
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
-        if(attribute.isHistorized()) {
+var attribute;
+while (attribute = schema.nextAttribute()) {
+    if(attribute.isHistorized()) {
+        var parent = attribute.parent;
+        var equivalentSource = attribute.isEquivalent() && !attribute.isKnotted();
 /*~
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
-BEGIN
-    EXEC('
-    CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        $(attribute.isEquivalent())? @equivalent $schema.metadata.equivalentRange,
-        @changingTimepoint $attribute.timeRange
-    )
-    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.name (
+    $(equivalentSource)? equivalent $schema.metadata.equivalentRange,
+    changingTimepoint $attribute.timeRange
+)
+RETURNS TABLE (
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
+    $attribute.entityReferenceName $parent.identity,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
+    $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
+    $attribute.valueColumnName $attribute.dataRange,
+    $attribute.changingColumnName $attribute.timeRange
+)
+AS
+$$
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.entityReferenceName,
@@ -34,13 +40,11 @@ BEGIN
         $attribute.valueColumnName,
         $attribute.changingColumnName
     FROM
-        $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@equivalent) : [$attribute.capsule].[$attribute.name]
+        $(equivalentSource)? TABLE(${attribute.capsule}$.e$attribute.name(equivalent)) : ${attribute.capsule}$.$attribute.name
     WHERE
-        $attribute.changingColumnName <= @changingTimepoint;
-    ');
-END
-GO
+        $attribute.changingColumnName <= changingTimepoint
+$$
+;
 ~*/
-        }
     }
 }

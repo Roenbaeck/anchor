@@ -1,0 +1,33 @@
+# This is the processing directive for bi-temporal Anchor Modeling in Snowflake
+#
+# Native Snowflake BI generation
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Snowflake/NamingConvention.js
+SQL/Snowflake/bi/CreateKnots.js
+SQL/Snowflake/bi/CreateAnchors.js
+SQL/Snowflake/bi/CreateNexuses.js
+SQL/Snowflake/bi/CreateAttributes.js
+#SQL/Snowflake/bi/CreateAttributeAssembledViews.js
+SQL/Snowflake/bi/CreateAttributeRewinders.js
+#SQL/Snowflake/bi/AddAttributeRestatementConstraints.js
+#SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js
+SQL/Snowflake/bi/CreateAnchorPerspectives.js
+#SQL/Snowflake/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Snowflake/biz/DropNexusBusinessPerspectives.js
+SQL/Snowflake/bi/CreateNexusPerspectives.js
+#SQL/Snowflake/biz/CreateNexusBusinessPerspectives.js
+#SQL/Snowflake/bi/CreateKeyGenerators.js
+#SQL/Snowflake/bi/CreateAttributeTriggers.js
+#SQL/Snowflake/bi/CreateAnchorTriggers.js
+#SQL/Snowflake/bi/CreateNexusTriggers.js
+SQL/Snowflake/bi/CreateTies.js
+#SQL/Snowflake/bi/CreateTieAssembledViews.js
+#SQL/Snowflake/bi/AddTieRestatementConstraints.js
+SQL/Snowflake/bi/CreateTieRewinders.js
+#SQL/Snowflake/biz/DropTieBusinessPerspectives.js
+SQL/Snowflake/bi/CreateTiePerspectives.js
+#SQL/Snowflake/biz/CreateTieBusinessPerspectives.js
+#SQL/Snowflake/bi/CreateTieTriggers.js
+#SQL/Snowflake/CreateSchemaTracking.js
+SQL/Snowflake/uni/AddDescriptions.js
