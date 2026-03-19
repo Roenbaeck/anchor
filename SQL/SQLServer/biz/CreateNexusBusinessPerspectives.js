@@ -34,22 +34,22 @@ SELECT
     [$nexus.mnemonic].$nexus.identityColumnName as [$nexus.businessIdentityColumnName],
 ~*/
         // project role columns
-        while (role = nexus.nextRole && nexus.nextRole()) {
+        while (role = nexus.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
         }
         var attribute, knotPresentableName;
-        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
-            if(attribute.isKnotted && attribute.isKnotted()) {
+        while (attribute = nexus.nextAttribute()) {
+            if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 if(schema.KNOT_ALIASES)
                     knotPresentableName = attribute.businessName;
@@ -80,20 +80,20 @@ SELECT
     $(schema.CRT)? [$nexus.mnemonic].Positor,
     [$nexus.mnemonic].$nexus.identityColumnName as [$nexus.businessIdentityColumnName],
 ~*/
-        while (role = nexus.nextRole && nexus.nextRole()) {
+        while (role = nexus.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
 /*~
-    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
             else {
 /*~
-    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
         }
-        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+        while (attribute = nexus.nextAttribute()) {
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
@@ -122,7 +122,7 @@ FROM
     [$nexus.capsule].[Point_$nexus.businessName]($schema.metadata.now);
 GO
 ~*/
-        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
+        if(nexus.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference perspective --------------------------------------------------------------------------------------------
 -- Difference_$nexus.businessName showing differences between timepoints (optionally subset of attributes)
@@ -139,10 +139,10 @@ SELECT
     [p$nexus.mnemonic].*
 FROM (
 ~*/
-            while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
+            while (attribute = nexus.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.anchorReferenceName AS $nexus.identityColumnName,
+        $attribute.entityReferenceName AS $nexus.identityColumnName,
         $attribute.changingColumnName AS [Time_of_Change],
         '$attribute.businessName' AS [Subject_of_Change]
     FROM
@@ -177,7 +177,7 @@ SELECT
     $(schema.CRT)? [$nexus.mnemonic].Positor,
     [$nexus.mnemonic].$nexus.identityColumnName as [$nexus.businessIdentityColumnName],
 ~*/
-            while (role = nexus.nextRole && nexus.nextRole()) {
+            while (role = nexus.nextRole()) {
                 if(role.knot) {
                     knot = role.knot;
 /*~
@@ -190,8 +190,8 @@ SELECT
 ~*/
                 }
             }
-            while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
-                if(attribute.isKnotted && attribute.isKnotted()) {
+            while (attribute = nexus.nextAttribute()) {
+                if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
     $(schema.KNOT_ALIASES)? [$nexus.mnemonic].$attribute.knotValueColumnName as [$attribute.businessName],
@@ -220,7 +220,7 @@ SELECT
     $(schema.CRT)? [$nexus.mnemonic].Positor,
     [$nexus.mnemonic].$nexus.identityColumnName as [$nexus.businessIdentityColumnName],
 ~*/
-            while (role = nexus.nextRole && nexus.nextRole()) {
+            while (role = nexus.nextRole()) {
                 if(role.knot) {
                     knot = role.knot;
 /*~
@@ -233,8 +233,8 @@ SELECT
 ~*/
                 }
             }
-            while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
-                if(attribute.isKnotted && attribute.isKnotted()) {
+            while (attribute = nexus.nextAttribute()) {
+                if(attribute.isKnotted()) {
                     knot = attribute.knot;
 /*~
     $(schema.KNOT_ALIASES)? [$nexus.mnemonic].$attribute.knotValueColumnName as [$attribute.businessName],
@@ -264,7 +264,7 @@ FROM
     [$nexus.capsule].[EQ_Point_$nexus.businessName](@equivalent, $schema.metadata.now);
 GO
 ~*/
-            if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
+            if(nexus.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference equivalence perspective -------------------------------------------------------------------------------
 -- EQ_Difference_$nexus.businessName showing differences between the given timepoints
@@ -282,10 +282,10 @@ SELECT
     [p$nexus.mnemonic].*
 FROM (
 ~*/
-                while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
+                while (attribute = nexus.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.anchorReferenceName AS $nexus.identityColumnName,
+        $attribute.entityReferenceName AS $nexus.identityColumnName,
         $attribute.changingColumnName AS [Time_of_Change],
         '$attribute.businessName' AS [Subject_of_Change]
     FROM

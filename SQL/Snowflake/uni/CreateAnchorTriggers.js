@@ -49,7 +49,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
+        $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange null,
@@ -80,7 +80,7 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
+        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
         $(attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
@@ -107,7 +107,7 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? $attribute.anchorReferenceName,
+            $(schema.IMPROVED)? $attribute.entityReferenceName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.timeRange)? $attribute.changingColumnName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
@@ -141,13 +141,13 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.timeRange)? $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
         $(attribute.isKnotted())? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName) : i.$attribute.valueColumnName
     FROM
@@ -202,8 +202,8 @@ BEGIN
 ~*/
 		while (attribute = anchor.nextAttribute()) {
 /*~
-    IF(UPDATE($attribute.anchorReferenceName))
-        RAISERROR('The foreign key column $attribute.anchorReferenceName is not updatable.', 16, 1);
+    IF(UPDATE($attribute.entityReferenceName))
+        RAISERROR('The foreign key column $attribute.entityReferenceName is not updatable.', 16, 1);
 ~*/
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
@@ -213,13 +213,13 @@ BEGIN
     BEGIN
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
-            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
+            ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName),
 ~*/
                 if(attribute.isHistorized()) {
 /*~
@@ -251,14 +251,14 @@ BEGIN
     BEGIN
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
             $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
-            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
+            ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName),
             $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
 ~*/
                 if(attribute.isHistorized()) {
@@ -308,7 +308,7 @@ BEGIN
     $(attribute.isEquivalent())? AND
         $(attribute.timeRange)? d.$attribute.changingColumnName = [$attribute.mnemonic].$attribute.changingColumnName
     $(attribute.timeRange)? AND
-        d.$attribute.anchorReferenceName = [$attribute.mnemonic].$attribute.anchorReferenceName;
+        d.$attribute.entityReferenceName = [$attribute.mnemonic].$attribute.entityReferenceName;
 ~*/
         }
 /*~
@@ -321,7 +321,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
     ON
-        [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+        [$attribute.mnemonic].$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
 ~*/
         }
 /*~
@@ -329,7 +329,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        [$attribute.mnemonic].$attribute.anchorReferenceName is null$(!anchor.hasMoreAttributes())?;
+        [$attribute.mnemonic].$attribute.entityReferenceName is null$(!anchor.hasMoreAttributes())?;
     $(anchor.hasMoreAttributes())? AND
 ~*/
         }

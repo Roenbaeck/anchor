@@ -114,7 +114,7 @@ FROM
 LEFT JOIN 
     [$attribute.capsule].[$attribute.name] twine
 ON
-    twine.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName;
+    twine.$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName;
 GO
 ~*/
             }
@@ -175,7 +175,7 @@ LEFT JOIN (
                 var endpoint = branches[branch][branchLength - 1];
                 var startpoint = branches[branch][0];
                 var attribute = endpoint.attribute; // branch must end in attribute
-                var idColumn = startpoint.tie ? startpoint.role.columnName : attribute.anchorReferenceName;
+                var idColumn = startpoint.tie ? startpoint.role.columnName : attribute.entityReferenceName;
 /*~
             SELECT
                 $idColumn AS $anchor.identityColumnName, 
@@ -220,7 +220,7 @@ LEFT JOIN (
 /*~
                 [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]      
             ON
-                [$attribute.mnemonic].$attribute.anchorReferenceName = [$referencedAnchor.mnemonic].$referencedAnchor.identityColumnName
+                [$attribute.mnemonic].$attribute.entityReferenceName = [$referencedAnchor.mnemonic].$referencedAnchor.identityColumnName
 ~*/                     
                         }
                     }
@@ -364,7 +364,7 @@ FROM
 LEFT JOIN 
     [$attribute.capsule].[$attribute.name] twine
 ON
-    twine.$attribute.anchorReferenceName = [$nexus.mnemonic].$nexus.identityColumnName;
+    twine.$attribute.entityReferenceName = [$nexus.mnemonic].$nexus.identityColumnName;
 GO
 ~*/
             }
@@ -425,7 +425,7 @@ LEFT JOIN (
                 var endpoint = branches[branch][branchLength - 1];
                 var startpoint = branches[branch][0];
                 var attribute = endpoint.attribute; // branch must end in attribute
-                var idColumn = startpoint.tie ? startpoint.role.columnName : attribute.anchorReferenceName;
+                var idColumn = startpoint.tie ? startpoint.role.columnName : attribute.entityReferenceName;
 /*~
             SELECT
                 $idColumn AS $nexus.identityColumnName, 
@@ -470,7 +470,7 @@ LEFT JOIN (
 /*~
                 [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]      
             ON
-                [$attribute.mnemonic].$attribute.anchorReferenceName = [$referencedAnchor.mnemonic].$referencedAnchor.identityColumnName
+                [$attribute.mnemonic].$attribute.entityReferenceName = [$referencedAnchor.mnemonic].$referencedAnchor.identityColumnName
 ~*/                     
                         }
                     }

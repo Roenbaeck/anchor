@@ -37,7 +37,7 @@ BEGIN
         SELECT * FROM sys.openkeys 
         WHERE [key_name] = '$encryptionGroup' AND [database_id] = DB_ID()
     ) AND EXISTS (
-        SELECT TOP 1 $attribute.anchorReferenceName FROM inserted
+        SELECT TOP 1 $attribute.entityReferenceName FROM inserted
     )
     BEGIN
         RAISERROR('The key [$encryptionGroup] must be open in order to modify the attribute ${attribute.name}$.', 16, 1);
@@ -46,7 +46,7 @@ BEGIN
         }    
 /*~
     DECLARE @$attribute.name TABLE (
-    $attribute.anchorReferenceName $attribute.parentIdentityRange not null,
+    $attribute.entityReferenceName $attribute.parentIdentityRange not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
@@ -55,14 +55,14 @@ BEGIN
         $attribute.statementTypeColumnName char(1) not null,
         primary key (
             $(attribute.isEquivalent())? $attribute.equivalentColumnName asc,
-            $attribute.anchorReferenceName asc, 
+            $attribute.entityReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc
         )
     );
 
     INSERT INTO @$attribute.name
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
@@ -73,13 +73,13 @@ BEGIN
         inserted i
     WHERE NOT EXISTS (
         SELECT TOP 1
-            x.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName
         FROM
             [$attribute.capsule].[$attribute.name] x
         WHERE
             $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
-            x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName = i.$attribute.entityReferenceName
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? x.$attribute.changingColumnName = i.$attribute.changingColumnName
         AND
@@ -92,7 +92,7 @@ BEGIN
 /*~
     INSERT INTO @$attribute.name
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(schema.METADATA)? p.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
         p.$attribute.valueColumnName,
@@ -101,7 +101,7 @@ BEGIN
     FROM (
         SELECT DISTINCT 
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-            $attribute.anchorReferenceName 
+            $attribute.entityReferenceName 
         FROM 
             @$attribute.name
     ) i
@@ -110,17 +110,17 @@ BEGIN
     ON
         $(attribute.isEquivalent())? p.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
     $(attribute.isEquivalent())? AND    
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName;
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName;
 
     DECLARE @restated TABLE (
-    $attribute.anchorReferenceName $attribute.parentIdentityRange not null,
+    $attribute.entityReferenceName $attribute.parentIdentityRange not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null
     );
 
     INSERT INTO @restated
     SELECT 
-        x.$attribute.anchorReferenceName,
+        x.$attribute.entityReferenceName,
         $(attribute.isEquivalent())? x.$attribute.equivalentColumnName,
         x.$attribute.changingColumnName
     FROM (
@@ -137,7 +137,7 @@ BEGIN
             WHERE
                 $(attribute.isEquivalent())? h.$attribute.equivalentColumnName = a.$attribute.equivalentColumnName
             $(attribute.isEquivalent())? AND    
-                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                h.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             AND
                 h.$attribute.changingColumnName < a.$attribute.changingColumnName
             ORDER BY 
@@ -156,7 +156,7 @@ BEGIN
 	JOIN 
 		@restated d
 	ON 
-		d.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+		d.$attribute.entityReferenceName = a.$attribute.entityReferenceName
 	AND 
         $(attribute.isEquivalent())? d.$attribute.equivalentColumnName = a.$attribute.equivalentColumnName
     $(attribute.isEquivalent())? AND    
@@ -166,14 +166,14 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.valueColumnName
     )
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.valueColumnName
@@ -207,7 +207,7 @@ BEGIN
             SELECT * FROM sys.openkeys 
             WHERE [key_name] = '$encryptionGroup' AND [database_id] = DB_ID()
         ) AND EXISTS (
-            SELECT TOP 1 $attribute.anchorReferenceName FROM inserted
+            SELECT TOP 1 $attribute.entityReferenceName FROM inserted
         )
         BEGIN
             RAISERROR('The key [$encryptionGroup] must be open in order to modify the attribute ${attribute.name}$.', 16, 1);
@@ -217,26 +217,26 @@ BEGIN
     /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.valueColumnName
     )
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.valueColumnName
     FROM
         inserted i
     WHERE NOT EXISTS (
         SELECT TOP 1
-            x.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName
         FROM
             [$attribute.capsule].[$attribute.name] x
         WHERE
             $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
         $(attribute.isEquivalent())? AND    
-            x.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+            x.$attribute.entityReferenceName = i.$attribute.entityReferenceName
         AND
             $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
     );    

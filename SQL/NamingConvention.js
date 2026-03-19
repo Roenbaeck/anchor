@@ -71,7 +71,7 @@ while (anchor = schema.nextAnchor()) {
         attribute.assertionColumnName = attribute.uniqueMnemonic + D + schema.metadata.assertionSuffix;
         attribute.statementTypeColumnName = attribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
         if(schema.IMPROVED) {
-            attribute.anchorReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
+            attribute.entityReferenceName = attribute.uniqueMnemonic + D + anchor.mnemonic + D + schema.metadata.identitySuffix;
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 attribute.knotReferenceName = attribute.uniqueMnemonic + D + attribute.knotRange + D + schema.metadata.identitySuffix;
@@ -83,7 +83,7 @@ while (anchor = schema.nextAnchor()) {
             }
         }
         else {
-            attribute.anchorReferenceName = anchor.identityColumnName;
+            attribute.entityReferenceName = anchor.identityColumnName;
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
                 attribute.knotReferenceName = attribute.knotRange + D + schema.metadata.identitySuffix;
@@ -134,7 +134,7 @@ while (nexus = schema.nextNexus()) {
         nxAttribute.assertionColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.assertionSuffix;
         nxAttribute.statementTypeColumnName = nxAttribute.uniqueMnemonic + D + schema.metadata.statementTypeSuffix;
         if(schema.IMPROVED) {
-            nxAttribute.anchorReferenceName = nxAttribute.uniqueMnemonic + D + nexus.mnemonic + D + schema.metadata.identitySuffix;
+            nxAttribute.entityReferenceName = nxAttribute.uniqueMnemonic + D + nexus.mnemonic + D + schema.metadata.identitySuffix;
             if(nxAttribute.isKnotted()) {
                 knot = nxAttribute.knot;
                 nxAttribute.knotReferenceName = nxAttribute.uniqueMnemonic + D + nxAttribute.knotRange + D + schema.metadata.identitySuffix;
@@ -146,7 +146,7 @@ while (nexus = schema.nextNexus()) {
             }
         }
         else {
-            nxAttribute.anchorReferenceName = nexus.identityColumnName;
+            nxAttribute.entityReferenceName = nexus.identityColumnName;
             if(nxAttribute.isKnotted()) {
                 knot = nxAttribute.knot;
                 nxAttribute.knotReferenceName = nxAttribute.knotRange + D + schema.metadata.identitySuffix;

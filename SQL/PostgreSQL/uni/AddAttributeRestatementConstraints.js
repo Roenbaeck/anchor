@@ -61,7 +61,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
                     FROM
                         $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(eq) pre : $attribute.capsule\.$attribute.name pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = id
+                        pre.$attribute.entityReferenceName = id
                     AND
                         pre.$attribute.changingColumnName < changed
                     ORDER BY
@@ -79,7 +79,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule\.rf$attribute.name(
                     FROM
                         $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(eq) fol : $attribute.capsule\.$attribute.name fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = id
+                        fol.$attribute.entityReferenceName = id
                     AND
                         fol.$attribute.changingColumnName > changed
                     ORDER BY
@@ -105,7 +105,7 @@ DROP CONSTRAINT IF EXISTS rc$attribute.name
 ALTER TABLE IF EXISTS $attribute.capsule\.$attribute.name
 ADD CONSTRAINT rc$attribute.name CHECK (
     $attribute.capsule\.rf$attribute.name(
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.equivalentColumnName,
         $valueColumn,
         $attribute.changingColumnName

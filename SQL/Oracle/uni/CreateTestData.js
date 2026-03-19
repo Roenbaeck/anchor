@@ -55,7 +55,7 @@ begin
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? $attribute.anchorReferenceName,     -- ATTRIBUTE
+            $(schema.IMPROVED)? $attribute.entityReferenceName,     -- ATTRIBUTE
             $(schema.METADATA)? $attribute.metadataColumnName,     -- ATTRIBUTE
             $(attribute.timeRange)? $attribute.changingColumnName,     -- ATTRIBUTE
 ~*/
@@ -77,7 +77,7 @@ begin
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? NULL, -- $attribute.anchorReferenceName,     -- ATTRIBUTE
+            $(schema.IMPROVED)? NULL, -- $attribute.entityReferenceName,     -- ATTRIBUTE
             $(schema.METADATA)? NULL, -- $attribute.metadataColumnName,     -- ATTRIBUTE
             $(attribute.timeRange)? l_now, -- $attribute.changingColumnName,     -- ATTRIBUTE
 ~*/

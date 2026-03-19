@@ -34,21 +34,21 @@ CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $attribute.changingColumnName
     )
-) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
+) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -59,21 +59,21 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $attribute.changingColumnName
     )
-) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
     else if(attribute.isKnotted()) {
@@ -85,19 +85,19 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
     ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
     constraint pk$attribute.name primary key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     )
-) ORDER BY $attribute.anchorReferenceName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
     else {
@@ -106,19 +106,19 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
 -- $attribute.name table (on $anchor.name)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint pk$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     )
-) ORDER BY $attribute.anchorReferenceName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
+) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES$(attribute.isEquivalent())? $scheme; : ;
 ~*/
     }
 }}

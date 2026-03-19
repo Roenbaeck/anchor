@@ -21,7 +21,7 @@ BEGIN
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,

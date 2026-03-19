@@ -50,7 +50,7 @@ BEGIN
             }
 /*~
         INSERT INTO $attribute.name (
-            $(schema.IMPROVED)? $attribute.anchorReferenceName, -- $anchor.identity null,
+            $(schema.IMPROVED)? $attribute.entityReferenceName, -- $anchor.identity null,
             $(attribute.timeRange)? $attribute.changingColumnName, -- $attribute.timeRange null,
 ~*/
             if(attribute.isKnotted()) {
@@ -166,7 +166,7 @@ BEGIN
         $(attribute.timeRange)? ${'l_changedate ' + String.fromCharCode(58) + '= get_changedate(' + String.fromCharCode(58) + 'NEW.' + attribute.changingColumnName + ', ' + String.fromCharCode(58) + 'OLD.' + attribute.changingColumnName + ');'}$
         $(schema.METADATA)? ${'l_metadata ' + String.fromCharCode(58) + '= get_metadata(' + String.fromCharCode(58) + 'NEW.' + attribute.metadataColumnName + ', ' + String.fromCharCode(58) + 'OLD.' + attribute.metadataColumnName + ');'}$
         INSERT INTO $attribute.name (
-            $(schema.IMPROVED)? $attribute.anchorReferenceName, -- $anchor.identity null,
+            $(schema.IMPROVED)? $attribute.entityReferenceName, -- $anchor.identity null,
             $(attribute.timeRange)? $attribute.changingColumnName, -- $attribute.timeRange null,
 ~*/
             if(attribute.isKnotted()) {
@@ -225,7 +225,7 @@ BEGIN
 /*~
     -- ta bort attribut för givet ankare $(attribute.timeRange)? och tid
     delete $attribute.name where 1=1 
-    $(schema.IMPROVED)? ${'and ' + attribute.anchorReferenceName + ' = ' + String.fromCharCode(58) + 'OLD.' + anchor.identityColumnName}$
+    $(schema.IMPROVED)? ${'and ' + attribute.entityReferenceName + ' = ' + String.fromCharCode(58) + 'OLD.' + anchor.identityColumnName}$
     $(attribute.timeRange)? ${'and ' + attribute.changingColumnName + ' = ' + String.fromCharCode(58) + 'OLD.' + attribute.changingColumnName}$
     ;
 ~*/
@@ -238,7 +238,7 @@ BEGIN
         while (attribute = anchor.nextAttribute()) {
 /*~
    
-    and 0 = (select count(*) from $attribute.name where $(schema.IMPROVED)? ${attribute.anchorReferenceName + ' = ' + String.fromCharCode(58) + 'OLD.' + anchor.identityColumnName + ')'}$
+    and 0 = (select count(*) from $attribute.name where $(schema.IMPROVED)? ${attribute.entityReferenceName + ' = ' + String.fromCharCode(58) + 'OLD.' + anchor.identityColumnName + ')'}$
 ~*/
         }
 /*~

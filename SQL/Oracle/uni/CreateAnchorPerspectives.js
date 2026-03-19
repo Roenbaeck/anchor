@@ -35,7 +35,7 @@ SELECT
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? $attribute.mnemonic\.$attribute.anchorReferenceName,
+    $(schema.IMPROVED)? $attribute.mnemonic\.$attribute.entityReferenceName,
     $(schema.METADATA)? $attribute.mnemonic\.$attribute.metadataColumnName,
     $(attribute.timeRange)? $attribute.mnemonic\.$attribute.changingColumnName,
 ~*/
@@ -55,7 +55,7 @@ FROM $anchor.name $anchor.mnemonic
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-LEFT JOIN $attribute.name $attribute.mnemonic ON $attribute.mnemonic\.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName~*/
+LEFT JOIN $attribute.name $attribute.mnemonic ON $attribute.mnemonic\.$attribute.entityReferenceName = $anchor.mnemonic\.$anchor.identityColumnName~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
@@ -72,7 +72,7 @@ AND (
     $attribute.mnemonic\.$attribute.changingColumnName = (
         SELECT max(sub.$attribute.changingColumnName)
         FROM $attribute.name sub
-        WHERE sub.$attribute.anchorReferenceName = $anchor.mnemonic\.$anchor.identityColumnName
+        WHERE sub.$attribute.entityReferenceName = $anchor.mnemonic\.$anchor.identityColumnName
     ) 
     OR $attribute.mnemonic\.$attribute.changingColumnName is null
 )
@@ -98,7 +98,7 @@ SELECT
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.entityReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
 ~*/
@@ -123,7 +123,7 @@ FROM
 LEFT JOIN
     [$attribute.capsule].[r$attribute.name](@changingTimepoint) [$attribute.mnemonic]
 ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+    [$attribute.mnemonic].$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
 AND
     [$attribute.mnemonic].$attribute.changingColumnName = (
         SELECT
@@ -131,7 +131,7 @@ AND
         FROM
             [$attribute.capsule].[r$attribute.name](@changingTimepoint) sub
         WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
    )~*/
             }
             else {
@@ -139,7 +139,7 @@ AND
 LEFT JOIN
     [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
 ON
-    [$attribute.mnemonic].$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
+    [$attribute.mnemonic].$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName~*/
             }
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
