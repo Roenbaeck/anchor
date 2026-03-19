@@ -34,7 +34,7 @@ BEGIN
     DECLARE @currentVersion int;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
@@ -44,12 +44,12 @@ BEGIN
         $attribute.statementTypeColumnName char(1) not null,
         primary key(
             $attribute.versionColumnName,
-            $attribute.anchorReferenceName
+            $attribute.entityReferenceName
         )
     );
     INSERT INTO @$attribute.name
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
@@ -61,7 +61,7 @@ BEGIN
         DENSE_RANK() OVER (
             PARTITION BY
                 $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-                i.$attribute.anchorReferenceName
+                i.$attribute.entityReferenceName
             ORDER BY
                 i.$attribute.changingColumnName ASC
         ),
@@ -72,7 +72,7 @@ BEGIN
         ROW_NUMBER() OVER (
             PARTITION BY
                 $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
-                i.$attribute.anchorReferenceName
+                i.$attribute.entityReferenceName
             ORDER BY
                 (SELECT 1) ASC -- some undefined order
         ),
@@ -95,13 +95,13 @@ BEGIN
         SET
             v.$attribute.statementTypeColumnName =
                 CASE
-                    WHEN [$attribute.mnemonic].$attribute.anchorReferenceName is not null
+                    WHEN [$attribute.mnemonic].$attribute.entityReferenceName is not null
                     THEN 'D' -- duplicate
 ~*/
         if(attribute.isHistorized()) {
 /*~
                     WHEN [$attribute.capsule].[rf$attribute.name](
-                        v.$attribute.anchorReferenceName,
+                        v.$attribute.entityReferenceName,
                         $(attribute.isEquivalent())? v.$attribute.equivalentColumnName,
                         $(attribute.hasChecksum())? v.$attribute.checksumColumnName, : v.$attribute.valueColumnName,
                         v.$attribute.changingColumnName
@@ -117,7 +117,7 @@ BEGIN
         LEFT JOIN
             [$attribute.capsule].[$attribute.name] [$attribute.mnemonic]
         ON
-            [$attribute.mnemonic].$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+            [$attribute.mnemonic].$attribute.entityReferenceName = v.$attribute.entityReferenceName
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? [$attribute.mnemonic].$attribute.changingColumnName = v.$attribute.changingColumnName
         $(attribute.isEquivalent())? AND
@@ -128,14 +128,14 @@ BEGIN
             v.$attribute.versionColumnName = @currentVersion;
 
         INSERT INTO [$attribute.capsule].[$attribute.name] (
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,

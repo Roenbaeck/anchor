@@ -36,7 +36,7 @@ while (anchor = schema.nextAnchor()) {
 -----------------------------------------------------------------------------------------------------------------------
 
 CREATE OR REPLACE VIEW $attribute.capsule\.l$attribute.name AS
-SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceName
+SELECT DISTINCT ON ($attribute.entityReferenceName) $attribute.entityReferenceName
      , $attribute.valueColumnName
      , $attribute.changingColumnName
      $(schema.METADATA)? , $attribute.metadataColumnName
@@ -44,7 +44,7 @@ SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceNa
      $(!attribute.isKnotted() && attribute.hasChecksum())? , $attribute.checksumColumnName
   FROM $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(equivalent) : $attribute.capsule\.$attribute.name
  ORDER 
-    BY $attribute.anchorReferenceName DESC
+    BY $attribute.entityReferenceName DESC
      , $attribute.changingColumnName DESC   
 ;
 
@@ -56,7 +56,7 @@ SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceNa
       $(attribute.isEquivalent())? , equivalent $schema.metadata.equivalentRange
       ) 
 RETURNS TABLE
-      ( $attribute.anchorReferenceName $anchor.identity
+      ( $attribute.entityReferenceName $anchor.identity
       , $attribute.valueColumnName $attributeValueColumnType
       , $attribute.changingColumnName $attribute.timeRange    
       $(schema.METADATA)? , $attribute.metadataColumnName $schema.metadata.metadataType
@@ -65,7 +65,7 @@ RETURNS TABLE
       ) 
 AS 
 '
- SELECT DISTINCT ON ($attribute.anchorReferenceName) $attribute.anchorReferenceName
+ SELECT DISTINCT ON ($attribute.entityReferenceName) $attribute.entityReferenceName
       , $attribute.valueColumnName
       , $attribute.changingColumnName
       $(schema.METADATA)? , $attribute.metadataColumnName
@@ -74,7 +74,7 @@ AS
    FROM $(attribute.isEquivalent() && !attribute.isKnotted())? $attribute.capsule\.e$attribute.name(equivalent) : $attribute.capsule\.$attribute.name
   WHERE $attribute.changingColumnName <= changingTimepoint
   ORDER 
-     BY $attribute.anchorReferenceName DESC
+     BY $attribute.entityReferenceName DESC
       , $attribute.changingColumnName DESC     
  ;
 ' 

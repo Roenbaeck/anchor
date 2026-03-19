@@ -18,7 +18,7 @@ while (anchor = schema.nextAnchor()) {
 CREATE OR REPLACE FUNCTION $attribute.capsule\.e$attribute.name (
     equivalent $schema.metadata.equivalentRange
 ) RETURNS TABLE (
-    $attribute.anchorReferenceName $anchor.identity,
+    $attribute.entityReferenceName $anchor.identity,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
     $(attribute.hasChecksum())? $attribute.checksumColumnName bytea,
     $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange,
@@ -26,7 +26,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule\.e$attribute.name (
     $attribute.valueColumnName  $attribute.dataRange
 ) AS '
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,

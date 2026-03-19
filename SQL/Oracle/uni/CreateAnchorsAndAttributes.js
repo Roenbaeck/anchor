@@ -49,15 +49,15 @@ end;
 begin -- Create table with pk column
     execute immediate '
         CREATE TABLE $attribute.name (
-            $attribute.anchorReferenceName $anchor.identity not null,
+            $attribute.entityReferenceName $anchor.identity not null,
             $attribute.valueColumnName $attribute.dataRange not null,
             $attribute.changingColumnName $attribute.timeRange not null,
             $(schema.METADATA)? ${attribute.metadataColumnName.substr(0,30)}$ $schema.metadata.metadataType not null,
             constraint ${('FK_' + attribute.name).substr(0,30)}$ foreign key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             ) references $anchor.name($anchor.identityColumnName),
             constraint ${('PK_' + attribute.name).substr(0,30)}$ primary key (
-                $attribute.anchorReferenceName,
+                $attribute.entityReferenceName,
                 $attribute.changingColumnName
             )
         ) ORGANIZATION INDEX
@@ -77,18 +77,18 @@ end;
 begin -- Create table with pk column
     execute immediate '
         CREATE TABLE $attribute.name (
-            $attribute.anchorReferenceName $anchor.identity not null,
+            $attribute.entityReferenceName $anchor.identity not null,
             $attribute.knotReferenceName $knot.identity not null,
             $attribute.changingColumnName $attribute.timeRange not null,
             $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
             constraint ${('FK1_' + attribute.name).substr(0,30)}$ foreign key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             ) references $anchor.name($anchor.identityColumnName),
             constraint ${('FK2_' + attribute.name).substr(0,30)}$ foreign key (
                 $attribute.knotReferenceName
             ) references $knot.name($knot.identityColumnName),
             constraint ${('PK_' + attribute.name).substr(0,30)}$ primary key (
-                $attribute.anchorReferenceName,
+                $attribute.entityReferenceName,
                 $attribute.changingColumnName
             )
         ) ORGANIZATION INDEX
@@ -108,17 +108,17 @@ end;
 begin -- Create table with pk column
     execute immediate '
         CREATE TABLE $attribute.name (
-            $attribute.anchorReferenceName $anchor.identity not null,
+            $attribute.entityReferenceName $anchor.identity not null,
             $attribute.knotReferenceName $knot.identity not null,
             $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
             constraint ${('FK1_' + attribute.name).substr(0,30)}$ foreign key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             ) references $anchor.name($anchor.identityColumnName),
             constraint ${('FK2_' + attribute.name).substr(0,30)}$ foreign key (
                 $attribute.knotReferenceName
             ) references $knot.name($knot.identityColumnName),
             constraint ${('PK_' + attribute.name).substr(0,30)}$ primary key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             )
         ) ORGANIZATION INDEX
     ';
@@ -136,14 +136,14 @@ end;
 begin -- Create table with pk column
     execute immediate '
         CREATE TABLE $attribute.name (
-            $attribute.anchorReferenceName $anchor.identity not null,
+            $attribute.entityReferenceName $anchor.identity not null,
             $attribute.valueColumnName $attribute.dataRange not null,
             $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
             constraint ${('FK_' + attribute.name).substr(0,30)}$ foreign key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             ) references $anchor.name($anchor.identityColumnName),
             constraint ${('PK_' + attribute.name).substr(0,30)}$ primary key (
-                $attribute.anchorReferenceName
+                $attribute.entityReferenceName
             )
         ) ORGANIZATION INDEX
     ';

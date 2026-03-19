@@ -65,7 +65,7 @@ BEGIN
                     FROM
                         $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) pre : [$attribute.capsule].[$attribute.name] pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = @id
+                        pre.$attribute.entityReferenceName = @id
                     AND
                         pre.$attribute.changingColumnName < @changed
                     ORDER BY
@@ -81,7 +81,7 @@ BEGIN
                     FROM
                         $(attribute.isEquivalent())? [$attribute.capsule].[e$attribute.name](@eq) fol : [$attribute.capsule].[$attribute.name] fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = @id
+                        fol.$attribute.entityReferenceName = @id
                     AND
                         fol.$attribute.changingColumnName > @changed
                     ORDER BY
@@ -100,7 +100,7 @@ BEGIN
     ALTER TABLE [$attribute.capsule].[$attribute.name]
     ADD CONSTRAINT [rc$attribute.name] CHECK (
         [$attribute.capsule].[rf$attribute.name] (
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $valueColumn,
             $attribute.changingColumnName

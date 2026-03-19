@@ -120,7 +120,7 @@ FROM (
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.anchorReferenceName AS $anchor.identityColumnName,
+        $attribute.entityReferenceName AS $anchor.identityColumnName,
         $attribute.changingColumnName AS [Time_of_Change],
         '$attribute.businessName' AS [Subject_of_Change]
     FROM
@@ -238,7 +238,7 @@ FROM (
             while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
     SELECT DISTINCT
-        $attribute.anchorReferenceName AS $anchor.identityColumnName,
+        $attribute.entityReferenceName AS $anchor.identityColumnName,
         $attribute.changingColumnName AS [Time_of_Change],
         '$attribute.businessName' AS [Subject_of_Change]
     FROM

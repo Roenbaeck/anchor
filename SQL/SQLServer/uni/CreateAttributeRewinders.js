@@ -26,7 +26,7 @@ BEGIN
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
