@@ -22,7 +22,7 @@ BEGIN
         FROM
             [$attribute.capsule].[$attribute.name]
         WHERE
-            $attribute.anchorReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.anchorReferenceName)
+            $attribute.entityReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.entityReferenceName)
         FOR XML PATH('')
     ), '][', '], [');
 
@@ -32,7 +32,7 @@ BEGIN
     FROM
         [$attribute.capsule].[$attribute.name]
     WHERE
-        $attribute.anchorReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.anchorReferenceName)
+        $attribute.entityReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.entityReferenceName)
     AND
         $attribute.valueColumnName is not null;
 
@@ -47,23 +47,23 @@ BEGIN
         SET @sql = '
             SELECT
                 b.$attribute.positorColumnName,
-                x.$attribute.anchorReferenceName,
+                x.$attribute.entityReferenceName,
                 x.$attribute.positingColumnName,
                 b.$attribute.assertionColumnName,
                 ' + @pivot + '
             FROM (
                 SELECT DISTINCT
-                    $attribute.anchorReferenceName,
+                    $attribute.entityReferenceName,
                     $attribute.positingColumnName
                 FROM
                     [$attribute.capsule].[$attribute.name]
                 WHERE
-                    $attribute.anchorReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.anchorReferenceName)
+                    $attribute.entityReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.entityReferenceName)
             ) x
             LEFT JOIN (
                 SELECT
                     $attribute.positorColumnName,
-                    $attribute.anchorReferenceName,
+                    $attribute.entityReferenceName,
                     $attribute.positingColumnName,
                     $attribute.assertionColumnName,
                     ' + @pivot + '
@@ -73,16 +73,16 @@ BEGIN
                     MIN($attribute.valueColumnName) FOR $attribute.changingColumnName IN (' + @pivot + ')
                 ) p
                 WHERE
-                    $attribute.anchorReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.anchorReferenceName)
+                    $attribute.entityReferenceName = ISNULL(@$anchor.identityColumnName, $attribute.entityReferenceName)
                 AND
                     $attribute.positorColumnName = ' + @positor + '
             ) b
             ON
-                b.$attribute.anchorReferenceName = x.$attribute.anchorReferenceName
+                b.$attribute.entityReferenceName = x.$attribute.entityReferenceName
             AND
                 b.$attribute.positingColumnName = x.$attribute.positingColumnName
             ORDER BY
-                $attribute.anchorReferenceName,
+                $attribute.entityReferenceName,
                 $attribute.positingColumnName,
                 $attribute.assertionColumnName
         ';
@@ -96,4 +96,5 @@ GO
 ~*/
     }
 }
+
 

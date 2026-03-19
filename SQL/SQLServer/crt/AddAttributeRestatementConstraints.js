@@ -60,7 +60,7 @@ BEGIN
     DECLARE @value $valueType;
     DECLARE @changed $attribute.timeRange;
     SELECT
-        @id = $attribute.anchorReferenceName,
+        @id = $attribute.entityReferenceName,
         @value = $valueColumn,
         @changed = $attribute.changingColumnName
     FROM
@@ -122,4 +122,5 @@ GO
         }
     }
 }
+
 

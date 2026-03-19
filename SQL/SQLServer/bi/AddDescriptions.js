@@ -64,6 +64,28 @@ GO
         }
     }
 }
+
+// Nexus table descriptions
+var nexus;
+while (schema.nextNexus && (nexus = schema.nextNexus())) {
+    if(nexus.description && nexus.description._description && nexus.description._description.length > 0) {
+/*~
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$nexus.capsule',
+@level1type = N'Table',  @level1name = '$nexus.name';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$nexus.description._description',
+@level0type = N'Schema', @level0name = '$nexus.capsule',
+@level1type = N'Table',  @level1name = '$nexus.name';
+GO
+~*/
+    }
+}
+
 var tie;
 while (tie = schema.nextTie()) {
     if(tie.description &&

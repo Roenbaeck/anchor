@@ -1,9 +1,9 @@
 /*~
--- ANCHOR TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
+-- NEXUS TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
 --
 -- These table valued functions simplify temporal querying by providing a temporal
--- perspective of each anchor. There are five types of perspectives: time traveling, latest,
--- point-in-time, difference, and now. They also denormalize the anchor, its attributes,
+-- perspective of each nexus. There are five types of perspectives: time traveling, latest,
+-- point-in-time, difference, and now. They also denormalize the nexus, its attributes,
 -- and referenced knots from sixth to third normal form.
 --
 -- The time traveling perspective shows information as it was or will be based on a number
@@ -12,7 +12,7 @@
 -- @changingTimepoint   the point in changing time to travel to (defaults to End of Time)
 -- @positingTimepoint   the point in positing time to travel to (defaults to End of Time)
 --
--- The latest perspective shows the latest available (changing & positing) information for each anchor.
+-- The latest perspective shows the latest available (changing & positing) information for each nexus.
 -- The now perspective shows the information as it is right now, with latest positing time.
 -- The point-in-time perspective lets you travel through the information to the given timepoint,
 -- with latest positing time and the given point in changing time.
@@ -27,38 +27,50 @@
 -- @selection           a list of mnemonics for tracked attributes, ie 'MNE MON ICS', or null for all
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
+var nexus, role, knot, attribute;
+while (schema.nextNexus && (nexus = schema.nextNexus())) {
 /*~
 -- Drop perspectives --------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.d$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[d$anchor.name];
-IF Object_ID('$anchor.capsule$.n$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[n$anchor.name];
-IF Object_ID('$anchor.capsule$.p$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[p$anchor.name];
-IF Object_ID('$anchor.capsule$.l$anchor.name', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule].[l$anchor.name];
-IF Object_ID('$anchor.capsule$.t$anchor.name', 'IF') IS NOT NULL
-DROP FUNCTION [$anchor.capsule].[t$anchor.name];
+IF Object_ID('$nexus.capsule$.d$nexus.name', 'IF') IS NOT NULL
+DROP FUNCTION [$nexus.capsule].[d$nexus.name];
+IF Object_ID('$nexus.capsule$.n$nexus.name', 'V') IS NOT NULL
+DROP VIEW [$nexus.capsule].[n$nexus.name];
+IF Object_ID('$nexus.capsule$.p$nexus.name', 'IF') IS NOT NULL
+DROP FUNCTION [$nexus.capsule].[p$nexus.name];
+IF Object_ID('$nexus.capsule$.l$nexus.name', 'V') IS NOT NULL
+DROP VIEW [$nexus.capsule].[l$nexus.name];
+IF Object_ID('$nexus.capsule$.t$nexus.name', 'IF') IS NOT NULL
+DROP FUNCTION [$nexus.capsule].[t$nexus.name];
 GO
 ~*/
-    if(anchor.hasMoreAttributes()) { // only do perspectives if there are attributes
+    if(nexus.hasMoreAttributes && nexus.hasMoreAttributes()) { // only do perspectives if there are attributes
 /*~
 -- Time traveling perspective -----------------------------------------------------------------------------------------
--- t$anchor.name viewed as given by the input parameters
+-- t$nexus.name viewed as given by the input parameters
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[t$anchor.name] (
+CREATE FUNCTION [$nexus.capsule].[t$nexus.name] (
     @changingTimepoint $schema.metadata.chronon = $schema.EOT,
     @positingTimepoint $schema.metadata.positingRange = $schema.EOT
 )
 RETURNS TABLE WITH SCHEMABINDING AS RETURN
 SELECT
-    [$anchor.mnemonic].$anchor.identityColumnName,
-    $(schema.METADATA)? [$anchor.mnemonic].$anchor.metadataColumnName,
+    [$nexus.mnemonic].$nexus.identityColumnName,
+    $(schema.METADATA)? [$nexus.mnemonic].$nexus.metadataColumnName,
 ~*/
-        var knot, attribute;
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? [$role.name].$knot.checksumColumnName AS $role.knotChecksumColumnName,
+    [$role.name].$knot.valueColumnName AS $role.knotValueColumnName,
+    $(schema.METADATA)? [$role.name].$knot.metadataColumnName AS $role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreAttributes())?,
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
     $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.entityReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
@@ -67,7 +79,7 @@ SELECT
     [$attribute.mnemonic].$attribute.positingColumnName,
     [$attribute.mnemonic].$attribute.reliabilityColumnName,
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     $(knot.hasChecksum())? [$attribute.mnemonic].$knot.checksumColumnName AS $attribute.knotChecksumColumnName,
@@ -78,14 +90,23 @@ SELECT
             }
 /*~
     $(attribute.hasChecksum())? [$attribute.mnemonic].$attribute.checksumColumnName,
-    [$attribute.mnemonic].$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+    [$attribute.mnemonic].$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
 FROM
-    [$anchor.capsule].[$anchor.name] [$anchor.mnemonic]
+    [$nexus.capsule].[$nexus.name] [$nexus.mnemonic]
 ~*/
-        while (attribute = anchor.nextAttribute()) {
+        while (role = nexus.nextKnotRole && nexus.nextKnotRole()) {
+            knot = role.knot;
+/*~
+LEFT JOIN
+    [$knot.capsule].[$knot.name] [$role.name]
+ON
+    [$role.name].$knot.identityColumnName = [$nexus.mnemonic].$role.columnName
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
 OUTER APPLY (
     SELECT TOP 1
@@ -96,7 +117,7 @@ OUTER APPLY (
         [r$attribute.mnemonic].$attribute.positingColumnName,
         [r$attribute.mnemonic].$attribute.reliabilityColumnName,
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
         $(knot.hasChecksum())? [k$attribute.mnemonic].$knot.checksumColumnName,
@@ -114,7 +135,7 @@ OUTER APPLY (
             @positingTimepoint
         ) [r$attribute.mnemonic]
 ~*/
-            if(attribute.isKnotted()) {
+            if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
     JOIN
@@ -125,14 +146,14 @@ OUTER APPLY (
             }
 /*~
     WHERE
-		[r$attribute.mnemonic].$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+		[r$attribute.mnemonic].$attribute.entityReferenceName = [$nexus.mnemonic].$nexus.identityColumnName
 	AND 
 		[r$attribute.mnemonic].$attribute.reliabilityColumnName = 1
 	ORDER BY
         $(attribute.isHistorized())? [r$attribute.mnemonic].$attribute.changingColumnName DESC,
         [r$attribute.mnemonic].$attribute.positingColumnName DESC
 ) [$attribute.mnemonic]~*/
-            if(!anchor.hasMoreAttributes()) {
+            if(!nexus.hasMoreAttributes()) {
                 /*~;~*/
             }
         }
@@ -140,56 +161,56 @@ OUTER APPLY (
 GO
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
--- l$anchor.name viewed by the latest available information (may include future versions)
+-- l$nexus.name viewed by the latest available information (may include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[l$anchor.name]
+CREATE VIEW [$nexus.capsule].[l$nexus.name]
 AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    [$anchor.mnemonic].*
+    [$nexus.mnemonic].*
 FROM
-    [$anchor.capsule].[t$anchor.name] (
+    [$nexus.capsule].t$nexus.name (
         DEFAULT,
         DEFAULT
-    ) [$anchor.mnemonic];
+    ) [$nexus.mnemonic];
 GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
--- p$anchor.name viewed as it was on the given timepoint
+-- p$nexus.name viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[p$anchor.name] (
+CREATE FUNCTION [$nexus.capsule].p$nexus.name (
     @changingTimepoint $schema.metadata.chronon
 )
 RETURNS TABLE AS RETURN
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    [$anchor.mnemonic].*
+    [$nexus.mnemonic].*
 FROM
-    [$anchor.capsule].[t$anchor.name] (
+    [$nexus.capsule].t$nexus.name (
         @changingTimepoint,
         DEFAULT
-    ) [$anchor.mnemonic];
+    ) [$nexus.mnemonic];
 GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
--- n$anchor.name viewed as it currently is (cannot include future versions)
+-- n$nexus.name viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$anchor.capsule].[n$anchor.name]
+CREATE VIEW [$nexus.capsule].n$nexus.name
 AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    [$anchor.mnemonic].*
+    [$nexus.mnemonic].*
 FROM
-    [$anchor.capsule].[t$anchor.name] (
+    [$nexus.capsule].t$nexus.name (
         $schema.metadata.now,
         DEFAULT
-    ) [$anchor.mnemonic];
+    ) [$nexus.mnemonic];
 GO
 ~*/
-        if(anchor.hasMoreHistorizedAttributes()) {
+        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
 /*~
 -- Difference perspective ---------------------------------------------------------------------------------------------
--- d$anchor.name showing all differences between the given timepoints and optionally for a subset of attributes
+-- d$nexus.name showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
+CREATE FUNCTION [$nexus.capsule].d$nexus.name (
     @intervalStart $schema.metadata.chronon,
     @intervalEnd $schema.metadata.chronon,
     @selection varchar(max) = null
@@ -197,33 +218,50 @@ CREATE FUNCTION [$anchor.capsule].[d$anchor.name] (
 RETURNS TABLE AS RETURN
 SELECT
     timepoints.inspectedTimepoint,
-    [$anchor.mnemonic].*
-FROM (
-~*/
-            while (attribute = anchor.nextHistorizedAttribute()) {
-/*~
-    SELECT DISTINCT
-        $attribute.entityReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        [$attribute.capsule].[$attribute.name]
-    WHERE
-        (@selection is null OR @selection like '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN @intervalStart AND @intervalEnd
-    $(anchor.hasMoreHistorizedAttributes())? UNION
-~*/
-            }
-/*~
-) timepoints
+    [$nexus.mnemonic].*
+FROM
+    (
+        SELECT DISTINCT
+            timepoint AS inspectedTimepoint
+        FROM
+            [$schema.metadata.encapsulation].[_AnchorTimepoints](
+                @intervalStart,
+                @intervalEnd
+            )
+    ) timepoints
 CROSS APPLY
-    [$anchor.capsule].[t$anchor.name] (
-        timepoints.inspectedTimepoint,
-        DEFAULT
-    ) [$anchor.mnemonic]
- WHERE
-    [$anchor.mnemonic].$anchor.identityColumnName = timepoints.$anchor.identityColumnName;
+    [$nexus.capsule].p$nexus.name(timepoints.inspectedTimepoint) [$nexus.mnemonic]
+WHERE
+    @selection is null
+OR
+    EXISTS (
+        SELECT
+            1
+        FROM
+            [$schema.metadata.encapsulation].[p$schema.metadata.positorSuffix]
+        CROSS APPLY
+            [$schema.metadata.encapsulation].[_SplitMnemonic](@selection)
+        JOIN
+            [$schema.metadata.encapsulation].[_AnchorAttributes]
+        ON
+            mnemonic = [attribute]
+        AND
+            [anchor] = '$nexus.name'
+        JOIN
+            [$schema.metadata.encapsulation].[p$schema.metadata.positorSuffix] positors
+        ON
+            positors.$schema.metadata.positorSuffix = 0
+        CROSS APPLY
+            [$schema.metadata.encapsulation].[_AttributeTimepoints](
+                [capsule],
+                [attribute],
+                positors.$schema.metadata.positorSuffix,
+                @intervalStart,
+                @intervalEnd
+            )
+        WHERE
+            timepoint = timepoints.inspectedTimepoint
+    );
 GO
 ~*/
         }

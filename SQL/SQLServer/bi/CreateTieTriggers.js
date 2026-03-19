@@ -45,7 +45,7 @@ BEGIN
 ~*/
         }
         else {
-            anchor = role.anchor;
+            anchor = role.anchor || role.nexus;
 /*~
         $role.columnName $anchor.identity not null,
 ~*/
@@ -209,7 +209,7 @@ BEGIN
 ~*/
         }
         else {
-            anchor = role.anchor;
+            anchor = role.anchor || role.nexus;
 /*~
         $role.columnName $anchor.identity not null$(tie.hasMoreRoles())?,
 ~*/
@@ -362,7 +362,7 @@ BEGIN
 ~*/
         }
         else {
-            anchor = role.anchor;
+            anchor = role.anchor || role.nexus;
 /*~
         $role.columnName $anchor.identity not null,
 ~*/
@@ -500,7 +500,7 @@ BEGIN
 ~*/
         }
         else {
-            anchor = role.anchor;
+            anchor = role.anchor || role.nexus;
 /*~
         $role.columnName $anchor.identity not null$(tie.hasMoreRoles())?,
 ~*/
