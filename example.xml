@@ -1,4 +1,5 @@
 <schema>
+    <metadata businessViews="true"/>
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
         <metadata equivalent="true"/>
     </knot>
@@ -26,17 +27,24 @@
             <key stop="3" route="1st" of="EV" branch="2"/>
             <metadata checksum="true"/>
         </attribute>
-        <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL"/>
-        <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL"/>
+        <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL">
+            <metadata restatable="false" idempotent="true"/>
+        </attribute>
+        <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL">
+            <metadata deletable="true"/>
+        </attribute>
         <identifier route="1st"/>
         <identifier route="2nd"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+            <metadata restatable="false" idempotent="false"/>
             <key stop="1" route="1st" of="AC"/>
         </attribute>
         <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
-        <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV"/>
+        <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV">
+            <metadata restatable="true" idempotent="false"/>
+        </attribute>
         <identifier route="1st"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
@@ -44,6 +52,9 @@
             <metadata equivalent="true"/>
             <key stop="1" route="1st" of="PR" branch="1"/>
             <key stop="5" route="1st" of="EV" branch="3"/>
+        </attribute>
+        <attribute mnemonic="LEN" descriptor="Length" timeRange="date" dataRange="time">
+            <metadata restatable="true" idempotent="true"/>
         </attribute>
         <identifier route="1st"/>
     </anchor>
