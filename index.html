@@ -6037,8 +6037,21 @@
             // THEME MANAGEMENT -----------------------------------------------
             currentTheme: THEME,
             applyTheme: function(theme) {
-                Settings.currentTheme = theme;
+                Actions.currentTheme = theme;
                 document.body.classList.toggle('dark', theme === 'dark');
+                // Force a full SVG redraw to ensure external svg.css styles are recognized
+                // Wait for DrawingEngine and layers to be available before redrawing (avoids load-time TypeError)
+                if(window.DrawingEngine && typeof DrawingEngine.draw === 'function' && DrawingEngine.initialized) {
+                    var i = Model.components.length;
+                    while(i--) {
+                        var component = Model.components[i];
+                        if(component.node.visible) {
+                            component.draw(component.svg);
+                            if(component.nav) component.draw(component.nav);
+                        }
+                    }
+                    DrawingEngine.draw();
+                }
                 // Update theme toggle menu item text/title if present
                 var item = document.getElementById('themeToggleItem');
                 if(item) {
@@ -6053,7 +6066,7 @@
                 }
             },
             toggleTheme: function() {
-                this.applyTheme(Settings.currentTheme === 'dark' ? 'light' : 'dark');
+                this.applyTheme(Actions.currentTheme === 'dark' ? 'light' : 'dark');
             },
             initTheme: function(theme) {
                 if(theme === 'dark') this.applyTheme('dark');
@@ -7293,19 +7306,10 @@
             SVGLayer.addLayer('debug');
             SVGLayer.addLayer('keys');
             SVGLayer.addLayer('edges');
+            SVGLayer.edges.setAttributeNS(null, 'class', 'edges');
             SVGLayer.addLayer('nodes');
+            SVGLayer.nodes.setAttributeNS(null, 'class', 'nodes');
             SVGLayer.addLayer('names');
-            // SVGLayer.hide('names');
-            SVGLayer.hide('debug');
-            SVGLayer.hide('debugPartitions');
-
-            // edges base styling now defined in svg.css (#graph g#edges ...)
-            SVGLayer.debug.style.stroke = '#fcc';
-            SVGLayer.debug.style.strokeWidth = '7px';
-            SVGLayer.debug.style.strokeLinecap = 'round';
-            // Partition debug visualization styling moved to CSS; only dynamic strokeWidth kept inline.
-            SVGLayer.debugPartitions.setAttribute('class','partitions');
-            SVGLayer.debugPartitions.style.strokeWidth = LayoutEngine.fuzz;
             SVGLayer.names.setAttributeNS(null, 'class', 'label');
 
             // set up "global" event handlers
@@ -7319,7 +7323,9 @@
             // add layers to the NAV
             NAVLayer = new Layer(NAV);
             NAVLayer.addLayer('edges');
+            NAVLayer.edges.setAttributeNS(null, 'class', 'edges');
             NAVLayer.addLayer('nodes');
+            NAVLayer.nodes.setAttributeNS(null, 'class', 'nodes');
             NAVLayer.addLayer('viewport');
 
             // nav edges base styling now defined in svg.css (#minigraph g#edges ...)
@@ -7394,8 +7400,8 @@
                 window.localStorage.setItem("modelKeywords", Model.keywords);
             if(Model.description)
                 window.localStorage.setItem("modelDescription", Model.description);
-            if(Settings.currentTheme)     
-                window.localStorage.setItem("theme", Settings.currentTheme);    
+            if(Actions.currentTheme)     
+                window.localStorage.setItem("theme", Actions.currentTheme);    
             Settings.storeSettings(window.localStorage);
             DrawingEngine.storeSettings(window.localStorage);
             if(popup)
