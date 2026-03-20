@@ -54,7 +54,7 @@ BEGIN
 
     DECLARE @$attribute.name TABLE (
         $attribute.identityColumnName $attribute.identity not null,
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -62,7 +62,7 @@ BEGIN
         $(attribute.knotRange)? $attribute.valueColumnName $attribute.knot.identity not null, : $attribute.valueColumnName $attribute.dataRange not null,
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         primary key (
-            $attribute.anchorReferenceName asc, 
+            $attribute.entityReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc,
             $attribute.positingColumnName desc
         ),
@@ -74,7 +74,7 @@ BEGIN
 
     INSERT INTO @$attribute.name (
         $attribute.identityColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -84,7 +84,7 @@ BEGIN
     )
     SELECT
         i.$attribute.identityColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
         i.$attribute.positingColumnName,
@@ -100,7 +100,7 @@ BEGIN
 
     INSERT INTO @$attribute.name (
         $attribute.identityColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -110,7 +110,7 @@ BEGIN
     )
     SELECT
         p.$attribute.identityColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(schema.METADATA)? p.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
         p.$attribute.positingColumnName,
@@ -118,11 +118,11 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName
     FROM 
-        (SELECT DISTINCT $attribute.anchorReferenceName FROM @$attribute.name) i
+        (SELECT DISTINCT $attribute.entityReferenceName FROM @$attribute.name) i
     JOIN
         [$attribute.capsule].[$attribute.name] p
     ON 
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
     LEFT JOIN 
         @$attribute.name x
     ON
@@ -173,13 +173,13 @@ BEGIN
             @$attribute.name a
         CROSS APPLY (
             SELECT TOP 1
-                h.$attribute.anchorReferenceName,
+                h.$attribute.entityReferenceName,
                 $(attribute.isHistorized())? h.$attribute.changingColumnName,
                 $(attribute.hasChecksum())? h.$attribute.checksumColumnName : h.$attribute.valueColumnName
             FROM 
                 @$attribute.name h
             WHERE
-                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                h.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? h.$attribute.changingColumnName < a.$attribute.changingColumnName
             ORDER BY 
@@ -206,4 +206,5 @@ GO
         }
     }
 }
+
 

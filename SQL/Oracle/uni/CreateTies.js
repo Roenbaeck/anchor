@@ -35,9 +35,9 @@ while (tie = schema.nextTie()) {
 /*~
 -- $tie.name table (having $tie.roles.length roles)
 -----------------------------------------------------------------------------------------------------------------------
-begin -- Create table with pk column
-    execute immediate '
-        CREATE TABLE $tie.name (
+BEGIN
+    EXECUTE IMMEDIATE '
+        CREATE TABLE ${tie.capsule}$.$tie.name (
 ~*/
     var role;
     while (role = tie.nextRole()) {
@@ -46,8 +46,8 @@ begin -- Create table with pk column
 ~*/
     }
 /*~
-            $(tie.timeRange)? ${tie.changingColumnName.substr(0,30)}$ $tie.timeRange not null,
-            $(schema.METADATA)? ${tie.metadataColumnName.substr(0,30)}$ $schema.metadata.metadataType not null,
+            $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
+            $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
 ~*/
     var i = 0
     while (role = tie.nextRole()) {
@@ -55,7 +55,7 @@ begin -- Create table with pk column
 /*~
             constraint ${('FK' + i + '_' + tie.name + role.name).substr(0,30)}$ foreign key (
                 $role.columnName
-            ) references $(role.entity)? $role.entity.name($role.entity.identityColumnName), : $role.knot.name($role.knot.identityColumnName),
+            ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : ${role.knot.capsule}$.$role.knot.name($role.knot.identityColumnName),
  ~*/
     }
     // one-to-one and we need additional constraints
@@ -67,7 +67,7 @@ begin -- Create table with pk column
 /*~
             constraint ${('UQ' + i + '_' + tie.name + role.name).substr(0,30)}$ unique (
                 $role.columnName,
-                ${tie.changingColumnName.substr(0,30)}$
+                $tie.changingColumnName
             ),
 ~*/
             }
@@ -103,16 +103,15 @@ begin -- Create table with pk column
     }
     if(tie.isHistorized()) {
 /*~
-                ${tie.changingColumnName.substr(0,30)}$
+                $tie.changingColumnName
 ~*/
     }
 /*~
             )
-        ) ORGANIZATION INDEX
-    ';
-exception when others then 
-    if sqlcode = -955 then NULL; else RAISE; end if;
-end;
+        )';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE = -955 THEN NULL; ELSE RAISE; END IF;
+END;
 /
 ~*/
 }

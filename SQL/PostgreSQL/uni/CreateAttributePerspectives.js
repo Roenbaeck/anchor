@@ -17,10 +17,9 @@
 -- @equivalent          the equivalent for which to retrieve data
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var attribute;
-    while (attribute = anchor.nextAttribute()) {
+var attribute, parent, knot;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;
         if(attribute.isHistorized()) {
             var attributeValueColumnType;
         
@@ -56,7 +55,7 @@ SELECT DISTINCT ON ($attribute.entityReferenceName) $attribute.entityReferenceNa
       $(attribute.isEquivalent())? , equivalent $schema.metadata.equivalentRange
       ) 
 RETURNS TABLE
-      ( $attribute.entityReferenceName $anchor.identity
+    ( $attribute.entityReferenceName $parent.identity
       , $attribute.valueColumnName $attributeValueColumnType
       , $attribute.changingColumnName $attribute.timeRange    
       $(schema.METADATA)? , $attribute.metadataColumnName $schema.metadata.metadataType
@@ -90,5 +89,4 @@ SELECT *
 ;
 ~*/
         }
-    }
 }

@@ -64,7 +64,7 @@ SELECT
         var knot, attribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.anchorReferenceName,
+    $(schema.IMPROVED)? [$attribute.mnemonic].$attribute.entityReferenceName,
     $(schema.METADATA)? [$attribute.mnemonic].$attribute.metadataColumnName,
     [$attribute.mnemonic].$attribute.identityColumnName,
     $(attribute.timeRange)? [$attribute.mnemonic].$attribute.changingColumnName,
@@ -95,7 +95,7 @@ FROM
 LEFT JOIN
     [$attribute.capsule].[r$attribute.name](
         @positor,
-        $(attribute.isHistorized())? @changingTimepoint,
+        $(attribute.isHistorized())? @changingTimepoint::$attribute.timeRange,
         @positingTimepoint
     ) [$attribute.mnemonic]
 ON
@@ -105,11 +105,11 @@ ON
         FROM
             [$attribute.capsule].[r$attribute.name](
                 @positor,
-                $(attribute.isHistorized())? @changingTimepoint,
+                $(attribute.isHistorized())? @changingTimepoint::$attribute.timeRange,
                 @positingTimepoint
             ) sub
         WHERE
-            sub.$attribute.anchorReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
+            sub.$attribute.entityReferenceName = [$anchor.mnemonic].$anchor.identityColumnName
         AND
             sub.$attribute.reliableColumnName = @reliable
         ORDER BY
@@ -213,7 +213,7 @@ JOIN (
 /*~
     SELECT DISTINCT
         $attribute.positorColumnName AS positor,
-        $attribute.anchorReferenceName AS $anchor.identityColumnName,
+        $attribute.entityReferenceName AS $anchor.identityColumnName,
         $attribute.changingColumnName AS inspectedTimepoint,
         '$attribute.mnemonic' AS mnemonic
     FROM

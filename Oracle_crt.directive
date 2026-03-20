@@ -1,2 +1,18 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Oracle
-SQL/Unsupported.js
+#
+# Native Oracle CRT generation (core + rewinders + perspectives)
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Oracle/NamingConvention.js
+SQL/Oracle/crt/CreatePositorAndDefault.js
+SQL/Oracle/crt/CreateKnots.js
+SQL/Oracle/crt/CreateAnchors.js
+SQL/Oracle/crt/CreateNexuses.js
+SQL/Oracle/crt/CreateAttributes.js
+SQL/Oracle/crt/CreateAttributeRewinders.js
+SQL/Oracle/crt/CreateTies.js
+SQL/Oracle/crt/CreateTieRewinders.js
+SQL/Oracle/crt/CreateAnchorPerspectives.js
+SQL/Oracle/crt/CreateNexusPerspectives.js
+SQL/Oracle/crt/CreateTiePerspectives.js
+SQL/Oracle/uni/AddDescriptions.js

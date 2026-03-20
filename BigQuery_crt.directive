@@ -1,0 +1,30 @@
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in BigQuery
+#
+# Initial native BigQuery CRT generation (core + rewinders + perspectives)
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/BigQuery/NamingConvention.js
+SQL/BigQuery/crt/CreatePositorAndDefault.js
+SQL/BigQuery/crt/CreateKnots.js
+SQL/BigQuery/crt/CreateAnchors.js
+SQL/BigQuery/crt/CreateNexuses.js
+SQL/BigQuery/crt/CreateAttributes.js
+SQL/BigQuery/crt/CreateAttributeRewinders.js
+SQL/BigQuery/crt/CreateTies.js
+SQL/BigQuery/crt/CreateTieRewinders.js
+# to be ported next in native CRT form
+#SQL/BigQuery/crt/AddAttributeRestatementConstraints.js
+#SQL/BigQuery/crt/CreateKeyGenerators.js
+#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
+SQL/BigQuery/crt/CreateAnchorPerspectives.js
+SQL/BigQuery/crt/CreateNexusPerspectives.js
+#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
+#SQL/BigQuery/crt/CreateAttributeTriggers.js
+#SQL/BigQuery/crt/CreateAnchorTriggers.js
+#SQL/BigQuery/crt/AddTieRestatementConstraints.js
+#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
+SQL/BigQuery/crt/CreateTiePerspectives.js
+#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
+#SQL/BigQuery/crt/CreateTieTriggers.js
+#SQL/BigQuery/CreateSchemaTracking.js
+SQL/BigQuery/uni/AddDescriptions.js

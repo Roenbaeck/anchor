@@ -49,7 +49,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? $attribute.anchorReferenceName $anchor.identity null,
+        $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange null,
         $attribute.positorColumnName $schema.metadata.positorRange null,
@@ -80,7 +80,7 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
+        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName), a.$anchor.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
         $(attribute.isHistorized())? ISNULL(i.$attribute.changingColumnName, @now),
         ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
@@ -114,7 +114,7 @@ BEGIN
  ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? $attribute.anchorReferenceName,
+            $(schema.IMPROVED)? $attribute.entityReferenceName,
             $(schema.METADATA)? $attribute.metadataColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.positorColumnName,
@@ -149,7 +149,7 @@ BEGIN
 /*~
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $attribute.valueColumnName,
         $(attribute.timeRange)? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -158,7 +158,7 @@ BEGIN
     )
     SELECT
         $(schema.METADATA)? i.$attribute.metadataColumnName,
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(attribute.isKnotted())? ISNULL(i.$attribute.valueColumnName, [k$knot.mnemonic].$knot.identityColumnName), : i.$attribute.valueColumnName,
         $(attribute.timeRange)? i.$attribute.changingColumnName,
         i.$attribute.positingColumnName,
@@ -208,8 +208,8 @@ BEGIN
 /*~
     IF(UPDATE($attribute.identityColumnName))
         RAISERROR('The identity column $attribute.identityColumnName is not updatable.', 16, 1);
-    IF(UPDATE($attribute.anchorReferenceName))
-        RAISERROR('The foreign key column $attribute.anchorReferenceName is not updatable.', 16, 1);
+    IF(UPDATE($attribute.entityReferenceName))
+        RAISERROR('The foreign key column $attribute.entityReferenceName is not updatable.', 16, 1);
 ~*/
 			if(attribute.isKnotted()) {
 				knot = attribute.knot;
@@ -218,7 +218,7 @@ BEGIN
     BEGIN
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $attribute.valueColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.positingColumnName,
@@ -227,7 +227,7 @@ BEGIN
         )
         SELECT
             $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
-            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
+            ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName),
             CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END,
 ~*/
                 if(attribute.isHistorized()) {
@@ -271,7 +271,7 @@ BEGIN
     BEGIN
         INSERT INTO [$attribute.capsule].[$attribute.name] (
             $(schema.METADATA)? $attribute.metadataColumnName,
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $attribute.valueColumnName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.positingColumnName,
@@ -280,7 +280,7 @@ BEGIN
         )
         SELECT
             $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$anchor.metadataColumnName),
-            ISNULL(i.$attribute.anchorReferenceName, i.$anchor.identityColumnName),
+            ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName),
             i.$attribute.valueColumnName,
 ~*/
                 if(attribute.isHistorized()) {

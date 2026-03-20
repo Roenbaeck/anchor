@@ -1,0 +1,33 @@
+# This is the processing directive for bi-temporal Anchor Modeling in Vertica
+#
+# Native Vertica BI generation (core + rewinders + perspectives)
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/Vertica/NamingConvention.js
+SQL/Vertica/bi/CreateKnots.js
+SQL/Vertica/bi/CreateAnchors.js
+SQL/Vertica/bi/CreateNexuses.js
+SQL/Vertica/bi/CreateAttributes.js
+#SQL/Vertica/bi/CreateAttributeAssembledViews.js
+SQL/Vertica/bi/CreateAttributeRewinders.js
+#SQL/Vertica/bi/AddAttributeRestatementConstraints.js
+#SQL/Vertica/biz/DropAnchorBusinessPerspectives.js
+SQL/Vertica/bi/CreateAnchorPerspectives.js
+#SQL/Vertica/biz/CreateAnchorBusinessPerspectives.js
+#SQL/Vertica/biz/DropNexusBusinessPerspectives.js
+SQL/Vertica/bi/CreateNexusPerspectives.js
+#SQL/Vertica/biz/CreateNexusBusinessPerspectives.js
+#SQL/Vertica/bi/CreateKeyGenerators.js
+#SQL/Vertica/bi/CreateAttributeTriggers.js
+#SQL/Vertica/bi/CreateAnchorTriggers.js
+#SQL/Vertica/bi/CreateNexusTriggers.js
+SQL/Vertica/bi/CreateTies.js
+#SQL/Vertica/bi/CreateTieAssembledViews.js
+#SQL/Vertica/bi/AddTieRestatementConstraints.js
+SQL/Vertica/bi/CreateTieRewinders.js
+#SQL/Vertica/biz/DropTieBusinessPerspectives.js
+SQL/Vertica/bi/CreateTiePerspectives.js
+#SQL/Vertica/biz/CreateTieBusinessPerspectives.js
+#SQL/Vertica/bi/CreateTieTriggers.js
+#SQL/Vertica/CreateSchemaTracking.js
+#SQL/Vertica/bi/AddDescriptions.js

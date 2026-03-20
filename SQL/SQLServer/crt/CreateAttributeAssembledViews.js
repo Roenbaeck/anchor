@@ -23,7 +23,7 @@ BEGIN
     SELECT
         $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
         $(attribute.timeRange)? p.$attribute.changingColumnName,
@@ -47,7 +47,7 @@ BEGIN
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name]
     ON [$attribute.capsule].[$attribute.name] (
         $(schema.DECISIVENESS)? $attribute.assertionColumnName desc, : $attribute.identityColumnName asc,
-        $(schema.DECISIVENESS)? $attribute.anchorReferenceName asc,
+        $(schema.DECISIVENESS)? $attribute.entityReferenceName asc,
         $(attribute.timeRange && schema.DECISIVENESS)? $attribute.changingColumnName desc,
         $attribute.positingColumnName desc,
         $attribute.positorColumnName asc

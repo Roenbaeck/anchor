@@ -13,10 +13,10 @@
 -- @positingTimepoint   the point in positing time to rewind to (defaults to End of Time, no rewind)
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var knot, attribute;
-    while (attribute = anchor.nextAttribute()) {
+var attribute, parent;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;
+    var knot;
         if(attribute.isHistorized()) {
 /*~
 -- Attribute posit rewinder -------------------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ BEGIN
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
         $attribute.identityColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
@@ -54,7 +54,7 @@ BEGIN
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
     SELECT
         $attribute.identityColumnName,
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName,
         $attribute.valueColumnName,
         $attribute.changingColumnName
@@ -108,7 +108,7 @@ BEGIN
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
         a.$attribute.reliableColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
         p.$attribute.changingColumnName
@@ -155,7 +155,7 @@ BEGIN
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
         a.$attribute.reliableColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
         p.$attribute.changingColumnName
@@ -190,7 +190,7 @@ IF Object_ID('$attribute.capsule$.pre$attribute.name','FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[pre$attribute.name] (
-        @id $anchor.identity,
+        @id $parent.identity,
         @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
@@ -207,7 +207,7 @@ BEGIN
                 @positingTimepoint
             ) pre
         WHERE
-            pre.$attribute.anchorReferenceName = @id
+            pre.$attribute.entityReferenceName = @id
         AND
             pre.$attribute.changingColumnName < @changingTimepoint
         AND
@@ -227,7 +227,7 @@ IF Object_ID('$attribute.capsule$.fol$attribute.name','FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[fol$attribute.name] (
-        @id $anchor.identity,
+        @id $parent.identity,
         @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
@@ -244,7 +244,7 @@ BEGIN
                 @positingTimepoint
             ) fol
         WHERE
-            fol.$attribute.anchorReferenceName = @id
+            fol.$attribute.entityReferenceName = @id
         AND
             fol.$attribute.changingColumnName > @changingTimepoint
         AND
@@ -303,7 +303,7 @@ BEGIN
         a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
         a.$attribute.reliableColumnName,
-        p.$attribute.anchorReferenceName,
+        p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName
     FROM
@@ -333,5 +333,4 @@ GO
 ~*/
         }
 
-    }
 }

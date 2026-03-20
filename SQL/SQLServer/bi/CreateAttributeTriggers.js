@@ -30,7 +30,7 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -39,7 +39,7 @@ BEGIN
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         $attribute.statementTypeColumnName char(1) not null,
         primary key (
-            $attribute.anchorReferenceName asc, 
+            $attribute.entityReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc,
             $attribute.positingColumnName desc
         )
@@ -47,7 +47,7 @@ BEGIN
 
     INSERT INTO @$attribute.name
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
         i.$attribute.positingColumnName,
@@ -65,7 +65,7 @@ BEGIN
     LEFT JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
@@ -80,7 +80,7 @@ BEGIN
         (p.$attribute.identityColumnName is null OR a.$attribute.identityColumnName is null);
 
     INSERT INTO @$attribute.name (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -90,7 +90,7 @@ BEGIN
         $attribute.statementTypeColumnName   
     )
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(schema.METADATA)? a.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
         a.$attribute.positingColumnName,
@@ -99,18 +99,18 @@ BEGIN
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         'X' -- existing data
     FROM
-        (SELECT DISTINCT $attribute.anchorReferenceName FROM @$attribute.name) i
+        (SELECT DISTINCT $attribute.entityReferenceName FROM @$attribute.name) i
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
     JOIN 
         [$attribute.capsule].[$attribute.annexName] a
     ON 
         a.$attribute.identityColumnName = p.$attribute.identityColumnName;
 
     DECLARE @retracted TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -121,7 +121,7 @@ BEGIN
     );
 
     INSERT INTO @retracted (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -131,7 +131,7 @@ BEGIN
         $attribute.statementTypeColumnName   
     )
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -153,7 +153,7 @@ BEGIN
             FROM
                 @$attribute.name p
             WHERE
-                p.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                p.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? p.$attribute.changingColumnName = a.$attribute.changingColumnName
             AND
@@ -167,7 +167,7 @@ BEGIN
             FROM
                 @$attribute.name p
             WHERE
-                p.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                p.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? p.$attribute.changingColumnName = a.$attribute.changingColumnName
             AND
@@ -209,7 +209,7 @@ BEGIN
     BEGIN --- (only run if necessary) ---
 
     DECLARE @updated TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -218,14 +218,14 @@ BEGIN
         $(attribute.hasChecksum())? $attribute.checksumColumnName varbinary(16) not null,
         previous_$attribute.positingColumnName $schema.metadata.positingRange not null,
         primary key(
-            $attribute.anchorReferenceName asc, 
+            $attribute.entityReferenceName asc, 
             $(attribute.timeRange)? $attribute.changingColumnName desc,
             $attribute.positingColumnName desc
         )
     );
 
     INSERT INTO @updated (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -235,7 +235,7 @@ BEGIN
         previous_$attribute.positingColumnName
     )
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -257,7 +257,7 @@ BEGIN
             FROM 
                 @$attribute.name s
             WHERE
-                s.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                s.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? s.$attribute.changingColumnName = a.$attribute.changingColumnName
             AND
@@ -279,7 +279,7 @@ BEGIN
     JOIN 
         @updated u
     ON 
-        u.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+        u.$attribute.entityReferenceName = a.$attribute.entityReferenceName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? u.$attribute.changingColumnName = a.$attribute.changingColumnName
     AND
@@ -304,7 +304,7 @@ BEGIN
     BEGIN --- (only run if necessary) ---
 
     DECLARE @restated TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -315,7 +315,7 @@ BEGIN
     );
 
     INSERT INTO @restated (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(schema.METADATA)? $attribute.metadataColumnName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.positingColumnName,
@@ -325,7 +325,7 @@ BEGIN
         $attribute.statementTypeColumnName   
     )
     SELECT 
-        x.$attribute.anchorReferenceName,
+        x.$attribute.entityReferenceName,
         $(schema.METADATA)? x.$attribute.metadataColumnName,
         $(attribute.isHistorized())? x.$attribute.changingColumnName,
         CASE 
@@ -352,7 +352,7 @@ BEGIN
             FROM 
                 @$attribute.name h
             WHERE
-                h.$attribute.anchorReferenceName = a.$attribute.anchorReferenceName
+                h.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? h.$attribute.changingColumnName < a.$attribute.changingColumnName
             ORDER BY 
@@ -382,7 +382,7 @@ BEGIN
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = i.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
     AND
@@ -403,12 +403,12 @@ BEGIN
     INSERT INTO @$attribute.name SELECT * FROM @retracted;
 
     INSERT INTO [$attribute.capsule].[$attribute.positName] (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.valueColumnName
     )
     SELECT
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.isHistorized())? $attribute.changingColumnName,
         $attribute.valueColumnName
     FROM
@@ -426,7 +426,7 @@ BEGIN
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        u.$attribute.anchorReferenceName = p.$attribute.anchorReferenceName
+        u.$attribute.entityReferenceName = p.$attribute.entityReferenceName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? u.$attribute.changingColumnName = p.$attribute.changingColumnName
     AND
@@ -456,7 +456,7 @@ BEGIN
     JOIN
         [$attribute.capsule].[$attribute.positName] p
     ON
-        p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+        p.$attribute.entityReferenceName = v.$attribute.entityReferenceName
     $(attribute.isHistorized())? AND
         $(attribute.isHistorized())? p.$attribute.changingColumnName = v.$attribute.changingColumnName
     AND

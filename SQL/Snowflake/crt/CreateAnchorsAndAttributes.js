@@ -36,22 +36,22 @@ CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
-        $attribute.anchorReferenceName asc,
+        $attribute.entityReferenceName asc,
         $attribute.changingColumnName desc,
         $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
-) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -62,11 +62,11 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk_A_$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
@@ -75,11 +75,11 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $attribute.changingColumnName,
         $attribute.knotReferenceName
     )
-) ORDER BY $attribute.anchorReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName, $attribute.changingColumnName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
     else if(attribute.isKnotted()) {
@@ -90,10 +90,10 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
@@ -102,10 +102,10 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $attribute.knotReferenceName
     )
-) ORDER BY $attribute.anchorReferenceName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
     else {
@@ -115,20 +115,20 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identityGenerator not null, : $attribute.identity not null,
-    $attribute.anchorReferenceName $anchor.identity not null,
+    $attribute.entityReferenceName $anchor.identity not null,
     $attribute.valueColumnName $attribute.dataRange not null,
     $(attribute.hasChecksum())? $attribute.checksumColumnName int default hash($attribute.valueColumnName),
     constraint fk$attribute.positName foreign key (
-        $attribute.anchorReferenceName
+        $attribute.entityReferenceName
     ) references ${anchor.capsule}$.$anchor.name($anchor.identityColumnName),
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
     ),
     constraint uq$attribute.positName unique (
-        $attribute.anchorReferenceName,
+        $attribute.entityReferenceName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName asc : $attribute.valueColumnName asc
     )
-) ORDER BY $attribute.anchorReferenceName SEGMENTED BY MODULARHASH($attribute.anchorReferenceName) ALL NODES;
+) ORDER BY $attribute.entityReferenceName SEGMENTED BY MODULARHASH($attribute.entityReferenceName) ALL NODES;
 ~*/
     }
 /*~

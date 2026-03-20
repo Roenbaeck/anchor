@@ -6,10 +6,8 @@
 -- defined elsewhere (if constraints on projections were allowed in Vertica).
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var knot, attribute;
-    while (attribute = anchor.nextAttribute()) {
+var knot, attribute;
+while (attribute = schema.nextAttribute()) {
 /*~
 -- Attribute assembled projection -------------------------------------------------------------------------------------
 -- $attribute.name assembled projection of the posit and annex tables
@@ -19,7 +17,7 @@ AS
 SELECT
     $(schema.METADATA)? a.$attribute.metadataColumnName,
     p.$attribute.identityColumnName,
-    p.$attribute.anchorReferenceName,
+    p.$attribute.entityReferenceName,
     $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
     p.$attribute.valueColumnName,
     $(attribute.timeRange)? p.$attribute.changingColumnName,
@@ -33,9 +31,8 @@ JOIN
     ${attribute.capsule}$.$attribute.annexName a
 ON
     a.$attribute.identityColumnName = p.$attribute.identityColumnName
-ORDER BY p.$attribute.anchorReferenceName$(attribute.timeRange)?, p.$attribute.changingColumnName
-SEGMENTED BY MODULARHASH(p.$attribute.anchorReferenceName) ALL NODES
+ORDER BY p.$attribute.entityReferenceName$(attribute.timeRange)?, p.$attribute.changingColumnName
+SEGMENTED BY MODULARHASH(p.$attribute.entityReferenceName) ALL NODES
 PARTITION BY(a.$attribute.positorColumnName);
 ~*/
-    }
 }

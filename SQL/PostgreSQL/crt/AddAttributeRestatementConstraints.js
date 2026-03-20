@@ -1,8 +1,7 @@
-var anchor, knot, attribute, restatements = false;
-while (anchor = schema.nextAnchor())
-    while(attribute = anchor.nextAttribute())
-        if(attribute.isHistorized())
-            restatements = true;
+var knot, attribute, parent, restatements = false;
+while (attribute = schema.nextAttribute())
+    if(attribute.isHistorized())
+        restatements = true;
 
 if(restatements) {
 /*~
@@ -21,9 +20,9 @@ if(restatements) {
 -- @reliable    whether this posit is considered reliable (1) or unreliable (0)
 --
 ~*/
-    while (anchor = schema.nextAnchor()) {
-        while(attribute = anchor.nextAttribute()) {
-            if(attribute.isHistorized()) {
+    while (attribute = schema.nextAttribute()) {
+        parent = attribute.parent;
+        if(attribute.isHistorized()) {
                 var valueColumn, valueType;
                 if(!attribute.isKnotted()) {
                     if(attribute.hasChecksum()) {
@@ -49,18 +48,18 @@ IF Object_ID('$attribute.capsule$.rf$attribute.name', 'FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[rf$attribute.name] (
-        @posit $anchor.identity,
+        @posit $parent.identity,
         @posited $schema.metadata.positingRange,
         @positor $schema.metadata.positorRange,
         @reliable tinyint
     )
     RETURNS tinyint AS
     BEGIN
-    DECLARE @id $anchor.identity;
+    DECLARE @id $parent.identity;
     DECLARE @value $valueType;
     DECLARE @changed $attribute.timeRange;
     SELECT
-        @id = $attribute.anchorReferenceName,
+        @id = $attribute.entityReferenceName,
         @value = $valueColumn,
         @changed = $attribute.changingColumnName
     FROM
@@ -85,7 +84,7 @@ BEGIN
                             @posited
                         ) pre
                     WHERE
-                        pre.$attribute.anchorReferenceName = @id
+                        pre.$attribute.entityReferenceName = @id
                     AND
                         pre.$attribute.changingColumnName < @changed
                     AND
@@ -108,7 +107,7 @@ BEGIN
                             @posited
                         ) fol
                     WHERE
-                        fol.$attribute.anchorReferenceName = @id
+                        fol.$attribute.entityReferenceName = @id
                     AND
                         fol.$attribute.changingColumnName > @changed
                     AND
@@ -143,7 +142,6 @@ END
 GO
 ~*/
             }
-        }
     }
 }
 

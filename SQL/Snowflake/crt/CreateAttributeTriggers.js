@@ -37,7 +37,7 @@ BEGIN
     DECLARE @currentVersion int;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.anchorReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $anchor.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positorColumnName $schema.metadata.positorRange not null,
@@ -51,12 +51,12 @@ BEGIN
         primary key(
             $attribute.versionColumnName,
             $attribute.positorColumnName,
-            $attribute.anchorReferenceName
+            $attribute.entityReferenceName
         )
     );
     INSERT INTO @$attribute.name
     SELECT
-        i.$attribute.anchorReferenceName,
+        i.$attribute.entityReferenceName,
         $(schema.METADATA)? i.$attribute.metadataColumnName,
         $(attribute.isHistorized())? i.$attribute.changingColumnName,
         i.$attribute.positorColumnName,
@@ -71,7 +71,7 @@ BEGIN
         DENSE_RANK() OVER (
             PARTITION BY
                 i.$attribute.positorColumnName,
-                i.$attribute.anchorReferenceName
+                i.$attribute.entityReferenceName
             ORDER BY
                 $(attribute.isHistorized())? i.$attribute.changingColumnName ASC,
                 i.$attribute.positingColumnName ASC,
@@ -99,7 +99,7 @@ BEGIN
                         FROM
                             [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.reliableColumnName) t
                         WHERE
-                            t.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+                            t.$attribute.entityReferenceName = v.$attribute.entityReferenceName
                         $(attribute.isHistorized())? AND
                             $(attribute.isHistorized())? t.$attribute.changingColumnName = v.$attribute.changingColumnName
                         AND
@@ -108,7 +108,7 @@ BEGIN
                             $(attribute.hasChecksum())? t.$attribute.checksumColumnName = v.$attribute.checksumColumnName : t.$attribute.valueColumnName = v.$attribute.valueColumnName
                     )
                     THEN 'D' -- duplicate assertion
-                    WHEN p.$attribute.anchorReferenceName is not null
+                    WHEN p.$attribute.entityReferenceName is not null
                     THEN 'S' -- duplicate statement
 ~*/
             if(attribute.isHistorized()) {
@@ -119,7 +119,7 @@ BEGIN
                         WHERE
                             $(attribute.hasChecksum())? v.$attribute.checksumColumnName =  : v.$attribute.valueColumnName =
                                 $attribute.capsule$.pre$attribute.name (
-                                    v.$attribute.anchorReferenceName,
+                                    v.$attribute.entityReferenceName,
                                     v.$attribute.positorColumnName,
                                     v.$attribute.changingColumnName,
                                     v.$attribute.positingColumnName
@@ -130,7 +130,7 @@ BEGIN
                         WHERE
                             $(attribute.hasChecksum())? v.$attribute.checksumColumnName = : v.$attribute.valueColumnName =
                                 $attribute.capsule$.fol$attribute.name (
-                                    v.$attribute.anchorReferenceName,
+                                    v.$attribute.entityReferenceName,
                                     v.$attribute.positorColumnName,
                                     v.$attribute.changingColumnName,
                                     v.$attribute.positingColumnName
@@ -147,7 +147,7 @@ BEGIN
         LEFT JOIN
             [$attribute.capsule].[$attribute.positName] p
         ON
-            p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+            p.$attribute.entityReferenceName = v.$attribute.entityReferenceName
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
@@ -156,12 +156,12 @@ BEGIN
             v.$attribute.versionColumnName = @currentVersion;
 
         INSERT INTO [$attribute.capsule].[$attribute.positName] (
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         )
         SELECT
-            $attribute.anchorReferenceName,
+            $attribute.entityReferenceName,
             $(attribute.isHistorized())? $attribute.changingColumnName,
             $attribute.valueColumnName
         FROM
@@ -189,7 +189,7 @@ BEGIN
         JOIN
             [$attribute.capsule].[$attribute.positName] p
         ON
-            p.$attribute.anchorReferenceName = v.$attribute.anchorReferenceName
+            p.$attribute.entityReferenceName = v.$attribute.entityReferenceName
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? p.$attribute.changingColumnName = v.$attribute.changingColumnName
         AND
