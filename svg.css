@@ -61,7 +61,7 @@
 
 /* ===== Symbol definitions (referenced via <use>) ===== */
 /* Base edge styling (lines connecting nodes) */
-g#edges { stroke:#000; stroke-width:1px; fill:none; }
+g.edges { stroke:#000; stroke-width:1px; fill:none; }
 /* Knot */
 g#knot rect { fill:#fff; stroke:#f88; stroke-width:2px; }
 /* Nexus */
@@ -112,7 +112,7 @@ svg#graph marker#arrowhead path { fill:#fcc; }
 marker#arrowhead path { fill:#fcc; }
 
 /* ===== Miniature graph adjustments ===== */
-#minigraph g#edges { stroke:#000; stroke-width:1px; fill:none; }
+#minigraph .edges { stroke:#000; stroke-width:1px; fill:none; }
 #minigraph text { fill:#000; }
 g#nav_knot rect { fill:#fff; stroke:#f88; stroke-width:2px; }
 g#nav_anchor rect { fill:#b55; }
@@ -131,10 +131,10 @@ g#nav_identifier_historized g { fill:#a8a8a8; stroke-width:0; }
 /* ===== Dark theme overrides ===== */
 body.dark #graph .label { fill:#f2f2f3; }
 body.dark #graph text { fill:#e0e0e0; }
-body.dark #graph .node { stroke:#ccc; }
+body.dark #graph .nodes { stroke:none; }
 body.dark #graph .anchor,
 body.dark #graph .nexus { fill:#b55 !important; }
-body.dark #graph g#edges * { stroke:#b4b4b6 !important; }
+body.dark #graph .edges * { stroke:#b4b4b6 !important; }
 /* Replace pure white fills with a dark neutral */
 body.dark #graph [fill="#fff"],
 body.dark #graph [style*="fill:#fff"],
@@ -147,7 +147,7 @@ body.dark #minigraph [fill="#fff"],
 body.dark #minigraph [style*="fill:#fff"],
 body.dark #minigraph [fill="#ffffff"],
 body.dark #minigraph [style*="fill:#ffffff"] { fill:#222 !important; }
-body.dark #minigraph g#edges * { stroke:#b4b4b6 !important; }
+body.dark #minigraph .edges * { stroke:#b4b4b6 !important; }
 /* Dark miniature overrides for nav_* symbols */
 body.dark g#nav_knot rect { fill:#222; stroke:#f88; stroke-width:2px; }
 body.dark g#nav_anchor rect { fill:#b55; }
