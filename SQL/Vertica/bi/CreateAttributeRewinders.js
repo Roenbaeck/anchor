@@ -8,15 +8,16 @@
 -- in time. The forwarder is the opposite of the rewinder, such that the 
 -- union of the two will produce all rows in a posit table.
 --
--- @positor             the view of which positor to adopt (defaults to 0)
 -- @changingTimepoint   the point in changing time to rewind to (defaults to End of Time, no rewind)
 -- @positingTimepoint   the point in positing time to rewind to (defaults to End of Time, no rewind)
 --
 ~*/
-var knot, attribute, parent;
+var attribute, parent;
 while (attribute = schema.nextAttribute()) {
     parent = attribute.parent;
-    if(attribute.isHistorized()) {
+    var knot;
+        if(attribute.isHistorized()) {
+            var returnType = attribute.isKnotted() ? attribute.knot.identity : (attribute.hasChecksum() ? 'varbinary(16)' : attribute.dataRange);
 /*~
 -- Attribute posit rewinder -------------------------------------------------------------------------------------------
 -- r$attribute.positName rewinding over changing time function
@@ -78,9 +79,7 @@ BEGIN
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positingColumnName,
-        $attribute.positorColumnName,
-        $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName
+        $attribute.reliabilityColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -95,7 +94,6 @@ IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
@@ -104,9 +102,7 @@ BEGIN
         $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         a.$attribute.positingColumnName,
-        a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
         p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
@@ -118,8 +114,6 @@ BEGIN
     ON
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
-        a.$attribute.positorColumnName = @positor
-    AND
         a.$attribute.positingColumnName = (
             SELECT TOP 1
                 sub.$attribute.positingColumnName
@@ -127,8 +121,6 @@ BEGIN
                 [$attribute.capsule].[r$attribute.annexName](@positingTimepoint) sub
             WHERE
                 sub.$attribute.identityColumnName = p.$attribute.identityColumnName
-            AND
-                sub.$attribute.positorColumnName = @positor
             ORDER BY
                 sub.$attribute.positingColumnName DESC
         )
@@ -142,7 +134,6 @@ IF Object_ID('$attribute.capsule$.f$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[f$attribute.name] (
-        @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
@@ -151,9 +142,7 @@ BEGIN
         $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         a.$attribute.positingColumnName,
-        a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
         p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName,
@@ -165,8 +154,6 @@ BEGIN
     ON
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
-        a.$attribute.positorColumnName = @positor
-    AND
         a.$attribute.positingColumnName = (
             SELECT TOP 1
                 sub.$attribute.positingColumnName
@@ -174,8 +161,6 @@ BEGIN
                 [$attribute.capsule].[r$attribute.annexName](@positingTimepoint) sub
             WHERE
                 sub.$attribute.identityColumnName = p.$attribute.identityColumnName
-            AND
-                sub.$attribute.positorColumnName = @positor
             ORDER BY
                 sub.$attribute.positingColumnName DESC
         )
@@ -190,18 +175,16 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[pre$attribute.name] (
         @id $parent.identity,
-        @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
-    RETURNS $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
+    RETURNS $returnType
     AS
     BEGIN RETURN (
         SELECT TOP 1
             $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
         FROM
             [$attribute.capsule].[r$attribute.name](
-                @positor,
                 @changingTimepoint,
                 @positingTimepoint
             ) pre
@@ -210,7 +193,7 @@ BEGIN
         AND
             pre.$attribute.changingColumnName < @changingTimepoint
         AND
-            pre.$attribute.reliableColumnName = 1
+            pre.$attribute.reliabilityColumnName = 1
         ORDER BY
             pre.$attribute.changingColumnName DESC,
             pre.$attribute.positingColumnName DESC
@@ -227,18 +210,16 @@ BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[fol$attribute.name] (
         @id $parent.identity,
-        @positor $schema.metadata.positorRange = 0,
         @changingTimepoint $attribute.timeRange = '$schema.EOT',
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
-    RETURNS $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
+    RETURNS $returnType
     AS
     BEGIN RETURN (
         SELECT TOP 1
             $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
         FROM
             [$attribute.capsule].[f$attribute.name](
-                @positor,
                 @changingTimepoint,
                 @positingTimepoint
             ) fol
@@ -247,7 +228,7 @@ BEGIN
         AND
             fol.$attribute.changingColumnName > @changingTimepoint
         AND
-            fol.$attribute.reliableColumnName = 1
+            fol.$attribute.reliabilityColumnName = 1
         ORDER BY
             fol.$attribute.changingColumnName ASC,
             fol.$attribute.positingColumnName DESC
@@ -274,9 +255,7 @@ BEGIN
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.identityColumnName,
         $attribute.positingColumnName,
-        $attribute.positorColumnName,
-        $attribute.reliabilityColumnName,
-        $attribute.reliableColumnName
+        $attribute.reliabilityColumnName
     FROM
         [$attribute.capsule].[$attribute.annexName]
     WHERE
@@ -291,7 +270,6 @@ IF Object_ID('$attribute.capsule$.r$attribute.name','IF') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule].[r$attribute.name] (
-        @positor $schema.metadata.positorRange = 0,
         @positingTimepoint $schema.metadata.positingRange = '$schema.EOT'
     )
     RETURNS TABLE WITH SCHEMABINDING AS RETURN
@@ -299,9 +277,7 @@ BEGIN
         $(schema.METADATA)? a.$attribute.metadataColumnName,
         p.$attribute.identityColumnName,
         a.$attribute.positingColumnName,
-        a.$attribute.positorColumnName,
         a.$attribute.reliabilityColumnName,
-        a.$attribute.reliableColumnName,
         p.$attribute.entityReferenceName,
         $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
         p.$attribute.valueColumnName
@@ -312,8 +288,6 @@ BEGIN
     ON
         a.$attribute.identityColumnName = p.$attribute.identityColumnName
     AND
-        a.$attribute.positorColumnName = @positor
-    AND
         a.$attribute.positingColumnName = (
             SELECT TOP 1
                 sub.$attribute.positingColumnName
@@ -321,8 +295,6 @@ BEGIN
                 [$attribute.capsule].[r$attribute.annexName](@positingTimepoint) sub
             WHERE
                 sub.$attribute.identityColumnName = p.$attribute.identityColumnName
-            AND
-                sub.$attribute.positorColumnName = @positor
             ORDER BY
                 sub.$attribute.positingColumnName DESC
         )
@@ -330,5 +302,7 @@ BEGIN
 END
 GO
 ~*/
-    }
+        }
+
 }
+

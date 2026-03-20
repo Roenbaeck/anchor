@@ -1,5 +1,7 @@
 <schema>
+    <!--
     <metadata businessViews="true"/>
+    -->
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
         <metadata equivalent="true"/>
     </knot>
