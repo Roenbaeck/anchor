@@ -1,0 +1,29 @@
+# This is the processing directive for uni-temporal Anchor Modeling in BigQuery
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/BigQuery/NamingConvention.js
+SQL/BigQuery/uni/CreateEquivalentAndDefault.js
+SQL/BigQuery/uni/CreateKnots.js
+SQL/BigQuery/uni/CreateAnchors.js
+SQL/BigQuery/uni/CreateNexuses.js
+SQL/BigQuery/uni/CreateAttributes.js
+SQL/BigQuery/uni/CreateTies.js
+# to be done later
+SQL/BigQuery/uni/CreateKnotEquivalenceViews.js
+SQL/BigQuery/uni/CreateAttributeEquivalenceViews.js
+#SQL/BigQuery/uni/AddAttributeRestatementConstraints.js
+#SQL/BigQuery/uni/CreateKeyGenerators.js
+SQL/BigQuery/uni/CreateAttributeRewinders.js
+#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
+SQL/BigQuery/uni/CreateAnchorPerspectives.js
+SQL/BigQuery/uni/CreateNexusPerspectives.js
+#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
+#SQL/BigQuery/uni/CreateAttributeTriggers.js
+#SQL/BigQuery/uni/CreateAnchorTriggers.js
+#SQL/BigQuery/uni/AddTieRestatementConstraints.js
+#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
+SQL/BigQuery/uni/CreateTiePerspectives.js
+#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
+#SQL/BigQuery/uni/CreateTieTriggers.js
+#SQL/BigQuery/CreateSchemaTracking.js
+SQL/BigQuery/uni/AddDescriptions.js

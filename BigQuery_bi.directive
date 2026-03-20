@@ -1,0 +1,33 @@
+# This is the processing directive for bi-temporal Anchor Modeling in BigQuery
+#
+# Initial native BigQuery BI generation (core + rewinders + perspectives)
+SQL/Helpers.js
+SQL/NamingConvention.js
+SQL/BigQuery/NamingConvention.js
+SQL/BigQuery/bi/CreateKnots.js
+SQL/BigQuery/bi/CreateAnchors.js
+SQL/BigQuery/bi/CreateNexuses.js
+SQL/BigQuery/bi/CreateAttributes.js
+#SQL/BigQuery/bi/CreateAttributeAssembledViews.js
+SQL/BigQuery/bi/CreateAttributeRewinders.js
+#SQL/BigQuery/bi/AddAttributeRestatementConstraints.js
+#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
+SQL/BigQuery/bi/CreateAnchorPerspectives.js
+#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
+#SQL/BigQuery/biz/DropNexusBusinessPerspectives.js
+SQL/BigQuery/bi/CreateNexusPerspectives.js
+#SQL/BigQuery/biz/CreateNexusBusinessPerspectives.js
+#SQL/BigQuery/bi/CreateKeyGenerators.js
+#SQL/BigQuery/bi/CreateAttributeTriggers.js
+#SQL/BigQuery/bi/CreateAnchorTriggers.js
+#SQL/BigQuery/bi/CreateNexusTriggers.js
+SQL/BigQuery/bi/CreateTies.js
+#SQL/BigQuery/bi/CreateTieAssembledViews.js
+#SQL/BigQuery/bi/AddTieRestatementConstraints.js
+SQL/BigQuery/bi/CreateTieRewinders.js
+#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
+SQL/BigQuery/bi/CreateTiePerspectives.js
+#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
+#SQL/BigQuery/bi/CreateTieTriggers.js
+#SQL/BigQuery/CreateSchemaTracking.js
+SQL/BigQuery/uni/AddDescriptions.js

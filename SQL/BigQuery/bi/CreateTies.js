@@ -1,7 +1,7 @@
 /*~
 -- TIES ---------------------------------------------------------------------------------------------------------------
 --
--- CRT ties use posit and annex split with changing/positing time, positor, reliability, and assertion.
+-- BI ties use posit and annex split with changing/positing time and reliability.
 --
 ~*/
 var tie;
@@ -93,30 +93,15 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
 CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.annexName (
     $tie.identityColumnName $tie.identity not null,
     $tie.positingColumnName $schema.metadata.positingRange not null,
-    $tie.positorColumnName $schema.metadata.positorRange not null,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange not null,
-    $tie.assertionColumnName string default (
-        case
-            when $tie.reliabilityColumnName > $schema.metadata.deleteReliability then '+'
-            when $tie.reliabilityColumnName = $schema.metadata.deleteReliability then '?'
-            else '-'
-        end
-    ),
-    $tie.reliableColumnName int default (
-        case
-            when $tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
-            else 1
-        end
-    ),
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
     ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
     constraint pk$tie.annexName primary key (
         $tie.identityColumnName,
-        $tie.positorColumnName,
         $tie.positingColumnName
     )
-) CLUSTER BY ($tie.identityColumnName, $tie.positorColumnName, $tie.positingColumnName);
+) CLUSTER BY ($tie.identityColumnName, $tie.positingColumnName);
 ~*/
 }

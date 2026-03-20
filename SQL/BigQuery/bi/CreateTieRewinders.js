@@ -1,7 +1,7 @@
 /*~
 -- TIE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------------
 --
--- CRT rewinders over changing and positing time with positor-aware annex selection.
+-- BI rewinders over changing and positing time.
 --
 ~*/
 var tie, role;
@@ -83,10 +83,7 @@ RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $tie.identityColumnName $tie.identity,
     $tie.positingColumnName $schema.metadata.positingRange,
-    $tie.positorColumnName $schema.metadata.positorRange,
-    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange
 )
 AS
 $$
@@ -94,10 +91,7 @@ SELECT
     $(schema.METADATA)? $tie.metadataColumnName,
     $tie.identityColumnName,
     $tie.positingColumnName,
-    $tie.positorColumnName,
-    $tie.reliabilityColumnName,
-    $tie.assertionColumnName,
-    $tie.reliableColumnName
+    $tie.reliabilityColumnName
 FROM
     ${tie.capsule}$.$tie.annexName
 WHERE
@@ -106,7 +100,6 @@ $$
 ;
 
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.name (
-    positor $schema.metadata.positorRange,
     $(tie.isHistorized())? changingTimepoint $tie.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
@@ -122,10 +115,7 @@ RETURNS TABLE (
 /*~
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
     $tie.positingColumnName $schema.metadata.positingRange,
-    $tie.positorColumnName $schema.metadata.positorRange,
-    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange
 )
 AS
 $$
@@ -141,18 +131,13 @@ SELECT
 /*~
     $(tie.isHistorized())? p.$tie.changingColumnName,
     a.$tie.positingColumnName,
-    a.$tie.positorColumnName,
-    a.$tie.reliabilityColumnName,
-    a.$tie.assertionColumnName,
-    a.$tie.reliableColumnName
+    a.$tie.reliabilityColumnName
 FROM
     $(tie.isHistorized())? TABLE(${tie.capsule}$.r$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
 JOIN
     TABLE(${tie.capsule}$.r$tie.annexName(positingTimepoint)) a
 ON
     a.$tie.identityColumnName = p.$tie.identityColumnName
-AND
-    a.$tie.positorColumnName = positor
 QUALIFY
     row_number() OVER (
         PARTITION BY p.$tie.identityColumnName
@@ -162,7 +147,6 @@ $$
 ;
 
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.name (
-    positor $schema.metadata.positorRange,
     $(tie.isHistorized())? changingTimepoint $tie.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
@@ -178,10 +162,7 @@ RETURNS TABLE (
 /*~
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
     $tie.positingColumnName $schema.metadata.positingRange,
-    $tie.positorColumnName $schema.metadata.positorRange,
-    $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.reliabilityColumnName $schema.metadata.reliabilityRange
 )
 AS
 $$
@@ -197,18 +178,13 @@ SELECT
 /*~
     $(tie.isHistorized())? p.$tie.changingColumnName,
     a.$tie.positingColumnName,
-    a.$tie.positorColumnName,
-    a.$tie.reliabilityColumnName,
-    a.$tie.assertionColumnName,
-    a.$tie.reliableColumnName
+    a.$tie.reliabilityColumnName
 FROM
     $(tie.isHistorized())? TABLE(${tie.capsule}$.f$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
 JOIN
     TABLE(${tie.capsule}$.r$tie.annexName(positingTimepoint)) a
 ON
     a.$tie.identityColumnName = p.$tie.identityColumnName
-AND
-    a.$tie.positorColumnName = positor
 QUALIFY
     row_number() OVER (
         PARTITION BY p.$tie.identityColumnName
