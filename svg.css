@@ -107,14 +107,21 @@ g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:#fff; }
 g#selection circle:first-child { fill:#ede5e5; }
 g#selection circle:last-child  { fill:#ede5e5; stroke:#000; stroke-width:1px; }
 g#fixation circle { fill:#000; }
+/* Small outlined bubble (chronicle marker) */
 g#bubble circle { fill:#f9f8f7; stroke:none; }
-g#bubbleOutline circle { fill:#f9f8f7; stroke:#544; stroke-width:1px; }
-g#one line, g#many line { stroke:#544; stroke-width:1px; }
+g#bubbleOutline circle { fill:#f9f8f7; stroke:currentColor; stroke-width:1px; }
+g#one line, g#many line { stroke:currentColor; stroke-width:1px; }
+
+
 
 /* Partitions & debug visuals */
-svg#graph .partitions { fill:#fff8f8; stroke:#f4ebeb; }
-svg#graph .forceVector { stroke:#fcc; stroke-width:6; }
+#debugPartitions rect { fill:#fff8f8; stroke:#f4ebeb; }
+#debugPartitions circle { fill:#fffcfc; stroke:#fcc; stroke-opacity:0.5; }
+#graph .forceVector { stroke:#fcc; stroke-width:6; }
 marker#arrowhead path { fill:#fcc; }
+
+
+
 
 /* Miniature graph defaults */
 #minigraph g#edges, #minigraph .edges { stroke:#000; stroke-width:1px; fill:none; }
@@ -161,9 +168,13 @@ body.dark #graph #bubble circle { fill: #303134 !important; }
 body.dark #bubbleOutline circle { fill: #2a2b2f; stroke: #aaa; }
 
 /* Force vectors and markers */
-body.dark svg#graph .partitions { fill: #170103; stroke: #280205; }
-body.dark svg#graph .forceVector { stroke: #622; }
+body.dark #debugPartitions rect { fill: #170103; stroke: #280205; }
+body.dark #debugPartitions circle { fill: #1a0104; stroke: #622; stroke-opacity:0.5; }
+body.dark #graph .forceVector { stroke: #622; }
 body.dark marker#arrowhead path { fill: #622; }
+
+
+
 
 /* Routes */
 body.dark #graph .route { stroke: rgba(255,255,255,0.08) !important; }
@@ -204,15 +215,11 @@ body.dark [href="#bubble"], body.dark [*|href="#bubble"] {
 
 body.dark [href="#bubbleOutline"], body.dark [*|href="#bubbleOutline"] { 
     fill: #2a2b2f !important;
-    color: #2a2b2f !important;
+    color: #b4b4b6 !important;
 }
-
-body.dark [href="#bubbleOutline"] circle, body.dark [*|href="#bubbleOutline"] circle {
-    stroke: #aaa !important;
-}
-
 
 body.dark [href="#one"], body.dark [*|href="#one"],
+
 body.dark [href="#many"], body.dark [*|href="#many"] { 
     stroke: #e0e0e2 !important;
     color: #e0e0e2 !important;
@@ -230,9 +237,14 @@ g#attribute_historized circle { fill:currentColor; stroke:#f88; stroke-width:2px
 g#identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 g#identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:currentColor; }
+/* Small outlined bubble (chronicle marker) */
+/* Small outlined bubble (chronicle marker) */
 g#bubble circle { fill:currentColor; stroke:none; }
-g#bubbleOutline circle { fill:currentColor; stroke:#544; stroke-width:1px; }
+g#bubbleOutline circle { fill:inherit; stroke:currentColor; stroke-width:1px; }
 g#one line, g#many line { stroke:currentColor; stroke-width:1px; }
+
+
+
 
 
 
@@ -249,10 +261,11 @@ g#nav_identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px;
 g#nav_identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 
 /* In Light mode, override specific symbol colors that shouldn't be white */
-#graph [href="#bubble"], #graph [*|href="#bubble"],
-#graph [href="#bubbleOutline"], #graph [*|href="#bubbleOutline"] { color: #f9f8f7; }
+#graph [href="#bubbleOutline"], #graph [*|href="#bubbleOutline"] { fill: #f9f8f7; color: #000; }
 #graph [href="#one"], #graph [*|href="#one"],
-#graph [href="#many"], #graph [*|href="#many"] { color: #544; }
+#graph [href="#many"], #graph [*|href="#many"] { color: #000; }
+
+
 
 /* In Light mode, set the default color to #fff */
 
