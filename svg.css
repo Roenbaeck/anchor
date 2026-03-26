@@ -150,8 +150,8 @@ g#nav_identifier_historized g { fill:#a8a8a8; stroke-width:0; }
 /* Top level containers and labels */
 body.dark #graph .label, body.dark #graph #names.label text,
 body.dark #graph .chronicleLabel { fill: #f2f2f3; }
+body.dark #graph .bad { fill: #e00 !important; }
 body.dark #graph text { fill: #e0e0e0; }
-
 body.dark #graph #nodes.nodes { stroke: none; }
 body.dark #graph #edges.edges *, body.dark #graph .edges * { stroke: #b4b4b6; }
 body.dark #minigraph #edges.edges *, body.dark #minigraph .edges * { stroke: #b4b4b6; }
