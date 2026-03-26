@@ -2,11 +2,16 @@
   SVG specific styling extracted from inline <style> block in index.html and from application.css.
   This centralizes all graph/minigraph visual definitions so new themes or style variants
   can be created simply by swapping or overriding this file.
-  Light theme rules first, dark theme overrides follow using body.dark prefix.
+  Light theme rules first, dark theme selector (body.dark) follows.
 */
 
-/* ===== Base graph text and node label styles ===== */
-#graph .label {
+/* ==========================
+   LIGHT THEME (Base Styles)
+   ========================== */
+
+/* Base graph text and node label styles */
+#graph { background: transparent; }
+#graph .label, #graph .chronicleLabel {
     font-size:          8pt;
     font-family:        "Open Sans", "Verdana", "Helvetica Neue", sans-serif;
     font-weight:        normal;
@@ -15,7 +20,13 @@
     fill:               #000;
     pointer-events:     none;
 }
+#graph .chronicleLabel {
+    font-size:          10px;
+    text-anchor:        middle;
+    dominant-baseline:  central;
+}
 #graph .edge { pointer-events:none; }
+
 #graph .anchor,
 #graph .nexus {
     font-style:italic;
@@ -48,7 +59,7 @@
     stroke-linejoin:round;
     cursor:text;
 }
-#graph .routeText, text.routeText { /* compatibility with earlier selector */
+#graph .routeText, text.routeText {
     font-family: "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
     font-size:20pt;
     font-weight:normal;
@@ -59,60 +70,63 @@
 #graph .bad { fill:#e00; }
 #graph .end { text-anchor:end; }
 
-/* ===== Symbol definitions (referenced via <use>) ===== */
-/* Base edge styling (lines connecting nodes) */
-g.edges { stroke:#000; stroke-width:1px; fill:none; }
+/* Symbol definitions (referenced via <use>) */
+g#edges, g.edges { stroke:#000; stroke-width:1px; fill:none; }
+
 /* Knot */
 g#knot rect { fill:#fff; stroke:#f88; stroke-width:2px; }
+
 /* Nexus */
 g#nexus rect:first-child { fill:#b55; }
 g#nexus rect:last-child  { fill:#fff; }
-/* Imploded nexus */
 g#nexus_imploded path { fill:#633; }
+
 /* Anchor */
 g#anchor rect { fill:#b55; }
-/* Imploded anchor */
 g#anchor_imploded path { fill:#633; }
+
 /* Tie */
 g#tie rect { fill:#a8a8a8; }
-/* Historized tie */
 g#tie_historized rect:first-child { fill:#fff; stroke:#a8a8a8; stroke-width:2px; }
 g#tie_historized rect:last-child  { fill:#a8a8a8; }
+
 /* Attribute */
 g#attribute circle { fill:#fff; stroke:#f88; stroke-width:2px; }
-/* Historized attribute */
 g#attribute_historized circle { fill:#fff; stroke:#f88; stroke-width:2px; }
+
 /* Identifier */
 g#identifier > circle { fill:#fff; stroke:#a8a8a8; stroke-width:2px; }
 g#identifier g { fill:#a8a8a8; stroke-width:0; }
 g#identifier g polygon { stroke-width:1px; stroke-linejoin:round; stroke-linecap:round; }
-/* Historized identifier */
 g#identifier_historized > circle { fill:#fff; stroke:#a8a8a8; stroke-width:2px; }
 g#identifier_historized g { fill:#a8a8a8; stroke-width:0; }
 g#identifier_historized g polygon { stroke-width:1px; stroke-linejoin:round; stroke-linecap:round; }
-/* Highlight circle */
+
+/* Miscellaneous visuals */
 g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:#fff; }
-/* Selection */
 g#selection circle:first-child { fill:#ede5e5; }
 g#selection circle:last-child  { fill:#ede5e5; stroke:#000; stroke-width:1px; }
-/* Fixation dot */
 g#fixation circle { fill:#000; }
-/* Small bubble */
-g#bubble circle { fill:#f9f8f7; stroke:none; }
 /* Small outlined bubble (chronicle marker) */
-g#bubbleOutline circle { fill:#f9f8f7; stroke:#544; stroke-width:1px; }
-/* Cardinality markers */
-g#one line, g#many line { stroke:#544; stroke-width:1px; }
+g#bubble circle { fill:#f9f8f7; stroke:none; }
+g#bubbleOutline circle { fill:#f9f8f7; stroke:currentColor; stroke-width:1px; }
+g#one line, g#many line { stroke:currentColor; stroke-width:1px; }
 
-/* ===== Partitions & debug visuals ===== */
-svg#graph .partitions { fill:#fff8f8; stroke:#f4ebeb; }
-svg#graph .forceVector { stroke:#fcc; stroke-width:6; }
-svg#graph marker#arrowhead path { fill:#fcc; }
-/* Also style generic marker (defs) without svg#graph qualifier for export clones */
+
+
+/* Partitions & debug visuals */
+#debugPartitions rect { fill:#fff8f8; stroke:#f4ebeb; stroke-width:30px; }
+#debugPartitions circle { fill:#fffcfc; stroke:#fcc; stroke-opacity:0.5; }
+
+
+#graph .forceVector { stroke:#fcc; stroke-width:6; }
 marker#arrowhead path { fill:#fcc; }
 
-/* ===== Miniature graph adjustments ===== */
-#minigraph .edges { stroke:#000; stroke-width:1px; fill:none; }
+
+
+
+/* Miniature graph defaults */
+#minigraph g#edges, #minigraph .edges { stroke:#000; stroke-width:1px; fill:none; }
 #minigraph text { fill:#000; }
 g#nav_knot rect { fill:#fff; stroke:#f88; stroke-width:2px; }
 g#nav_anchor rect { fill:#b55; }
@@ -128,77 +142,169 @@ g#nav_identifier g { fill:#a8a8a8; stroke-width:0; }
 g#nav_identifier_historized > circle { fill:#fff; stroke:#a8a8a8; stroke-width:2px; }
 g#nav_identifier_historized g { fill:#a8a8a8; stroke-width:0; }
 
-/* ===== Dark theme overrides ===== */
-body.dark #graph .label { fill:#f2f2f3; }
-body.dark #graph text { fill:#e0e0e0; }
-body.dark #graph .nodes { stroke:none; }
+
+/* ==========================
+   DARK THEME OVERRIDES
+   ========================== */
+
+/* Top level containers and labels */
+body.dark #graph .label, body.dark #graph #names.label text,
+body.dark #graph .chronicleLabel { fill: #f2f2f3; }
+body.dark #graph text { fill: #e0e0e0; }
+
+body.dark #graph #nodes.nodes { stroke: none; }
+body.dark #graph #edges.edges *, body.dark #graph .edges * { stroke: #b4b4b6; }
+body.dark #minigraph #edges.edges *, body.dark #minigraph .edges * { stroke: #b4b4b6; }
+body.dark #minigraph text { fill: #e0e0e0; }
+
+/* Anchors and Nexuses names keep red */
 body.dark #graph .anchor,
-body.dark #graph .nexus { fill:#b55 !important; }
-body.dark #graph .edges * { stroke:#b4b4b6 !important; }
-/* Replace pure white fills with a dark neutral */
-body.dark #graph [fill="#fff"],
-body.dark #graph [style*="fill:#fff"],
-body.dark #graph [fill="#ffffff"],
-body.dark #graph [style*="fill:#ffffff"] { fill:#222 !important; }
-body.dark #graph circle[fill="#fff"],
-body.dark #graph circle[style*="fill:#fff"] { fill:#262626 !important; }
-/* Miniature */
-body.dark #minigraph [fill="#fff"],
-body.dark #minigraph [style*="fill:#fff"],
-body.dark #minigraph [fill="#ffffff"],
-body.dark #minigraph [style*="fill:#ffffff"] { fill:#222 !important; }
-body.dark #minigraph .edges * { stroke:#b4b4b6 !important; }
-/* Dark miniature overrides for nav_* symbols */
-body.dark g#nav_knot rect { fill:#222; stroke:#f88; stroke-width:2px; }
-body.dark g#nav_anchor rect { fill:#b55; }
-body.dark g#nav_tie rect { fill:#666; }
-body.dark g#nav_tie_historized rect:first-child { fill:#222; stroke:#a8a8a8; stroke-width:2px; }
-body.dark g#nav_tie_historized rect:last-child { fill:#666; }
-body.dark g#nav_nexus rect:first-child { fill:#b55; }
-body.dark g#nav_nexus rect:last-child { fill:#222; }
-body.dark g#nav_attribute circle { fill:#222; stroke:#f88; stroke-width:2px; }
-body.dark g#nav_attribute_historized circle { fill:#262626; stroke:#f88; stroke-width:2px; }
-body.dark g#nav_identifier > circle { fill:#262626; stroke:#a8a8a8; stroke-width:2px; }
-body.dark g#nav_identifier g { fill:#a8a8a8; }
-body.dark g#nav_identifier_historized > circle { fill:#262626; stroke:#a8a8a8; stroke-width:2px; }
-body.dark g#nav_identifier_historized g { fill:#a8a8a8; }
-/* Fixation indicator contrast */
-body.dark #graph #fixation circle { fill:#ffffff !important; }
-/* Bubble color tweak */
-body.dark #graph #bubble circle { fill:#303134 !important; }
+body.dark #graph .nexus { fill: #b55 !important; }
+
+
+/* Fixation dot */
+body.dark #graph #fixation circle { fill: #ffffff !important; }
+
+/* Bubbles */
+body.dark #graph #bubble circle { fill: #303134 !important; }
+body.dark #bubbleOutline circle { fill: #2a2b2f; stroke: #aaa; }
+
+/* Force vectors and markers */
+body.dark #debugPartitions rect { fill: #170103; stroke: #280205; stroke-width:30px; }
+body.dark #debugPartitions circle { fill: #1a0104; stroke: #622; stroke-opacity:0.5; }
+
+
+body.dark #graph .forceVector { stroke: #622; }
+body.dark marker#arrowhead path { fill: #622; }
+
+
+
+
 /* Routes */
-body.dark #graph .route { stroke:rgba(255,255,255,0.08) !important; cursor:pointer; }
-body.dark #graph .routeSelected { stroke:rgba(255,160,160,0.30) !important; stroke-width:42; cursor:text; }
-/* Partitions */
-body.dark svg#graph .partitions { fill:#170103; stroke:#280205; }
-/* Force vectors / markers */
-body.dark svg#graph .forceVector { stroke:#622; }
-body.dark svg#graph marker#arrowhead path { fill:#622; }
-body.dark marker#arrowhead path { fill:#622; }
-/* Outlined chronicle bubble */
-body.dark #bubbleOutline circle { fill:#2a2b2f; stroke:#aaa; }
-/* Cardinality markers (one/many) lighten in dark mode */
+body.dark #graph .route { stroke: rgba(255,255,255,0.08) !important; }
+body.dark #graph .routeSelected { stroke: rgba(255,160,160,0.30) !important; }
+
+/* Cardinality markers */
 body.dark g#one line,
-body.dark g#many line { stroke:#e0e0e2 !important; }
+body.dark g#many line { stroke: #e0e0e2 !important; }
 
-/* === Explicit dark overrides for shapes that previously relied on inline fill="#fff" (now moved to CSS) === */
-/* Rectangular white shapes go to #222 */
-body.dark g#knot rect { fill:#222; }
-body.dark g#nexus rect:last-child { fill:#222; }
-body.dark g#tie_historized rect:first-child { fill:#222; }
-body.dark g#highlight circle { fill:#262626; }
-/* Circular white shapes go to #262626 for a subtle two-tone difference from #222 rectangles */
-body.dark g#attribute circle { fill:#262626; }
-body.dark g#attribute_historized circle { fill:#262626; }
-body.dark g#identifier > circle { fill:#262626; }
-body.dark g#identifier_historized > circle { fill:#262626; }
-/* Selection outer circle was not pure white, leave inner logic alone */
+/* Base shapes - replacing white (#fff) with dark colors */
+body.dark [href="#knot"], body.dark [*|href="#knot"],
+body.dark [href="#nexus"], body.dark [*|href="#nexus"],
+body.dark [href="#tie_historized"], body.dark [*|href="#tie_historized"],
+body.dark [href="#nav_knot"], body.dark [*|href="#nav_knot"],
+body.dark [href="#nav_nexus"], body.dark [*|href="#nav_nexus"],
+body.dark [href="#nav_tie_historized"], body.dark [*|href="#nav_tie_historized"] { 
+    fill: #222 !important; 
+    color: #222 !important;
+}
 
-/* Miniature (nav_*) equivalents */
-body.dark g#nav_knot rect { fill:#222; }
-body.dark g#nav_nexus rect:last-child { fill:#222; }
-body.dark g#nav_tie_historized rect:first-child { fill:#222; }
-body.dark g#nav_attribute circle { fill:#262626; }
-body.dark g#nav_attribute_historized circle { fill:#262626; }
-body.dark g#nav_identifier > circle { fill:#262626; }
-body.dark g#nav_identifier_historized > circle { fill:#262626; }
+body.dark [href="#attribute"], body.dark [*|href="#attribute"],
+body.dark [href="#attribute_historized"], body.dark [*|href="#attribute_historized"],
+body.dark [href="#identifier"], body.dark [*|href="#identifier"],
+body.dark [href="#identifier_historized"], body.dark [*|href="#identifier_historized"],
+body.dark [href="#highlight"], body.dark [*|href="#highlight"],
+body.dark [href="#nav_attribute"], body.dark [*|href="#nav_attribute"],
+body.dark [href="#nav_attribute_historized"], body.dark [*|href="#nav_attribute_historized"],
+body.dark [href="#nav_identifier"], body.dark [*|href="#nav_identifier"],
+body.dark [href="#nav_identifier_historized"], body.dark [*|href="#nav_identifier_historized"] { 
+    fill: #262626 !important; 
+    color: #262626 !important;
+}
+
+body.dark [href="#bubble"], body.dark [*|href="#bubble"] { 
+    fill: #303134 !important;
+    color: #303134 !important;
+}
+
+body.dark [href="#bubbleOutline"], body.dark [*|href="#bubbleOutline"] { 
+    fill: #2a2b2f !important;
+    color: #b4b4b6 !important;
+}
+
+body.dark [href="#one"], body.dark [*|href="#one"],
+
+body.dark [href="#many"], body.dark [*|href="#many"] { 
+    stroke: #e0e0e2 !important;
+    color: #e0e0e2 !important;
+}
+
+/* Base shapes for defs using currentColor to inherit from 'use' */
+
+g#knot rect { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#nexus rect:first-child { fill:#b55; }
+g#nexus rect:last-child  { fill:currentColor; }
+g#tie_historized rect:first-child { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+g#tie_historized rect:last-child  { fill:#a8a8a8; }
+g#attribute circle { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#attribute_historized circle { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+g#identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:currentColor; }
+/* Small outlined bubble (chronicle marker) */
+/* Small outlined bubble (chronicle marker) */
+g#bubble circle { fill:currentColor; stroke:none; }
+g#bubbleOutline circle { fill:inherit; stroke:currentColor; stroke-width:1px; }
+g#one line, g#many line { stroke:currentColor; stroke-width:1px; }
+
+
+
+
+
+
+/* Miniature (nav_*) defs using currentColor */
+
+g#nav_knot rect { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#nav_nexus rect:first-child { fill:#b55; }
+g#nav_nexus rect:last-child { fill:currentColor; }
+g#nav_tie_historized rect:first-child { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+g#nav_tie_historized rect:last-child { fill:#a8a8a8; }
+g#nav_attribute circle { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#nav_attribute_historized circle { fill:currentColor; stroke:#f88; stroke-width:2px; }
+g#nav_identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+g#nav_identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
+
+/* In Light mode, override specific symbol colors that shouldn't be white */
+#graph [href="#bubbleOutline"], #graph [*|href="#bubbleOutline"] { fill: #f9f8f7; color: #000; }
+#graph [href="#one"], #graph [*|href="#one"],
+#graph [href="#many"], #graph [*|href="#many"] { color: #000; }
+
+
+
+/* In Light mode, set the default color to #fff */
+
+#graph, #minigraph { color: #fff; }
+
+
+/* Also keep original defs targeted as absolute fallback */
+body.dark #knot rect,
+body.dark #nexus rect:last-child,
+body.dark #tie_historized rect:first-child,
+body.dark #nav_knot rect,
+body.dark #nav_nexus rect:last-child,
+body.dark #nav_tie_historized rect:first-child { 
+    fill: #222 !important; 
+}
+
+body.dark #attribute circle,
+body.dark #attribute_historized circle,
+body.dark #identifier > circle,
+body.dark #identifier_historized > circle,
+body.dark #highlight circle,
+body.dark #nav_attribute circle,
+body.dark #nav_attribute_historized circle,
+body.dark #nav_identifier > circle,
+body.dark #nav_identifier_historized > circle { 
+    fill: #262626 !important; 
+}
+
+
+
+
+
+
+/* Ties */
+body.dark #nav_tie rect { fill:#666; }
+body.dark #nav_tie_historized rect:last-child { fill:#666; }
+
+
