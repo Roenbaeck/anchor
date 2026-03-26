@@ -11,7 +11,7 @@
 
 /* Base graph text and node label styles */
 #graph { background: transparent; }
-#graph .label {
+#graph .label, #graph .chronicleLabel {
     font-size:          8pt;
     font-family:        "Open Sans", "Verdana", "Helvetica Neue", sans-serif;
     font-weight:        normal;
@@ -20,7 +20,13 @@
     fill:               #000;
     pointer-events:     none;
 }
+#graph .chronicleLabel {
+    font-size:          10px;
+    text-anchor:        middle;
+    dominant-baseline:  central;
+}
 #graph .edge { pointer-events:none; }
+
 #graph .anchor,
 #graph .nexus {
     font-style:italic;
@@ -133,8 +139,10 @@ g#nav_identifier_historized g { fill:#a8a8a8; stroke-width:0; }
    ========================== */
 
 /* Top level containers and labels */
-body.dark #graph .label, body.dark #graph #names.label text { fill: #f2f2f3; }
+body.dark #graph .label, body.dark #graph #names.label text,
+body.dark #graph .chronicleLabel { fill: #f2f2f3; }
 body.dark #graph text { fill: #e0e0e0; }
+
 body.dark #graph #nodes.nodes { stroke: none; }
 body.dark #graph #edges.edges *, body.dark #graph .edges * { stroke: #b4b4b6; }
 body.dark #minigraph #edges.edges *, body.dark #minigraph .edges * { stroke: #b4b4b6; }
@@ -189,7 +197,29 @@ body.dark [href="#nav_identifier_historized"], body.dark [*|href="#nav_identifie
     color: #262626 !important;
 }
 
+body.dark [href="#bubble"], body.dark [*|href="#bubble"] { 
+    fill: #303134 !important;
+    color: #303134 !important;
+}
+
+body.dark [href="#bubbleOutline"], body.dark [*|href="#bubbleOutline"] { 
+    fill: #2a2b2f !important;
+    color: #2a2b2f !important;
+}
+
+body.dark [href="#bubbleOutline"] circle, body.dark [*|href="#bubbleOutline"] circle {
+    stroke: #aaa !important;
+}
+
+
+body.dark [href="#one"], body.dark [*|href="#one"],
+body.dark [href="#many"], body.dark [*|href="#many"] { 
+    stroke: #e0e0e2 !important;
+    color: #e0e0e2 !important;
+}
+
 /* Base shapes for defs using currentColor to inherit from 'use' */
+
 g#knot rect { fill:currentColor; stroke:#f88; stroke-width:2px; }
 g#nexus rect:first-child { fill:#b55; }
 g#nexus rect:last-child  { fill:currentColor; }
@@ -200,8 +230,14 @@ g#attribute_historized circle { fill:currentColor; stroke:#f88; stroke-width:2px
 g#identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 g#identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:currentColor; }
+g#bubble circle { fill:currentColor; stroke:none; }
+g#bubbleOutline circle { fill:currentColor; stroke:#544; stroke-width:1px; }
+g#one line, g#many line { stroke:currentColor; stroke-width:1px; }
+
+
 
 /* Miniature (nav_*) defs using currentColor */
+
 g#nav_knot rect { fill:currentColor; stroke:#f88; stroke-width:2px; }
 g#nav_nexus rect:first-child { fill:#b55; }
 g#nav_nexus rect:last-child { fill:currentColor; }
@@ -212,8 +248,16 @@ g#nav_attribute_historized circle { fill:currentColor; stroke:#f88; stroke-width
 g#nav_identifier > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 g#nav_identifier_historized > circle { fill:currentColor; stroke:#a8a8a8; stroke-width:2px; }
 
+/* In Light mode, override specific symbol colors that shouldn't be white */
+#graph [href="#bubble"], #graph [*|href="#bubble"],
+#graph [href="#bubbleOutline"], #graph [*|href="#bubbleOutline"] { color: #f9f8f7; }
+#graph [href="#one"], #graph [*|href="#one"],
+#graph [href="#many"], #graph [*|href="#many"] { color: #544; }
+
 /* In Light mode, set the default color to #fff */
+
 #graph, #minigraph { color: #fff; }
+
 
 /* Also keep original defs targeted as absolute fallback */
 body.dark #knot rect,
