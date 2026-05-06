@@ -96,7 +96,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.100.4';
+        var VERSION = '0.100.5';
 
         // change to false in beta
         var RELEASE = false;
@@ -2610,7 +2610,8 @@
                 this.svg.showPath(SVGLayer.edges);
                 this.nav.showPath(NAVLayer.edges);
                 this.svg.showName(SVGLayer.names);
-                this.svg.showDebug(SVGLayer.debug);
+                if(DEBUG)
+                    this.svg.showDebug(SVGLayer.debug);
                 this.visible = true;
             },
             postCreationInitialization: function() {
@@ -6963,11 +6964,23 @@
             },
             toggleDebug: function () {
                 DEBUG = !DEBUG;
+                var component;
+                var i = Model.components.length;
                 if(DEBUG) {
                     SVGLayer.show('debugPartitions');
                     SVGLayer.show('debug');
+                    while(i--) {
+                        component = Model.components[i];
+                        if(component.visible)
+                            component.svg.showDebug(SVGLayer.debug);
+                    }
                 }
                 else {
+                    while(i--) {
+                        component = Model.components[i];
+                        if(component.visible)
+                            component.svg.hideDebug(SVGLayer.debug);
+                    }
                     SVGLayer.hide('debug');
                     SVGLayer.hide('debugPartitions');
                 }
