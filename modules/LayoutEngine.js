@@ -407,6 +407,14 @@ var LayoutEngine = {
                         this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes) {
                     node.start();
                 }
+                // If connected endpoints moved directly (for example via drag),
+                // wake the edge even when current velocity is low so it redraws in sync.
+                if(node.type === NodeType.EDGE) {
+                    var midX = (node.node.xPosition + node.otherNode.xPosition) / 2;
+                    var midY = (node.node.yPosition + node.otherNode.yPosition) / 2;
+                    if(Math.abs(node.xPosition - midX) > 0.01 || Math.abs(node.yPosition - midY) > 0.01)
+                        node.start();
+                }
                 // if the node is moving and not fixed then calculate the new position
                 if(node.moving && !node.fixed) {
                     energy += node.velocity;
@@ -521,6 +529,14 @@ var LayoutEngine = {
                 else if(node.velocity >= this.minimumStartingVelocity +
                         this.startingVelocityDelta * numberOfStoppedNodes / numberOfNodes)
                     node.start();
+                // If connected endpoints moved directly (for example via drag),
+                // wake the edge even when current velocity is low so it redraws in sync.
+                if(node.type === NodeType.EDGE) {
+                    var midX = (node.node.xPosition + node.otherNode.xPosition) / 2;
+                    var midY = (node.node.yPosition + node.otherNode.yPosition) / 2;
+                    if(Math.abs(node.xPosition - midX) > 0.01 || Math.abs(node.yPosition - midY) > 0.01)
+                        node.start();
+                }
                 // if the node is moving and not fixed then calculate the new position
                 if(node.moving && !node.fixed) {
                     energy += node.velocity;

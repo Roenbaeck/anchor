@@ -1597,7 +1597,7 @@
                     component = Model.components[i];
                     node = component.node;
                     if(node.visible) {
-                        if(node.moving)
+                        if(node.moving || node.type === NodeType.EDGE)
                             component.draw(component.svg);
                         if(DEBUG)
                             component.drawForce(component.svg);
@@ -2190,6 +2190,7 @@
                             if(EventHandler.getInteraction() === "whileDragging") {
                                 component.node.xPosition = svgPoint.x;
                                 component.node.yPosition = svgPoint.y;
+                                component.node.start();
                                 component.setFixed(true);
                                 component.node.setUnstoppable(true);
                                 DrawingEngine.start(true);
