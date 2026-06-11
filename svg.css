@@ -106,7 +106,7 @@ g#identifier_historized g polygon { stroke-width:1px; stroke-linejoin:round; str
 g#highlight circle { stroke:#ede5e5; stroke-width:10px; fill:#fff; }
 g#selection circle:first-child { fill:#ede5e5; }
 g#selection circle:last-child  { fill:#ede5e5; stroke:#000; stroke-width:1px; }
-g#fixation circle { fill:#000; }
+g#fixation circle { fill:currentColor; }
 /* Small outlined bubble (chronicle marker) */
 g#bubble circle { fill:#f9f8f7; stroke:none; }
 g#bubbleOutline circle { fill:#f9f8f7; stroke:currentColor; stroke-width:1px; }
@@ -163,7 +163,8 @@ body.dark #graph .nexus { fill: #b55 !important; }
 
 
 /* Fixation dot */
-body.dark #graph #fixation circle { fill: #ffffff !important; }
+#graph [href="#fixation"], #graph [*|href="#fixation"] { color:#000; }
+body.dark #graph [href="#fixation"], body.dark #graph [*|href="#fixation"] { color:#ffffff !important; }
 
 /* Bubbles */
 body.dark #graph #bubble circle { fill: #303134 !important; }
