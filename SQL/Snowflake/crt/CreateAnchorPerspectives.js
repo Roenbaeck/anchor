@@ -206,7 +206,35 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.metadataColumnName,
+    ${anchor.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${anchor.mnemonic}$.$attribute.changingColumnName,
+    ${anchor.mnemonic}$.$attribute.positingColumnName,
+    ${anchor.mnemonic}$.$attribute.positorColumnName,
+    ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
+    ${anchor.mnemonic}$.$attribute.assertionColumnName,
+    ${anchor.mnemonic}$.$attribute.reliableColumnName,
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $(attribute.hasChecksum())? ${anchor.mnemonic}$.$attribute.checksumColumnName,
+    ${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+        }
+/*~
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -293,7 +321,35 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     timepoints.inspectedTimepoint,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+            while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.metadataColumnName,
+    ${anchor.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${anchor.mnemonic}$.$attribute.changingColumnName,
+    ${anchor.mnemonic}$.$attribute.positingColumnName,
+    ${anchor.mnemonic}$.$attribute.positorColumnName,
+    ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
+    ${anchor.mnemonic}$.$attribute.assertionColumnName,
+    ${anchor.mnemonic}$.$attribute.reliableColumnName,
+~*/
+                if(attribute.isKnotted()) {
+                    knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                }
+/*~
+    $(attribute.hasChecksum())? ${anchor.mnemonic}$.$attribute.checksumColumnName,
+    ${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+            }
+/*~
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN

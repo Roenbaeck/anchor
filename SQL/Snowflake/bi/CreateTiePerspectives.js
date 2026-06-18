@@ -20,6 +20,7 @@ RETURNS TABLE (
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
 ~*/
     while (role = tie.nextRole()) {
+        var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
         if(role.knot) {
             knot = role.knot;
 /*~
@@ -28,7 +29,7 @@ RETURNS TABLE (
 ~*/
         }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -136,6 +137,7 @@ RETURNS TABLE (
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
 ~*/
     while (role = tie.nextRole()) {
+        var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
         if(role.knot) {
             knot = role.knot;
 /*~
@@ -144,7 +146,7 @@ RETURNS TABLE (
 ~*/
         }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -152,12 +154,30 @@ RETURNS TABLE (
 AS
 $$$$
 SELECT
-    *
+    t.$tie.identityColumnName,
+    $(schema.METADATA)? t.$tie.metadataColumnName,
+    $(tie.isHistorized())? t.$tie.changingColumnName,
+    t.$tie.positingColumnName,
+    t.$tie.reliabilityColumnName,
+~*/
+    while (role = tie.nextRole()) {
+        if(role.knot) {
+            knot = role.knot;
+/*~
+    t.$role.knotValueColumnName,
+    $(schema.METADATA)? t.$role.knotMetadataColumnName,
+~*/
+        }
+/*~
+    t.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+    }
+/*~
 FROM
     TABLE(${tie.capsule}$.t$tie.name(
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange
-    ))
+    )) t
 $$$$
 ;
 
@@ -185,6 +205,7 @@ RETURNS TABLE (
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -193,7 +214,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -201,7 +222,25 @@ RETURNS TABLE (
 AS
 $$$$
 SELECT
-    *
+    t.$tie.identityColumnName,
+    $(schema.METADATA)? t.$tie.metadataColumnName,
+    t.$tie.changingColumnName,
+    t.$tie.positingColumnName,
+    t.$tie.reliabilityColumnName,
+~*/
+        while (role = tie.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    t.$role.knotValueColumnName,
+    $(schema.METADATA)? t.$role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    t.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
 FROM
     TABLE(${tie.capsule}$.t$tie.name(
         $schema.EOT::$schema.metadata.chronon,

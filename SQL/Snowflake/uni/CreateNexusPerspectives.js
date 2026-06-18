@@ -16,7 +16,7 @@ SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
 ~*/
-        var attribute;
+        var attribute, historizedAttribute;
         while (role = nexus.nextRole && nexus.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
@@ -384,34 +384,65 @@ RETURNS TABLE (
 )
 AS
 $$$$
-SELECT
-    timepoints.inspectedTimepoint,
-    timepoints.mnemonic,
-    p${nexus.mnemonic}$.*
-FROM (
 ~*/
-            while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
-                var hasEqHist = attribute.isEquivalent && attribute.isEquivalent() && !(attribute.isKnotted && attribute.isKnotted());
+            while (historizedAttribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
+                var hasEqHist = historizedAttribute.isEquivalent && historizedAttribute.isEquivalent() && !(historizedAttribute.isKnotted && historizedAttribute.isKnotted());
 /*~
-    SELECT DISTINCT
-        $attribute.entityReferenceName AS $nexus.identityColumnName,
-        $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        $(hasEqHist)? TABLE(${attribute.capsule}$.e$attribute.name(0)) : ${attribute.capsule}$.$attribute.name
-    WHERE
-        (selection IS NULL OR selection LIKE '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
-    $(nexus.hasMoreHistorizedAttributes())? UNION
+SELECT DISTINCT
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
+    '$historizedAttribute.mnemonic' AS mnemonic,
+    p${nexus.mnemonic}$.$nexus.identityColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$nexus.metadataColumnName,
+~*/
+                while (role = nexus.nextRole && nexus.nextRole()) {
+                    if(role.knot) {
+                        knot = role.knot;
+/*~
+    $(knot.hasChecksum())? p${nexus.mnemonic}$.$role.knotChecksumColumnName,
+    p${nexus.mnemonic}$.$role.knotValueColumnName,
+    $(knot.isEquivalent())? p${nexus.mnemonic}$.$role.knotEquivalentColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$role.knotMetadataColumnName,
+~*/
+                    }
+/*~
+    p${nexus.mnemonic}$.$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+~*/
+                }
+                while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? p${nexus.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? p${nexus.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? p${nexus.mnemonic}$.$attribute.equivalentColumnName,
+~*/
+                    if(attribute.isKnotted && attribute.isKnotted()) {
+                        knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? p${nexus.mnemonic}$.$attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? p${nexus.mnemonic}$.$attribute.knotEquivalentColumnName,
+    p${nexus.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                    }
+/*~
+    $(attribute.hasChecksum())? p${nexus.mnemonic}$.$attribute.checksumColumnName,
+    p${nexus.mnemonic}$.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
+~*/
+                }
+/*~
+FROM
+    $(hasEqHist)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    TABLE(${nexus.capsule}$.p$nexus.name(h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$nexus.mnemonic
+WHERE
+    (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
+AND
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName BETWEEN intervalStart AND intervalEnd
+AND
+    p${nexus.mnemonic}$.$nexus.identityColumnName = h${historizedAttribute.mnemonic}$.$historizedAttribute.entityReferenceName
+$(nexus.hasMoreHistorizedAttributes())? UNION
 ~*/
             }
 /*~
-) timepoints
-CROSS JOIN LATERAL
-    TABLE(${nexus.capsule}$.p$nexus.name(timepoints.inspectedTimepoint)) p$nexus.mnemonic
-WHERE
-    p${nexus.mnemonic}$.$nexus.identityColumnName = timepoints.$nexus.identityColumnName
 $$$$
 ;
 ~*/
@@ -889,34 +920,65 @@ RETURNS TABLE (
 )
 AS
 $$$$
-SELECT
-    timepoints.inspectedTimepoint,
-    timepoints.mnemonic,
-    p${nexus.mnemonic}$.*
-FROM (
 ~*/
-                while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
-                    var hasEquivalentInDiff = attribute.isEquivalent && attribute.isEquivalent() && !(attribute.isKnotted && attribute.isKnotted());
+                while (historizedAttribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
+                    var hasEquivalentInDiff = historizedAttribute.isEquivalent && historizedAttribute.isEquivalent() && !(historizedAttribute.isKnotted && historizedAttribute.isKnotted());
 /*~
-    SELECT DISTINCT
-        $attribute.entityReferenceName AS $nexus.identityColumnName,
-        $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        $(hasEquivalentInDiff)? TABLE(${attribute.capsule}$.e$attribute.name(equivalent)) : ${attribute.capsule}$.$attribute.name
-    WHERE
-        (selection IS NULL OR selection LIKE '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
-    $(nexus.hasMoreHistorizedAttributes())? UNION
+SELECT DISTINCT
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
+    '$historizedAttribute.mnemonic' AS mnemonic,
+    p${nexus.mnemonic}$.$nexus.identityColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$nexus.metadataColumnName,
+~*/
+                    while (role = nexus.nextRole && nexus.nextRole()) {
+                        if(role.knot) {
+                            knot = role.knot;
+/*~
+    $(knot.hasChecksum())? p${nexus.mnemonic}$.$role.knotChecksumColumnName,
+    p${nexus.mnemonic}$.$role.knotValueColumnName,
+    $(knot.isEquivalent())? p${nexus.mnemonic}$.$role.knotEquivalentColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$role.knotMetadataColumnName,
+~*/
+                        }
+/*~
+    p${nexus.mnemonic}$.$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+~*/
+                    }
+                    while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? p${nexus.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? p${nexus.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? p${nexus.mnemonic}$.$attribute.equivalentColumnName,
+~*/
+                        if(attribute.isKnotted && attribute.isKnotted()) {
+                            knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? p${nexus.mnemonic}$.$attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? p${nexus.mnemonic}$.$attribute.knotEquivalentColumnName,
+    p${nexus.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? p${nexus.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                        }
+/*~
+    $(attribute.hasChecksum())? p${nexus.mnemonic}$.$attribute.checksumColumnName,
+    p${nexus.mnemonic}$.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
+~*/
+                    }
+/*~
+FROM
+    $(hasEquivalentInDiff)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    TABLE(${nexus.capsule}$.ep$nexus.name(equivalent, h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$nexus.mnemonic
+WHERE
+    (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
+AND
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName BETWEEN intervalStart AND intervalEnd
+AND
+    p${nexus.mnemonic}$.$nexus.identityColumnName = h${historizedAttribute.mnemonic}$.$historizedAttribute.entityReferenceName
+$(nexus.hasMoreHistorizedAttributes())? UNION
 ~*/
                 }
 /*~
-) timepoints
-CROSS JOIN LATERAL
-    TABLE(${nexus.capsule}$.ep$nexus.name(equivalent, timepoints.inspectedTimepoint)) p$nexus.mnemonic
-WHERE
-    p${nexus.mnemonic}$.$nexus.identityColumnName = timepoints.$nexus.identityColumnName
 $$$$
 ;
 ~*/

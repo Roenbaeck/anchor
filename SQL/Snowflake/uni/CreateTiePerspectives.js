@@ -95,6 +95,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
     while (role = tie.nextRole()) {
+        var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
         if(role.knot) {
             knot = role.knot;
 /*~
@@ -105,7 +106,7 @@ RETURNS TABLE (
 ~*/
         }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
@@ -217,6 +218,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -227,7 +229,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -295,6 +297,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -305,7 +308,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -330,6 +333,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -340,7 +344,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -440,6 +444,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -450,7 +455,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -479,6 +484,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
             while (role = tie.nextRole()) {
+                var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
                 if(role.knot) {
                     knot = role.knot;
 /*~
@@ -489,7 +495,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
             }
 /*~

@@ -236,7 +236,48 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.$nexus.identityColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
+~*/
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? ${nexus.mnemonic}$.$role.knotChecksumColumnName,
+    ${nexus.mnemonic}$.$role.knotValueColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    ${nexus.mnemonic}$.$role.columnName$(nexus.hasMoreAttributes())?,
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${nexus.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$attribute.metadataColumnName,
+    ${nexus.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${nexus.mnemonic}$.$attribute.changingColumnName,
+    ${nexus.mnemonic}$.$attribute.positingColumnName,
+    ${nexus.mnemonic}$.$attribute.positorColumnName,
+    ${nexus.mnemonic}$.$attribute.reliabilityColumnName,
+    ${nexus.mnemonic}$.$attribute.assertionColumnName,
+    ${nexus.mnemonic}$.$attribute.reliableColumnName,
+~*/
+            if(attribute.isKnotted && attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${nexus.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${nexus.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $(attribute.hasChecksum())? ${nexus.mnemonic}$.$attribute.checksumColumnName,
+    ${nexus.mnemonic}$.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
+~*/
+        }
+/*~
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -327,7 +368,48 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     tp.inspectedTimepoint,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.$nexus.identityColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
+~*/
+            while (role = nexus.nextRole && nexus.nextRole()) {
+                if(role.knot) {
+                    knot = role.knot;
+/*~
+    $(knot.hasChecksum())? ${nexus.mnemonic}$.$role.knotChecksumColumnName,
+    ${nexus.mnemonic}$.$role.knotValueColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$role.knotMetadataColumnName,
+~*/
+                }
+/*~
+    ${nexus.mnemonic}$.$role.columnName$(nexus.hasMoreAttributes())?,
+~*/
+            }
+            while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${nexus.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$attribute.metadataColumnName,
+    ${nexus.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${nexus.mnemonic}$.$attribute.changingColumnName,
+    ${nexus.mnemonic}$.$attribute.positingColumnName,
+    ${nexus.mnemonic}$.$attribute.positorColumnName,
+    ${nexus.mnemonic}$.$attribute.reliabilityColumnName,
+    ${nexus.mnemonic}$.$attribute.assertionColumnName,
+    ${nexus.mnemonic}$.$attribute.reliableColumnName,
+~*/
+                if(attribute.isKnotted && attribute.isKnotted()) {
+                    knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${nexus.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${nexus.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${nexus.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                }
+/*~
+    $(attribute.hasChecksum())? ${nexus.mnemonic}$.$attribute.checksumColumnName,
+    ${nexus.mnemonic}$.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
+~*/
+            }
+/*~
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN (

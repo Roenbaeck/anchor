@@ -21,6 +21,7 @@ RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -30,7 +31,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -117,6 +118,7 @@ RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -126,7 +128,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
@@ -142,7 +144,28 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
-    t.*
+    $(schema.METADATA)? t.$tie.metadataColumnName,
+~*/
+        while (role = tie.nextRole()) {
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? t.$role.knotChecksumColumnName,
+    t.$role.knotValueColumnName,
+    $(schema.METADATA)? t.$role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    t.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
+    $(tie.isHistorized())? t.$tie.changingColumnName,
+    t.$tie.positingColumnName,
+    t.$tie.positorColumnName,
+    t.$tie.reliabilityColumnName,
+    t.$tie.assertionColumnName,
+    t.$tie.reliableColumnName
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -187,6 +210,7 @@ RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
 ~*/
             while (role = tie.nextRole()) {
+                var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
                 if(role.knot) {
                     knot = role.knot;
 /*~
@@ -196,7 +220,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
             }
 /*~
@@ -212,7 +236,28 @@ $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     tp.inspectedTimepoint,
-    t.*
+    $(schema.METADATA)? t.$tie.metadataColumnName,
+~*/
+            while (role = tie.nextRole()) {
+                if(role.knot) {
+                    knot = role.knot;
+/*~
+    $(knot.hasChecksum())? t.$role.knotChecksumColumnName,
+    t.$role.knotValueColumnName,
+    $(schema.METADATA)? t.$role.knotMetadataColumnName,
+~*/
+                }
+/*~
+    t.$role.columnName$(tie.hasMoreRoles())?,
+~*/
+            }
+/*~
+    t.$tie.changingColumnName,
+    t.$tie.positingColumnName,
+    t.$tie.positorColumnName,
+    t.$tie.reliabilityColumnName,
+    t.$tie.assertionColumnName,
+    t.$tie.reliableColumnName
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN (
