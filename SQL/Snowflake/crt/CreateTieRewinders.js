@@ -23,7 +23,7 @@ RETURNS TABLE (
     $tie.changingColumnName $tie.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $tie.identityColumnName,
 ~*/
@@ -38,7 +38,7 @@ FROM
     ${tie.capsule}$.$tie.positName
 WHERE
     $tie.changingColumnName <= changingTimepoint
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.positName (
@@ -56,7 +56,7 @@ RETURNS TABLE (
     $tie.changingColumnName $tie.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $tie.identityColumnName,
 ~*/
@@ -71,7 +71,7 @@ FROM
     ${tie.capsule}$.$tie.positName
 WHERE
     $tie.changingColumnName > changingTimepoint
-$$
+$$$$
 ;
 ~*/
     }
@@ -89,7 +89,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? $tie.metadataColumnName,
     $tie.identityColumnName,
@@ -102,7 +102,7 @@ FROM
     ${tie.capsule}$.$tie.annexName
 WHERE
     $tie.positingColumnName <= positingTimepoint
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.name (
@@ -128,7 +128,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? a.$tie.metadataColumnName,
     p.$tie.identityColumnName,
@@ -158,7 +158,7 @@ QUALIFY
         PARTITION BY p.$tie.identityColumnName
         ORDER BY a.$tie.positingColumnName DESC
     ) = 1
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.name (
@@ -184,7 +184,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? a.$tie.metadataColumnName,
     p.$tie.identityColumnName,
@@ -214,7 +214,7 @@ QUALIFY
         PARTITION BY p.$tie.identityColumnName
         ORDER BY a.$tie.positingColumnName DESC
     ) = 1
-$$
+$$$$
 ;
 ~*/
 }

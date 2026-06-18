@@ -12,15 +12,22 @@
 var knot;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
-        knot.identityGenerator = 'IDENTITY(1,1)';
+        knot.identityGenerator = 'default ' + knot.capsule + '.' + knot.identitySequenceName + '.nextval';
     if(schema.EQUIVALENCE && knot.isEquivalent()) {
         var scheme = schema.PARTITIONING ? ' PARTITION BY (' + knot.equivalentColumnName + ')' : '';
 /*~
 -- Knot identity table ------------------------------------------------------------------------------------------------
 -- $knot.identityName table
 -----------------------------------------------------------------------------------------------------------------------
+~*/
+    if(knot.isGenerator()) {
+/*~
+CREATE SEQUENCE IF NOT EXISTS ${knot.capsule}$.$knot.identitySequenceName START 1 INCREMENT 1;
+~*/
+    }
+/*~
 CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.identityName (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+    $knot.identityColumnName $(knot.isGenerator())? $knot.identity $knot.identityGenerator not null, : $knot.identity not null,
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
         $knot.identityColumnName
@@ -56,8 +63,15 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name table
 -----------------------------------------------------------------------------------------------------------------------
+~*/
+    if(knot.isGenerator()) {
+/*~
+CREATE SEQUENCE IF NOT EXISTS ${knot.capsule}$.$knot.identitySequenceName START 1 INCREMENT 1;
+~*/
+    }
+/*~
 CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
-    $knot.identityColumnName $(knot.isGenerator())? $knot.identityGenerator not null, : $knot.identity not null,
+    $knot.identityColumnName $(knot.isGenerator())? $knot.identity $knot.identityGenerator not null, : $knot.identity not null,
     $knot.valueColumnName $knot.dataRange not null,
     $(knot.hasChecksum())? $knot.checksumColumnName numeric(19,0) default hash($knot.valueColumnName),
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,

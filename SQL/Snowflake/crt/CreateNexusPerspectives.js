@@ -62,7 +62,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
@@ -155,7 +155,7 @@ ON
             }
             if(!(nexus.hasMoreAttributes && nexus.hasMoreAttributes())) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -232,7 +232,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
@@ -246,7 +246,7 @@ CROSS JOIN LATERAL
         $schema.EOT::$schema.metadata.positingRange,
         '+'
     )) $nexus.mnemonic
-$$
+$$$$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -323,7 +323,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     tp.inspectedTimepoint,
@@ -361,7 +361,7 @@ CROSS JOIN LATERAL
     )) $nexus.mnemonic
 WHERE
     ${nexus.mnemonic}$.$nexus.identityColumnName = tp.$nexus.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }

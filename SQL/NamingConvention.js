@@ -11,6 +11,7 @@ var knot;
 while (knot = schema.nextKnot()) {
     knot.name = knot.mnemonic + D + knot.descriptor;
     knot.identityName = knot.name + D + schema.metadata.identitySuffix;
+    knot.identitySequenceName = knot.identityName + D + 'SEQ';
     knot.equivalentName = knot.name + D + schema.metadata.equivalentSuffix;
     knot.businessName = knot.descriptor;
     knot.valueColumnName = knot.name;
@@ -21,7 +22,6 @@ while (knot = schema.nextKnot()) {
     knot.metadataColumnName = schema.metadata.metadataPrefix + D + knot.mnemonic;
     knot.toString = function() { return this.mnemonic; };
 }
-
 // warn about naming clashes for business names
 if(schema.BUSINESS_VIEWS) {
     var knots = {};
@@ -45,6 +45,7 @@ while (anchor = schema.nextAnchor()) {
     anchor.name = anchor.mnemonic + D + anchor.descriptor;
     anchor.businessName = anchor.descriptor;
     anchor.identityColumnName = anchor.mnemonic + D + schema.metadata.identitySuffix;
+    anchor.identitySequenceName = anchor.name + D + schema.metadata.identitySuffix + D + 'SEQ';
     anchor.capsule = anchor.metadata.capsule || schema.metadata.encapsulation;
     anchor.metadataColumnName = schema.metadata.metadataPrefix + D + anchor.mnemonic;
     anchor.dummyColumnName = anchor.mnemonic + D + schema.metadata.dummySuffix;

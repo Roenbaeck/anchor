@@ -55,7 +55,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
@@ -143,7 +143,7 @@ ON
             }
             if(!(nexus.hasMoreAttributes && nexus.hasMoreAttributes())) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -207,7 +207,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     $nexus.mnemonic.*
@@ -216,7 +216,7 @@ FROM
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange
     )) $nexus.mnemonic
-$$
+$$$$
 ;
 
 CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
@@ -280,7 +280,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     tp.inspectedTimepoint,
     $nexus.mnemonic.*
@@ -310,7 +310,7 @@ CROSS JOIN LATERAL
     )) $nexus.mnemonic
 WHERE
     ${nexus.mnemonic}$.$nexus.identityColumnName = tp.$nexus.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }

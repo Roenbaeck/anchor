@@ -7,10 +7,17 @@
 var knot;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
-        knot.identityGenerator = 'IDENTITY(1,1)';
+        knot.identityGenerator = 'default ' + knot.capsule + '.' + knot.identitySequenceName + '.nextval';
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
+~*/
+    if(knot.isGenerator()) {
+/*~
+CREATE SEQUENCE IF NOT EXISTS ${knot.capsule}$.$knot.identitySequenceName START 1 INCREMENT 1;
+~*/
+    }
+/*~
 CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identity $knot.identityGenerator not null, : $knot.identity not null,
     $knot.valueColumnName $knot.dataRange not null,

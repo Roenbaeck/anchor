@@ -43,13 +43,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -120,7 +129,7 @@ ON
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -178,13 +187,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
@@ -198,7 +216,7 @@ CROSS JOIN LATERAL
         $schema.EOT::$schema.metadata.positingRange,
         '+'
     )) $anchor.mnemonic
-$$
+$$$$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -256,13 +274,22 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     timepoints.inspectedTimepoint,
@@ -301,7 +328,7 @@ CROSS JOIN LATERAL
     )) $anchor.mnemonic
 WHERE
     ${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }

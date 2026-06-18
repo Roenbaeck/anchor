@@ -122,13 +122,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -234,7 +243,7 @@ ON
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -284,13 +293,22 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
@@ -319,7 +337,7 @@ CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.p$anchor.name(timepoints.inspectedTimepoint)) p$anchor.mnemonic
 WHERE
     p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }
@@ -353,18 +371,27 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
@@ -395,13 +422,22 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -507,7 +543,7 @@ ON
                 }
                 if(!anchor.hasMoreAttributes()) {
                     /*~
-$$
+$$$$
 ;
 ~*/
                 }
@@ -541,18 +577,27 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 ~*/
             if(anchor.hasMoreHistorizedAttributes()) {
@@ -590,13 +635,22 @@ RETURNS TABLE (
                     }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                    if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                    }
+                    else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                    }
                 }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
@@ -625,7 +679,7 @@ CROSS JOIN LATERAL
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, timepoints.inspectedTimepoint)) p$anchor.mnemonic
 WHERE
     p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
             }

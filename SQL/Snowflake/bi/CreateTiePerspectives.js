@@ -34,7 +34,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     t.$tie.identityColumnName,
     $(schema.METADATA)? t.$tie.metadataColumnName,
@@ -112,7 +112,7 @@ AND
             sub.$tie.positingColumnName DESC
         LIMIT 1
     )
-$$
+$$$$
 ;
 
 CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name AS
@@ -150,7 +150,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
@@ -158,7 +158,7 @@ FROM
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange
     ))
-$$
+$$$$
 ;
 
 CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name AS
@@ -199,7 +199,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
@@ -209,7 +209,7 @@ FROM
     )) t
 WHERE
     t.$tie.changingColumnName BETWEEN intervalStart AND intervalEnd
-$$
+$$$$
 ;
 ~*/
     }

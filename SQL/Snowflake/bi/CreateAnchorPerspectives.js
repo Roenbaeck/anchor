@@ -37,13 +37,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -109,7 +118,7 @@ ON
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -154,13 +163,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     $anchor.mnemonic.*
@@ -169,7 +187,7 @@ FROM
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
-$$
+$$$$
 ;
 
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
@@ -214,13 +232,22 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     tp.inspectedTimepoint,
     $anchor.mnemonic.*
@@ -250,7 +277,7 @@ CROSS JOIN LATERAL
     )) $anchor.mnemonic
 WHERE
     ${anchor.mnemonic}$.$anchor.identityColumnName = tp.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }

@@ -26,7 +26,7 @@ RETURNS TABLE (
     $attribute.valueColumnName $attribute.dataRange
 )
 AS
-$$
+$$$$
     SELECT
         $attribute.entityReferenceName,
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
@@ -38,7 +38,7 @@ $$
         ${attribute.capsule}$.$attribute.name
     WHERE
         $attribute.equivalentColumnName = equivalent
-$$
+$$$$
 ;
 ~*/
     }

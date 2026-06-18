@@ -42,7 +42,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? t.$tie.metadataColumnName,
 ~*/
@@ -85,7 +85,7 @@ ON
 /*~
 WHERE
     t.$tie.assertionColumnName = coalesce(assertion, t.$tie.assertionColumnName)
-$$
+$$$$
 ;
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
@@ -152,7 +152,7 @@ CROSS JOIN LATERAL
         $schema.EOT::$schema.metadata.positingRange,
         '+'
     )) t
-$$
+$$$$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -208,7 +208,7 @@ RETURNS TABLE (
     $tie.reliableColumnName int
 )
 AS
-$$
+$$$$
 SELECT
     p.$schema.metadata.positorSuffix,
     tp.inspectedTimepoint,
@@ -233,7 +233,7 @@ CROSS JOIN LATERAL
         $schema.EOT::$schema.metadata.positingRange,
         '+'
     )) t
-$$
+$$$$
 ;
 ~*/
         }

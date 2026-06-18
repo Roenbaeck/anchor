@@ -21,7 +21,7 @@ RETURNS TABLE (
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $attribute.identityColumnName,
     $attribute.entityReferenceName,
@@ -32,7 +32,7 @@ FROM
     ${attribute.capsule}$.$attribute.positName
 WHERE
     $attribute.changingColumnName <= changingTimepoint
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.f$attribute.positName (
@@ -46,7 +46,7 @@ RETURNS TABLE (
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $attribute.identityColumnName,
     $attribute.entityReferenceName,
@@ -57,7 +57,7 @@ FROM
     ${attribute.capsule}$.$attribute.positName
 WHERE
     $attribute.changingColumnName > changingTimepoint
-$$
+$$$$
 ;
 ~*/
     }
@@ -72,7 +72,7 @@ RETURNS TABLE (
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? $attribute.metadataColumnName,
     $attribute.identityColumnName,
@@ -82,7 +82,7 @@ FROM
     ${attribute.capsule}$.$attribute.annexName
 WHERE
     $attribute.positingColumnName <= positingTimepoint
-$$
+$$$$
 ;
 ~*/
     if(attribute.isHistorized()) {
@@ -102,7 +102,7 @@ RETURNS TABLE (
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? a.$attribute.metadataColumnName,
     p.$attribute.identityColumnName,
@@ -123,7 +123,7 @@ QUALIFY
         PARTITION BY p.$attribute.identityColumnName
         ORDER BY a.$attribute.positingColumnName DESC
     ) = 1
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.f$attribute.name (
@@ -141,7 +141,7 @@ RETURNS TABLE (
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? a.$attribute.metadataColumnName,
     p.$attribute.identityColumnName,
@@ -162,7 +162,7 @@ QUALIFY
         PARTITION BY p.$attribute.identityColumnName
         ORDER BY a.$attribute.positingColumnName DESC
     ) = 1
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.pre$attribute.name (
@@ -172,7 +172,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.pre$attribute.name (
 )
 RETURNS $returnType
 AS
-$$
+$$$$
 SELECT
     $(attribute.hasChecksum())? pre.$attribute.checksumColumnName : pre.$attribute.valueColumnName
 FROM
@@ -187,7 +187,7 @@ ORDER BY
     pre.$attribute.changingColumnName DESC,
     pre.$attribute.positingColumnName DESC
 LIMIT 1
-$$
+$$$$
 ;
 
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.fol$attribute.name (
@@ -197,7 +197,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.fol$attribute.name (
 )
 RETURNS $returnType
 AS
-$$
+$$$$
 SELECT
     $(attribute.hasChecksum())? fol.$attribute.checksumColumnName : fol.$attribute.valueColumnName
 FROM
@@ -212,7 +212,7 @@ ORDER BY
     fol.$attribute.changingColumnName ASC,
     fol.$attribute.positingColumnName DESC
 LIMIT 1
-$$
+$$$$
 ;
 ~*/
     }
@@ -231,7 +231,7 @@ RETURNS TABLE (
     $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? a.$attribute.metadataColumnName,
     p.$attribute.identityColumnName,
@@ -251,7 +251,7 @@ QUALIFY
         PARTITION BY p.$attribute.identityColumnName
         ORDER BY a.$attribute.positingColumnName DESC
     ) = 1
-$$
+$$$$
 ;
 ~*/
     }

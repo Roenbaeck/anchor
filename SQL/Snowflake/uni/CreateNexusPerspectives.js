@@ -175,7 +175,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
@@ -314,7 +314,7 @@ ON
             }
             if(!nexus.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -383,7 +383,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
@@ -412,7 +412,7 @@ CROSS JOIN LATERAL
     TABLE(${nexus.capsule}$.p$nexus.name(timepoints.inspectedTimepoint)) p$nexus.mnemonic
 WHERE
     p${nexus.mnemonic}$.$nexus.identityColumnName = timepoints.$nexus.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }
@@ -466,7 +466,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
@@ -578,7 +578,7 @@ ON
                 }
                 if(!nexus.hasMoreAttributes()) {
                     /*~
-$$
+$$$$
 ;
 ~*/
                 }
@@ -633,7 +633,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
@@ -772,7 +772,7 @@ ON
                 }
                 if(!nexus.hasMoreAttributes()) {
                     /*~
-$$
+$$$$
 ;
 ~*/
                 }
@@ -826,12 +826,12 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${nexus.capsule}$.ep$nexus.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 ~*/
             if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
@@ -888,7 +888,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     timepoints.inspectedTimepoint,
     timepoints.mnemonic,
@@ -917,7 +917,7 @@ CROSS JOIN LATERAL
     TABLE(${nexus.capsule}$.ep$nexus.name(equivalent, timepoints.inspectedTimepoint)) p$nexus.mnemonic
 WHERE
     p${nexus.mnemonic}$.$nexus.identityColumnName = timepoints.$nexus.identityColumnName
-$$
+$$$$
 ;
 ~*/
             }

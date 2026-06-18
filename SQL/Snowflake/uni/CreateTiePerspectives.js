@@ -111,7 +111,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -192,7 +192,7 @@ WHERE
 ~*/
     }
 /*~
-$$
+$$$$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -233,7 +233,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -278,7 +278,7 @@ ON
 /*~
 WHERE
     tie.$tie.changingColumnName BETWEEN intervalStart AND intervalEnd
-$$
+$$$$
 ;
 ~*/
     }
@@ -311,12 +311,12 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
@@ -346,7 +346,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -427,7 +427,7 @@ WHERE
 ~*/
         }
 /*~
-$$
+$$$$
 ;
 
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
@@ -456,12 +456,12 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 ~*/
         if(tie.isHistorized()) {
@@ -495,7 +495,7 @@ RETURNS TABLE (
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -540,7 +540,7 @@ ON
 /*~
 WHERE
     tie.$tie.changingColumnName BETWEEN intervalStart AND intervalEnd
-$$
+$$$$
 ;
 ~*/
         }
