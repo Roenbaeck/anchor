@@ -37,13 +37,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -109,7 +118,7 @@ ON
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -154,22 +163,56 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+        while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.metadataColumnName,
+    ${anchor.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${anchor.mnemonic}$.$attribute.changingColumnName,
+    ${anchor.mnemonic}$.$attribute.positingColumnName,
+    ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $(attribute.hasChecksum())? ${anchor.mnemonic}$.$attribute.checksumColumnName,
+    ${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+        }
+/*~
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         changingTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange
     )) $anchor.mnemonic
-$$
+$$$$
 ;
 
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
@@ -214,16 +257,50 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     tp.inspectedTimepoint,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+            while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? ${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.metadataColumnName,
+    ${anchor.mnemonic}$.$attribute.identityColumnName,
+    $(attribute.timeRange)? ${anchor.mnemonic}$.$attribute.changingColumnName,
+    ${anchor.mnemonic}$.$attribute.positingColumnName,
+    ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
+~*/
+                if(attribute.isKnotted()) {
+                    knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? ${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    ${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? ${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                }
+/*~
+    $(attribute.hasChecksum())? ${anchor.mnemonic}$.$attribute.checksumColumnName,
+    ${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+            }
+/*~
 FROM (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {
@@ -250,7 +327,7 @@ CROSS JOIN LATERAL
     )) $anchor.mnemonic
 WHERE
     ${anchor.mnemonic}$.$anchor.identityColumnName = tp.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }

@@ -16,7 +16,7 @@ SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
-        var attribute, knot;
+        var attribute, knot, historizedAttribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
     $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
@@ -122,13 +122,22 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+            if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+            }
+            else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+            }
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -234,7 +243,7 @@ ON
             }
             if(!anchor.hasMoreAttributes()) {
                 /*~
-$$
+$$$$
 ;
 ~*/
             }
@@ -284,42 +293,68 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
-SELECT
-    timepoints.inspectedTimepoint,
-    timepoints.mnemonic,
-    p${anchor.mnemonic}$.*
-FROM (
+$$$$
 ~*/
-            while (attribute = anchor.nextHistorizedAttribute()) {
-                var historizedEquivalentAttribute = attribute.isEquivalent() && !attribute.isKnotted();
+            while (historizedAttribute = anchor.nextHistorizedAttribute()) {
+                var historizedEquivalentAttribute = historizedAttribute.isEquivalent() && !historizedAttribute.isKnotted();
 /*~
-    SELECT DISTINCT
-        $attribute.entityReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        $(historizedEquivalentAttribute)? TABLE(${attribute.capsule}$.e$attribute.name(0)) : ${attribute.capsule}$.$attribute.name
-    WHERE
-        (selection IS NULL OR selection LIKE '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
-    $(anchor.hasMoreHistorizedAttributes())? UNION
+SELECT DISTINCT
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
+    '$historizedAttribute.mnemonic' AS mnemonic,
+    p${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+                while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? p${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? p${anchor.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? p${anchor.mnemonic}$.$attribute.equivalentColumnName,
+~*/
+                    if(attribute.isKnotted()) {
+                        knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? p${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? p${anchor.mnemonic}$.$attribute.knotEquivalentColumnName,
+    p${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                    }
+/*~
+    $(attribute.hasChecksum())? p${anchor.mnemonic}$.$attribute.checksumColumnName,
+    p${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+                }
+/*~
+FROM
+    $(historizedEquivalentAttribute)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    TABLE(${anchor.capsule}$.p$anchor.name(h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$anchor.mnemonic
+WHERE
+    (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
+AND
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName BETWEEN intervalStart AND intervalEnd
+AND
+    p${anchor.mnemonic}$.$anchor.identityColumnName = h${historizedAttribute.mnemonic}$.$historizedAttribute.entityReferenceName
+$(anchor.hasMoreHistorizedAttributes())? UNION
 ~*/
             }
 /*~
-) timepoints
-CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.p$anchor.name(timepoints.inspectedTimepoint)) p$anchor.mnemonic
-WHERE
-    p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
         }
@@ -353,18 +388,27 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
@@ -395,13 +439,22 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
@@ -507,7 +560,7 @@ ON
                 }
                 if(!anchor.hasMoreAttributes()) {
                     /*~
-$$
+$$$$
 ;
 ~*/
                 }
@@ -541,18 +594,27 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 ~*/
             if(anchor.hasMoreHistorizedAttributes()) {
@@ -590,42 +652,68 @@ RETURNS TABLE (
                     }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
 ~*/
+                    if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                    }
+                    else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                    }
                 }
 /*~
 )
 AS
-$$
-SELECT
-    timepoints.inspectedTimepoint,
-    timepoints.mnemonic,
-    p${anchor.mnemonic}$.*
-FROM (
+$$$$
 ~*/
-                while (attribute = anchor.nextHistorizedAttribute()) {
-                    var hasEquivalentHistorized = attribute.isEquivalent() && !attribute.isKnotted();
+                while (historizedAttribute = anchor.nextHistorizedAttribute()) {
+                    var hasEquivalentHistorized = historizedAttribute.isEquivalent() && !historizedAttribute.isKnotted();
 /*~
-    SELECT DISTINCT
-        $attribute.entityReferenceName AS $anchor.identityColumnName,
-        $attribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
-        '$attribute.mnemonic' AS mnemonic
-    FROM
-        $(hasEquivalentHistorized)? TABLE(${attribute.capsule}$.e$attribute.name(equivalent)) : ${attribute.capsule}$.$attribute.name
-    WHERE
-        (selection IS NULL OR selection LIKE '%$attribute.mnemonic%')
-    AND
-        $attribute.changingColumnName BETWEEN intervalStart AND intervalEnd
-    $(anchor.hasMoreHistorizedAttributes())? UNION
+SELECT DISTINCT
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint,
+    '$historizedAttribute.mnemonic' AS mnemonic,
+    p${anchor.mnemonic}$.$anchor.identityColumnName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$anchor.metadataColumnName,
+~*/
+                    while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? p${anchor.mnemonic}$.$attribute.entityReferenceName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$attribute.metadataColumnName,
+    $(attribute.timeRange)? p${anchor.mnemonic}$.$attribute.changingColumnName,
+    $(attribute.isEquivalent())? p${anchor.mnemonic}$.$attribute.equivalentColumnName,
+~*/
+                        if(attribute.isKnotted()) {
+                            knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? p${anchor.mnemonic}$.$attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? p${anchor.mnemonic}$.$attribute.knotEquivalentColumnName,
+    p${anchor.mnemonic}$.$attribute.knotValueColumnName,
+    $(schema.METADATA)? p${anchor.mnemonic}$.$attribute.knotMetadataColumnName,
+~*/
+                        }
+/*~
+    $(attribute.hasChecksum())? p${anchor.mnemonic}$.$attribute.checksumColumnName,
+    p${anchor.mnemonic}$.$attribute.valueColumnName$(anchor.hasMoreAttributes())?,
+~*/
+                    }
+/*~
+FROM
+    $(hasEquivalentHistorized)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$anchor.mnemonic
+WHERE
+    (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
+AND
+    h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName BETWEEN intervalStart AND intervalEnd
+AND
+    p${anchor.mnemonic}$.$anchor.identityColumnName = h${historizedAttribute.mnemonic}$.$historizedAttribute.entityReferenceName
+$(anchor.hasMoreHistorizedAttributes())? UNION
 ~*/
                 }
 /*~
-) timepoints
-CROSS JOIN LATERAL
-    TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, timepoints.inspectedTimepoint)) p$anchor.mnemonic
-WHERE
-    p${anchor.mnemonic}$.$anchor.identityColumnName = timepoints.$anchor.identityColumnName
-$$
+$$$$
 ;
 ~*/
             }

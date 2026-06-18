@@ -95,6 +95,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
     while (role = tie.nextRole()) {
+        var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
         if(role.knot) {
             knot = role.knot;
 /*~
@@ -105,13 +106,13 @@ RETURNS TABLE (
 ~*/
         }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
     }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -192,7 +193,7 @@ WHERE
 ~*/
     }
 /*~
-$$
+$$$$
 ;
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
@@ -217,6 +218,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -227,13 +229,13 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -278,7 +280,7 @@ ON
 /*~
 WHERE
     tie.$tie.changingColumnName BETWEEN intervalStart AND intervalEnd
-$$
+$$$$
 ;
 ~*/
     }
@@ -295,6 +297,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -305,18 +308,18 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
@@ -330,6 +333,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -340,13 +344,13 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -427,7 +431,7 @@ WHERE
 ~*/
         }
 /*~
-$$
+$$$$
 ;
 
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
@@ -440,6 +444,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
         while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
             if(role.knot) {
                 knot = role.knot;
 /*~
@@ -450,18 +455,18 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
         }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     *
 FROM
     TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$
+$$$$
 ;
 ~*/
         if(tie.isHistorized()) {
@@ -479,6 +484,7 @@ RETURNS TABLE (
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
 ~*/
             while (role = tie.nextRole()) {
+                var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
                 if(role.knot) {
                     knot = role.knot;
 /*~
@@ -489,13 +495,13 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
 ~*/
             }
 /*~
 )
 AS
-$$
+$$$$
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,
@@ -540,7 +546,7 @@ ON
 /*~
 WHERE
     tie.$tie.changingColumnName BETWEEN intervalStart AND intervalEnd
-$$
+$$$$
 ;
 ~*/
         }

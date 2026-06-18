@@ -31,7 +31,7 @@ RETURNS TABLE (
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
-$$
+$$$$
     SELECT
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.entityReferenceName,
@@ -43,7 +43,7 @@ $$
         $(equivalentSource)? TABLE(${attribute.capsule}$.e$attribute.name(equivalent)) : ${attribute.capsule}$.$attribute.name
     WHERE
         $attribute.changingColumnName <= changingTimepoint
-$$
+$$$$
 ;
 ~*/
     }

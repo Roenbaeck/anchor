@@ -42,7 +42,7 @@ RETURNS TABLE (
     $knot.valueColumnName $knot.dataRange
 )
 AS
-$$
+$$$$
     SELECT
         $(schema.METADATA)? $knot.metadataColumnName,
         $knot.identityColumnName,
@@ -53,7 +53,7 @@ $$
         ${knot.capsule}$.$knot.name
     WHERE
         $knot.equivalentColumnName = equivalent
-$$
+$$$$
 ;
 ~*/
 
