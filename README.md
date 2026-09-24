@@ -6,6 +6,8 @@ Anchor Modeler is a database modeling tool for creating database models that han
 
 See http://www.anchormodeling.com for more information on Anchor Modeling.
 
+The constructs used in models, and when to use each of them, are explained in [docs/ANCHOR.md](docs/ANCHOR.md).
+
 The tool can be downloaded and hosted on any web server. It is written in HTML5 and runs entirely in the client, with optional connection to the Cloud for loading and saving models.
 
 A short course in Anchor Modeling using the tool can be found on [YouTube](https://www.youtube.com/watch?v=xr-yyDtkCHQ&list=PLF1451D5701662AD8&spfreload=10).
