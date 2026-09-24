@@ -402,6 +402,11 @@
                     if(Defaults.hasOwnProperty(def) && Defaults[def])
                         metadata.setAttribute(def, Defaults[def]);
                 schemaElement.appendChild(metadata);
+                if(this.description) {
+                    var description = schema.createElement('description');
+                    description.textContent = this.description;
+                    schemaElement.appendChild(description);
+                }
                 for(var i = 0; i < this.components.length; i++) {
                     var componentElement = this.components[i].toXML(schema);
                     if(componentElement !== null)
@@ -422,6 +427,10 @@
                     var schemaElement = xml.documentElement;
                     var metadata = schemaElement.getElementsByTagName('metadata');
                     var i, def, val, defaults, listOfChanges = [];
+                    // a model level description is a direct child of the schema element
+                    for(i = 0; i < schemaElement.childNodes.length; i++)
+                        if(schemaElement.childNodes.item(i).nodeName === 'description')
+                            this.description = schemaElement.childNodes.item(i).textContent;
                     if(metadata && metadata.length > 0) {
                         metadata = metadata[0]; // from NodeList to Node
                         if(metadata && metadata.hasAttributes && metadata.hasAttributes()) {
@@ -2763,7 +2772,7 @@
             addDescriptionXML: function(element, schema, description) {
                 if(!this.isEmpty(description)) {
                     var descriptionElement = schema.createElement("description");
-                    descriptionElement.innerHTML = description;
+                    descriptionElement.textContent = description;
                     element.appendChild(descriptionElement);
                 }
             },
@@ -4545,10 +4554,12 @@
                                 roleElement.appendChild(keyElem);
                             }
                         }
+                        this.addDescriptionXML(roleElement, schema, r.description);
                         nexus.appendChild(roleElement);
                     }
                 }
                 this.addLayoutXML(nexus, schema);
+                this.addDescriptionXML(nexus, schema, this.description);
                 return nexus;
             },
             fromXML: function(element) {
@@ -4583,7 +4594,12 @@
                 nexus.identity = identity;
                 nexus.generator = generator;
                 nexus.encapsulation = capsule;
-                
+                var description;
+                for(i = 0; i < element.childNodes.length; i++)
+                    if(element.childNodes.item(i).nodeName === 'description')
+                        description = element.childNodes.item(i);
+                nexus.description = (description && description.firstChild) ? description.firstChild.nodeValue : '';
+
                 // Parse attributes (similar to Anchor)
                 var attributes = element.getElementsByTagName("attribute");
                 for(i = 0; i < attributes.length; i++) {

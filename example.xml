@@ -2,109 +2,188 @@
     <!--
     <metadata businessViews="true"/>
     -->
+    <description>Example model of a theatre business: stages (venues) where programs (shows) are played by actors, and the individual events (performances) at which a program is played on a stage.</description>
     <knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
+        <description>Kind of parent-child relationship between two actors, such as biological or adoptive parent.</description>
         <metadata equivalent="true"/>
     </knot>
     <knot mnemonic="GEN" descriptor="Gender" identity="bit" dataRange="varchar(42)">
+        <description>Gender of an actor.</description>
         <metadata equivalent="true"/>
     </knot>
     <knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="varchar(max)">
+        <description>Professional level of an actor, describing experience and seniority, such as amateur, trained or professional.</description>
         <metadata checksum="true"/>
     </knot>
     <knot mnemonic="UTL" descriptor="Utilization" identity="tinyint" dataRange="tinyint">
+        <description>Utilization expressed as a percentage (0-100) of the capacity of a stage that is in use.</description>
         <metadata equivalent="true"/>
     </knot>
-    <knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)"/>
-    <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)"/>
-    <knot mnemonic="ETY" descriptor="EventType" identity="tinyint" dataRange="varchar(42)"/>
+    <knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)">
+        <description>Yes or No flag indicating whether a relationship is still ongoing or has ended.</description>
+    </knot>
+    <knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)">
+        <description>Rating of how well an actor performs a part in a program, such as good, mediocre or bad.</description>
+    </knot>
+    <knot mnemonic="ETY" descriptor="EventType" identity="tinyint" dataRange="varchar(42)">
+        <description>Type of event, such as premiere, regular performance, rehearsal or gala.</description>
+    </knot>
 
-    <anchor mnemonic="PN" descriptor="Person" identity="int"/>
+    <anchor mnemonic="PN" descriptor="Person" identity="int">
+        <description>A person. Persons who perform are also registered as actors.</description>
+    </anchor>
     <anchor mnemonic="ST" descriptor="Stage" identity="int">
+        <description>A stage or venue where programs are played and events are held.</description>
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+            <description>Name of the stage. Historized, since a stage may be renamed over time.</description>
             <metadata equivalent="true"/>
             <key stop="1" route="2nd" of="ST" branch="1"/>
         </attribute>
         <attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
+            <description>Geographic location of the stage as a geography point.</description>
             <key stop="1" route="1st" of="ST" branch="1"/>
             <key stop="3" route="1st" of="EV" branch="2"/>
             <metadata checksum="true"/>
         </attribute>
         <attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL">
+            <description>Average utilization of the stage capacity, recalculated over time.</description>
             <metadata restatable="false" idempotent="true"/>
         </attribute>
         <attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL">
+            <description>Minimum utilization of the stage capacity required for a performance to take place.</description>
             <metadata deletable="true"/>
         </attribute>
         <identifier route="1st"/>
         <identifier route="2nd"/>
     </anchor>
     <anchor mnemonic="AC" descriptor="Actor" identity="int">
+        <description>An actor, a person who performs parts in programs and is cast in events.</description>
         <attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+            <description>Name of the actor, such as a stage name. Historized, since it may change over time.</description>
             <metadata restatable="false" idempotent="false"/>
             <key stop="1" route="1st" of="AC"/>
         </attribute>
-        <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN"/>
+        <attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN">
+            <description>Gender of the actor.</description>
+        </attribute>
         <attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV">
+            <description>Professional level of the actor, which may change as the actor gains experience.</description>
             <metadata restatable="true" idempotent="false"/>
         </attribute>
         <identifier route="1st"/>
     </anchor>
     <anchor mnemonic="PR" descriptor="Program" identity="int">
+        <description>A program, such as a play, show or concert, that can be played on stages.</description>
         <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
+            <description>Name or title of the program.</description>
             <metadata equivalent="true"/>
             <key stop="1" route="1st" of="PR" branch="1"/>
             <key stop="5" route="1st" of="EV" branch="3"/>
         </attribute>
         <attribute mnemonic="LEN" descriptor="Length" timeRange="date" dataRange="time">
+            <description>Running time of the program. Historized, since the program may be shortened or extended over time.</description>
             <metadata restatable="true" idempotent="true"/>
         </attribute>
         <identifier route="1st"/>
     </anchor>
     <nexus mnemonic="EV" descriptor="Event" identity="int">
+        <description>An event, a single performance of a program held at a stage at a specific date and time.</description>
         <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime" chronicle="1">
+            <description>Date and time when the event took place.</description>
             <key stop="1" route="1st" of="EV" branch="1"/>
         </attribute>
-        <attribute mnemonic="AUD" descriptor="Audience" dataRange="int"/>
-        <attribute mnemonic="REV" descriptor="Revenue" dataRange="money"/>
+        <attribute mnemonic="AUD" descriptor="Audience" dataRange="int">
+            <description>Number of people in the audience at the event.</description>
+        </attribute>
+        <attribute mnemonic="REV" descriptor="Revenue" dataRange="money">
+            <description>Revenue from ticket sales for the event.</description>
+        </attribute>
         <role role="wasHeldAt" type="ST" identifier="false">
+            <description>The stage at which the event was held.</description>
             <key stop="2" route="1st" of="EV" branch="2"/>
         </role>
         <role role="wasPlayed" type="PR" identifier="false">
+            <description>The program that was played at the event.</description>
             <key stop="4" route="1st" of="EV" branch="3"/>
         </role>
-        <role role="of" type="ETY" identifier="false"/>
+        <role role="of" type="ETY" identifier="false">
+            <description>The type of the event.</description>
+        </role>
         <identifier route="1st"/>
     </nexus>
     <tie timeRange="datetime">
-        <role role="exclusive" type="AC" identifier="false"/>
-        <role role="with" type="AC" identifier="false"/>
-        <role role="currently" type="ONG" identifier="false"/>
+        <description>Marriage or domestic partnership between two actors. This is a one-to-one relationship, since an actor can have at most one partner at any point in time. History is never deleted, so the end of a partnership is recorded by changing its ongoing status to No.</description>
+        <role role="partner" type="AC" identifier="false">
+            <description>One of the actors in the partnership.</description>
+        </role>
+        <role role="with" type="AC" identifier="false">
+            <description>The other actor in the partnership.</description>
+        </role>
+        <role role="currently" type="ONG" identifier="false">
+            <description>Whether the partnership is still ongoing (Yes) or has ended (No).</description>
+        </role>
     </tie>
     <tie>
-        <role role="subset" type="AC" identifier="false"/>
-        <role role="of" type="PN" identifier="false"/>
+        <description>Connects an actor to the person that the actor is. Every actor is a person, but not every person is an actor.</description>
+        <role role="subset" type="AC" identifier="false">
+            <description>The actor.</description>
+        </role>
+        <role role="of" type="PN" identifier="false">
+            <description>The person who is the actor.</description>
+        </role>
     </tie>
     <tie>
-        <role role="in" type="EV" identifier="true"/>
-        <role role="wasCast" type="AC" identifier="true"/>
+        <description>The actors that were cast in an event, meaning those who performed at that performance.</description>
+        <role role="in" type="EV" identifier="true">
+            <description>The event the actor was cast in.</description>
+        </role>
+        <role role="wasCast" type="AC" identifier="true">
+            <description>An actor cast in the event.</description>
+        </role>
     </tie>
     <tie timeRange="datetime">
-        <role role="part" type="AC" identifier="true"/>
-        <role role="in" type="PR" identifier="true"/>
-        <role role="got" type="RAT" identifier="false"/>
+        <description>Actors having a part in a program, along with a rating of how well they perform the part. Historized, since the rating may change over time.</description>
+        <role role="part" type="AC" identifier="true">
+            <description>The actor having a part in the program.</description>
+        </role>
+        <role role="in" type="PR" identifier="true">
+            <description>The program the actor has a part in.</description>
+        </role>
+        <role role="got" type="RAT" identifier="false">
+            <description>The rating the actor got for the part.</description>
+        </role>
     </tie>
     <tie timeRange="datetime">
-        <role role="at" type="ST" identifier="true"/>
-        <role role="isPlaying" type="PR" identifier="true"/>
+        <description>Programs that are currently playing at stages, meaning which stage is running which program. Historized over time.</description>
+        <role role="at" type="ST" identifier="true">
+            <description>The stage where the program is playing.</description>
+        </role>
+        <role role="isPlaying" type="PR" identifier="true">
+            <description>The program playing at the stage.</description>
+        </role>
     </tie>
     <tie>
-        <role role="parent" type="AC" identifier="true"/>
-        <role role="child" type="AC" identifier="true"/>
-        <role role="having" type="PAT" identifier="true"/>
+        <description>Parent-child relationships between actors, along with the type of parental relationship.</description>
+        <role role="parent" type="AC" identifier="true">
+            <description>The actor who is the parent.</description>
+        </role>
+        <role role="child" type="AC" identifier="true">
+            <description>The actor who is the child.</description>
+        </role>
+        <role role="having" type="PAT" identifier="true">
+            <description>The type of parental relationship.</description>
+        </role>
     </tie>
     <tie>
-        <role role="content" type="PR" identifier="false"/>
-        <role role="location" type="ST" identifier="false"/>
-        <role role="of" type="EV" identifier="true"/>
+        <description>The program content and stage location of an event, connecting each event to what was played and where. This deliberately repeats the wasHeldAt and wasPlayed roles of the Event nexus, to show that the same fact can be modeled either as nexus roles or as a tie.</description>
+        <role role="content" type="PR" identifier="false">
+            <description>The program that made up the content of the event.</description>
+        </role>
+        <role role="location" type="ST" identifier="false">
+            <description>The stage where the event was located.</description>
+        </role>
+        <role role="of" type="EV" identifier="true">
+            <description>The event.</description>
+        </role>
     </tie>
 </schema>
