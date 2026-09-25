@@ -38,41 +38,28 @@ tables a query against a perspective does not use.
 
 ## Constructs at a glance
 
-| Construct | XML element | Models | Becomes in the database |
-|---|---|---|---|
-| [Anchor](#anchor) | `<anchor>` | A thing with an identity, such as an actor or a stage | A table with one identity column |
-| [Attribute](#attribute) | `<attribute>` | A property of an anchor or nexus, such as a name | A table of values, keyed by the owner's identity |
-| [Knot](#knot) | `<knot>` | A small, shared set of values, such as genders | A lookup table of identities and values |
-| [Tie](#tie) | `<tie>` | A relationship between anchors, such as who is cast in what | A table with one column per role |
-| [Nexus](#nexus) | `<nexus>` | An event with its own identity and properties, such as a performance | A table holding the identity and its role references |
-| [Role](#role) | `<role>` | How an anchor, nexus or knot takes part in a tie or nexus | A column in the tie or nexus table |
-| [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (SQL Server only, so far) |
+| Symbol | Construct | XML element | Models | Becomes in the database |
+|---|---|---|---|---|
+| <img src="images/anchor.svg" height="24" alt="Anchor: filled red square"> | [Anchor](#anchor) | `<anchor>` | A thing with an identity, such as an actor or a stage | A table with one identity column |
+| <img src="images/attribute.svg" height="24" alt="Attribute: circle"> <img src="images/attribute_historized.svg" height="24" alt="Historized attribute: double circle"> | [Attribute](#attribute) | `<attribute>` | A property of an anchor or nexus, such as a name | A table of values, keyed by the owner's identity |
+| <img src="images/knot.svg" height="24" alt="Knot: rounded square"> | [Knot](#knot) | `<knot>` | A small, shared set of values, such as genders | A lookup table of identities and values |
+| <img src="images/tie.svg" height="24" alt="Tie: filled grey diamond"> <img src="images/tie_historized.svg" height="24" alt="Historized tie: double diamond"> | [Tie](#tie) | `<tie>` | A relationship between anchors, such as who is cast in what | A table with one column per role |
+| <img src="images/nexus.svg" height="24" alt="Nexus: red square with a white diamond inside"> | [Nexus](#nexus) | `<nexus>` | An event with its own identity and properties, such as a performance | A table holding the identity and its role references |
+| <img src="images/role.svg" height="24" alt="Role: line with a single bar"> <img src="images/role_identifier.svg" height="24" alt="Identifier role: line with three bars"> | [Role](#role) | `<role>` | How an anchor, nexus or knot takes part in a tie or nexus | A column in the tie or nexus table |
+| <img src="images/identifier.svg" height="24" alt="Identifier: grey circle with a keyhole"> <img src="images/identifier_historized.svg" height="24" alt="Historized identifier: double grey circle with a keyhole"> | [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (SQL Server only, so far) |
+
+Where a construct has two symbols, the second, doubled outline marks the historized variant. On a
+role, a single bar marks a role that is not an identifier and three bars mark an identifier role.
 
 Most constructs can also carry a `<description>`, a `<metadata>` element with settings, and a
 `<layout>` element with the diagram position.
 
 ## The example model
 
-```mermaid
-flowchart LR
-    PN[Person]
-    AC[Actor]
-    ST[Stage]
-    PR[Program]
-    EV([Event])
-    AC -- subset of --- PN
-    AC -- partner with --- AC
-    AC -- parent / child --- AC
-    AC -- part in --- PR
-    ST -- at / is playing --- PR
-    EV -- was held at --> ST
-    EV -- was played --> PR
-    EV -- in / was cast --- AC
-```
+![The example model as drawn in the modeler](images/example.svg)
 
 Stages (venues) play programs (shows). Actors have parts in programs and are cast in events.
-An event is one performance of a program on a stage at a certain time. Knots, such as gender and
-rating, are left out of the diagram.
+An event is one performance of a program on a stage at a certain time.
 
 ## Anchor
 

@@ -3,19 +3,30 @@
 *****************************************************************************************************************
     XML Schema definition for Anchor Modeling initially made by Lars Rönnbäck in 2009.
 
-    RECENT UPDATES (2025-09-25)
+    Models are written by the modeler without a namespace, so this schema has no target namespace.
+    The assertions require an XML Schema 1.1 processor. A 1.0 processor can validate the structure
+    if the xs:assert elements are removed.
+
+    RECENT UPDATES (2026-09-25)
+    - Removed the target namespace, to match the XML the modeler reads and writes.
+    - Added the chronicle attribute on attributes, marking those that place a nexus in time.
+    - Added the optional identity attribute on attributes, ties and identifiers (posit identities in crt and bi).
+    - Identifiers may carry metadata, layout and description, like other constructs.
+    - Allowed the serialization element under schema (added by the modeler when generating code).
+    - Assertions updated:
+            * Tie must reference at least two anchors or nexuses (duplicates allowed).
+            * Roles in a nexus are never identifiers.
+            * Every knotRange, in anchors and nexuses, references an existing knot.
+            * Every identifier route is made up by keys of that anchor or nexus.
+            * Mnemonics are unique across anchors and nexuses together.
+            * Two roles in a tie may not have both the same role name and the same type.
+
+    UPDATES (2025-09-25)
     - Unified role model: <anchorRole>/<knotRole> replaced by a single <role> element (with optional coloring, keys, metadata, layout, description).
     - Introduced <nexus> construct treating nexuses as first-class entities with attributes, roles, identifiers.
     - Added reusable <key> element (stop, route, of, branch) allowed inside <attribute> and <role>.
     - Added <identifier route="..."/> under anchors and nexuses (aligns with UI route-based identifiers).
     - Updated <tie> to use unified <role>; legacy role element names deprecated.
-    - Added assertions:
-            * Tie must reference at least two anchors (duplicates allowed).
-            * Nexus must contain at least one non-knot role (anchor reference).
-            * Role/@type validation extended to anchors, nexuses, knots per context.
-            * Key/@of must reference existing anchor or nexus.
-            * Mnemonic uniqueness extended to nexuses; attribute uniqueness enforced per anchor and per nexus.
-    - Serialization parity: supports keys within nexus roles and deterministic route ordering in visualization layer.
 
     HISTORICAL CHANGES
     2014-05-21  Assertions commented out to comply with XML Schema v1.0.
@@ -23,12 +34,7 @@
     2015-11-25  Added xpathDefaultNamespace="##defaultNamespace" for assertions.
 *****************************************************************************************************************
 -->
-<xs:schema 
-    xmlns:xs="http://www.w3.org/2001/XMLSchema" 
-    xmlns="http://anchormodeling.com/schema" 
-    targetNamespace="http://anchormodeling.com/schema" 
-    xpathDefaultNamespace="##defaultNamespace"
-    elementFormDefault="qualified">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 <xs:simpleType name="name">
     <xs:restriction base="xs:string"/>
 </xs:simpleType>
@@ -46,7 +52,7 @@
         <xs:element name="metadata" maxOccurs="1"/>
         <xs:element name="layout" maxOccurs="1"/>
         <xs:element name="description" maxOccurs="1"/>
-    </xs:choice>    
+    </xs:choice>
 </xs:group>
 <!-- Unified key/route infrastructure -->
 <xs:complexType name="key">
@@ -57,7 +63,12 @@
 </xs:complexType>
 
 <xs:complexType name="identifier">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:group ref="construct"/>
+    </xs:choice>
     <xs:attribute name="route" type="name" use="required"/>
+    <!-- posit identity, only in concurrent-reliance-temporal (crt) and bitemporal (bi) models -->
+    <xs:attribute name="identity" type="identity" use="optional"/>
 </xs:complexType>
 
 <xs:complexType name="role">
@@ -89,6 +100,10 @@
     <xs:attribute name="knotRange" type="name" use="optional"/>
     <xs:attribute name="dataRange" type="dataType" use="optional"/>
     <xs:attribute name="timeRange" type="timeType" use="optional"/>
+    <!-- 0 or absent means not a chronicle; 1 and up places the owning nexus in time, in that order -->
+    <xs:attribute name="chronicle" type="xs:nonNegativeInteger" use="optional"/>
+    <!-- posit identity, only in concurrent-reliance-temporal (crt) and bitemporal (bi) models -->
+    <xs:attribute name="identity" type="identity" use="optional"/>
     <!-- only one of a knotRange and a dataRange may be specified -->
     <xs:assert test="count(@knotRange) + count(@dataRange) = 1"/>
 </xs:complexType>
@@ -113,8 +128,8 @@
     <xs:attribute name="mnemonic" type="name" use="required"/>
     <xs:attribute name="descriptor" type="name" use="required"/>
     <xs:attribute name="identity" type="identity" use="required"/>
-    <!-- Each nexus must have at least one non-knot role (i.e. a role referencing an anchor) -->
-    <xs:assert test="count(role[@type = /schema/anchor/@mnemonic]) &gt;= 1"/>
+    <!-- The nexus identity identifies it, so its roles are never identifiers -->
+    <xs:assert test="every $r in role satisfies not($r/@identifier = 'true')"/>
 </xs:complexType>
 <xs:complexType name="tie">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -122,8 +137,8 @@
         <xs:element name="role" type="role" minOccurs="2" maxOccurs="unbounded"/>
     </xs:choice>
     <xs:attribute name="timeRange" type="timeType" use="optional"/>
-    <!-- A tie must reference at least two anchors (duplicates allowed) -->
-    <xs:assert test="count(role[@type = /schema/anchor/@mnemonic]) &gt;= 2"/>
+    <!-- posit identity, only in concurrent-reliance-temporal (crt) and bitemporal (bi) models -->
+    <xs:attribute name="identity" type="identity" use="optional"/>
 </xs:complexType>
 <xs:complexType name="schema">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -132,23 +147,34 @@
         <xs:element name="anchor" type="anchor"/>
         <xs:element name="nexus" type="nexus"/>
         <xs:element name="tie" type="tie"/>
+        <!-- a serialized copy of the model, added by the modeler when generating code -->
+        <xs:element name="serialization" type="xs:string"/>
     </xs:choice>
     <xs:anyAttribute processContents="lax"/>
-    <!-- every knotRange references an existing knot -->
-    <xs:assert test="every $k in anchor/attribute/@knotRange satisfies knot[@mnemonic = $k]"/>
+    <!--
+    Assertions only see the element they are declared on, so those that relate constructs to each other are
+    declared here. Quantified and for expressions keep the schema element as context, while predicates do not.
+    -->
+    <!-- a tie must reference at least two anchors or nexuses (duplicates allowed) -->
+    <xs:assert test="every $t in tie satisfies count(for $r in $t/role return if($r/@type = (anchor/@mnemonic, nexus/@mnemonic)) then 1 else ()) &gt;= 2"/>
+    <!-- a nexus must reference at least one anchor -->
+    <xs:assert test="every $n in nexus satisfies exists(for $r in $n/role return if($r/@type = anchor/@mnemonic) then 1 else ())"/>
+    <!-- every knotRange, in anchors and nexuses, references an existing knot -->
+    <xs:assert test="every $k in (anchor/attribute/@knotRange | nexus/attribute/@knotRange) satisfies knot[@mnemonic = $k]"/>
     <!-- every role in a tie references an existing anchor, nexus, or knot -->
     <xs:assert test="every $r in tie/role/@type satisfies anchor[@mnemonic = $r] or nexus[@mnemonic = $r] or knot[@mnemonic = $r]"/>
     <!-- every role in a nexus references an existing anchor or knot -->
     <xs:assert test="every $r in nexus/role/@type satisfies anchor[@mnemonic = $r] or knot[@mnemonic = $r]"/>
     <!-- every key/@of references an existing anchor or nexus -->
     <xs:assert test="every $o in (anchor/attribute/key/@of | nexus/attribute/key/@of | nexus/role/key/@of | tie/role/key/@of) satisfies anchor[@mnemonic = $o] or nexus[@mnemonic = $o]"/>
+    <!-- every identifier route is made up by keys of that anchor or nexus -->
+    <xs:assert test="every $i in (anchor/identifier | nexus/identifier) satisfies exists(descendant::key[@of = $i/../@mnemonic and @route = $i/@route])"/>
     <!-- two ties may not be equal in their composition -->
     <xs:assert test="not(some $t1 in tie, $t2 in $t1/preceding-sibling::tie satisfies deep-equal($t1,$t2))"/>
-    <!-- two roles within the same tie may not be equal in their composition (by deep equality) -->
-    <xs:assert test="not(some $t1 in tie/role, $t2 in $t1/preceding-sibling::role satisfies deep-equal($t1,$t2))"/>
-    <!-- uniqueness of mnemonics -->
-    <xs:assert test="not(some $t1 in anchor, $t2 in $t1/preceding-sibling::anchor satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
-    <xs:assert test="not(some $t1 in nexus, $t2 in $t1/preceding-sibling::nexus satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
+    <!-- two roles within the same tie may not have both the same role name and the same type -->
+    <xs:assert test="not(some $r1 in tie/role, $r2 in $r1/preceding-sibling::role satisfies $r1/@role = $r2/@role and $r1/@type = $r2/@type)"/>
+    <!-- uniqueness of mnemonics, where anchors and nexuses share the same set since roles refer to both -->
+    <xs:assert test="not(some $t1 in (anchor | nexus), $t2 in $t1/preceding-sibling::*[self::anchor or self::nexus] satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
     <xs:assert test="not(some $t1 in knot, $t2 in $t1/preceding-sibling::knot satisfies $t1/@mnemonic = $t2/@mnemonic)"/>
     <!-- attribute mnemonic uniqueness within each anchor and within each nexus -->
     <xs:assert test="not(some $a1 in anchor/attribute, $a2 in $a1/preceding-sibling::attribute satisfies $a1/@mnemonic = $a2/@mnemonic)"/>

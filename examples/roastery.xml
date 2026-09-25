@@ -1,0 +1,154 @@
+<schema>
+    <description>A specialty coffee roastery that buys beans from farms around the world, roasts them in batches, supplies its own cafés, and has its baristas taste and score every coffee.</description>
+
+    <knot mnemonic="CNT" descriptor="Country" identity="tinyint" dataRange="varchar(42)">
+        <description>Country where coffee is grown, such as Ethiopia, Colombia, Kenya or Guatemala.</description>
+    </knot>
+    <knot mnemonic="PRC" descriptor="ProcessingMethod" identity="tinyint" dataRange="varchar(42)">
+        <description>How the coffee cherry is removed from the bean after harvest, such as washed, natural, honey or anaerobic. Strongly affects flavor.</description>
+    </knot>
+    <knot mnemonic="RLV" descriptor="RoastLevel" identity="tinyint" dataRange="varchar(42)">
+        <description>How far a batch is roasted: light, medium or dark.</description>
+    </knot>
+    <knot mnemonic="FLV" descriptor="FlavorNote" identity="tinyint" dataRange="varchar(42)">
+        <description>A flavor note from the coffee flavor wheel, such as blueberry, jasmine, dark chocolate, caramel or citrus.</description>
+    </knot>
+    <knot mnemonic="DRK" descriptor="DrinkType" identity="tinyint" dataRange="varchar(42)">
+        <description>Way a coffee is prepared and served, such as espresso, filter, pour-over or cold brew.</description>
+    </knot>
+
+    <anchor mnemonic="FA" descriptor="Farm" identity="int">
+        <description>A coffee farm or washing station that the roastery buys green beans from.</description>
+        <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(100)">
+            <description>Name of the farm.</description>
+        </attribute>
+        <attribute mnemonic="CNT" descriptor="Country" knotRange="CNT">
+            <description>Country where the farm is located.</description>
+        </attribute>
+        <attribute mnemonic="ALT" descriptor="Altitude" dataRange="int">
+            <description>Altitude of the farm in meters above sea level. Higher altitudes usually give denser beans with more acidity.</description>
+        </attribute>
+    </anchor>
+    <anchor mnemonic="BE" descriptor="Bean" identity="int">
+        <description>A lot of green coffee beans bought from a farm, sold under its own name.</description>
+        <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(100)">
+            <description>Name the coffee is sold under, such as Yirgacheffe Kochere.</description>
+        </attribute>
+        <attribute mnemonic="VAR" descriptor="Variety" dataRange="varchar(50)">
+            <description>Botanical variety of the coffee plant, such as Geisha, Bourbon, Typica or SL28.</description>
+        </attribute>
+        <attribute mnemonic="PRC" descriptor="Process" knotRange="PRC">
+            <description>Processing method used for this lot.</description>
+        </attribute>
+        <attribute mnemonic="PRI" descriptor="Price" timeRange="date" dataRange="numeric(6,2)">
+            <description>Price paid per kilogram of green beans, in euros. Historized, since prices change with every harvest and contract.</description>
+        </attribute>
+    </anchor>
+    <anchor mnemonic="CA" descriptor="Cafe" identity="int">
+        <description>A café run by the roastery, where its coffee is brewed and served.</description>
+        <attribute mnemonic="NAM" descriptor="Name" timeRange="date" dataRange="varchar(100)">
+            <description>Name of the café. Historized, since cafés are sometimes rebranded.</description>
+        </attribute>
+        <attribute mnemonic="CTY" descriptor="City" dataRange="varchar(100)">
+            <description>City where the café is located.</description>
+        </attribute>
+        <attribute mnemonic="SEA" descriptor="Seats" timeRange="date" dataRange="int">
+            <description>Number of seats in the café. Historized, since it changes with renovations and outdoor seating seasons.</description>
+        </attribute>
+    </anchor>
+    <anchor mnemonic="BA" descriptor="Barista" identity="int">
+        <description>A barista who brews coffee in the cafés and takes part in cuppings.</description>
+        <attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(100)">
+            <description>Name of the barista.</description>
+        </attribute>
+        <attribute mnemonic="SIG" descriptor="SignatureDrink" timeRange="date" dataRange="varchar(100)">
+            <description>The drink the barista is currently known for. Historized, since every barista reinvents it now and then.</description>
+        </attribute>
+    </anchor>
+
+    <nexus mnemonic="RO" descriptor="Roast" identity="int">
+        <description>A single roast batch, in which one bean is roasted to a chosen level.</description>
+        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime" chronicle="1">
+            <description>Date and time when the batch was roasted.</description>
+        </attribute>
+        <attribute mnemonic="WGT" descriptor="Weight" dataRange="numeric(6,1)">
+            <description>Weight of the roasted batch in kilograms.</description>
+        </attribute>
+        <attribute mnemonic="DUR" descriptor="Duration" dataRange="int">
+            <description>Length of the roast in seconds, from charging the drum to dropping the beans.</description>
+        </attribute>
+        <role role="roasted" type="BE" identifier="false">
+            <description>The bean that was roasted.</description>
+        </role>
+        <role role="to" type="RLV" identifier="false">
+            <description>The level the batch was roasted to.</description>
+        </role>
+    </nexus>
+    <nexus mnemonic="CU" descriptor="Cupping" identity="int">
+        <description>A cupping, a standardized tasting in which a barista scores a coffee and notes its most striking flavor.</description>
+        <attribute mnemonic="DAT" descriptor="Date" dataRange="datetime" chronicle="1">
+            <description>Date and time of the cupping.</description>
+        </attribute>
+        <attribute mnemonic="SCR" descriptor="Score" dataRange="numeric(4,1)">
+            <description>Cupping score on the specialty coffee scale from 0 to 100, where 80 or more counts as specialty coffee.</description>
+        </attribute>
+        <role role="tasted" type="BE" identifier="false">
+            <description>The bean that was tasted.</description>
+        </role>
+        <role role="by" type="BA" identifier="false">
+            <description>The barista who did the tasting.</description>
+        </role>
+        <role role="found" type="FLV" identifier="false">
+            <description>The dominant flavor note found in the cup.</description>
+        </role>
+    </nexus>
+
+    <tie>
+        <description>The farm a bean was grown at. Every bean comes from exactly one farm, while a farm can supply many beans.</description>
+        <role role="grown" type="BE" identifier="true">
+            <description>The bean.</description>
+        </role>
+        <role role="at" type="FA" identifier="false">
+            <description>The farm where the bean was grown.</description>
+        </role>
+    </tie>
+    <tie timeRange="date">
+        <description>The menu of each café: which beans it serves, and prepared in which ways. Historized, since menus rotate with the seasons.</description>
+        <role role="serves" type="CA" identifier="true">
+            <description>The café serving the coffee.</description>
+        </role>
+        <role role="served" type="BE" identifier="true">
+            <description>The bean on the menu.</description>
+        </role>
+        <role role="as" type="DRK" identifier="true">
+            <description>How the bean is prepared.</description>
+        </role>
+    </tie>
+    <tie timeRange="date">
+        <description>The café where a barista works. A barista works at one café at a time, but may move between cafés over time.</description>
+        <role role="employed" type="BA" identifier="true">
+            <description>The barista.</description>
+        </role>
+        <role role="at" type="CA" identifier="false">
+            <description>The café the barista works at.</description>
+        </role>
+    </tie>
+    <tie>
+        <description>Who trained whom. Every barista is trained by one more experienced barista, who may train many.</description>
+        <role role="trainee" type="BA" identifier="true">
+            <description>The barista who was trained.</description>
+        </role>
+        <role role="trainer" type="BA" identifier="false">
+            <description>The barista who did the training.</description>
+        </role>
+    </tie>
+    <tie>
+        <description>Deliveries of roast batches to cafés. A batch can be split between several cafés.</description>
+        <role role="delivered" type="RO" identifier="true">
+            <description>The roast batch that was delivered.</description>
+        </role>
+        <role role="to" type="CA" identifier="true">
+            <description>The café that received the delivery.</description>
+        </role>
+    </tie>
+</schema>

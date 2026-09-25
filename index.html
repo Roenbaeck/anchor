@@ -5775,69 +5775,84 @@
                 }
                 selector.value = selected;
             },
-            toSVGDataURL: function(image) {
+            // serializes an SVG with all styling inlined, so it looks the same outside the modeler
+            toSVGString: function(image) {
                 // Clone the live SVG so we don't mutate what's on screen
                 var graph = image.cloneNode(true);
                 // Remove transient viewport helper if present
                 var viewport = graph.getElementById('viewport');
                 if(viewport) graph.removeChild(viewport);
+                // Replace every <use> with a real copy of the symbol it references. Symbols get their colors
+                // through currentColor and selectors on their surroundings (such as the layer they are in),
+                // which only resolve correctly where each symbol is used, not inside <defs>.
+                var uses = graph.querySelectorAll('use'), copies = [];
+                for(var u = 0; u < uses.length; u++) {
+                    var use = uses[u];
+                    var href = use.getAttribute('href') || use.getAttributeNS(XLINKNS, 'href');
+                    var symbol = href ? image.querySelector(href) : null;
+                    if(!symbol) continue;
+                    // the copy keeps the symbol id, so selectors such as g#one match it
+                    var copy = symbol.cloneNode(true);
+                    for(var a = 0; a < use.attributes.length; a++) {
+                        var attribute = use.attributes[a];
+                        if(['x', 'y', 'width', 'height'].indexOf(attribute.localName) < 0 && attribute.localName !== 'href')
+                            copy.setAttribute(attribute.name, attribute.value);
+                    }
+                    // temporary, so that selectors such as [href="#one"] match the copy as they match the use
+                    copy.setAttribute('href', href);
+                    var x = use.getAttribute('x') || 0, y = use.getAttribute('y') || 0;
+                    if(x || y)
+                        copy.setAttribute('transform', (copy.getAttribute('transform') || '') + ' translate(' + x + ',' + y + ')');
+                    use.parentNode.replaceChild(copy, use);
+                    copies.push(copy);
+                }
+                // Properties worth preserving for visual fidelity
+                var STYLE_PROPS = [
+                    'fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray',
+                    'stroke-dashoffset','opacity','fill-opacity','stroke-opacity','paint-order','font-family','font-size',
+                    'font-weight','font-style','text-anchor','dominant-baseline'
+                ];
+                // Attach the copy, hidden, so the page's CSS (including the current theme) applies to it in the
+                // same context as on screen, and inline the computed styles
+                var rootStyle = graph.getAttribute('style');
+                graph.style.position = 'absolute';
+                graph.style.visibility = 'hidden';
+                graph.style.pointerEvents = 'none';
+                document.body.appendChild(graph);
                 try {
-                    // Inline computed styles so that theme-dependent CSS (e.g. dark mode) is preserved
-                    // Collect all elements from original and clone in DOM order (querySelectorAll is depth-first)
-                    var originalEls = image.querySelectorAll('*');
-                    var cloneEls = graph.querySelectorAll('*');
-                    var len = Math.min(originalEls.length, cloneEls.length);
-                    // Properties worth preserving for visual fidelity
-                    var STYLE_PROPS = [
-                        'fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray',
-                        'stroke-dashoffset','opacity','fill-opacity','stroke-opacity','font-family','font-size',
-                        'font-weight','font-style','text-anchor','dominant-baseline'
-                    ];
-                    for(var i = 0; i < len; i++) {
-                        var origEl = originalEls[i];
-                        var cloneEl = cloneEls[i];
-                        // Skip if this is a <defs> subtree symbol definition; those often already have inline styles
-                        // but DO process if a symbol relies entirely on external CSS (#bubbleOutline case)
-                        var inDefs = false;
-                        var p = cloneEl.parentNode;
-                        while(p) { if(p.tagName === 'defs' || p.tagName === 'DEFS') { inDefs = true; break; } p = p.parentNode; }
-                        // Only inline for defs if element has no explicit fill/stroke attributes AND no style specifying them
-                        var needsInlineInDefs = inDefs && !(cloneEl.hasAttribute('fill') || cloneEl.hasAttribute('stroke'));
-                        if(inDefs && !needsInlineInDefs) continue;
-                        var cs;
-                        try { cs = window.getComputedStyle(origEl); } catch(e) { continue; }
+                    var elements = graph.querySelectorAll('*');
+                    for(var i = 0; i < elements.length; i++) {
+                        var element = elements[i];
+                        var cs = window.getComputedStyle(element);
                         if(!cs) continue;
-                        var existingStyle = cloneEl.getAttribute('style') || '';
+                        var existingStyle = element.getAttribute('style') || '';
                         var styleParts = [];
                         for(var j = 0; j < STYLE_PROPS.length; j++) {
                             var prop = STYLE_PROPS[j];
-                            // Avoid overwriting if already explicitly set inline
-                            var hasInline = /(^|;|\s)\s*"?'+prop+'"?\s*:/.test(existingStyle); // crude check
-                            if(hasInline) continue;
+                            // keep what is already explicitly set inline
+                            if(new RegExp('(^|;)\\s*' + prop + '\\s*:').test(existingStyle)) continue;
                             var val = cs.getPropertyValue(prop);
-                            if(!val) continue;
-                            // We previously skipped fill:none, which caused default black fills in exported SVG
-                            // when external CSS was not present (e.g., for key route paths). Always include fill:none now.
-                            if(prop === 'stroke' && (val === 'none' || val === '')) continue; // still skip meaningless strokes
-                            if(prop === 'fill' && val === '') continue; // skip empty, but allow 'none'
-                            styleParts.push(prop + ':' + val);
+                            // none is kept, since it prevents inheriting a fill or stroke the element does not have
+                            if(val) styleParts.push(prop + ':' + val);
                         }
-                        // Defensive: ensure routes explicitly get fill:none even if something above failed
-                        if(/\brouteSelected\b|\broute\b/.test(cloneEl.getAttribute('class')||'')) {
-                            var alreadyHasFill = /(^|;|\s)\s*fill\s*:/.test(existingStyle) || styleParts.some(function(s){return s.indexOf('fill:')===0;});
-                            if(!alreadyHasFill) styleParts.unshift('fill:none');
-                        }
-                        if(styleParts.length > 0) {
-                            // Merge with existing style (place new first so existing can override if desired)
-                            var merged = styleParts.join(';') + (existingStyle ? ';' + existingStyle : '');
-                            cloneEl.setAttribute('style', merged);
-                        }
+                        if(styleParts.length > 0)
+                            element.setAttribute('style', styleParts.join(';') + (existingStyle ? ';' + existingStyle : ''));
                     }
                 } catch(inlineErr) {
                     if(DEBUG) console.warn('SVG export style inlining failed', inlineErr);
+                } finally {
+                    document.body.removeChild(graph);
+                    if(rootStyle) graph.setAttribute('style', rootStyle); else graph.removeAttribute('style');
+                    // with styles inlined, the copies no longer need the attributes used for matching selectors
+                    for(var c = 0; c < copies.length; c++) {
+                        copies[c].removeAttribute('href');
+                        copies[c].removeAttribute('id');
+                    }
                 }
-                var svg = (new XMLSerializer()).serializeToString(graph);
-                return "data:image/svg+xml;base64," + btoa(svg);
+                return (new XMLSerializer()).serializeToString(graph);
+            },
+            toSVGDataURL: function(image) {
+                return "data:image/svg+xml;base64," + btoa(this.toSVGString(image));
             },
             toPNGDataURL: function(image) {
                 var can = document.createElement('canvas');
@@ -5936,7 +5951,8 @@
             },
             saveToDisk: function (str, type) {
                 var save = document.createElement('a');
-                save.href = 'data:text/' + type + ',' + str;
+                var blob = new Blob([str], { type: type === 'svg' ? 'image/svg+xml' : 'text/' + type });
+                save.href = (window.URL || window.webkitURL).createObjectURL(blob);
                 save.target = '_blank';
                 save.download = (Model.name || 'Model') + '.' + type;
                 var event = new MouseEvent('click', {
@@ -5945,7 +5961,76 @@
                                 'cancelable': false
                             });
                 save.dispatchEvent(event);
-                (window.URL || window.webkitURL).revokeObjectURL(save.href);
+                // give the download time to start before releasing the blob
+                setTimeout(function() { (window.URL || window.webkitURL).revokeObjectURL(save.href); }, 1000);
+            },
+            // Shares the model through a link carrying the compressed model XML after #model=. The part
+            // after # is never sent to the web server, so the model only exists in the link itself.
+            shareModel: async function() {
+                if(typeof CompressionStream === 'undefined') {
+                    alert('Sharing models requires a newer browser, with support for compression streams.');
+                    return;
+                }
+                var xml = new XMLSerializer().serializeToString(Model.toXML(false));
+                var stream = new Blob([xml]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                var bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+                var binary = '';
+                for(var i = 0; i < bytes.length; i += 0x8000)
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+                var encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                var url = window.location.href.split(/[?#]/)[0] + '#model=' + encoded +
+                        (Model.name ? '&name=' + encodeURIComponent(Model.name) : '');
+                try {
+                    await navigator.clipboard.writeText(url);
+                    alert('A link to this model has been copied to the clipboard (' + url.length + ' characters). ' +
+                          'Anyone opening it gets a copy of the model as it looks now.');
+                }
+                catch(e) {
+                    // clipboard access can be refused, so show the link for copying by hand
+                    var fragment = document.createDocumentFragment();
+                    var pre = document.createElement('pre');
+                    pre.style.whiteSpace = 'pre-wrap';
+                    pre.style.wordBreak = 'break-all';
+                    pre.appendChild(document.createTextNode(url));
+                    fragment.appendChild(pre);
+                    new CodePopover(fragment, true);
+                }
+            },
+            sharedModelInLink: function() {
+                return /^#model=/.test(window.location.hash);
+            },
+            loadSharedModel: async function() {
+                if(this.loading) return;
+                var parameters = {};
+                window.location.hash.substring(1).split('&').forEach(function(pair) {
+                    var separator = pair.indexOf('=');
+                    if(separator > 0) parameters[pair.substring(0, separator)] = pair.substring(separator + 1);
+                });
+                this.lastLocalFilename = null;
+                this.showLoading('Loading shared model…');
+                try {
+                    if(typeof DecompressionStream === 'undefined')
+                        throw new Error('opening shared models requires a newer browser, with support for compression streams.');
+                    var base64 = parameters.model.replace(/-/g, '+').replace(/_/g, '/');
+                    var binary = atob(base64 + '==='.slice((base64.length + 3) % 4));
+                    var bytes = Uint8Array.from(binary, function(c) { return c.charCodeAt(0); });
+                    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                    var xml = new DOMParser().parseFromString(await new Response(stream).text(), 'text/xml');
+                    if(xml.getElementsByTagName('parsererror').length > 0)
+                        throw new Error('the link does not contain a valid model.');
+                    this._applyLoadedModel(xml, false);
+                    if(parameters.name) {
+                        Model.name = decodeURIComponent(parameters.name);
+                        this.setModelStatus();
+                    }
+                    // remove the model from the address bar, so a reload does not replace later edits
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+                catch(err) {
+                    console.error('Failed to load shared model', err);
+                    alert('Failed to load the shared model: ' + err.message + ' The link may have been cut short when it was copied.');
+                    this.hideLoading();
+                }
             },
             loadModelFromGist: async function(gist_id) {
                 var url = "https://api.github.com/gists/" + gist_id;
@@ -6381,9 +6466,6 @@
                 else {
                     alert("This model is not saved in the cloud. Please save the model before generating a URL.");
                 }
-            },
-            generateSVG: function(graph) {
-                new CodePopover(Actions.preformat((new XMLSerializer()).serializeToString(graph)), true);
             },
             generateSQL: function() {
                 Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives)
@@ -7368,10 +7450,22 @@
             window.addEventListener('resize', EventHandler.resize, false);
             // handle the escape button
             window.addEventListener('keypress', EventHandler.escape, false);
+            // a shared link pasted into a tab where the modeler is already open only changes the hash
+            window.addEventListener('hashchange', function() {
+                if(Actions.sharedModelInLink() && confirm(replaceQuestion))
+                    Actions.loadSharedModel();
+            }, false);
 
             // load url or previous model, if any
             var model;
-            if(PARAMETERS.gist) {
+            var replaceQuestion = 'This link contains a shared model. Open it in place of the model you are working on? ' +
+                    'Your current model is replaced, unless you save it to a local file first.';
+            // a shared model replaces the one kept in the browser, so ask first if there is one (if not, the
+            // link stays in the address bar, and the shared model can be opened later by reloading)
+            if(Actions.sharedModelInLink() && (!window.localStorage.getItem("model") || confirm(replaceQuestion))) {
+                Actions.loadSharedModel();
+            }
+            else if(PARAMETERS.gist) {
                 Actions.loadModelFromGist(PARAMETERS.gist);
             }
             /*
@@ -7500,8 +7594,9 @@
                 <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" onclick="document.getElementById('modelFileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('modelFileInput').click();event.preventDefault();}">Load model from local file...</li>
                 <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
                 <li title="Save model XML definition to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
-                <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(SVG), 'svg')">Save SVG to local file...</li>
+                <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(Actions.toSVGString(SVG), 'svg')">Save SVG to local file...</li>
                 <li title="Sends an email with the XML description of the model to a specified recipient." onclick="Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)))">Send model by email...</li>
+                <li title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." onclick="Actions.shareModel()">Share model link...</li>
                 <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
             </ul>
         </div>
@@ -7566,7 +7661,6 @@
                 <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
                 -->
                 <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
-                <li title="Generate an SVG representation of the model." onclick="Actions.generateSVG(SVG)">SVG code</li>
             </ul>
         </div>
 
