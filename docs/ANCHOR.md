@@ -10,7 +10,9 @@ See http://www.anchormodeling.com for the theory behind the technique.
 
 ## The idea in brief
 
-Anchor Modeling splits a domain into very small pieces, close to the sixth normal form:
+Anchor Modeling splits a domain into very small pieces, in the sixth normal form except where a
+relationship must be recorded as a whole (see [ties](#atomic-relationships) and
+[nexuses](#nexus)):
 
 - **Things** that have an identity get their own table, holding nothing but that identity.
 - **Every property** of a thing gets its own table.
@@ -22,8 +24,17 @@ kept for exactly the properties and relationships that need it. Data is only eve
 updated in place, so a change is recorded as a new row with a later time rather than an
 overwrite.
 
-The price is many narrow tables. The generator compensates by creating views, called
-perspectives, that join the pieces back together into one wide row per thing.
+The result is many narrow tables, which often works in favor of query performance:
+
+- A query that needs only a few attributes reads only their tables, which are much smaller than
+  a wide table holding every property.
+- A selective condition on one narrow table cuts down the rows early. A cost-based optimizer with
+  column statistics can start from the most selective table and join outward, so the tables work
+  much like indexes do.
+
+For convenience, the generator also creates views, called perspectives, that join the pieces
+back together into one wide row per thing. Optimizers that support join elimination skip the
+tables a query against a perspective does not use.
 
 ## Constructs at a glance
 
@@ -190,6 +201,15 @@ A knot role marked as an identifier is part of the key, so the same pair of anch
 related once per knot value (parent and child, once per parental type). A knot role not marked
 as an identifier is a value of the relationship, such as the rating an actor got for a part.
 
+### Atomic relationships
+
+A tie with identifier roles and more than one non-identifier role is in the fifth normal form
+rather than the sixth. It could be split into one tie per non-identifier role without losing any
+data, but the split would lose a constraint: that the relationship is always recorded as a whole,
+never with some of its parts missing. Use such a tie when that requirement holds. The example's
+`PR content`, `ST location`, `EV of` states that an event always has both a program and a stage,
+recorded together. Two separate ties would allow an event with a stage but no program.
+
 ### Flavors
 
 As with attributes, a tie is static or historized (with a `timeRange`), and knotted or not:
@@ -229,7 +249,11 @@ A nexus combines features of an anchor and a tie:
   anchor. Its roles are stored as columns on the nexus table itself, and they are never
   identifiers, because the nexus's own identity already identifies it.
 - Ties can reference a nexus, as the casting tie does: `EV in`, `AC wasCast`.
-- The nexus itself is immutable once recorded.
+- The nexus itself is immutable once recorded, so its roles are static.
+- A nexus is equivalent to an anchor with one static tie per role. Storing the roles together on
+  one table puts a nexus with more than one role in the fifth normal form rather than the sixth,
+  for the same reason as for [atomic ties](#atomic-relationships): every event is recorded with
+  all its roles at once, and none of them can be missing.
 
 **Chronicle.** An attribute with a `chronicle` ordinal of 1 or more places the nexus in time.
 Every nexus should have at least one, and the modeler warns if it has none. If several attributes
