@@ -17,7 +17,7 @@ RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange,
+    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
@@ -42,7 +42,7 @@ RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange,
+    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
@@ -98,7 +98,7 @@ RETURNS TABLE (
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange,
+    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
     $attribute.changingColumnName $attribute.timeRange
 )
 AS
@@ -137,7 +137,7 @@ RETURNS TABLE (
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange,
+    $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
     $attribute.changingColumnName $attribute.timeRange
 )
 AS

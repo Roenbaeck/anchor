@@ -15,7 +15,13 @@ while (knot = schema.nextKnot()) {
 -- Knot equivalence view ----------------------------------------------------------------------------------------------
 -- $knot.name view and parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${knot.capsule}$.$knot.name
+CREATE OR REPLACE VIEW ${knot.capsule}$.$knot.name (
+    $(schema.METADATA)? $knot.metadataColumnName,
+    $knot.identityColumnName,
+    $knot.equivalentColumnName,
+    $(knot.hasChecksum())? $knot.checksumColumnName,
+    ${knot.valueColumnName + columnCommentClause(knot)}$
+) ${viewCommentClause(knot)}$
 AS
 SELECT
     $(schema.METADATA)? v.$knot.metadataColumnName,

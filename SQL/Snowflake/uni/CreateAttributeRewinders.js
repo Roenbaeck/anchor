@@ -27,7 +27,7 @@ RETURNS TABLE (
     $attribute.entityReferenceName $parent.identity,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
     $(!attribute.isKnotted() && attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $attribute.dataRange,
+    $(attribute.isKnotted())? $attribute.valueColumnName $attribute.knot.identity, : $attribute.valueColumnName $attribute.dataRange,
     $attribute.changingColumnName $attribute.timeRange
 )
 AS

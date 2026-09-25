@@ -16,7 +16,7 @@ RETURNS TABLE (
 ~*/
         while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
+    $role.columnName $(role.entity)? $role.entity.identity, : $role.knot.identity,
 ~*/
         }
 /*~
@@ -49,7 +49,7 @@ RETURNS TABLE (
 ~*/
         while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
+    $role.columnName $(role.entity)? $role.entity.identity, : $role.knot.identity,
 ~*/
         }
 /*~
@@ -109,7 +109,7 @@ RETURNS TABLE (
 ~*/
     while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
+    $role.columnName $(role.entity)? $role.entity.identity, : $role.knot.identity,
 ~*/
     }
 /*~
@@ -156,7 +156,7 @@ RETURNS TABLE (
 ~*/
     while (role = tie.nextRole()) {
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity,
+    $role.columnName $(role.entity)? $role.entity.identity, : $role.knot.identity,
 ~*/
     }
 /*~

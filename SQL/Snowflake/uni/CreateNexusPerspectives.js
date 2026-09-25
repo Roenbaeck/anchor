@@ -11,12 +11,56 @@ while (schema.nextNexus && (nexus = schema.nextNexus())) {
 /*~
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name (
+    $nexus.identityColumnName,
+    $(schema.METADATA)? $nexus.metadataColumnName,
+~*/
+        // the column list mirrors the select list below, since view column comments can only be given here
+        var attribute, historizedAttribute, separator;
+        while (role = nexus.nextRole && nexus.nextRole()) {
+            separator = (nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '';
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? $role.knotChecksumColumnName,
+    ${role.knotValueColumnName + columnCommentClause(role)}$,
+    $(knot.isEquivalent())? $role.knotEquivalentColumnName,
+    $(schema.METADATA)? $role.knotMetadataColumnName,
+~*/
+            }
+/*~
+    ${role.columnName + columnCommentClause(role) + separator}$
+~*/
+        }
+        while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
+            separator = nexus.hasMoreAttributes() ? ',' : '';
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName,
+    $(schema.METADATA)? $attribute.metadataColumnName,
+    $(attribute.timeRange)? $attribute.changingColumnName,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+~*/
+            if(attribute.isKnotted && attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? $attribute.knotEquivalentColumnName,
+    ${attribute.knotValueColumnName + columnCommentClause(attribute)}$,
+    $(schema.METADATA)? $attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $(attribute.hasChecksum())? $attribute.checksumColumnName,
+    ${attribute.valueColumnName + columnCommentClause(attribute) + separator}$
+~*/
+        }
+/*~
+) ${viewCommentClause(nexus)}$
+AS
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
 ~*/
-        var attribute, historizedAttribute;
         while (role = nexus.nextRole && nexus.nextRole()) {
             if(role.knot) {
                 knot = role.knot;
@@ -148,7 +192,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -169,7 +213,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -356,7 +400,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -377,7 +421,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -431,7 +475,7 @@ SELECT DISTINCT
                 }
 /*~
 FROM
-    $(hasEqHist)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    $(hasEqHist)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic, : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
     TABLE(${nexus.capsule}$.p$nexus.name(h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$nexus.mnemonic
 WHERE
     (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
@@ -470,7 +514,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -491,7 +535,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -637,7 +681,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -658,7 +702,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -830,7 +874,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -851,7 +895,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -892,7 +936,7 @@ RETURNS TABLE (
 ~*/
                     }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    ${role.columnName + ' ' + (role.entity ? role.entity.identity : role.knot.identity) + ((nexus.hasMoreRoles() || nexus.hasMoreAttributes()) ? ',' : '')}$
 ~*/
                 }
                 while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -913,7 +957,7 @@ RETURNS TABLE (
                     }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    ${attribute.valueColumnName + ' ' + (attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
                 }
 /*~
@@ -967,7 +1011,7 @@ SELECT DISTINCT
                     }
 /*~
 FROM
-    $(hasEquivalentInDiff)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    $(hasEquivalentInDiff)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic, : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
     TABLE(${nexus.capsule}$.ep$nexus.name(equivalent, h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$nexus.mnemonic
 WHERE
     (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')

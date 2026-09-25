@@ -11,12 +11,41 @@ while (anchor = schema.nextAnchor()) {
 /*~
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
+CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name (
+    $anchor.identityColumnName,
+    $(schema.METADATA)? $anchor.metadataColumnName,
+~*/
+        // the column list mirrors the select list below, since view column comments can only be given here
+        var attribute, knot, historizedAttribute, separator;
+        while (attribute = anchor.nextAttribute()) {
+            separator = anchor.hasMoreAttributes() ? ',' : '';
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName,
+    $(schema.METADATA)? $attribute.metadataColumnName,
+    $(attribute.timeRange)? $attribute.changingColumnName,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName,
+~*/
+            if(attribute.isKnotted()) {
+                knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
+    $(knot.isEquivalent())? $attribute.knotEquivalentColumnName,
+    ${attribute.knotValueColumnName + columnCommentClause(attribute)}$,
+    $(schema.METADATA)? $attribute.knotMetadataColumnName,
+~*/
+            }
+/*~
+    $(attribute.hasChecksum())? $attribute.checksumColumnName,
+    ${attribute.valueColumnName + columnCommentClause(attribute) + separator}$
+~*/
+        }
+/*~
+) ${viewCommentClause(anchor)}$
+AS
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
-        var attribute, knot, historizedAttribute;
         while (attribute = anchor.nextAttribute()) {
 /*~
     $(schema.IMPROVED)? ${attribute.mnemonic}$.$attribute.entityReferenceName,
@@ -342,7 +371,7 @@ SELECT DISTINCT
                 }
 /*~
 FROM
-    $(historizedEquivalentAttribute)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    $(historizedEquivalentAttribute)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(0)) h$historizedAttribute.mnemonic, : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
     TABLE(${anchor.capsule}$.p$anchor.name(h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$anchor.mnemonic
 WHERE
     (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')
@@ -701,7 +730,7 @@ SELECT DISTINCT
                     }
 /*~
 FROM
-    $(hasEquivalentHistorized)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
+    $(hasEquivalentHistorized)? TABLE(${historizedAttribute.capsule}$.e$historizedAttribute.name(equivalent)) h$historizedAttribute.mnemonic, : ${historizedAttribute.capsule}$.$historizedAttribute.name h$historizedAttribute.mnemonic,
     TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, h${historizedAttribute.mnemonic}$.$historizedAttribute.changingColumnName::$schema.metadata.chronon)) p$anchor.mnemonic
 WHERE
     (selection IS NULL OR selection LIKE '%$historizedAttribute.mnemonic%')

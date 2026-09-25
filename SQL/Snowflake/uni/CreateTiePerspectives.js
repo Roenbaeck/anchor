@@ -10,7 +10,30 @@ while (tie = schema.nextTie()) {
 /*~
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name AS
+CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name (
+    $(schema.METADATA)? $tie.metadataColumnName,
+    $(tie.isHistorized())? $tie.changingColumnName,
+~*/
+    // the column list mirrors the select list below, since view column comments can only be given here
+    var separator;
+    while (role = tie.nextRole()) {
+        separator = tie.hasMoreRoles() ? ',' : '';
+        if(role.knot) {
+            knot = role.knot;
+/*~
+    $(knot.hasChecksum())? $role.knotChecksumColumnName,
+    ${role.knotValueColumnName + columnCommentClause(role)}$,
+    $(knot.isEquivalent())? $role.knotEquivalentColumnName,
+    $(schema.METADATA)? $role.knotMetadataColumnName,
+~*/
+        }
+/*~
+    ${role.columnName + columnCommentClause(role) + separator}$
+~*/
+    }
+/*~
+) ${viewCommentClause(tie)}$
+AS
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
     $(tie.isHistorized())? tie.$tie.changingColumnName,

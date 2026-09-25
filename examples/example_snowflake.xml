@@ -1,0 +1,357 @@
+<schema format="0.101.1" date="2026-09-25" time="12:50:25">
+<metadata changingRange="datetime" encapsulation="public" identity="int" metadataPrefix="Metadata" metadataType="int" metadataUsage="true" changingSuffix="ChangedAt" identitySuffix="ID" positIdentity="int" positGenerator="true" positingRange="datetime" positingSuffix="PositedAt" positorRange="tinyint" positorSuffix="Positor" reliabilityRange="decimal(5,2)" reliabilitySuffix="Reliability" defaultReliability="1" deleteReliability="0" assertionSuffix="Assertion" partitioning="false" entityIntegrity="true" restatability="true" idempotency="false" assertiveness="true" naming="improved" positSuffix="Posit" annexSuffix="Annex" chronon="timestamp_ntz(9)" now="current_timestamp()" dummySuffix="Dummy" versionSuffix="Version" statementTypeSuffix="StatementType" checksumSuffix="Checksum" businessViews="true" decisiveness="true" equivalence="false" equivalentSuffix="EQ" equivalentRange="tinyint" databaseTarget="Snowflake" temporalization="uni" deletability="false" deletablePrefix="Deletable" deletionSuffix="Deleted" privacy="Ignore" checksum="false" triggers="true" knotAliases="false" naturalKeyAttributes="true"/>
+<description>
+Example model of a theatre business: stages (venues) where programs (shows) are played by actors, and the individual events (performances) at which a program is played on a stage.
+</description>
+<knot mnemonic="PAT" descriptor="ParentalType" identity="tinyint" dataRange="varchar(42)">
+<metadata capsule="public" generator="false"/>
+<layout x="1168.03" y="97.52" fixed="false"/>
+<description>
+Kind of parent-child relationship between two actors, such as biological or adoptive parent.
+</description>
+</knot>
+<knot mnemonic="GEN" descriptor="Gender" identity="number(1,0)" dataRange="varchar(42)">
+<metadata capsule="public" generator="false"/>
+<layout x="1360.09" y="-59.78" fixed="false"/>
+<description>
+Gender of an actor.
+</description>
+</knot>
+<knot mnemonic="PLV" descriptor="ProfessionalLevel" identity="tinyint" dataRange="string">
+<metadata capsule="public" generator="false" checksum="true"/>
+<layout x="1257.93" y="-12.47" fixed="false"/>
+<description>
+Professional level of an actor, describing experience and seniority, such as amateur, trained or professional.
+</description>
+</knot>
+<knot mnemonic="UTL" descriptor="Utilization" identity="tinyint" dataRange="tinyint">
+<metadata capsule="public" generator="false"/>
+<layout x="973.86" y="899.86" fixed="false"/>
+<description>
+Utilization expressed as a percentage (0-100) of the capacity of a stage that is in use.
+</description>
+</knot>
+<knot mnemonic="ONG" descriptor="Ongoing" identity="tinyint" dataRange="varchar(3)">
+<metadata capsule="public" generator="false"/>
+<layout x="1575.55" y="191.32" fixed="false"/>
+<description>
+Yes or No flag indicating whether a relationship is still ongoing or has ended.
+</description>
+</knot>
+<knot mnemonic="RAT" descriptor="Rating" identity="tinyint" dataRange="varchar(42)">
+<metadata capsule="public" generator="false"/>
+<layout x="1310.90" y="402.62" fixed="false"/>
+<description>
+Rating of how well an actor performs a part in a program, such as good, mediocre or bad.
+</description>
+</knot>
+<knot mnemonic="ETY" descriptor="EventType" identity="tinyint" dataRange="varchar(42)">
+<metadata capsule="public" generator="false"/>
+<layout x="1314.96" y="557.45" fixed="false"/>
+<description>
+Type of event, such as premiere, regular performance, rehearsal or gala.
+</description>
+</knot>
+<anchor mnemonic="PN" descriptor="Person" identity="int">
+<metadata capsule="public" generator="true"/>
+<layout x="1497.65" y="16.48" fixed="false"/>
+<description>
+A person. Persons who perform are also registered as actors.
+</description>
+</anchor>
+<anchor mnemonic="ST" descriptor="Stage" identity="int">
+<metadata capsule="public" generator="true"/>
+<attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+<metadata privacy="Ignore" capsule="public" restatable="true" idempotent="false" deletable="false"/>
+<key stop="1" route="2nd" of="ST" branch="1"/>
+<layout x="1064.26" y="809.51" fixed="false"/>
+<description>
+Name of the stage. Historized, since a stage may be renamed over time.
+</description>
+</attribute>
+<attribute mnemonic="LOC" descriptor="Location" dataRange="geography">
+<metadata privacy="Ignore" capsule="public" checksum="true" idempotent="false" deletable="false"/>
+<key stop="1" route="1st" of="ST" branch="1"/>
+<key stop="3" route="1st" of="EV" branch="2"/>
+<layout x="1105.00" y="789.37" fixed="false"/>
+<description>
+Geographic location of the stage as a geography point.
+</description>
+</attribute>
+<attribute mnemonic="AVG" descriptor="Average" timeRange="datetime" knotRange="UTL">
+<metadata privacy="Ignore" capsule="public" restatable="false" idempotent="true" deletable="false"/>
+<layout x="1014.22" y="830.84" fixed="false"/>
+<description>
+Average utilization of the stage capacity, recalculated over time.
+</description>
+</attribute>
+<attribute mnemonic="MIN" descriptor="Minimum" knotRange="UTL">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="true"/>
+<layout x="987.08" y="804.53" fixed="false"/>
+<description>
+Minimum utilization of the stage capacity required for a performance to take place.
+</description>
+</attribute>
+<identifier route="1st">
+<metadata privacy="Ignore" capsule="public"/>
+<layout x="1139.77" y="750.29" fixed="false"/>
+</identifier>
+<identifier route="2nd">
+<metadata privacy="Ignore" capsule="public"/>
+<layout x="974.71" y="698.13" fixed="false"/>
+</identifier>
+<layout x="1071.79" y="692.58" fixed="false"/>
+<description>
+A stage or venue where programs are played and events are held.
+</description>
+</anchor>
+<anchor mnemonic="AC" descriptor="Actor" identity="int">
+<metadata capsule="public" generator="true"/>
+<attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+<metadata privacy="Ignore" capsule="public" restatable="false" idempotent="false" deletable="false"/>
+<key stop="1" route="1st" of="AC" branch="1"/>
+<layout x="1393.90" y="233.62" fixed="false"/>
+<description>
+Name of the actor, such as a stage name. Historized, since it may change over time.
+</description>
+</attribute>
+<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="false"/>
+<layout x="1361.11" y="14.63" fixed="false"/>
+<description>
+Gender of the actor.
+</description>
+</attribute>
+<attribute mnemonic="PLV" descriptor="ProfessionalLevel" timeRange="datetime" knotRange="PLV">
+<metadata privacy="Ignore" capsule="public" restatable="true" idempotent="false" deletable="false"/>
+<layout x="1297.57" y="31.67" fixed="false"/>
+<description>
+Professional level of the actor, which may change as the actor gains experience.
+</description>
+</attribute>
+<identifier route="1st">
+<metadata privacy="Ignore" capsule="public"/>
+<layout x="1318.04" y="201.65" fixed="false"/>
+</identifier>
+<layout x="1350.10" y="167.06" fixed="false"/>
+<description>
+An actor, a person who performs parts in programs and is cast in events.
+</description>
+</anchor>
+<anchor mnemonic="PR" descriptor="Program" identity="int">
+<metadata capsule="public" generator="true"/>
+<attribute mnemonic="NAM" descriptor="Name" dataRange="varchar(42)">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="false"/>
+<key stop="1" route="1st" of="PR" branch="1"/>
+<key stop="5" route="1st" of="EV" branch="3"/>
+<layout x="1041.15" y="438.50" fixed="false"/>
+<description>
+Name or title of the program.
+</description>
+</attribute>
+<attribute mnemonic="LEN" descriptor="Length" timeRange="date" dataRange="time">
+<metadata privacy="Ignore" capsule="public" restatable="true" idempotent="true" deletable="false"/>
+<layout x="1087.45" y="405.27" fixed="false"/>
+<description>
+Running time of the program. Historized, since the program may be shortened or extended over time.
+</description>
+</attribute>
+<identifier route="1st">
+<metadata privacy="Ignore" capsule="public"/>
+<layout x="1204.70" y="448.61" fixed="false"/>
+</identifier>
+<layout x="1143.26" y="449.41" fixed="false"/>
+<description>
+A program, such as a play, show or concert, that can be played on stages.
+</description>
+</anchor>
+<nexus mnemonic="EV" descriptor="Event" identity="int">
+<metadata capsule="public" generator="true"/>
+<attribute mnemonic="DAT" descriptor="Date" dataRange="datetime" chronicle="1">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="false"/>
+<key stop="1" route="1st" of="EV" branch="1"/>
+<layout x="1282.10" y="598.26" fixed="false"/>
+<description>
+Date and time when the event took place.
+</description>
+</attribute>
+<attribute mnemonic="AUD" descriptor="Audience" dataRange="int">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="false"/>
+<layout x="1238.34" y="623.47" fixed="false"/>
+<description>
+Number of people in the audience at the event.
+</description>
+</attribute>
+<attribute mnemonic="REV" descriptor="Revenue" dataRange="number(19,4)">
+<metadata privacy="Ignore" capsule="public" idempotent="false" deletable="false"/>
+<layout x="1299.10" y="497.14" fixed="false"/>
+<description>
+Revenue from ticket sales for the event.
+</description>
+</attribute>
+<role role="wasHeldAt" type="ST" identifier="false">
+<key stop="2" route="1st" of="EV" branch="2"/>
+<description>
+The stage at which the event was held.
+</description>
+</role>
+<role role="wasPlayed" type="PR" identifier="false">
+<key stop="4" route="1st" of="EV" branch="3"/>
+<description>
+The program that was played at the event.
+</description>
+</role>
+<role role="of" type="ETY" identifier="false">
+<description>
+The type of the event.
+</description>
+</role>
+<identifier route="1st">
+<metadata privacy="Ignore" capsule="public"/>
+<layout x="1256.71" y="494.49" fixed="false"/>
+</identifier>
+<layout x="1214.10" y="539.35" fixed="false"/>
+<description>
+An event, a single performance of a program held at a stage at a specific date and time.
+</description>
+</nexus>
+<tie timeRange="datetime">
+<role role="partner" type="AC" identifier="false">
+<description>
+One of the actors in the partnership.
+</description>
+</role>
+<role role="with" type="AC" identifier="false">
+<description>
+The other actor in the partnership.
+</description>
+</role>
+<role role="currently" type="ONG" identifier="false">
+<description>
+Whether the partnership is still ongoing (Yes) or has ended (No).
+</description>
+</role>
+<metadata capsule="public" restatable="true" deletable="false" idempotent="false"/>
+<layout x="1483.31" y="185.10" fixed="false"/>
+<description>
+Marriage or domestic partnership between two actors. This is a one-to-one relationship, since an actor can have at most one partner at any point in time. History is never deleted, so the end of a partnership is recorded by changing its ongoing status to No.
+</description>
+</tie>
+<tie>
+<role role="subset" type="AC" identifier="false">
+<description>
+The actor.
+</description>
+</role>
+<role role="of" type="PN" identifier="false">
+<description>
+The person who is the actor.
+</description>
+</role>
+<metadata capsule="public" deletable="false" idempotent="false"/>
+<layout x="1445.29" y="77.24" fixed="false"/>
+<description>
+Connects an actor to the person that the actor is. Every actor is a person, but not every person is an actor.
+</description>
+</tie>
+<tie>
+<role role="in" type="EV" identifier="true">
+<description>
+The event the actor was cast in.
+</description>
+</role>
+<role role="wasCast" type="AC" identifier="true">
+<description>
+An actor cast in the event.
+</description>
+</role>
+<metadata capsule="public" deletable="false" idempotent="false"/>
+<layout x="1283.03" y="356.36" fixed="false"/>
+<description>
+The actors that were cast in an event, meaning those who performed at that performance.
+</description>
+</tie>
+<tie timeRange="datetime">
+<role role="part" type="AC" identifier="true">
+<description>
+The actor having a part in the program.
+</description>
+</role>
+<role role="in" type="PR" identifier="true">
+<description>
+The program the actor has a part in.
+</description>
+</role>
+<role role="got" type="RAT" identifier="false">
+<description>
+The rating the actor got for the part.
+</description>
+</role>
+<metadata capsule="public" restatable="true" deletable="false" idempotent="false"/>
+<layout x="1253.84" y="330.26" fixed="false"/>
+<description>
+Actors having a part in a program, along with a rating of how well they perform the part. Historized, since the rating may change over time.
+</description>
+</tie>
+<tie timeRange="datetime">
+<role role="at" type="ST" identifier="true">
+<description>
+The stage where the program is playing.
+</description>
+</role>
+<role role="isPlaying" type="PR" identifier="true">
+<description>
+The program playing at the stage.
+</description>
+</role>
+<metadata capsule="public" restatable="true" deletable="false" idempotent="false"/>
+<layout x="1042.83" y="541.87" fixed="false"/>
+<description>
+Programs that are currently playing at stages, meaning which stage is running which program. Historized over time.
+</description>
+</tie>
+<tie>
+<role role="parent" type="AC" identifier="true">
+<description>
+The actor who is the parent.
+</description>
+</role>
+<role role="child" type="AC" identifier="true">
+<description>
+The actor who is the child.
+</description>
+</role>
+<role role="having" type="PAT" identifier="true">
+<description>
+The type of parental relationship.
+</description>
+</role>
+<metadata capsule="public" deletable="false" idempotent="false"/>
+<layout x="1246.77" y="123.21" fixed="false"/>
+<description>
+Parent-child relationships between actors, along with the type of parental relationship.
+</description>
+</tie>
+<tie>
+<role role="content" type="PR" identifier="false">
+<description>
+The program that made up the content of the event.
+</description>
+</role>
+<role role="location" type="ST" identifier="false">
+<description>
+The stage where the event was located.
+</description>
+</role>
+<role role="of" type="EV" identifier="true">
+<description>
+The event.
+</description>
+</role>
+<metadata capsule="public" deletable="false" idempotent="false"/>
+<layout x="1105.57" y="552.13" fixed="false"/>
+<description>
+The program content and stage location of an event, connecting each event to what was played and where. This deliberately repeats the wasHeldAt and wasPlayed roles of the Event nexus, to show that the same fact can be modeled either as nexus roles or as a tie.
+</description>
+</tie>
+</schema>
