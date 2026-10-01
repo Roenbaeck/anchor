@@ -1,0 +1,115 @@
+-- ATTRIBUTES ---------------------------------------------------------------------------------------------------------
+--
+-- Attributes are mutable properties on anchors or nexuses.
+-- Attributes have four flavors: static, historized, knotted static, and knotted historized.
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.isHistorized and not attribute.isKnotted
+-- Historized attribute table -----------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.name$ (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0) default hash($attribute.valueColumnName$),
+$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
+    constraint pk$attribute.name$ primary key (
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+        $attribute.changingColumnName$
+    ) RELY
+) CLUSTER BY ($attribute.entityReferenceName$);
+$/ endif
+$/ if attribute.isHistorized and attribute.isKnotted
+-- Knotted historized attribute table ---------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.name$ (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+    $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk_A_$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
+    constraint fk_K_$attribute.name$ foreign key (
+        $attribute.knotReferenceName$
+$/ if attribute.knot.isEquivalent
+    ) references $attribute.knot.capsule$.$attribute.knot.identityName$($attribute.knot.identityColumnName$) RELY,
+$/ else
+    ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
+$/ endif
+    constraint pk$attribute.name$ primary key (
+        $attribute.entityReferenceName$,
+        $attribute.changingColumnName$
+    ) RELY
+) CLUSTER BY ($attribute.entityReferenceName$);
+$/ endif
+$/ if not attribute.isHistorized and attribute.isKnotted
+-- Knotted static attribute table -------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.name$ (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk_A_$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
+    constraint fk_K_$attribute.name$ foreign key (
+        $attribute.knotReferenceName$
+$/ if attribute.knot.isEquivalent
+    ) references $attribute.knot.capsule$.$attribute.knot.identityName$($attribute.knot.identityColumnName$) RELY,
+$/ else
+    ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
+$/ endif
+    constraint pk$attribute.name$ primary key (
+        $attribute.entityReferenceName$
+    ) RELY
+) CLUSTER BY ($attribute.entityReferenceName$);
+$/ endif
+$/ if not attribute.isHistorized and not attribute.isKnotted
+-- Static attribute table ---------------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.name$ (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0) default hash($attribute.valueColumnName$),
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
+    constraint pk$attribute.name$ primary key (
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.entityReferenceName$
+    ) RELY
+) CLUSTER BY ($attribute.entityReferenceName$);
+$/ endif
+$/ endfor

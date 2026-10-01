@@ -1,4 +1,5 @@
-# This is the processing directive for uni-temporal Anchor Modeling in Snowflake
+# This is the previous processing directive for uni-temporal Anchor Modeling in Snowflake, in the original dialect.
+# The modeler no longer reads it; the golden files in sisula/examples/anchor-snowflake are generated from it.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Snowflake/NamingConvention.js

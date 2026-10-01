@@ -1,0 +1,33 @@
+-- NEXUSES ------------------------------------------------------------------------------------------------------------
+--
+-- Nexuses are used to store identities for event-like entities.
+-- Nexuses are immutable.
+--
+$/ foreach nexus in schema.nexuses
+-- Nexus table --------------------------------------------------------------------------------------------------------
+-- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $nexus.capsule$.$nexus.name$ (
+    $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ IDENTITY(1,1) not null, $/ else $nexus.identity$ not null,$/ endif
+$/ foreach role in nexus.roles
+    $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ foreach role in nexus.roles
+    constraint $nexus.name$_fk$role.name$ foreign key (
+        $role.columnName$
+$/ if role.entity
+    ) references $role.entity.capsule$.$role.entity.name$($role.entity.identityColumnName$) RELY, $--$
+$/ else
+$/ if role.knot.isEquivalent
+    ) references $role.knot.capsule$.$role.knot.identityName$($role.knot.identityColumnName$) RELY,
+$/ else
+    ) references $role.knot.capsule$.$role.knot.name$($role.knot.identityColumnName$) RELY,
+$/ endif
+$/ endif
+$/ endfor
+    $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ bit null,$/ endif
+    constraint pk$nexus.name$ primary key (
+        $nexus.identityColumnName$
+    ) RELY
+) CLUSTER BY ($nexus.identityColumnName$);
+$/ endfor
