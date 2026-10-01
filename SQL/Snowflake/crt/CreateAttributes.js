@@ -23,15 +23,15 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
-    ),
+    ) RELY,
     constraint uq$attribute.positName unique (
         $attribute.entityReferenceName,
         $attribute.changingColumnName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName : $attribute.valueColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -49,18 +49,18 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.changingColumnName $attribute.timeRange not null,
     constraint fk_A_$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName) RELY,
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
-    ),
+    ) RELY,
     constraint uq$attribute.positName unique (
         $attribute.entityReferenceName,
         $attribute.changingColumnName,
         $attribute.knotReferenceName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -77,17 +77,17 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.knotReferenceName $knot.identity not null,
     constraint fk_A_$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint fk_K_$attribute.positName foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName) RELY,
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
-    ),
+    ) RELY,
     constraint uq$attribute.positName unique (
         $attribute.entityReferenceName,
         $attribute.knotReferenceName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -103,14 +103,14 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0) default hash($attribute.valueColumnName),
     constraint fk$attribute.positName foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint pk$attribute.positName primary key (
         $attribute.identityColumnName
-    ),
+    ) RELY,
     constraint uq$attribute.positName unique (
         $attribute.entityReferenceName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName : $attribute.valueColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -139,12 +139,12 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.annexName (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName
-    ) references ${attribute.capsule}$.$attribute.positName($attribute.identityColumnName),
+    ) references ${attribute.capsule}$.$attribute.positName($attribute.identityColumnName) RELY,
     constraint pk$attribute.annexName primary key (
         $attribute.identityColumnName,
         $attribute.positorColumnName,
         $attribute.positingColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.identityColumnName, $attribute.positorColumnName, $attribute.positingColumnName);
 ~*/
 }

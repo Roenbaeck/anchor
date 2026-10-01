@@ -22,12 +22,12 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint pk$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.entityReferenceName,
         $attribute.changingColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -45,14 +45,14 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName) RELY,
     constraint pk$attribute.name primary key (
         $attribute.entityReferenceName,
         $attribute.changingColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -69,13 +69,13 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk_A_$attribute.name foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint fk_K_$attribute.name foreign key (
         $attribute.knotReferenceName
-    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knotTableName($knot.identityColumnName) RELY,
     constraint pk$attribute.name primary key (
         $attribute.entityReferenceName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
@@ -92,11 +92,11 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.name foreign key (
         $attribute.entityReferenceName
-    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName),
+    ) references ${parent.capsule}$.$parent.name($parent.identityColumnName) RELY,
     constraint pk$attribute.name primary key (
         $(attribute.isEquivalent())? $attribute.equivalentColumnName,
         $attribute.entityReferenceName
-    )
+    ) RELY
 ) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }

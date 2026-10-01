@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS ${anchor.capsule}$.$anchor.name (
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$anchor.name primary key (
         $anchor.identityColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($anchor.identityColumnName);
 ~*/
 }

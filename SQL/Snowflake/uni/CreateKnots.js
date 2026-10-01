@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.identityName (
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint pk$knot.identityName primary key (
         $knot.identityColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($knot.identityColumnName);
 
 -- Knot value table ---------------------------------------------------------------------------------------------------
@@ -45,15 +45,15 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
-    ) references ${knot.capsule}$.$knot.identityName($knot.identityColumnName),
+    ) references ${knot.capsule}$.$knot.identityName($knot.identityColumnName) RELY,
     constraint pk$knot.equivalentName primary key (
         $knot.equivalentColumnName,
         $knot.identityColumnName
-    ),
+    ) RELY,
     constraint uq$knot.equivalentName unique (
         $knot.equivalentColumnName,
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($knot.identityColumnName);
 ~*/
 
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null,
     constraint pk$knot.name primary key (
         $knot.identityColumnName
-    ),
+    ) RELY,
     constraint uq$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($knot.identityColumnName);
 ~*/
     } // end of regular knot
