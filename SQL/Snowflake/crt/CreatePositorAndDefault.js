@@ -5,13 +5,13 @@
 -- must be available the table is set up with a default positor with identity 0.
 --
 -- Positor table ------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation._$schema.metadata.positorSuffix (
+CREATE TABLE IF NOT EXISTS ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix (
     $schema.metadata.positorSuffix $schema.metadata.positorRange not null,
     constraint pk_$schema.metadata.positorSuffix primary key (
         $schema.metadata.positorSuffix
     )
 );
-MERGE INTO $schema.metadata.encapsulation._$schema.metadata.positorSuffix p
+MERGE INTO ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 USING ( SELECT 0 AS _defaultPositor ) d
 ON (
     d._defaultPositor = p.$schema.metadata.positorSuffix
