@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.entityReferenceName,
         $attribute.changingColumnName
     )
-) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.name (
         $attribute.entityReferenceName,
         $attribute.changingColumnName
     )
-) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
     else if(attribute.isKnotted()) {
