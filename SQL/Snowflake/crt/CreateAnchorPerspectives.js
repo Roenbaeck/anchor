@@ -142,7 +142,7 @@ CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -253,7 +253,7 @@ CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL

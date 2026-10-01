@@ -153,7 +153,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -260,7 +260,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.metadata.now::$schema.metadata.chronon,

@@ -128,7 +128,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -218,7 +218,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.metadata.now::$schema.metadata.chronon,
