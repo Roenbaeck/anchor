@@ -162,6 +162,45 @@ match (they never did before).
 - **The sisula repo's example** refers to an Anchor checkout next to it for the templates. If that is
   awkward, the example's tools could move here.
 
+## Snowflake compared with SQL Server (checked 2026-10-01)
+
+What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
+(`SQLServer_*.directive` against `Snowflake_*.directive`) and reading what each missing sisulet does.
+Reading and structure are on par: tables, knots, ties, nexuses, rewinders, and the latest, point-in-time,
+now and difference perspectives exist in all three temporalizations. What is missing is the **loading
+and governance layer**.
+
+**Substantial** (these decide whether Snowflake is usable for more than reading):
+
+- **The write path.** SQL Server's latest views accept `INSERT` through `INSTEAD OF` triggers
+  (`CreateAnchorTriggers`, `CreateAttributeTriggers`, `CreateNexusTriggers`, `CreateTieTriggers`; about
+  500 lines each, 870 for the bitemporal tie). They look up or generate identities, apply idempotency
+  (a value equal to its neighbour is not stored), handle restatement, assertions and reliability, and for
+  crt the positor. Snowflake has no triggers and no insertable views, so a loader has to write the
+  `MERGE`/`INSERT` itself. The skill documents load patterns for that. A Snowflake-native equivalent would
+  be generated load procedures, one per anchor and tie. That is a design task, not a port.
+- **Natural-key lookups** (`uni/CreateKeys`, 500 lines). The example model defines nine `<key>` elements, so
+  this is used: key tables and views that resolve an anchor's identity from its business key by walking
+  attributes and ties. It is the read half of the write path, and a loader needs it.
+- **Integrity checking.** SQL Server enforces primary, foreign and unique keys, the restatement
+  constraints (`AddAttributeRestatementConstraints`, `AddTieRestatementConstraints`) and, in bi and crt,
+  entity integrity through indexed assembled views. Snowflake enforces none of it, and since every key is
+  declared `RELY`, a violation gives silently wrong results. The Snowflake counterpart is generated
+  integrity-check queries or views (duplicate identities, orphans, restatements, overlapping intervals).
+  Worth doing soon, because `RELY` depends on it.
+
+**Not applicable on Snowflake:** the CLR (`clr/Anchor.js`); partitioning (`Setup*Partitioning`; micro-partitions
+and `CLUSTER BY` do that job); key generator procedures (`CreateKeyGenerators`; sequences do it);
+assembled views (they exist to carry an index); encryption groups (`AddEncryption` creates SQL Server
+certificates; Snowflake masking policies would be a different feature, not a port).
+
+**Nice to have, can wait:** business perspectives (`biz/*`, off unless `businessViews` is set; renamed views
+over the same perspectives); schema tracking (`CreateSchemaTracking`; the model's XML and its versions kept in
+the database, useful for governance, and the bindings already carry `schema.serialization`); the crt
+sheet stacks (`CreateAttributeSheetStacks`, a procedure returning one temporal sheet per positor).
+
+Unported Snowflake sisulets stay as commented lines in the directives, so nothing is hidden.
+
 ## Where things are, by repository
 
 - **anchor:** this file, the engine copy, the resolver, the templates, the directives, the modeler.
