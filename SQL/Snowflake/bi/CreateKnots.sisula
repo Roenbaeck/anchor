@@ -1,0 +1,24 @@
+-- KNOTS --------------------------------------------------------------------------------------------------------------
+--
+-- Knots are immutable lookup tables for values.
+--
+$/ foreach knot in schema.knots
+-- Knot table ---------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+$/ if knot.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $knot.capsule$.$knot.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
+CREATE TABLE IF NOT EXISTS $knot.capsule$.$knot.name$ (
+    $knot.identityColumnName$ $/ if knot.isGenerator $knot.identity$ default $knot.capsule$.$knot.identitySequenceName$.nextval not null, $/ else $knot.identity$ not null,$/ endif
+    $knot.valueColumnName$ $knot.dataRange$ not null,
+$/ if knot.hasChecksum
+    $knot.checksumColumnName$ numeric(19,0) default hash($knot.valueColumnName$),
+$/ endif
+    constraint pk$knot.name$ primary key (
+        $knot.identityColumnName$
+    ) RELY,
+    constraint uq$knot.name$ unique (
+        $/ if knot.hasChecksum $knot.checksumColumnName$ $/ else $knot.valueColumnName$$/ endif
+    ) RELY
+) CLUSTER BY ($knot.identityColumnName$);
+$/ endfor
