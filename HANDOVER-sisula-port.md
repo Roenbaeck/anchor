@@ -162,8 +162,8 @@ match (they never did before).
 
 - **Port the rest:** the other databases (SQL Server, PostgreSQL, Oracle, Vertica, BigQuery). Delete the
   old `.js` sisulets and the legacy directive of a target when its golden files no longer need an oracle.
-- **Fix the defects below** in the templates, one at a time, regenerating and reviewing the golden files.
-  The bi and crt output is unusable Snowflake SQL until the first three are fixed.
+- **Run the generated Snowflake SQL** for uni, bi and crt on a real account (nothing has been run, and the lint
+  is only a heuristic), and look at what is still open under the defects above.
 - **The Snowflake skill** (`anchor-snowflake-skill`): the plan is a generator hosted in Snowflake, a
   JavaScript UDF made from `modules/sisula.js` (it already runs as one: it is ES5, no DOM) that takes
   the bindings JSON from the modeler and the templates as text. Someone has to try it in a real
@@ -181,42 +181,53 @@ match (they never did before).
 - **The sisula repo's example** refers to an Anchor checkout next to it for the templates. If that is
   awkward, the example's tools could move here.
 
-## Known defects in the original bi and crt generators (reproduced by the port)
+## Defects found in the original Snowflake generators, and what was done
 
-The Snowflake bi and crt sisulets had never run (the first thing the port found was a syntax error that made
-the original engine fail on both: `$anchor.mnemonic.*`, fixed in eight places in four sisulets). The templates
-reproduce the original output byte for byte, defects included, because the golden files are the oracle. The
-output has not been run on Snowflake. These are what reading it showed, most serious first. Fix them in the
-templates and regenerate the golden files (reviewing the diff), not the other way round.
+The Snowflake bi and crt sisulets had never run: the first thing the port found was a syntax error that made
+the original engine fail on both (`$anchor.mnemonic.*`, fixed in eight places in four sisulets). The port first
+reproduced the original output byte for byte, defects included, and then the defects were fixed in the original
+sisulets and the templates together, so that the two still agree and the golden files (regenerated from the fixed
+sisulets) stay an independent check. Nothing has been run on Snowflake; `tools/lint-sql.ps1` in the sisula
+repository is the stand-in. It looks for the defect classes below (nameless columns, a stray colon, `a.,`, an
+operator with nothing after it, missing and dangling commas, unbalanced parentheses) and finds none in any of the
+33 models. It cannot say that SQL is valid.
 
-1. **The call to an attribute or tie rewinder is invalid SQL, in every anchor, nexus and tie perspective, bi
-   and crt.** The line `$(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,` is read by the
-   original engine with the first `:` of the `::` as the colon of its own `$(cond)? a : b`. A historized
-   attribute gets `changingTimepoint` with no cast and no comma, so the next argument follows with no comma
-   between; a static one gets a line that is just `:,`. (Golden: `base-bi/CreateAnchorPerspectives.sql` lines
-   85 and 108. The sisulets: bi anchor 90 and 99, nexus 115 and 124, tie 61 and 83; crt anchor 100 and 110,
-   nexus 126 and 136, tie 73.)
-2. **crt: the reliability column has no name and no cutoff.** `$attribute.reliableColumnName`,
-   `$tie.reliableColumnName` and `$schema.metadata.reliableCutoff` are never set by Helpers.js or the naming
-   conventions. Tables get a column with a type and no name (`     int default (`, then
-   `when EV_DAT_Reliability < then 0`), rewinder and perspective column lists get `     int`, `a.,` and `t.`,
-   and the latest, point-in-time and now views get `     as Reliability,` with no expression. Decide what the
-   names and the cutoff should be (SQL Server has them in its naming convention) and set them.
-3. **crt tie perspectives lack commas** between the roles and the columns that follow them in the `RETURNS TABLE`
-   and `SELECT` lists of the `t`, `p` and `d` functions (`ONG_ID_currently tinyint` and the next column on the
-   following line).
-4. **bi knots never get a metadata column**, although bi anchors and nexuses do: `bi/CreateKnots.js` uses
-   `$knot.metadataDefinition`, which only the crt sisulet sets.
-5. **Equivalence is not handled in bi and crt** (equivalent knots are plain tables), and a nexus role to an equivalent
-   knot references `identityName` without testing whether equivalence is on, as the uni sisulets do.
-6. Cosmetic, and kept because they are in the golden files: trailing spaces after some commas and column
-   names, the nexus dummy column typed `boolean` where uni says `bit`, and bi headers without the construct's
-   name line.
+**Fixed**
 
-A few templates only match the original because a property is absent: `$/ if attribute.reliableColumnName`
-around a line that the original drops when the name is empty, and `reliableCutoff` written so that the spaces
-around the empty value collapse as they did. When item 2 is fixed, search the crt templates for those two
-names. (A `$-` comment in a template does not reach the output; add one where such code is found.)
+1. The call of an attribute, nexus or tie rewinder, in every anchor, nexus and tie perspective of bi and crt.
+   `$(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,` was read with the first `:` of the `::`
+   as the colon of the original engine's own `$(cond)? a : b`, giving `changingTimepoint` with no comma for a
+   historized attribute and a line with only `:,` for a static one. A historized one now passes
+   `changingTimepoint::<type>,` and a static one nothing, which is what the rewinders take. (When an expression
+   goes through `${...}$` in an original sisulet it needs its own parentheses: the engine pastes it into a
+   string concatenation.)
+2. crt: the "reliable" flag. `reliableColumnName` and `reliableCutoff` were never defined, because they belong to an
+   older design that SQL Server's crt no longer has (it has `reliability` and a derived `assertion`). They gave
+   columns with a type and no name, `a.,` and `when x < then 0`. The flag is removed everywhere, and the latest,
+   point-in-time and now views return `cast(null as <reliabilityRange>) as Reliability`, as SQL Server's do. The
+   crt `t` functions already had the current `positor` and `assertion` parameters. The other databases' crt
+   sisulets (PostgreSQL, Oracle, Vertica, BigQuery) are copies of the same old design and have the same defects.
+3. crt tie perspectives: a role is always followed by the temporal columns, so its comma is unconditional.
+4. bi knots now get their metadata column (`knot.metadataDefinition` was only set in crt).
+5. uni, in configurations that the base model does not reach: with metadata off a knot's dummy column had no
+   name (`knot.dummyColumnName` was never set; now in `SQL/Snowflake/NamingConvention.js`), and the dummy columns
+   of knots and nexuses were typed `bit`, which Snowflake does not have (now `boolean`). With the original naming
+   convention a knotted attribute or nexus attribute had no `knotEquivalentColumnName` and
+   `knotChecksumColumnName` (roles had them), giving `pAC.,` and nameless columns; the common
+   `SQL/NamingConvention.js` now defines them. That last fix is in the shared file, so it also changes what the other
+   databases generate with the original naming convention, from an empty name to the right one.
+
+The uni output of the base model, and of every model with metadata and the improved naming convention, did not
+change.
+
+**Still open**
+
+- Equivalence is not handled in bi and crt (equivalent knots are plain tables), and a nexus role to an equivalent
+  knot references `identityName` without testing whether equivalence is on, as the uni sisulets do. The reference
+  is valid SQL but may name a table that does not exist.
+- The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.
+- Cosmetic, kept because they are in the golden files: trailing spaces after some commas and column names
+  and bi headers without the construct's name line.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
