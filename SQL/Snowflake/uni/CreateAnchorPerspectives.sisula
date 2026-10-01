@@ -1,0 +1,709 @@
+-- ANCHOR TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
+--
+-- Snowflake-native anchor perspectives: latest (l), point-in-time (p), now (n), difference (d),
+-- and their equivalence variants (el, ep, en, ed).
+--
+$/ foreach anchor in schema.anchors
+$/ if anchor.attributes
+-- Latest perspective -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $anchor.capsule$.l$anchor.name$ (
+    $anchor.identityColumnName$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$,
+$/ endif
+$- the column list mirrors the select list below, since view column comments can only be given here
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$,
+$/ endif
+    $/ if attribute.hasComment $attribute.knotValueColumnName$ COMMENT '$attribute.comment$'$/ else $attribute.knotValueColumnName$$/ endif,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$,
+$/ endif
+    $/ if attribute.hasComment $attribute.valueColumnName$ COMMENT '$attribute.comment$'$/ else $attribute.valueColumnName$$/ endif$/ if not attribute.last() ,$/ endif
+$/ endfor
+) $/ if anchor.hasComment COMMENT = '$anchor.comment$'$/ endif
+AS
+SELECT
+    $anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    $anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.mnemonic$.$attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    k$attribute.mnemonic$.$attribute.knot.checksumColumnName$ AS $attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    k$attribute.mnemonic$.$attribute.knot.equivalentColumnName$ AS $attribute.knotEquivalentColumnName$,
+$/ endif
+    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.mnemonic$.$attribute.checksumColumnName$,
+$/ endif
+    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+$- the statement ends with a semicolon on the last line of the last attribute's joins
+$/ foreach attribute in anchor.attributes
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    TABLE($attribute.capsule$.e$attribute.name$(0)) $attribute.mnemonic$
+$/ else
+    $attribute.capsule$.$attribute.name$ $attribute.mnemonic$
+$/ endif
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$$/ if attribute.last() and not attribute.isHistorized and not attribute.isKnotted ;$/ endif
+$/ if attribute.isHistorized
+AND
+    $attribute.mnemonic$.$attribute.changingColumnName$ = (
+        SELECT
+            max(sub.$attribute.changingColumnName$)
+        FROM
+            $/ if attribute.isEquivalent and not attribute.isKnotted TABLE($attribute.capsule$.e$attribute.name$(0)) sub $/ else $attribute.capsule$.$attribute.name$ sub$/ endif
+        WHERE
+            sub.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+   )$/ if attribute.last() and not attribute.isKnotted ;$/ endif
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    TABLE($attribute.knot.capsule$.e$attribute.knot.name$(0)) k$attribute.mnemonic$
+$/ else
+    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+$/ endif
+ON
+    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$$/ if attribute.last() ;$/ endif
+$/ endif
+$/ endfor
+-- Point-in-time perspective ------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.p$anchor.name$ (
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURNS TABLE (
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    $anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    $anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.mnemonic$.$attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    k$attribute.mnemonic$.$attribute.knot.checksumColumnName$ AS $attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    k$attribute.mnemonic$.$attribute.knot.equivalentColumnName$ AS $attribute.knotEquivalentColumnName$,
+$/ endif
+    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.mnemonic$.$attribute.checksumColumnName$,
+$/ endif
+    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isHistorized
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    TABLE($attribute.capsule$.r$attribute.name$(0, changingTimepoint::$attribute.timeRange$)) $attribute.mnemonic$
+$/ else
+    TABLE($attribute.capsule$.r$attribute.name$(changingTimepoint::$attribute.timeRange$)) $attribute.mnemonic$
+$/ endif
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+AND
+    $attribute.mnemonic$.$attribute.changingColumnName$ = (
+        SELECT
+            max(sub.$attribute.changingColumnName$)
+        FROM
+$/ if attribute.isEquivalent and not attribute.isKnotted
+            TABLE($attribute.capsule$.r$attribute.name$(0, changingTimepoint::$attribute.timeRange$)) sub
+$/ else
+            TABLE($attribute.capsule$.r$attribute.name$(changingTimepoint::$attribute.timeRange$)) sub
+$/ endif
+        WHERE
+            sub.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+   )
+$/ else
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    TABLE($attribute.capsule$.e$attribute.name$(0)) $attribute.mnemonic$
+$/ else
+    $attribute.capsule$.$attribute.name$ $attribute.mnemonic$
+$/ endif
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    TABLE($attribute.knot.capsule$.e$attribute.knot.name$(0)) k$attribute.mnemonic$
+$/ else
+    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+$/ endif
+ON
+    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
+$/ endif
+$/ endfor
+$$
+;
+-- Now perspective ----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$
+AS
+SELECT
+    *
+FROM
+    TABLE($anchor.capsule$.p$anchor.name$($schema.metadata.now$::$schema.metadata.chronon$))
+;
+$/ if anchor.historizedAttributes
+-- Difference perspective ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.d$anchor.name$ (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection string
+)
+RETURNS TABLE (
+    inspectedTimepoint $schema.metadata.chronon$,
+    mnemonic string,
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+$/ foreach historized in anchor.historizedAttributes
+SELECT DISTINCT
+    h$historized.mnemonic$.$historized.changingColumnName$::$schema.metadata.chronon$ AS inspectedTimepoint,
+    '$historized.mnemonic$' AS mnemonic,
+    p$anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    p$anchor.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    p$anchor.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    p$anchor.mnemonic$.$attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    p$anchor.mnemonic$.$attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    p$anchor.mnemonic$.$attribute.knotEquivalentColumnName$,
+$/ endif
+    p$anchor.mnemonic$.$attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    p$anchor.mnemonic$.$attribute.checksumColumnName$,
+$/ endif
+    p$anchor.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $/ if historized.isEquivalent and not historized.isKnotted TABLE($historized.capsule$.e$historized.name$(0)) h$historized.mnemonic$, $/ else $historized.capsule$.$historized.name$ h$historized.mnemonic$,$/ endif
+    TABLE($anchor.capsule$.p$anchor.name$(h$historized.mnemonic$.$historized.changingColumnName$::$schema.metadata.chronon$)) p$anchor.mnemonic$
+WHERE
+    (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
+AND
+    h$historized.mnemonic$.$historized.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+AND
+    p$anchor.mnemonic$.$anchor.identityColumnName$ = h$historized.mnemonic$.$historized.entityReferenceName$
+$/ if not historized.last()
+UNION
+$/ endif
+$/ endfor
+$$
+;
+$/ endif
+$/ if schema.EQUIVALENCE
+-- Latest equivalence perspective -------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.el$anchor.name$ (
+    equivalent $schema.metadata.equivalentRange$
+)
+RETURNS TABLE (
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    *
+FROM
+    TABLE($anchor.capsule$.ep$anchor.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
+$$
+;
+-- Point-in-time equivalence perspective ------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.ep$anchor.name$ (
+    equivalent $schema.metadata.equivalentRange$,
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURNS TABLE (
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    $anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    $anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.mnemonic$.$attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    k$attribute.mnemonic$.$attribute.knot.checksumColumnName$ AS $attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    k$attribute.mnemonic$.$attribute.knot.equivalentColumnName$ AS $attribute.knotEquivalentColumnName$,
+$/ endif
+    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.mnemonic$.$attribute.checksumColumnName$,
+$/ endif
+    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isHistorized
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    TABLE($attribute.capsule$.r$attribute.name$(equivalent, changingTimepoint::$attribute.timeRange$)) $attribute.mnemonic$
+$/ else
+    TABLE($attribute.capsule$.r$attribute.name$(changingTimepoint::$attribute.timeRange$)) $attribute.mnemonic$
+$/ endif
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+AND
+    $attribute.mnemonic$.$attribute.changingColumnName$ = (
+        SELECT
+            max(sub.$attribute.changingColumnName$)
+        FROM
+$/ if attribute.isEquivalent and not attribute.isKnotted
+            TABLE($attribute.capsule$.r$attribute.name$(equivalent, changingTimepoint::$attribute.timeRange$)) sub
+$/ else
+            TABLE($attribute.capsule$.r$attribute.name$(changingTimepoint::$attribute.timeRange$)) sub
+$/ endif
+        WHERE
+            sub.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+   )
+$/ else
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    TABLE($attribute.capsule$.e$attribute.name$(equivalent)) $attribute.mnemonic$
+$/ else
+    $attribute.capsule$.$attribute.name$ $attribute.mnemonic$
+$/ endif
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    TABLE($attribute.knot.capsule$.e$attribute.knot.name$(equivalent)) k$attribute.mnemonic$
+$/ else
+    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+$/ endif
+ON
+    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
+$/ endif
+$/ endfor
+$$
+;
+-- Now equivalence perspective ----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.en$anchor.name$ (
+    equivalent $schema.metadata.equivalentRange$
+)
+RETURNS TABLE (
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    *
+FROM
+    TABLE($anchor.capsule$.ep$anchor.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
+$$
+;
+$/ if anchor.historizedAttributes
+-- Difference equivalence perspective ---------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.ed$anchor.name$ (
+    equivalent $schema.metadata.equivalentRange$,
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection string
+)
+RETURNS TABLE (
+    inspectedTimepoint $schema.metadata.chronon$,
+    mnemonic string,
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+$/ foreach historized in anchor.historizedAttributes
+SELECT DISTINCT
+    h$historized.mnemonic$.$historized.changingColumnName$::$schema.metadata.chronon$ AS inspectedTimepoint,
+    '$historized.mnemonic$' AS mnemonic,
+    p$anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    p$anchor.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+    p$anchor.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+    p$anchor.mnemonic$.$attribute.equivalentColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    p$anchor.mnemonic$.$attribute.knotChecksumColumnName$,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    p$anchor.mnemonic$.$attribute.knotEquivalentColumnName$,
+$/ endif
+    p$anchor.mnemonic$.$attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    p$anchor.mnemonic$.$attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    p$anchor.mnemonic$.$attribute.checksumColumnName$,
+$/ endif
+    p$anchor.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $/ if historized.isEquivalent and not historized.isKnotted TABLE($historized.capsule$.e$historized.name$(equivalent)) h$historized.mnemonic$, $/ else $historized.capsule$.$historized.name$ h$historized.mnemonic$,$/ endif
+    TABLE($anchor.capsule$.ep$anchor.name$(equivalent, h$historized.mnemonic$.$historized.changingColumnName$::$schema.metadata.chronon$)) p$anchor.mnemonic$
+WHERE
+    (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
+AND
+    h$historized.mnemonic$.$historized.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+AND
+    p$anchor.mnemonic$.$anchor.identityColumnName$ = h$historized.mnemonic$.$historized.entityReferenceName$
+$/ if not historized.last()
+UNION
+$/ endif
+$/ endfor
+$$
+;
+$/ endif
+$/ endif
+$/ endif
+$/ endfor

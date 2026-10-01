@@ -1,0 +1,2 @@
+# Sisula templates are rendered and compared byte for byte; keep them LF on every checkout.
+*.sisula text eol=lf

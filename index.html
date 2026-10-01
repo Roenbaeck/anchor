@@ -64,6 +64,8 @@
     <script type="text/javascript" src="modules/LayoutEngine.js"></script>    
     <script type="text/javascript" src="modules/Map.js"></script>    
     <script type="text/javascript" src="modules/Sisulator.js"></script>    
+    <script type="text/javascript" src="modules/Resolver.js"></script>
+    <script type="text/javascript" src="modules/sisula.js"></script>
     <!-- run some checks first -->
     <script type="text/javascript">
         // <!--
@@ -6468,10 +6470,39 @@
                 }
             },
             generateSQL: function() {
-                Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives)
-                .then(sql => {
+                Actions.sql().then(sql => {
                     new CodePopover(Actions.preformat(sql), true)
+                }, error => {
+                    console.error(error);
+                    alert('The SQL could not be generated: ' + (error && error.message || error));
                 });
+            },
+            // The SQL for the selected target database and temporalization. A directive that lists
+            // .sisula templates is rendered by the Sisula engine (modules/sisula.js) from the JSON
+            // bindings; a directive that lists .js sisulets is run by the original Sisulator.
+            sql: async function() {
+                var directive = await Actions.getDirectives();
+                var entries = Actions.directiveEntries(directive);
+                var templates = entries.filter(entry => /\.sisula$/.test(entry));
+                if(templates.length === 0)
+                    return Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives);
+                var bindings = await Actions.bindings();
+                var sql = '';
+                for(var i = 0; i < templates.length; i++) {
+                    var template = (await Actions.getDirectives(templates[i])).replace(/\r/g, '');
+                    try {
+                        sql += sisulate(template, bindings);
+                    } catch(e) {
+                        e.message = templates[i] + ': ' + e.message;
+                        throw e;
+                    }
+                }
+                return sql;
+            },
+            // The lines of a directive that are scripts: not empty, not comments, trimmed.
+            directiveEntries: function(directive) {
+                var lines = directive.replace(/\r/g, '').match(/^[^#].+/gm) || [];
+                return lines.map(line => line.trim());
             },
             generateXML: function() {
                 Actions.transform(Model.toXML(false), 'xml2html.xsl', document)
@@ -6496,10 +6527,32 @@
                     html.body.appendChild(fragment);
                 });
             },
-            jsonify: function(xml) {
-                var object = Sisulator.objectify(xml, MAP);
-                // jsonify the object
-                return JSON.stringify(object, null, 3);
+            // The input of the Sisula templates for the selected target database and temporalization:
+            // the model as the generators see it (Helpers.js and the naming conventions applied, plus
+            // the target's derive.js if it has one), flattened to plain JSON by modules/Resolver.js.
+            bindings: async function() {
+                var database = Defaults.databaseTarget;
+                var temporalization = Defaults.temporalization;
+                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                // the directive starts with the scripts that prepare the schema (Helpers.js, the naming
+                // conventions, and derive.js if the target has one); they are run in its order
+                var entries = Actions.directiveEntries(await Actions.getDirectives());
+                var scripts = [];
+                for(var i = 0; i < entries.length; i++) {
+                    if(/(^|\/)(Helpers|NamingConvention|derive)\.js$/.test(entries[i]))
+                        scripts.push(await Actions.getDirectives(entries[i]));
+                }
+                return JSON.stringify({
+                    bindingsVersion: 1,
+                    database: database,
+                    temporalization: temporalization,
+                    schema: Resolver.resolve(schema, scripts)
+                }, null, 2);
+            },
+            generateBindings: function() {
+                Actions.bindings().then(json => {
+                    new CodePopover(Actions.preformat(json), true)
+                });
             },
             // creates a preformatted document fragment from the given text
             preformat: function(text) {
@@ -7662,7 +7715,7 @@
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
                 <li title="Generate SQL code for implementation of a model in a relational database." onclick="Actions.generateSQL()"> SQL code</li>
                 <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="Actions.generateXML()"> XML code</li>
-                <li title="Generate a JSON string to implement the model in a program." onclick="new CodePopover(Actions.preformat(Actions.jsonify(Model.toXML(false))), true)"> JSON string</li>
+                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." onclick="Actions.generateBindings()"> JSON bindings</li>
                 <!--
                 <li title="Generate a URL for a public model that can be shared over social media or through email." onclick="Actions.generateURL()"> URL for sharing</li>
                 -->

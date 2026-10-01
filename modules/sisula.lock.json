@@ -1,0 +1,8 @@
+{
+  "source": "https://github.com/Roenbaeck/sisula",
+  "commit": "83438a754aadb2fb7903af7394b2537b5c70854b",
+  "date": "2026-10-01T10:52:02+02:00",
+  "subject": "Remove the original Sisulator.js",
+  "engine": { "from": "core/sisula.js", "to": "modules/sisula.js", "sha256": "42e43931538b3414f4cb83e6d50663969b3813c16c581491b3157b732f5a9a60" },
+  "language": { "from": "docs/LANGUAGE.md", "to": "docs/SISULA.md", "sha256": "c5104b9a588ce8658f3b5638ab3573253393536970527a91810c52f3f1cd414e" }
+}
