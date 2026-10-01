@@ -7057,6 +7057,16 @@
                     Model.fromXML(xml);
                 }
                 Defaults.databaseTarget = value;
+                // "now" is a database function, so it follows the target. Only the defaults are swapped;
+                // anything else was typed in on purpose. Snowflake: sysdate() is UTC without a time zone,
+                // which is what a timestamp_ntz ChangedAt holds. current_timestamp() would be local time.
+                var nowDefaults = { SQLServer: 'sysdatetime()', Snowflake: 'sysdate()' };
+                var knownNow = [nowDefaults.SQLServer, nowDefaults.Snowflake];
+                if(nowDefaults[value] && knownNow.indexOf(Defaults.now) >= 0) {
+                    this.setDefaultNow(nowDefaults[value]);
+                    var field = document.getElementById('defaultNow');
+                    if(field) field.value = Defaults.now;
+                }
             },
             setMiniRate: function(value) {
                 DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
