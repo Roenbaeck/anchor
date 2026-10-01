@@ -131,12 +131,6 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.annexName$ (
             else '-'
         end
     ),
-    $attribute.reliableColumnName$ int default (
-        case
-            when $attribute.reliabilityColumnName$ < $/ if schema.metadata.reliableCutoff $schema.metadata.reliableCutoff$ $/ endif then 0
-            else 1
-        end
-    ),
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif

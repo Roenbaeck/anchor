@@ -89,6 +89,8 @@ while (anchor = schema.nextAnchor()) {
                 knot = attribute.knot;
                 attribute.knotReferenceName = attribute.knotRange + D + schema.metadata.identitySuffix;
                 attribute.knotValueColumnName = knot.name;
+                attribute.knotEquivalentColumnName = knot.equivalentColumnName;
+                attribute.knotChecksumColumnName = knot.checksumColumnName;
                 attribute.knotMetadataColumnName = knot.metadataColumnName;
             }
         }
@@ -152,6 +154,8 @@ while (nexus = schema.nextNexus()) {
                 knot = nxAttribute.knot;
                 nxAttribute.knotReferenceName = nxAttribute.knotRange + D + schema.metadata.identitySuffix;
                 nxAttribute.knotValueColumnName = knot.name;
+                nxAttribute.knotEquivalentColumnName = knot.equivalentColumnName;
+                nxAttribute.knotChecksumColumnName = knot.checksumColumnName;
                 nxAttribute.knotMetadataColumnName = knot.metadataColumnName;
             }
         }

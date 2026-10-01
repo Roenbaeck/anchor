@@ -112,7 +112,7 @@ ON
 /*~
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
-        $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+        ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
@@ -121,7 +121,7 @@ ON
             sub.$attribute.identityColumnName
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
-                $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+                ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE

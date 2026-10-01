@@ -87,8 +87,7 @@ $/ endif
     $attribute.positingColumnName$ $schema.metadata.positingRange$,
     $attribute.positorColumnName$ $schema.metadata.positorRange$,
     $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
-    $attribute.assertionColumnName$ string,
-    $attribute.reliableColumnName$ int
+    $attribute.assertionColumnName$ string
 )
 AS
 $$
@@ -100,10 +99,7 @@ $/ endif
     $attribute.positingColumnName$,
     $attribute.positorColumnName$,
     $attribute.reliabilityColumnName$,
-    $attribute.assertionColumnName$,
-$/ if attribute.reliableColumnName
-    $attribute.reliableColumnName$
-$/ endif
+    $attribute.assertionColumnName$
 FROM
     $attribute.capsule$.$attribute.annexName$
 WHERE
@@ -127,7 +123,6 @@ $/ endif
     $attribute.positorColumnName$ $schema.metadata.positorRange$,
     $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
     $attribute.assertionColumnName$ string,
-    $attribute.reliableColumnName$ int,
     $attribute.entityReferenceName$ $attribute.parent.identity$,
 $/ if attribute.hasChecksum
     $attribute.checksumColumnName$ numeric(19,0),
@@ -146,7 +141,6 @@ $/ endif
     a.$attribute.positorColumnName$,
     a.$attribute.reliabilityColumnName$,
     a.$attribute.assertionColumnName$,
-    a.$attribute.reliableColumnName$,
     p.$attribute.entityReferenceName$,
 $/ if attribute.hasChecksum
     p.$attribute.checksumColumnName$,
@@ -184,7 +178,6 @@ $/ endif
     $attribute.positorColumnName$ $schema.metadata.positorRange$,
     $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
     $attribute.assertionColumnName$ string,
-    $attribute.reliableColumnName$ int,
     $attribute.entityReferenceName$ $attribute.parent.identity$,
 $/ if attribute.hasChecksum
     $attribute.checksumColumnName$ numeric(19,0),
@@ -203,7 +196,6 @@ $/ endif
     a.$attribute.positorColumnName$,
     a.$attribute.reliabilityColumnName$,
     a.$attribute.assertionColumnName$,
-    a.$attribute.reliableColumnName$,
     p.$attribute.entityReferenceName$,
 $/ if attribute.hasChecksum
     p.$attribute.checksumColumnName$,
@@ -313,7 +305,6 @@ $/ endif
     $attribute.positorColumnName$ $schema.metadata.positorRange$,
     $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
     $attribute.assertionColumnName$ string,
-    $attribute.reliableColumnName$ int,
     $attribute.entityReferenceName$ $attribute.parent.identity$,
 $/ if attribute.hasChecksum
     $attribute.checksumColumnName$ numeric(19,0),
@@ -331,7 +322,6 @@ $/ endif
     a.$attribute.positorColumnName$,
     a.$attribute.reliabilityColumnName$,
     a.$attribute.assertionColumnName$,
-    a.$attribute.reliableColumnName$,
     p.$attribute.entityReferenceName$,
 $/ if attribute.hasChecksum
     p.$attribute.checksumColumnName$,

@@ -112,9 +112,7 @@ $/ foreach attribute in nexus.attributes
 LEFT JOIN
     TABLE($attribute.capsule$.r$attribute.name$(
 $/ if attribute.isHistorized
-        changingTimepoint
-$/ else
-        :,
+        changingTimepoint::$attribute.timeRange$,
 $/ endif
         positingTimepoint::$schema.metadata.positingRange$
     )) $attribute.mnemonic$
@@ -125,9 +123,7 @@ ON
         FROM
             TABLE($attribute.capsule$.r$attribute.name$(
 $/ if attribute.isHistorized
-                changingTimepoint
-$/ else
-                :,
+                changingTimepoint::$attribute.timeRange$,
 $/ endif
                 positingTimepoint::$schema.metadata.positingRange$
             )) sub

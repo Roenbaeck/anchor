@@ -4,6 +4,12 @@
 schema.metadata.encapsulation = schema.metadata.encapsulation || 'dbo';
 schema.metadata.chronon = schema.metadata.chronon || 'datetime';
 
+// knots get a dummy column too, when there are no metadata columns (anchors and nexuses get theirs in
+// the common naming convention); the table definitions have a column there to end their list with
+var knot;
+while(knot = schema.nextKnot())
+    knot.dummyColumnName = knot.mnemonic + D + schema.metadata.dummySuffix;
+
 // returns the description of a construct as an escaped string literal body, or null if it has none
 var describe = function(construct) {
     if(!construct || !construct.description || !construct.description._description)

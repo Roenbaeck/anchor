@@ -25,7 +25,7 @@ $/ else
 $/ endif
 $/ endif
 $/ endfor
-    $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ bit null,$/ endif
+    $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ boolean null,$/ endif
     constraint pk$nexus.name$ primary key (
         $nexus.identityColumnName$
     ) RELY

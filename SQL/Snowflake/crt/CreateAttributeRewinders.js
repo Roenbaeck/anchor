@@ -86,8 +86,7 @@ RETURNS TABLE (
     $attribute.positingColumnName $schema.metadata.positingRange,
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int
+    $attribute.assertionColumnName string
 )
 AS
 $$$$
@@ -97,8 +96,7 @@ SELECT
     $attribute.positingColumnName,
     $attribute.positorColumnName,
     $attribute.reliabilityColumnName,
-    $attribute.assertionColumnName,
-    $attribute.reliableColumnName
+    $attribute.assertionColumnName
 FROM
     ${attribute.capsule}$.$attribute.annexName
 WHERE
@@ -122,7 +120,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
     $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
@@ -137,7 +134,6 @@ SELECT
     a.$attribute.positorColumnName,
     a.$attribute.reliabilityColumnName,
     a.$attribute.assertionColumnName,
-    a.$attribute.reliableColumnName,
     p.$attribute.entityReferenceName,
     $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
     p.$attribute.valueColumnName,
@@ -172,7 +168,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
     $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity, : $attribute.dataRange,
@@ -187,7 +182,6 @@ SELECT
     a.$attribute.positorColumnName,
     a.$attribute.reliabilityColumnName,
     a.$attribute.assertionColumnName,
-    a.$attribute.reliableColumnName,
     p.$attribute.entityReferenceName,
     $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
     p.$attribute.valueColumnName,
@@ -282,7 +276,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
     $attribute.entityReferenceName $parent.identity,
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
     $attribute.valueColumnName $(attribute.isKnotted())? $attribute.knot.identity : $attribute.dataRange
@@ -296,7 +289,6 @@ SELECT
     a.$attribute.positorColumnName,
     a.$attribute.reliabilityColumnName,
     a.$attribute.assertionColumnName,
-    a.$attribute.reliableColumnName,
     p.$attribute.entityReferenceName,
     $(attribute.hasChecksum())? p.$attribute.checksumColumnName,
     p.$attribute.valueColumnName

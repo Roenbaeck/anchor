@@ -85,7 +85,9 @@ FROM
 $/ foreach attribute in anchor.attributes
 LEFT JOIN
     TABLE($attribute.capsule$.r$attribute.name$(
-        $/ if attribute.isHistorized changingTimepoint$/ else :,$/ endif
+$/ if attribute.isHistorized
+        changingTimepoint::$attribute.timeRange$,
+$/ endif
         positingTimepoint::$schema.metadata.positingRange$
     )) $attribute.mnemonic$
 ON
@@ -94,7 +96,9 @@ ON
             sub.$attribute.identityColumnName$
         FROM
             TABLE($attribute.capsule$.r$attribute.name$(
-                $/ if attribute.isHistorized changingTimepoint$/ else :,$/ endif
+$/ if attribute.isHistorized
+                changingTimepoint::$attribute.timeRange$,
+$/ endif
                 positingTimepoint::$schema.metadata.positingRange$
             )) sub
         WHERE

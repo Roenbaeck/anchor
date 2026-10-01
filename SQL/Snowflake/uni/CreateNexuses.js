@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS ${nexus.capsule}$.$nexus.name (
         }
     }
 /*~
-    $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null, : $nexus.dummyColumnName bit null,
+    $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null, : $nexus.dummyColumnName boolean null,
     constraint pk$nexus.name primary key (
         $nexus.identityColumnName
     ) RELY

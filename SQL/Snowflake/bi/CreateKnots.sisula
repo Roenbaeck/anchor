@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS $knot.capsule$.$knot.name$ (
 $/ if knot.hasChecksum
     $knot.checksumColumnName$ numeric(19,0) default hash($knot.valueColumnName$),
 $/ endif
+$/ if schema.METADATA
+    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
     constraint pk$knot.name$ primary key (
         $knot.identityColumnName$
     ) RELY,

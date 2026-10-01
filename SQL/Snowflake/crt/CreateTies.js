@@ -102,12 +102,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.annexName (
             else '-'
         end
     ),
-    $tie.reliableColumnName int default (
-        case
-            when $tie.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
-            else 1
-        end
-    ),
+
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName

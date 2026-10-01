@@ -31,7 +31,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -73,7 +72,6 @@ SELECT
     ${attribute.mnemonic}$.$attribute.positorColumnName,
     ${attribute.mnemonic}$.$attribute.reliabilityColumnName,
     ${attribute.mnemonic}$.$attribute.assertionColumnName,
-    ${attribute.mnemonic}$.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -97,7 +95,7 @@ FROM
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
         positor,
-        $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+        ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
@@ -107,7 +105,7 @@ ON
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
                 positor,
-                $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+                ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
@@ -141,7 +139,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -175,7 +173,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -205,7 +202,7 @@ AS
 $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.$anchor.identityColumnName,
     $(schema.METADATA)? ${anchor.mnemonic}$.$anchor.metadataColumnName,
 ~*/
@@ -219,7 +216,6 @@ SELECT
     ${anchor.mnemonic}$.$attribute.positorColumnName,
     ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
     ${anchor.mnemonic}$.$attribute.assertionColumnName,
-    ${anchor.mnemonic}$.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -252,7 +248,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -290,7 +286,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;
@@ -334,7 +329,6 @@ SELECT
     ${anchor.mnemonic}$.$attribute.positorColumnName,
     ${anchor.mnemonic}$.$attribute.reliabilityColumnName,
     ${anchor.mnemonic}$.$attribute.assertionColumnName,
-    ${anchor.mnemonic}$.$attribute.reliableColumnName,
 ~*/
                 if(attribute.isKnotted()) {
                     knot = attribute.knot;

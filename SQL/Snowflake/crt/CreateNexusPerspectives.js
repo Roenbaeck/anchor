@@ -44,7 +44,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -90,7 +89,6 @@ SELECT
     ${attribute.mnemonic}$.$attribute.positorColumnName,
     ${attribute.mnemonic}$.$attribute.reliabilityColumnName,
     ${attribute.mnemonic}$.$attribute.assertionColumnName,
-    ${attribute.mnemonic}$.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -123,7 +121,7 @@ ON
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
         positor,
-        $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+        ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
@@ -133,7 +131,7 @@ ON
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
                 positor,
-                $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+                ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
@@ -167,7 +165,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -214,7 +212,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -235,7 +232,7 @@ AS
 $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.$nexus.identityColumnName,
     $(schema.METADATA)? ${nexus.mnemonic}$.$nexus.metadataColumnName,
 ~*/
@@ -262,7 +259,6 @@ SELECT
     ${nexus.mnemonic}$.$attribute.positorColumnName,
     ${nexus.mnemonic}$.$attribute.reliabilityColumnName,
     ${nexus.mnemonic}$.$attribute.assertionColumnName,
-    ${nexus.mnemonic}$.$attribute.reliableColumnName,
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -295,7 +291,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -346,7 +342,6 @@ RETURNS TABLE (
     $attribute.positorColumnName $schema.metadata.positorRange,
     $attribute.reliabilityColumnName $schema.metadata.reliabilityRange,
     $attribute.assertionColumnName string,
-    $attribute.reliableColumnName int,
 ~*/
                 if(attribute.isKnotted && attribute.isKnotted()) {
                     knot = attribute.knot;
@@ -394,7 +389,6 @@ SELECT
     ${nexus.mnemonic}$.$attribute.positorColumnName,
     ${nexus.mnemonic}$.$attribute.reliabilityColumnName,
     ${nexus.mnemonic}$.$attribute.assertionColumnName,
-    ${nexus.mnemonic}$.$attribute.reliableColumnName,
 ~*/
                 if(attribute.isKnotted && attribute.isKnotted()) {
                     knot = attribute.knot;
