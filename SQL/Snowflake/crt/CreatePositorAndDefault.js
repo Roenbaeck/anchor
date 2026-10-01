@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS ${schema.metadata.encapsulation}$._$schema.metadata.p
     $schema.metadata.positorSuffix $schema.metadata.positorRange not null,
     constraint pk_$schema.metadata.positorSuffix primary key (
         $schema.metadata.positorSuffix
-    )
+    ) RELY
 );
 MERGE INTO ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 USING ( SELECT 0 AS _defaultPositor ) d

@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.name (
     $knot.metadataDefinition
     constraint pk$knot.name primary key (
         $knot.identityColumnName
-    ),
+    ) RELY,
     constraint uq$knot.name unique (
         $(knot.hasChecksum())? $knot.checksumColumnName : $knot.valueColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($knot.identityColumnName);
 ~*/
 }

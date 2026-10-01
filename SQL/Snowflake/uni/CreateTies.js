@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
 /*~
     constraint ${(tie.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : $knotReference($role.knot.identityColumnName),
+    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName) RELY, : $knotReference($role.knot.identityColumnName) RELY,
 ~*/
     }
     // one-to-one and we need additional constraints
@@ -68,14 +68,14 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
     constraint ${tie.name + '_uq' + role.name}$ unique (
         $role.columnName,
         $tie.changingColumnName
-    ),
+    ) RELY,
 ~*/
                 }
                 else {
 /*~
     constraint ${tie.name + '_uq' + role.name}$ unique (
         $role.columnName
-    ),
+    ) RELY,
 ~*/
                 }
             }
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.name (
 ~*/
     }
 /*~
-    )
+    ) RELY
 ) CLUSTER BY (
 ~*/
     var r;

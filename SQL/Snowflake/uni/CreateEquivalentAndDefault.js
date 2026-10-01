@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS ${schema.metadata.encapsulation}$._$schema.metadata.e
     $schema.metadata.equivalentSuffix $schema.metadata.equivalentRange not null,
     constraint pk_$schema.metadata.equivalentSuffix primary key (
         $schema.metadata.equivalentSuffix 
-    )
+    ) RELY
 );
 MERGE INTO ${schema.metadata.encapsulation}$._$schema.metadata.equivalentSuffix e
 USING ( SELECT 0 AS _defaultEquivalent ) d

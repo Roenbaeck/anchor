@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : ${role.knot.capsule}$.$knotTableName($role.knot.identityColumnName),
+    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName) RELY, : ${role.knot.capsule}$.$knotTableName($role.knot.identityColumnName) RELY,
 ~*/
     }
     if(!tie.hasMoreIdentifiers()) {
@@ -37,14 +37,14 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     constraint ${tie.positName + '_uq' + role.name}$ unique (
         $role.columnName,
         $tie.changingColumnName
-    ),
+    ) RELY,
 ~*/
                 }
                 else {
 /*~
     constraint ${tie.positName + '_uq' + role.name}$ unique (
         $role.columnName
-    ),
+    ) RELY,
 ~*/
                 }
             }
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
 /*~
     constraint pk$tie.positName primary key (
         $tie.identityColumnName
-    ),
+    ) RELY,
     constraint uq$tie.name unique (
 ~*/
     while (role = tie.nextIdentifier()) {
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
         }
     }
 /*~
-    )
+    ) RELY
 ) CLUSTER BY (
 ~*/
     while (role = tie.nextIdentifier()) {
@@ -97,11 +97,11 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.annexName (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$tie.annexName foreign key (
         $tie.identityColumnName
-    ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName),
+    ) references ${tie.capsule}$.$tie.positName($tie.identityColumnName) RELY,
     constraint pk$tie.annexName primary key (
         $tie.identityColumnName,
         $tie.positingColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($tie.identityColumnName, $tie.positingColumnName);
 ~*/
 }

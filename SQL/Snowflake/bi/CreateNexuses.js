@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS ${nexus.capsule}$.$nexus.name (
 /*~
     constraint ${(nexus.name + '_fk' + role.name)}$ foreign key (
         $role.columnName
-    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName), : $knotReference($role.knot.identityColumnName),~*/
+    ) references $(role.entity)? ${role.entity.capsule}$.$role.entity.name($role.entity.identityColumnName) RELY, : $knotReference($role.knot.identityColumnName) RELY,~*/
         if(!nexus.hasMoreRoles()) {
 /*~
 ~*/
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS ${nexus.capsule}$.$nexus.name (
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null, : $nexus.dummyColumnName boolean null,
     constraint pk$nexus.name primary key (
         $nexus.identityColumnName
-    )
+    ) RELY
 ) CLUSTER BY ($nexus.identityColumnName);
 ~*/
 }
