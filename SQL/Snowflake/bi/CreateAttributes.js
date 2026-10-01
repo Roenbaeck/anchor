@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.changingColumnName,
         $(attribute.hasChecksum())? $attribute.checksumColumnName : $attribute.valueColumnName
     )
-) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
         $attribute.changingColumnName,
         $attribute.knotReferenceName
     )
-) CLUSTER BY ($attribute.entityReferenceName, $attribute.changingColumnName);
+) CLUSTER BY ($attribute.entityReferenceName);
 ~*/
     }
     else if(attribute.isKnotted()) {
