@@ -8,6 +8,8 @@ var knot;
 while (knot = schema.nextKnot()) {
     if(knot.isGenerator())
         knot.identityGenerator = 'default ' + knot.capsule + '.' + knot.identitySequenceName + '.nextval';
+    if(schema.METADATA)
+        knot.metadataDefinition = knot.metadataColumnName + ' ' + schema.metadata.metadataType + ' not null,';
 /*~
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------

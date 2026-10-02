@@ -112,7 +112,7 @@ ON
 /*~
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
-        $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+        ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
@@ -121,7 +121,7 @@ ON
             sub.$attribute.identityColumnName
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
-                $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+                ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
@@ -153,7 +153,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -260,7 +260,7 @@ $$$$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.metadata.now::$schema.metadata.chronon,

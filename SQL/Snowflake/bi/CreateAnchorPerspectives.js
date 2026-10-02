@@ -87,7 +87,7 @@ FROM
 /*~
 LEFT JOIN
     TABLE(${attribute.capsule}$.r$attribute.name(
-        $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+        ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) $attribute.mnemonic
 ON
@@ -96,7 +96,7 @@ ON
             sub.$attribute.identityColumnName
         FROM
             TABLE(${attribute.capsule}$.r$attribute.name(
-                $(attribute.isHistorized())? changingTimepoint::$attribute.timeRange,
+                ${(attribute.isHistorized() ? 'changingTimepoint::' + attribute.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE
@@ -128,7 +128,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -218,7 +218,7 @@ $$$$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.metadata.now::$schema.metadata.chronon,

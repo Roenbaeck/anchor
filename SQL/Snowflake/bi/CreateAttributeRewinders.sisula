@@ -1,0 +1,292 @@
+-- ATTRIBUTE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------
+--
+-- BI rewinders over changing and positing time.
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.isHistorized
+CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.positName$ (
+    changingTimepoint $attribute.timeRange$
+)
+RETURNS TABLE (
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.entityReferenceName$ $attribute.parent.identity$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$, $/ else $attribute.dataRange$,$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$
+)
+AS
+$$
+SELECT
+    $attribute.identityColumnName$,
+    $attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$,
+$/ endif
+    $attribute.valueColumnName$,
+    $attribute.changingColumnName$
+FROM
+    $attribute.capsule$.$attribute.positName$
+WHERE
+    $attribute.changingColumnName$ <= changingTimepoint
+$$
+;
+CREATE OR REPLACE FUNCTION $attribute.capsule$.f$attribute.positName$ (
+    changingTimepoint $attribute.timeRange$
+)
+RETURNS TABLE (
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.entityReferenceName$ $attribute.parent.identity$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$, $/ else $attribute.dataRange$,$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$
+)
+AS
+$$
+SELECT
+    $attribute.identityColumnName$,
+    $attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$,
+$/ endif
+    $attribute.valueColumnName$,
+    $attribute.changingColumnName$
+FROM
+    $attribute.capsule$.$attribute.positName$
+WHERE
+    $attribute.changingColumnName$ > changingTimepoint
+$$
+;
+$/ endif
+CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.annexName$ (
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.positingColumnName$ $schema.metadata.positingRange$,
+    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    $attribute.metadataColumnName$,
+$/ endif
+    $attribute.identityColumnName$,
+    $attribute.positingColumnName$,
+    $attribute.reliabilityColumnName$
+FROM
+    $attribute.capsule$.$attribute.annexName$
+WHERE
+    $attribute.positingColumnName$ <= positingTimepoint
+$$
+;
+$/ if attribute.isHistorized
+CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.name$ (
+    changingTimepoint $attribute.timeRange$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.positingColumnName$ $schema.metadata.positingRange$,
+    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $attribute.entityReferenceName$ $attribute.parent.identity$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$, $/ else $attribute.dataRange$,$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    a.$attribute.metadataColumnName$,
+$/ endif
+    p.$attribute.identityColumnName$,
+    a.$attribute.positingColumnName$,
+    a.$attribute.reliabilityColumnName$,
+    p.$attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+    p.$attribute.checksumColumnName$,
+$/ endif
+    p.$attribute.valueColumnName$,
+    p.$attribute.changingColumnName$
+FROM
+    TABLE($attribute.capsule$.r$attribute.positName$(changingTimepoint)) p
+JOIN
+    TABLE($attribute.capsule$.r$attribute.annexName$(positingTimepoint)) a
+ON
+    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.$attribute.identityColumnName$
+        ORDER BY a.$attribute.positingColumnName$ DESC
+    ) = 1
+$$
+;
+CREATE OR REPLACE FUNCTION $attribute.capsule$.f$attribute.name$ (
+    changingTimepoint $attribute.timeRange$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.positingColumnName$ $schema.metadata.positingRange$,
+    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $attribute.entityReferenceName$ $attribute.parent.identity$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$, $/ else $attribute.dataRange$,$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    a.$attribute.metadataColumnName$,
+$/ endif
+    p.$attribute.identityColumnName$,
+    a.$attribute.positingColumnName$,
+    a.$attribute.reliabilityColumnName$,
+    p.$attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+    p.$attribute.checksumColumnName$,
+$/ endif
+    p.$attribute.valueColumnName$,
+    p.$attribute.changingColumnName$
+FROM
+    TABLE($attribute.capsule$.f$attribute.positName$(changingTimepoint)) p
+JOIN
+    TABLE($attribute.capsule$.r$attribute.annexName$(positingTimepoint)) a
+ON
+    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.$attribute.identityColumnName$
+        ORDER BY a.$attribute.positingColumnName$ DESC
+    ) = 1
+$$
+;
+CREATE OR REPLACE FUNCTION $attribute.capsule$.pre$attribute.name$ (
+    id $attribute.parent.identity$,
+    changingTimepoint $attribute.timeRange$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+$/ if attribute.isKnotted
+RETURNS $attribute.knot.identity$
+$/ else
+$/ if attribute.hasChecksum
+RETURNS numeric(19,0)
+$/ else
+RETURNS $attribute.dataRange$
+$/ endif
+$/ endif
+AS
+$$
+SELECT
+    $/ if attribute.hasChecksum pre.$attribute.checksumColumnName$ $/ else pre.$attribute.valueColumnName$$/ endif
+FROM
+    TABLE($attribute.capsule$.r$attribute.name$(changingTimepoint, positingTimepoint)) pre
+WHERE
+    pre.$attribute.entityReferenceName$ = id
+AND
+    pre.$attribute.changingColumnName$ < changingTimepoint
+AND
+    pre.$attribute.reliabilityColumnName$ = 1
+ORDER BY
+    pre.$attribute.changingColumnName$ DESC,
+    pre.$attribute.positingColumnName$ DESC
+LIMIT 1
+$$
+;
+CREATE OR REPLACE FUNCTION $attribute.capsule$.fol$attribute.name$ (
+    id $attribute.parent.identity$,
+    changingTimepoint $attribute.timeRange$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+$/ if attribute.isKnotted
+RETURNS $attribute.knot.identity$
+$/ else
+$/ if attribute.hasChecksum
+RETURNS numeric(19,0)
+$/ else
+RETURNS $attribute.dataRange$
+$/ endif
+$/ endif
+AS
+$$
+SELECT
+    $/ if attribute.hasChecksum fol.$attribute.checksumColumnName$ $/ else fol.$attribute.valueColumnName$$/ endif
+FROM
+    TABLE($attribute.capsule$.f$attribute.name$(changingTimepoint, positingTimepoint)) fol
+WHERE
+    fol.$attribute.entityReferenceName$ = id
+AND
+    fol.$attribute.changingColumnName$ > changingTimepoint
+AND
+    fol.$attribute.reliabilityColumnName$ = 1
+ORDER BY
+    fol.$attribute.changingColumnName$ ASC,
+    fol.$attribute.positingColumnName$ DESC
+LIMIT 1
+$$
+;
+$/ else
+CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.name$ (
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+    $attribute.identityColumnName$ $attribute.identity$,
+    $attribute.positingColumnName$ $schema.metadata.positingRange$,
+    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $attribute.entityReferenceName$ $attribute.parent.identity$,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$ $/ else $attribute.dataRange$$/ endif
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    a.$attribute.metadataColumnName$,
+$/ endif
+    p.$attribute.identityColumnName$,
+    a.$attribute.positingColumnName$,
+    a.$attribute.reliabilityColumnName$,
+    p.$attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+    p.$attribute.checksumColumnName$,
+$/ endif
+    p.$attribute.valueColumnName$
+FROM
+    $attribute.capsule$.$attribute.positName$ p
+JOIN
+    TABLE($attribute.capsule$.r$attribute.annexName$(positingTimepoint)) a
+ON
+    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.$attribute.identityColumnName$
+        ORDER BY a.$attribute.positingColumnName$ DESC
+    ) = 1
+$$
+;
+$/ endif
+$/ endfor

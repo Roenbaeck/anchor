@@ -85,8 +85,7 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
@@ -96,8 +95,7 @@ SELECT
     $tie.positingColumnName,
     $tie.positorColumnName,
     $tie.reliabilityColumnName,
-    $tie.assertionColumnName,
-    $tie.reliableColumnName
+    $tie.assertionColumnName
 FROM
     ${tie.capsule}$.$tie.annexName
 WHERE
@@ -124,8 +122,7 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
@@ -143,8 +140,7 @@ SELECT
     a.$tie.positingColumnName,
     a.$tie.positorColumnName,
     a.$tie.reliabilityColumnName,
-    a.$tie.assertionColumnName,
-    a.$tie.reliableColumnName
+    a.$tie.assertionColumnName
 FROM
     $(tie.isHistorized())? TABLE(${tie.capsule}$.r$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
 JOIN
@@ -180,8 +176,7 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
@@ -199,8 +194,7 @@ SELECT
     a.$tie.positingColumnName,
     a.$tie.positorColumnName,
     a.$tie.reliabilityColumnName,
-    a.$tie.assertionColumnName,
-    a.$tie.reliableColumnName
+    a.$tie.assertionColumnName
 FROM
     $(tie.isHistorized())? TABLE(${tie.capsule}$.f$tie.positName(changingTimepoint)) p : ${tie.capsule}$.$tie.positName p
 JOIN

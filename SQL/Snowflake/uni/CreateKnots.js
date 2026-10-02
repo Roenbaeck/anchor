@@ -28,7 +28,7 @@ CREATE SEQUENCE IF NOT EXISTS ${knot.capsule}$.$knot.identitySequenceName START 
 /*~
 CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.identityName (
     $knot.identityColumnName $(knot.isGenerator())? $knot.identity $knot.identityGenerator not null, : $knot.identity not null,
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint pk$knot.identityName primary key (
         $knot.identityColumnName
     ) RELY
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS ${knot.capsule}$.$knot.equivalentName (
     $knot.equivalentColumnName $schema.metadata.equivalentRange not null,
     $knot.valueColumnName $knot.dataRange not null,
     $(knot.hasChecksum())? $knot.checksumColumnName numeric(19,0) default hash($knot.valueColumnName),
-    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName bit null,
+    $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType not null, : $knot.dummyColumnName boolean null,
     constraint fk$knot.equivalentName foreign key (
         $knot.identityColumnName
     ) references ${knot.capsule}$.$knot.identityName($knot.identityColumnName) RELY,

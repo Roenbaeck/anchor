@@ -31,7 +31,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity,
 ~*/
         }
 /*~
@@ -39,8 +39,7 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
@@ -57,7 +56,7 @@ SELECT
 ~*/
             }
 /*~
-    t.$role.columnName$(tie.hasMoreRoles())?,
+    t.$role.columnName,
 ~*/
         }
 /*~
@@ -65,12 +64,11 @@ SELECT
     t.$tie.positingColumnName,
     t.$tie.positorColumnName,
     t.$tie.reliabilityColumnName,
-    t.$tie.assertionColumnName,
-    t.$tie.reliableColumnName
+    t.$tie.assertionColumnName
 FROM
     TABLE(${tie.capsule}$.r$tie.name(
         positor,
-        $(tie.isHistorized())? changingTimepoint::$tie.timeRange,
+        ${(tie.isHistorized() ? 'changingTimepoint::' + tie.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) t
 ~*/
@@ -94,7 +92,7 @@ $$$$
 CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     t.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -128,7 +126,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity,
 ~*/
         }
 /*~
@@ -136,14 +134,13 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     $(schema.METADATA)? t.$tie.metadataColumnName,
 ~*/
         while (role = tie.nextRole()) {
@@ -156,7 +153,7 @@ SELECT
 ~*/
             }
 /*~
-    t.$role.columnName$(tie.hasMoreRoles())?,
+    t.$role.columnName,
 ~*/
         }
 /*~
@@ -164,8 +161,7 @@ SELECT
     t.$tie.positingColumnName,
     t.$tie.positorColumnName,
     t.$tie.reliabilityColumnName,
-    t.$tie.assertionColumnName,
-    t.$tie.reliableColumnName
+    t.$tie.assertionColumnName
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -183,7 +179,7 @@ $$$$
 CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
-    $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
+    cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     t.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
@@ -220,7 +216,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
+    $role.columnName $roleIdentity,
 ~*/
             }
 /*~
@@ -228,8 +224,7 @@ RETURNS TABLE (
     $tie.positingColumnName $schema.metadata.positingRange,
     $tie.positorColumnName $schema.metadata.positorRange,
     $tie.reliabilityColumnName $schema.metadata.reliabilityRange,
-    $tie.assertionColumnName string,
-    $tie.reliableColumnName int
+    $tie.assertionColumnName string
 )
 AS
 $$$$
@@ -248,7 +243,7 @@ SELECT
 ~*/
                 }
 /*~
-    t.$role.columnName$(tie.hasMoreRoles())?,
+    t.$role.columnName,
 ~*/
             }
 /*~
@@ -256,8 +251,7 @@ SELECT
     t.$tie.positingColumnName,
     t.$tie.positorColumnName,
     t.$tie.reliabilityColumnName,
-    t.$tie.assertionColumnName,
-    t.$tie.reliableColumnName
+    t.$tie.assertionColumnName
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN (

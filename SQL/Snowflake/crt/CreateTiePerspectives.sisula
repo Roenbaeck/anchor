@@ -1,0 +1,267 @@
+-- TIE TEMPORAL PERSPECTIVES ------------------------------------------------------------------------------------------
+--
+-- Snowflake-native CRT tie perspectives: time traveling (t), latest (l), point-in-time (p),
+-- now (n), and difference (d).
+--
+$/ foreach tie in schema.ties
+$- only do perspectives if there are roles
+$/ if tie.roles
+-- Time traveling perspective -----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$.t$tie.name$ (
+    positor $schema.metadata.positorRange$,
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$,
+    assertion string
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    $role.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+    $role.knotValueColumnName$ $role.knot.dataRange$,
+$/ if schema.METADATA
+    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+    $role.columnName$ $/ if role.entity $role.entity.identity$,$/ else $role.knot.identity$,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    $tie.changingColumnName$ $tie.timeRange$,
+$/ endif
+    $tie.positingColumnName$ $schema.metadata.positingRange$,
+    $tie.positorColumnName$ $schema.metadata.positorRange$,
+    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $tie.assertionColumnName$ string
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    t.$tie.metadataColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    k$role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+$/ endif
+    k$role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ if schema.METADATA
+    k$role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    t.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+    t.$tie.changingColumnName$,
+$/ endif
+    t.$tie.positingColumnName$,
+    t.$tie.positorColumnName$,
+    t.$tie.reliabilityColumnName$,
+    t.$tie.assertionColumnName$
+FROM
+    TABLE($tie.capsule$.r$tie.name$(
+        positor,
+$/ if tie.isHistorized
+        changingTimepoint::$tie.timeRange$,
+$/ endif
+        positingTimepoint::$schema.metadata.positingRange$
+    )) t
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.$role.knot.name$ k$role.name$
+ON
+    k$role.name$.$role.knot.identityColumnName$ = t.$role.columnName$
+$/ endfor
+WHERE
+    t.$tie.assertionColumnName$ = coalesce(assertion, t.$tie.assertionColumnName$)
+$$
+;
+-- Latest perspective -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.l$tie.name$ AS
+SELECT
+    p.$schema.metadata.positorSuffix$,
+    cast(null as $schema.metadata.reliabilityRange$) AS $schema.metadata.reliabilitySuffix$,
+    t.*
+FROM
+    $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ p
+CROSS JOIN LATERAL
+    TABLE($tie.capsule$.t$tie.name$(
+        p.$schema.metadata.positorSuffix$,
+        $schema.EOT$::$schema.metadata.chronon$,
+        $schema.EOT$::$schema.metadata.positingRange$,
+        '+'
+    )) t
+;
+-- Point-in-time perspective ------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$.p$tie.name$ (
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURNS TABLE (
+    $schema.metadata.positorSuffix$ $schema.metadata.positorRange$,
+    $schema.metadata.reliabilitySuffix$ $schema.metadata.reliabilityRange$,
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    $role.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+    $role.knotValueColumnName$ $role.knot.dataRange$,
+$/ if schema.METADATA
+    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+    $role.columnName$ $/ if role.entity $role.entity.identity$,$/ else $role.knot.identity$,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    $tie.changingColumnName$ $tie.timeRange$,
+$/ endif
+    $tie.positingColumnName$ $schema.metadata.positingRange$,
+    $tie.positorColumnName$ $schema.metadata.positorRange$,
+    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $tie.assertionColumnName$ string
+)
+AS
+$$
+SELECT
+    p.$schema.metadata.positorSuffix$,
+    cast(null as $schema.metadata.reliabilityRange$) AS $schema.metadata.reliabilitySuffix$,
+$/ if schema.METADATA
+    t.$tie.metadataColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    t.$role.knotChecksumColumnName$,
+$/ endif
+    t.$role.knotValueColumnName$,
+$/ if schema.METADATA
+    t.$role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    t.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+    t.$tie.changingColumnName$,
+$/ endif
+    t.$tie.positingColumnName$,
+    t.$tie.positorColumnName$,
+    t.$tie.reliabilityColumnName$,
+    t.$tie.assertionColumnName$
+FROM
+    $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ p
+CROSS JOIN LATERAL
+    TABLE($tie.capsule$.t$tie.name$(
+        p.$schema.metadata.positorSuffix$,
+        changingTimepoint::$schema.metadata.chronon$,
+        $schema.EOT$::$schema.metadata.positingRange$,
+        '+'
+    )) t
+$$
+;
+-- Now perspective ----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ AS
+SELECT
+    p.$schema.metadata.positorSuffix$,
+    cast(null as $schema.metadata.reliabilityRange$) AS $schema.metadata.reliabilitySuffix$,
+    t.*
+FROM
+    $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ p
+CROSS JOIN LATERAL
+    TABLE($tie.capsule$.t$tie.name$(
+        p.$schema.metadata.positorSuffix$,
+        $schema.metadata.now$::$schema.metadata.chronon$,
+        $schema.EOT$::$schema.metadata.positingRange$,
+        '+'
+    )) t
+;
+$/ if tie.isHistorized
+-- Difference perspective ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$.d$tie.name$ (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$
+)
+RETURNS TABLE (
+    $schema.metadata.positorSuffix$ $schema.metadata.positorRange$,
+    inspectedTimepoint $schema.metadata.chronon$,
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    $role.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+    $role.knotValueColumnName$ $role.knot.dataRange$,
+$/ if schema.METADATA
+    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+    $role.columnName$ $/ if role.entity $role.entity.identity$,$/ else $role.knot.identity$,$/ endif
+$/ endfor
+    $tie.changingColumnName$ $tie.timeRange$,
+    $tie.positingColumnName$ $schema.metadata.positingRange$,
+    $tie.positorColumnName$ $schema.metadata.positorRange$,
+    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    $tie.assertionColumnName$ string
+)
+AS
+$$
+SELECT
+    p.$schema.metadata.positorSuffix$,
+    tp.inspectedTimepoint,
+$/ if schema.METADATA
+    t.$tie.metadataColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    t.$role.knotChecksumColumnName$,
+$/ endif
+    t.$role.knotValueColumnName$,
+$/ if schema.METADATA
+    t.$role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    t.$role.columnName$,
+$/ endfor
+    t.$tie.changingColumnName$,
+    t.$tie.positingColumnName$,
+    t.$tie.positorColumnName$,
+    t.$tie.reliabilityColumnName$,
+    t.$tie.assertionColumnName$
+FROM
+    $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ p
+JOIN (
+    SELECT DISTINCT
+        $tie.positorColumnName$ AS positor,
+        $tie.changingColumnName$::$schema.metadata.chronon$ AS inspectedTimepoint
+    FROM
+        $tie.capsule$.$tie.positName$
+    WHERE
+        $tie.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+) tp
+ON
+    tp.positor = p.$schema.metadata.positorSuffix$
+CROSS JOIN LATERAL
+    TABLE($tie.capsule$.t$tie.name$(
+        tp.positor,
+        tp.inspectedTimepoint::$schema.metadata.chronon$,
+        $schema.EOT$::$schema.metadata.positingRange$,
+        '+'
+    )) t
+$$
+;
+$/ endif
+$/ endif
+$/ endfor

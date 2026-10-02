@@ -1,11 +1,9 @@
 -- NEXUSES ------------------------------------------------------------------------------------------------------------
 --
--- Nexuses are used to store identities for event-like entities.
--- Nexuses are immutable.
+-- Nexuses store immutable identities for event-like entities.
 --
 $/ foreach nexus in schema.nexuses
 -- Nexus table --------------------------------------------------------------------------------------------------------
--- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
 -----------------------------------------------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS $nexus.capsule$.$nexus.name$ (
     $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ IDENTITY(1,1) not null, $/ else $nexus.identity$ not null,$/ endif

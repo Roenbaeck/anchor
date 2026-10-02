@@ -58,7 +58,7 @@ SELECT
 /*~
 FROM
     TABLE(${tie.capsule}$.r$tie.name(
-        $(tie.isHistorized())? changingTimepoint::$tie.timeRange,
+        ${(tie.isHistorized() ? 'changingTimepoint::' + tie.timeRange + ',' : '')}$
         positingTimepoint::$schema.metadata.positingRange
     )) t
 ~*/
@@ -80,7 +80,7 @@ AND
             sub.$tie.identityColumnName
         FROM
             TABLE(${tie.capsule}$.r$tie.name(
-                $(tie.isHistorized())? changingTimepoint::$tie.timeRange,
+                ${(tie.isHistorized() ? 'changingTimepoint::' + tie.timeRange + ',' : '')}$
                 positingTimepoint::$schema.metadata.positingRange
             )) sub
         WHERE

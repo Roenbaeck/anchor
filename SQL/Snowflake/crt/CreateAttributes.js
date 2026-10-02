@@ -130,12 +130,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.annexName (
             else '-'
         end
     ),
-    $attribute.reliableColumnName int default (
-        case
-            when $attribute.reliabilityColumnName < $schema.metadata.reliableCutoff then 0
-            else 1
-        end
-    ),
+
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
     constraint fk$attribute.annexName foreign key (
         $attribute.identityColumnName

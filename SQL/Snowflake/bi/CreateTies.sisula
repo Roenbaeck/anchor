@@ -1,0 +1,82 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- BI ties use posit and annex split with changing/positing time and reliability.
+--
+$/ foreach tie in schema.ties
+CREATE TABLE IF NOT EXISTS $tie.capsule$.$tie.positName$ (
+$/ if tie.isGenerator
+    $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif IDENTITY(1,1) not null, $--$
+$/ else
+    $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif not null,
+$/ endif
+$/ foreach role in tie.roles
+    $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.timeRange
+    $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ endif
+$/ foreach role in tie.roles
+    constraint $tie.positName$_fk$role.name$ foreign key (
+        $role.columnName$
+$/ if role.entity
+    ) references $role.entity.capsule$.$role.entity.name$($role.entity.identityColumnName$) RELY, $--$
+$/ else
+$/ if role.knot.isEquivalent
+    ) references $role.knot.capsule$.$role.knot.identityName$($role.knot.identityColumnName$) RELY,
+$/ else
+    ) references $role.knot.capsule$.$role.knot.name$($role.knot.identityColumnName$) RELY,
+$/ endif
+$/ endif
+$/ endfor
+$/ if not tie.identifiers
+$/ foreach role in tie.roles where role.isAnchorRole
+$/ if tie.isHistorized
+    constraint $tie.positName$_uq$role.name$ unique (
+        $role.columnName$,
+        $tie.changingColumnName$
+    ) RELY,
+$/ else
+    constraint $tie.positName$_uq$role.name$ unique (
+        $role.columnName$
+    ) RELY,
+$/ endif
+$/ endfor
+$/ endif
+    constraint pk$tie.positName$ primary key (
+        $tie.identityColumnName$
+    ) RELY,
+    constraint uq$tie.name$ unique (
+$/ foreach role in tie.identifiers
+        $role.columnName$$/ if not role.last() or tie.values or tie.isHistorized ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        $tie.changingColumnName$$/ if tie.values ,$/ endif
+$/ endif
+$/ foreach role in tie.values
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    ) RELY
+) CLUSTER BY (
+$/ foreach role in tie.identifiers
+    $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    $tie.changingColumnName$
+$/ endif
+);
+CREATE TABLE IF NOT EXISTS $tie.capsule$.$tie.annexName$ (
+    $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif not null,
+    $tie.positingColumnName$ $schema.metadata.positingRange$ not null,
+    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$ not null,
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk$tie.annexName$ foreign key (
+        $tie.identityColumnName$
+    ) references $tie.capsule$.$tie.positName$($tie.identityColumnName$) RELY,
+    constraint pk$tie.annexName$ primary key (
+        $tie.identityColumnName$,
+        $tie.positingColumnName$
+    ) RELY
+) CLUSTER BY ($tie.identityColumnName$, $tie.positingColumnName$);
+$/ endfor
