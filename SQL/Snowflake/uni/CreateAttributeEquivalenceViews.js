@@ -17,6 +17,7 @@ while (attribute = schema.nextAttribute()) {
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.e$attribute.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.entityReferenceName $parent.identity,
     $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,

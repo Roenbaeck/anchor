@@ -13,6 +13,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.t$nexus.name (
     changingTimepoint $schema.metadata.chronon,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -150,7 +151,7 @@ $$$$
         }
 /*~
 
-CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name COPY GRANTS AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
@@ -164,6 +165,7 @@ FROM
 CREATE OR REPLACE FUNCTION ${nexus.capsule}$.p$nexus.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
     $nexus.identityColumnName $nexus.identity,
@@ -257,7 +259,7 @@ FROM
 $$$$
 ;
 
-CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name COPY GRANTS AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
@@ -275,6 +277,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.d$nexus.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     $nexus.identityColumnName $nexus.identity,

@@ -40,7 +40,7 @@ CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name (
 ~*/
         }
 /*~
-) ${viewCommentClause(anchor)}$
+) COPY GRANTS ${viewCommentClause(anchor)}$
 AS
 SELECT
     ${anchor.mnemonic}$.$anchor.identityColumnName,
@@ -129,6 +129,7 @@ ON
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.p$anchor.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -281,7 +282,7 @@ $$$$
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name
+CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name COPY GRANTS
 AS
 SELECT
     *
@@ -298,6 +299,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     mnemonic string,
@@ -395,6 +397,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.el$anchor.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -446,6 +449,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.ep$anchor.name (
     equivalent $schema.metadata.equivalentRange,
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -601,6 +605,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.en$anchor.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -657,6 +662,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.ed$anchor.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     mnemonic string,

@@ -43,7 +43,7 @@ $/ if attribute.hasChecksum
 $/ endif
     $/ if attribute.hasComment $attribute.valueColumnName$ COMMENT '$attribute.comment$'$/ else $attribute.valueColumnName$$/ endif$/ if not attribute.last() ,$/ endif
 $/ endfor
-) $/ if anchor.hasComment COMMENT = '$anchor.comment$'$/ endif
+) COPY GRANTS $/ if anchor.hasComment COMMENT = '$anchor.comment$'$/ endif
 AS
 SELECT
     $anchor.mnemonic$.$anchor.identityColumnName$,
@@ -119,6 +119,7 @@ $/ endfor
 CREATE OR REPLACE FUNCTION $anchor.capsule$.p$anchor.name$ (
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName$ $anchor.identity$,
 $/ if schema.METADATA
@@ -246,7 +247,7 @@ $$
 ;
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$
+CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$ COPY GRANTS
 AS
 SELECT
     *
@@ -261,6 +262,7 @@ CREATE OR REPLACE FUNCTION $anchor.capsule$.d$anchor.name$ (
     intervalEnd $schema.metadata.chronon$,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
     mnemonic string,
@@ -365,6 +367,7 @@ $/ if schema.EQUIVALENCE
 CREATE OR REPLACE FUNCTION $anchor.capsule$.el$anchor.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName$ $anchor.identity$,
 $/ if schema.METADATA
@@ -419,6 +422,7 @@ CREATE OR REPLACE FUNCTION $anchor.capsule$.ep$anchor.name$ (
     equivalent $schema.metadata.equivalentRange$,
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName$ $anchor.identity$,
 $/ if schema.METADATA
@@ -549,6 +553,7 @@ $$
 CREATE OR REPLACE FUNCTION $anchor.capsule$.en$anchor.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName$ $anchor.identity$,
 $/ if schema.METADATA
@@ -606,6 +611,7 @@ CREATE OR REPLACE FUNCTION $anchor.capsule$.ed$anchor.name$ (
     intervalEnd $schema.metadata.chronon$,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
     mnemonic string,

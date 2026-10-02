@@ -11,6 +11,7 @@ while (tie = schema.nextTie()) {
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.positName (
     changingTimepoint $tie.timeRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName $tie.identity,
 ~*/
@@ -44,6 +45,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.positName (
     changingTimepoint $tie.timeRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName $tie.identity,
 ~*/
@@ -79,6 +81,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.annexName (
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $tie.identityColumnName $tie.identity,
@@ -103,6 +106,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.r$tie.name (
     $(tie.isHistorized())? changingTimepoint $tie.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $tie.identityColumnName $tie.identity,
@@ -150,6 +154,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.f$tie.name (
     $(tie.isHistorized())? changingTimepoint $tie.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $tie.identityColumnName $tie.identity,

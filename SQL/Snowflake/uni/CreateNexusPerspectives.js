@@ -55,7 +55,7 @@ CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name (
 ~*/
         }
 /*~
-) ${viewCommentClause(nexus)}$
+) COPY GRANTS ${viewCommentClause(nexus)}$
 AS
 SELECT
     ${nexus.mnemonic}$.$nexus.identityColumnName,
@@ -177,6 +177,7 @@ ON
 CREATE OR REPLACE FUNCTION ${nexus.capsule}$.p$nexus.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -367,7 +368,7 @@ $$$$
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name COPY GRANTS AS
 SELECT
     *
 FROM
@@ -383,6 +384,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.d$nexus.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     mnemonic string,
@@ -499,6 +501,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${nexus.capsule}$.el$nexus.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -666,6 +669,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.ep$nexus.name (
     equivalent $schema.metadata.equivalentRange,
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -859,6 +863,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${nexus.capsule}$.en$nexus.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -919,6 +924,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.ed$nexus.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     mnemonic string,

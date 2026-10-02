@@ -12,6 +12,7 @@ $/ if schema.EQUIVALENCE and attribute.isEquivalent and not attribute.isKnotted
 CREATE OR REPLACE FUNCTION $attribute.capsule$.e$attribute.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.entityReferenceName$ $attribute.parent.identity$,
 $/ if attribute.isEquivalent

@@ -16,6 +16,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.t$anchor.name (
     positingTimepoint $schema.metadata.positingRange,
     assertion string
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -136,7 +137,7 @@ $$$$
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
+CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name COPY GRANTS AS
 SELECT
     p.$schema.metadata.positorSuffix,
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
@@ -157,6 +158,7 @@ CROSS JOIN LATERAL
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.p$anchor.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
@@ -245,7 +247,7 @@ $$$$
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
+CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name COPY GRANTS AS
 SELECT
     p.$schema.metadata.positorSuffix,
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
@@ -270,6 +272,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     inspectedTimepoint $schema.metadata.chronon,

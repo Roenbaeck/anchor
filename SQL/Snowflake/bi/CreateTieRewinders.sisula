@@ -7,6 +7,7 @@ $/ if tie.isHistorized
 CREATE OR REPLACE FUNCTION $tie.capsule$.r$tie.positName$ (
     changingTimepoint $tie.timeRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName$ $tie.identity$,
 $/ foreach role in tie.roles
@@ -31,6 +32,7 @@ $$
 CREATE OR REPLACE FUNCTION $tie.capsule$.f$tie.positName$ (
     changingTimepoint $tie.timeRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName$ $tie.identity$,
 $/ foreach role in tie.roles
@@ -56,6 +58,7 @@ $/ endif
 CREATE OR REPLACE FUNCTION $tie.capsule$.r$tie.annexName$ (
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -85,6 +88,7 @@ $/ if tie.isHistorized
 $/ endif
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -137,6 +141,7 @@ $/ if tie.isHistorized
 $/ endif
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,

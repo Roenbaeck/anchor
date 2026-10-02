@@ -22,6 +22,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.name (
     $(equivalentSource)? equivalent $schema.metadata.equivalentRange,
     changingTimepoint $attribute.timeRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.entityReferenceName $parent.identity,

@@ -7,6 +7,7 @@ $/ if attribute.isHistorized
 CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.positName$ (
     changingTimepoint $attribute.timeRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.identityColumnName$ $attribute.identity$,
     $attribute.entityReferenceName$ $attribute.parent.identity$,
@@ -35,6 +36,7 @@ $$
 CREATE OR REPLACE FUNCTION $attribute.capsule$.f$attribute.positName$ (
     changingTimepoint $attribute.timeRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.identityColumnName$ $attribute.identity$,
     $attribute.entityReferenceName$ $attribute.parent.identity$,
@@ -64,6 +66,7 @@ $/ endif
 CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.annexName$ (
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$,
@@ -92,6 +95,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.name$ (
     changingTimepoint $attribute.timeRange$,
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$,
@@ -138,6 +142,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule$.f$attribute.name$ (
     changingTimepoint $attribute.timeRange$,
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$,
@@ -185,6 +190,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule$.pre$attribute.name$ (
     changingTimepoint $attribute.timeRange$,
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 $/ if attribute.isKnotted
 RETURNS $attribute.knot.identity$
 $/ else
@@ -217,6 +223,7 @@ CREATE OR REPLACE FUNCTION $attribute.capsule$.fol$attribute.name$ (
     changingTimepoint $attribute.timeRange$,
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 $/ if attribute.isKnotted
 RETURNS $attribute.knot.identity$
 $/ else
@@ -248,6 +255,7 @@ $/ else
 CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.name$ (
     positingTimepoint $schema.metadata.positingRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$,
