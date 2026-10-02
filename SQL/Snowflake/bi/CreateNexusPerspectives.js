@@ -381,8 +381,7 @@ FROM (
 ~*/
             }
 /*~
-) tp
-CROSS JOIN LATERAL
+) tp,
     TABLE(${nexus.capsule}$.t$nexus.name(
         tp.inspectedTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange

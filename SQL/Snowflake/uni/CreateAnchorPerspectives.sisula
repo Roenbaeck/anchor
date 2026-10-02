@@ -362,60 +362,6 @@ $$
 ;
 $/ endif
 $/ if schema.EQUIVALENCE
--- Latest equivalence perspective -------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $anchor.capsule$.el$anchor.name$ (
-    equivalent $schema.metadata.equivalentRange$
-)
-COPY GRANTS
-RETURNS TABLE (
-    $anchor.identityColumnName$ $anchor.identity$,
-$/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
-$/ endif
-$/ foreach attribute in anchor.attributes
-$/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $anchor.identity$,
-$/ endif
-$/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
-$/ endif
-$/ if attribute.isHistorized
-    $attribute.changingColumnName$ $attribute.timeRange$,
-$/ endif
-$/ if attribute.isEquivalent
-    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
-$/ endif
-$/ if attribute.isKnotted
-$/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
-$/ endif
-$/ if attribute.knot.isEquivalent
-    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
-$/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
-$/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
-$/ endif
-$/ endif
-$/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
-$/ endif
-$/ if attribute.isKnotted
-    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
-$/ else
-    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
-$/ endif
-$/ endfor
-)
-AS
-$$
-SELECT
-    *
-FROM
-    TABLE($anchor.capsule$.ep$anchor.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
-$$
-;
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION $anchor.capsule$.ep$anchor.name$ (
@@ -546,6 +492,60 @@ ON
     k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
 $/ endif
 $/ endfor
+$$
+;
+-- Latest equivalence perspective -------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$.el$anchor.name$ (
+    equivalent $schema.metadata.equivalentRange$
+)
+COPY GRANTS
+RETURNS TABLE (
+    $anchor.identityColumnName$ $anchor.identity$,
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.entityReferenceName$ $anchor.identity$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$ $attribute.timeRange$,
+$/ endif
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    $attribute.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.knot.isEquivalent
+    $attribute.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+$/ if schema.METADATA
+    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ numeric(19,0),
+$/ endif
+$/ if attribute.isKnotted
+    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+$/ else
+    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    *
+FROM
+    TABLE($anchor.capsule$.ep$anchor.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
 $$
 ;
 -- Now equivalence perspective ----------------------------------------------------------------------------------------

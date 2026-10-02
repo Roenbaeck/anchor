@@ -169,8 +169,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         $schema.EOT::$schema.metadata.chronon,
@@ -277,8 +276,7 @@ SELECT
         }
 /*~
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         changingTimepoint::$schema.metadata.chronon,
@@ -296,8 +294,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     ${nexus.mnemonic}$.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${nexus.capsule}$.t$nexus.name(
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now::$schema.metadata.chronon,
@@ -430,8 +427,7 @@ JOIN (
 /*~
 ) tp
 ON
-    tp.positor = p.$schema.metadata.positorSuffix
-CROSS JOIN LATERAL
+    tp.positor = p.$schema.metadata.positorSuffix,
     TABLE(${nexus.capsule}$.t$nexus.name(
         tp.positor,
         tp.inspectedTimepoint::$schema.metadata.chronon,

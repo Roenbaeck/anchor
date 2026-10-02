@@ -312,42 +312,6 @@ $$$$
 
     if(schema.EQUIVALENCE) {
 /*~
--- Latest equivalence perspective -------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION ${tie.capsule}$.el$tie.name (
-    equivalent $schema.metadata.equivalentRange
-)
-COPY GRANTS
-RETURNS TABLE (
-    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
-    $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
-~*/
-        while (role = tie.nextRole()) {
-            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
-            if(role.knot) {
-                knot = role.knot;
-/*~
-    $(knot.hasChecksum())? $role.knotChecksumColumnName numeric(19,0),
-    $role.knotValueColumnName $knot.dataRange,
-    $(knot.isEquivalent())? $role.knotEquivalentColumnName $schema.metadata.equivalentRange,
-    $(schema.METADATA)? $role.knotMetadataColumnName $schema.metadata.metadataType,
-~*/
-            }
-/*~
-    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
-~*/
-        }
-/*~
-)
-AS
-$$$$
-SELECT
-    *
-FROM
-    TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$$$
-;
-
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.ep$tie.name (
@@ -461,6 +425,46 @@ WHERE
 $$$$
 ;
 
+~*/
+/*~
+-- Latest equivalence perspective -------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION ${tie.capsule}$.el$tie.name (
+    equivalent $schema.metadata.equivalentRange
+)
+COPY GRANTS
+RETURNS TABLE (
+    $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
+    $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
+~*/
+        while (role = tie.nextRole()) {
+            var roleIdentity = role.entity ? role.entity.identity : role.knot.identity;
+            if(role.knot) {
+                knot = role.knot;
+/*~
+    $(knot.hasChecksum())? $role.knotChecksumColumnName numeric(19,0),
+    $role.knotValueColumnName $knot.dataRange,
+    $(knot.isEquivalent())? $role.knotEquivalentColumnName $schema.metadata.equivalentRange,
+    $(schema.METADATA)? $role.knotMetadataColumnName $schema.metadata.metadataType,
+~*/
+            }
+/*~
+    $role.columnName $roleIdentity$(tie.hasMoreRoles())?,
+~*/
+        }
+/*~
+)
+AS
+$$$$
+SELECT
+    *
+FROM
+    TABLE(${tie.capsule}$.ep$tie.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
+$$$$
+;
+
+~*/
+/*~
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.en$tie.name (

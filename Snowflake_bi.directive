@@ -13,7 +13,7 @@ SQL/Snowflake/bi/CreateKnots.sisula
 SQL/Snowflake/bi/CreateAnchors.sisula
 SQL/Snowflake/bi/CreateNexuses.sisula
 SQL/Snowflake/bi/CreateAttributes.sisula
-#SQL/Snowflake/bi/CreateAttributeAssembledViews.js
+SQL/Snowflake/bi/CreateAttributeAssembledViews.sisula
 SQL/Snowflake/bi/CreateAttributeRewinders.sisula
 #SQL/Snowflake/bi/AddAttributeRestatementConstraints.js
 #SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js
@@ -27,7 +27,7 @@ SQL/Snowflake/bi/CreateNexusPerspectives.sisula
 #SQL/Snowflake/bi/CreateAnchorTriggers.js
 #SQL/Snowflake/bi/CreateNexusTriggers.js
 SQL/Snowflake/bi/CreateTies.sisula
-#SQL/Snowflake/bi/CreateTieAssembledViews.js
+SQL/Snowflake/bi/CreateTieAssembledViews.sisula
 #SQL/Snowflake/bi/AddTieRestatementConstraints.js
 SQL/Snowflake/bi/CreateTieRewinders.sisula
 #SQL/Snowflake/biz/DropTieBusinessPerspectives.js

@@ -27,7 +27,7 @@ deliberately. No submodules.
 | The resolver | `modules/Resolver.js` | ES5, no DOM. Runs the directive's prelude scripts on the modeler's `schema` object and flattens it to plain JSON. |
 | The export | `Actions.bindings()` in `index.html` | The model as JSON for the selected target: `{bindingsVersion, database, temporalization, schema}`. Menu: Generate > JSON bindings. |
 | Generate SQL | `Actions.sql()` in `index.html` | A directive that lists `.sisula` templates is rendered by the new engine, one template after the other, output concatenated. A directive that lists `.js` sisulets runs on the original `Sisulator`. |
-| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 10 + 11 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
+| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 11 + 12 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
 | The old directives | `Snowflake_{uni,bi,crt}.legacy.directive` | The previous lists. The golden files are generated from them. The modeler does not read them. |
@@ -217,14 +217,67 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
    `SQL/NamingConvention.js` now defines them. That last fix is in the shared file, so it also changes what the other
    databases generate with the original naming convention, from an empty name to the right one.
 
+6. bi and crt: the attribute assembled views were missing. SQL Server's bi and crt generate, for each attribute, a
+   view that joins its posit and annex tables under the name the attribute table has in uni, and the difference
+   (`d`) functions read it; the Snowflake directives had it commented out (bi) or lacked it (crt), so the `d`
+   functions named a table that did not exist (`public.ST_NAM_Stage_Name`). Found by the user when the first run on
+   Snowflake failed to create a `d` function; confirmed with the object check in `lint-sql.ps1`, which flags any
+   `schema.name` that the script uses and never creates. The views are now generated
+   (`SQL/Snowflake/{bi,crt}/CreateAttributeAssembledViews`), as views with `COPY GRANTS` and without SQL Server's
+   index.
+7. bi and crt with equivalence on: in these temporalizations a knot is always one table, but foreign keys and
+   `AddDescriptions` used the identity table of an equivalent knot (`knots.ETY_EventType_ID`), which only uni creates.
+   They now use the knot's own table, as SQL Server's bi and crt do.
+
+8. bi and crt: `CROSS JOIN LATERAL TABLE(udtf(…))` is not accepted in the body of a SQL function on Snowflake
+   (found by running the bi difference function: "syntax error … unexpected 'SELECT'", at the first token of the
+   body). The comma join, `FROM x, TABLE(udtf(x.column))`, is, and is what uni's difference functions use. All 14
+   places (bi: the anchor and nexus `d`; crt: `t`, `p` and `d`) are now comma joins. This was isolated with five tiny
+   functions, one construct each, which is the way to find the next one of these: the error message says nothing
+   about the cause, and the lint cannot know what Snowflake accepts. `tools/lint-sql.ps1` now flags the construct.
+
+9. bi and crt: a tie with no identifier roles (a one-to-one tie such as `AC_subset_PN_of`) got an empty
+   `CLUSTER BY ( )`, which Snowflake rejects (found by running the bi script). A tie is clustered by its identifier
+   roles, or by all its roles when none is marked, which is the rule that its unique constraint and uni's primary
+   key use; a historized tie adds its changing column, as before. `lint-sql.ps1` flags an empty `CLUSTER BY`.
+
+10. crt: the `d` function of every tie read `<tie>_Positor` from the tie's Posit table, but in crt the positor
+    is a column of the Annex table (found by running the crt script: "invalid identifier"). SQL Server's crt reads
+    the tie's assembled view there, which joins posit and annex; `CreateTieAssembledViews` is ported for bi and
+    crt (a view with `COPY GRANTS`, named as the tie table is in uni), and crt's `d` reads it. bi's `d` reads only
+    columns that the Posit table has and is unchanged. `lint-sql.ps1` now also checks columns
+    (`tools/lint-columns.ps1`): the columns of every table, view and function are read off the script, and every
+    `alias.column`, and every bare column of a single-table query, has to exist where it is taken from. It finds the
+    error above in the previous output, and nothing in the uni models that do not use equivalence.
+
+11. uni, bi and crt with equivalence on: a knotted attribute whose file said `equivalent="true"` made rewinders and
+    perspectives select a `…_EQ` column that its table never has (`rEV_LVL_Event_Level` returned and selected
+    `EV_LVL_EQ`; `lAC_Actor` selected `GEN.AC_GEN_EQ`). Found by the column check. The modeler states a rule,
+    "knotted cannot be equivalent" (also not checksummed or encrypted), in `Attribute.setKnotted`, but
+    `Attribute.fromXML` applied it *before* assigning the flags that it read from the file, which undid it, so the
+    modeler wrote `equivalent="true"` on knotted attributes (the `flags` model has it on `GEN`). Two fixes: `fromXML`
+    applies the rule again after the flags are assigned, and `attribute.isEquivalent()` and `nxAttribute.isEquivalent()`
+    in `SQL/Helpers.js` are false for a knotted attribute, so that files that were saved before the fix generate
+    correctly too. `Helpers.js` is shared, so SQL Server and the other databases get the same correction; for them it
+    changes only models with that contradiction, which generated references to a column that did not exist. The example
+    models were left as they are, so they test the helper.
+
+12. uni with equivalence on: the equivalent latest function (`el`) of an anchor or a tie is `SELECT * FROM
+    TABLE(ep…(equivalent, now))`, but the script created it before `ep`, and Snowflake needs a function to exist when
+    another function that calls it is created ("Unknown user-defined table function"; found by running the
+    equivalence script). In the three anchors and the seven ties of the example, `ep` is now created before `el`. The
+    nexus `el` has its own full select and was fine. `lint-sql.ps1` now flags any statement that uses a table, view
+    or function that the script creates later (it also covers a foreign key to a table created later).
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 
 **Still open**
 
-- Equivalence is not handled in bi and crt (equivalent knots are plain tables), and a nexus role to an equivalent
-  knot references `identityName` without testing whether equivalence is on, as the uni sisulets do. The reference
-  is valid SQL but may name a table that does not exist.
+- Equivalence is not handled in bi and crt (equivalent knots are plain tables, as in SQL Server), so a model with
+  equivalence on is generated without any equivalent tables there. The references are valid, though.
+- A uni model whose knots are flagged equivalent while equivalence is off (only a hand-written file can be like
+  that, see the `handwritten` model) refers to tables that are never created.
 - The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.
 - Cosmetic, kept because they are in the golden files: trailing spaces after some commas and column names
   and bi headers without the construct's name line.

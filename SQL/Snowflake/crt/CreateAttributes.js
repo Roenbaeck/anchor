@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
         knot = attribute.knot;
-        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
+        var knotTableName = knot.name;
 /*~
 -- Knotted historized attribute posit table ---------------------------------------------------------------------------
 -- $attribute.positName table (on $parent.name)
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     }
     else if(attribute.isKnotted()) {
         knot = attribute.knot;
-        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
+        var knotTableName = knot.name;
 /*~
 -- Knotted static attribute posit table -------------------------------------------------------------------------------
 -- $attribute.positName table (on $parent.name)

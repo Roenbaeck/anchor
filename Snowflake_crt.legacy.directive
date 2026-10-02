@@ -13,8 +13,10 @@ SQL/Snowflake/crt/CreateKnots.js
 SQL/Snowflake/crt/CreateAnchors.js
 SQL/Snowflake/crt/CreateNexuses.js
 SQL/Snowflake/crt/CreateAttributes.js
+SQL/Snowflake/crt/CreateAttributeAssembledViews.js
 SQL/Snowflake/crt/CreateAttributeRewinders.js
 SQL/Snowflake/crt/CreateTies.js
+SQL/Snowflake/crt/CreateTieAssembledViews.js
 SQL/Snowflake/crt/CreateTieRewinders.js
 # to be ported next in native CRT form
 #SQL/Snowflake/crt/AddAttributeRestatementConstraints.js

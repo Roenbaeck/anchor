@@ -10,7 +10,7 @@ COMMENT ON SCHEMA $schema.metadata.encapsulation$ IS '$schema.comment$';
 $/ endif
 $/ foreach knot in schema.knots
 $/ if knot.hasComment
-$/ if knot.isEquivalent
+$/ if schema.UNI and knot.isEquivalent
 COMMENT ON TABLE $knot.capsule$.$knot.identityName$ IS '$knot.comment$';
 $/ else
 COMMENT ON TABLE $knot.capsule$.$knot.name$ IS '$knot.comment$';
