@@ -27,7 +27,7 @@ SQL/Snowflake/bi/CreateNexusPerspectives.sisula
 #SQL/Snowflake/bi/CreateAnchorTriggers.js
 #SQL/Snowflake/bi/CreateNexusTriggers.js
 SQL/Snowflake/bi/CreateTies.sisula
-#SQL/Snowflake/bi/CreateTieAssembledViews.js
+SQL/Snowflake/bi/CreateTieAssembledViews.sisula
 #SQL/Snowflake/bi/AddTieRestatementConstraints.js
 SQL/Snowflake/bi/CreateTieRewinders.sisula
 #SQL/Snowflake/biz/DropTieBusinessPerspectives.js

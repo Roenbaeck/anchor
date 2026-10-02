@@ -25,7 +25,7 @@ SQL/Snowflake/bi/CreateNexusPerspectives.js
 #SQL/Snowflake/bi/CreateAnchorTriggers.js
 #SQL/Snowflake/bi/CreateNexusTriggers.js
 SQL/Snowflake/bi/CreateTies.js
-#SQL/Snowflake/bi/CreateTieAssembledViews.js
+SQL/Snowflake/bi/CreateTieAssembledViews.js
 #SQL/Snowflake/bi/AddTieRestatementConstraints.js
 SQL/Snowflake/bi/CreateTieRewinders.js
 #SQL/Snowflake/biz/DropTieBusinessPerspectives.js
