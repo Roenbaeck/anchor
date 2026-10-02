@@ -262,43 +262,6 @@ $$
 ;
 $/ endif
 $/ if schema.EQUIVALENCE
--- Latest equivalence perspective -------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.el$tie.name$ (
-    equivalent $schema.metadata.equivalentRange$
-)
-COPY GRANTS
-RETURNS TABLE (
-$/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
-$/ endif
-$/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
-$/ endif
-$/ foreach role in tie.roles
-$/ if role.knot
-$/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
-$/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
-$/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
-$/ endif
-$/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
-$/ endif
-$/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
-$/ endfor
-)
-AS
-$$
-SELECT
-    *
-FROM
-    TABLE($tie.capsule$.ep$tie.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
-$$
-;
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION $tie.capsule$.ep$tie.name$ (
@@ -392,6 +355,43 @@ $/ endif
             sub.$tie.changingColumnName$ <= changingTimepoint
    )
 $/ endif
+$$
+;
+-- Latest equivalence perspective -------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$.el$tie.name$ (
+    equivalent $schema.metadata.equivalentRange$
+)
+COPY GRANTS
+RETURNS TABLE (
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ if tie.isHistorized
+    $tie.changingColumnName$ $tie.timeRange$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    $role.knotChecksumColumnName$ numeric(19,0),
+$/ endif
+    $role.knotValueColumnName$ $role.knot.dataRange$,
+$/ if role.knot.isEquivalent
+    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+$/ endif
+$/ if schema.METADATA
+    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+$/ endif
+$/ endif
+    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+    *
+FROM
+    TABLE($tie.capsule$.ep$tie.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
 $$
 ;
 -- Now equivalence perspective ----------------------------------------------------------------------------------------

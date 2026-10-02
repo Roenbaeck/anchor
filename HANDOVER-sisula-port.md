@@ -262,6 +262,13 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
     changes only models with that contradiction, which generated references to a column that did not exist. The example
     models were left as they are, so they test the helper.
 
+12. uni with equivalence on: the equivalent latest function (`el`) of an anchor or a tie is `SELECT * FROM
+    TABLE(ep…(equivalent, now))`, but the script created it before `ep`, and Snowflake needs a function to exist when
+    another function that calls it is created ("Unknown user-defined table function"; found by running the
+    equivalence script). In the three anchors and the seven ties of the example, `ep` is now created before `el`. The
+    nexus `el` has its own full select and was fine. `lint-sql.ps1` now flags any statement that uses a table, view
+    or function that the script creates later (it also covers a foreign key to a table created later).
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 

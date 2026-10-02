@@ -392,57 +392,6 @@ $$$$
 
         if(schema.EQUIVALENCE) {
 /*~
--- Latest equivalence perspective -------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION ${anchor.capsule}$.el$anchor.name (
-    equivalent $schema.metadata.equivalentRange
-)
-COPY GRANTS
-RETURNS TABLE (
-    $anchor.identityColumnName $anchor.identity,
-    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
-~*/
-            while (attribute = anchor.nextAttribute()) {
-/*~
-    $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity,
-    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
-    $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
-    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
-~*/
-                if(attribute.isKnotted()) {
-                    knot = attribute.knot;
-/*~
-    $(knot.hasChecksum())? $attribute.knotChecksumColumnName numeric(19,0),
-    $(knot.isEquivalent())? $attribute.knotEquivalentColumnName $schema.metadata.equivalentRange,
-    $attribute.knotValueColumnName $knot.dataRange,
-    $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType,
-~*/
-                }
-/*~
-    $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-~*/
-                if(attribute.isKnotted()) {
-/*~
-    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
-~*/
-                }
-                else {
-/*~
-    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
-~*/
-                }
-            }
-/*~
-)
-AS
-$$$$
-SELECT
-    *
-FROM
-    TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
-$$$$
-;
-
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.ep$anchor.name (
@@ -600,6 +549,61 @@ $$$$
             }
 /*~
 
+~*/
+/*~
+-- Latest equivalence perspective -------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION ${anchor.capsule}$.el$anchor.name (
+    equivalent $schema.metadata.equivalentRange
+)
+COPY GRANTS
+RETURNS TABLE (
+    $anchor.identityColumnName $anchor.identity,
+    $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
+~*/
+            while (attribute = anchor.nextAttribute()) {
+/*~
+    $(schema.IMPROVED)? $attribute.entityReferenceName $anchor.identity,
+    $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
+    $(attribute.timeRange)? $attribute.changingColumnName $attribute.timeRange,
+    $(attribute.isEquivalent())? $attribute.equivalentColumnName $schema.metadata.equivalentRange,
+~*/
+                if(attribute.isKnotted()) {
+                    knot = attribute.knot;
+/*~
+    $(knot.hasChecksum())? $attribute.knotChecksumColumnName numeric(19,0),
+    $(knot.isEquivalent())? $attribute.knotEquivalentColumnName $schema.metadata.equivalentRange,
+    $attribute.knotValueColumnName $knot.dataRange,
+    $(schema.METADATA)? $attribute.knotMetadataColumnName $schema.metadata.metadataType,
+~*/
+                }
+/*~
+    $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
+~*/
+                if(attribute.isKnotted()) {
+/*~
+    $attribute.valueColumnName $knot.identity$(anchor.hasMoreAttributes())?,
+~*/
+                }
+                else {
+/*~
+    $attribute.valueColumnName $attribute.dataRange$(anchor.hasMoreAttributes())?,
+~*/
+                }
+            }
+/*~
+)
+AS
+$$$$
+SELECT
+    *
+FROM
+    TABLE(${anchor.capsule}$.ep$anchor.name(equivalent, $schema.metadata.now::$schema.metadata.chronon))
+$$$$
+;
+
+~*/
+/*~
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.en$anchor.name (
