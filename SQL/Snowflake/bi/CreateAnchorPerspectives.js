@@ -322,8 +322,7 @@ FROM (
 ~*/
             }
 /*~
-) tp
-CROSS JOIN LATERAL
+) tp,
     TABLE(${anchor.capsule}$.t$anchor.name(
         tp.inspectedTimepoint::$schema.metadata.chronon,
         $schema.EOT::$schema.metadata.positingRange

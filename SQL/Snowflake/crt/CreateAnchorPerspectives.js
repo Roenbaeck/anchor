@@ -143,8 +143,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${anchor.capsule}$.t$anchor.name(
         p.$schema.metadata.positorSuffix,
         $schema.EOT::$schema.metadata.chronon,
@@ -234,8 +233,7 @@ SELECT
         }
 /*~
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${anchor.capsule}$.t$anchor.name(
         p.$schema.metadata.positorSuffix,
         changingTimepoint::$schema.metadata.chronon,
@@ -253,8 +251,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${anchor.capsule}$.t$anchor.name(
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now::$schema.metadata.chronon,
@@ -371,8 +368,7 @@ JOIN
 /*~
 ) timepoints
 ON
-    timepoints.positor = p.$schema.metadata.positorSuffix
-CROSS JOIN LATERAL
+    timepoints.positor = p.$schema.metadata.positorSuffix,
     TABLE(${anchor.capsule}$.t$anchor.name(
         timepoints.positor,
         timepoints.inspectedTimepoint::$schema.metadata.chronon,

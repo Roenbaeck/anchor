@@ -229,6 +229,13 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
    `AddDescriptions` used the identity table of an equivalent knot (`knots.ETY_EventType_ID`), which only uni creates.
    They now use the knot's own table, as SQL Server's bi and crt do.
 
+8. bi and crt: `CROSS JOIN LATERAL TABLE(udtf(…))` is not accepted in the body of a SQL function on Snowflake
+   (found by running the bi difference function: "syntax error … unexpected 'SELECT'", at the first token of the
+   body). The comma join, `FROM x, TABLE(udtf(x.column))`, is, and is what uni's difference functions use. All 14
+   places (bi: the anchor and nexus `d`; crt: `t`, `p` and `d`) are now comma joins. This was isolated with five tiny
+   functions, one construct each, which is the way to find the next one of these: the error message says nothing
+   about the cause, and the lint cannot know what Snowflake accepts. `tools/lint-sql.ps1` now flags the construct.
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 

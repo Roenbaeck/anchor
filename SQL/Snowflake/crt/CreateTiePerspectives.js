@@ -96,8 +96,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     t.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${tie.capsule}$.t$tie.name(
         p.$schema.metadata.positorSuffix,
         $schema.EOT::$schema.metadata.chronon,
@@ -165,8 +164,7 @@ SELECT
     t.$tie.reliabilityColumnName,
     t.$tie.assertionColumnName
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${tie.capsule}$.t$tie.name(
         p.$schema.metadata.positorSuffix,
         changingTimepoint::$schema.metadata.chronon,
@@ -184,8 +182,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
     t.*
 FROM
-    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
-CROSS JOIN LATERAL
+    ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p,
     TABLE(${tie.capsule}$.t$tie.name(
         p.$schema.metadata.positorSuffix,
         $schema.metadata.now::$schema.metadata.chronon,
@@ -267,8 +264,7 @@ JOIN (
         $tie.changingColumnName BETWEEN intervalStart AND intervalEnd
 ) tp
 ON
-    tp.positor = p.$schema.metadata.positorSuffix
-CROSS JOIN LATERAL
+    tp.positor = p.$schema.metadata.positorSuffix,
     TABLE(${tie.capsule}$.t$tie.name(
         tp.positor,
         tp.inspectedTimepoint::$schema.metadata.chronon,
