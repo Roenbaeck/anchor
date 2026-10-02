@@ -190,7 +190,8 @@ while (nexus = schema.nextNexus()) {
             return this.metadata.assertive == 'true';
         };
         nxAttribute.isEquivalent = function() {
-            return this.metadata.equivalent == 'true';
+            // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
+            return this.metadata.equivalent == 'true' && !this.isKnotted();
         };
         nxAttribute.isDeletable = function() {
             return this.metadata.deletable == 'true';
@@ -358,7 +359,8 @@ while (anchor = schema.nextAnchor()) {
             return this.metadata.assertive == 'true';
         };
         attribute.isEquivalent = function() {
-            return this.metadata.equivalent == 'true';
+            // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
+            return this.metadata.equivalent == 'true' && !this.isKnotted();
         };
         attribute.isDeletable = function() {
             return this.metadata.deletable == 'true';

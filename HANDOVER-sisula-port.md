@@ -250,6 +250,18 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
     `alias.column`, and every bare column of a single-table query, has to exist where it is taken from. It finds the
     error above in the previous output, and nothing in the uni models that do not use equivalence.
 
+11. uni, bi and crt with equivalence on: a knotted attribute whose file said `equivalent="true"` made rewinders and
+    perspectives select a `…_EQ` column that its table never has (`rEV_LVL_Event_Level` returned and selected
+    `EV_LVL_EQ`; `lAC_Actor` selected `GEN.AC_GEN_EQ`). Found by the column check. The modeler states a rule,
+    "knotted cannot be equivalent" (also not checksummed or encrypted), in `Attribute.setKnotted`, but
+    `Attribute.fromXML` applied it *before* assigning the flags that it read from the file, which undid it, so the
+    modeler wrote `equivalent="true"` on knotted attributes (the `flags` model has it on `GEN`). Two fixes: `fromXML`
+    applies the rule again after the flags are assigned, and `attribute.isEquivalent()` and `nxAttribute.isEquivalent()`
+    in `SQL/Helpers.js` are false for a knotted attribute, so that files that were saved before the fix generate
+    correctly too. `Helpers.js` is shared, so SQL Server and the other databases get the same correction; for them it
+    changes only models with that contradiction, which generated references to a column that did not exist. The example
+    models were left as they are, so they test the helper.
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 
@@ -257,12 +269,6 @@ change.
 
 - Equivalence is not handled in bi and crt (equivalent knots are plain tables, as in SQL Server), so a model with
   equivalence on is generated without any equivalent tables there. The references are valid, though.
-- Uni with equivalence on: the column check finds that rewinders and perspectives select `…_EQ` columns that the
-  table they read does not have (`rEV_LVL_Event_Level` returns and selects `EV_LVL_EQ` from
-  `attributes.EV_LVL_Event_Level`, which has no such column, because a knotted attribute is never equivalent although
-  its knot is; `lAC_Actor` and others select `GEN.AC_GEN_EQ` from the knot's join). The models `equivalence`,
-  `equivalence-plain`, `equivalence-original`, `distinct-equivalence` and `flags` show it. Nothing has been run
-  with equivalence on, and the base model has it off.
 - A uni model whose knots are flagged equivalent while equivalence is off (only a hand-written file can be like
   that, see the `handwritten` model) refers to tables that are never created.
 - The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.

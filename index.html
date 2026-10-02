@@ -3190,6 +3190,9 @@
                 attribute.positIdentity = identity;
                 attribute.positGenerator = generator;
                 attribute.chronicle = chronicle;
+                // the flags of the file were assigned after the first call, which undid its rule that a knotted
+                // attribute is not equivalent, checksummed or encrypted
+                attribute.setKnotted(knotted);
                 var anchorLookup = Model.getLookup('entity');
                 var knotLookup = Model.getLookup('knot');
                 var anchor = anchorLookup[parent.getAttribute("mnemonic")];
