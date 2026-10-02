@@ -259,7 +259,7 @@ JOIN (
         $tie.positorColumnName AS positor,
         $tie.changingColumnName::$schema.metadata.chronon AS inspectedTimepoint
     FROM
-        ${tie.capsule}$.$tie.positName
+        ${tie.capsule}$.$tie.name
     WHERE
         $tie.changingColumnName BETWEEN intervalStart AND intervalEnd
 ) tp

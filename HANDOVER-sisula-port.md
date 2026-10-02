@@ -241,6 +241,15 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
    roles, or by all its roles when none is marked, which is the rule that its unique constraint and uni's primary
    key use; a historized tie adds its changing column, as before. `lint-sql.ps1` flags an empty `CLUSTER BY`.
 
+10. crt: the `d` function of every tie read `<tie>_Positor` from the tie's Posit table, but in crt the positor
+    is a column of the Annex table (found by running the crt script: "invalid identifier"). SQL Server's crt reads
+    the tie's assembled view there, which joins posit and annex; `CreateTieAssembledViews` is ported for bi and
+    crt (a view with `COPY GRANTS`, named as the tie table is in uni), and crt's `d` reads it. bi's `d` reads only
+    columns that the Posit table has and is unchanged. `lint-sql.ps1` now also checks columns
+    (`tools/lint-columns.ps1`): the columns of every table, view and function are read off the script, and every
+    `alias.column`, and every bare column of a single-table query, has to exist where it is taken from. It finds the
+    error above in the previous output, and nothing in the uni models that do not use equivalence.
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 
@@ -248,6 +257,12 @@ change.
 
 - Equivalence is not handled in bi and crt (equivalent knots are plain tables, as in SQL Server), so a model with
   equivalence on is generated without any equivalent tables there. The references are valid, though.
+- Uni with equivalence on: the column check finds that rewinders and perspectives select `…_EQ` columns that the
+  table they read does not have (`rEV_LVL_Event_Level` returns and selects `EV_LVL_EQ` from
+  `attributes.EV_LVL_Event_Level`, which has no such column, because a knotted attribute is never equivalent although
+  its knot is; `lAC_Actor` and others select `GEN.AC_GEN_EQ` from the knot's join). The models `equivalence`,
+  `equivalence-plain`, `equivalence-original`, `distinct-equivalence` and `flags` show it. Nothing has been run
+  with equivalence on, and the base model has it off.
 - A uni model whose knots are flagged equivalent while equivalence is off (only a hand-written file can be like
   that, see the `handwritten` model) refers to tables that are never created.
 - The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.
