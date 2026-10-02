@@ -58,7 +58,7 @@ $/ if attribute.hasChecksum
 $/ endif
     $/ if attribute.hasComment $attribute.valueColumnName$ COMMENT '$attribute.comment$'$/ else $attribute.valueColumnName$$/ endif$/ if not attribute.last() ,$/ endif
 $/ endfor
-) $/ if nexus.hasComment COMMENT = '$nexus.comment$'$/ endif
+) COPY GRANTS $/ if nexus.hasComment COMMENT = '$nexus.comment$'$/ endif
 AS
 SELECT
     $nexus.mnemonic$.$nexus.identityColumnName$,
@@ -159,6 +159,7 @@ $/ endfor
 CREATE OR REPLACE FUNCTION $nexus.capsule$.p$nexus.name$ (
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName$ $nexus.identity$,
 $/ if schema.METADATA
@@ -322,7 +323,7 @@ $$
 ;
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $nexus.capsule$.n$nexus.name$ AS
+CREATE OR REPLACE VIEW $nexus.capsule$.n$nexus.name$ COPY GRANTS AS
 SELECT
     *
 FROM
@@ -336,6 +337,7 @@ CREATE OR REPLACE FUNCTION $nexus.capsule$.d$nexus.name$ (
     intervalEnd $schema.metadata.chronon$,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
     mnemonic string,
@@ -466,6 +468,7 @@ $/ if schema.EQUIVALENCE
 CREATE OR REPLACE FUNCTION $nexus.capsule$.el$nexus.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName$ $nexus.identity$,
 $/ if schema.METADATA
@@ -620,6 +623,7 @@ CREATE OR REPLACE FUNCTION $nexus.capsule$.ep$nexus.name$ (
     equivalent $schema.metadata.equivalentRange$,
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName$ $nexus.identity$,
 $/ if schema.METADATA
@@ -786,6 +790,7 @@ $$
 CREATE OR REPLACE FUNCTION $nexus.capsule$.en$nexus.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName$ $nexus.identity$,
 $/ if schema.METADATA
@@ -854,6 +859,7 @@ CREATE OR REPLACE FUNCTION $nexus.capsule$.ed$nexus.name$ (
     intervalEnd $schema.metadata.chronon$,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
     mnemonic string,

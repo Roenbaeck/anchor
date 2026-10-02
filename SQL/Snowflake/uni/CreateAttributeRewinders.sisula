@@ -18,6 +18,7 @@ $/ if attribute.isEquivalent and not attribute.isKnotted
 $/ endif
     changingTimepoint $attribute.timeRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $attribute.metadataColumnName$ $schema.metadata.metadataType$,

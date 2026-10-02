@@ -21,7 +21,7 @@ CREATE OR REPLACE VIEW ${knot.capsule}$.$knot.name (
     $knot.equivalentColumnName,
     $(knot.hasChecksum())? $knot.checksumColumnName,
     ${knot.valueColumnName + columnCommentClause(knot)}$
-) ${viewCommentClause(knot)}$
+) COPY GRANTS ${viewCommentClause(knot)}$
 AS
 SELECT
     $(schema.METADATA)? v.$knot.metadataColumnName,
@@ -40,6 +40,7 @@ ON
 CREATE OR REPLACE FUNCTION ${knot.capsule}$.e$knot.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $knot.metadataColumnName $schema.metadata.metadataType,
     $knot.identityColumnName $knot.identity,

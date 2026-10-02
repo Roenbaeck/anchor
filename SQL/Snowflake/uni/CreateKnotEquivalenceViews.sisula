@@ -21,7 +21,7 @@ $/ if knot.hasChecksum
     $knot.checksumColumnName$,
 $/ endif
     $/ if knot.hasComment $knot.valueColumnName$ COMMENT '$knot.comment$'$/ else $knot.valueColumnName$$/ endif
-) $/ if knot.hasComment COMMENT = '$knot.comment$'$/ endif
+) COPY GRANTS $/ if knot.hasComment COMMENT = '$knot.comment$'$/ endif
 AS
 SELECT
 $/ if schema.METADATA
@@ -43,6 +43,7 @@ ON
 CREATE OR REPLACE FUNCTION $knot.capsule$.e$knot.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $knot.metadataColumnName$ $schema.metadata.metadataType$,

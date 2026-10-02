@@ -17,6 +17,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.t$nexus.name (
     positingTimepoint $schema.metadata.positingRange,
     assertion string
 )
+COPY GRANTS
 RETURNS TABLE (
     $nexus.identityColumnName $nexus.identity,
     $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType,
@@ -162,7 +163,7 @@ $$$$
 
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name COPY GRANTS AS
 SELECT
     p.$schema.metadata.positorSuffix,
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
@@ -183,6 +184,7 @@ CROSS JOIN LATERAL
 CREATE OR REPLACE FUNCTION ${nexus.capsule}$.p$nexus.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
@@ -288,7 +290,7 @@ $$$$
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
+CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name COPY GRANTS AS
 SELECT
     p.$schema.metadata.positorSuffix,
     cast(null as $schema.metadata.reliabilityRange) AS $schema.metadata.reliabilitySuffix,
@@ -313,6 +315,7 @@ CREATE OR REPLACE FUNCTION ${nexus.capsule}$.d$nexus.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.positorSuffix $schema.metadata.positorRange,
     inspectedTimepoint $schema.metadata.chronon,

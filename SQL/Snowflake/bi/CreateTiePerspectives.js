@@ -12,6 +12,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.t$tie.name (
     changingTimepoint $schema.metadata.chronon,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName $tie.identity,
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
@@ -116,7 +117,7 @@ AND
 $$$$
 ;
 
-CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name AS
+CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name COPY GRANTS AS
 SELECT
     *
 FROM
@@ -129,6 +130,7 @@ FROM
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.p$tie.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName $tie.identity,
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
@@ -181,7 +183,7 @@ FROM
 $$$$
 ;
 
-CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name AS
+CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name COPY GRANTS AS
 SELECT
     *
 FROM
@@ -197,6 +199,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.d$tie.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $tie.identityColumnName $tie.identity,
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,

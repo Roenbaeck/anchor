@@ -155,7 +155,7 @@ match (they never did before).
 - **Snowflake DDL**, for every generator, tested or not: `CLUSTER BY` on every table, with `ChangedAt`
   left out of the key of historized attribute tables; every key declared `RELY` (join elimination;
   Snowflake does not enforce keys, so ship integrity checks); the default `now` is `sysdate()` (UTC, to
-  match a `timestamp_ntz` `ChangedAt`); no `COPY GRANTS` (grants belong on the schema).
+  match a `timestamp_ntz` `ChangedAt`); every replaced view and function is `COPY GRANTS`, so that object grants survive a regeneration (after the argument list and before `RETURNS` in a function, after the column list and before `COMMENT` and `AS` in a view; tables are `CREATE TABLE IF NOT EXISTS` and need none; `tools/lint-sql.ps1` checks it).
 - **Unported means commented out** in the directive, with the `.js` path, as before.
 
 ## Open items

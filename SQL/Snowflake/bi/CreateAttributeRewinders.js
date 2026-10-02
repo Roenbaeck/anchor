@@ -13,6 +13,7 @@ while (attribute = schema.nextAttribute()) {
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.positName (
     changingTimepoint $attribute.timeRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $attribute.entityReferenceName $parent.identity,
@@ -38,6 +39,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.f$attribute.positName (
     changingTimepoint $attribute.timeRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $attribute.identityColumnName $attribute.identity,
     $attribute.entityReferenceName $parent.identity,
@@ -65,6 +67,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.annexName (
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
@@ -91,6 +94,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.name (
     changingTimepoint $attribute.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
@@ -130,6 +134,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.f$attribute.name (
     changingTimepoint $attribute.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,
@@ -170,6 +175,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.pre$attribute.name (
     changingTimepoint $attribute.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS $returnType
 AS
 $$$$
@@ -195,6 +201,7 @@ CREATE OR REPLACE FUNCTION ${attribute.capsule}$.fol$attribute.name (
     changingTimepoint $attribute.timeRange,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS $returnType
 AS
 $$$$
@@ -221,6 +228,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${attribute.capsule}$.r$attribute.name (
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType,
     $attribute.identityColumnName $attribute.identity,

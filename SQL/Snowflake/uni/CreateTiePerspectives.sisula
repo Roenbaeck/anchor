@@ -29,7 +29,7 @@ $/ endif
 $/ endif
     $/ if role.hasComment $role.columnName$ COMMENT '$role.comment$'$/ else $role.columnName$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
-) $/ if tie.hasComment COMMENT = '$tie.comment$'$/ endif
+) COPY GRANTS $/ if tie.hasComment COMMENT = '$tie.comment$'$/ endif
 AS
 SELECT
 $/ if schema.METADATA
@@ -96,6 +96,7 @@ $/ endif
 CREATE OR REPLACE FUNCTION $tie.capsule$.p$tie.name$ (
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -186,7 +187,7 @@ $$
 ;
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ AS
+CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ COPY GRANTS AS
 SELECT
     *
 FROM
@@ -199,6 +200,7 @@ CREATE OR REPLACE FUNCTION $tie.capsule$.d$tie.name$ (
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -265,6 +267,7 @@ $/ if schema.EQUIVALENCE
 CREATE OR REPLACE FUNCTION $tie.capsule$.el$tie.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -302,6 +305,7 @@ CREATE OR REPLACE FUNCTION $tie.capsule$.ep$tie.name$ (
     equivalent $schema.metadata.equivalentRange$,
     changingTimepoint $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -395,6 +399,7 @@ $$
 CREATE OR REPLACE FUNCTION $tie.capsule$.en$tie.name$ (
     equivalent $schema.metadata.equivalentRange$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,
@@ -434,6 +439,7 @@ CREATE OR REPLACE FUNCTION $tie.capsule$.ed$tie.name$ (
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$
 )
+COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
     $tie.metadataColumnName$ $schema.metadata.metadataType$,

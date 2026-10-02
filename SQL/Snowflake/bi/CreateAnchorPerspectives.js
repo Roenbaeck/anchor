@@ -13,6 +13,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.t$anchor.name (
     changingTimepoint $schema.metadata.chronon,
     positingTimepoint $schema.metadata.positingRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $anchor.identityColumnName $anchor.identity,
     $(schema.METADATA)? $anchor.metadataColumnName $schema.metadata.metadataType,
@@ -125,7 +126,7 @@ $$$$
         }
 /*~
 
-CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
+CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name COPY GRANTS AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
@@ -139,6 +140,7 @@ FROM
 CREATE OR REPLACE FUNCTION ${anchor.capsule}$.p$anchor.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $schema.metadata.reliabilitySuffix $schema.metadata.reliabilityRange,
     $anchor.identityColumnName $anchor.identity,
@@ -215,7 +217,7 @@ FROM
 $$$$
 ;
 
-CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
+CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name COPY GRANTS AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
     ${anchor.mnemonic}$.*
@@ -233,6 +235,7 @@ CREATE OR REPLACE FUNCTION ${anchor.capsule}$.d$anchor.name (
     intervalEnd $schema.metadata.chronon,
     selection string
 )
+COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon,
     $anchor.identityColumnName $anchor.identity,

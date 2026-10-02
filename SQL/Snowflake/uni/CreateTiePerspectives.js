@@ -32,7 +32,7 @@ CREATE OR REPLACE VIEW ${tie.capsule}$.l$tie.name (
 ~*/
     }
 /*~
-) ${viewCommentClause(tie)}$
+) COPY GRANTS ${viewCommentClause(tie)}$
 AS
 SELECT
     $(schema.METADATA)? tie.$tie.metadataColumnName,
@@ -113,6 +113,7 @@ WHERE
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.p$tie.name (
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
@@ -221,7 +222,7 @@ $$$$
 
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name AS
+CREATE OR REPLACE VIEW ${tie.capsule}$.n$tie.name COPY GRANTS AS
 SELECT
     *
 FROM
@@ -236,6 +237,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.d$tie.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
@@ -315,6 +317,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.el$tie.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
@@ -351,6 +354,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.ep$tie.name (
     equivalent $schema.metadata.equivalentRange,
     changingTimepoint $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
@@ -462,6 +466,7 @@ $$$$
 CREATE OR REPLACE FUNCTION ${tie.capsule}$.en$tie.name (
     equivalent $schema.metadata.equivalentRange
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
@@ -502,6 +507,7 @@ CREATE OR REPLACE FUNCTION ${tie.capsule}$.ed$tie.name (
     intervalStart $schema.metadata.chronon,
     intervalEnd $schema.metadata.chronon
 )
+COPY GRANTS
 RETURNS TABLE (
     $(schema.METADATA)? $tie.metadataColumnName $schema.metadata.metadataType,
     $(tie.isHistorized())? $tie.changingColumnName $tie.timeRange,
