@@ -11,7 +11,7 @@ SQL/Snowflake/bi/CreateKnots.js
 SQL/Snowflake/bi/CreateAnchors.js
 SQL/Snowflake/bi/CreateNexuses.js
 SQL/Snowflake/bi/CreateAttributes.js
-#SQL/Snowflake/bi/CreateAttributeAssembledViews.js
+SQL/Snowflake/bi/CreateAttributeAssembledViews.js
 SQL/Snowflake/bi/CreateAttributeRewinders.js
 #SQL/Snowflake/bi/AddAttributeRestatementConstraints.js
 #SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js

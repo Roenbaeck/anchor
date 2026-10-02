@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS ${nexus.capsule}$.$nexus.name (
     while (role = nexus.nextRole()) {
         var knotReference = '';
         if(role.knot) {
-            knotReference += role.knot.capsule + '.' + (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name);
+            knotReference += role.knot.capsule + '.' + role.knot.name;
         }
 /*~
     constraint ${(nexus.name + '_fk' + role.name)}$ foreign key (

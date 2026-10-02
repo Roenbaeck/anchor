@@ -27,7 +27,7 @@ deliberately. No submodules.
 | The resolver | `modules/Resolver.js` | ES5, no DOM. Runs the directive's prelude scripts on the modeler's `schema` object and flattens it to plain JSON. |
 | The export | `Actions.bindings()` in `index.html` | The model as JSON for the selected target: `{bindingsVersion, database, temporalization, schema}`. Menu: Generate > JSON bindings. |
 | Generate SQL | `Actions.sql()` in `index.html` | A directive that lists `.sisula` templates is rendered by the new engine, one template after the other, output concatenated. A directive that lists `.js` sisulets runs on the original `Sisulator`. |
-| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 10 + 11 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
+| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 11 + 12 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
 | The old directives | `Snowflake_{uni,bi,crt}.legacy.directive` | The previous lists. The golden files are generated from them. The modeler does not read them. |
@@ -217,14 +217,27 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
    `SQL/NamingConvention.js` now defines them. That last fix is in the shared file, so it also changes what the other
    databases generate with the original naming convention, from an empty name to the right one.
 
+6. bi and crt: the attribute assembled views were missing. SQL Server's bi and crt generate, for each attribute, a
+   view that joins its posit and annex tables under the name the attribute table has in uni, and the difference
+   (`d`) functions read it; the Snowflake directives had it commented out (bi) or lacked it (crt), so the `d`
+   functions named a table that did not exist (`public.ST_NAM_Stage_Name`). Found by the user when the first run on
+   Snowflake failed to create a `d` function; confirmed with the object check in `lint-sql.ps1`, which flags any
+   `schema.name` that the script uses and never creates. The views are now generated
+   (`SQL/Snowflake/{bi,crt}/CreateAttributeAssembledViews`), as views with `COPY GRANTS` and without SQL Server's
+   index.
+7. bi and crt with equivalence on: in these temporalizations a knot is always one table, but foreign keys and
+   `AddDescriptions` used the identity table of an equivalent knot (`knots.ETY_EventType_ID`), which only uni creates.
+   They now use the knot's own table, as SQL Server's bi and crt do.
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 
 **Still open**
 
-- Equivalence is not handled in bi and crt (equivalent knots are plain tables), and a nexus role to an equivalent
-  knot references `identityName` without testing whether equivalence is on, as the uni sisulets do. The reference
-  is valid SQL but may name a table that does not exist.
+- Equivalence is not handled in bi and crt (equivalent knots are plain tables, as in SQL Server), so a model with
+  equivalence on is generated without any equivalent tables there. The references are valid, though.
+- A uni model whose knots are flagged equivalent while equivalence is off (only a hand-written file can be like
+  that, see the `handwritten` model) refers to tables that are never created.
 - The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.
 - Cosmetic, kept because they are in the golden files: trailing spaces after some commas and column names
   and bi headers without the construct's name line.

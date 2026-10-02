@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $(tie.timeRange)? $tie.changingColumnName $tie.timeRange not null,
 ~*/
     while (role = tie.nextRole()) {
-        var knotTableName = role.knot ? (role.knot.isEquivalent() ? role.knot.identityName : role.knot.name) : '';
+        var knotTableName = role.knot ? role.knot.name : '';
 /*~
     constraint ${(tie.positName + '_fk' + role.name)}$ foreign key (
         $role.columnName

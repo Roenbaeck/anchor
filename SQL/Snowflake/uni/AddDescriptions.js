@@ -16,11 +16,11 @@ COMMENT ON SCHEMA $schema.metadata.encapsulation IS '$comment';
 var knot;
 while (knot = schema.nextKnot()) {
     if(comment = describe(knot)) {
-        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
+        var knotTableName = (schema.UNI && knot.isEquivalent()) ? knot.identityName : knot.name;
 /*~
 COMMENT ON TABLE ${knot.capsule}$.$knotTableName IS '$comment';
 ~*/
-        if(!knot.isEquivalent()) {
+        if(!(schema.UNI && knot.isEquivalent())) {
 /*~
 COMMENT ON COLUMN ${knot.capsule}$.${knot.name}$.$knot.valueColumnName IS '$comment';
 ~*/

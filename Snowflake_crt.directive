@@ -14,6 +14,7 @@ SQL/Snowflake/crt/CreateKnots.sisula
 SQL/Snowflake/crt/CreateAnchors.sisula
 SQL/Snowflake/crt/CreateNexuses.sisula
 SQL/Snowflake/crt/CreateAttributes.sisula
+SQL/Snowflake/crt/CreateAttributeAssembledViews.sisula
 SQL/Snowflake/crt/CreateAttributeRewinders.sisula
 SQL/Snowflake/crt/CreateTies.sisula
 SQL/Snowflake/crt/CreateTieRewinders.sisula

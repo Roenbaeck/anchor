@@ -21,11 +21,7 @@ $/ foreach role in tie.roles
 $/ if role.entity
     ) references $role.entity.capsule$.$role.entity.name$($role.entity.identityColumnName$) RELY, $--$
 $/ else
-$/ if role.knot.isEquivalent
-    ) references $role.knot.capsule$.$role.knot.identityName$($role.knot.identityColumnName$) RELY,
-$/ else
     ) references $role.knot.capsule$.$role.knot.name$($role.knot.identityColumnName$) RELY,
-$/ endif
 $/ endif
 $/ endfor
 $/ if not tie.identifiers

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     }
     else if(attribute.isHistorized() && attribute.isKnotted()) {
         knot = attribute.knot;
-        var knotTableName = knot.isEquivalent() ? knot.identityName : knot.name;
+        var knotTableName = knot.name;
 /*~
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     }
     else if(attribute.isKnotted()) {
         knot = attribute.knot;
-        var knotTableName2 = knot.isEquivalent() ? knot.identityName : knot.name;
+        var knotTableName2 = knot.name;
 /*~
 CREATE TABLE IF NOT EXISTS ${attribute.capsule}$.$attribute.positName (
     $attribute.identityColumnName $(attribute.isGenerator())? $attribute.identity $attribute.identityGenerator not null, : $attribute.identity not null,

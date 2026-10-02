@@ -40,11 +40,7 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
     ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
     constraint fk_K_$attribute.positName$ foreign key (
         $attribute.knotReferenceName$
-$/ if attribute.knot.isEquivalent
-    ) references $attribute.knot.capsule$.$attribute.knot.identityName$($attribute.knot.identityColumnName$) RELY,
-$/ else
     ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
-$/ endif
     constraint pk$attribute.positName$ primary key (
         $attribute.identityColumnName$
     ) RELY,
@@ -65,11 +61,7 @@ CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
     ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
     constraint fk_K_$attribute.positName$ foreign key (
         $attribute.knotReferenceName$
-$/ if attribute.knot.isEquivalent
-    ) references $attribute.knot.capsule$.$attribute.knot.identityName$($attribute.knot.identityColumnName$) RELY,
-$/ else
     ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
-$/ endif
     constraint pk$attribute.positName$ primary key (
         $attribute.identityColumnName$
     ) RELY,
