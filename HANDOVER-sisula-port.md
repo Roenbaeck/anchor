@@ -236,6 +236,11 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
    functions, one construct each, which is the way to find the next one of these: the error message says nothing
    about the cause, and the lint cannot know what Snowflake accepts. `tools/lint-sql.ps1` now flags the construct.
 
+9. bi and crt: a tie with no identifier roles (a one-to-one tie such as `AC_subset_PN_of`) got an empty
+   `CLUSTER BY ( )`, which Snowflake rejects (found by running the bi script). A tie is clustered by its identifier
+   roles, or by all its roles when none is marked, which is the rule that its unique constraint and uni's primary
+   key use; a historized tie adds its changing column, as before. `lint-sql.ps1` flags an empty `CLUSTER BY`.
+
 The uni output of the base model, and of every model with metadata and the improved naming convention, did not
 change.
 

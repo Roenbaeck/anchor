@@ -81,10 +81,20 @@ CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     ) RELY
 ) CLUSTER BY (
 ~*/
-    while (role = tie.nextIdentifier()) {
+    if(tie.hasMoreIdentifiers()) {
+        while (role = tie.nextIdentifier()) {
 /*~
     $role.columnName$(tie.hasMoreIdentifiers() || tie.isHistorized())?,
 ~*/
+        }
+    }
+    else {
+        // a tie without identifiers is identified by all its roles; an empty key is not valid
+        while (role = tie.nextRole()) {
+/*~
+    $role.columnName$(tie.hasMoreRoles() || tie.isHistorized())?,
+~*/
+        }
     }
 /*~
     $(tie.isHistorized())? $tie.changingColumnName

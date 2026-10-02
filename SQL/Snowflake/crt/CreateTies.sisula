@@ -53,9 +53,15 @@ $/ foreach role in tie.values
 $/ endfor
     ) RELY
 ) CLUSTER BY (
+$/ if tie.identifiers
 $/ foreach role in tie.identifiers
     $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
 $/ endfor
+$/ else
+$/ foreach role in tie.values
+    $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
 $/ if tie.isHistorized
     $tie.changingColumnName$
 $/ endif
