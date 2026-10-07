@@ -166,12 +166,19 @@ match (they never did before).
   needs one. Delete a database's old `.js` sisulets, as was done for Snowflake, once its output has been run.
 - **Run the generated Snowflake SQL** for uni, bi and crt on a real account (nothing has been run, and the lint
   is only a heuristic), and look at what is still open under the defects above.
-- **The Snowflake skill** (`anchor-snowflake-skill`): the plan is a generator hosted in Snowflake, a
-  JavaScript UDF made from `modules/sisula.js` (it already runs as one: it is ES5, no DOM) that takes
-  the bindings JSON from the modeler and the templates as text. Someone has to try it in a real
-  account; no Snowflake was available while this was written. The skill's docs also still say "no
-  `CLUSTER BY` by default" and its load statements have no `ORDER BY` on the id; both disagree with the
-  decisions above.
+- **The Snowflake skill** (`anchor-snowflake-skill`): the generator hosted in Snowflake exists.
+  `tools/build-snowflake-generator.ps1` writes one SQL script that creates `SISULATE` (the engine as a JavaScript
+  function), `ANCHOR_BINDINGS` (the model XML to the bindings; `modules/XmlTree.js` reads the XML, since a JavaScript
+  function has no `DOMParser`, and `modules/DomFacade.js` gives `Sisulator.objectify` a DOM; the prelude scripts of
+  the directive are compiled into a function, since there is no `eval`), `ANCHOR_TEMPLATE` (the templates, base64)
+  and `ANCHOR_GENERATE(model_xml, temporalization)`. The skill repository holds the built script, with its
+  provenance in the first lines, and the docs (`references/generator.md`, `model-xml.md`) and workflow that use it.
+  `hosted-check.ps1` in the sisula repository runs the JavaScript of the two functions under Jint on all models
+  and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake, and
+  **has not been run yet**. To update the skill: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
+  Known gap: a nexus with `generator="true"` is `IDENTITY(1,1)` in all three temporalizations (no sequence, and no
+  `identitySequenceName` for nexuses in `NamingConvention.js`), so the skill's nexus load pattern, which inserts
+  ids from a sequence explicitly, does not fit a generated nexus.
 - **`schema.serialization`** is large (the model XML again) and its time stamp makes every export
   differ. A hosted generator does not need it; consider leaving it out for targets whose templates
   do not read it.
