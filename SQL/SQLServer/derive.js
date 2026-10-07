@@ -4,3 +4,33 @@
 //
 // Only facts are derived here, never SQL. A template reaches only what the JSON holds, so what a
 // sisulet asks of a helper or an array (a count, a length) is computed here and stored as data.
+//
+// Every group of templates has a block of its own, so that the work on them merges cleanly.
+
+// ---- common ----
+//   attributeCount  the number of attributes of an anchor or nexus
+var anchor;
+while (anchor = schema.nextAnchor())
+    anchor.attributeCount = anchor.attributes ? anchor.attributes.length : 0;
+// ---- end common ----
+
+// ---- tables: CreateKnots, CreateNexuses, CreateAttributes, CreateTies, equivalence, rewinders, encryption, CLR, descriptions ----
+// ---- end tables ----
+
+// ---- triggers-a: attribute and anchor triggers, restatement constraints ----
+// ---- end triggers-a ----
+
+// ---- triggers-b: nexus and tie triggers, key generators ----
+// ---- end triggers-b ----
+
+// ---- perspectives-a: anchor and nexus perspectives ----
+// ---- end perspectives-a ----
+
+// ---- perspectives-b: tie perspectives, keys ----
+// ---- end perspectives-b ----
+
+// ---- business: the business perspectives ----
+// ---- end business ----
+
+// ---- schema tracking ----
+// ---- end schema tracking ----
