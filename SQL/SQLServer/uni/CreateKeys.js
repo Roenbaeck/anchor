@@ -299,7 +299,7 @@ CREATE TABLE [$nexus.capsule].[$key.tableName](
     /*~
     ),
     CONSTRAINT uq$key.tableName UNIQUE (
-        $(schema.EQUIVALENCE)? $anchor.mnemonic$schema.metadata.equivalentSuffix,
+        $(schema.EQUIVALENCE)? $nexus.mnemonic$schema.metadata.equivalentSuffix,
     ~*/
                 var numberOfStops = Object.keys(key.stops).length;
                 var currentStopNumber = 0;

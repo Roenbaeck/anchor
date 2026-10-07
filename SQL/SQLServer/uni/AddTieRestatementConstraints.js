@@ -46,7 +46,7 @@ BEGIN
 ~*/
         }
         else {
-            anchor = role.anchor;
+            anchor = role.entity;   // an anchor or a nexus
 /*~
         $role.columnName $anchor.identity not null,
 ~*/
