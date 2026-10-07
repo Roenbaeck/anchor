@@ -69,11 +69,16 @@ function pbDeriveKeyRoutes(entity) {
             }
             if (attribute) {
                 if (attribute.timeRange) historized++;
+                // CreateKeys.js names the column of the stop before, the last stop's for the first. A stop that
+                // has no routed column (one of a tie) gives undefined: the text "undefined" in front of a comma, nothing
+                // where there is no comma.
+                var previous = components[(i + count - 1) % count].routedValueColumnName;
+                var unique = previous !== undefined ? previous : (key.historized || i != count - 1 ? 'undefined' : '');
                 attributeStops.push({
                     routedValueColumnName: component.routedValueColumnName,
                     routedChangingColumnName: component.routedChangingColumnName,
                     dataRange: attribute.dataRange,
-                    uniqueColumnName: String(components[(i + count - 1) % count].routedValueColumnName),
+                    uniqueColumnName: unique,
                     isLastStop: i == count - 1
                 });
             }

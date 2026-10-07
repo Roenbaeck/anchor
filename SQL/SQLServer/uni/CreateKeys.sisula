@@ -35,7 +35,9 @@ $/ if schema.EQUIVALENCE
         $anchor.mnemonic$schema.metadata.equivalentSuffix,
 $/ endif
 $/ foreach stop in key.attributeStops
+$/ if stop.uniqueColumnName
         $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
+$/ endif
 $/ endfor
 $/ if key.historized
         $key.changingColumnName$
@@ -191,7 +193,9 @@ $/ if schema.EQUIVALENCE
         $nexus.mnemonic$schema.metadata.equivalentSuffix,
 $/ endif
 $/ foreach stop in key.attributeStops
+$/ if stop.uniqueColumnName
         $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
+$/ endif
 $/ endfor
 $/ if key.historized
         $key.changingColumnName$
