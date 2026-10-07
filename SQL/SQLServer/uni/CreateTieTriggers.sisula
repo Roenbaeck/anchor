@@ -1,0 +1,471 @@
+$/ if schema.TRIGGERS
+-- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent ties, only changes that represent values different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it$tie.name$ instead of INSERT trigger on $tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.it_$tie.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$tie.capsule$].[it_$tie.name$];
+GO
+CREATE TRIGGER [$tie.capsule$].[it_$tie.name$] ON [$tie.capsule$].[$tie.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+    DECLARE @inserted TABLE (
+$/ if schema.METADATA
+        $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+        $tie.statementTypeColumnName$ char(1) not null,
+        $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ foreach role in tie.roles
+$/ if role.knot
+        $role.columnName$ $role.knot.identity$ not null,
+$/ else
+        $role.columnName$ $role.entity.identity$ not null,
+$/ endif
+$/ endfor
+        primary key (
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            $role.columnName$ asc,
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            $role.columnName$ asc,
+$/ endfor
+$/ endif
+            $tie.changingColumnName$ desc
+        )
+    );
+    INSERT INTO @inserted
+    SELECT
+$/ if schema.METADATA
+        ISNULL(i.$tie.metadataColumnName$, 0),
+$/ endif
+        'P', -- new posit
+        ISNULL(i.$tie.changingColumnName$, @now),
+$/ foreach role in tie.roles
+        i.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            42
+        FROM
+            [$tie.capsule$].[$tie.name$] x
+        WHERE $--$
+$/ foreach role in tie.roles
+            x.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        AND
+            x.$tie.changingColumnName$ = i.$tie.changingColumnName$
+    );
+$/ if tie.isIdempotent
+    INSERT INTO @inserted
+    SELECT
+$/ if schema.METADATA
+        p.$tie.metadataColumnName$, $--$
+$/ endif
+        'X', -- existing data
+        p.$tie.changingColumnName$, $--$
+$/ foreach role in tie.roles
+        p.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM (
+        SELECT DISTINCT
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+        FROM $--$
+            @inserted $--$
+    ) i
+    JOIN
+        [$tie.capsule$].[$tie.name$] p
+    ON
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        p.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        p.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+    DECLARE @restated TABLE (
+        $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ foreach role in tie.roles
+$/ if role.knot
+        $role.columnName$ $role.knot.identity$ not null$/ if not role.last() ,$/ endif
+$/ else
+        $role.columnName$ $role.entity.identity$ not null$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+    );
+    INSERT INTO @restated
+    SELECT $--$
+        x.$tie.changingColumnName$,
+$/ foreach role in tie.roles
+        x.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM (
+        DELETE t
+        OUTPUT $--$
+            deleted.*
+        FROM $--$
+            @inserted t
+        OUTER APPLY (
+            SELECT TOP 1
+$/ foreach role in tie.roles
+                $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                @inserted h
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                h.$role.columnName$ = t.$role.columnName$
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                h.$role.columnName$ = t.$role.columnName$
+            AND
+$/ endfor
+$/ endif
+                h.$tie.changingColumnName$ < t.$tie.changingColumnName$
+            ORDER BY $--$
+                h.$tie.changingColumnName$ DESC
+        ) pre
+        WHERE $--$
+$/ foreach role in tie.roles
+            t.$role.columnName$ = pre.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    ) x
+    WHERE
+        x.$tie.statementTypeColumnName$ = 'X';
+    -- delete the quenches (should be rare)
+    DELETE t
+    FROM $--$
+        [$tie.capsule$].[$tie.name$] t
+    JOIN $--$
+        @restated d
+    ON $--$
+        d.$tie.changingColumnName$ = t.$tie.changingColumnName$
+    AND
+$/ foreach role in tie.roles
+        d.$role.columnName$ = t.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+    INSERT INTO [$tie.capsule$].[$tie.name$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$, $--$
+$/ endif
+        $tie.changingColumnName$,
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.changingColumnName$,
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM
+        @inserted
+    WHERE
+        $tie.statementTypeColumnName$ = 'P';
+END
+GO
+$/ else
+$/ if tie.isIdempotent
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it$tie.name$ instead of INSERT trigger on $tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.it_$tie.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$tie.capsule$].[it_$tie.name$];
+GO
+CREATE TRIGGER [$tie.capsule$].[it_$tie.name$] ON [$tie.capsule$].[$tie.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO [$tie.capsule$].[$tie.name$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$, $--$
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            42
+        FROM
+            [$tie.capsule$].[$tie.name$] x
+        WHERE $--$
+$/ foreach role in tie.roles
+            x.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    );
+END
+GO
+$/ endif
+$/ endif
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$tie.name$ instead of INSERT trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule$].[it_l$tie.name$] ON [$tie.capsule$].[l$tie.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+    INSERT INTO [$tie.capsule$].[$tie.name$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        i.$tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.last()
+        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$) $--$
+$/ else
+        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$), $--$
+$/ endif
+$/ else
+        i.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+    FROM
+$/ if tie.knotRoles
+        inserted i
+$/ foreach role in tie.knotRoles
+    LEFT JOIN
+        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
+    ON
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$$/ if role.last() ;$/ endif
+$/ endfor
+$/ else
+        inserted i;
+$/ endif
+END
+GO
+$/ if tie.values or tie.isDeletable
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$tie.name$ instead of UPDATE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule$].[ut_l$tie.name$] ON [$tie.capsule$].[l$tie.name$]
+INSTEAD OF UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+$/ if tie.values
+$/ foreach role in tie.identifiers
+    IF(UPDATE($role.columnName$))
+        RAISERROR('The identity column $role.columnName$ is not updatable.', 16, 1);
+$/ endfor
+$/ if tie.isHistorized
+    INSERT INTO [$tie.capsule$].[$tie.name$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.changingColumnName$,
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$tie.metadataColumnName$,
+$/ endif
+        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.last()
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END, $--$
+$/ endif
+$/ else
+        i.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+    FROM
+$/ if tie.knotRoles
+        inserted i
+$/ foreach role in tie.knotRoles
+    LEFT JOIN
+        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
+    ON
+$/ if role.last()
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$; $--$
+$/ else
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
+$/ endif
+$/ endfor
+$/ else
+        inserted i; $--$
+$/ endif
+$/ endif
+$/ endif
+$/ if tie.isDeletable and tie.identifiers and tie.values
+    SELECT
+$/ if tie.isHistorized
+        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$) as $tie.deletionTimeColumnName$,
+$/ endif
+$/ foreach role in tie.identifiers
+        i.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    INTO
+        #$tie.name$
+    FROM
+        inserted i $--$
+    WHERE
+$/ foreach role in tie.values
+        i.$role.columnName$ is null
+    AND
+$/ endfor
+        i.$tie.deletableColumnName$ = 1
+    IF(@@ROWCOUNT > 0)
+    BEGIN
+        IF OBJECT_ID('[$tie.capsule$].[$tie.deletionName$]') is null
+        SELECT TOP 0 $--$
+            * ,
+            CAST(null as $/ if tie.isHistorized $tie.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $tie.deletionTimeColumnName$
+        INTO $--$
+            [$tie.capsule$].[$tie.deletionName$]
+        FROM $--$
+            [$tie.capsule$].[$tie.name$];
+        DELETE tie
+        OUTPUT $--$
+            deleted.*,
+$/ if tie.isHistorized
+            ISNULL(d.$tie.deletionTimeColumnName$, @now) $--$
+$/ else
+            @now $--$
+$/ endif
+        INTO
+            [$tie.capsule$].[$tie.deletionName$]
+        FROM
+            [$tie.capsule$].[$tie.name$] tie
+        JOIN
+            #$tie.name$ d
+        ON
+$/ foreach role in tie.identifiers
+            d.$role.columnName$ = tie.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    END
+$/ endif
+END
+GO
+$/ endif
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$tie.name$ instead of DELETE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$tie.capsule$].[dt_l$tie.name$] ON [$tie.capsule$].[l$tie.name$]
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE tie
+    FROM
+        [$tie.capsule$].[$tie.name$] tie
+    JOIN
+        deleted d
+    ON
+$/ if tie.timeRange
+        d.$tie.changingColumnName$ = tie.$tie.changingColumnName$
+    AND
+$/ endif
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        d.$role.columnName$ = tie.$role.columnName$$/ if role.last() ;$/ endif
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ else
+       (
+$/ foreach role in tie.values
+            d.$role.columnName$ = tie.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+       );
+$/ endif
+END
+GO
+$/ endfor
+$/ endif
