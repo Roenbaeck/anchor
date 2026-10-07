@@ -103,6 +103,15 @@ while (tie = schema.nextHistorizedTie())
 // ---- end triggers-b ----
 
 // ---- perspectives-a: anchor and nexus perspectives ----
+//   chronicleAttributes  the chronicle attributes of a nexus (static ones with a chronicle number above
+//                        zero) in chronicle order, as nexus.nextChronicle() visits them
+var perspectiveNexus;
+while (perspectiveNexus = schema.nextNexus()) {
+    perspectiveNexus._buildChronicleList();
+    perspectiveNexus.chronicleAttributes = [];
+    for (var perspectiveChronicle = 0; perspectiveChronicle < perspectiveNexus._chronicleSorted.length; perspectiveChronicle++)
+        perspectiveNexus.chronicleAttributes.push(perspectiveNexus._chronicleSorted[perspectiveChronicle].mnemonic);
+}
 // ---- end perspectives-a ----
 
 // ---- perspectives-b: tie perspectives, keys ----
