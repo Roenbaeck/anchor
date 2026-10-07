@@ -143,12 +143,11 @@ $/ if schema.CRT
     [$nexus.mnemonic$].Positor,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
-$- the last role has no comma after it, whatever follows: as in the original, which makes this SQL invalid
 $/ foreach role in nexus.roles
 $/ if role.knot
-    [$nexus.mnemonic$].$role.knotValueColumnName$ AS [$role.businessName$]$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.knotValueColumnName$ AS [$role.businessName$]$/ if not role.last() or nexus.attributes ,$/ endif
 $/ else
-    [$nexus.mnemonic$].$role.columnName$ as [$role.businessColumnName$]$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.columnName$ as [$role.businessColumnName$]$/ if not role.last() or nexus.attributes ,$/ endif
 $/ endif
 $/ endfor
 $/ foreach attribute in nexus.attributes
@@ -177,12 +176,11 @@ $/ if schema.CRT
     [$nexus.mnemonic$].Positor,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
-$- the last role has no comma after it, as above
 $/ foreach role in nexus.roles
 $/ if role.knot
-    [$nexus.mnemonic$].$role.knotValueColumnName$ AS [$role.businessName$]$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.knotValueColumnName$ AS [$role.businessName$]$/ if not role.last() or nexus.attributes ,$/ endif
 $/ else
-    [$nexus.mnemonic$].$role.columnName$ as [$role.businessColumnName$]$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.columnName$ as [$role.businessColumnName$]$/ if not role.last() or nexus.attributes ,$/ endif
 $/ endif
 $/ endfor
 $/ foreach attribute in nexus.attributes

@@ -269,7 +269,7 @@ DROP TABLE [$nexus.capsule].[$key.tableName];
 GO
 
 CREATE TABLE [$nexus.capsule].[$key.tableName](
-    $nexus.identityColumnName $nexus.identityRange NOT NULL,
+    $nexus.identityColumnName $nexus.identity NOT NULL,
                 ~*/
                 for(stop in key.stops) {
                     component = key.stops[stop];

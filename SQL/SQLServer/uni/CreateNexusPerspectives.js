@@ -454,7 +454,7 @@ SELECT
 ~*/
                 }
 /*~
-    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -584,7 +584,7 @@ SELECT
 ~*/
                 }
 /*~
-    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {

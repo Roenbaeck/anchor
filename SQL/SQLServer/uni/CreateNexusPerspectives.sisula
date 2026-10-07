@@ -372,7 +372,7 @@ $/ if schema.METADATA
     [$role.name$].$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
 $/ endif
 $/ endif
-    [$nexus.mnemonic$].$role.columnName$$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.columnName$$/ if not role.last() or nexus.attributes ,$/ endif
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
@@ -481,7 +481,7 @@ $/ if schema.METADATA
     [$role.name$].$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
 $/ endif
 $/ endif
-    [$nexus.mnemonic$].$role.columnName$$/ if not role.last() ,$/ endif
+    [$nexus.mnemonic$].$role.columnName$$/ if not role.last() or nexus.attributes ,$/ endif
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED

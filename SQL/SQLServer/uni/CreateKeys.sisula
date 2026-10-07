@@ -168,8 +168,7 @@ IF Object_ID('$nexus.capsule$.$key.tableName$', 'U') IS NOT NULL
 DROP TABLE [$nexus.capsule$].[$key.tableName$];
 GO
 CREATE TABLE [$nexus.capsule$].[$key.tableName$](
-$- CreateKeys.js types the identity column with nexus.identityRange, which no nexus has, so the type is empty
-    $nexus.identityColumnName$ NOT NULL,
+    $nexus.identityColumnName$ $nexus.identity$ NOT NULL,
 $/ foreach stop in key.attributeStops
     $stop.routedValueColumnName$ $stop.dataRange$ NULL,
 $/ endfor
