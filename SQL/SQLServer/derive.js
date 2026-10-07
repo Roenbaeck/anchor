@@ -89,6 +89,17 @@ while (tie = schema.nextHistorizedTie())
 // ---- end triggers-a ----
 
 // ---- triggers-b: nexus and tie triggers, key generators ----
+//   equivalentKnotColumnName  on a knotted nexus attribute: the column that carries the equivalent of its
+//                             knot, the attribute's own with the improved naming, else the knot's
+(function () {
+    var nexus, attribute;
+    while (nexus = schema.nextNexus()) {
+        while (attribute = nexus.nextAttribute()) {
+            if (attribute.isKnotted())
+                attribute.equivalentKnotColumnName = schema.IMPROVED ? attribute.knotEquivalentColumnName : attribute.knot.equivalentColumnName;
+        }
+    }
+})();
 // ---- end triggers-b ----
 
 // ---- perspectives-a: anchor and nexus perspectives ----
