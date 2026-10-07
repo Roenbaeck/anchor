@@ -3,8 +3,39 @@
 # The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
 # modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
 # bindings are made from; they run once, before the templates. A line starting with # is not run.
-# The original sisulets, which this replaces, are listed in SQLServer_uni.legacy.directive.
+# The original sisulets, which these replace, are listed in SQLServer_uni.legacy.directive.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/SQLServer/NamingConvention.js
 SQL/SQLServer/derive.js
+SQL/SQLServer/uni/AddEncryption.sisula
+SQL/SQLServer/clr/Anchor.sisula
+SQL/SQLServer/uni/SetupEquivalentPartitioning.sisula
+SQL/SQLServer/uni/CreateEquivalentAndDefault.sisula
+SQL/SQLServer/uni/CreateKnots.sisula
+SQL/SQLServer/uni/CreateAnchors.sisula
+SQL/SQLServer/uni/CreateNexuses.sisula
+SQL/SQLServer/uni/CreateAttributes.sisula
+SQL/SQLServer/uni/CreateTies.sisula
+SQL/SQLServer/uni/CreateKeys.sisula
+SQL/SQLServer/uni/CreateKnotEquivalenceViews.sisula
+SQL/SQLServer/uni/CreateAttributeEquivalenceViews.sisula
+SQL/SQLServer/uni/AddAttributeRestatementConstraints.sisula
+SQL/SQLServer/uni/CreateKeyGenerators.sisula
+SQL/SQLServer/uni/CreateAttributeRewinders.sisula
+SQL/SQLServer/biz/DropAnchorBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateAnchorPerspectives.sisula
+SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.sisula
+SQL/SQLServer/biz/DropNexusBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateNexusPerspectives.sisula
+SQL/SQLServer/biz/CreateNexusBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateAttributeTriggers.sisula
+SQL/SQLServer/uni/CreateAnchorTriggers.sisula
+SQL/SQLServer/uni/CreateNexusTriggers.sisula
+SQL/SQLServer/uni/AddTieRestatementConstraints.sisula
+SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateTiePerspectives.sisula
+SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateTieTriggers.sisula
+SQL/SQLServer/CreateSchemaTracking.sisula
+SQL/SQLServer/uni/AddDescriptions.sisula
