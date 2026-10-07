@@ -189,6 +189,9 @@ Add-Line 'WHERE'
 Add-Line '    t.TEMPORALIZATION = r.bindings:temporalization::VARCHAR'
 Add-Line '$$;'
 $text = $sql.ToString()
+# EXECUTE IMMEDIATE FROM, which runs the script from a stage or a Git repository, may read the file as a Jinja template,
+# and the Snowflake CLI (snow sql -f) reads <% %> and &{ } as template variables. Nothing in the script is one now; keep it so.
+if ($text -match '\{\{|\{%|\{#|<%|&\{') { throw 'The script holds a template delimiter ({{, {%, {#, <% or &{) that EXECUTE IMMEDIATE FROM or the Snowflake CLI could read as a template.' }
 # .NET resolves a relative path against the process directory, not PowerShell's, so make them absolute.
 $Output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Output)
 New-Item -ItemType Directory -Force (Split-Path -Parent $Output) | Out-Null

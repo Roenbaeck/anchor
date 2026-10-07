@@ -176,9 +176,13 @@ match (they never did before).
   `hosted-check.ps1` in the sisula repository runs the JavaScript of the two functions under Jint on all models
   and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake, and
   **has not been run yet**. To update the skill: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
-  Known gap: a nexus with `generator="true"` is `IDENTITY(1,1)` in all three temporalizations (no sequence, and no
-  `identitySequenceName` for nexuses in `NamingConvention.js`), so the skill's nexus load pattern, which inserts
-  ids from a sequence explicitly, does not fit a generated nexus.
+  Identities: knots, anchors and nexuses with `generator="true"` take their id from a sequence (`<name>_ID_SEQ`;
+  a nexus's sequence name is made in `SQL/Snowflake/NamingConvention.js`), which is what the skill's load patterns
+  draw from. Still `IDENTITY(1,1)`: the posit identity of attributes and ties in bi and crt (`positGenerator`), which
+  annex rows refer to, so a load for bi/crt will need explicit posit ids too; decide before writing those loads.
+  The skill installs the generator itself: with a Git repository object and `EXECUTE IMMEDIATE FROM`, or the
+  Snowflake CLI (`references/generator.md`; neither has been run against an account). The build fails if the
+  script holds a template delimiter (`{{`, `{%`, `{#`, `<%`, `&{`).
 - **`schema.serialization`** is large (the model XML again) and its time stamp makes every export
   differ. A hosted generator does not need it; consider leaving it out for targets whose templates
   do not read it.
