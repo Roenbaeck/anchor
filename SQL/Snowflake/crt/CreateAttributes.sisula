@@ -8,8 +8,11 @@ $/ if attribute.isHistorized and not attribute.isKnotted
 -- Historized attribute posit table -----------------------------------------------------------------------------------
 -- $attribute.positName$ table (on $attribute.parent.name$)
 -----------------------------------------------------------------------------------------------------------------------
+$/ if attribute.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator IDENTITY(1,1) not null, $/ else not null,$/ endif
+    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
     $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
     $attribute.valueColumnName$ $attribute.dataRange$ not null,
 $/ if attribute.hasChecksum
@@ -37,8 +40,11 @@ $/ if attribute.isHistorized and attribute.isKnotted
 -- Knotted historized attribute posit table ---------------------------------------------------------------------------
 -- $attribute.positName$ table (on $attribute.parent.name$)
 -----------------------------------------------------------------------------------------------------------------------
+$/ if attribute.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator IDENTITY(1,1) not null, $/ else not null,$/ endif
+    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
     $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
     $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
     $attribute.changingColumnName$ $attribute.timeRange$ not null,
@@ -62,8 +68,11 @@ $/ if not attribute.isHistorized and attribute.isKnotted
 -- Knotted static attribute posit table -------------------------------------------------------------------------------
 -- $attribute.positName$ table (on $attribute.parent.name$)
 -----------------------------------------------------------------------------------------------------------------------
+$/ if attribute.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator IDENTITY(1,1) not null, $/ else not null,$/ endif
+    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
     $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
     $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
     constraint fk_A_$attribute.positName$ foreign key (
@@ -85,8 +94,11 @@ $/ if not attribute.isHistorized and not attribute.isKnotted
 -- Static attribute posit table -----------------------------------------------------------------------------------
 -- $attribute.positName$ table (on $attribute.parent.name$)
 -----------------------------------------------------------------------------------------------------------------------
+$/ if attribute.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator IDENTITY(1,1) not null, $/ else not null,$/ endif
+    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
     $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
     $attribute.valueColumnName$ $attribute.dataRange$ not null,
 $/ if attribute.hasChecksum

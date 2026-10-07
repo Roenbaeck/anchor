@@ -7,8 +7,11 @@ $/ foreach nexus in schema.nexuses
 -- Nexus table --------------------------------------------------------------------------------------------------------
 -- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
 -----------------------------------------------------------------------------------------------------------------------
+$/ if nexus.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $nexus.capsule$.$nexus.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $nexus.capsule$.$nexus.name$ (
-    $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ IDENTITY(1,1) not null, $/ else $nexus.identity$ not null,$/ endif
+    $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ default $nexus.capsule$.$nexus.identitySequenceName$.nextval not null, $/ else $nexus.identity$ not null,$/ endif
 $/ foreach role in nexus.roles
     $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
 $/ endfor

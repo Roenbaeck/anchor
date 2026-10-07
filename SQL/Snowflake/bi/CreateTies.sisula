@@ -3,9 +3,12 @@
 -- BI ties use posit and annex split with changing/positing time and reliability.
 --
 $/ foreach tie in schema.ties
+$/ if tie.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $tie.capsule$.$tie.identitySequenceName$ START 1 INCREMENT 1;
+$/ endif
 CREATE TABLE IF NOT EXISTS $tie.capsule$.$tie.positName$ (
 $/ if tie.isGenerator
-    $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif IDENTITY(1,1) not null, $--$
+    $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif default $tie.capsule$.$tie.identitySequenceName$.nextval not null, $--$
 $/ else
     $tie.identityColumnName$ $/ if tie.identity $tie.identity$ $/ endif not null,
 $/ endif
