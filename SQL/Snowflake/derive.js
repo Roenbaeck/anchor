@@ -11,6 +11,11 @@
 //                   as false for a description that is literally "0", "false" or "null".
 //   attributeCount  the number of attributes of an anchor or nexus
 //   roleCount       the number of roles of a nexus or tie
+//   uniqueColumnName       the column that a knot is unique on: its checksum if it has one, else its value
+//   comparedColumnName     the column that tells whether an attribute has changed: its checksum if it has one,
+//                          else its value (a knotted attribute's value column is the reference to the knot)
+//   isComparable           whether two values of the attribute can be compared with =; a geography, a geometry
+//                          and the semi-structured types cannot, unless there is a checksum to compare
 //
 // The counts are data because a path in a template reaches only what the JSON holds. A template
 // cannot ask an array for its length: JSON has no such member, and the JSON functions of SQL
@@ -25,7 +30,10 @@ function deriveComment(construct) {
 deriveComment(schema);
 
 var knot;
-while (knot = schema.nextKnot()) deriveComment(knot);
+while (knot = schema.nextKnot()) {
+    deriveComment(knot);
+    knot.uniqueColumnName = knot.hasChecksum() ? knot.checksumColumnName : knot.valueColumnName;
+}
 
 var anchor;
 while (anchor = schema.nextAnchor()) {
@@ -34,7 +42,12 @@ while (anchor = schema.nextAnchor()) {
 }
 
 var attribute;
-while (attribute = schema.nextAttribute()) deriveComment(attribute);
+while (attribute = schema.nextAttribute()) {
+    deriveComment(attribute);
+    var checksummed = !attribute.isKnotted() && attribute.hasChecksum();
+    attribute.comparedColumnName = checksummed ? attribute.checksumColumnName : attribute.valueColumnName;
+    attribute.isComparable = checksummed || attribute.isKnotted() || !/^\s*(geography|geometry|variant|object|array)\b/i.test(attribute.dataRange || '');
+}
 
 var nexus, role;
 while (nexus = schema.nextNexus()) {

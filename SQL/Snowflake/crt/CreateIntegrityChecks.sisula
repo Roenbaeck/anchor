@@ -1,0 +1,433 @@
+-- INTEGRITY CHECKS ---------------------------------------------------------------------------------------------------
+--
+-- Snowflake does not enforce primary, unique or foreign keys, and every key here is declared RELY, which tells the
+-- optimizer to trust it. A violation is therefore not an error, but wrong results. Every table has a view,
+-- ic_<table>, that returns the rows that break what the table declares:
+--
+--   duplicate primary key, duplicate unique key   the same key more than once
+--   no row in <table> for <column>                a reference to a row that does not exist
+--
+-- In a concurrent reliance temporal model an attribute and a tie are a posit table and an annex table, each with a view. What is not
+-- checked is restatement and whether the time of a posit overlaps another: the uni-temporal checks do not carry over.
+--
+-- A view that returns nothing has nothing wrong. IntegrityViolations is all of them together; it reads every table.
+--
+--   Construct     the table
+--   Violation     what is wrong
+--   ViolationKey  the key of the rows, as an object of column and value
+--   Occurrences   how many rows
+--
+-- The orphan checks join to the table that is referred to and look for the rows without a match. They use a
+-- column of the referred table in the WHERE clause, so a RELY foreign key cannot make the optimizer drop the join.
+--
+$/ foreach knot in schema.knots
+-- $knot.name$ integrity --------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $knot.capsule$.ic_$knot.name$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$knot.name$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT('$knot.identityColumnName$', $knot.identityColumnName$),
+    COUNT(*)
+FROM
+    $knot.capsule$.$knot.name$
+GROUP BY
+    $knot.identityColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$knot.name$',
+    'duplicate unique key',
+    OBJECT_CONSTRUCT('$knot.uniqueColumnName$', $knot.uniqueColumnName$),
+    COUNT(*)
+FROM
+    $knot.capsule$.$knot.name$
+GROUP BY
+    $knot.uniqueColumnName$
+HAVING
+    COUNT(*) > 1;
+$/ endfor
+$/ foreach anchor in schema.anchors
+-- $anchor.name$ integrity ------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $anchor.capsule$.ic_$anchor.name$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$anchor.name$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT('$anchor.identityColumnName$', $anchor.identityColumnName$),
+    COUNT(*)
+FROM
+    $anchor.capsule$.$anchor.name$
+GROUP BY
+    $anchor.identityColumnName$
+HAVING
+    COUNT(*) > 1;
+$/ endfor
+$/ foreach nexus in schema.nexuses
+-- $nexus.name$ integrity -------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $nexus.capsule$.ic_$nexus.name$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$nexus.name$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT('$nexus.identityColumnName$', $nexus.identityColumnName$),
+    COUNT(*)
+FROM
+    $nexus.capsule$.$nexus.name$
+GROUP BY
+    $nexus.identityColumnName$
+HAVING
+    COUNT(*) > 1
+$/ foreach role in nexus.roles
+UNION ALL
+SELECT
+    '$nexus.name$',
+$/ if role.entity
+    'no row in $role.entity.name$ for $role.columnName$',
+$/ else
+    'no row in $role.knot.name$ for $role.columnName$',
+$/ endif
+    OBJECT_CONSTRUCT('$role.columnName$', c.$role.columnName$),
+    COUNT(*)
+FROM
+    $nexus.capsule$.$nexus.name$ c
+LEFT JOIN
+$/ if role.entity
+    $role.entity.capsule$.$role.entity.name$ p
+ON
+    p.$role.entity.identityColumnName$ = c.$role.columnName$
+WHERE
+    p.$role.entity.identityColumnName$ IS NULL
+$/ else
+    $role.knot.capsule$.$role.knot.name$ p
+ON
+    p.$role.knot.identityColumnName$ = c.$role.columnName$
+WHERE
+    p.$role.knot.identityColumnName$ IS NULL
+$/ endif
+GROUP BY
+    c.$role.columnName$
+$/ endfor
+;
+$/ endfor
+$/ foreach attribute in schema.attributes
+-- $attribute.positName$ integrity ----------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $attribute.capsule$.ic_$attribute.positName$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$attribute.positName$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT('$attribute.identityColumnName$', $attribute.identityColumnName$),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.positName$
+GROUP BY
+    $attribute.identityColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$attribute.positName$',
+    'duplicate unique key',
+    OBJECT_CONSTRUCT(
+        '$attribute.entityReferenceName$', $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+        '$attribute.changingColumnName$', $attribute.changingColumnName$,
+$/ endif
+        '$attribute.comparedColumnName$', $attribute.comparedColumnName$
+    ),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.positName$
+GROUP BY
+    $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+    $attribute.changingColumnName$,
+$/ endif
+    $attribute.comparedColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$attribute.positName$',
+    'no row in $attribute.parent.name$ for $attribute.entityReferenceName$',
+    OBJECT_CONSTRUCT('$attribute.entityReferenceName$', c.$attribute.entityReferenceName$),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.positName$ c
+LEFT JOIN
+    $attribute.parent.capsule$.$attribute.parent.name$ p
+ON
+    p.$attribute.parent.identityColumnName$ = c.$attribute.entityReferenceName$
+WHERE
+    p.$attribute.parent.identityColumnName$ IS NULL
+GROUP BY
+    c.$attribute.entityReferenceName$
+$/ if attribute.isKnotted
+UNION ALL
+SELECT
+    '$attribute.positName$',
+    'no row in $attribute.knot.name$ for $attribute.knotReferenceName$',
+    OBJECT_CONSTRUCT('$attribute.knotReferenceName$', c.$attribute.knotReferenceName$),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.positName$ c
+LEFT JOIN
+    $attribute.knot.capsule$.$attribute.knot.name$ p
+ON
+    p.$attribute.knot.identityColumnName$ = c.$attribute.knotReferenceName$
+WHERE
+    p.$attribute.knot.identityColumnName$ IS NULL
+GROUP BY
+    c.$attribute.knotReferenceName$
+$/ endif
+;
+-- $attribute.annexName$ integrity ----------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $attribute.capsule$.ic_$attribute.annexName$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$attribute.annexName$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT(
+        '$attribute.identityColumnName$', $attribute.identityColumnName$,
+        '$attribute.positorColumnName$', $attribute.positorColumnName$,
+        '$attribute.positingColumnName$', $attribute.positingColumnName$
+    ),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.annexName$
+GROUP BY
+    $attribute.identityColumnName$,
+    $attribute.positorColumnName$,
+    $attribute.positingColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$attribute.annexName$',
+    'no row in $attribute.positName$ for $attribute.identityColumnName$',
+    OBJECT_CONSTRUCT('$attribute.identityColumnName$', c.$attribute.identityColumnName$),
+    COUNT(*)
+FROM
+    $attribute.capsule$.$attribute.annexName$ c
+LEFT JOIN
+    $attribute.capsule$.$attribute.positName$ p
+ON
+    p.$attribute.identityColumnName$ = c.$attribute.identityColumnName$
+WHERE
+    p.$attribute.identityColumnName$ IS NULL
+GROUP BY
+    c.$attribute.identityColumnName$
+;
+$/ endfor
+$/ foreach tie in schema.ties
+-- $tie.positName$ integrity ----------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.ic_$tie.positName$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$tie.positName$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT('$tie.identityColumnName$', $tie.identityColumnName$),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.positName$
+GROUP BY
+    $tie.identityColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$tie.positName$',
+    'duplicate unique key',
+    OBJECT_CONSTRUCT(
+$/ foreach role in tie.roles
+        '$role.columnName$', $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', $tie.changingColumnName$
+$/ endif
+    ),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.positName$
+GROUP BY
+$/ foreach role in tie.roles
+    $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    $tie.changingColumnName$
+$/ endif
+HAVING
+    COUNT(*) > 1
+$/ if not tie.identifiers
+$/ foreach role in tie.roles where role.isAnchorRole
+UNION ALL
+SELECT
+    '$tie.positName$',
+    'duplicate unique key ($role.name$)',
+    OBJECT_CONSTRUCT(
+        '$role.columnName$', $role.columnName$$/ if tie.isHistorized ,$/ endif
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', $tie.changingColumnName$
+$/ endif
+    ),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.positName$
+GROUP BY
+    $role.columnName$$/ if tie.isHistorized ,$/ endif
+$/ if tie.isHistorized
+    $tie.changingColumnName$
+$/ endif
+HAVING
+    COUNT(*) > 1
+$/ endfor
+$/ endif
+$/ foreach role in tie.roles
+UNION ALL
+SELECT
+    '$tie.positName$',
+$/ if role.entity
+    'no row in $role.entity.name$ for $role.columnName$',
+$/ else
+    'no row in $role.knot.name$ for $role.columnName$',
+$/ endif
+    OBJECT_CONSTRUCT('$role.columnName$', c.$role.columnName$),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.positName$ c
+LEFT JOIN
+$/ if role.entity
+    $role.entity.capsule$.$role.entity.name$ p
+ON
+    p.$role.entity.identityColumnName$ = c.$role.columnName$
+WHERE
+    p.$role.entity.identityColumnName$ IS NULL
+$/ else
+    $role.knot.capsule$.$role.knot.name$ p
+ON
+    p.$role.knot.identityColumnName$ = c.$role.columnName$
+WHERE
+    p.$role.knot.identityColumnName$ IS NULL
+$/ endif
+GROUP BY
+    c.$role.columnName$
+$/ endfor
+;
+-- $tie.annexName$ integrity ----------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.ic_$tie.annexName$ (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$tie.annexName$',
+    'duplicate primary key',
+    OBJECT_CONSTRUCT(
+        '$tie.identityColumnName$', $tie.identityColumnName$,
+        '$tie.positorColumnName$', $tie.positorColumnName$,
+        '$tie.positingColumnName$', $tie.positingColumnName$
+    ),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.annexName$
+GROUP BY
+    $tie.identityColumnName$,
+    $tie.positorColumnName$,
+    $tie.positingColumnName$
+HAVING
+    COUNT(*) > 1
+UNION ALL
+SELECT
+    '$tie.annexName$',
+    'no row in $tie.positName$ for $tie.identityColumnName$',
+    OBJECT_CONSTRUCT('$tie.identityColumnName$', c.$tie.identityColumnName$),
+    COUNT(*)
+FROM
+    $tie.capsule$.$tie.annexName$ c
+LEFT JOIN
+    $tie.capsule$.$tie.positName$ p
+ON
+    p.$tie.identityColumnName$ = c.$tie.identityColumnName$
+WHERE
+    p.$tie.identityColumnName$ IS NULL
+GROUP BY
+    c.$tie.identityColumnName$
+;
+$/ endfor
+-- IntegrityViolations ------------------------------------------------------------------------------------------------
+-- Every integrity check of the model, in one view.
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $schema.metadata.encapsulation$.IntegrityViolations (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    CAST(NULL AS VARCHAR),
+    CAST(NULL AS VARCHAR),
+    CAST(NULL AS OBJECT),
+    CAST(NULL AS NUMBER)
+WHERE
+    FALSE
+$/ foreach knot in schema.knots
+UNION ALL SELECT * FROM $knot.capsule$.ic_$knot.name$
+$/ endfor
+$/ foreach anchor in schema.anchors
+UNION ALL SELECT * FROM $anchor.capsule$.ic_$anchor.name$
+$/ endfor
+$/ foreach nexus in schema.nexuses
+UNION ALL SELECT * FROM $nexus.capsule$.ic_$nexus.name$
+$/ endfor
+$/ foreach attribute in schema.attributes
+UNION ALL SELECT * FROM $attribute.capsule$.ic_$attribute.positName$
+UNION ALL SELECT * FROM $attribute.capsule$.ic_$attribute.annexName$
+$/ endfor
+$/ foreach tie in schema.ties
+UNION ALL SELECT * FROM $tie.capsule$.ic_$tie.positName$
+UNION ALL SELECT * FROM $tie.capsule$.ic_$tie.annexName$
+$/ endfor
+;
