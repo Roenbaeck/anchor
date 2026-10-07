@@ -1,0 +1,206 @@
+$/ if schema.hasUnrestatableAttributes
+-- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
+--
+-- Attributes may be prevented from storing restatements.
+-- A restatement is when the same value occurs for two adjacent points
+-- in changing time. Note that restatement checking is not done for
+-- unreliable information as this could prevent demotion.
+--
+-- If actual deletes are made, the remaining information will not
+-- be checked for restatements.
+--
+$/ foreach attribute in schema.attributes where attribute.isHistorized and not attribute.isRestatable
+-- Restatement Checking Trigger ---------------------------------------------------------------------------------------
+-- rt_$attribute.name$ (available only in attributes that cannot have restatements)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.rt_$attribute.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name$];
+GO
+CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name$] ON [$attribute.capsule$].[$attribute.name$]
+AFTER INSERT
+AS $--$
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @message varchar(max);
+    DECLARE @$attribute.name$ TABLE (
+        $attribute.entityReferenceName$ $attribute.parentIdentityRange$ not null,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ endif
+$/ if attribute.knotRange
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$ varbinary(16) not null,
+$/ endif
+        primary key(
+            $attribute.entityReferenceName$ asc, $--$
+$/ if attribute.timeRange
+            $attribute.changingColumnName$ desc
+$/ endif
+        )
+    );
+    INSERT INTO @$attribute.name$ (
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$, $--$
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$, $--$
+$/ endif
+        $attribute.valueColumnName$
+    FROM $--$
+        inserted;
+    INSERT INTO @$attribute.name$ (
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$, $--$
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+        p.$attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        p.$attribute.equivalentColumnName$,
+$/ endif
+$/ if schema.METADATA
+        p.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        p.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.hasChecksum
+        p.$attribute.checksumColumnName$, $--$
+$/ endif
+        p.$attribute.valueColumnName$
+    FROM (
+        SELECT DISTINCT $--$
+$/ if attribute.isEquivalent
+            p.$attribute.equivalentColumnName$,
+$/ endif
+            $attribute.entityReferenceName$ $--$
+        FROM $--$
+            @$attribute.name$
+    ) i $--$
+    JOIN
+        [$attribute.capsule$].[$attribute.name$] p
+    ON $--$
+$/ if attribute.isEquivalent
+        p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+    AND $--$
+$/ endif
+        p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            x.$attribute.entityReferenceName$
+        FROM
+            @$attribute.name$ x
+        WHERE
+$/ if attribute.isEquivalent
+            p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+        AND $--$
+$/ endif
+            x.$attribute.entityReferenceName$ = p.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+$/ endif
+$/ if attribute.isHistorized
+            x.$attribute.changingColumnName$ = p.$attribute.changingColumnName$
+$/ endif
+    );
+    -- check previous values
+    SET @message = (
+        SELECT TOP 1
+            pre.*
+        FROM $--$
+            @$attribute.name$ i
+        CROSS APPLY (
+            SELECT TOP 1
+$/ if attribute.isEquivalent
+                h.$attribute.equivalentColumnName$,
+$/ endif
+                h.$attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+                h.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.hasChecksum
+                h.$attribute.checksumColumnName$ $--$
+$/ else
+                h.$attribute.valueColumnName$
+$/ endif
+            FROM $--$
+                @$attribute.name$ h
+            WHERE
+$/ if attribute.isEquivalent
+                h.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+            AND $--$
+$/ endif
+                h.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+            AND
+                h.$attribute.changingColumnName$ < i.$attribute.changingColumnName$
+            ORDER BY $--$
+                h.$attribute.changingColumnName$ DESC
+        ) pre
+        WHERE
+$/ if attribute.hasChecksum
+            i.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+$/ else
+            i.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
+$/ endif
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Restatement in $attribute.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+    END
+END
+GO
+$/ endfor
+$/ endif

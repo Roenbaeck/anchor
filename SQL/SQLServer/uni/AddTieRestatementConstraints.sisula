@@ -1,0 +1,195 @@
+$/ if schema.hasUnrestatableTies
+-- TIE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------------
+--
+-- Ties may be prevented from storing restatements.
+-- A restatement is when the same (non-key) values occurs for two adjacent points
+-- in changing time. Note that restatement checking is not done for
+-- unreliable information as this could prevent demotion.
+--
+-- If actual deletes are made, the remaining information will not
+-- be checked for restatements.
+--
+$/ foreach tie in schema.ties where tie.isHistorized
+$/ if tie.values and not tie.isRestatable
+-- Restatement Checking Trigger ---------------------------------------------------------------------------------------
+-- rt_$tie.name$ (available only in ties that cannot have restatements)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.rt_$tie.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$tie.capsule$].[rt_$tie.name$];
+GO
+CREATE TRIGGER [$tie.capsule$].[rt_$tie.name$] ON [$tie.capsule$].[$tie.name$]
+AFTER INSERT
+AS $--$
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @message varchar(max);
+    DECLARE @inserted TABLE (
+$/ if schema.METADATA
+        $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+        $role.columnName$ $role.knot.identity$ not null,
+$/ else
+        $role.columnName$ $role.entity.identity$ not null,
+$/ endif
+$/ endfor
+        primary key (
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            $role.columnName$ asc,
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            $role.columnName$ asc,
+$/ endfor
+$/ endif
+            $tie.changingColumnName$ desc
+        )
+    );
+    INSERT INTO @inserted (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM
+        inserted;
+    INSERT INTO @inserted (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        p.$tie.metadataColumnName$,
+$/ endif
+        p.$tie.changingColumnName$,
+$/ foreach role in tie.roles
+        p.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM (
+        SELECT DISTINCT
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+        FROM $--$
+            @inserted $--$
+    ) i
+    JOIN
+        [$tie.capsule$].[$tie.name$] p
+    ON
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        p.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        p.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            42
+        FROM
+            @inserted x
+        WHERE $--$
+            x.$tie.changingColumnName$ = p.$tie.changingColumnName$
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        AND
+            x.$role.columnName$ = i.$role.columnName$
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        AND
+            x.$role.columnName$ = i.$role.columnName$
+$/ endfor
+$/ endif
+    );
+    -- check previous values
+    SET @message = (
+        SELECT TOP 1
+            pre.*
+        FROM $--$
+            @inserted i
+        CROSS APPLY (
+            SELECT TOP 1
+$/ foreach role in tie.roles
+                $role.columnName$,
+$/ endfor
+                $tie.changingColumnName$
+            FROM
+                @inserted h
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                h.$role.columnName$ = i.$role.columnName$
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                h.$role.columnName$ = i.$role.columnName$
+            AND
+$/ endfor
+$/ endif
+                h.$tie.changingColumnName$ < i.$tie.changingColumnName$
+            ORDER BY $--$
+                h.$tie.changingColumnName$ DESC
+        ) pre $--$
+        WHERE
+$/ foreach role in tie.roles
+            i.$role.columnName$ = pre.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Restatement in $tie.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+    END
+END
+GO
+$/ endif
+$/ endfor
+$/ endif
