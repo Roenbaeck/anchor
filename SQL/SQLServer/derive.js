@@ -33,4 +33,20 @@ while (anchor = schema.nextAnchor())
 // ---- end business ----
 
 // ---- schema tracking ----
+//   serialization.chunks  the model's XML (serialization._serialization) cut into pieces of at most 3000
+//                         characters, as objects with a text. SQL Server reads a string value from JSON
+//                         as at most 4000 characters (JSON_VALUE), so the whole text, which is tens of
+//                         thousands, can only reach a template in pieces. A piece never ends inside a
+//                         surrogate pair.
+if (schema.serialization && typeof schema.serialization._serialization === 'string') {
+    var serializedText = schema.serialization._serialization, serializedPieces = [], serializedFrom = 0, serializedTo;
+    while (serializedFrom < serializedText.length) {
+        serializedTo = Math.min(serializedFrom + 3000, serializedText.length);
+        if (serializedTo < serializedText.length && /[\uD800-\uDBFF]/.test(serializedText.charAt(serializedTo - 1)))
+            serializedTo--;
+        serializedPieces.push({ text: serializedText.substring(serializedFrom, serializedTo) });
+        serializedFrom = serializedTo;
+    }
+    schema.serialization.chunks = serializedPieces;
+}
 // ---- end schema tracking ----
