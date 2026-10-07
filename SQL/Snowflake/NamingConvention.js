@@ -10,6 +10,12 @@ var knot;
 while(knot = schema.nextKnot())
     knot.dummyColumnName = knot.mnemonic + D + schema.metadata.dummySuffix;
 
+// nexuses take their identities from a sequence, like anchors and knots do (the common naming convention
+// names the sequence of an anchor and a knot); a load can then draw an identity before the row is inserted
+var nexus;
+while(nexus = schema.nextNexus())
+    nexus.identitySequenceName = nexus.name + D + schema.metadata.identitySuffix + D + 'SEQ';
+
 // returns the description of a construct as an escaped string literal body, or null if it has none
 var describe = function(construct) {
     if(!construct || !construct.description || !construct.description._description)
