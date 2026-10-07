@@ -61,10 +61,10 @@ var DataTypeConverter = {
     SQLServer_to_Generic: [
     // Numeric 
         [/"int"/ig,                             '"integer"'],
+        [/"float"/ig,                           '"double"'],
         [/"real"/ig,                            '"float"'],
-        [/"float"/ig,                           '"double"'],  
     // Boolean
-        [/"bit"/ig,                             '"boolean"'],       
+        [/"bit"/ig,                             '"boolean"'],
     // Monetairy 
         [/"smallmoney"/ig,                      '"money"'],  
     // Date/Time
@@ -233,7 +233,6 @@ var DataTypeConverter = {
         //time	                                Stores time in the format HH:MI:SS
         //timetz                                Stores time in the format HH:MI:SS, with time zone
         [/"datetime"/ig,                        '"timestamp"'],
-        [/"datetime"/ig,                        '"timestamp"'],
         [/"timestamp\(([7-9]+)\)"/ig,           '"timestamp"'],
         [/"timestamptz\(([7-9]+)\)"/ig,         '"timestamptz"'],     
         //timestamp	                            Stores date and time information in the format YYYY-MM-DD HH:MI:SS.ssssssssss
@@ -260,7 +259,7 @@ var DataTypeConverter = {
       ],
     PostgreSQL_to_Generic: [
     // Numeric
-        [/"smallserial"|"serial2|"int2"/ig,     '"smallint"'], // smallserial - smallint identity(1,1)
+        [/"smallserial"|"serial2"|"int2"/ig,    '"smallint"'], // smallserial - smallint identity(1,1)
         [/"serial"|"serial4"|"int"|"int4"/ig,   '"integer"'], // serial - integer identity(1,1)
         [/"bigserial"|"serial8"|"int8"/ig,      '"bigint"'], // bigserial - bigint identity(1,1)
         [/"real"|"float4"/ig,                   '"float"'],
@@ -372,30 +371,188 @@ var DataTypeConverter = {
     // Miscellaneous 
         [/"uuid"/ig,                             '"guid"']                            
     ],
-    convert: function(xml, source, target) {
-        var sourceToGen = this[source + '_to_Generic'];
-        var genToTarget = this['Generic_to_' + target];
-        if(!sourceToGen & !genToTarget) {
-            alert('Conversion between ' + source + ' and ' + target + ' is not supported.');
-            return xml;
+    // Snowflake has one NUMBER type, and INT, BIGINT and the like are names for NUMBER(38,0), but the names
+    // say what the model meant, so they are kept. FLOAT, DOUBLE and REAL are all a 64 bit float. A text type
+    // holds Unicode and has no separate national variant. There is no time with a zone, no XML type, no uuid.
+    Snowflake_to_Generic: [
+    // Numeric
+        [/"byteint"/ig,                         '"tinyint"'],
+        [/"int"/ig,                             '"integer"'],
+        [/"number\((1|2)(,\s*0)?\)"/ig,         '"tinyint"'],
+        [/"number\(([3-5])(,\s*0)?\)"/ig,       '"smallint"'],
+        [/"number\(([6-9])(,\s*0)?\)"/ig,       '"integer"'],
+        [/"number\((1[0-9])(,\s*0)?\)"/ig,      '"bigint"'],
+        [/"number\(([0-9]+),\s*([0-9]+)\)"/ig,  '"decimal($1,$2)"'],
+        [/"number\(([0-9]+)\)"/ig,              '"decimal($1)"'],
+        [/"number"/ig,                          '"decimal(38,0)"'],
+        [/"(float4|float8|float|real|double precision)"/ig, '"double"'],
+    // Date/Time
+        [/"datetime"/ig,                        '"timestamp"'],
+        [/"timestamp_ntz\(([0-9])\)"/ig,        '"timestamp($1)"'],
+        [/"timestamp_ntz"/ig,                   '"timestamp"'],
+        [/"timestamp_(tz|ltz)\(([0-9])\)"/ig,   '"timestamptz($2)"'],
+        [/"timestamp_(tz|ltz)"/ig,              '"timestamptz"'],
+    // Character
+        [/"(varchar|string|text|nvarchar|char\s+varying|character\s+varying|nchar|char|character)\(((?:400[1-9]|40[1-9][0-9]|4[1-9][0-9]{2}|[5-9][0-9]{3}|[1-9][0-9]{4,}))\)"/ig, '"nlongvarchar"'], // longer than 4000
+        [/"(varchar|string|text|nvarchar|char\s+varying|character\s+varying)\(([0-9]+)\)"/ig, '"nvarchar($2)"'],
+        [/"(nchar|char|character)\(([0-9]+)\)"/ig, '"nchar($2)"'],
+        [/"(varchar|string|text|nvarchar|char\s+varying|character\s+varying)"/ig, '"nlongvarchar"'],
+        [/"(nchar|char|character)"/ig,          '"nchar(1)"'],
+    // Binary
+        [/"(binary|varbinary)"/ig,              '"longvarbinary"'],
+    // Miscellaneous
+        [/"(variant|object|array)"/ig,          '"json"'],
+    // default timestamp
+        [/"sysdate\(\)"|"current_timestamp\(\)"/ig, '"current_timestamp"']
+    ],
+    Generic_to_Snowflake: [
+    // Numeric
+        [/"(decimal|numeric)\(([0-9]+),\s*([0-9]+)\)"/ig, '"number($2,$3)"'],
+        [/"(decimal|numeric)\(([0-9]+)\)"/ig,   '"number($2)"'],
+        [/"(decimal|numeric)"/ig,               '"number"'],
+    // Monetary
+        [/"money"/ig,                           '"number(19,4)"'],
+    // Date/Time
+        [/"timetz\(([0-9]+)\)"/ig,              '"time($1)"'],
+        [/"timetz"/ig,                          '"time"'],
+        [/"timestamp\(([0-9]+)\)"/ig,           '"timestamp_ntz($1)"'],
+        [/"timestamp"/ig,                       '"timestamp_ntz"'],
+        [/"timestamptz\(([0-9]+)\)"/ig,         '"timestamp_tz($1)"'],
+        [/"timestamptz"/ig,                     '"timestamp_tz"'],
+    // Character
+        [/"nchar\(([0-9]+)\)"/ig,               '"char($1)"'],
+        [/"nvarchar\(([0-9]+)\)"/ig,            '"varchar($1)"'],
+        [/"(longvarchar|clob|nlongvarchar|nclob)"/ig, '"varchar"'],
+    // Binary
+        [/"(longvarbinary|blob)"/ig,            '"binary"'],
+    // Miscellaneous
+        [/"xml"/ig,                             '"varchar"'],
+        [/"json"/ig,                            '"variant"'],
+        [/"guid"/ig,                            '"varchar(36)"'],
+    // default timestamp: UTC, which is what a timestamp_ntz holds
+        [/"current_timestamp"/ig,               '"sysdate()"']
+    ],
+    // BigQuery has INT64 (INT, SMALLINT, INTEGER, BIGINT, TINYINT and BYTEINT are names for it), NUMERIC (precision
+    // 38, scale 9 at most) and BIGNUMERIC, FLOAT64, BOOL, STRING(n), BYTES(n), and DATETIME (a calendar time with no
+    // zone, microseconds) against TIMESTAMP (an instant). It has no money, no time with a zone, no xml, no uuid.
+    BigQuery_to_Generic: [
+    // Numeric
+        [/"int64"/ig,                           '"bigint"'],
+        [/"int"/ig,                             '"integer"'],
+        [/"byteint"/ig,                         '"tinyint"'],
+        [/"bignumeric\(([0-9]|[12][0-9]|3[0-8]),\s*([0-9]+)\)"/ig, '"decimal($1,$2)"'],
+        [/"bignumeric(\([0-9]+(,\s*[0-9]+)?\))?"/ig, '"decimal(38,18)"'],
+        [/"numeric\(([0-9]+),\s*([0-9]+)\)"/ig, '"decimal($1,$2)"'],
+        [/"numeric\(([0-9]+)\)"/ig,             '"decimal($1)"'],
+        [/"numeric"/ig,                         '"decimal(38,9)"'],
+        [/"float64"/ig,                         '"double"'],
+    // Boolean
+        [/"bool"/ig,                            '"boolean"'],
+    // Date/Time
+        [/"datetime"/ig,                        '"timestamp(6)"'],
+        [/"timestamp"/ig,                       '"timestamptz(6)"'],
+    // Character
+        [/"string\(((?:400[1-9]|40[1-9][0-9]|4[1-9][0-9]{2}|[5-9][0-9]{3}|[1-9][0-9]{4,}))\)"/ig, '"nlongvarchar"'], // longer than 4000
+        [/"string\(([0-9]+)\)"/ig,              '"nvarchar($1)"'],
+        [/"string"/ig,                          '"nlongvarchar"'],
+    // Binary
+        [/"bytes\(((?:800[1-9]|80[1-9][0-9]|8[1-9][0-9]{2}|9[0-9]{3}|[1-9][0-9]{4,}))\)"/ig, '"longvarbinary"'], // longer than 8000
+        [/"bytes\(([0-9]+)\)"/ig,               '"varbinary($1)"'],
+        [/"bytes"/ig,                           '"longvarbinary"'],
+    // default timestamp
+        [/"current_datetime\(\)"|"current_timestamp\(\)"/ig, '"current_timestamp"']
+    ],
+    Generic_to_BigQuery: [
+    // Numeric
+        [/"(tinyint|smallint|integer|bigint)"/ig, '"int64"'],
+        [/"(decimal|numeric)\(([0-9]|[12][0-9]|3[0-8]),\s*([0-9])\)"/ig, '"numeric($2,$3)"'],
+        [/"(decimal|numeric)\(([0-9]+),\s*([0-9]+)\)"/ig, '"bignumeric($2,$3)"'],
+        [/"(decimal|numeric)\(([0-9]+)\)"/ig,   '"numeric($2)"'],
+        [/"(decimal|numeric)"/ig,               '"numeric"'],
+        [/"(float|double)"/ig,                  '"float64"'],
+    // Boolean
+        [/"boolean"/ig,                         '"bool"'],
+    // Monetary
+        [/"money"/ig,                           '"numeric(19,4)"'],
+    // Date/Time
+        [/"time\(([0-9]+)\)"/ig,                '"time"'],
+        [/"timetz(\([0-9]+\))?"/ig,             '"time"'],
+        [/"timestamp(\([0-9]+\))?"/ig,          '"datetime"'],
+        [/"timestamptz(\([0-9]+\))?"/ig,        '"timestamp"'],
+    // Character
+        [/"(char|varchar|nchar|nvarchar)\(([0-9]+)\)"/ig, '"string($2)"'],
+        [/"(longvarchar|clob|nlongvarchar|nclob)"/ig, '"string"'],
+    // Binary
+        [/"(binary|varbinary)\(([0-9]+)\)"/ig,  '"bytes($2)"'],
+        [/"(longvarbinary|blob)"/ig,            '"bytes"'],
+    // Miscellaneous
+        [/"xml"/ig,                             '"string"'],
+        [/"guid"/ig,                            '"string(36)"'],
+    // default timestamp: the DATETIME that the changing time is held in
+        [/"current_timestamp"/ig,               '"current_datetime()"']
+    ],
+    // The attributes of a model that hold a data type, or a default expression that depends on the database (now) or
+    // the default schema (capsule). Nothing else is converted: an attribute is not touched because it is called Text.
+    ATTRIBUTES: ['dataRange', 'timeRange', 'identity', 'changingRange', 'metadataType', 'positIdentity', 'positingRange',
+        'positorRange', 'reliabilityRange', 'equivalentRange', 'chronon', 'now', 'encapsulation', 'capsule'],
+    // the databases that can be converted from and to, each through the generic types
+    databases: function() {
+        var names = ['Generic'];
+        for(var key in this) {
+            var match = /^(.+)_to_Generic$/.exec(key);
+            if(match && this['Generic_to_' + match[1]])
+                names.push(match[1]);
         }
-        if(!sourceToGen) {
-            alert('Conversion from ' + source + ' is not supported.');
-            return xml;
-        }
-        var str = (new XMLSerializer()).serializeToString(xml);
+        return names;
+    },
+    // the rules that take a value from one database to another, or undefined if there is no such database
+    rulesFor: function(source, target) {
+        var toGeneric = source == 'Generic' ? [] : this[source + '_to_Generic'];
+        var fromGeneric = target == 'Generic' ? [] : this['Generic_to_' + target];
+        if(!toGeneric || !fromGeneric)
+            return undefined;
+        return { toGeneric: toGeneric, fromGeneric: fromGeneric };
+    },
+    // one value, with the rules of a list: the first one that matches decides, as a value has one type
+    // (rules are written for a quoted value, which is how a type is told from a part of a longer text)
+    applyFirst: function(quoted, rules) {
         var rule;
-        for(var i = 0; rule = sourceToGen[i]; i++) {
-            str = str.replace(rule[this.MATCH], rule[this.REPLACE]);
+        for(var i = 0; rule = rules[i]; i++) {
+            if(quoted.search(rule[this.MATCH]) >= 0)
+                return quoted.replace(rule[this.MATCH], rule[this.REPLACE]);
         }
-        if(!genToTarget) {
-            alert('Conversion to ' + target + ' is not supported.');
-        } else {
-            for(var i = 0; rule = genToTarget[i]; i++) {
-                str = str.replace(rule[this.MATCH], rule[this.REPLACE]);
-            }           
+        return quoted;
+    },
+    convertValue: function(value, rules) {
+        var quoted = this.applyFirst('"' + value + '"', rules.toGeneric);
+        quoted = this.applyFirst(quoted, rules.fromGeneric);
+        return quoted.substring(1, quoted.length - 1);
+    },
+    // the text of a model, with the data types of the attributes in ATTRIBUTES converted; throws if a database is unknown
+    convertText: function(text, source, target) {
+        var rules = this.rulesFor(source, target);
+        if(!rules) {
+            var known = this.databases().join(', ');
+            if(!this.rulesFor(source, 'Generic'))
+                throw new Error('Conversion from ' + source + ' is not supported (known: ' + known + ').');
+            throw new Error('Conversion to ' + target + ' is not supported (known: ' + known + ').');
         }
-        xml = (new DOMParser()).parseFromString(str, 'text/xml');
-        return xml;
+        if(source == target)
+            return text;
+        var self = this;
+        var pattern = new RegExp('(\\s(?:' + this.ATTRIBUTES.join('|') + ')=)"([^"]*)"', 'g');
+        return text.replace(pattern, function(whole, name, value) {
+            return name + '"' + self.convertValue(value, rules) + '"';
+        });
+    },
+    convert: function(xml, source, target) {
+        var str;
+        try {
+            str = this.convertText((new XMLSerializer()).serializeToString(xml), source, target);
+        } catch(e) {
+            alert(e.message);
+            return xml;
+        }
+        return (new DOMParser()).parseFromString(str, 'text/xml');
     }
 };
