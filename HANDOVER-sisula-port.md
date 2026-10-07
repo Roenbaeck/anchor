@@ -187,8 +187,16 @@ match (they never did before).
 - **`schema.serialization`** is large (the model XML again) and its time stamp makes every export
   differ. A hosted generator does not need it; consider leaving it out for targets whose templates
   do not read it.
-- **Modeler's data type converter** has no Snowflake or BigQuery section (picking Snowflake with
-  "convert" only alerts).
+- **Modeler's data type converter** (`modules/DataTypeConverter.js`) converts between all six databases, through
+  the generic types: every database has a `<DB>_to_Generic` and a `Generic_to_<DB>` list, so a new one is two lists
+  and works with all the others. Snowflake and BigQuery have theirs. Only the values of the attributes in
+  `DataTypeConverter.ATTRIBUTES` are converted (not any text that looks like a type), the first matching rule
+  of a list decides (the rules used to chain: `real` became `double`), and `convertText` is the DOM-free part, which
+  `examples/anchor-snowflake/tools/converter-check.ps1` in the sisula repository tests for every pair. Lossy
+  conversions are by design and come from the target (BigQuery has no time with a zone, no money; Snowflake no
+  time with a zone, no uuid or XML type; Oracle widens `tinyint` to `number(3)`): converting there and back does not
+  restore the original. Not covered: the modeler's own menu (the page is tested through `convert`, in headless Edge,
+  by hand) and database-specific defaults other than `now` and the schema.
 - **Unverified on a server:** the T-SQL in `sisula-mssql` (`sql/test_fixtures.sql` was generated and
   never run).
 - **The sisula repo's example** refers to an Anchor checkout next to it for the templates. If that is
