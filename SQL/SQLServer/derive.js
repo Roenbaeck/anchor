@@ -74,6 +74,18 @@ while (anchor = schema.nextAnchor())
 // ---- end tables ----
 
 // ---- triggers-a: attribute and anchor triggers, restatement constraints ----
+//   hasUnrestatableAttributes  whether some historized attribute may not store restatements
+//   hasUnrestatableTies        whether some historized tie with roles outside of its identifier
+//                              may not store restatements
+var attribute, tie;
+schema.hasUnrestatableAttributes = false;
+while (attribute = schema.nextAttribute())
+    if (attribute.isHistorized() && !attribute.isRestatable())
+        schema.hasUnrestatableAttributes = true;
+schema.hasUnrestatableTies = false;
+while (tie = schema.nextHistorizedTie())
+    if (tie.values.length > 0 && !tie.isRestatable())
+        schema.hasUnrestatableTies = true;
 // ---- end triggers-a ----
 
 // ---- triggers-b: nexus and tie triggers, key generators ----

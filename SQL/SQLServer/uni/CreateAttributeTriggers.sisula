@@ -1,0 +1,321 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the attributes make them behave like tables.
+-- There is one 'instead of' trigger for: insert.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates.
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.isHistorized
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.it_$attribute.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[it_$attribute.name$];
+GO
+CREATE TRIGGER [$attribute.capsule$].[it_$attribute.name$] ON [$attribute.capsule$].[$attribute.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+$/ if attribute.encryptionGroup
+    IF NOT EXISTS (
+        SELECT * FROM sys.openkeys $--$
+        WHERE [key_name] = '$attribute.encryptionGroup$' AND [database_id] = DB_ID()
+    ) AND EXISTS (
+        SELECT TOP 1 $attribute.entityReferenceName$ FROM inserted
+    )
+    BEGIN
+        RAISERROR('The key [$attribute.encryptionGroup$] must be open in order to modify the attribute $attribute.name$.', 16, 1);
+    END $--$
+$/ endif
+    DECLARE @$attribute.name$ TABLE (
+    $attribute.entityReferenceName$ $attribute.parentIdentityRange$ not null,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ endif
+$/ if attribute.knotRange
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$ varbinary(16) not null,
+$/ endif
+        $attribute.statementTypeColumnName$ char(1) not null,
+        primary key (
+$/ if attribute.isEquivalent
+            $attribute.equivalentColumnName$ asc,
+$/ endif
+            $attribute.entityReferenceName$ asc, $--$
+$/ if attribute.timeRange
+            $attribute.changingColumnName$ desc
+$/ endif
+        )
+    );
+    INSERT INTO @$attribute.name$
+    SELECT
+        i.$attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        i.$attribute.equivalentColumnName$,
+$/ endif
+$/ if schema.METADATA
+        i.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        i.$attribute.changingColumnName$,
+$/ endif
+        i.$attribute.valueColumnName$,
+$/ if attribute.hasChecksum
+        $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))),
+$/ endif
+        'P' -- new posit
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            x.$attribute.entityReferenceName$
+        FROM
+            [$attribute.capsule$].[$attribute.name$] x
+        WHERE
+$/ if attribute.isEquivalent
+            x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+        AND $--$
+$/ endif
+            x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+$/ endif
+$/ if attribute.isHistorized
+            x.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+        AND
+$/ if attribute.hasChecksum
+            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+$/ else
+            x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
+    ); -- the posit must be different (exclude the identical)
+$/ if attribute.isIdempotent
+    INSERT INTO @$attribute.name$
+    SELECT
+        i.$attribute.entityReferenceName$,
+$/ if schema.METADATA
+        p.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        p.$attribute.changingColumnName$,
+$/ endif
+        p.$attribute.valueColumnName$,
+$/ if attribute.hasChecksum
+        p.$attribute.checksumColumnName$,
+$/ endif
+        'X' -- existing data
+    FROM (
+        SELECT DISTINCT $--$
+$/ if attribute.isEquivalent
+            $attribute.equivalentColumnName$,
+$/ endif
+            $attribute.entityReferenceName$ $--$
+        FROM $--$
+            @$attribute.name$
+    ) i
+    JOIN
+        [$attribute.capsule$].[$attribute.name$] p
+    ON
+$/ if attribute.isEquivalent
+        p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+    AND $--$
+$/ endif
+        p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$;
+    DECLARE @restated TABLE (
+    $attribute.entityReferenceName$ $attribute.parentIdentityRange$ not null,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$ $attribute.timeRange$ not null
+$/ endif
+    );
+    INSERT INTO @restated
+    SELECT $--$
+        x.$attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        x.$attribute.equivalentColumnName$,
+$/ endif
+        x.$attribute.changingColumnName$
+    FROM (
+        DELETE a
+        OUTPUT $--$
+            deleted.*
+        FROM $--$
+            @$attribute.name$ a
+        OUTER APPLY (
+            SELECT TOP 1
+$/ if attribute.hasChecksum
+                h.$attribute.checksumColumnName$ $--$
+$/ else
+                h.$attribute.valueColumnName$
+$/ endif
+            FROM $--$
+                @$attribute.name$ h
+            WHERE
+$/ if attribute.isEquivalent
+                h.$attribute.equivalentColumnName$ = a.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+            AND $--$
+$/ endif
+                h.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
+            AND
+                h.$attribute.changingColumnName$ < a.$attribute.changingColumnName$
+            ORDER BY $--$
+                h.$attribute.changingColumnName$ DESC
+        ) pre
+        WHERE
+$/ if attribute.hasChecksum
+            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+$/ else
+            a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
+$/ endif
+    ) x
+    WHERE
+        x.$attribute.statementTypeColumnName$ = 'X';
+    -- remove the quenches (should happen rarely)
+	DELETE a
+	FROM $--$
+		[$attribute.capsule$].[$attribute.name$] a
+	JOIN $--$
+		@restated d
+	ON $--$
+		d.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
+	AND $--$
+$/ if attribute.isEquivalent
+        d.$attribute.equivalentColumnName$ = a.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+    AND $--$
+$/ endif
+		d.$attribute.changingColumnName$ = a.$attribute.changingColumnName$; $--$
+$/ endif
+    INSERT INTO [$attribute.capsule$].[$attribute.name$] (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    FROM
+        @$attribute.name$
+    WHERE
+        $attribute.statementTypeColumnName$ = 'P';
+END
+GO
+$/ endif
+$/ if not attribute.isHistorized and attribute.isIdempotent
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.it_$attribute.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[it_$attribute.name$];
+GO
+CREATE TRIGGER [$attribute.capsule$].[it_$attribute.name$] ON [$attribute.capsule$].[$attribute.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+$/ if attribute.encryptionGroup
+        IF NOT EXISTS (
+            SELECT * FROM sys.openkeys $--$
+            WHERE [key_name] = '$attribute.encryptionGroup$' AND [database_id] = DB_ID()
+        ) AND EXISTS (
+            SELECT TOP 1 $attribute.entityReferenceName$ FROM inserted
+        )
+        BEGIN
+            RAISERROR('The key [$attribute.encryptionGroup$] must be open in order to modify the attribute $attribute.name$.', 16, 1);
+        END $--$
+$/ endif
+    INSERT INTO [$attribute.capsule$].[$attribute.name$] (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    FROM
+        inserted i
+    WHERE NOT EXISTS (
+        SELECT TOP 1
+            x.$attribute.entityReferenceName$
+        FROM
+            [$attribute.capsule$].[$attribute.name$] x
+        WHERE
+$/ if attribute.isEquivalent
+            x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+$/ endif
+$/ if attribute.isEquivalent
+        AND $--$
+$/ endif
+            x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+        AND
+$/ if attribute.hasChecksum
+            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+$/ else
+            x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
+    ); $--$
+END
+GO $--$
+$/ endif
+$/ endfor
+$/ endif
