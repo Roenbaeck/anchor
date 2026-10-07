@@ -30,8 +30,7 @@ deliberately. No submodules.
 | Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 11 + 12 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
-| The old directives | `Snowflake_{uni,bi,crt}.legacy.directive` | The previous lists. The golden files are generated from them. The modeler does not read them. |
-| The tests | `sisula/examples/anchor-snowflake` (in the **sisula** repo) | 33 models, golden files from the original engine, and the tools that compare. See below. |
+| The tests | `sisula/examples/anchor-snowflake` (in the **sisula** repo) | 33 models, golden files (approved output from the templates), and the tools that compare. See below. |
 
 ### The directive
 
@@ -75,7 +74,7 @@ powershell -File tools\run-all.ps1 -Temporalization bi -Name CreateKnots   # a p
 powershell -File tools\csharp-check.ps1                  # the C# renderer (SQL Server) on the same templates and bindings
 powershell -File tools\browser-check.ps1                 # the real modeler in headless Edge: Generate SQL against the golden files
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
-powershell -File tools\regenerate-golden.ps1             # golden files from the ORIGINAL engine, via the legacy directives
+powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
 ```
 
@@ -87,14 +86,14 @@ Edge checks time out at 120 s per model if the CPU is shared.
 
 ### What the golden files are
 
-They come from the **original** engine, unmodified, run under Jint (`golden.ps1`; it only strips
-`async`/`await`). That is why the templates are trustworthy: they match an independent implementation
-byte for byte. Keep the `Snowflake_*.legacy.directive` files and the `SQL/Snowflake/*/*.js` sisulets for as
-long as you want that oracle. (The original bi and crt sisulets could not run at all until eight
-places in four of them were corrected; see "Known defects" below.) When a change is deliberate (a new flag, a new default), change the
-template, then regenerate the golden files **from the template output** and review the diff, or change
-the old sisulet and regenerate from it. `check.ps1` fails if the new directive and the legacy one do not
-list the same templates.
+They are **approved output**: `regenerate-golden.ps1` writes them from the templates (`check.ps1 -Update`), and
+the diff is read before it is committed. Until 2026-10-02 they were made by the original sisulets, run unmodified
+under Jint, which made them an independent check: the templates matched those sisulets byte for byte, and every fix
+was made in both. Once the Snowflake output had been run on Snowflake (uni, bi, crt and equivalence) the sisulets
+that had a template, and the three `.legacy.directive` files, were removed from Anchor, which halves the work of a
+change. They are in the git history: Anchor at `b9c6948` has them, and `tools/golden.ps1` in the sisula repo at
+`34d0b93` shows how they were run (use it for the next database, see below). What checks the golden files now:
+the other implementations (`csharp-check.ps1`, `browser-check.ps1`), the lint, and above all running the SQL.
 
 ### The models
 
@@ -130,12 +129,15 @@ test make the pieces independent); the other databases follow the same path.
 3. **Anything a template needs that a path cannot reach** goes into the target's `derive.js` as data
    (a count, a boolean, a pre-built string). Never extend the language for it unless the C# renderer
    gets it too, with a fixture in the sisula repo.
-4. **Switch the directive**: move the old one to `<Name>.legacy.directive`, write the new one with the
-   prelude first, as above.
+4. **Switch the directive**: write the new one with the prelude first and the templates after it, as above.
+   While you port, keep the original directive and sisulets (rename the directive `<Name>.legacy.directive`) so
+   that they can make the golden files.
 5. **Models and golden files for another database**: the tools are generalized over the temporalization
    but still name `Snowflake` (the directive names, the `SQL/Snowflake/` paths, the prelude and `derive.js`
    in `tools/directive.ps1`, the assertion in `browser-check.ps1`). Parametrize those, put the models for
-   the new database in a folder of their own, and make the golden files from its legacy directive. Check first
+   the new database in a folder of their own, and make the golden files from the original sisulets with
+   `golden.ps1` (restore it from sisula `34d0b93`; it takes the original directive and splits the output per
+   sisulet), then, once the templates match, switch to `check.ps1 -Update` as for Snowflake. Check first
    that the original sisulets run at all: parse each one after the engine's translation (the Jint parser
    reports the line), because a generator that was never run can fail on a syntax error, as bi and crt did.
 6. **Run everything above**, including the C# renderer, then merge.
@@ -160,8 +162,8 @@ match (they never did before).
 
 ## Open items
 
-- **Port the rest:** the other databases (SQL Server, PostgreSQL, Oracle, Vertica, BigQuery). Delete the
-  old `.js` sisulets and the legacy directive of a target when its golden files no longer need an oracle.
+- **Port the rest:** the other databases (SQL Server, PostgreSQL, Oracle, Vertica, BigQuery), only when someone
+  needs one. Delete a database's old `.js` sisulets, as was done for Snowflake, once its output has been run.
 - **Run the generated Snowflake SQL** for uni, bi and crt on a real account (nothing has been run, and the lint
   is only a heuristic), and look at what is still open under the defects above.
 - **The Snowflake skill** (`anchor-snowflake-skill`): the plan is a generator hosted in Snowflake, a
@@ -176,8 +178,7 @@ match (they never did before).
 - **Modeler's data type converter** has no Snowflake or BigQuery section (picking Snowflake with
   "convert" only alerts).
 - **Unverified on a server:** the T-SQL in `sisula-mssql` (`sql/test_fixtures.sql` was generated and
-  never run), and the generated Snowflake SQL has been compared with the original engine's but not
-  executed on Snowflake.
+  never run).
 - **The sisula repo's example** refers to an Anchor checkout next to it for the templates. If that is
   awkward, the example's tools could move here.
 
@@ -186,9 +187,9 @@ match (they never did before).
 The Snowflake bi and crt sisulets had never run: the first thing the port found was a syntax error that made
 the original engine fail on both (`$anchor.mnemonic.*`, fixed in eight places in four sisulets). The port first
 reproduced the original output byte for byte, defects included, and then the defects were fixed in the original
-sisulets and the templates together, so that the two still agree and the golden files (regenerated from the fixed
-sisulets) stay an independent check. Nothing has been run on Snowflake; `tools/lint-sql.ps1` in the sisula
-repository is the stand-in. It looks for the defect classes below (nameless columns, a stray colon, `a.,`, an
+sisulets and the templates together, so that the two still agreed (the sisulets are gone now, see "What the golden
+files are"). Everything below was found by running the generated SQL on Snowflake; `tools/lint-sql.ps1` in the sisula
+repository learnt a rule from each. It looks for the defect classes below (nameless columns, a stray colon, `a.,`, an
 operator with nothing after it, missing and dangling commas, unbalanced parentheses) and finds none in any of the
 33 models. It cannot say that SQL is valid.
 

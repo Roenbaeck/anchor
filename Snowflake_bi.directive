@@ -3,8 +3,6 @@
 # The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
 # modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
 # bindings are made from; they run once, before the templates. A line starting with # is not run.
-# Snowflake_bi.legacy.directive is the previous version of this list, in the original dialect. The
-# golden files in sisula/examples/anchor-snowflake come from it.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Snowflake/NamingConvention.js
