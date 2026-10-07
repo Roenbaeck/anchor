@@ -36,7 +36,7 @@ var XmlTree = (function () {
     }
 
     function parse(source) {
-        var text = String(source).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+        var text = String(source).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
         var i = 0, root = null, stack = [];
         var attributePattern = /\s*([^\s=\/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
