@@ -1,0 +1,40 @@
+-- ATTRIBUTE EQUIVALENCE VIEWS ----------------------------------------------------------------------------------------
+--
+-- Equivalence views of attributes make it possible to retrieve data for only the given equivalent.
+--
+-- @equivalent the equivalent that you want to retrieve data for
+--
+$/ foreach attribute in schema.attributes
+$/ if schema.EQUIVALENCE and attribute.isEquivalent
+-- Attribute equivalence view -----------------------------------------------------------------------------------------
+-- $attribute.name$ parametrized view
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.e$attribute.name$', 'IF') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$attribute.capsule$].[e$attribute.name$] (
+        @equivalent $schema.metadata.equivalentRange$
+    )
+    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+    SELECT
+        $attribute.entityReferenceName$,
+        $attribute.equivalentColumnName$,
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    FROM
+        [$attribute.capsule$].[$attribute.name$]
+    WHERE
+        $attribute.equivalentColumnName$ = @equivalent;
+    ');
+END
+GO
+$/ endif
+$/ endfor

@@ -1,0 +1,82 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- Ties are used to represent relationships between entities.
+-- They come in four flavors: static, historized, knotted static, and knotted historized.
+-- Ties have cardinality, constraining how members may participate in the relationship.
+-- Every entity that is a member in a tie has a specified role in the relationship.
+-- Ties must have at least two anchor roles and zero or more knot roles.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized and tie.isKnotted
+-- Knotted historized tie table ---------------------------------------------------------------------------------------
+$/ endif
+$/ if tie.isHistorized and not tie.isKnotted
+-- Historized tie table -----------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and tie.isKnotted
+-- Knotted static tie table -------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and not tie.isKnotted
+-- Static tie table ---------------------------------------------------------------------------------------------------
+$/ endif
+-- $tie.name$ table (having $tie.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.$tie.name$', 'U') IS NULL
+CREATE TABLE [$tie.capsule$].[$tie.name$] (
+$/ foreach role in tie.roles
+$/ if role.entity
+    $role.columnName$ $role.entity.identity$ not null, $--$
+$/ else
+    $role.columnName$ $role.knot.identity$ not null,
+$/ endif
+$/ endfor
+$/ if tie.timeRange
+    $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ endif
+$/ if schema.METADATA
+    $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ foreach role in tie.roles
+    constraint $tie.name$_fk$role.name$ foreign key (
+        $role.columnName$
+$/ if role.entity
+    ) references [$role.entity.capsule$].[$role.entity.name$]($role.entity.identityColumnName$), $--$
+$/ else
+$/ if role.knot.isEquivalent
+    ) references [$role.knot.capsule$].[$role.knot.identityName$]($role.knot.identityColumnName$),
+$/ else
+    ) references [$role.knot.capsule$].[$role.knot.name$]($role.knot.identityColumnName$),
+$/ endif
+$/ endif
+$/ endfor
+$/ if not tie.identifiers
+$/ foreach role in tie.roles where role.isAnchorRole
+$/ if tie.isHistorized
+    constraint $tie.name$_uq$role.name$ unique (
+        $role.columnName$,
+        $tie.changingColumnName$
+    ),
+$/ else
+    constraint $tie.name$_uq$role.name$ unique (
+        $role.columnName$
+    ),
+$/ endif
+$/ endfor
+$/ endif
+    constraint pk$tie.name$ primary key (
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        $role.columnName$ asc$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        $role.columnName$ asc$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$ desc
+$/ endif
+    )
+);
+GO
+$/ endfor
