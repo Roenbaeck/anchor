@@ -318,8 +318,14 @@ and governance layer**.
   500 lines each, 870 for the bitemporal tie). They look up or generate identities, apply idempotency
   (a value equal to its neighbour is not stored), handle restatement, assertions and reliability, and for
   crt the positor. Snowflake has no triggers and no insertable views, so a loader has to write the
-  `MERGE`/`INSERT` itself. The skill documents load patterns for that. A Snowflake-native equivalent would
-  be generated load procedures, one per anchor and tie. That is a design task, not a port.
+  `MERGE`/`INSERT` itself. The skill documents load patterns for that. **Decided (with the user): not generated
+  load procedures**, which would serialise the inserts. Once an anchor's identities exist, every one of its attributes
+  can be loaded in parallel, and a tie once the anchors it joins are in. So the load is a **task graph**: a task per
+  anchor (and nexus) as the parent, and a task per attribute and per tie as its children, each a plain idempotent
+  `INSERT ... SELECT` that draws identities from the sequences. The skill's Data Loading Workflow already describes
+  these statements. What a generator would need and the model does not hold is the source: a staging table and a column
+  for each key and value. That is a mapping, which would be a binding of its own (like the model's JSON), and a
+  `CreateLoadTasks` template over model and mapping. A design task, not a port.
 - **Natural-key lookups** (`uni/CreateKeys`, 500 lines). The example model defines nine `<key>` elements, so
   this is used: key tables and views that resolve an anchor's identity from its business key by walking
   attributes and ties. It is the read half of the write path, and a loader needs it.
@@ -328,7 +334,12 @@ and governance layer**.
   entity integrity through indexed assembled views. Snowflake enforces none of it, and since every key is
   declared `RELY`, a violation gives silently wrong results. The Snowflake counterpart is generated
   integrity-check queries or views (duplicate identities, orphans, restatements, overlapping intervals).
-  Worth doing soon, because `RELY` depends on it.
+  **Done for keys and uni restatement:** `CreateIntegrityChecks.sisula` in uni, bi and crt makes a view `ic_<table>`
+  for every table and `IntegrityViolations` for the model (a check for every key the tables declare, and for an
+  attribute or tie that may not restate). The orphan checks use a column of the referred table in the WHERE clause
+  so that a `RELY` foreign key cannot make the optimizer remove the join; whether that holds is only shown by a test
+  on an account (the skill's `generator.md` says how). **Not done:** restatement in bi and crt (posit and annex
+  semantics), overlapping intervals, and entity integrity in the bitemporal sense.
 
 **Not applicable on Snowflake:** the CLR (`clr/Anchor.js`); partitioning (`Setup*Partitioning`; micro-partitions
 and `CLUSTER BY` do that job); key generator procedures (`CreateKeyGenerators`; sequences do it);
