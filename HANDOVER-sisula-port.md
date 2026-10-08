@@ -332,6 +332,13 @@ not been run on a SQL Server.** Since it is the original output except for the c
   `$anchor.mnemonic` in the nexus section); a missing comma after the last role of an equivalent nexus perspective (`el`, `ep` in
   `CreateNexusPerspectives`, and the equivalence perspectives of `CreateNexusBusinessPerspectives`); the missing type of the identity column of a
   nexus key table (`nexus.identityRange` does not exist, it is `nexus.identity`).
+- **Natural key tables and checksums** (found by running the example model on SQL Server: "Column ... is of a type that is invalid for use as a key
+  column in an index", for a geography): the key table of a route, for an attribute that has a checksum, has a persisted checksum column beside the value
+  column (`ST_LOC_Checksum as cast(dbo.MD5(cast(ST_LOC_Stage_Location as varbinary(max))) as varbinary(16)) persisted`, the expression that the attribute
+  tables and knots use), and its unique constraint names the checksum column instead of the value. The same in the key tables of nexuses. The
+  naming convention gives each routed value its routed checksum name (`routedChecksumColumnName`). At the same time each position of the unique
+  constraint names its own stop (the original named the stop before, with the last stop's column for the first: the same columns in another order, but
+  `undefined,` after a tie stop). The key *view* still shows the values only.
 - `AddEncryption` asked for the master key password with `prompt()`. A template cannot ask: it prints the text that the dialog offered, `<TYPE STRONG
   PASSWORD HERE>`, in `CREATE MASTER KEY ENCRYPTION BY PASSWORD = '...'`, which has to be replaced in the script before it is run.
 - `AddDescriptions` doubles a single quote in a description (the original pasted it as it was, so a description with a quote gave invalid SQL).
@@ -343,8 +350,7 @@ not been run on a SQL Server.** Since it is the original output except for the c
 - `CreateKeys`, equivalence with natural keys: `$anchor.mnemonic$schema.metadata.equivalentSuffix` is read as the token followed by literal text, so the
   column is called `STschema.metadata.equivalentSuffix` (invalid SQL; it is in the golden files of the equivalence models with natural keys). What the
   column should be called, and in the nexus section too, is a decision.
-- `CreateKeys`: the unique constraint of a key table names the column of the stop before (a variable that lags), and prints the text `undefined,` after a
-  tie stop in a historized route; the view counts the stops twice when natural keys are on, so a one-stop route gets the long join. A route through a tie
+- `CreateKeys`: the view counts the stops twice when natural keys are on, so a one-stop route gets the long join. A route through a tie
   crashes the original under Jint (stops are visited in insertion order there, ascending in a browser): the template does not crash.
 - `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true).
 - `CreateNexuses`, `CreateTies`, `CreateAttributes`: a knot flagged equivalent in a model with equivalence off references an `_ID` table that is never
