@@ -154,6 +154,15 @@ match (they never did before).
   follows them.
 - **The modeler exports the bindings**, and a hosted generator (the Snowflake skill) consumes the same
   JSON and templates, so there is one pipeline from model to SQL.
+- **Snowflake names are quoted** (2026-10-08, after national characters failed: an unquoted identifier is upper case and allows
+  only A-Z, digits, `_` and `$`). Every name that comes from the model is written in double quotes in all Snowflake templates:
+  table, view, function, column, constraint, sequence and alias names, composed ones included (`"pk$knot.name$"`, `"l$anchor.name$"`). It
+  keeps the case, so the names are case sensitive (`SELECT * FROM public."AC_Actor"`; `AC_Actor` is `AC_ACTOR`), and a database made by
+  an earlier script gets a second set of objects, because `CREATE TABLE IF NOT EXISTS public."AC_Actor"` does not see `AC_ACTOR`. The schema
+  is not quoted (`public` must stay the default `PUBLIC`): `SQL/Snowflake/derive.js` quotes a schema name only when it has to be. Names
+  that the generators fix themselves (`IntegrityViolations`) and inside string literals and comments are left alone. The templates were
+  converted by a script (every word with a name token in it), and `models/national*.xml` have Swedish names for every kind of construct.
+  The lint takes the quotes off before it reads; the golden files are approved output.
 - **Snowflake DDL**, for every generator, tested or not: `CLUSTER BY` on every table, with `ChangedAt`
   left out of the key of historized attribute tables; every key declared `RELY` (join elimination;
   Snowflake does not enforce keys, so ship integrity checks); the default `now` is `sysdate()` (UTC, to
