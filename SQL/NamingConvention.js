@@ -216,6 +216,7 @@ while (anchor = schema.nextAnchor()) {
                 component = key.stops[stop];
                 if(component.attribute) {
                     component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
+                    component.routedChecksumColumnName = (role ? role.role + D : '') + component.attribute.checksumColumnName;
                     if(component.attribute.timeRange) {
                         component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
                     }
@@ -274,6 +275,7 @@ var role;
                 component = key.stops[stop];
                 if(component.attribute) {
                     component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
+                    component.routedChecksumColumnName = (role ? role.role + D : '') + component.attribute.checksumColumnName;
                     if(component.attribute.timeRange) {
                         component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
                     }
