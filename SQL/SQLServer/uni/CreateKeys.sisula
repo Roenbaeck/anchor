@@ -11,6 +11,9 @@ CREATE TABLE [$anchor.capsule$].[$key.tableName$](
     $anchor.identityColumnName$ $anchor.identity$ NOT NULL,
 $/ foreach stop in key.attributeStops
     $stop.routedValueColumnName$ $stop.dataRange$ NOT NULL,
+$/ if stop.hasChecksum
+    $stop.routedChecksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($stop.routedValueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
+$/ endif
 $/ endfor
 $/ if key.historized
     $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,
@@ -171,6 +174,9 @@ CREATE TABLE [$nexus.capsule$].[$key.tableName$](
     $nexus.identityColumnName$ $nexus.identity$ NOT NULL,
 $/ foreach stop in key.attributeStops
     $stop.routedValueColumnName$ $stop.dataRange$ NULL,
+$/ if stop.hasChecksum
+    $stop.routedChecksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($stop.routedValueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
+$/ endif
 $/ endfor
 $/ if key.historized
     $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,

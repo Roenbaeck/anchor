@@ -25,6 +25,11 @@ CREATE TABLE [$anchor.capsule].[$key.tableName](
                         /*~
     $component.routedValueColumnName $attribute.dataRange NOT NULL,
                         ~*/
+                        if(attribute.hasChecksum()) {
+                        /*~
+    $component.routedChecksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($component.routedValueColumnName as varbinary(max))) as varbinary(16)) persisted,
+                        ~*/
+                        }
                     }
                 }
                 /*~
@@ -55,12 +60,13 @@ CREATE TABLE [$anchor.capsule].[$key.tableName](
                 var currentStopNumber = 0;
                 for(stop in key.stops) {
                     currentStopNumber++;
-                    var name = component.routedValueColumnName +',';
-                    if(!key.historized && currentStopNumber === numberOfStops) {
-                        name = component.routedValueColumnName;
-                    }
                     component = key.stops[stop];
                     if(attribute = component.attribute) {
+                        // a column that is an index key: the checksum where there is one, since a value such as a geography cannot be a key
+                        var name = (attribute.hasChecksum() ? component.routedChecksumColumnName : component.routedValueColumnName) + ',';
+                        if(!key.historized && currentStopNumber === numberOfStops) {
+                            name = attribute.hasChecksum() ? component.routedChecksumColumnName : component.routedValueColumnName;
+                        }
                         /*~
         $name
                         ~*/
@@ -277,6 +283,11 @@ CREATE TABLE [$nexus.capsule].[$key.tableName](
                         /*~
     $component.routedValueColumnName $attribute.dataRange NULL,
                         ~*/
+                        if(attribute.hasChecksum()) {
+                        /*~
+    $component.routedChecksumColumnName as cast(${schema.metadata.encapsulation}$.MD5(cast($component.routedValueColumnName as varbinary(max))) as varbinary(16)) persisted,
+                        ~*/
+                        }
                     }
                 }
                 /*~
@@ -305,12 +316,13 @@ CREATE TABLE [$nexus.capsule].[$key.tableName](
                 var currentStopNumber = 0;
                 for(stop in key.stops) {
                     currentStopNumber++;
-                    var name = component.routedValueColumnName +',';
-                    if(!key.historized && currentStopNumber === numberOfStops) {
-                        name = component.routedValueColumnName;
-                    }
                     component = key.stops[stop];
                     if(attribute = component.attribute) {
+                        // a column that is an index key: the checksum where there is one, since a value such as a geography cannot be a key
+                        var name = (attribute.hasChecksum() ? component.routedChecksumColumnName : component.routedValueColumnName) + ',';
+                        if(!key.historized && currentStopNumber === numberOfStops) {
+                            name = attribute.hasChecksum() ? component.routedChecksumColumnName : component.routedValueColumnName;
+                        }
                         /*~
         $name
                         ~*/

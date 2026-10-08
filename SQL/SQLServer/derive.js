@@ -126,9 +126,9 @@ while (perspectiveNexus = schema.nextNexus()) {
 //     branchCount                the number of branches of the route
 //     historizedAttributeCount   the number of stops whose attribute is historized
 //     attributeStops             the stops that have an attribute: routedValueColumnName,
-//                                routedChangingColumnName, dataRange, uniqueColumnName (the column that the
-//                                unique constraint names at this position: CreateKeys.js takes the column of the
-//                                stop before, the last stop's for the first, which is why this is not the stop's own),
+//                                routedChangingColumnName, routedChecksumColumnName, hasChecksum (the attribute has a
+//                                checksum), dataRange, uniqueColumnName (the column that the unique constraint names for this stop:
+//                                the checksum column if there is one, else the value column),
 //                                isLastStop (this is the last stop of the route, with or without an attribute)
 //     lastAttribute              the attribute of the last stop: capsule, name, entityReferenceName, changingColumnName
 //     branches                   one item for each branch, in the order that for..in gives the branch numbers:
@@ -157,16 +157,16 @@ function pbDeriveKeyRoutes(entity) {
             }
             if (attribute) {
                 if (attribute.timeRange) historized++;
-                // CreateKeys.js names the column of the stop before, the last stop's for the first. A stop that
-                // has no routed column (one of a tie) gives undefined: the text "undefined" in front of a comma, nothing
-                // where there is no comma.
-                var previous = components[(i + count - 1) % count].routedValueColumnName;
-                var unique = previous !== undefined ? previous : (key.historized || i != count - 1 ? 'undefined' : '');
+                // The unique constraint names the checksum column of an attribute that has a checksum, since a value such as a
+                // geography cannot be a key of an index, and the value column of the others.
+                var checksummed = !!attribute.hasChecksum && attribute.hasChecksum();
                 attributeStops.push({
                     routedValueColumnName: component.routedValueColumnName,
                     routedChangingColumnName: component.routedChangingColumnName,
+                    routedChecksumColumnName: component.routedChecksumColumnName,
+                    hasChecksum: checksummed,
                     dataRange: attribute.dataRange,
-                    uniqueColumnName: unique,
+                    uniqueColumnName: checksummed ? component.routedChecksumColumnName : component.routedValueColumnName,
                     isLastStop: i == count - 1
                 });
             }
