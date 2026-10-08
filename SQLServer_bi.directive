@@ -1,32 +1,38 @@
-# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
+# This is the processing directive for bitemporal Anchor Modeling in SQL Server
+#
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+# The original sisulets, which these replace, are listed in SQLServer_bi.legacy.directive.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/SQLServer/NamingConvention.js
-SQL/SQLServer/clr/Anchor.js
-SQL/SQLServer/bi/CreateKnots.js
-SQL/SQLServer/bi/CreateAnchors.js
-SQL/SQLServer/bi/CreateNexuses.js
-SQL/SQLServer/bi/CreateAttributes.js
-SQL/SQLServer/bi/CreateAttributeAssembledViews.js
-SQL/SQLServer/bi/CreateAttributeRewinders.js
-SQL/SQLServer/bi/AddAttributeRestatementConstraints.js
-SQL/SQLServer/biz/DropAnchorBusinessPerspectives.js
-SQL/SQLServer/bi/CreateAnchorPerspectives.js
-SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.js
-SQL/SQLServer/biz/DropNexusBusinessPerspectives.js
-SQL/SQLServer/bi/CreateNexusPerspectives.js
-SQL/SQLServer/biz/CreateNexusBusinessPerspectives.js
-SQL/SQLServer/bi/CreateKeyGenerators.js
-SQL/SQLServer/bi/CreateAttributeTriggers.js
-SQL/SQLServer/bi/CreateAnchorTriggers.js
-SQL/SQLServer/bi/CreateNexusTriggers.js
-SQL/SQLServer/bi/CreateTies.js
-SQL/SQLServer/bi/CreateTieAssembledViews.js
-SQL/SQLServer/bi/AddTieRestatementConstraints.js
-SQL/SQLServer/bi/CreateTieRewinders.js
-SQL/SQLServer/biz/DropTieBusinessPerspectives.js
-SQL/SQLServer/bi/CreateTiePerspectives.js
-SQL/SQLServer/biz/CreateTieBusinessPerspectives.js
-SQL/SQLServer/bi/CreateTieTriggers.js
-SQL/SQLServer/CreateSchemaTracking.js
-SQL/SQLServer/bi/AddDescriptions.js
+SQL/SQLServer/derive.js
+SQL/SQLServer/clr/Anchor.sisula
+SQL/SQLServer/bi/CreateKnots.sisula
+SQL/SQLServer/bi/CreateAnchors.sisula
+SQL/SQLServer/bi/CreateNexuses.sisula
+SQL/SQLServer/bi/CreateAttributes.sisula
+SQL/SQLServer/bi/CreateAttributeAssembledViews.sisula
+SQL/SQLServer/bi/CreateAttributeRewinders.sisula
+SQL/SQLServer/bi/AddAttributeRestatementConstraints.sisula
+SQL/SQLServer/biz/DropAnchorBusinessPerspectives.sisula
+SQL/SQLServer/bi/CreateAnchorPerspectives.sisula
+SQL/SQLServer/biz/CreateAnchorBusinessPerspectives.sisula
+SQL/SQLServer/biz/DropNexusBusinessPerspectives.sisula
+SQL/SQLServer/bi/CreateNexusPerspectives.sisula
+SQL/SQLServer/biz/CreateNexusBusinessPerspectives.sisula
+SQL/SQLServer/bi/CreateKeyGenerators.sisula
+SQL/SQLServer/bi/CreateAttributeTriggers.sisula
+SQL/SQLServer/bi/CreateAnchorTriggers.sisula
+SQL/SQLServer/bi/CreateNexusTriggers.sisula
+SQL/SQLServer/bi/CreateTies.sisula
+SQL/SQLServer/bi/CreateTieAssembledViews.sisula
+SQL/SQLServer/bi/AddTieRestatementConstraints.sisula
+SQL/SQLServer/bi/CreateTieRewinders.sisula
+SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
+SQL/SQLServer/bi/CreateTiePerspectives.sisula
+SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/bi/CreateTieTriggers.sisula
+SQL/SQLServer/CreateSchemaTracking.sisula
+SQL/SQLServer/bi/AddDescriptions.sisula
