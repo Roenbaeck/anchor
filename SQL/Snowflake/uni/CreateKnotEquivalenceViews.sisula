@@ -11,66 +11,66 @@ $/ if schema.EQUIVALENCE and knot.isEquivalent
 -- Knot equivalence view ----------------------------------------------------------------------------------------------
 -- $knot.name$ view and parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $knot.capsule$.$knot.name$ (
+CREATE OR REPLACE VIEW $knot.capsule$."$knot.name$" (
 $/ if schema.METADATA
-    $knot.metadataColumnName$,
+    "$knot.metadataColumnName$",
 $/ endif
-    $knot.identityColumnName$,
-    $knot.equivalentColumnName$,
+    "$knot.identityColumnName$",
+    "$knot.equivalentColumnName$",
 $/ if knot.hasChecksum
-    $knot.checksumColumnName$,
+    "$knot.checksumColumnName$",
 $/ endif
-    $/ if knot.hasComment $knot.valueColumnName$ COMMENT '$knot.comment$'$/ else $knot.valueColumnName$$/ endif
+    $/ if knot.hasComment "$knot.valueColumnName$" COMMENT '$knot.comment$'$/ else "$knot.valueColumnName$"$/ endif
 ) COPY GRANTS $/ if knot.hasComment COMMENT = '$knot.comment$'$/ endif
 AS
 SELECT
 $/ if schema.METADATA
-    v.$knot.metadataColumnName$,
+    v."$knot.metadataColumnName$",
 $/ endif
-    i.$knot.identityColumnName$,
-    v.$knot.equivalentColumnName$,
+    i."$knot.identityColumnName$",
+    v."$knot.equivalentColumnName$",
 $/ if knot.hasChecksum
-    v.$knot.checksumColumnName$,
+    v."$knot.checksumColumnName$",
 $/ endif
-    v.$knot.valueColumnName$
+    v."$knot.valueColumnName$"
 FROM
-    $knot.capsule$.$knot.identityName$ i
+    $knot.capsule$."$knot.identityName$" i
 JOIN
-    $knot.capsule$.$knot.equivalentName$ v
+    $knot.capsule$."$knot.equivalentName$" v
 ON
-    v.$knot.identityColumnName$ = i.$knot.identityColumnName$
+    v."$knot.identityColumnName$" = i."$knot.identityColumnName$"
 ;
-CREATE OR REPLACE FUNCTION $knot.capsule$.e$knot.name$ (
+CREATE OR REPLACE FUNCTION $knot.capsule$."e$knot.name$" (
     equivalent $schema.metadata.equivalentRange$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $knot.metadataColumnName$ $schema.metadata.metadataType$,
+    "$knot.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $knot.identityColumnName$ $knot.identity$,
-    $knot.equivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$knot.identityColumnName$" $knot.identity$,
+    "$knot.equivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ if knot.hasChecksum
-    $knot.checksumColumnName$ numeric(19,0),
+    "$knot.checksumColumnName$" numeric(19,0),
 $/ endif
-    $knot.valueColumnName$ $knot.dataRange$
+    "$knot.valueColumnName$" $knot.dataRange$
 )
 AS
 $$
     SELECT
 $/ if schema.METADATA
-        $knot.metadataColumnName$,
+        "$knot.metadataColumnName$",
 $/ endif
-        $knot.identityColumnName$,
-        $knot.equivalentColumnName$,
+        "$knot.identityColumnName$",
+        "$knot.equivalentColumnName$",
 $/ if knot.hasChecksum
-        $knot.checksumColumnName$,
+        "$knot.checksumColumnName$",
 $/ endif
-        $knot.valueColumnName$
+        "$knot.valueColumnName$"
     FROM
-        $knot.capsule$.$knot.name$
+        $knot.capsule$."$knot.name$"
     WHERE
-        $knot.equivalentColumnName$ = equivalent
+        "$knot.equivalentColumnName$" = equivalent
 $$
 ;
 $/ endif

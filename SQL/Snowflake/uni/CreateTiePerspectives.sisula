@@ -6,83 +6,83 @@
 $/ foreach tie in schema.ties
 -- Latest perspective -------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $tie.capsule$.l$tie.name$ (
+CREATE OR REPLACE VIEW $tie.capsule$."l$tie.name$" (
 $/ if schema.METADATA
-    $tie.metadataColumnName$,
+    "$tie.metadataColumnName$",
 $/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$,
+    "$tie.changingColumnName$",
 $/ endif
 $- the column list mirrors the select list below, since view column comments can only be given here
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$,
+    "$role.knotChecksumColumnName$",
 $/ endif
-    $/ if role.hasComment $role.knotValueColumnName$ COMMENT '$role.comment$'$/ else $role.knotValueColumnName$$/ endif,
+    $/ if role.hasComment "$role.knotValueColumnName$" COMMENT '$role.comment$'$/ else "$role.knotValueColumnName$"$/ endif,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$,
+    "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$,
+    "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    $/ if role.hasComment $role.columnName$ COMMENT '$role.comment$'$/ else $role.columnName$$/ endif$/ if not role.last() ,$/ endif
+    $/ if role.hasComment "$role.columnName$" COMMENT '$role.comment$'$/ else "$role.columnName$"$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 ) COPY GRANTS $/ if tie.hasComment COMMENT = '$tie.comment$'$/ endif
 AS
 SELECT
 $/ if schema.METADATA
-    tie.$tie.metadataColumnName$,
+    tie."$tie.metadataColumnName$",
 $/ endif
 $/ if tie.isHistorized
-    tie.$tie.changingColumnName$,
+    tie."$tie.changingColumnName$",
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if role.knot.isEquivalent
-    $role.name$.$role.knot.equivalentColumnName$ AS $role.knotEquivalentColumnName$,
+    "$role.name$"."$role.knot.equivalentColumnName$" AS "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    tie.$role.columnName$$/ if not role.last() ,$/ endif
+    tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
 FROM
-    $tie.capsule$.$tie.name$ tie
+    $tie.capsule$."$tie.name$" tie
 $/ foreach role in tie.knotRoles
 LEFT JOIN
 $/ if role.knot.isEquivalent
-    TABLE($role.knot.capsule$.e$role.knot.name$(0)) $role.name$
+    TABLE($role.knot.capsule$."e$role.knot.name$"(0)) "$role.name$"
 $/ else
-    $role.knot.capsule$.$role.knot.name$ $role.name$
+    $role.knot.capsule$."$role.knot.name$" "$role.name$"
 $/ endif
 ON
-    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+    "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 $/ if tie.isHistorized
 WHERE
-    tie.$tie.changingColumnName$ = (
+    tie."$tie.changingColumnName$" = (
         SELECT
-            max(sub.$tie.changingColumnName$)
+            max(sub."$tie.changingColumnName$")
         FROM
-            $tie.capsule$.$tie.name$ sub
+            $tie.capsule$."$tie.name$" sub
         WHERE
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
 $/ if not role.last()
         AND
 $/ endif
 $/ endfor
 $/ else
 $/ foreach role in tie.anchorRoles
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
 $/ if not role.last()
         OR
 $/ endif
@@ -93,86 +93,86 @@ $/ endif
 ;
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.p$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."p$tie.name$" (
     changingTimepoint $schema.metadata.chronon$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    tie.$tie.metadataColumnName$,
+    tie."$tie.metadataColumnName$",
 $/ endif
 $/ if tie.isHistorized
-    tie.$tie.changingColumnName$,
+    tie."$tie.changingColumnName$",
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if role.knot.isEquivalent
-    $role.name$.$role.knot.equivalentColumnName$ AS $role.knotEquivalentColumnName$,
+    "$role.name$"."$role.knot.equivalentColumnName$" AS "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    tie.$role.columnName$$/ if not role.last() ,$/ endif
+    tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
 FROM
-    $tie.capsule$.$tie.name$ tie
+    $tie.capsule$."$tie.name$" tie
 $/ foreach role in tie.knotRoles
 LEFT JOIN
 $/ if role.knot.isEquivalent
-    TABLE($role.knot.capsule$.e$role.knot.name$(0)) $role.name$
+    TABLE($role.knot.capsule$."e$role.knot.name$"(0)) "$role.name$"
 $/ else
-    $role.knot.capsule$.$role.knot.name$ $role.name$
+    $role.knot.capsule$."$role.knot.name$" "$role.name$"
 $/ endif
 ON
-    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+    "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 $/ if tie.isHistorized
 WHERE
-    tie.$tie.changingColumnName$ = (
+    tie."$tie.changingColumnName$" = (
         SELECT
-            max(sub.$tie.changingColumnName$)
+            max(sub."$tie.changingColumnName$")
         FROM
-            $tie.capsule$.$tie.name$ sub
+            $tie.capsule$."$tie.name$" sub
         WHERE
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
         AND
 $/ endfor
 $/ else
         (
 $/ foreach role in tie.anchorRoles
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
 $/ if not role.last()
         OR
 $/ endif
@@ -180,171 +180,171 @@ $/ endfor
         )
         AND
 $/ endif
-            sub.$tie.changingColumnName$ <= changingTimepoint
+            sub."$tie.changingColumnName$" <= changingTimepoint
    )
 $/ endif
 $$
 ;
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $tie.capsule$."n$tie.name$" COPY GRANTS AS
 SELECT
     *
 FROM
-    TABLE($tie.capsule$.p$tie.name$($schema.metadata.now$::$schema.metadata.chronon$))
+    TABLE($tie.capsule$."p$tie.name$"($schema.metadata.now$::$schema.metadata.chronon$))
 ;
 $/ if tie.isHistorized
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.d$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."d$tie.name$" (
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    tie.$tie.metadataColumnName$,
+    tie."$tie.metadataColumnName$",
 $/ endif
-    tie.$tie.changingColumnName$,
+    tie."$tie.changingColumnName$",
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if role.knot.isEquivalent
-    $role.name$.$role.knot.equivalentColumnName$ AS $role.knotEquivalentColumnName$,
+    "$role.name$"."$role.knot.equivalentColumnName$" AS "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    tie.$role.columnName$$/ if not role.last() ,$/ endif
+    tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
 FROM
-    $tie.capsule$.$tie.name$ tie
+    $tie.capsule$."$tie.name$" tie
 $/ foreach role in tie.knotRoles
 LEFT JOIN
 $/ if role.knot.isEquivalent
-    TABLE($role.knot.capsule$.e$role.knot.name$(0)) $role.name$
+    TABLE($role.knot.capsule$."e$role.knot.name$"(0)) "$role.name$"
 $/ else
-    $role.knot.capsule$.$role.knot.name$ $role.name$
+    $role.knot.capsule$."$role.knot.name$" "$role.name$"
 $/ endif
 ON
-    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+    "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 WHERE
-    tie.$tie.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+    tie."$tie.changingColumnName$" BETWEEN intervalStart AND intervalEnd
 $$
 ;
 $/ endif
 $/ if schema.EQUIVALENCE
 -- Point-in-time equivalence perspective ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.ep$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."ep$tie.name$" (
     equivalent $schema.metadata.equivalentRange$,
     changingTimepoint $schema.metadata.chronon$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    tie.$tie.metadataColumnName$,
+    tie."$tie.metadataColumnName$",
 $/ endif
 $/ if tie.isHistorized
-    tie.$tie.changingColumnName$,
+    tie."$tie.changingColumnName$",
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if role.knot.isEquivalent
-    $role.name$.$role.knot.equivalentColumnName$ AS $role.knotEquivalentColumnName$,
+    "$role.name$"."$role.knot.equivalentColumnName$" AS "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    tie.$role.columnName$$/ if not role.last() ,$/ endif
+    tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
 FROM
-    $tie.capsule$.$tie.name$ tie
+    $tie.capsule$."$tie.name$" tie
 $/ foreach role in tie.knotRoles
 LEFT JOIN
 $/ if role.knot.isEquivalent
-    TABLE($role.knot.capsule$.e$role.knot.name$(equivalent)) $role.name$
+    TABLE($role.knot.capsule$."e$role.knot.name$"(equivalent)) "$role.name$"
 $/ else
-    $role.knot.capsule$.$role.knot.name$ $role.name$
+    $role.knot.capsule$."$role.knot.name$" "$role.name$"
 $/ endif
 ON
-    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+    "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 $/ if tie.isHistorized
 WHERE
-    tie.$tie.changingColumnName$ = (
+    tie."$tie.changingColumnName$" = (
         SELECT
-            max(sub.$tie.changingColumnName$)
+            max(sub."$tie.changingColumnName$")
         FROM
-            $tie.capsule$.$tie.name$ sub
+            $tie.capsule$."$tie.name$" sub
         WHERE
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
         AND
 $/ endfor
 $/ else
         (
 $/ foreach role in tie.anchorRoles
-            sub.$role.columnName$ = tie.$role.columnName$
+            sub."$role.columnName$" = tie."$role.columnName$"
 $/ if not role.last()
         OR
 $/ endif
@@ -352,38 +352,38 @@ $/ endfor
         )
         AND
 $/ endif
-            sub.$tie.changingColumnName$ <= changingTimepoint
+            sub."$tie.changingColumnName$" <= changingTimepoint
    )
 $/ endif
 $$
 ;
 -- Latest equivalence perspective -------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.el$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."el$tie.name$" (
     equivalent $schema.metadata.equivalentRange$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
@@ -391,36 +391,36 @@ $$
 SELECT
     *
 FROM
-    TABLE($tie.capsule$.ep$tie.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
+    TABLE($tie.capsule$."ep$tie.name$"(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
 $$
 ;
 -- Now equivalence perspective ----------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.en$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."en$tie.name$" (
     equivalent $schema.metadata.equivalentRange$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
@@ -428,13 +428,13 @@ $$
 SELECT
     *
 FROM
-    TABLE($tie.capsule$.ep$tie.name$(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
+    TABLE($tie.capsule$."ep$tie.name$"(equivalent, $schema.metadata.now$::$schema.metadata.chronon$))
 $$
 ;
 $/ if tie.isHistorized
 -- Difference equivalence perspective ---------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $tie.capsule$.ed$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."ed$tie.name$" (
     equivalent $schema.metadata.equivalentRange$,
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$
@@ -442,61 +442,61 @@ CREATE OR REPLACE FUNCTION $tie.capsule$.ed$tie.name$ (
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if role.knot.isEquivalent
-    $role.knotEquivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$role.knotEquivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif$/ if not role.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    tie.$tie.metadataColumnName$,
+    tie."$tie.metadataColumnName$",
 $/ endif
-    tie.$tie.changingColumnName$,
+    tie."$tie.changingColumnName$",
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if role.knot.isEquivalent
-    $role.name$.$role.knot.equivalentColumnName$ AS $role.knotEquivalentColumnName$,
+    "$role.name$"."$role.knot.equivalentColumnName$" AS "$role.knotEquivalentColumnName$",
 $/ endif
 $/ if schema.METADATA
-    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    tie.$role.columnName$$/ if not role.last() ,$/ endif
+    tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
 FROM
-    $tie.capsule$.$tie.name$ tie
+    $tie.capsule$."$tie.name$" tie
 $/ foreach role in tie.knotRoles
 LEFT JOIN
 $/ if role.knot.isEquivalent
-    TABLE($role.knot.capsule$.e$role.knot.name$(equivalent)) $role.name$
+    TABLE($role.knot.capsule$."e$role.knot.name$"(equivalent)) "$role.name$"
 $/ else
-    $role.knot.capsule$.$role.knot.name$ $role.name$
+    $role.knot.capsule$."$role.knot.name$" "$role.name$"
 $/ endif
 ON
-    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+    "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 WHERE
-    tie.$tie.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+    tie."$tie.changingColumnName$" BETWEEN intervalStart AND intervalEnd
 $$
 ;
 $/ endif

@@ -5,121 +5,121 @@
 $/ foreach attribute in schema.attributes
 $/ if attribute.isHistorized and not attribute.isKnotted
 $/ if attribute.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$."$attribute.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
-    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
-    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+CREATE TABLE IF NOT EXISTS $attribute.capsule$."$attribute.positName$" (
+    "$attribute.identityColumnName$" $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$."$attribute.identitySequenceName$".nextval not null, $/ else not null,$/ endif
+    "$attribute.entityReferenceName$" $attribute.parent.identity$ not null,
+    "$attribute.valueColumnName$" $attribute.dataRange$ not null,
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0) default hash($attribute.valueColumnName$),
+    "$attribute.checksumColumnName$" numeric(19,0) default hash("$attribute.valueColumnName$"),
 $/ endif
-    $attribute.changingColumnName$ $attribute.timeRange$ not null,
-    constraint fk$attribute.positName$ foreign key (
-        $attribute.entityReferenceName$
-    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
-    constraint pk$attribute.positName$ primary key (
-        $attribute.identityColumnName$
+    "$attribute.changingColumnName$" $attribute.timeRange$ not null,
+    constraint "fk$attribute.positName$" foreign key (
+        "$attribute.entityReferenceName$"
+    ) references $attribute.parent.capsule$."$attribute.parent.name$"("$attribute.parent.identityColumnName$") RELY,
+    constraint "pk$attribute.positName$" primary key (
+        "$attribute.identityColumnName$"
     ) RELY,
-    constraint uq$attribute.positName$ unique (
-        $attribute.entityReferenceName$,
-        $attribute.changingColumnName$,
+    constraint "uq$attribute.positName$" unique (
+        "$attribute.entityReferenceName$",
+        "$attribute.changingColumnName$",
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$ $--$
+        "$attribute.checksumColumnName$" $--$
 $/ else
-        $attribute.valueColumnName$
+        "$attribute.valueColumnName$"
 $/ endif
     ) RELY
-) CLUSTER BY ($attribute.entityReferenceName$);
+) CLUSTER BY ("$attribute.entityReferenceName$");
 $/ endif
 $/ if attribute.isHistorized and attribute.isKnotted
 $/ if attribute.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$."$attribute.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
-    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
-    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
-    $attribute.changingColumnName$ $attribute.timeRange$ not null,
-    constraint fk_A_$attribute.positName$ foreign key (
-        $attribute.entityReferenceName$
-    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
-    constraint fk_K_$attribute.positName$ foreign key (
-        $attribute.knotReferenceName$
-    ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
-    constraint pk$attribute.positName$ primary key (
-        $attribute.identityColumnName$
+CREATE TABLE IF NOT EXISTS $attribute.capsule$."$attribute.positName$" (
+    "$attribute.identityColumnName$" $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$."$attribute.identitySequenceName$".nextval not null, $/ else not null,$/ endif
+    "$attribute.entityReferenceName$" $attribute.parent.identity$ not null,
+    "$attribute.knotReferenceName$" $attribute.knot.identity$ not null,
+    "$attribute.changingColumnName$" $attribute.timeRange$ not null,
+    constraint "fk_A_$attribute.positName$" foreign key (
+        "$attribute.entityReferenceName$"
+    ) references $attribute.parent.capsule$."$attribute.parent.name$"("$attribute.parent.identityColumnName$") RELY,
+    constraint "fk_K_$attribute.positName$" foreign key (
+        "$attribute.knotReferenceName$"
+    ) references $attribute.knot.capsule$."$attribute.knot.name$"("$attribute.knot.identityColumnName$") RELY,
+    constraint "pk$attribute.positName$" primary key (
+        "$attribute.identityColumnName$"
     ) RELY,
-    constraint uq$attribute.positName$ unique (
-        $attribute.entityReferenceName$,
-        $attribute.changingColumnName$,
-        $attribute.knotReferenceName$
+    constraint "uq$attribute.positName$" unique (
+        "$attribute.entityReferenceName$",
+        "$attribute.changingColumnName$",
+        "$attribute.knotReferenceName$"
     ) RELY
-) CLUSTER BY ($attribute.entityReferenceName$);
+) CLUSTER BY ("$attribute.entityReferenceName$");
 $/ endif
 $/ if not attribute.isHistorized and attribute.isKnotted
 $/ if attribute.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$."$attribute.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
-    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
-    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
-    constraint fk_A_$attribute.positName$ foreign key (
-        $attribute.entityReferenceName$
-    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
-    constraint fk_K_$attribute.positName$ foreign key (
-        $attribute.knotReferenceName$
-    ) references $attribute.knot.capsule$.$attribute.knot.name$($attribute.knot.identityColumnName$) RELY,
-    constraint pk$attribute.positName$ primary key (
-        $attribute.identityColumnName$
+CREATE TABLE IF NOT EXISTS $attribute.capsule$."$attribute.positName$" (
+    "$attribute.identityColumnName$" $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$."$attribute.identitySequenceName$".nextval not null, $/ else not null,$/ endif
+    "$attribute.entityReferenceName$" $attribute.parent.identity$ not null,
+    "$attribute.knotReferenceName$" $attribute.knot.identity$ not null,
+    constraint "fk_A_$attribute.positName$" foreign key (
+        "$attribute.entityReferenceName$"
+    ) references $attribute.parent.capsule$."$attribute.parent.name$"("$attribute.parent.identityColumnName$") RELY,
+    constraint "fk_K_$attribute.positName$" foreign key (
+        "$attribute.knotReferenceName$"
+    ) references $attribute.knot.capsule$."$attribute.knot.name$"("$attribute.knot.identityColumnName$") RELY,
+    constraint "pk$attribute.positName$" primary key (
+        "$attribute.identityColumnName$"
     ) RELY,
-    constraint uq$attribute.positName$ unique (
-        $attribute.entityReferenceName$,
-        $attribute.knotReferenceName$
+    constraint "uq$attribute.positName$" unique (
+        "$attribute.entityReferenceName$",
+        "$attribute.knotReferenceName$"
     ) RELY
-) CLUSTER BY ($attribute.entityReferenceName$);
+) CLUSTER BY ("$attribute.entityReferenceName$");
 $/ endif
 $/ if not attribute.isHistorized and not attribute.isKnotted
 $/ if attribute.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$.$attribute.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$."$attribute.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.positName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$.$attribute.identitySequenceName$.nextval not null, $/ else not null,$/ endif
-    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
-    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+CREATE TABLE IF NOT EXISTS $attribute.capsule$."$attribute.positName$" (
+    "$attribute.identityColumnName$" $/ if attribute.identity $attribute.identity$ $/ endif$/ if attribute.isGenerator default $attribute.capsule$."$attribute.identitySequenceName$".nextval not null, $/ else not null,$/ endif
+    "$attribute.entityReferenceName$" $attribute.parent.identity$ not null,
+    "$attribute.valueColumnName$" $attribute.dataRange$ not null,
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0) default hash($attribute.valueColumnName$),
+    "$attribute.checksumColumnName$" numeric(19,0) default hash("$attribute.valueColumnName$"),
 $/ endif
-    constraint fk$attribute.positName$ foreign key (
-        $attribute.entityReferenceName$
-    ) references $attribute.parent.capsule$.$attribute.parent.name$($attribute.parent.identityColumnName$) RELY,
-    constraint pk$attribute.positName$ primary key (
-        $attribute.identityColumnName$
+    constraint "fk$attribute.positName$" foreign key (
+        "$attribute.entityReferenceName$"
+    ) references $attribute.parent.capsule$."$attribute.parent.name$"("$attribute.parent.identityColumnName$") RELY,
+    constraint "pk$attribute.positName$" primary key (
+        "$attribute.identityColumnName$"
     ) RELY,
-    constraint uq$attribute.positName$ unique (
-        $attribute.entityReferenceName$,
+    constraint "uq$attribute.positName$" unique (
+        "$attribute.entityReferenceName$",
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$ $--$
+        "$attribute.checksumColumnName$" $--$
 $/ else
-        $attribute.valueColumnName$
+        "$attribute.valueColumnName$"
 $/ endif
     ) RELY
-) CLUSTER BY ($attribute.entityReferenceName$);
+) CLUSTER BY ("$attribute.entityReferenceName$");
 $/ endif
-CREATE TABLE IF NOT EXISTS $attribute.capsule$.$attribute.annexName$ (
-    $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif not null,
-    $attribute.positingColumnName$ $schema.metadata.positingRange$ not null,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$ not null,
+CREATE TABLE IF NOT EXISTS $attribute.capsule$."$attribute.annexName$" (
+    "$attribute.identityColumnName$" $/ if attribute.identity $attribute.identity$ $/ endif not null,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$ not null,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$ not null,
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$ not null,
 $/ endif
-    constraint fk$attribute.annexName$ foreign key (
-        $attribute.identityColumnName$
-    ) references $attribute.capsule$.$attribute.positName$($attribute.identityColumnName$) RELY,
-    constraint pk$attribute.annexName$ primary key (
-        $attribute.identityColumnName$,
-        $attribute.positingColumnName$
+    constraint "fk$attribute.annexName$" foreign key (
+        "$attribute.identityColumnName$"
+    ) references $attribute.capsule$."$attribute.positName$"("$attribute.identityColumnName$") RELY,
+    constraint "pk$attribute.annexName$" primary key (
+        "$attribute.identityColumnName$",
+        "$attribute.positingColumnName$"
     ) RELY
-) CLUSTER BY ($attribute.identityColumnName$, $attribute.positingColumnName$);
+) CLUSTER BY ("$attribute.identityColumnName$", "$attribute.positingColumnName$");
 $/ endfor

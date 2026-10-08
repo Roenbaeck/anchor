@@ -13,60 +13,60 @@ $/ if schema.EQUIVALENCE and knot.isEquivalent
 -- $knot.identityName$ table
 -----------------------------------------------------------------------------------------------------------------------
 $/ if knot.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $knot.capsule$.$knot.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $knot.capsule$."$knot.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $knot.capsule$.$knot.identityName$ (
-    $knot.identityColumnName$ $/ if knot.isGenerator $knot.identity$ default $knot.capsule$.$knot.identitySequenceName$.nextval not null, $/ else $knot.identity$ not null,$/ endif
-    $/ if schema.METADATA $knot.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $knot.dummyColumnName$ boolean null,$/ endif
-    constraint pk$knot.identityName$ primary key (
-        $knot.identityColumnName$
+CREATE TABLE IF NOT EXISTS $knot.capsule$."$knot.identityName$" (
+    "$knot.identityColumnName$" $/ if knot.isGenerator $knot.identity$ default $knot.capsule$."$knot.identitySequenceName$".nextval not null, $/ else $knot.identity$ not null,$/ endif
+    $/ if schema.METADATA "$knot.metadataColumnName$" $schema.metadata.metadataType$ not null, $/ else "$knot.dummyColumnName$" boolean null,$/ endif
+    constraint "pk$knot.identityName$" primary key (
+        "$knot.identityColumnName$"
     ) RELY
-) CLUSTER BY ($knot.identityColumnName$);
+) CLUSTER BY ("$knot.identityColumnName$");
 -- Knot value table ---------------------------------------------------------------------------------------------------
 -- $knot.equivalentName$ table
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $knot.capsule$.$knot.equivalentName$ (
-    $knot.identityColumnName$ $knot.identity$ not null,
-    $knot.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
-    $knot.valueColumnName$ $knot.dataRange$ not null,
+CREATE TABLE IF NOT EXISTS $knot.capsule$."$knot.equivalentName$" (
+    "$knot.identityColumnName$" $knot.identity$ not null,
+    "$knot.equivalentColumnName$" $schema.metadata.equivalentRange$ not null,
+    "$knot.valueColumnName$" $knot.dataRange$ not null,
 $/ if knot.hasChecksum
-    $knot.checksumColumnName$ numeric(19,0) default hash($knot.valueColumnName$),
+    "$knot.checksumColumnName$" numeric(19,0) default hash("$knot.valueColumnName$"),
 $/ endif
-    $/ if schema.METADATA $knot.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $knot.dummyColumnName$ boolean null,$/ endif
-    constraint fk$knot.equivalentName$ foreign key (
-        $knot.identityColumnName$
-    ) references $knot.capsule$.$knot.identityName$($knot.identityColumnName$) RELY,
-    constraint pk$knot.equivalentName$ primary key (
-        $knot.equivalentColumnName$,
-        $knot.identityColumnName$
+    $/ if schema.METADATA "$knot.metadataColumnName$" $schema.metadata.metadataType$ not null, $/ else "$knot.dummyColumnName$" boolean null,$/ endif
+    constraint "fk$knot.equivalentName$" foreign key (
+        "$knot.identityColumnName$"
+    ) references $knot.capsule$."$knot.identityName$"("$knot.identityColumnName$") RELY,
+    constraint "pk$knot.equivalentName$" primary key (
+        "$knot.equivalentColumnName$",
+        "$knot.identityColumnName$"
     ) RELY,
-    constraint uq$knot.equivalentName$ unique (
-        $knot.equivalentColumnName$,
-        $/ if knot.hasChecksum $knot.checksumColumnName$ $/ else $knot.valueColumnName$$/ endif
+    constraint "uq$knot.equivalentName$" unique (
+        "$knot.equivalentColumnName$",
+        $/ if knot.hasChecksum "$knot.checksumColumnName$" $/ else "$knot.valueColumnName$"$/ endif
     ) RELY
-) CLUSTER BY ($knot.identityColumnName$);
+) CLUSTER BY ("$knot.identityColumnName$");
 $/ else
 -- Knot table ---------------------------------------------------------------------------------------------------------
 -- $knot.name$ table
 -----------------------------------------------------------------------------------------------------------------------
 $/ if knot.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $knot.capsule$.$knot.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $knot.capsule$."$knot.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $knot.capsule$.$knot.name$ (
-    $knot.identityColumnName$ $/ if knot.isGenerator $knot.identity$ default $knot.capsule$.$knot.identitySequenceName$.nextval not null, $/ else $knot.identity$ not null,$/ endif
-    $knot.valueColumnName$ $knot.dataRange$ not null,
+CREATE TABLE IF NOT EXISTS $knot.capsule$."$knot.name$" (
+    "$knot.identityColumnName$" $/ if knot.isGenerator $knot.identity$ default $knot.capsule$."$knot.identitySequenceName$".nextval not null, $/ else $knot.identity$ not null,$/ endif
+    "$knot.valueColumnName$" $knot.dataRange$ not null,
 $/ if knot.hasChecksum
-    $knot.checksumColumnName$ numeric(19,0) default hash($knot.valueColumnName$),
+    "$knot.checksumColumnName$" numeric(19,0) default hash("$knot.valueColumnName$"),
 $/ endif
 $/ if schema.METADATA
-    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null,
+    "$knot.metadataColumnName$" $schema.metadata.metadataType$ not null,
 $/ endif
-    constraint pk$knot.name$ primary key (
-        $knot.identityColumnName$
+    constraint "pk$knot.name$" primary key (
+        "$knot.identityColumnName$"
     ) RELY,
-    constraint uq$knot.name$ unique (
-        $/ if knot.hasChecksum $knot.checksumColumnName$ $/ else $knot.valueColumnName$$/ endif
+    constraint "uq$knot.name$" unique (
+        $/ if knot.hasChecksum "$knot.checksumColumnName$" $/ else "$knot.valueColumnName$"$/ endif
     ) RELY
-) CLUSTER BY ($knot.identityColumnName$);
+) CLUSTER BY ("$knot.identityColumnName$");
 $/ endif
 $/ endfor

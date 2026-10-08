@@ -4,85 +4,85 @@
 --
 $/ foreach tie in schema.ties
 $/ if tie.isHistorized
-CREATE OR REPLACE FUNCTION $tie.capsule$.r$tie.positName$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.positName$" (
     changingTimepoint $tie.timeRange$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $tie.identityColumnName$ $tie.identity$,
+    "$tie.identityColumnName$" $tie.identity$,
 $/ foreach role in tie.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
 $/ endfor
-    $tie.changingColumnName$ $tie.timeRange$
+    "$tie.changingColumnName$" $tie.timeRange$
 )
 AS
 $$
 SELECT
-    $tie.identityColumnName$,
+    "$tie.identityColumnName$",
 $/ foreach role in tie.roles
-    $role.columnName$,
+    "$role.columnName$",
 $/ endfor
-    $tie.changingColumnName$
+    "$tie.changingColumnName$"
 FROM
-    $tie.capsule$.$tie.positName$
+    $tie.capsule$."$tie.positName$"
 WHERE
-    $tie.changingColumnName$ <= changingTimepoint
+    "$tie.changingColumnName$" <= changingTimepoint
 $$
 ;
-CREATE OR REPLACE FUNCTION $tie.capsule$.f$tie.positName$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."f$tie.positName$" (
     changingTimepoint $tie.timeRange$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $tie.identityColumnName$ $tie.identity$,
+    "$tie.identityColumnName$" $tie.identity$,
 $/ foreach role in tie.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
 $/ endfor
-    $tie.changingColumnName$ $tie.timeRange$
+    "$tie.changingColumnName$" $tie.timeRange$
 )
 AS
 $$
 SELECT
-    $tie.identityColumnName$,
+    "$tie.identityColumnName$",
 $/ foreach role in tie.roles
-    $role.columnName$,
+    "$role.columnName$",
 $/ endfor
-    $tie.changingColumnName$
+    "$tie.changingColumnName$"
 FROM
-    $tie.capsule$.$tie.positName$
+    $tie.capsule$."$tie.positName$"
 WHERE
-    $tie.changingColumnName$ > changingTimepoint
+    "$tie.changingColumnName$" > changingTimepoint
 $$
 ;
 $/ endif
-CREATE OR REPLACE FUNCTION $tie.capsule$.r$tie.annexName$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.annexName$" (
     positingTimepoint $schema.metadata.positingRange$
 )
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $tie.identityColumnName$ $tie.identity$,
-    $tie.positingColumnName$ $schema.metadata.positingRange$,
-    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$
+    "$tie.identityColumnName$" $tie.identity$,
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    $tie.metadataColumnName$,
+    "$tie.metadataColumnName$",
 $/ endif
-    $tie.identityColumnName$,
-    $tie.positingColumnName$,
-    $tie.reliabilityColumnName$
+    "$tie.identityColumnName$",
+    "$tie.positingColumnName$",
+    "$tie.reliabilityColumnName$"
 FROM
-    $tie.capsule$.$tie.annexName$
+    $tie.capsule$."$tie.annexName$"
 WHERE
-    $tie.positingColumnName$ <= positingTimepoint
+    "$tie.positingColumnName$" <= positingTimepoint
 $$
 ;
-CREATE OR REPLACE FUNCTION $tie.capsule$.r$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.name$" (
 $/ if tie.isHistorized
     changingTimepoint $tie.timeRange$,
 $/ endif
@@ -91,51 +91,51 @@ $/ endif
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $tie.identityColumnName$ $tie.identity$,
+    "$tie.identityColumnName$" $tie.identity$,
 $/ foreach role in tie.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
 $/ endfor
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
-    $tie.positingColumnName$ $schema.metadata.positingRange$,
-    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    a.$tie.metadataColumnName$,
+    a."$tie.metadataColumnName$",
 $/ endif
-    p.$tie.identityColumnName$,
+    p."$tie.identityColumnName$",
 $/ foreach role in tie.roles
-    p.$role.columnName$,
+    p."$role.columnName$",
 $/ endfor
 $/ if tie.isHistorized
-    p.$tie.changingColumnName$,
+    p."$tie.changingColumnName$",
 $/ endif
-    a.$tie.positingColumnName$,
-    a.$tie.reliabilityColumnName$
+    a."$tie.positingColumnName$",
+    a."$tie.reliabilityColumnName$"
 FROM
 $/ if tie.isHistorized
-    TABLE($tie.capsule$.r$tie.positName$(changingTimepoint)) p $--$
+    TABLE($tie.capsule$."r$tie.positName$"(changingTimepoint)) p $--$
 $/ else
-    $tie.capsule$.$tie.positName$ p
+    $tie.capsule$."$tie.positName$" p
 $/ endif
 JOIN
-    TABLE($tie.capsule$.r$tie.annexName$(positingTimepoint)) a
+    TABLE($tie.capsule$."r$tie.annexName$"(positingTimepoint)) a
 ON
-    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
 QUALIFY
     row_number() OVER (
-        PARTITION BY p.$tie.identityColumnName$
-        ORDER BY a.$tie.positingColumnName$ DESC
+        PARTITION BY p."$tie.identityColumnName$"
+        ORDER BY a."$tie.positingColumnName$" DESC
     ) = 1
 $$
 ;
-CREATE OR REPLACE FUNCTION $tie.capsule$.f$tie.name$ (
+CREATE OR REPLACE FUNCTION $tie.capsule$."f$tie.name$" (
 $/ if tie.isHistorized
     changingTimepoint $tie.timeRange$,
 $/ endif
@@ -144,47 +144,47 @@ $/ endif
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $tie.metadataColumnName$ $schema.metadata.metadataType$,
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $tie.identityColumnName$ $tie.identity$,
+    "$tie.identityColumnName$" $tie.identity$,
 $/ foreach role in tie.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
 $/ endfor
 $/ if tie.isHistorized
-    $tie.changingColumnName$ $tie.timeRange$,
+    "$tie.changingColumnName$" $tie.timeRange$,
 $/ endif
-    $tie.positingColumnName$ $schema.metadata.positingRange$,
-    $tie.reliabilityColumnName$ $schema.metadata.reliabilityRange$
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$
 )
 AS
 $$
 SELECT
 $/ if schema.METADATA
-    a.$tie.metadataColumnName$,
+    a."$tie.metadataColumnName$",
 $/ endif
-    p.$tie.identityColumnName$,
+    p."$tie.identityColumnName$",
 $/ foreach role in tie.roles
-    p.$role.columnName$,
+    p."$role.columnName$",
 $/ endfor
 $/ if tie.isHistorized
-    p.$tie.changingColumnName$,
+    p."$tie.changingColumnName$",
 $/ endif
-    a.$tie.positingColumnName$,
-    a.$tie.reliabilityColumnName$
+    a."$tie.positingColumnName$",
+    a."$tie.reliabilityColumnName$"
 FROM
 $/ if tie.isHistorized
-    TABLE($tie.capsule$.f$tie.positName$(changingTimepoint)) p $--$
+    TABLE($tie.capsule$."f$tie.positName$"(changingTimepoint)) p $--$
 $/ else
-    $tie.capsule$.$tie.positName$ p
+    $tie.capsule$."$tie.positName$" p
 $/ endif
 JOIN
-    TABLE($tie.capsule$.r$tie.annexName$(positingTimepoint)) a
+    TABLE($tie.capsule$."r$tie.annexName$"(positingTimepoint)) a
 ON
-    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
 QUALIFY
     row_number() OVER (
-        PARTITION BY p.$tie.identityColumnName$
-        ORDER BY a.$tie.positingColumnName$ DESC
+        PARTITION BY p."$tie.identityColumnName$"
+        ORDER BY a."$tie.positingColumnName$" DESC
     ) = 1
 $$
 ;

@@ -5,231 +5,231 @@
 --
 $/ foreach anchor in schema.anchors
 $/ if anchor.attributes
-CREATE OR REPLACE FUNCTION $anchor.capsule$.t$anchor.name$ (
+CREATE OR REPLACE FUNCTION $anchor.capsule$."t$anchor.name$" (
     changingTimepoint $schema.metadata.chronon$,
     positingTimepoint $schema.metadata.positingRange$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $anchor.identityColumnName$ $anchor.identity$,
+    "$anchor.identityColumnName$" $anchor.identity$,
 $/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+    "$anchor.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $anchor.identity$,
+    "$attribute.entityReferenceName$" $anchor.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
 $/ if attribute.isKnotted
-    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
 $/ else
-    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.dataRange$$/ if not attribute.last() ,$/ endif
 $/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
-    $anchor.mnemonic$.$anchor.identityColumnName$,
+    "$anchor.mnemonic$"."$anchor.identityColumnName$",
 $/ if schema.METADATA
-    $anchor.mnemonic$.$anchor.metadataColumnName$,
+    "$anchor.mnemonic$"."$anchor.metadataColumnName$",
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $attribute.mnemonic$.$attribute.entityReferenceName$,
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $attribute.mnemonic$.$attribute.metadataColumnName$,
+    "$attribute.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.identityColumnName$,
+    "$attribute.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $attribute.mnemonic$.$attribute.changingColumnName$,
+    "$attribute.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.positingColumnName$,
-    $attribute.mnemonic$.$attribute.reliabilityColumnName$,
+    "$attribute.mnemonic$"."$attribute.positingColumnName$",
+    "$attribute.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    k$attribute.mnemonic$.$attribute.knot.checksumColumnName$ AS $attribute.knotChecksumColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
 $/ endif
-    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.mnemonic$.$attribute.checksumColumnName$,
+    "$attribute.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$attribute.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM
-    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+    $anchor.capsule$."$anchor.name$" "$anchor.mnemonic$"
 $/ foreach attribute in anchor.attributes
 LEFT JOIN
-    TABLE($attribute.capsule$.r$attribute.name$(
+    TABLE($attribute.capsule$."r$attribute.name$"(
 $/ if attribute.isHistorized
         changingTimepoint::$attribute.timeRange$,
 $/ endif
         positingTimepoint::$schema.metadata.positingRange$
-    )) $attribute.mnemonic$
+    )) "$attribute.mnemonic$"
 ON
-    $attribute.mnemonic$.$attribute.identityColumnName$ = (
+    "$attribute.mnemonic$"."$attribute.identityColumnName$" = (
         SELECT
-            sub.$attribute.identityColumnName$
+            sub."$attribute.identityColumnName$"
         FROM
-            TABLE($attribute.capsule$.r$attribute.name$(
+            TABLE($attribute.capsule$."r$attribute.name$"(
 $/ if attribute.isHistorized
                 changingTimepoint::$attribute.timeRange$,
 $/ endif
                 positingTimepoint::$schema.metadata.positingRange$
             )) sub
         WHERE
-            sub.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+            sub."$attribute.entityReferenceName$" = "$anchor.mnemonic$"."$anchor.identityColumnName$"
         AND
-            sub.$attribute.reliabilityColumnName$ = 1
+            sub."$attribute.reliabilityColumnName$" = 1
         ORDER BY
 $/ if attribute.isHistorized
-            sub.$attribute.changingColumnName$ DESC,
+            sub."$attribute.changingColumnName$" DESC,
 $/ endif
-            sub.$attribute.positingColumnName$ DESC
+            sub."$attribute.positingColumnName$" DESC
         LIMIT 1
     )
 $/ if attribute.isKnotted
 LEFT JOIN
-    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
 ON
-    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
+    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
 $/ endif
 $/ if attribute.last()
 $$
 ;
 $/ endif
 $/ endfor
-CREATE OR REPLACE VIEW $anchor.capsule$.l$anchor.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $anchor.capsule$."l$anchor.name$" COPY GRANTS AS
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $anchor.mnemonic$.*
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$anchor.mnemonic$".*
 FROM
-    TABLE($anchor.capsule$.t$anchor.name$(
+    TABLE($anchor.capsule$."t$anchor.name$"(
         $schema.EOT$::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $anchor.mnemonic$
+    )) "$anchor.mnemonic$"
 ;
-CREATE OR REPLACE FUNCTION $anchor.capsule$.p$anchor.name$ (
+CREATE OR REPLACE FUNCTION $anchor.capsule$."p$anchor.name$" (
     changingTimepoint $schema.metadata.chronon$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $schema.metadata.reliabilitySuffix$ $schema.metadata.reliabilityRange$,
-    $anchor.identityColumnName$ $anchor.identity$,
+    "$schema.metadata.reliabilitySuffix$" $schema.metadata.reliabilityRange$,
+    "$anchor.identityColumnName$" $anchor.identity$,
 $/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+    "$anchor.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $anchor.identity$,
+    "$attribute.entityReferenceName$" $anchor.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
 $/ if attribute.isKnotted
-    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
 $/ else
-    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.dataRange$$/ if not attribute.last() ,$/ endif
 $/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $anchor.mnemonic$.$anchor.identityColumnName$,
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$anchor.mnemonic$"."$anchor.identityColumnName$",
 $/ if schema.METADATA
-    $anchor.mnemonic$.$anchor.metadataColumnName$,
+    "$anchor.mnemonic$"."$anchor.metadataColumnName$",
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $anchor.mnemonic$.$attribute.entityReferenceName$,
+    "$anchor.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $anchor.mnemonic$.$attribute.metadataColumnName$,
+    "$anchor.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.identityColumnName$,
+    "$anchor.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $anchor.mnemonic$.$attribute.changingColumnName$,
+    "$anchor.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.positingColumnName$,
-    $anchor.mnemonic$.$attribute.reliabilityColumnName$,
+    "$anchor.mnemonic$"."$attribute.positingColumnName$",
+    "$anchor.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $anchor.mnemonic$.$attribute.knotChecksumColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotChecksumColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.knotValueColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    $anchor.mnemonic$.$attribute.knotMetadataColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $anchor.mnemonic$.$attribute.checksumColumnName$,
+    "$anchor.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$anchor.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM
-    TABLE($anchor.capsule$.t$anchor.name$(
+    TABLE($anchor.capsule$."t$anchor.name$"(
         changingTimepoint::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $anchor.mnemonic$
+    )) "$anchor.mnemonic$"
 $$
 ;
-CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $anchor.capsule$."n$anchor.name$" COPY GRANTS AS
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $anchor.mnemonic$.*
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$anchor.mnemonic$".*
 FROM
-    TABLE($anchor.capsule$.t$anchor.name$(
+    TABLE($anchor.capsule$."t$anchor.name$"(
         $schema.metadata.now$::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $anchor.mnemonic$
+    )) "$anchor.mnemonic$"
 ;
 $/ if anchor.historizedAttributes
-CREATE OR REPLACE FUNCTION $anchor.capsule$.d$anchor.name$ (
+CREATE OR REPLACE FUNCTION $anchor.capsule$."d$anchor.name$" (
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$,
     selection string
@@ -237,39 +237,39 @@ CREATE OR REPLACE FUNCTION $anchor.capsule$.d$anchor.name$ (
 COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
-    $anchor.identityColumnName$ $anchor.identity$,
+    "$anchor.identityColumnName$" $anchor.identity$,
 $/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$,
+    "$anchor.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $anchor.identity$,
+    "$attribute.entityReferenceName$" $anchor.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
 $/ if attribute.isKnotted
-    $attribute.valueColumnName$ $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.knot.identity$$/ if not attribute.last() ,$/ endif
 $/ else
-    $attribute.valueColumnName$ $attribute.dataRange$$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $attribute.dataRange$$/ if not attribute.last() ,$/ endif
 $/ endif
 $/ endfor
 )
@@ -277,60 +277,60 @@ AS
 $$
 SELECT
     tp.inspectedTimepoint,
-    $anchor.mnemonic$.$anchor.identityColumnName$,
+    "$anchor.mnemonic$"."$anchor.identityColumnName$",
 $/ if schema.METADATA
-    $anchor.mnemonic$.$anchor.metadataColumnName$,
+    "$anchor.mnemonic$"."$anchor.metadataColumnName$",
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    $anchor.mnemonic$.$attribute.entityReferenceName$,
+    "$anchor.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $anchor.mnemonic$.$attribute.metadataColumnName$,
+    "$anchor.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.identityColumnName$,
+    "$anchor.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $anchor.mnemonic$.$attribute.changingColumnName$,
+    "$anchor.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.positingColumnName$,
-    $anchor.mnemonic$.$attribute.reliabilityColumnName$,
+    "$anchor.mnemonic$"."$attribute.positingColumnName$",
+    "$anchor.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $anchor.mnemonic$.$attribute.knotChecksumColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotChecksumColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.knotValueColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    $anchor.mnemonic$.$attribute.knotMetadataColumnName$,
+    "$anchor.mnemonic$"."$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $anchor.mnemonic$.$attribute.checksumColumnName$,
+    "$anchor.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $anchor.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$anchor.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM (
 $/ foreach historized in anchor.historizedAttributes
     SELECT DISTINCT
-        $historized.entityReferenceName$ AS $anchor.identityColumnName$,
-        $historized.changingColumnName$::$schema.metadata.chronon$ AS inspectedTimepoint,
+        "$historized.entityReferenceName$" AS "$anchor.identityColumnName$",
+        "$historized.changingColumnName$"::$schema.metadata.chronon$ AS inspectedTimepoint,
         '$historized.mnemonic$' AS mnemonic
     FROM
-        $historized.capsule$.$historized.name$
+        $historized.capsule$."$historized.name$"
     WHERE
         (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
     AND
-        $historized.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+        "$historized.changingColumnName$" BETWEEN intervalStart AND intervalEnd
 $/ if not historized.last()
     UNION
 $/ endif
 $/ endfor
 ) tp,
-    TABLE($anchor.capsule$.t$anchor.name$(
+    TABLE($anchor.capsule$."t$anchor.name$"(
         tp.inspectedTimepoint::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $anchor.mnemonic$
+    )) "$anchor.mnemonic$"
 WHERE
-    $anchor.mnemonic$.$anchor.identityColumnName$ = tp.$anchor.identityColumnName$
+    "$anchor.mnemonic$"."$anchor.identityColumnName$" = tp."$anchor.identityColumnName$"
 $$
 ;
 $/ endif

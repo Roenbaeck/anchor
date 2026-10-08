@@ -4,25 +4,25 @@
 -- in uni-temporal modeling.
 --
 $/ foreach tie in schema.ties
-CREATE OR REPLACE VIEW $tie.capsule$.$tie.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $tie.capsule$."$tie.name$" COPY GRANTS AS
 SELECT
 $/ if schema.METADATA
-    a.$tie.metadataColumnName$,
+    a."$tie.metadataColumnName$",
 $/ endif
-    p.$tie.identityColumnName$,
+    p."$tie.identityColumnName$",
 $/ foreach role in tie.roles
-    p.$role.columnName$,
+    p."$role.columnName$",
 $/ endfor
 $/ if tie.timeRange
-    p.$tie.changingColumnName$,
+    p."$tie.changingColumnName$",
 $/ endif
-    a.$tie.positingColumnName$,
-    a.$tie.reliabilityColumnName$
+    a."$tie.positingColumnName$",
+    a."$tie.reliabilityColumnName$"
 FROM
-    $tie.capsule$.$tie.positName$ p
+    $tie.capsule$."$tie.positName$" p
 JOIN
-    $tie.capsule$.$tie.annexName$ a
+    $tie.capsule$."$tie.annexName$" a
 ON
-    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
 ;
 $/ endfor

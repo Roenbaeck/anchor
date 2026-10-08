@@ -5,275 +5,275 @@
 --
 $/ foreach nexus in schema.nexuses
 $/ if nexus.attributes
-CREATE OR REPLACE FUNCTION $nexus.capsule$.t$nexus.name$ (
+CREATE OR REPLACE FUNCTION $nexus.capsule$."t$nexus.name$" (
     changingTimepoint $schema.metadata.chronon$,
     positingTimepoint $schema.metadata.positingRange$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $nexus.identityColumnName$ $nexus.identity$,
+    "$nexus.identityColumnName$" $nexus.identity$,
 $/ if schema.METADATA
-    $nexus.metadataColumnName$ $schema.metadata.metadataType$,
+    "$nexus.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $nexus.identity$,
+    "$attribute.entityReferenceName$" $nexus.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
-    $nexus.mnemonic$.$nexus.identityColumnName$,
+    "$nexus.mnemonic$"."$nexus.identityColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$nexus.metadataColumnName$,
+    "$nexus.mnemonic$"."$nexus.metadataColumnName$",
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    k$role.name$.$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+    "k$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    k$role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+    "k$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if schema.METADATA
-    k$role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+    "k$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    $nexus.mnemonic$.$role.columnName$,
+    "$nexus.mnemonic$"."$role.columnName$",
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $attribute.mnemonic$.$attribute.entityReferenceName$,
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $attribute.mnemonic$.$attribute.metadataColumnName$,
+    "$attribute.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.identityColumnName$,
+    "$attribute.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $attribute.mnemonic$.$attribute.changingColumnName$,
+    "$attribute.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.positingColumnName$,
-    $attribute.mnemonic$.$attribute.reliabilityColumnName$,
+    "$attribute.mnemonic$"."$attribute.positingColumnName$",
+    "$attribute.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    k$attribute.mnemonic$.$attribute.knot.checksumColumnName$ AS $attribute.knotChecksumColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
 $/ endif
-    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.mnemonic$.$attribute.checksumColumnName$,
+    "$attribute.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$attribute.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM
-    $nexus.capsule$.$nexus.name$ $nexus.mnemonic$
+    $nexus.capsule$."$nexus.name$" "$nexus.mnemonic$"
 $/ foreach role in nexus.knotRoles
 LEFT JOIN
-    $role.knot.capsule$.$role.knot.name$ k$role.name$
+    $role.knot.capsule$."$role.knot.name$" "k$role.name$"
 ON
-    k$role.name$.$role.knot.identityColumnName$ = $nexus.mnemonic$.$role.columnName$
+    "k$role.name$"."$role.knot.identityColumnName$" = "$nexus.mnemonic$"."$role.columnName$"
 $/ endfor
 $/ foreach attribute in nexus.attributes
 LEFT JOIN
-    TABLE($attribute.capsule$.r$attribute.name$(
+    TABLE($attribute.capsule$."r$attribute.name$"(
 $/ if attribute.isHistorized
         changingTimepoint::$attribute.timeRange$,
 $/ endif
         positingTimepoint::$schema.metadata.positingRange$
-    )) $attribute.mnemonic$
+    )) "$attribute.mnemonic$"
 ON
-    $attribute.mnemonic$.$attribute.identityColumnName$ = (
+    "$attribute.mnemonic$"."$attribute.identityColumnName$" = (
         SELECT
-            sub.$attribute.identityColumnName$
+            sub."$attribute.identityColumnName$"
         FROM
-            TABLE($attribute.capsule$.r$attribute.name$(
+            TABLE($attribute.capsule$."r$attribute.name$"(
 $/ if attribute.isHistorized
                 changingTimepoint::$attribute.timeRange$,
 $/ endif
                 positingTimepoint::$schema.metadata.positingRange$
             )) sub
         WHERE
-            sub.$attribute.entityReferenceName$ = $nexus.mnemonic$.$nexus.identityColumnName$
+            sub."$attribute.entityReferenceName$" = "$nexus.mnemonic$"."$nexus.identityColumnName$"
         AND
-            sub.$attribute.reliabilityColumnName$ = 1
+            sub."$attribute.reliabilityColumnName$" = 1
         ORDER BY
 $/ if attribute.isHistorized
-            sub.$attribute.changingColumnName$ DESC,
+            sub."$attribute.changingColumnName$" DESC,
 $/ endif
-            sub.$attribute.positingColumnName$ DESC
+            sub."$attribute.positingColumnName$" DESC
         LIMIT 1
     )
 $/ if attribute.isKnotted
 LEFT JOIN
-    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
 ON
-    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
+    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
 $/ endif
 $/ endfor
 $$
 ;
-CREATE OR REPLACE VIEW $nexus.capsule$.l$nexus.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $nexus.capsule$."l$nexus.name$" COPY GRANTS AS
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $nexus.mnemonic$.*
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$nexus.mnemonic$".*
 FROM
-    TABLE($nexus.capsule$.t$nexus.name$(
+    TABLE($nexus.capsule$."t$nexus.name$"(
         $schema.EOT$::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $nexus.mnemonic$
+    )) "$nexus.mnemonic$"
 ;
-CREATE OR REPLACE FUNCTION $nexus.capsule$.p$nexus.name$ (
+CREATE OR REPLACE FUNCTION $nexus.capsule$."p$nexus.name$" (
     changingTimepoint $schema.metadata.chronon$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $schema.metadata.reliabilitySuffix$ $schema.metadata.reliabilityRange$,
-    $nexus.identityColumnName$ $nexus.identity$,
+    "$schema.metadata.reliabilitySuffix$" $schema.metadata.reliabilityRange$,
+    "$nexus.identityColumnName$" $nexus.identity$,
 $/ if schema.METADATA
-    $nexus.metadataColumnName$ $schema.metadata.metadataType$,
+    "$nexus.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $nexus.identity$,
+    "$attribute.entityReferenceName$" $nexus.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $nexus.mnemonic$.$nexus.identityColumnName$,
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$nexus.mnemonic$"."$nexus.identityColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$nexus.metadataColumnName$,
+    "$nexus.mnemonic$"."$nexus.metadataColumnName$",
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $nexus.mnemonic$.$role.knotChecksumColumnName$,
+    "$nexus.mnemonic$"."$role.knotChecksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$role.knotValueColumnName$,
+    "$nexus.mnemonic$"."$role.knotValueColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$role.knotMetadataColumnName$,
+    "$nexus.mnemonic$"."$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    $nexus.mnemonic$.$role.columnName$,
+    "$nexus.mnemonic$"."$role.columnName$",
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $nexus.mnemonic$.$attribute.entityReferenceName$,
+    "$nexus.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $nexus.mnemonic$.$attribute.metadataColumnName$,
+    "$nexus.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.identityColumnName$,
+    "$nexus.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $nexus.mnemonic$.$attribute.changingColumnName$,
+    "$nexus.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.positingColumnName$,
-    $nexus.mnemonic$.$attribute.reliabilityColumnName$,
+    "$nexus.mnemonic$"."$attribute.positingColumnName$",
+    "$nexus.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $nexus.mnemonic$.$attribute.knotChecksumColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotChecksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.knotValueColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$attribute.knotMetadataColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $nexus.mnemonic$.$attribute.checksumColumnName$,
+    "$nexus.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$nexus.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM
-    TABLE($nexus.capsule$.t$nexus.name$(
+    TABLE($nexus.capsule$."t$nexus.name$"(
         changingTimepoint::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $nexus.mnemonic$
+    )) "$nexus.mnemonic$"
 $$
 ;
-CREATE OR REPLACE VIEW $nexus.capsule$.n$nexus.name$ COPY GRANTS AS
+CREATE OR REPLACE VIEW $nexus.capsule$."n$nexus.name$" COPY GRANTS AS
 SELECT
-    cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
-    $nexus.mnemonic$.*
+    cast(null as $schema.metadata.reliabilityRange$) as "$schema.metadata.reliabilitySuffix$",
+    "$nexus.mnemonic$".*
 FROM
-    TABLE($nexus.capsule$.t$nexus.name$(
+    TABLE($nexus.capsule$."t$nexus.name$"(
         $schema.metadata.now$::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $nexus.mnemonic$
+    )) "$nexus.mnemonic$"
 ;
 $/ if nexus.historizedAttributes
-CREATE OR REPLACE FUNCTION $nexus.capsule$.d$nexus.name$ (
+CREATE OR REPLACE FUNCTION $nexus.capsule$."d$nexus.name$" (
     intervalStart $schema.metadata.chronon$,
     intervalEnd $schema.metadata.chronon$,
     selection string
@@ -281,120 +281,120 @@ CREATE OR REPLACE FUNCTION $nexus.capsule$.d$nexus.name$ (
 COPY GRANTS
 RETURNS TABLE (
     inspectedTimepoint $schema.metadata.chronon$,
-    $nexus.identityColumnName$ $nexus.identity$,
+    "$nexus.identityColumnName$" $nexus.identity$,
 $/ if schema.METADATA
-    $nexus.metadataColumnName$ $schema.metadata.metadataType$,
+    "$nexus.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $role.knotChecksumColumnName$ numeric(19,0),
+    "$role.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $role.knotValueColumnName$ $role.knot.dataRange$,
+    "$role.knotValueColumnName$" $role.knot.dataRange$,
 $/ if schema.METADATA
-    $role.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$role.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
-    $role.columnName$ $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
+    "$role.columnName$" $/ if role.entity $role.entity.identity$$/ else $role.knot.identity$$/ endif,
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $attribute.entityReferenceName$ $nexus.identity$,
+    "$attribute.entityReferenceName$" $nexus.identity$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.identityColumnName$ $attribute.identity$,
+    "$attribute.identityColumnName$" $attribute.identity$,
 $/ if attribute.timeRange
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
-    $attribute.positingColumnName$ $schema.metadata.positingRange$,
-    $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$,
+    "$attribute.positingColumnName$" $schema.metadata.positingRange$,
+    "$attribute.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $attribute.knotChecksumColumnName$ numeric(19,0),
+    "$attribute.knotChecksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.knotValueColumnName$ $attribute.knot.dataRange$,
+    "$attribute.knotValueColumnName$" $attribute.knot.dataRange$,
 $/ if schema.METADATA
-    $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.knotMetadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
-    $attribute.valueColumnName$ $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
+    "$attribute.valueColumnName$" $/ if attribute.isKnotted $attribute.knot.identity$$/ else $attribute.dataRange$$/ endif$/ if not attribute.last() ,$/ endif
 $/ endfor
 )
 AS
 $$
 SELECT
     tp.inspectedTimepoint,
-    $nexus.mnemonic$.$nexus.identityColumnName$,
+    "$nexus.mnemonic$"."$nexus.identityColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$nexus.metadataColumnName$,
+    "$nexus.mnemonic$"."$nexus.metadataColumnName$",
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    $nexus.mnemonic$.$role.knotChecksumColumnName$,
+    "$nexus.mnemonic$"."$role.knotChecksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$role.knotValueColumnName$,
+    "$nexus.mnemonic$"."$role.knotValueColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$role.knotMetadataColumnName$,
+    "$nexus.mnemonic$"."$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
-    $nexus.mnemonic$.$role.columnName$,
+    "$nexus.mnemonic$"."$role.columnName$",
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    $nexus.mnemonic$.$attribute.entityReferenceName$,
+    "$nexus.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    $nexus.mnemonic$.$attribute.metadataColumnName$,
+    "$nexus.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.identityColumnName$,
+    "$nexus.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    $nexus.mnemonic$.$attribute.changingColumnName$,
+    "$nexus.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.positingColumnName$,
-    $nexus.mnemonic$.$attribute.reliabilityColumnName$,
+    "$nexus.mnemonic$"."$attribute.positingColumnName$",
+    "$nexus.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    $nexus.mnemonic$.$attribute.knotChecksumColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotChecksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.knotValueColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    $nexus.mnemonic$.$attribute.knotMetadataColumnName$,
+    "$nexus.mnemonic$"."$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    $nexus.mnemonic$.$attribute.checksumColumnName$,
+    "$nexus.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    $nexus.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+    "$nexus.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM (
 $/ foreach historized in nexus.historizedAttributes
     SELECT DISTINCT
-        $historized.entityReferenceName$ AS $nexus.identityColumnName$,
-        $historized.changingColumnName$::$schema.metadata.chronon$ AS inspectedTimepoint,
+        "$historized.entityReferenceName$" AS "$nexus.identityColumnName$",
+        "$historized.changingColumnName$"::$schema.metadata.chronon$ AS inspectedTimepoint,
         '$historized.mnemonic$' AS mnemonic
     FROM
-        $historized.capsule$.$historized.name$
+        $historized.capsule$."$historized.name$"
     WHERE
         (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
     AND
-        $historized.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+        "$historized.changingColumnName$" BETWEEN intervalStart AND intervalEnd
 $/ if not historized.last()
     UNION
 $/ endif
 $/ endfor
 ) tp,
-    TABLE($nexus.capsule$.t$nexus.name$(
+    TABLE($nexus.capsule$."t$nexus.name$"(
         tp.inspectedTimepoint::$schema.metadata.chronon$,
         $schema.EOT$::$schema.metadata.positingRange$
-    )) $nexus.mnemonic$
+    )) "$nexus.mnemonic$"
 WHERE
-    $nexus.mnemonic$.$nexus.identityColumnName$ = tp.$nexus.identityColumnName$
+    "$nexus.mnemonic$"."$nexus.identityColumnName$" = tp."$nexus.identityColumnName$"
 $$
 ;
 $/ endif
