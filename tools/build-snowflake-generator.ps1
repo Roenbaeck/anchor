@@ -188,9 +188,61 @@ Add-Line ') r'
 Add-Line 'WHERE'
 Add-Line '    t.TEMPORALIZATION = r.bindings:temporalization::VARCHAR'
 Add-Line '$$;'
+# A check that the script has arrived as it was written. A tool that carries the script to Snowflake can change its text (the Snowflake
+# CLI reads & as the start of a variable, for instance, and an engine in which && has become & fails in its first lines), and the
+# damage shows only when the generator is used. The last statement runs the generator on a model that is part of the script, and says
+# in a sentence whether it works. The model has to be free of $$, which ends the quote, and of & (and of the template delimiters).
+# The model is small and made here: a knot, two anchors, a historized and a knotted attribute and a tie. The metadata of the schema is
+# the modeler's own defaults (modules/Defaults.js), with the values of Snowflake that matter to the text of the output.
+$defaults = [ordered]@{}
+foreach ($m in [regex]::Matches((Read-Source 'modules/Defaults.js'), "(?m)^\s*(\w+):\s*'([^']+)'")) { $defaults[$m.Groups[1].Value] = $m.Groups[2].Value }
+$defaults['encapsulation'] = 'public'; $defaults['chronon'] = 'timestamp_ntz(9)'; $defaults['now'] = 'sysdate()'; $defaults['databaseTarget'] = 'Snowflake'
+$metadataAttributes = ($defaults.Keys | ForEach-Object { '{0}="{1}"' -f $_, $defaults[$_] }) -join ' '
+$selfTestModel = @"
+<schema format="0.101.2">
+<metadata $metadataAttributes/>
+<knot mnemonic="GEN" descriptor="Gender" identity="tinyint" dataRange="varchar(42)">
+<metadata capsule="public" generator="false"/>
+</knot>
+<anchor mnemonic="AC" descriptor="Actor" identity="int">
+<metadata capsule="public" generator="true"/>
+<attribute mnemonic="NAM" descriptor="Name" timeRange="datetime" dataRange="varchar(42)">
+<metadata capsule="public"/>
+</attribute>
+<attribute mnemonic="GEN" descriptor="Gender" knotRange="GEN">
+<metadata capsule="public"/>
+</attribute>
+</anchor>
+<anchor mnemonic="PR" descriptor="Program" identity="int">
+<metadata capsule="public" generator="true"/>
+</anchor>
+<tie>
+<role role="part" type="AC" identifier="true"/>
+<role role="in" type="PR" identifier="true"/>
+<metadata capsule="public"/>
+</tie>
+</schema>
+"@.Replace("`r`n", "`n")
+if ($selfTestModel.Contains('$$') -or $selfTestModel.Contains('&')) { throw 'The model of the self-test holds $$ or &, which cannot go into the script.' }Add-Line ''
+Add-Line '-- 5. A check that the script has arrived as it was written -----------------------------------------------------------'
+Add-Line '-- It runs the generator on a model that is part of this script, and returns a sentence that says whether it works.'
+Add-Line 'SELECT'
+Add-Line '    IFF(CONTAINS(g.script, ''CREATE TABLE'') AND NOT CONTAINS(g.script, ''undefined''),'
+Add-Line '        ''The Anchor generator is installed and works: '' || LENGTH(g.script) || '' characters of SQL for the example model'','
+Add-Line '        ''The Anchor generator is installed, but its output is not what it should be: the script may have been changed on its way to Snowflake; install it again'') AS RESULT'
+Add-Line 'FROM ('
+Add-Line '    SELECT ANCHOR_GENERATE('
+Add-Line '$$'
+Add-Line $selfTestModel
+Add-Line '$$,'
+Add-Line '    ''uni'') AS script'
+Add-Line ') g;'
 $text = $sql.ToString()
 # EXECUTE IMMEDIATE FROM, which runs the script from a stage or a Git repository, may read the file as a Jinja template,
 # and the Snowflake CLI (snow sql -f) reads <% %> and &{ } as template variables. Nothing in the script is one now; keep it so.
+# The CLI also reads & (its legacy variable syntax) unless it is told not to, and the engine has && in it: the script has to be run
+# with snow sql --enable-templating NONE, or the engine arrives changed and fails (module is not defined). The check at the end
+# of the script shows it at once.
 if ($text -match '\{\{|\{%|\{#|<%|&\{') { throw 'The script holds a template delimiter ({{, {%, {#, <% or &{) that EXECUTE IMMEDIATE FROM or the Snowflake CLI could read as a template.' }
 # .NET resolves a relative path against the process directory, not PowerShell's, so make them absolute.
 $Output = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Output)
