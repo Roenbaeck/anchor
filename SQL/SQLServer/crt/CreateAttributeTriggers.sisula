@@ -1,0 +1,253 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the assembled views make them behave like tables.
+-- There is one 'instead of' trigger for: insert.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates.
+--
+$/ foreach anchor in schema.anchors
+$/ foreach attribute in anchor.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.it_$attribute.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[it_$attribute.name$];
+GO
+CREATE TRIGGER [$attribute.capsule$].[it_$attribute.name$] ON [$attribute.capsule$].[$attribute.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @maxVersion int;
+    DECLARE @currentVersion int;
+    DECLARE @$attribute.name$ TABLE (
+        $attribute.entityReferenceName$ $anchor.identity$ not null,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ endif
+        $attribute.positorColumnName$ $schema.metadata.positorRange$ not null,
+        $attribute.positingColumnName$ $schema.metadata.positingRange$ not null,
+        $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$ not null,
+        $attribute.assertionColumnName$ char(1) not null,
+$/ if attribute.knotRange
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$ varbinary(16) not null,
+$/ endif
+        $attribute.versionColumnName$ bigint not null,
+        $attribute.statementTypeColumnName$ char(1) not null,
+        primary key(
+            $attribute.versionColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.entityReferenceName$
+        )
+    );
+    INSERT INTO @$attribute.name$
+    SELECT
+        i.$attribute.entityReferenceName$,
+$/ if schema.METADATA
+        i.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+        i.$attribute.changingColumnName$,
+$/ endif
+        i.$attribute.positorColumnName$,
+        i.$attribute.positingColumnName$,
+        i.$attribute.reliabilityColumnName$,
+        case
+            when i.$attribute.reliabilityColumnName$ > $schema.metadata.deleteReliability$ then '+'
+            when i.$attribute.reliabilityColumnName$ = $schema.metadata.deleteReliability$ then '?'
+            when i.$attribute.reliabilityColumnName$ < $schema.metadata.deleteReliability$ then '-'
+            else '+' -- assume that unspecified reliability (NULL) means default
+        end,
+        i.$attribute.valueColumnName$,
+$/ if attribute.hasChecksum
+        $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))),
+$/ endif
+        DENSE_RANK() OVER (
+            PARTITION BY
+                i.$attribute.positorColumnName$,
+                i.$attribute.entityReferenceName$
+            ORDER BY
+$/ if attribute.isHistorized
+                i.$attribute.changingColumnName$ ASC,
+$/ endif
+                i.$attribute.positingColumnName$ ASC,
+                i.$attribute.reliabilityColumnName$ ASC
+        ),
+        'X'
+    FROM
+        inserted i;
+    SELECT
+        @maxVersion = max($attribute.versionColumnName$),
+        @currentVersion = 0
+    FROM
+        @$attribute.name$;
+    WHILE (@currentVersion < @maxVersion)
+    BEGIN
+        SET @currentVersion = @currentVersion + 1;
+        UPDATE v
+        SET
+            v.$attribute.statementTypeColumnName$ =
+                CASE
+                    WHEN EXISTS (
+                        SELECT TOP 1
+                            t.$attribute.identityColumnName$
+                        FROM
+                            [$anchor.capsule$].[t$anchor.name$](v.$attribute.positorColumnName$, $/ if attribute.isHistorized v.$attribute.changingColumnName$$/ else DEFAULT$/ endif, v.$attribute.positingColumnName$, v.$attribute.assertionColumnName$) t
+                        WHERE
+                            t.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                        AND
+                            t.$attribute.changingColumnName$ = v.$attribute.changingColumnName$
+$/ endif
+                        AND
+                            t.$attribute.reliabilityColumnName$ = v.$attribute.reliabilityColumnName$
+                        AND
+$/ if attribute.hasChecksum
+                            t.$attribute.checksumColumnName$ = v.$attribute.checksumColumnName$ $--$
+$/ else
+                            t.$attribute.valueColumnName$ = v.$attribute.valueColumnName$
+$/ endif
+                    )
+                    THEN 'D' -- duplicate assertion
+                    WHEN p.$attribute.entityReferenceName$ is not null
+                    THEN 'S' -- duplicate statement
+$/ if attribute.isHistorized
+                    WHEN EXISTS (
+                        SELECT
+$/ if attribute.hasChecksum
+                            v.$attribute.checksumColumnName$ $--$
+$/ else
+                            v.$attribute.valueColumnName$
+$/ endif
+                        WHERE
+$/ if attribute.hasChecksum
+                            v.$attribute.checksumColumnName$ = $--$
+$/ else
+                            v.$attribute.valueColumnName$ =
+$/ endif
+                                $attribute.capsule$.pre$attribute.name$ (
+                                    v.$attribute.entityReferenceName$,
+                                    v.$attribute.positorColumnName$,
+                                    v.$attribute.changingColumnName$,
+                                    v.$attribute.positingColumnName$,
+                                    v.$attribute.assertionColumnName$
+                                )
+                    ) OR EXISTS (
+                        SELECT
+$/ if attribute.hasChecksum
+                            v.$attribute.checksumColumnName$ $--$
+$/ else
+                            v.$attribute.valueColumnName$
+$/ endif
+                        WHERE
+$/ if attribute.hasChecksum
+                            v.$attribute.checksumColumnName$ = $--$
+$/ else
+                            v.$attribute.valueColumnName$ =
+$/ endif
+                                $attribute.capsule$.fol$attribute.name$ (
+                                    v.$attribute.entityReferenceName$,
+                                    v.$attribute.positorColumnName$,
+                                    v.$attribute.changingColumnName$,
+                                    v.$attribute.positingColumnName$,
+                                    v.$attribute.assertionColumnName$
+                                )
+                    )
+                    THEN 'R' -- restatement
+$/ endif
+                    ELSE 'N' -- new statement
+                END
+        FROM
+            @$attribute.name$ v
+        LEFT JOIN
+            [$attribute.capsule$].[$attribute.positName$] p
+        ON
+            p.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v.$attribute.changingColumnName$
+$/ endif
+        AND
+$/ if attribute.hasChecksum
+            p.$attribute.checksumColumnName$ = v.$attribute.checksumColumnName$ $--$
+$/ else
+            p.$attribute.valueColumnName$ = v.$attribute.valueColumnName$
+$/ endif
+        WHERE
+            v.$attribute.versionColumnName$ = @currentVersion;
+        INSERT INTO [$attribute.capsule$].[$attribute.positName$] (
+            $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.valueColumnName$
+        )
+        SELECT
+            $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.valueColumnName$
+        FROM
+            @$attribute.name$
+        WHERE
+            $attribute.versionColumnName$ = @currentVersion
+        AND
+            $attribute.statementTypeColumnName$ in ('N'$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif);
+        INSERT INTO [$attribute.capsule$].[$attribute.annexName$] (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.identityColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.positingColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            v.$attribute.metadataColumnName$,
+$/ endif
+            p.$attribute.identityColumnName$,
+            v.$attribute.positorColumnName$,
+            v.$attribute.positingColumnName$,
+            v.$attribute.reliabilityColumnName$
+        FROM
+            @$attribute.name$ v
+        JOIN
+            [$attribute.capsule$].[$attribute.positName$] p
+        ON
+            p.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v.$attribute.changingColumnName$
+$/ endif
+        AND
+$/ if attribute.hasChecksum
+            p.$attribute.checksumColumnName$ = v.$attribute.checksumColumnName$ $--$
+$/ else
+            p.$attribute.valueColumnName$ = v.$attribute.valueColumnName$
+$/ endif
+        WHERE
+            v.$attribute.versionColumnName$ = @currentVersion
+        AND
+            $attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif);
+    END
+END
+GO
+$/ endfor
+$/ endfor
+$/ endif
