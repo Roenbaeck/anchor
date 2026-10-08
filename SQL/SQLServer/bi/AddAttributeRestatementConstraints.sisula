@@ -1,0 +1,204 @@
+$/ if schema.hasUnrestatableAnchorAttributes
+-- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
+--
+-- Attributes may be prevented from storing restatements.
+-- A restatement is when the same value occurs for two adjacent points
+-- in changing time. Note that restatement checking is not done for
+-- unreliable information as this could prevent demotion.
+--
+-- If actual deletes are made, the remaining information will not
+-- be checked for restatements.
+--
+$/ foreach anchor in schema.anchors
+$/ foreach attribute in anchor.attributes where attribute.isHistorized and not attribute.isRestatable
+-- Restatement Checking Trigger ---------------------------------------------------------------------------------------
+-- rt_$attribute.name$ (available only in attributes that cannot have restatements)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.rt_$attribute.name$', 'TR') IS NOT NULL
+DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name$];
+GO
+CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name$] ON [$attribute.capsule$].[$attribute.annexName$]
+AFTER INSERT $--$
+AS $--$
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @message varchar(max);
+    DECLARE @$attribute.name$ TABLE (
+        $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif not null,
+        $attribute.entityReferenceName$ $anchor.identity$ not null,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+        $attribute.changingColumnName$ $attribute.timeRange$ not null,
+        $attribute.positingColumnName$ $schema.metadata.positingRange$ not null,
+        $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$ not null,
+$/ if attribute.knotRange
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ endif
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$ varbinary(16) not null,
+$/ endif
+        primary key (
+            $attribute.entityReferenceName$ asc, $--$
+            $attribute.changingColumnName$ desc,
+            $attribute.positingColumnName$ desc
+        ),
+        unique (
+            $attribute.identityColumnName$,
+            $attribute.positingColumnName$
+        )
+    );
+    INSERT INTO @$attribute.name$ (
+        $attribute.identityColumnName$,
+        $attribute.entityReferenceName$,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.changingColumnName$,
+        $attribute.positingColumnName$,
+        $attribute.reliabilityColumnName$,
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+        i.$attribute.identityColumnName$,
+        p.$attribute.entityReferenceName$,
+$/ if schema.METADATA
+        i.$attribute.metadataColumnName$,
+$/ endif
+        p.$attribute.changingColumnName$,
+        i.$attribute.positingColumnName$,
+        i.$attribute.reliabilityColumnName$,
+$/ if attribute.hasChecksum
+        p.$attribute.checksumColumnName$,
+$/ endif
+        p.$attribute.valueColumnName$
+    FROM $--$
+        inserted i
+    JOIN $--$
+        [$attribute.capsule$].[$attribute.positName$] p
+    ON $--$
+        p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$; -- the posit has already been created
+    INSERT INTO @$attribute.name$ (
+        $attribute.identityColumnName$,
+        $attribute.entityReferenceName$,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.changingColumnName$,
+        $attribute.positingColumnName$,
+        $attribute.reliabilityColumnName$,
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    )
+    SELECT
+        p.$attribute.identityColumnName$,
+        p.$attribute.entityReferenceName$,
+$/ if schema.METADATA
+        p.$attribute.metadataColumnName$,
+$/ endif
+        p.$attribute.changingColumnName$,
+        p.$attribute.positingColumnName$,
+        p.$attribute.reliabilityColumnName$,
+$/ if attribute.hasChecksum
+        p.$attribute.checksumColumnName$,
+$/ endif
+        p.$attribute.valueColumnName$
+    FROM $--$
+        (SELECT DISTINCT $attribute.entityReferenceName$ FROM @$attribute.name$) i
+    JOIN
+        [$attribute.capsule$].[$attribute.name$] p
+    ON $--$
+        p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+    LEFT JOIN $--$
+        @$attribute.name$ x
+    ON
+        x.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+    AND
+        x.$attribute.positingColumnName$ = p.$attribute.positingColumnName$
+    WHERE
+        x.$attribute.identityColumnName$ is null;
+    -- no need to check retracted information
+    DELETE a $--$
+    FROM $--$
+        @$attribute.name$ a
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$attribute.reliabilityColumnName$
+        FROM $--$
+            @$attribute.name$ x
+        WHERE
+            x.$attribute.identityColumnName$ = a.$attribute.identityColumnName$
+        AND
+            x.$attribute.positingColumnName$ < a.$attribute.positingColumnName$
+        ORDER BY
+            x.$attribute.positingColumnName$ DESC
+    ) pre $--$
+    OUTER APPLY (
+        SELECT TOP 1
+            x.$attribute.reliabilityColumnName$
+        FROM $--$
+            @$attribute.name$ x
+        WHERE
+            x.$attribute.identityColumnName$ = a.$attribute.identityColumnName$
+        AND
+            x.$attribute.positingColumnName$ > a.$attribute.positingColumnName$
+        ORDER BY
+            x.$attribute.positingColumnName$ ASC
+    ) fol $--$
+    WHERE
+        (a.$attribute.reliabilityColumnName$ = 1 AND fol.$attribute.reliabilityColumnName$ = 0)
+    OR
+        (a.$attribute.reliabilityColumnName$ = 0 AND pre.$attribute.reliabilityColumnName$ = 1);
+    -- check previous values
+    SET @message = (
+        SELECT TOP 1
+            pre.*
+        FROM $--$
+            @$attribute.name$ a
+        CROSS APPLY (
+            SELECT TOP 1
+                h.$attribute.entityReferenceName$,
+                h.$attribute.changingColumnName$,
+$/ if attribute.hasChecksum
+                h.$attribute.checksumColumnName$ $--$
+$/ else
+                h.$attribute.valueColumnName$
+$/ endif
+            FROM $--$
+                @$attribute.name$ h
+            WHERE
+                h.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
+            AND
+                h.$attribute.changingColumnName$ < a.$attribute.changingColumnName$
+            ORDER BY $--$
+                h.$attribute.changingColumnName$ DESC,
+                h.$attribute.positingColumnName$ DESC
+        ) pre
+        WHERE
+$/ if attribute.hasChecksum
+            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+$/ else
+            a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
+$/ endif
+        AND
+            a.$attribute.reliabilityColumnName$ = 1
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Restatement in $attribute.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+    END
+END
+GO
+$/ endfor
+$/ endfor
+$/ endif
