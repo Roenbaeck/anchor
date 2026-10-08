@@ -116,6 +116,9 @@ $/ if attribute.isIdempotent
     INSERT INTO @$attribute.name$
     SELECT
         i.$attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        p.$attribute.equivalentColumnName$,
+$/ endif
 $/ if schema.METADATA
         p.$attribute.metadataColumnName$,
 $/ endif
