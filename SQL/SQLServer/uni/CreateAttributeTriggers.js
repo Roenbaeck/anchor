@@ -93,6 +93,7 @@ BEGIN
     INSERT INTO @$attribute.name
     SELECT
         i.$attribute.entityReferenceName,
+        $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
         $(schema.METADATA)? p.$attribute.metadataColumnName,
         $(attribute.isHistorized())? p.$attribute.changingColumnName,
         p.$attribute.valueColumnName,
