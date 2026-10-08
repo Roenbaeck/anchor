@@ -1,0 +1,149 @@
+$/ if schema.hasHistorizedTiesWithValues
+-- TIE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------------
+--
+-- Ties may be prevented from storing restatements.
+-- A restatement is when the same (non-key) values occurs for two adjacent points
+-- in changing time.
+--
+-- returns 1 for one or two equal surrounding values, 0 for different surrounding values
+--
+-- @posit the id of the posit that should be checked
+-- @posited the time when this posit was made
+-- @positor the one who made the posit
+-- @assertion whether this posit is positively or negatively asserted, or unreliable
+--
+$/ foreach tie in schema.ties where tie.isHistorized
+$/ if tie.values
+-- Restatement Finder Function and Constraint -------------------------------------------------------------------------
+-- rf$tie.name$ restatement finder
+-- rc$tie.name$ restatement constraint (available only in ties that cannot have restatements)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$tie.capsule$.rf$tie.name$', 'FN') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$tie.capsule$].[rf$tie.name$] (
+        @posit $tie.identity$,
+        @posited $schema.metadata.positingRange$,
+        @positor $schema.metadata.positorRange$,
+        @assertion char(1)
+    )
+    RETURNS tinyint AS
+    BEGIN
+    DECLARE @changed $tie.timeRange$;
+$/ foreach role in tie.roles
+$/ if role.entity
+    DECLARE @$role.name$ $role.entity.identity$; $--$
+$/ else
+    DECLARE @$role.name$ $role.knot.identity$;
+$/ endif
+$/ endfor
+    SELECT
+$/ foreach role in tie.roles
+        @$role.name$ = p.$role.columnName$,
+$/ endfor
+        @changed = p.$tie.changingColumnName$
+    FROM
+        [$tie.capsule$].[$tie.positName$] p
+    WHERE
+        p.$tie.identityColumnName$ = @posit;
+    RETURN
+        CASE WHEN @assertion = ''?'' THEN 0
+        ELSE (
+        SELECT
+            COUNT(*)
+        FROM (
+            SELECT TOP 1
+$/ foreach role in tie.values
+                pre.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                [$tie.capsule$].[r$tie.name$] (
+                    @positor,
+                    @changed,
+                    @posited
+                ) pre
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                pre.$role.columnName$ = @$role.name$
+            AND
+$/ endfor
+$/ else
+            (
+$/ foreach role in tie.anchorRoles
+                    pre.$role.columnName$ = @$role.name$
+$/ if not role.last()
+                OR
+$/ endif
+$/ endfor
+            )
+            AND
+$/ endif
+                pre.$tie.changingColumnName$ < @changed
+            AND
+                pre.$tie.assertionColumnName$ = @assertion
+            ORDER BY
+                pre.$tie.changingColumnName$ DESC,
+                pre.$tie.positingColumnName$ DESC
+            UNION
+            SELECT TOP 1
+$/ foreach role in tie.values
+                fol.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                [$tie.capsule$].[f$tie.name$] (
+                    @positor,
+                    @changed,
+                    @posited $--$
+                ) fol
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                fol.$role.columnName$ = @$role.name$
+            AND
+$/ endfor
+$/ else
+            (
+$/ foreach role in tie.anchorRoles
+                    fol.$role.columnName$ = @$role.name$
+$/ if not role.last()
+                OR
+$/ endif
+$/ endfor
+            )
+            AND
+$/ endif
+                fol.$tie.changingColumnName$ > @changed
+            AND
+                fol.$tie.assertionColumnName$ = @assertion
+            ORDER BY
+                fol.$tie.changingColumnName$ ASC,
+                fol.$tie.positingColumnName$ DESC
+        ) s
+        WHERE
+$/ foreach role in tie.values
+            s.$role.columnName$ = @$role.name$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    )
+    END;
+    END
+    ');
+$/ if not tie.isRestatable
+    ALTER TABLE [$tie.capsule$].[$tie.annexName$]
+    ADD CONSTRAINT [rc$tie.name$] CHECK (
+        [$tie.capsule$].[rf$tie.name$] (
+            $tie.identityColumnName$,
+            $tie.positingColumnName$,
+            $tie.positorColumnName$,
+            $tie.assertionColumnName$
+        ) = 0
+    );
+$/ endif
+END
+GO
+$/ endif
+$/ endfor
+$/ endif

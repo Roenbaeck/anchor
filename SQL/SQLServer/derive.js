@@ -287,3 +287,15 @@ if (schema.serialization && typeof schema.serialization._serialization === 'stri
     }
 })();
 // ---- end bi-crt attributes ----
+
+// ---- bi-crt tieviews: tie restatement constraints ----
+//   hasHistorizedTiesWithValues  whether some historized tie has roles outside of its identifier (crt writes a
+//                                restatement finder for each, whether or not it may store restatements)
+(function () {
+    var tie;
+    schema.hasHistorizedTiesWithValues = false;
+    while (tie = schema.nextHistorizedTie())
+        if (tie.values.length > 0)
+            schema.hasHistorizedTiesWithValues = true;
+})();
+// ---- end bi-crt tieviews ----
