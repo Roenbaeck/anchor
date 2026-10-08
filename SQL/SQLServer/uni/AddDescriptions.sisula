@@ -1,0 +1,97 @@
+-- DESCRIPTIONS -------------------------------------------------------------------------------------------------------
+$/ foreach knot in schema.knots where knot.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$knot.capsule$',
+$/ if knot.isEquivalent
+@level1type = N'Table', @level1name = '$knot.identityName$'; $--$
+$/ else
+@level1type = N'Table', @level1name = '$knot.name$';
+$/ endif
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$knot.descriptionText$',
+@level0type = N'Schema', @level0name = '$knot.capsule$',
+$/ if knot.isEquivalent
+@level1type = N'Table', @level1name = '$knot.identityName$'; $--$
+$/ else
+@level1type = N'Table', @level1name = '$knot.name$';
+$/ endif
+GO
+$/ endfor
+$/ foreach anchor in schema.anchors where anchor.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$anchor.capsule$',
+@level1type = N'Table', @level1name = '$anchor.name$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$anchor.descriptionText$',
+@level0type = N'Schema', @level0name = '$anchor.capsule$',
+@level1type = N'Table', @level1name = '$anchor.name$';
+GO
+$/ endfor
+$/ foreach tie in schema.ties
+$/ if tie.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$tie.capsule$',
+@level1type = N'Table', @level1name = '$tie.name$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$tie.descriptionText$',
+@level0type = N'Schema', @level0name = '$tie.capsule$',
+@level1type = N'Table', @level1name = '$tie.name$';
+GO
+$/ endif
+$/ foreach role in tie.roles where role.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$tie.capsule$',
+@level1type = N'Table', @level1name = '$tie.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$role.descriptionText$',
+@level0type = N'Schema', @level0name = '$tie.capsule$',
+@level1type = N'Table', @level1name = '$tie.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+GO
+$/ endfor
+$/ endfor
+$/ foreach nexus in schema.nexuses where nexus.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$nexus.descriptionText$',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$';
+GO
+$/ endfor
+$/ foreach attribute in schema.attributes where attribute.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$attribute.capsule$',
+@level1type = N'Table', @level1name = '$attribute.name$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$attribute.descriptionText$',
+@level0type = N'Schema', @level0name = '$attribute.capsule$',
+@level1type = N'Table', @level1name = '$attribute.name$';
+GO
+$/ endfor

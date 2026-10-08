@@ -269,7 +269,7 @@ DROP TABLE [$nexus.capsule].[$key.tableName];
 GO
 
 CREATE TABLE [$nexus.capsule].[$key.tableName](
-    $nexus.identityColumnName $nexus.identityRange NOT NULL,
+    $nexus.identityColumnName $nexus.identity NOT NULL,
                 ~*/
                 for(stop in key.stops) {
                     component = key.stops[stop];
@@ -299,7 +299,7 @@ CREATE TABLE [$nexus.capsule].[$key.tableName](
     /*~
     ),
     CONSTRAINT uq$key.tableName UNIQUE (
-        $(schema.EQUIVALENCE)? $anchor.mnemonic$schema.metadata.equivalentSuffix,
+        $(schema.EQUIVALENCE)? $nexus.mnemonic$schema.metadata.equivalentSuffix,
     ~*/
                 var numberOfStops = Object.keys(key.stops).length;
                 var currentStopNumber = 0;

@@ -162,7 +162,7 @@ match (they never did before).
 
 ## Open items
 
-- **Port the rest:** the other databases (SQL Server, PostgreSQL, Oracle, Vertica, BigQuery), only when someone
+- **Port the rest:** SQL Server bi and crt (uni is done, see above), and the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone
   needs one. Delete a database's old `.js` sisulets, as was done for Snowflake, once its output has been run.
 - **Run the generated Snowflake SQL** for uni, bi and crt on a real account (nothing has been run, and the lint
   is only a heuristic), and look at what is still open under the defects above.
@@ -302,6 +302,53 @@ change.
 - The other databases' sisulets have these defects too (see 2 and 5) and nobody has looked at them.
 - Cosmetic, kept because they are in the golden files: trailing spaces after some commas and column names
   and bi headers without the construct's name line.
+
+## SQL Server uni on the Sisula engine (ported 2026-10-08)
+
+`SQLServer_uni.directive` lists 31 Sisula templates (`SQL/SQLServer/{uni,biz,clr}/*.sisula`, `SQL/SQLServer/CreateSchemaTracking.sisula`)
+and the prelude `Helpers.js`, `NamingConvention.js`, `SQL/SQLServer/NamingConvention.js`, `SQL/SQLServer/derive.js`. The original sisulets and
+their directive, `SQLServer_uni.legacy.directive`, are still here: they are what `golden.ps1` runs to make the independent output. bi and crt
+for SQL Server are **not** ported; their directives still list `.js` sisulets and the modeler still runs them on the original engine.
+
+**What was verified (no SQL Server on the development machine):** for 18 models (`models/sqlserver-*.xml`: the uni models of Snowflake converted
+with the data type converter and saved through the modeler, plus variants for business views and knot aliases, no triggers, partitioning, natural
+keys, deletability, encryption, and the knot roles of two ties moved from last) every template renders byte for byte what the original sisulet gave
+(`run-all.ps1`), in the C# renderer of `sisula-mssql` too (`csharp-check.ps1`), and the modeler itself in headless Edge produces the same whole script
+(`browser-check.ps1`, with the schema tracking text, which carries a time stamp, compared as a placeholder) and the same JSON bindings. **The SQL has
+not been run on a SQL Server.** Since it is the original output except for the corrections below, running one script of each kind is the check.
+
+**Differences from the original output** (everything else is identical):
+- The generated SQL was corrected where the original crashed or gave invalid SQL: a tie role that is a nexus (`role.anchor` was used as if every
+  non-knot role were an anchor: `CreateTieTriggers`, `AddTieRestatementConstraints`); the key table of a nexus with equivalence on (`CreateKeys` used
+  `$anchor.mnemonic` in the nexus section); a missing comma after the last role of an equivalent nexus perspective (`el`, `ep` in
+  `CreateNexusPerspectives`, and the equivalence perspectives of `CreateNexusBusinessPerspectives`); the missing type of the identity column of a
+  nexus key table (`nexus.identityRange` does not exist, it is `nexus.identity`).
+- `AddEncryption` asked for the master key password with `prompt()`. A template cannot ask: it prints the text that the dialog offered, `<TYPE STRONG
+  PASSWORD HERE>`, in `CREATE MASTER KEY ENCRYPTION BY PASSWORD = '...'`, which has to be replaced in the script before it is run.
+- `AddDescriptions` doubles a single quote in a description (the original pasted it as it was, so a description with a quote gave invalid SQL).
+- `CreateSchemaTracking` embeds the model in pieces of at most 3000 characters (`schema.serialization.chunks`, made in `derive.js`): SQL Server's
+  `JSON_VALUE`, which the C# renderer reads values with, returns at most 4000 characters, so a longer value is invisible to a template there.
+  **That limit applies to any template that reads a long text from the bindings.**
+
+**Known defects of the original that are kept, because the golden files carry them** (none is hit by the 18 models unless said):
+- `CreateKeys`, equivalence with natural keys: `$anchor.mnemonic$schema.metadata.equivalentSuffix` is read as the token followed by literal text, so the
+  column is called `STschema.metadata.equivalentSuffix` (invalid SQL; it is in the golden files of the equivalence models with natural keys). What the
+  column should be called, and in the nexus section too, is a decision.
+- `CreateKeys`: the unique constraint of a key table names the column of the stop before (a variable that lags), and prints the text `undefined,` after a
+  tie stop in a historized route; the view counts the stops twice when natural keys are on, so a one-stop route gets the long join. A route through a tie
+  crashes the original under Jint (stops are visited in insertion order there, ascending in a browser): the template does not crash.
+- `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true).
+- `CreateNexuses`, `CreateTies`, `CreateAttributes`: a knot flagged equivalent in a model with equivalence off references an `_ID` table that is never
+  created (the `handwritten` model).
+- `AddEncryption` and the CLR check look at the attributes of anchors only, not those of nexuses.
+- `CreateTieTriggers`: the delete-in-update block of a historized tie has no `;` before `IF(@@ROWCOUNT > 0)`; some deletion trigger blocks end `ELSE ... END`
+  without `;`. Only reached for deletable ties.
+- `CreateSchemaTracking`: the serialization is not escaped for the T-SQL literal `N'...'`, so a model with an apostrophe anywhere in its XML breaks the
+  script.
+
+**To update this port:** change the template and the original sisulet together while the original is still here (the golden files come from it:
+`golden.ps1`, see `tools/make-sqlserver-models.ps1` and the tools README), or regenerate the golden files from the templates (`regenerate-golden.ps1`) once
+the originals are removed. The originals can go when someone has run the output on a SQL Server.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

@@ -181,12 +181,12 @@ SELECT
                 if(role.knot) {
                     knot = role.knot;
 /*~
-    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
                 }
                 else {
 /*~
-    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
                 }
             }
@@ -224,12 +224,12 @@ SELECT
                 if(role.knot) {
                     knot = role.knot;
 /*~
-    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.knotValueColumnName AS [$role.businessName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
                 }
                 else {
 /*~
-    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles())?,
+    [$nexus.mnemonic].$role.columnName as [$role.businessColumnName]$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
 ~*/
                 }
             }

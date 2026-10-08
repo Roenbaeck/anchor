@@ -1,0 +1,140 @@
+-- ATTRIBUTES (UNIFIED FOR ANCHORS AND NEXUSES) ---------------------------------------------------------------------
+--
+-- Attributes are mutable properties attached to either anchors or nexuses.
+-- Flavors: static, historized, knotted static, knotted historized.
+-- This unified script creates all attribute tables using the global attribute iterator.
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.isHistorized and not attribute.isKnotted
+-- Historized attribute table ----------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.$attribute.name$', 'U') IS NULL
+CREATE TABLE [$attribute.capsule$].[$attribute.name$] (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($attribute.valueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
+$/ endif
+    $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references [$attribute.parent.capsule$].[$attribute.parent.name$]($attribute.parent.identityColumnName$),
+    constraint pk$attribute.name$ primary key (
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$ asc,
+$/ endif
+        $attribute.entityReferenceName$ asc,
+        $attribute.changingColumnName$ desc
+    )
+$/ if attribute.isEquivalent
+$/ if schema.PARTITIONING
+) ON EquivalenceScheme($attribute.equivalentColumnName$); $--$
+$/ else
+); $--$
+$/ endif
+$/ else
+);
+$/ endif
+GO
+$/ endif
+$/ if attribute.isHistorized and attribute.isKnotted
+-- Knotted historized attribute table --------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.$attribute.name$', 'U') IS NULL
+CREATE TABLE [$attribute.capsule$].[$attribute.name$] (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+    $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk_A_$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references [$attribute.parent.capsule$].[$attribute.parent.name$]($attribute.parent.identityColumnName$),
+    constraint fk_K_$attribute.name$ foreign key (
+        $attribute.knotReferenceName$
+$/ if attribute.knot.isEquivalent
+    ) references [$attribute.knot.capsule$].[$attribute.knot.identityName$]($attribute.knot.identityColumnName$),
+$/ else
+    ) references [$attribute.knot.capsule$].[$attribute.knot.name$]($attribute.knot.identityColumnName$),
+$/ endif
+    constraint pk$attribute.name$ primary key (
+        $attribute.entityReferenceName$ asc,
+        $attribute.changingColumnName$ desc
+    )
+);
+GO
+$/ endif
+$/ if not attribute.isHistorized and attribute.isKnotted
+-- Knotted static attribute table ------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.$attribute.name$', 'U') IS NULL
+CREATE TABLE [$attribute.capsule$].[$attribute.name$] (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+    $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk_A_$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references [$attribute.parent.capsule$].[$attribute.parent.name$]($attribute.parent.identityColumnName$),
+    constraint fk_K_$attribute.name$ foreign key (
+        $attribute.knotReferenceName$
+$/ if attribute.knot.isEquivalent
+    ) references [$attribute.knot.capsule$].[$attribute.knot.identityName$]($attribute.knot.identityColumnName$),
+$/ else
+    ) references [$attribute.knot.capsule$].[$attribute.knot.name$]($attribute.knot.identityColumnName$),
+$/ endif
+    constraint pk$attribute.name$ primary key (
+        $attribute.entityReferenceName$ asc
+    )
+);
+GO
+$/ endif
+$/ if not attribute.isHistorized and not attribute.isKnotted
+-- Static attribute table --------------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.$attribute.name$', 'U') IS NULL
+CREATE TABLE [$attribute.capsule$].[$attribute.name$] (
+    $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if attribute.isEquivalent
+    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$ not null,
+$/ endif
+    $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+    $attribute.checksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($attribute.valueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
+$/ endif
+$/ if schema.METADATA
+    $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint fk$attribute.name$ foreign key (
+        $attribute.entityReferenceName$
+    ) references [$attribute.parent.capsule$].[$attribute.parent.name$]($attribute.parent.identityColumnName$),
+    constraint pk$attribute.name$ primary key (
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$ asc,
+$/ endif
+        $attribute.entityReferenceName$ asc
+    )
+$/ if attribute.isEquivalent
+$/ if schema.PARTITIONING
+) ON EquivalenceScheme($attribute.equivalentColumnName$); $--$
+$/ else
+); $--$
+$/ endif
+$/ else
+);
+$/ endif
+GO
+$/ endif
+$/ endfor

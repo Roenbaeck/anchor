@@ -1,0 +1,48 @@
+-- ATTRIBUTE REWINDERS ------------------------------------------------------------------------------------------------
+--
+-- These table valued functions rewind an attribute table to the given
+-- point in changing time. It does not pick a temporal perspective and
+-- instead shows all rows that have been in effect before that point
+-- in time.
+--
+-- @changingTimepoint the point in changing time to rewind to
+--
+$/ foreach attribute in schema.attributes where attribute.isHistorized
+-- Attribute rewinder -------------------------------------------------------------------------------------------------
+-- r$attribute.name$ rewinding over changing time function
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.r$attribute.name$','IF') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$attribute.capsule$].[r$attribute.name$] (
+$/ if attribute.isEquivalent
+        @equivalent $schema.metadata.equivalentRange$,
+$/ endif
+        @changingTimepoint $attribute.timeRange$
+    )
+    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+    SELECT
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isEquivalent
+        $attribute.equivalentColumnName$,
+$/ endif
+$/ if not attribute.isKnotted and attribute.hasChecksum
+        $attribute.checksumColumnName$,
+$/ endif
+        $attribute.valueColumnName$,
+        $attribute.changingColumnName$
+    FROM
+$/ if attribute.isEquivalent
+        [$attribute.capsule$].[e$attribute.name$](@equivalent) $--$
+$/ else
+        [$attribute.capsule$].[$attribute.name$]
+$/ endif
+    WHERE
+        $attribute.changingColumnName$ <= @changingTimepoint;
+    ');
+END
+GO
+$/ endfor

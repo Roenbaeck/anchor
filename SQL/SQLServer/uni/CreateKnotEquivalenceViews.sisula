@@ -1,0 +1,63 @@
+-- KNOT EQUIVALENCE VIEWS ---------------------------------------------------------------------------------------------
+--
+-- Equivalence views combine the identity and equivalent parts of a knot into a single view, making
+-- it look and behave like a regular knot. They also make it possible to retrieve data for only the
+-- given equivalent.
+--
+-- @equivalent the equivalent that you want to retrieve data for
+--
+$/ foreach knot in schema.knots
+$/ if schema.EQUIVALENCE and knot.isEquivalent
+-- Knot equivalence view ----------------------------------------------------------------------------------------------
+-- $knot.name$ view and parametrized view
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$knot.capsule$.$knot.name$', 'V') IS NULL
+BEGIN
+    EXEC('
+    CREATE VIEW [$knot.capsule$].[$knot.name$] WITH SCHEMABINDING
+    AS
+    SELECT
+$/ if schema.METADATA
+        v.$knot.metadataColumnName$,
+$/ endif
+        i.$knot.identityColumnName$,
+        v.$knot.equivalentColumnName$,
+$/ if knot.hasChecksum
+        v.$knot.checksumColumnName$,
+$/ endif
+        v.$knot.valueColumnName$
+    FROM
+        [$knot.capsule$].[$knot.identityName$] i
+    JOIN
+        [$knot.capsule$].[$knot.equivalentName$] v
+    ON
+        v.$knot.identityColumnName$ = i.$knot.identityColumnName$;
+    ');
+END
+GO
+IF Object_ID('$knot.capsule$.e$knot.name$', 'IF') IS NULL
+BEGIN
+    EXEC('
+    CREATE FUNCTION [$knot.capsule$].[e$knot.name$] (
+        @equivalent $schema.metadata.equivalentRange$
+    )
+    RETURNS TABLE WITH SCHEMABINDING AS RETURN
+    SELECT
+$/ if schema.METADATA
+        $knot.metadataColumnName$,
+$/ endif
+        $knot.identityColumnName$,
+        $knot.equivalentColumnName$,
+$/ if knot.hasChecksum
+        $knot.checksumColumnName$,
+$/ endif
+        $knot.valueColumnName$
+    FROM
+        [$knot.capsule$].[$knot.name$]
+    WHERE
+        $knot.equivalentColumnName$ = @equivalent;
+    ');
+END
+GO
+$/ endif
+$/ endfor

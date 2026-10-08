@@ -1,0 +1,317 @@
+$/ foreach anchor in schema.anchors
+$/ foreach key in anchor.keyRoutes
+$/ if schema.NATURAL_KEY_ATTRIBUTES
+-- Materialized Natural Key Table -------------------------------------------------
+-- $key.route$ key table for lookups of identities in $anchor.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$anchor.capsule$.$key.tableName$', 'U') IS NOT NULL
+DROP TABLE [$anchor.capsule$].[$key.tableName$];
+GO
+CREATE TABLE [$anchor.capsule$].[$key.tableName$](
+    $anchor.identityColumnName$ $anchor.identity$ NOT NULL,
+$/ foreach stop in key.attributeStops
+    $stop.routedValueColumnName$ $stop.dataRange$ NOT NULL,
+$/ endfor
+$/ if key.historized
+    $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,
+$/ endif
+$/ if schema.EQUIVALENCE
+    $anchor.mnemonic$schema.metadata.equivalentSuffix $schema.metadata.equivalentRange$ NOT NULL,
+$/ endif
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$ NOT NULL,
+$/ endif
+    CONSTRAINT pk$key.tableName$ PRIMARY KEY CLUSTERED (
+$/ if schema.EQUIVALENCE
+        $anchor.mnemonic$schema.metadata.equivalentSuffix,
+$/ endif
+        $anchor.identityColumnName$$/ if key.historized ,$/ endif
+$/ if key.historized
+        $key.changingColumnName$
+$/ endif
+    ),
+    CONSTRAINT uq$key.tableName$ UNIQUE (
+$/ if schema.EQUIVALENCE
+        $anchor.mnemonic$schema.metadata.equivalentSuffix,
+$/ endif
+$/ foreach stop in key.attributeStops
+$/ if stop.uniqueColumnName
+        $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
+$/ endif
+$/ endfor
+$/ if key.historized
+        $key.changingColumnName$
+$/ endif
+    )
+);
+GO
+$/ endif
+-- Key view -----------------------------------------------------------------------------------------------------------
+-- $key.route$ key view for lookups of identities in $anchor.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$anchor.capsule$.$key.name$', 'V') IS NOT NULL
+DROP VIEW [$anchor.capsule$].[$key.name$];
+GO
+CREATE VIEW [$anchor.capsule$].[$key.name$] WITH SCHEMABINDING AS
+SELECT
+$/ foreach stop in key.attributeStops
+    twine.$stop.routedValueColumnName$,
+$/ endfor
+$/ if key.historizedAttributeCount > 0 and key.viewStopCount > 1
+    twine.[$schema.metadata.changingSuffix$],
+$/ endif
+$/ if key.historizedAttributeCount > 0 and key.viewStopCount == 1
+    twine.$key.lastAttribute.changingColumnName$ AS [$schema.metadata.changingSuffix$],
+$/ endif
+    [$anchor.mnemonic$].$anchor.identityColumnName$
+FROM
+    [$anchor.capsule$].[$anchor.name$] [$anchor.mnemonic$]
+$/ if key.viewStopCount == 1
+LEFT JOIN $--$
+    [$key.lastAttribute.capsule$].[$key.lastAttribute.name$] twine
+ON
+    twine.$key.lastAttribute.entityReferenceName$ = [$anchor.mnemonic$].$anchor.identityColumnName$;
+GO
+$/ else
+LEFT JOIN (
+    SELECT TOP 1 WITH TIES
+$/ foreach stop in key.attributeStops
+        CAST(
+            MAX(CASE
+                WHEN [QualifiedType] = '$stop.routedValueColumnName$'
+                THEN [Value] END
+            ) OVER (
+                PARTITION BY $--$
+                    $anchor.identityColumnName$, $--$
+                    $stop.routedChangingColumnName$
+            ) AS $stop.dataRange$
+        ) AS $stop.routedValueColumnName$,
+$/ endfor
+        $anchor.identityColumnName$,
+        [$schema.metadata.changingSuffix$]
+    FROM (
+        SELECT
+$/ foreach stop in key.attributeStops
+            MAX(CASE
+                WHEN [QualifiedType] = '$stop.routedValueColumnName$' $--$
+                 AND [Value] is not null
+                THEN [$schema.metadata.changingSuffix$] END
+            ) OVER (
+                PARTITION BY $anchor.identityColumnName$ $--$
+                ORDER BY [$schema.metadata.changingSuffix$]
+            ) AS $stop.routedChangingColumnName$,
+$/ endfor
+            $anchor.identityColumnName$,
+            [Value],
+            [QualifiedType],
+            [$schema.metadata.changingSuffix$]
+        FROM (
+$/ foreach branch in key.branches
+            SELECT
+                $branch.idColumn$ AS $anchor.identityColumnName$, $--$
+                CAST($branch.valueColumnName$ AS VARBINARY(max)) AS [Value],
+                '$branch.qualifiedType$' AS [QualifiedType],
+$/ if branch.isHistorized
+                CAST($branch.changingColumnName$ AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
+$/ else
+                CAST(NULL AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
+$/ endif
+            FROM
+$/ if branch.componentCount == 1
+                [$branch.capsule$].[$branch.name$] $--$
+$/ else
+$/ foreach step in branch.steps
+$/ if step.isTie
+                [$step.tieCapsule$].[$step.tieName$] [$step.mnemonic$] $--$
+            JOIN $--$
+$/ if step.hasAnchor
+                [$step.anchorCapsule$].[$step.anchorName$] [$step.anchorMnemonic$] $--$
+            ON
+                [$step.anchorMnemonic$].$step.anchorIdentityColumnName$ = [$step.mnemonic$].$step.roleColumnName$
+            JOIN
+$/ endif
+$/ else
+                [$step.capsule$].[$step.name$] [$step.mnemonic$] $--$
+            ON
+                [$step.mnemonic$].$step.entityReferenceName$ = [$step.referencedAnchorMnemonic$].$step.referencedAnchorIdentityColumnName$
+$/ endif
+$/ endfor
+$/ endif
+$/ if not branch.last()
+            UNION ALL
+$/ endif
+$/ endfor
+        ) unified_timelines
+    ) resolved_changes
+    ORDER BY $--$
+        ROW_NUMBER() OVER (
+            PARTITION BY $--$
+                $anchor.identityColumnName$, $--$
+                [$schema.metadata.changingSuffix$] $--$
+            ORDER BY
+                (select 1)
+        )
+) twine
+ON
+    twine.$anchor.identityColumnName$ = [$anchor.mnemonic$].$anchor.identityColumnName$;
+GO
+$/ endif
+$/ endfor
+$/ endfor
+$/ foreach nexus in schema.nexuses
+$/ foreach key in nexus.keyRoutes
+$/ if schema.NATURAL_KEY_ATTRIBUTES
+-- Materialized Natural Key Table -------------------------------------------------
+-- $key.route$ key table for lookups of identities in $nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$nexus.capsule$.$key.tableName$', 'U') IS NOT NULL
+DROP TABLE [$nexus.capsule$].[$key.tableName$];
+GO
+CREATE TABLE [$nexus.capsule$].[$key.tableName$](
+    $nexus.identityColumnName$ $nexus.identity$ NOT NULL,
+$/ foreach stop in key.attributeStops
+    $stop.routedValueColumnName$ $stop.dataRange$ NULL,
+$/ endfor
+$/ if key.historized
+    $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,
+$/ endif
+$/ if schema.EQUIVALENCE
+    $nexus.mnemonic$schema.metadata.equivalentSuffix $schema.metadata.equivalentRange$ NOT NULL,
+$/ endif
+$/ if schema.METADATA
+    $nexus.metadataColumnName$ $schema.metadata.metadataType$ NOT NULL,
+$/ endif
+    CONSTRAINT pk$key.tableName$ PRIMARY KEY CLUSTERED (
+        $nexus.identityColumnName$$/ if key.historized ,$/ endif
+$/ if key.historized
+        $key.changingColumnName$
+$/ endif
+    ),
+    CONSTRAINT uq$key.tableName$ UNIQUE (
+$/ if schema.EQUIVALENCE
+        $nexus.mnemonic$schema.metadata.equivalentSuffix,
+$/ endif
+$/ foreach stop in key.attributeStops
+$/ if stop.uniqueColumnName
+        $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
+$/ endif
+$/ endfor
+$/ if key.historized
+        $key.changingColumnName$
+$/ endif
+    )
+);
+GO
+$/ endif
+-- Key view -----------------------------------------------------------------------------------------------------------
+-- $key.route$ key view for lookups of identities in $nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$nexus.capsule$.$key.name$', 'V') IS NOT NULL
+DROP VIEW [$nexus.capsule$].[$key.name$];
+GO
+CREATE VIEW [$nexus.capsule$].[$key.name$] WITH SCHEMABINDING AS
+SELECT
+$/ foreach stop in key.attributeStops
+    twine.$stop.routedValueColumnName$,
+$/ endfor
+$/ if key.historizedAttributeCount > 0 and key.viewStopCount > 1
+    twine.[$schema.metadata.changingSuffix$],
+$/ endif
+$/ if key.historizedAttributeCount > 0 and key.viewStopCount == 1
+    twine.$key.lastAttribute.changingColumnName$ AS [$schema.metadata.changingSuffix$],
+$/ endif
+    [$nexus.mnemonic$].$nexus.identityColumnName$
+FROM
+    [$nexus.capsule$].[$nexus.name$] [$nexus.mnemonic$]
+$/ if key.viewStopCount == 1
+LEFT JOIN $--$
+    [$key.lastAttribute.capsule$].[$key.lastAttribute.name$] twine
+ON
+    twine.$key.lastAttribute.entityReferenceName$ = [$nexus.mnemonic$].$nexus.identityColumnName$;
+GO
+$/ else
+LEFT JOIN (
+    SELECT TOP 1 WITH TIES
+$/ foreach stop in key.attributeStops
+        CAST(
+            MAX(CASE
+                WHEN [QualifiedType] = '$stop.routedValueColumnName$'
+                THEN [Value] END
+            ) OVER (
+                PARTITION BY $--$
+                    $nexus.identityColumnName$, $--$
+                    $stop.routedChangingColumnName$
+            ) AS $stop.dataRange$
+        ) AS $stop.routedValueColumnName$,
+$/ endfor
+        $nexus.identityColumnName$,
+        [$schema.metadata.changingSuffix$]
+    FROM (
+        SELECT
+$/ foreach stop in key.attributeStops
+            MAX(CASE
+                WHEN [QualifiedType] = '$stop.routedValueColumnName$' $--$
+                 AND [Value] is not null
+                THEN [$schema.metadata.changingSuffix$] END
+            ) OVER (
+                PARTITION BY $nexus.identityColumnName$ $--$
+                ORDER BY [$schema.metadata.changingSuffix$]
+            ) AS $stop.routedChangingColumnName$,
+$/ endfor
+            $nexus.identityColumnName$,
+            [Value],
+            [QualifiedType],
+            [$schema.metadata.changingSuffix$]
+        FROM (
+$/ foreach branch in key.branches
+            SELECT
+                $branch.idColumn$ AS $nexus.identityColumnName$, $--$
+                CAST($branch.valueColumnName$ AS VARBINARY(max)) AS [Value],
+                '$branch.qualifiedType$' AS [QualifiedType],
+$/ if branch.isHistorized
+                CAST($branch.changingColumnName$ AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
+$/ else
+                CAST(NULL AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
+$/ endif
+            FROM
+$/ if branch.componentCount == 1
+                [$branch.capsule$].[$branch.name$] $--$
+$/ else
+$/ foreach step in branch.steps
+$/ if step.isTie
+                [$step.tieCapsule$].[$step.tieName$] [$step.mnemonic$] $--$
+            JOIN $--$
+$/ if step.hasAnchor
+                [$step.anchorCapsule$].[$step.anchorName$] [$step.anchorMnemonic$] $--$
+            ON
+                [$step.anchorMnemonic$].$step.anchorIdentityColumnName$ = [$step.mnemonic$].$step.roleColumnName$
+            JOIN
+$/ endif
+$/ else
+                [$step.capsule$].[$step.name$] [$step.mnemonic$] $--$
+            ON
+                [$step.mnemonic$].$step.entityReferenceName$ = [$step.referencedAnchorMnemonic$].$step.referencedAnchorIdentityColumnName$
+$/ endif
+$/ endfor
+$/ endif
+$/ if not branch.last()
+            UNION ALL
+$/ endif
+$/ endfor
+        ) unified_timelines
+    ) resolved_changes
+    ORDER BY $--$
+        ROW_NUMBER() OVER (
+            PARTITION BY $--$
+                $nexus.identityColumnName$, $--$
+                [$schema.metadata.changingSuffix$] $--$
+            ORDER BY
+                (select 1)
+        )
+) twine
+ON
+    twine.$nexus.identityColumnName$ = [$nexus.mnemonic$].$nexus.identityColumnName$;
+GO
+$/ endif
+$/ endfor
+$/ endfor

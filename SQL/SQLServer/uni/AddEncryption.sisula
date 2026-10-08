@@ -1,0 +1,38 @@
+$/ if schema.encryptionGroups
+-- ENCRYPTION GROUPS -------------------------------------------------------------------------------------------------
+--
+-- Certificates are created for the encryption groups defined in the metadata.
+-- Please note that the "master" password is not stored anywhere after this script
+-- has been run. In other words, YOU NEED TO KEEP TRACK OF THIS ELSEWHERE!
+--
+-- MASTER KEY ---------------------------------------------------------------------------------------------------------
+-- The master key used to create certificates and other keys (should not be stored)
+-----------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE [name] = '##MS_DatabaseMasterKey##')
+BEGIN
+    CREATE MASTER KEY ENCRYPTION BY PASSWORD = '<TYPE STRONG PASSWORD HERE>';
+END
+GO
+$/ foreach group in schema.encryptionGroups
+-- GROUP CERTIFICATE --------------------------------------------------------------------------------------------------
+-- An encryption certificate used by the "$group.name$" group
+-----------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.certificates WHERE [name] = '$group.name$')
+BEGIN
+    CREATE CERTIFICATE [$group.name$] WITH SUBJECT = '$group.name$';
+END
+-- GROUP KEY ----------------------------------------------------------------------------------------------------------
+-- An encryption key used to encrypt the data in the attributes: $--$
+$/ foreach attribute in group.attributes
+--	$attribute.name$
+$/ endfor
+-----------------------------------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE [name] = '$group.name$')
+BEGIN
+    CREATE SYMMETRIC KEY [$group.name$]
+    WITH ALGORITHM = AES_256, $--$
+    IDENTITY_VALUE = '$group.name$'
+    ENCRYPTION BY CERTIFICATE [$group.name$];
+END
+$/ endfor
+$/ endif
