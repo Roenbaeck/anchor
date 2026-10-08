@@ -9,47 +9,47 @@ $/ if schema.EQUIVALENCE and attribute.isEquivalent and not attribute.isKnotted
 -- Attribute equivalence view -----------------------------------------------------------------------------------------
 -- $attribute.name$ parametrized view
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $attribute.capsule$.e$attribute.name$ (
+CREATE OR REPLACE FUNCTION $attribute.capsule$."e$attribute.name$" (
     equivalent $schema.metadata.equivalentRange$
 )
 COPY GRANTS
 RETURNS TABLE (
-    $attribute.entityReferenceName$ $attribute.parent.identity$,
+    "$attribute.entityReferenceName$" $attribute.parent.identity$,
 $/ if attribute.isEquivalent
-    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$attribute.equivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
 $/ if attribute.isHistorized
-    $attribute.changingColumnName$ $attribute.timeRange$,
+    "$attribute.changingColumnName$" $attribute.timeRange$,
 $/ endif
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.valueColumnName$ $attribute.dataRange$
+    "$attribute.valueColumnName$" $attribute.dataRange$
 )
 AS
 $$
     SELECT
-        $attribute.entityReferenceName$,
+        "$attribute.entityReferenceName$",
 $/ if attribute.isEquivalent
-        $attribute.equivalentColumnName$,
+        "$attribute.equivalentColumnName$",
 $/ endif
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$,
+        "$attribute.checksumColumnName$",
 $/ endif
 $/ if attribute.isHistorized
-        $attribute.changingColumnName$,
+        "$attribute.changingColumnName$",
 $/ endif
 $/ if schema.METADATA
-        $attribute.metadataColumnName$,
+        "$attribute.metadataColumnName$",
 $/ endif
-        $attribute.valueColumnName$
+        "$attribute.valueColumnName$"
     FROM
-        $attribute.capsule$.$attribute.name$
+        $attribute.capsule$."$attribute.name$"
     WHERE
-        $attribute.equivalentColumnName$ = equivalent
+        "$attribute.equivalentColumnName$" = equivalent
 $$
 ;
 $/ endif

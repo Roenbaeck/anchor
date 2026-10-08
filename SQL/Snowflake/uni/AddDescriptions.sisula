@@ -11,10 +11,10 @@ $/ endif
 $/ foreach knot in schema.knots
 $/ if knot.hasComment
 $/ if schema.UNI and knot.isEquivalent
-COMMENT ON TABLE $knot.capsule$.$knot.identityName$ IS '$knot.comment$';
+COMMENT ON TABLE $knot.capsule$."$knot.identityName$" IS '$knot.comment$';
 $/ else
-COMMENT ON TABLE $knot.capsule$.$knot.name$ IS '$knot.comment$';
-COMMENT ON COLUMN $knot.capsule$.$knot.name$.$knot.valueColumnName$ IS '$knot.comment$';
+COMMENT ON TABLE $knot.capsule$."$knot.name$" IS '$knot.comment$';
+COMMENT ON COLUMN $knot.capsule$."$knot.name$"."$knot.valueColumnName$" IS '$knot.comment$';
 $/ endif
 $/ endif
 $/ endfor
@@ -22,41 +22,41 @@ $- The original shares this script with crt and bi, where values live in posit t
 $/ foreach attribute in schema.attributes
 $/ if attribute.hasComment
 $/ if schema.UNI
-COMMENT ON COLUMN $attribute.capsule$.$attribute.name$.$attribute.valueColumnName$ IS '$attribute.comment$';
+COMMENT ON COLUMN $attribute.capsule$."$attribute.name$"."$attribute.valueColumnName$" IS '$attribute.comment$';
 $/ else
-COMMENT ON COLUMN $attribute.capsule$.$attribute.positName$.$attribute.valueColumnName$ IS '$attribute.comment$';
+COMMENT ON COLUMN $attribute.capsule$."$attribute.positName$"."$attribute.valueColumnName$" IS '$attribute.comment$';
 $/ endif
 $/ endif
 $/ endfor
 $/ foreach anchor in schema.anchors
 $/ if anchor.hasComment
-COMMENT ON TABLE $anchor.capsule$.$anchor.name$ IS '$anchor.comment$';
+COMMENT ON TABLE $anchor.capsule$."$anchor.name$" IS '$anchor.comment$';
 $/ endif
 $/ endfor
 $/ foreach nexus in schema.nexuses
 $/ if nexus.hasComment
-COMMENT ON TABLE $nexus.capsule$.$nexus.name$ IS '$nexus.comment$';
+COMMENT ON TABLE $nexus.capsule$."$nexus.name$" IS '$nexus.comment$';
 $/ endif
 $/ foreach role in nexus.roles
 $/ if role.hasComment
-COMMENT ON COLUMN $nexus.capsule$.$nexus.name$.$role.columnName$ IS '$role.comment$';
+COMMENT ON COLUMN $nexus.capsule$."$nexus.name$"."$role.columnName$" IS '$role.comment$';
 $/ endif
 $/ endfor
 $/ endfor
 $/ foreach tie in schema.ties
 $/ if tie.hasComment
 $/ if schema.UNI
-COMMENT ON TABLE $tie.capsule$.$tie.name$ IS '$tie.comment$';
+COMMENT ON TABLE $tie.capsule$."$tie.name$" IS '$tie.comment$';
 $/ else
-COMMENT ON TABLE $tie.capsule$.$tie.positName$ IS '$tie.comment$';
+COMMENT ON TABLE $tie.capsule$."$tie.positName$" IS '$tie.comment$';
 $/ endif
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.hasComment
 $/ if schema.UNI
-COMMENT ON COLUMN $tie.capsule$.$tie.name$.$role.columnName$ IS '$role.comment$';
+COMMENT ON COLUMN $tie.capsule$."$tie.name$"."$role.columnName$" IS '$role.comment$';
 $/ else
-COMMENT ON COLUMN $tie.capsule$.$tie.positName$.$role.columnName$ IS '$role.comment$';
+COMMENT ON COLUMN $tie.capsule$."$tie.positName$"."$role.columnName$" IS '$role.comment$';
 $/ endif
 $/ endif
 $/ endfor

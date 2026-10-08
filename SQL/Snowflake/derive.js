@@ -63,3 +63,22 @@ while (tie = schema.nextTie()) {
     tie.roleCount = tie.roles ? tie.roles.length : 0;
     while (role = tie.nextRole()) deriveComment(role);
 }
+// Schema names. The templates write every other name inside double quotes, which keeps its case and lets it hold
+// national characters; a schema is written as it is here. Snowflake accepts an unquoted name of letters (A-Z, a-z),
+// digits, underscores and dollar signs, which it reads as upper case, so a schema like that stays as it is and
+// matches the schema that someone created without quotes. Any other name has to be quoted, and then it is case
+// sensitive, as the schema has to be created.
+//
+//   capsule         the schema of a knot, anchor, nexus, attribute or tie, quoted if it has to be
+//   encapsulation   the schema in schema.metadata, the same
+function quoteSchemaName(name) {
+    if (name === undefined || name === null || /^[A-Za-z_][A-Za-z0-9_$]*$/.test(name)) return name;
+    return '"' + String(name).replace(/"/g, '""') + '"';
+}
+schema.metadata.encapsulation = quoteSchemaName(schema.metadata.encapsulation);
+var schemaOwner;
+while (schemaOwner = schema.nextKnot()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
+while (schemaOwner = schema.nextAnchor()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
+while (schemaOwner = schema.nextNexus()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
+while (schemaOwner = schema.nextAttribute()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
+while (schemaOwner = schema.nextTie()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);

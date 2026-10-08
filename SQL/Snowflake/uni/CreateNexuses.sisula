@@ -8,29 +8,29 @@ $/ foreach nexus in schema.nexuses
 -- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
 -----------------------------------------------------------------------------------------------------------------------
 $/ if nexus.isGenerator
-CREATE SEQUENCE IF NOT EXISTS $nexus.capsule$.$nexus.identitySequenceName$ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS $nexus.capsule$."$nexus.identitySequenceName$" START 1 INCREMENT 1;
 $/ endif
-CREATE TABLE IF NOT EXISTS $nexus.capsule$.$nexus.name$ (
-    $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ default $nexus.capsule$.$nexus.identitySequenceName$.nextval not null, $/ else $nexus.identity$ not null,$/ endif
+CREATE TABLE IF NOT EXISTS $nexus.capsule$."$nexus.name$" (
+    "$nexus.identityColumnName$" $/ if nexus.isGenerator $nexus.identity$ default $nexus.capsule$."$nexus.identitySequenceName$".nextval not null, $/ else $nexus.identity$ not null,$/ endif
 $/ foreach role in nexus.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+    "$role.columnName$" $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
 $/ endfor
 $/ foreach role in nexus.roles
-    constraint $nexus.name$_fk$role.name$ foreign key (
-        $role.columnName$
+    constraint "$nexus.name$_fk$role.name$" foreign key (
+        "$role.columnName$"
 $/ if role.entity
-    ) references $role.entity.capsule$.$role.entity.name$($role.entity.identityColumnName$) RELY, $--$
+    ) references $role.entity.capsule$."$role.entity.name$"("$role.entity.identityColumnName$") RELY, $--$
 $/ else
 $/ if role.knot.isEquivalent
-    ) references $role.knot.capsule$.$role.knot.identityName$($role.knot.identityColumnName$) RELY,
+    ) references $role.knot.capsule$."$role.knot.identityName$"("$role.knot.identityColumnName$") RELY,
 $/ else
-    ) references $role.knot.capsule$.$role.knot.name$($role.knot.identityColumnName$) RELY,
+    ) references $role.knot.capsule$."$role.knot.name$"("$role.knot.identityColumnName$") RELY,
 $/ endif
 $/ endif
 $/ endfor
-    $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ boolean null,$/ endif
-    constraint pk$nexus.name$ primary key (
-        $nexus.identityColumnName$
+    $/ if schema.METADATA "$nexus.metadataColumnName$" $schema.metadata.metadataType$ not null, $/ else "$nexus.dummyColumnName$" boolean null,$/ endif
+    constraint "pk$nexus.name$" primary key (
+        "$nexus.identityColumnName$"
     ) RELY
-) CLUSTER BY ($nexus.identityColumnName$);
+) CLUSTER BY ("$nexus.identityColumnName$");
 $/ endfor

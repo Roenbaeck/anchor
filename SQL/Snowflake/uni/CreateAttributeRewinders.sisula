@@ -12,7 +12,7 @@ $/ if attribute.isHistorized
 -- Attribute rewinder -------------------------------------------------------------------------------------------------
 -- r$attribute.name$ rewinding over changing time function
 -----------------------------------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION $attribute.capsule$.r$attribute.name$ (
+CREATE OR REPLACE FUNCTION $attribute.capsule$."r$attribute.name$" (
 $/ if attribute.isEquivalent and not attribute.isKnotted
     equivalent $schema.metadata.equivalentRange$,
 $/ endif
@@ -21,37 +21,37 @@ $/ endif
 COPY GRANTS
 RETURNS TABLE (
 $/ if schema.METADATA
-    $attribute.metadataColumnName$ $schema.metadata.metadataType$,
+    "$attribute.metadataColumnName$" $schema.metadata.metadataType$,
 $/ endif
-    $attribute.entityReferenceName$ $attribute.parent.identity$,
+    "$attribute.entityReferenceName$" $attribute.parent.identity$,
 $/ if attribute.isEquivalent
-    $attribute.equivalentColumnName$ $schema.metadata.equivalentRange$,
+    "$attribute.equivalentColumnName$" $schema.metadata.equivalentRange$,
 $/ endif
 $/ if not attribute.isKnotted and attribute.hasChecksum
-    $attribute.checksumColumnName$ numeric(19,0),
+    "$attribute.checksumColumnName$" numeric(19,0),
 $/ endif
-    $/ if attribute.isKnotted $attribute.valueColumnName$ $attribute.knot.identity$, $/ else $attribute.valueColumnName$ $attribute.dataRange$,$/ endif
-    $attribute.changingColumnName$ $attribute.timeRange$
+    $/ if attribute.isKnotted "$attribute.valueColumnName$" $attribute.knot.identity$, $/ else "$attribute.valueColumnName$" $attribute.dataRange$,$/ endif
+    "$attribute.changingColumnName$" $attribute.timeRange$
 )
 AS
 $$
     SELECT
 $/ if schema.METADATA
-        $attribute.metadataColumnName$,
+        "$attribute.metadataColumnName$",
 $/ endif
-        $attribute.entityReferenceName$,
+        "$attribute.entityReferenceName$",
 $/ if attribute.isEquivalent
-        $attribute.equivalentColumnName$,
+        "$attribute.equivalentColumnName$",
 $/ endif
 $/ if not attribute.isKnotted and attribute.hasChecksum
-        $attribute.checksumColumnName$,
+        "$attribute.checksumColumnName$",
 $/ endif
-        $attribute.valueColumnName$,
-        $attribute.changingColumnName$
+        "$attribute.valueColumnName$",
+        "$attribute.changingColumnName$"
     FROM
-        $/ if attribute.isEquivalent and not attribute.isKnotted TABLE($attribute.capsule$.e$attribute.name$(equivalent)) $/ else $attribute.capsule$.$attribute.name$$/ endif
+        $/ if attribute.isEquivalent and not attribute.isKnotted TABLE($attribute.capsule$."e$attribute.name$"(equivalent)) $/ else $attribute.capsule$."$attribute.name$"$/ endif
     WHERE
-        $attribute.changingColumnName$ <= changingTimepoint
+        "$attribute.changingColumnName$" <= changingTimepoint
 $$
 ;
 $/ endif

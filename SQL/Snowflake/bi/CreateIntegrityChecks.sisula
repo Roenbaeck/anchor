@@ -22,7 +22,7 @@
 --
 $/ foreach knot in schema.knots
 -- $knot.name$ integrity --------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $knot.capsule$.ic_$knot.name$ (
+CREATE OR REPLACE VIEW $knot.capsule$."ic_$knot.name$" (
     Construct,
     Violation,
     ViolationKey,
@@ -33,30 +33,30 @@ AS
 SELECT
     '$knot.name$',
     'duplicate primary key',
-    OBJECT_CONSTRUCT('$knot.identityColumnName$', $knot.identityColumnName$),
+    OBJECT_CONSTRUCT('$knot.identityColumnName$', "$knot.identityColumnName$"),
     COUNT(*)
 FROM
-    $knot.capsule$.$knot.name$
+    $knot.capsule$."$knot.name$"
 GROUP BY
-    $knot.identityColumnName$
+    "$knot.identityColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
 SELECT
     '$knot.name$',
     'duplicate unique key',
-    OBJECT_CONSTRUCT('$knot.uniqueColumnName$', $knot.uniqueColumnName$),
+    OBJECT_CONSTRUCT('$knot.uniqueColumnName$', "$knot.uniqueColumnName$"),
     COUNT(*)
 FROM
-    $knot.capsule$.$knot.name$
+    $knot.capsule$."$knot.name$"
 GROUP BY
-    $knot.uniqueColumnName$
+    "$knot.uniqueColumnName$"
 HAVING
     COUNT(*) > 1;
 $/ endfor
 $/ foreach anchor in schema.anchors
 -- $anchor.name$ integrity ------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $anchor.capsule$.ic_$anchor.name$ (
+CREATE OR REPLACE VIEW $anchor.capsule$."ic_$anchor.name$" (
     Construct,
     Violation,
     ViolationKey,
@@ -67,18 +67,18 @@ AS
 SELECT
     '$anchor.name$',
     'duplicate primary key',
-    OBJECT_CONSTRUCT('$anchor.identityColumnName$', $anchor.identityColumnName$),
+    OBJECT_CONSTRUCT('$anchor.identityColumnName$', "$anchor.identityColumnName$"),
     COUNT(*)
 FROM
-    $anchor.capsule$.$anchor.name$
+    $anchor.capsule$."$anchor.name$"
 GROUP BY
-    $anchor.identityColumnName$
+    "$anchor.identityColumnName$"
 HAVING
     COUNT(*) > 1;
 $/ endfor
 $/ foreach nexus in schema.nexuses
 -- $nexus.name$ integrity -------------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $nexus.capsule$.ic_$nexus.name$ (
+CREATE OR REPLACE VIEW $nexus.capsule$."ic_$nexus.name$" (
     Construct,
     Violation,
     ViolationKey,
@@ -89,12 +89,12 @@ AS
 SELECT
     '$nexus.name$',
     'duplicate primary key',
-    OBJECT_CONSTRUCT('$nexus.identityColumnName$', $nexus.identityColumnName$),
+    OBJECT_CONSTRUCT('$nexus.identityColumnName$', "$nexus.identityColumnName$"),
     COUNT(*)
 FROM
-    $nexus.capsule$.$nexus.name$
+    $nexus.capsule$."$nexus.name$"
 GROUP BY
-    $nexus.identityColumnName$
+    "$nexus.identityColumnName$"
 HAVING
     COUNT(*) > 1
 $/ foreach role in nexus.roles
@@ -106,32 +106,32 @@ $/ if role.entity
 $/ else
     'no row in $role.knot.name$ for $role.columnName$',
 $/ endif
-    OBJECT_CONSTRUCT('$role.columnName$', c.$role.columnName$),
+    OBJECT_CONSTRUCT('$role.columnName$', c."$role.columnName$"),
     COUNT(*)
 FROM
-    $nexus.capsule$.$nexus.name$ c
+    $nexus.capsule$."$nexus.name$" c
 LEFT JOIN
 $/ if role.entity
-    $role.entity.capsule$.$role.entity.name$ p
+    $role.entity.capsule$."$role.entity.name$" p
 ON
-    p.$role.entity.identityColumnName$ = c.$role.columnName$
+    p."$role.entity.identityColumnName$" = c."$role.columnName$"
 WHERE
-    p.$role.entity.identityColumnName$ IS NULL
+    p."$role.entity.identityColumnName$" IS NULL
 $/ else
-    $role.knot.capsule$.$role.knot.name$ p
+    $role.knot.capsule$."$role.knot.name$" p
 ON
-    p.$role.knot.identityColumnName$ = c.$role.columnName$
+    p."$role.knot.identityColumnName$" = c."$role.columnName$"
 WHERE
-    p.$role.knot.identityColumnName$ IS NULL
+    p."$role.knot.identityColumnName$" IS NULL
 $/ endif
 GROUP BY
-    c.$role.columnName$
+    c."$role.columnName$"
 $/ endfor
 ;
 $/ endfor
 $/ foreach attribute in schema.attributes
 -- $attribute.positName$ integrity ----------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $attribute.capsule$.ic_$attribute.positName$ (
+CREATE OR REPLACE VIEW $attribute.capsule$."ic_$attribute.positName$" (
     Construct,
     Violation,
     ViolationKey,
@@ -142,12 +142,12 @@ AS
 SELECT
     '$attribute.positName$',
     'duplicate primary key',
-    OBJECT_CONSTRUCT('$attribute.identityColumnName$', $attribute.identityColumnName$),
+    OBJECT_CONSTRUCT('$attribute.identityColumnName$', "$attribute.identityColumnName$"),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.positName$
+    $attribute.capsule$."$attribute.positName$"
 GROUP BY
-    $attribute.identityColumnName$
+    "$attribute.identityColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
@@ -155,60 +155,60 @@ SELECT
     '$attribute.positName$',
     'duplicate unique key',
     OBJECT_CONSTRUCT(
-        '$attribute.entityReferenceName$', $attribute.entityReferenceName$,
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
 $/ if attribute.isHistorized
-        '$attribute.changingColumnName$', $attribute.changingColumnName$,
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$",
 $/ endif
-        '$attribute.comparedColumnName$', $attribute.comparedColumnName$
+        '$attribute.comparedColumnName$', "$attribute.comparedColumnName$"
     ),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.positName$
+    $attribute.capsule$."$attribute.positName$"
 GROUP BY
-    $attribute.entityReferenceName$,
+    "$attribute.entityReferenceName$",
 $/ if attribute.isHistorized
-    $attribute.changingColumnName$,
+    "$attribute.changingColumnName$",
 $/ endif
-    $attribute.comparedColumnName$
+    "$attribute.comparedColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
 SELECT
     '$attribute.positName$',
     'no row in $attribute.parent.name$ for $attribute.entityReferenceName$',
-    OBJECT_CONSTRUCT('$attribute.entityReferenceName$', c.$attribute.entityReferenceName$),
+    OBJECT_CONSTRUCT('$attribute.entityReferenceName$', c."$attribute.entityReferenceName$"),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.positName$ c
+    $attribute.capsule$."$attribute.positName$" c
 LEFT JOIN
-    $attribute.parent.capsule$.$attribute.parent.name$ p
+    $attribute.parent.capsule$."$attribute.parent.name$" p
 ON
-    p.$attribute.parent.identityColumnName$ = c.$attribute.entityReferenceName$
+    p."$attribute.parent.identityColumnName$" = c."$attribute.entityReferenceName$"
 WHERE
-    p.$attribute.parent.identityColumnName$ IS NULL
+    p."$attribute.parent.identityColumnName$" IS NULL
 GROUP BY
-    c.$attribute.entityReferenceName$
+    c."$attribute.entityReferenceName$"
 $/ if attribute.isKnotted
 UNION ALL
 SELECT
     '$attribute.positName$',
     'no row in $attribute.knot.name$ for $attribute.knotReferenceName$',
-    OBJECT_CONSTRUCT('$attribute.knotReferenceName$', c.$attribute.knotReferenceName$),
+    OBJECT_CONSTRUCT('$attribute.knotReferenceName$', c."$attribute.knotReferenceName$"),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.positName$ c
+    $attribute.capsule$."$attribute.positName$" c
 LEFT JOIN
-    $attribute.knot.capsule$.$attribute.knot.name$ p
+    $attribute.knot.capsule$."$attribute.knot.name$" p
 ON
-    p.$attribute.knot.identityColumnName$ = c.$attribute.knotReferenceName$
+    p."$attribute.knot.identityColumnName$" = c."$attribute.knotReferenceName$"
 WHERE
-    p.$attribute.knot.identityColumnName$ IS NULL
+    p."$attribute.knot.identityColumnName$" IS NULL
 GROUP BY
-    c.$attribute.knotReferenceName$
+    c."$attribute.knotReferenceName$"
 $/ endif
 ;
 -- $attribute.annexName$ integrity ----------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $attribute.capsule$.ic_$attribute.annexName$ (
+CREATE OR REPLACE VIEW $attribute.capsule$."ic_$attribute.annexName$" (
     Construct,
     Violation,
     ViolationKey,
@@ -220,38 +220,38 @@ SELECT
     '$attribute.annexName$',
     'duplicate primary key',
     OBJECT_CONSTRUCT(
-        '$attribute.identityColumnName$', $attribute.identityColumnName$,
-        '$attribute.positingColumnName$', $attribute.positingColumnName$
+        '$attribute.identityColumnName$', "$attribute.identityColumnName$",
+        '$attribute.positingColumnName$', "$attribute.positingColumnName$"
     ),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.annexName$
+    $attribute.capsule$."$attribute.annexName$"
 GROUP BY
-    $attribute.identityColumnName$,
-    $attribute.positingColumnName$
+    "$attribute.identityColumnName$",
+    "$attribute.positingColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
 SELECT
     '$attribute.annexName$',
     'no row in $attribute.positName$ for $attribute.identityColumnName$',
-    OBJECT_CONSTRUCT('$attribute.identityColumnName$', c.$attribute.identityColumnName$),
+    OBJECT_CONSTRUCT('$attribute.identityColumnName$', c."$attribute.identityColumnName$"),
     COUNT(*)
 FROM
-    $attribute.capsule$.$attribute.annexName$ c
+    $attribute.capsule$."$attribute.annexName$" c
 LEFT JOIN
-    $attribute.capsule$.$attribute.positName$ p
+    $attribute.capsule$."$attribute.positName$" p
 ON
-    p.$attribute.identityColumnName$ = c.$attribute.identityColumnName$
+    p."$attribute.identityColumnName$" = c."$attribute.identityColumnName$"
 WHERE
-    p.$attribute.identityColumnName$ IS NULL
+    p."$attribute.identityColumnName$" IS NULL
 GROUP BY
-    c.$attribute.identityColumnName$
+    c."$attribute.identityColumnName$"
 ;
 $/ endfor
 $/ foreach tie in schema.ties
 -- $tie.positName$ integrity ----------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $tie.capsule$.ic_$tie.positName$ (
+CREATE OR REPLACE VIEW $tie.capsule$."ic_$tie.positName$" (
     Construct,
     Violation,
     ViolationKey,
@@ -262,12 +262,12 @@ AS
 SELECT
     '$tie.positName$',
     'duplicate primary key',
-    OBJECT_CONSTRUCT('$tie.identityColumnName$', $tie.identityColumnName$),
+    OBJECT_CONSTRUCT('$tie.identityColumnName$', "$tie.identityColumnName$"),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.positName$
+    $tie.capsule$."$tie.positName$"
 GROUP BY
-    $tie.identityColumnName$
+    "$tie.identityColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
@@ -276,21 +276,21 @@ SELECT
     'duplicate unique key',
     OBJECT_CONSTRUCT(
 $/ foreach role in tie.roles
-        '$role.columnName$', $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+        '$role.columnName$', "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
 $/ endfor
 $/ if tie.isHistorized
-        '$tie.changingColumnName$', $tie.changingColumnName$
+        '$tie.changingColumnName$', "$tie.changingColumnName$"
 $/ endif
     ),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.positName$
+    $tie.capsule$."$tie.positName$"
 GROUP BY
 $/ foreach role in tie.roles
-    $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+    "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
 $/ endfor
 $/ if tie.isHistorized
-    $tie.changingColumnName$
+    "$tie.changingColumnName$"
 $/ endif
 HAVING
     COUNT(*) > 1
@@ -301,18 +301,18 @@ SELECT
     '$tie.positName$',
     'duplicate unique key ($role.name$)',
     OBJECT_CONSTRUCT(
-        '$role.columnName$', $role.columnName$$/ if tie.isHistorized ,$/ endif
+        '$role.columnName$', "$role.columnName$"$/ if tie.isHistorized ,$/ endif
 $/ if tie.isHistorized
-        '$tie.changingColumnName$', $tie.changingColumnName$
+        '$tie.changingColumnName$', "$tie.changingColumnName$"
 $/ endif
     ),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.positName$
+    $tie.capsule$."$tie.positName$"
 GROUP BY
-    $role.columnName$$/ if tie.isHistorized ,$/ endif
+    "$role.columnName$"$/ if tie.isHistorized ,$/ endif
 $/ if tie.isHistorized
-    $tie.changingColumnName$
+    "$tie.changingColumnName$"
 $/ endif
 HAVING
     COUNT(*) > 1
@@ -327,30 +327,30 @@ $/ if role.entity
 $/ else
     'no row in $role.knot.name$ for $role.columnName$',
 $/ endif
-    OBJECT_CONSTRUCT('$role.columnName$', c.$role.columnName$),
+    OBJECT_CONSTRUCT('$role.columnName$', c."$role.columnName$"),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.positName$ c
+    $tie.capsule$."$tie.positName$" c
 LEFT JOIN
 $/ if role.entity
-    $role.entity.capsule$.$role.entity.name$ p
+    $role.entity.capsule$."$role.entity.name$" p
 ON
-    p.$role.entity.identityColumnName$ = c.$role.columnName$
+    p."$role.entity.identityColumnName$" = c."$role.columnName$"
 WHERE
-    p.$role.entity.identityColumnName$ IS NULL
+    p."$role.entity.identityColumnName$" IS NULL
 $/ else
-    $role.knot.capsule$.$role.knot.name$ p
+    $role.knot.capsule$."$role.knot.name$" p
 ON
-    p.$role.knot.identityColumnName$ = c.$role.columnName$
+    p."$role.knot.identityColumnName$" = c."$role.columnName$"
 WHERE
-    p.$role.knot.identityColumnName$ IS NULL
+    p."$role.knot.identityColumnName$" IS NULL
 $/ endif
 GROUP BY
-    c.$role.columnName$
+    c."$role.columnName$"
 $/ endfor
 ;
 -- $tie.annexName$ integrity ----------------------------------------------------------------------------------------
-CREATE OR REPLACE VIEW $tie.capsule$.ic_$tie.annexName$ (
+CREATE OR REPLACE VIEW $tie.capsule$."ic_$tie.annexName$" (
     Construct,
     Violation,
     ViolationKey,
@@ -362,33 +362,33 @@ SELECT
     '$tie.annexName$',
     'duplicate primary key',
     OBJECT_CONSTRUCT(
-        '$tie.identityColumnName$', $tie.identityColumnName$,
-        '$tie.positingColumnName$', $tie.positingColumnName$
+        '$tie.identityColumnName$', "$tie.identityColumnName$",
+        '$tie.positingColumnName$', "$tie.positingColumnName$"
     ),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.annexName$
+    $tie.capsule$."$tie.annexName$"
 GROUP BY
-    $tie.identityColumnName$,
-    $tie.positingColumnName$
+    "$tie.identityColumnName$",
+    "$tie.positingColumnName$"
 HAVING
     COUNT(*) > 1
 UNION ALL
 SELECT
     '$tie.annexName$',
     'no row in $tie.positName$ for $tie.identityColumnName$',
-    OBJECT_CONSTRUCT('$tie.identityColumnName$', c.$tie.identityColumnName$),
+    OBJECT_CONSTRUCT('$tie.identityColumnName$', c."$tie.identityColumnName$"),
     COUNT(*)
 FROM
-    $tie.capsule$.$tie.annexName$ c
+    $tie.capsule$."$tie.annexName$" c
 LEFT JOIN
-    $tie.capsule$.$tie.positName$ p
+    $tie.capsule$."$tie.positName$" p
 ON
-    p.$tie.identityColumnName$ = c.$tie.identityColumnName$
+    p."$tie.identityColumnName$" = c."$tie.identityColumnName$"
 WHERE
-    p.$tie.identityColumnName$ IS NULL
+    p."$tie.identityColumnName$" IS NULL
 GROUP BY
-    c.$tie.identityColumnName$
+    c."$tie.identityColumnName$"
 ;
 $/ endfor
 -- IntegrityViolations ------------------------------------------------------------------------------------------------
@@ -410,20 +410,20 @@ SELECT
 WHERE
     FALSE
 $/ foreach knot in schema.knots
-UNION ALL SELECT * FROM $knot.capsule$.ic_$knot.name$
+UNION ALL SELECT * FROM $knot.capsule$."ic_$knot.name$"
 $/ endfor
 $/ foreach anchor in schema.anchors
-UNION ALL SELECT * FROM $anchor.capsule$.ic_$anchor.name$
+UNION ALL SELECT * FROM $anchor.capsule$."ic_$anchor.name$"
 $/ endfor
 $/ foreach nexus in schema.nexuses
-UNION ALL SELECT * FROM $nexus.capsule$.ic_$nexus.name$
+UNION ALL SELECT * FROM $nexus.capsule$."ic_$nexus.name$"
 $/ endfor
 $/ foreach attribute in schema.attributes
-UNION ALL SELECT * FROM $attribute.capsule$.ic_$attribute.positName$
-UNION ALL SELECT * FROM $attribute.capsule$.ic_$attribute.annexName$
+UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.positName$"
+UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.annexName$"
 $/ endfor
 $/ foreach tie in schema.ties
-UNION ALL SELECT * FROM $tie.capsule$.ic_$tie.positName$
-UNION ALL SELECT * FROM $tie.capsule$.ic_$tie.annexName$
+UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.positName$"
+UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.annexName$"
 $/ endfor
 ;
