@@ -332,6 +332,10 @@ not been run on a SQL Server.** Since it is the original output except for the c
   `$anchor.mnemonic` in the nexus section); a missing comma after the last role of an equivalent nexus perspective (`el`, `ep` in
   `CreateNexusPerspectives`, and the equivalence perspectives of `CreateNexusBusinessPerspectives`); the missing type of the identity column of a
   nexus key table (`nexus.identityRange` does not exist, it is `nexus.identity`).
+- **Restatement check with equivalence** (found by running it): the restatement checking trigger of an attribute with equivalence selected
+  `p.<equivalent column>` in a subquery that has no alias `p` (`SELECT DISTINCT p.AC_NAM_EQ, AC_NAM_AC_ID FROM @AC_NAM_Actor_Name`), which is not valid
+  T-SQL; the column is now written without the alias (`AddAttributeRestatementConstraints`, the original and the template). No other SQL Server
+  sisulet had it.
 - **Natural key tables and checksums** (found by running the example model on SQL Server: "Column ... is of a type that is invalid for use as a key
   column in an index", for a geography): the key table of a route, for an attribute that has a checksum, has a persisted checksum column beside the value
   column (`ST_LOC_Checksum as cast(dbo.MD5(cast(ST_LOC_Stage_Location as varbinary(max))) as varbinary(16)) persisted`, the expression that the attribute
