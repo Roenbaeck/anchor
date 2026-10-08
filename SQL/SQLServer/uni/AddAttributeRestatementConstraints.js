@@ -99,7 +99,7 @@ BEGIN
         p.$attribute.valueColumnName
     FROM (
         SELECT DISTINCT 
-            $(attribute.isEquivalent())? p.$attribute.equivalentColumnName,
+            $(attribute.isEquivalent())? $attribute.equivalentColumnName,
             $attribute.entityReferenceName 
         FROM 
             @$attribute.name

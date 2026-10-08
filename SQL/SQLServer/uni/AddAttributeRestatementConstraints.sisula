@@ -115,7 +115,7 @@ $/ endif
     FROM (
         SELECT DISTINCT $--$
 $/ if attribute.isEquivalent
-            p.$attribute.equivalentColumnName$,
+            $attribute.equivalentColumnName$,
 $/ endif
             $attribute.entityReferenceName$ $--$
         FROM $--$
