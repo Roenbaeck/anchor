@@ -504,7 +504,7 @@ BEGIN
 ~*/
         }
 /*~
-        i.$tie.positorColumnName,
+        ISNULL(i.$tie.positorColumnName, i.$schema.metadata.positorSuffix),
         i.$tie.positingColumnName,
         i.$tie.reliabilityColumnName
     FROM
