@@ -76,6 +76,7 @@ powershell -File tools\browser-check.ps1                 # the real modeler in h
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
+powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the SQL Server triggers do
 ```
 
 And in this repo: `.\tools\sync-sisula.ps1 -Check`.
@@ -455,6 +456,11 @@ latest views"); in short:
   kept and the following one retracted, as uni and bi do.
 - uni: a static attribute or tie that is not idempotent had no insert trigger, so the same value again violated
   the key; and a static tie's update was silently ignored.
+- uni: the insert triggers of an attribute with a checksum compared the stored checksum with the computed checksum
+  column of `inserted`, which an instead of trigger may leave unfilled; they now compute it from the incoming value,
+  as bi and crt do.
+- uni, bi and crt: an insert through the latest view of a nexus gave the new nexus rows only their metadata, but
+  every role column is not null, so no nexus row could be inserted that way (found while writing the tests below).
 
 **Behaviour that changes for existing users** (all deliberate, see above): `UPDATE ... SET x = x` no longer stores a
 restatement at now; changing a uni static value raises a contradiction error instead of a key violation, and changing
@@ -463,11 +469,36 @@ update of a positor's row is that positor's statement; the same static value ins
 of violating the key.
 
 **What was verified:** the golden files were made from the changed originals (`golden.ps1`) and every template
-matches them for all 56 SQL Server models (1 735 comparisons with the whole outputs), in the C# renderer too (1 679
-renderings), and the modeler gives the same SQL and JSON bindings for the 53 canonical ones; the 19 crt models were
-checked again after the last change. **None of it has been run on a SQL Server.** `sisula/examples/anchor-snowflake/sqlserver-tests/` has one
-script per temporalization that exercises each rule on the output for `models/sqlserver-base*.xml` and prints PASS or
-FAIL: run the generated SQL in an empty database, then the script.
+matches them for all 59 SQL Server models (1 828 comparisons with the whole outputs), in the C# renderer too (1 769
+renderings), and the modeler gives the same SQL for the 56 canonical ones; its JSON bindings equal the resolver's for
+the three test models below and, in the run before the last changes (which did not touch the bindings), for the 53
+others. **None of it has been run on a SQL Server.**
+
+**Tests of what the triggers do.** `sisula/examples/anchor-snowflake/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
+is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
+without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
+deletes through its views and prints PASS or FAIL for each rule above (36, 31 and 38 checks), and
+`tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per temporalization, runs the golden output of the
+model and then the script in it, drops the database again, and exits 1 if a check failed. Run it after every change
+to a trigger, once the golden files of the three models have been regenerated. The scripts parse (see below) and the
+runner was tried against a stand-in for sqlcmd; neither has met a SQL Server yet.
+
+**A syntax check of the generated SQL.** Every one of the 59 generated scripts, and the test scripts, were parsed once
+with Microsoft's T-SQL parser (ScriptDom, SQL Server 2016 grammar, the SQL inside `EXEC('...')` strings included),
+from a scratch folder; it is not a tool in the repository. It checks syntax, not names, and it accepts some things
+that SQL Server does not (an `ORDER BY` in a `UNION` member). The test models and the test scripts parse. The other
+errors are all in the originals too, in models that reach them:
+- the known `STschema.metadata.equivalentSuffix` column (uni, natural keys with equivalence: `equivalence`,
+  `distinct-equivalence`, `equivalence-plain`, `flags`, `partitioned`) and the identity columns without a type of the
+  `handwritten` bi and crt models (the model), both listed above;
+- with the original naming convention the business perspectives give a knotted attribute the alias `[]`
+  (`CreateAnchorBusinessPerspectives`, `CreateNexusBusinessPerspectives`; `plain` and `equivalence-original`, all
+  three temporalizations);
+- an encrypted knotted attribute is decrypted with `CAST(DECRYPTBYKEY(...) AS )`, without a type (uni
+  `CreateAnchorPerspectives`, `encrypted`);
+- with metadata off, the identity table of an equivalent knot has a dummy column without a name (` bit null`, uni
+  `CreateKnots`, `equivalence-plain`), as Snowflake had before it was fixed there.
+None of these was fixed.
 
 **Not done or kept:**
 - PostgreSQL has its own copies of these triggers (`SQL/PostgreSQL/*/Create*Triggers.js`); they were not changed.
@@ -479,6 +510,11 @@ FAIL: run the generated SQL in an empty database, then the script.
   variable rather than with the contradiction message.
 - In bi and crt, retracting the newest posit shows the one before it, also after a correction of a static value
   (the corrected posit stays asserted). This is how corrections work in the posit model and was left as it is.
+- An insert of several new nexus rows through the latest view pairs the identities it makes with the inserted rows by
+  row numbers, in an order that SQL Server does not guarantee, as the anchors do (where the new rows are alike); for
+  a nexus the attributes of one new row could end up with the roles of another. One new row per statement is safe.
+- The key generator of a uni nexus (`k<nexus>`) inserts only the metadata too, so it cannot make rows for a nexus
+  with roles. It was left as it is.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
@@ -534,7 +570,7 @@ Unported Snowflake sisulets stay as commented lines in the directives, so nothin
 
 - **anchor:** this file, the engine copy, the resolver, the templates, the directives, the modeler.
 - **sisula:** the engine's source, the language reference, the fixtures, `examples/anchor-snowflake`
-  (models, golden files, tools), `lib/Jint.2.11.58.dll`.
+  (models, golden files, tools, and `sqlserver-tests` for the SQL Server triggers), `lib/Jint.2.11.58.dll`.
 - **sisula-mssql:** the C# renderer (`clr/SisulaRenderer.cs`) and `tests/run-fixtures.ps1`.
 - **workflower:** vendors the engine the same way (`tools/sync-sisula.ps1`, `webapp/sisula.js`).
 - **dw-framework:** the old ETL framework, which uses dialect A and is not meant to change.
