@@ -20,7 +20,6 @@ while (knot = schema.nextKnot()) {
     knot.equivalentColumnName = knot.mnemonic + D + schema.metadata.equivalentSuffix;
     knot.capsule = knot.metadata.capsule || schema.metadata.encapsulation;
     knot.metadataColumnName = schema.metadata.metadataPrefix + D + knot.mnemonic;
-    knot.dummyColumnName = knot.mnemonic + D + schema.metadata.dummySuffix;
     knot.toString = function() { return this.mnemonic; };
 }
 // warn about naming clashes for business names
