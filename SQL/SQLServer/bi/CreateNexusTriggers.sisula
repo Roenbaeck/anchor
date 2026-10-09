@@ -23,29 +23,6 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon$;
     SET @now = $schema.metadata.now$;
-    DECLARE @$nexus.mnemonic$ TABLE (
-        Row bigint IDENTITY(1,1) not null primary key,
-        $nexus.identityColumnName$ $nexus.identity$ not null
-    );
-    INSERT INTO [$nexus.capsule$].[$nexus.name$] (
-$/ foreach role in nexus.roles
-        $role.columnName$,
-$/ endfor
-        $/ if schema.METADATA $nexus.metadataColumnName$ $/ else $nexus.dummyColumnName$$/ endif
-    )
-    OUTPUT
-        inserted.$nexus.identityColumnName$
-    INTO
-        @$nexus.mnemonic$
-    SELECT
-$/ foreach role in nexus.roles
-        $role.columnName$,
-$/ endfor
-        $/ if schema.METADATA $nexus.metadataColumnName$ $/ else null$/ endif
-    FROM
-        inserted
-    WHERE
-        inserted.$nexus.identityColumnName$ is null;
     DECLARE @inserted TABLE (
         $nexus.identityColumnName$ $nexus.identity$ not null,
 $/ if schema.METADATA
@@ -77,15 +54,31 @@ $/ else
 $/ endif
 $/ endfor
     );
-    INSERT INTO @inserted
-    SELECT
-        ISNULL(i.$nexus.identityColumnName$, a.$nexus.identityColumnName$),
+    -- a nexus row for each row without an identity; the merge outputs every new identity together with the values of
+    -- the row it was made for, so each new row keeps its own attributes, also when several are inserted at once
+    MERGE INTO [$nexus.capsule$].[$nexus.name$]
+    USING inserted AS i
+    ON 1 = 0
+    WHEN NOT MATCHED AND i.$nexus.identityColumnName$ is null THEN INSERT (
+$/ foreach role in nexus.roles
+        $role.columnName$,
+$/ endfor
+        $/ if schema.METADATA $nexus.metadataColumnName$ $/ else $nexus.dummyColumnName$$/ endif
+    )
+    VALUES (
+$/ foreach role in nexus.roles
+        i.$role.columnName$,
+$/ endfor
+        $/ if schema.METADATA i.$nexus.metadataColumnName$ $/ else null$/ endif
+    )
+    OUTPUT
+        inserted.$nexus.identityColumnName$,
 $/ if schema.METADATA
         i.$nexus.metadataColumnName$,
 $/ endif
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-        ISNULL(ISNULL(i.$attribute.entityReferenceName$, i.$nexus.identityColumnName$), a.$nexus.identityColumnName$),
+        ISNULL(i.$attribute.entityReferenceName$, inserted.$nexus.identityColumnName$),
 $/ endif
 $/ if schema.METADATA
         ISNULL(i.$attribute.metadataColumnName$, i.$nexus.metadataColumnName$),
@@ -106,44 +99,42 @@ $/ endif
 $/ endif
         i.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
 $/ endfor
-    FROM (
-        SELECT
-            $schema.metadata.reliabilitySuffix$,
-            $nexus.identityColumnName$,
+    INTO
+        @inserted;
+    -- the rows that come with the identity of a nexus row
+    INSERT INTO @inserted
+    SELECT
+        i.$nexus.identityColumnName$,
 $/ if schema.METADATA
-            $nexus.metadataColumnName$,
+        i.$nexus.metadataColumnName$,
 $/ endif
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-            $attribute.entityReferenceName$,
+        ISNULL(i.$attribute.entityReferenceName$, i.$nexus.identityColumnName$),
 $/ endif
 $/ if schema.METADATA
-            $attribute.metadataColumnName$,
+        ISNULL(i.$attribute.metadataColumnName$, i.$nexus.metadataColumnName$),
 $/ endif
 $/ if attribute.isHistorized
-            $attribute.changingColumnName$,
+        ISNULL(i.$attribute.changingColumnName$, @now),
 $/ endif
-            $attribute.positingColumnName$,
-            $attribute.reliabilityColumnName$,
+        ISNULL(i.$attribute.positingColumnName$, @now),
+        ISNULL(ISNULL(i.$attribute.reliabilityColumnName$, i.$schema.metadata.reliabilitySuffix$), 1),
 $/ if attribute.isKnotted
-            $attribute.knotValueColumnName$,
+        i.$attribute.knotValueColumnName$,
 $/ if attribute.knot.hasChecksum
-            $attribute.knotChecksumColumnName$,
+        ISNULL(i.$attribute.knotChecksumColumnName$, $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))),
 $/ endif
 $/ if schema.METADATA
-            $attribute.knotMetadataColumnName$,
+        ISNULL(i.$attribute.knotMetadataColumnName$, i.$nexus.metadataColumnName$),
 $/ endif
 $/ endif
-            $attribute.valueColumnName$,
+        i.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
 $/ endfor
-            ROW_NUMBER() OVER (PARTITION BY $nexus.identityColumnName$ ORDER BY $nexus.identityColumnName$) AS Row
-        FROM
-            inserted
-    ) i
-    LEFT JOIN
-        @$nexus.mnemonic$ a
-    ON
-        a.Row = i.Row;
+    FROM
+        inserted i
+    WHERE
+        i.$nexus.identityColumnName$ is not null;
 $/ foreach attribute in nexus.attributes
     INSERT INTO [$attribute.capsule$].[$attribute.name$] (
 $/ if schema.METADATA

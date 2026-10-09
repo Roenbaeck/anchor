@@ -27,37 +27,6 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
-    DECLARE @$nexus.mnemonic TABLE (
-        Row bigint IDENTITY(1,1) not null primary key,
-        $nexus.identityColumnName $nexus.identity not null
-    );
-    INSERT INTO [$nexus.capsule].[$nexus.name] (
-~*/
-        while (role = nexus.nextRole()) {
-/*~
-        $role.columnName,
-~*/
-        }
-/*~
-        $(schema.METADATA)? $nexus.metadataColumnName : $nexus.dummyColumnName
-    )
-    OUTPUT
-        inserted.$nexus.identityColumnName
-    INTO
-        @$nexus.mnemonic
-    SELECT
-~*/
-        while (role = nexus.nextRole()) {
-/*~
-        $role.columnName,
-~*/
-        }
-/*~
-        $(schema.METADATA)? $nexus.metadataColumnName : null
-    FROM
-        inserted
-    WHERE
-        inserted.$nexus.identityColumnName is null;
     DECLARE @inserted TABLE (
         $nexus.identityColumnName $nexus.identity not null,
         $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null,
@@ -88,14 +57,38 @@ BEGIN
         }
 /*~
     );
-    INSERT INTO @inserted
-    SELECT
-        ISNULL(i.$nexus.identityColumnName, a.$nexus.identityColumnName),
+    -- a nexus row for each row without an identity; the merge outputs every new identity together with the values of
+    -- the row it was made for, so each new row keeps its own attributes, also when several are inserted at once
+    MERGE INTO [$nexus.capsule].[$nexus.name]
+    USING inserted AS i
+    ON 1 = 0
+    WHEN NOT MATCHED AND i.$nexus.identityColumnName is null THEN INSERT (
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+        }
+/*~
+        $(schema.METADATA)? $nexus.metadataColumnName : $nexus.dummyColumnName
+    )
+    VALUES (
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        i.$role.columnName,
+~*/
+        }
+/*~
+        $(schema.METADATA)? i.$nexus.metadataColumnName : null
+    )
+    OUTPUT
+        inserted.$nexus.identityColumnName,
         $(schema.METADATA)? i.$nexus.metadataColumnName,
  ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.entityReferenceName, i.$nexus.identityColumnName), a.$nexus.identityColumnName),
+        $(schema.IMPROVED)? ISNULL(i.$attribute.entityReferenceName, inserted.$nexus.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$nexus.metadataColumnName),
         $(attribute.isHistorized())? ISNULL(i.$attribute.changingColumnName, @now),
         ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
@@ -115,43 +108,40 @@ BEGIN
 ~*/
         }
 /*~
-    FROM (
-        SELECT
-            $schema.metadata.positorSuffix,
-            $schema.metadata.reliabilitySuffix,
-            $nexus.identityColumnName,
-            $(schema.METADATA)? $nexus.metadataColumnName,
+    INTO
+        @inserted;
+    -- the rows that come with the identity of a nexus row
+    INSERT INTO @inserted
+    SELECT
+        i.$nexus.identityColumnName,
+        $(schema.METADATA)? i.$nexus.metadataColumnName,
  ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? $attribute.entityReferenceName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.isHistorized())? $attribute.changingColumnName,
-            $attribute.positorColumnName,
-            $attribute.positingColumnName,
-            $attribute.reliabilityColumnName,
+        $(schema.IMPROVED)? ISNULL(i.$attribute.entityReferenceName, i.$nexus.identityColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$nexus.metadataColumnName),
+        $(attribute.isHistorized())? ISNULL(i.$attribute.changingColumnName, @now),
+        ISNULL(ISNULL(i.$attribute.positorColumnName, i.$schema.metadata.positorSuffix), 0),
+        ISNULL(i.$attribute.positingColumnName, @now),
+        ISNULL(ISNULL(i.$attribute.reliabilityColumnName, i.$schema.metadata.reliabilitySuffix), $schema.metadata.defaultReliability),
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
 /*~
-            $attribute.knotValueColumnName,
-            $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
-            $(schema.METADATA)? $attribute.knotMetadataColumnName,
+        i.$attribute.knotValueColumnName,
+        $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max)))),
+        $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$nexus.metadataColumnName),
 ~*/
             }
 /*~
-            $attribute.valueColumnName,
+        i.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
-            ROW_NUMBER() OVER (PARTITION BY $nexus.identityColumnName ORDER BY $nexus.identityColumnName) AS Row
-        FROM
-            inserted
-    ) i
-    LEFT JOIN
-        @$nexus.mnemonic a
-    ON
-        a.Row = i.Row;
+    FROM
+        inserted i
+    WHERE
+        i.$nexus.identityColumnName is not null;
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
             knot = attribute.knot;
