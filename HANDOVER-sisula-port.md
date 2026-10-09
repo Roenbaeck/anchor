@@ -317,7 +317,7 @@ change.
 `SQLServer_uni.directive` lists 31 Sisula templates (`SQL/SQLServer/{uni,biz,clr}/*.sisula`, `SQL/SQLServer/CreateSchemaTracking.sisula`)
 and the prelude `Helpers.js`, `NamingConvention.js`, `SQL/SQLServer/NamingConvention.js`, `SQL/SQLServer/derive.js`. The original sisulets and
 their directive, `SQLServer_uni.legacy.directive`, are still here: they are what `golden.ps1` runs to make the independent output. bi and crt
-for SQL Server are **not** ported; their directives still list `.js` sisulets and the modeler still runs them on the original engine.
+for SQL Server are ported too, see the next section.
 
 **What was verified (no SQL Server on the development machine):** for 18 models (`models/sqlserver-*.xml`: the uni models of Snowflake converted
 with the data type converter and saved through the modeler, plus variants for business views and knot aliases, no triggers, partitioning, natural
@@ -368,6 +368,51 @@ not been run on a SQL Server.** Since it is the original output except for the c
 **To update this port:** change the template and the original sisulet together while the original is still here (the golden files come from it:
 `golden.ps1`, see `tools/make-sqlserver-models.ps1` and the tools README), or regenerate the golden files from the templates (`regenerate-golden.ps1`) once
 the originals are removed. The originals can go when someone has run the output on a SQL Server.
+
+## SQL Server bi and crt on the Sisula engine (ported 2026-10-08)
+
+`SQLServer_bi.directive` (28 templates) and `SQLServer_crt.directive` (31) list Sisula templates only: `SQL/SQLServer/{bi,crt,biz,clr}/*.sisula` and
+`SQL/SQLServer/CreateSchemaTracking.sisula`, after the same prelude as uni. The original sisulets, and their directives `SQLServer_bi.legacy.directive`
+and `SQLServer_crt.legacy.directive`, are still here for `golden.ps1`. The work was done by seven parallel workers (tables; attributes; tie views;
+perspectives and key generators; anchor triggers; attribute and nexus triggers; tie triggers), each in its own worktree, starting from the uni templates
+and the difference between the uni and the bi/crt originals. `derive.js` got two small blocks (`bi-crt attributes`, `bi-crt tieviews`: whether any
+anchor attribute is historized, or may not store restatements, and whether a historized tie has values); the rest was reachable by paths.
+
+**What was verified (no SQL Server on the development machine):** the 38 models `models/sqlserver-*-bi.xml` and `-crt.xml` (the 18 uni models of SQL Server
+with `temporalization` changed, saved through the modeler, plus `tieflags`, see below): every template renders byte for byte what the original sisulet gave
+(`run-all.ps1`), and in the C# renderer of `sisula-mssql` (`csharp-check.ps1`). **The SQL has not been run on a SQL Server.**
+Results of the last full run: `run-all.ps1` over every model in `models/` (Snowflake and SQL Server): all 92 models identical, per template and as a whole;
+`csharp-check.ps1` on the 38 bi and crt models of SQL Server: 1121 of 1121 template renderings identical; `browser-check.ps1` (the modeler in headless Edge,
+Generate SQL, schema tracking time stamp as a placeholder): the output of all 36 models equals the golden files, and with `-Bindings` the modeler's JSON
+bindings equal the resolver's (the two `handwritten` models are left out, as for uni: they are not canonical).
+
+**The oracle had a gap, and a model was added for it.** None of the 36 copies had an idempotent tie, so the code that handles one (the restatement of a
+historized tie, the statement types of the posit and annex rows) was never compared. `tools/make-sqlserver-tieflags-models.ps1` makes
+`sqlserver-tieflags-bi` and `-crt` (every tie idempotent and assertive); the tie triggers worker had also compared three such variants by hand.
+
+**Differences from the original output:** one. `bi/AddTieRestatementConstraints` took `role.anchor` for every role that is not a knot, so a tie with a nexus role
+crashed it (`anchor is undefined`; the `flags` and `handwritten` models have one); it takes `role.entity`, as `uni/AddTieRestatementConstraints` does, in
+the original and the template. The uni corrections to `AddDescriptions` (a single quote in a description is doubled) apply to the templates only: the `.js`
+originals of bi and crt, like the uni one, still paste it as it is.
+
+**Behaviour that differs between bi and crt, worth a look** (kept, the oracle has it): in crt the update trigger of an attribute leaves out `UPDATE(value)` for an
+attribute that is not historized, so a value update of a static attribute creates no posit and only a change of reliability or positor does; bi has no such condition.
+
+**Known defects of the original that are kept, because the golden files carry them:**
+- The `handwritten` models (no `identity` on attributes and one tie): the identity column of the posit and annex tables, of the restatement tables and of
+  the `@inserted` and `@posit` table variables is declared without a type (`EV_DAT_ID not null,`), which is invalid SQL. It is the model, not the generator.
+- `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true), as in uni.
+- `CreateNexuses` (bi, crt): a knot role of a nexus that is equivalent refers to an `_ID` table that bi and crt never create; only with equivalence on.
+- `AddDescriptions`, the CLR check and the restatement checks of bi and crt look at the attributes of anchors only, not those of nexuses.
+- `CreateNexusPerspectives` (bi, crt): every role line of the time traveling function gets a comma (the original tests `hasMoreAttributes()` inside the branch
+  where it is always true); the bi and crt nexus functions use unbracketed names (`[capsule].tNAME`) where the crt anchor functions bracket them. The
+  perspectives of bi and crt have no equivalence perspectives, and the "drop" block is written for every anchor and nexus, also one without attributes.
+- `CreateTieTriggers` (bi): Swedish text in an SQL comment (`-- ta bort isnull för assertive`), a tab-indented `DELETE @inserted` / `WHERE`, and `U.` in capitals.
+- Trailing spaces and tabs that the original engine left in a few lines (after `JOIN`, `OR`, `AND`, `AFTER INSERT`, `AS`, `p.*,`) are reproduced with `$--$`,
+  because the golden files have them. They are harmless.
+
+**To update this port:** as for uni: change the template and the original sisulet together while the original is still here, or regenerate the golden files
+from the templates once the originals are removed (`regenerate-golden.ps1`). The originals can go when someone has run the output on a SQL Server.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
