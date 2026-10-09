@@ -448,16 +448,14 @@ BEGIN
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(schema.METADATA)? p.$attribute.metadataColumnName,
-        p.$attribute.identityColumnName,
+        $(schema.METADATA)? d.$attribute.metadataColumnName,
+        d.$attribute.identityColumnName,
         @now,
         0
     FROM
         deleted d
-    JOIN
-        [$attribute.capsule].[$attribute.annexName] p
-    ON
-        p.$attribute.identityColumnName = d.$attribute.identityColumnName;
+    WHERE
+        d.$attribute.identityColumnName is not null;
 ~*/
         }
 /*~

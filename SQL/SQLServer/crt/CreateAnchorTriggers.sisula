@@ -483,18 +483,16 @@ $/ endif
     )
     SELECT
 $/ if schema.METADATA
-        p.$attribute.metadataColumnName$,
+        d.$attribute.metadataColumnName$,
 $/ endif
-        p.$attribute.identityColumnName$,
-        p.$attribute.positorColumnName$,
+        d.$attribute.identityColumnName$,
+        d.$attribute.positorColumnName$,
         @now,
         $schema.metadata.deleteReliability$
     FROM
         deleted d
-    JOIN
-        [$attribute.capsule$].[$attribute.annexName$] p
-    ON
-        p.$attribute.identityColumnName$ = d.$attribute.identityColumnName$;
+    WHERE
+        d.$attribute.identityColumnName$ is not null;
 $/ endfor
 END
 GO

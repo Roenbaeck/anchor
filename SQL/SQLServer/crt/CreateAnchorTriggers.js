@@ -473,17 +473,15 @@ BEGIN
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(schema.METADATA)? p.$attribute.metadataColumnName,
-        p.$attribute.identityColumnName,
-        p.$attribute.positorColumnName,
+        $(schema.METADATA)? d.$attribute.metadataColumnName,
+        d.$attribute.identityColumnName,
+        d.$attribute.positorColumnName,
         @now,
         $schema.metadata.deleteReliability
     FROM
         deleted d
-    JOIN
-        [$attribute.capsule].[$attribute.annexName] p
-    ON
-        p.$attribute.identityColumnName = d.$attribute.identityColumnName;
+    WHERE
+        d.$attribute.identityColumnName is not null;
 ~*/
         }
 /*~
