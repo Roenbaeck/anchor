@@ -380,10 +380,17 @@ $/ endfor
             FROM $--$
                 @inserted s
             WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                s.$role.columnName$ = a.$role.columnName$
+            AND
+$/ endfor
+$/ else
 $/ foreach role in tie.roles
                 s.$role.columnName$ = a.$role.columnName$
             AND
 $/ endfor
+$/ endif
 $/ if tie.isHistorized
                 s.$tie.changingColumnName$ = a.$tie.changingColumnName$
             AND $--$
@@ -391,8 +398,14 @@ $/ endif
                 s.$tie.positingColumnName$ < a.$tie.positingColumnName$
             ORDER BY $--$
                 s.$tie.positingColumnName$ DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.values
+            a.$role.columnName$ = pre.$role.columnName$
+        AND
+$/ endfor
+$/ endif
             a.$tie.reliabilityColumnName$ = pre.$tie.reliabilityColumnName$
     ) u
     WHERE

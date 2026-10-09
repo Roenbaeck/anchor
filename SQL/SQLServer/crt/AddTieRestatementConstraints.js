@@ -66,6 +66,7 @@ BEGIN
         SELECT
             COUNT(*)
         FROM (
+            SELECT * FROM (
             SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
@@ -112,7 +113,9 @@ BEGIN
             ORDER BY
                 pre.$tie.changingColumnName DESC,
                 pre.$tie.positingColumnName DESC
+            ) previous
             UNION
+            SELECT * FROM (
             SELECT TOP 1
 ~*/
             while(role = tie.nextValue()) {
@@ -159,6 +162,7 @@ BEGIN
             ORDER BY
                 fol.$tie.changingColumnName ASC,
                 fol.$tie.positingColumnName DESC
+            ) following
         ) s
         WHERE
 ~*/

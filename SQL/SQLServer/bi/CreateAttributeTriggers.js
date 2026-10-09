@@ -260,14 +260,14 @@ BEGIN
                 s.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? s.$attribute.changingColumnName = a.$attribute.changingColumnName
-            AND
-                $(attribute.hasChecksum())? s.$attribute.checksumColumnName = a.$attribute.checksumColumnName : s.$attribute.valueColumnName = a.$attribute.valueColumnName
             AND 
                 s.$attribute.positingColumnName < a.$attribute.positingColumnName
             ORDER BY 
                 s.$attribute.positingColumnName DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : a.$attribute.valueColumnName = pre.$attribute.valueColumnName
+        AND
             a.$attribute.reliabilityColumnName = pre.$attribute.reliabilityColumnName
     ) u
     WHERE

@@ -103,6 +103,45 @@ BEGIN
             $(tie.isHistorized())? x.$tie.changingColumnName = i.$tie.changingColumnName
     );
 ~*/
+    if(tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
+/*~
+    -- other values for identifiers that already have values at that time are a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+~*/
+        while(role = tie.nextIdentifier()) {
+/*~
+            i.$role.columnName,
+~*/
+        }
+/*~
+            i.$tie.changingColumnName
+        FROM
+            @inserted i
+        JOIN
+            [$tie.capsule].[$tie.name] x
+        ON
+~*/
+        while(role = tie.nextIdentifier()) {
+/*~
+            x.$role.columnName = i.$role.columnName
+        AND
+~*/
+        }
+/*~
+            x.$tie.changingColumnName = i.$tie.changingColumnName
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $tie.name for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
+~*/
+    }
     // fill table with entire history in these cases
     if(tie.isIdempotent()) {
 /*~
@@ -290,7 +329,7 @@ END
 GO
 ~*/
     } // enf of historized tie
-    else if (!tie.isHistorized() && tie.isIdempotent()) {
+    else { // static tie
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it$tie.name instead of INSERT trigger on $tie.name
@@ -303,7 +342,55 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
-
+~*/
+    if(tie.hasMoreIdentifiers() && tie.hasMoreValues()) {
+/*~
+    -- other values for identifiers that already have values are a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+~*/
+        while(role = tie.nextIdentifier()) {
+/*~
+            i.$role.columnName$(tie.hasMoreIdentifiers())?,
+~*/
+        }
+/*~
+        FROM
+            inserted i
+        JOIN
+            [$tie.capsule].[$tie.name] x
+        ON
+~*/
+        while(role = tie.nextIdentifier()) {
+/*~
+            x.$role.columnName = i.$role.columnName
+        $(tie.hasMoreIdentifiers())? AND
+~*/
+        }
+/*~
+        WHERE NOT (
+~*/
+        while(role = tie.nextValue()) {
+/*~
+            x.$role.columnName = i.$role.columnName
+        $(tie.hasMoreValues())? AND
+~*/
+        }
+/*~
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $tie.name for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
+~*/
+    }
+/*~
     INSERT INTO [$tie.capsule].[$tie.name] (
         $(schema.METADATA)? $tie.metadataColumnName,    
 ~*/

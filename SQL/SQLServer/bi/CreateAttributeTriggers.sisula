@@ -331,18 +331,18 @@ $/ if attribute.isHistorized
             AND
                 s.$attribute.changingColumnName$ = a.$attribute.changingColumnName$
 $/ endif
-            AND
-$/ if attribute.hasChecksum
-                s.$attribute.checksumColumnName$ = a.$attribute.checksumColumnName$ $--$
-$/ else
-                s.$attribute.valueColumnName$ = a.$attribute.valueColumnName$
-$/ endif
             AND $--$
                 s.$attribute.positingColumnName$ < a.$attribute.positingColumnName$
             ORDER BY $--$
                 s.$attribute.positingColumnName$ DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+$/ if attribute.hasChecksum
+            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+$/ else
+            a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
+$/ endif
+        AND
             a.$attribute.reliabilityColumnName$ = pre.$attribute.reliabilityColumnName$
     ) u
     WHERE

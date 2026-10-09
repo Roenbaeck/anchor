@@ -130,18 +130,45 @@ BEGIN
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
 /*~
-    $(!tie.isFirstIdentifier())? AND
-        i.$role.columnName is not null~*/
+        i.$role.columnName is not null
+    AND
+~*/
             }
         }
         else {
             while(role = tie.nextValue()) {
 /*~
-    $(!tie.isFirstValue())? AND
-        i.$role.columnName is not null~*/
+        i.$role.columnName is not null
+    AND
+~*/
             }
         }
-/*~;~*/
+/*~
+        NOT EXISTS ( -- exclude the identical, which is already stored
+            SELECT TOP 1
+                42
+            FROM
+                [$tie.capsule].[$tie.positName] p
+            JOIN
+                [$tie.capsule].[$tie.annexName] a
+            ON
+                a.$tie.identityColumnName = p.$tie.identityColumnName
+            WHERE
+~*/
+        while(role = tie.nextRole()) {
+/*~
+                p.$role.columnName = i.$role.columnName
+            AND
+~*/
+        }
+/*~
+                $(tie.isHistorized())? p.$tie.changingColumnName = ISNULL(i.$tie.changingColumnName, @now)
+            $(tie.isHistorized())? AND
+                a.$tie.positorColumnName = ISNULL(i.$tie.positorColumnName, 0)
+            AND
+                a.$tie.positingColumnName = ISNULL(i.$tie.positingColumnName, @now)
+        );
+~*/
         var changingParameter = tie.isHistorized() ? 'v.' + tie.changingColumnName : 'DEFAULT';
         var positStatementTypes = "'N'", annexStatementTypes = "'N'";
         if(tie.isAssertive()) {
@@ -150,6 +177,10 @@ BEGIN
         if(tie.isHistorized() && !tie.isIdempotent()) {
             positStatementTypes += ",'R'";
             annexStatementTypes += ",'R'";
+        }
+        if(tie.isHistorized() && tie.isIdempotent() && tie.hasMoreValues()) {
+            positStatementTypes += ",'F'";
+            annexStatementTypes += ",'F'";
         }
 /*~
     SELECT
@@ -187,117 +218,91 @@ BEGIN
                     THEN 'S' -- duplicate statement
 ~*/
         if(tie.isHistorized() && tie.hasMoreValues()) {
+            // the version before and the version after, as shown at the positing time, each in a check of its own
+            var sides = [
+                { alias: 'pre', rewinder: 'r', comparison: '<', order: 'DESC' },
+                { alias: 'fol', rewinder: 'f', comparison: '>', order: 'ASC' }
+            ];
+            for(var s = 0, side; side = sides[s]; s++) {
 /*~
-                    WHEN (
-                    SELECT
-                        COUNT(*)
-                    FROM (
-                        SELECT TOP 1
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                            pre.$role.columnName$(tie.hasMoreValues())?,
-~*/
-            }
-/*~
-                        FROM
-                            [$tie.capsule].[r$tie.name] (
-                                v.$tie.positorColumnName,
-                                v.$tie.changingColumnName,
-                                v.$tie.positingColumnName
-                            ) pre
-                        WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                            pre.$role.columnName = v.$role.columnName
-                        AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
+                    WHEN EXISTS (
+                        SELECT
+                            42
+                        FROM (
+                            SELECT TOP 1
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                pre.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? AND
+                                ${side.alias}$.$role.columnName$(tie.hasMoreValues())?,
 ~*/
                 }
 /*~
-                        )
-                        AND
+                            FROM
+                                [$tie.capsule].[${side.rewinder + tie.name}$] (
+                                    v.$tie.positorColumnName,
+                                    v.$tie.changingColumnName,
+                                    v.$tie.positingColumnName
+                                ) ${side.alias}$
+                            WHERE
 ~*/
-            }
+                if(tie.hasMoreIdentifiers()) {
+                    while(role = tie.nextIdentifier()) {
 /*~
-                            pre.$tie.changingColumnName < v.$tie.changingColumnName
-                        AND
-                            pre.$tie.assertionColumnName = v.$tie.assertionColumnName
-                        ORDER BY
-                            pre.$tie.changingColumnName DESC,
-                            pre.$tie.positingColumnName DESC
-                        UNION
-                        SELECT TOP 1
+                                ${side.alias}$.$role.columnName = v.$role.columnName
+                            AND
 ~*/
-            while(role = tie.nextValue()) {
+                    }
+                }
+                else {
 /*~
-                            fol.$role.columnName$(tie.hasMoreValues())?,
+                            (
 ~*/
-            }
+                    while(role = tie.nextValue()) {
 /*~
-                        FROM
-                            [$tie.capsule].[f$tie.name] (
-                                v.$tie.positorColumnName,
-                                v.$tie.changingColumnName,
-                                v.$tie.positingColumnName
-                            ) fol
+                                    ${side.alias}$.$role.columnName = v.$role.columnName
+                                $(tie.hasMoreValues())? AND
+~*/
+                    }
+/*~
+                            )
+                            AND
+~*/
+                }
+/*~
+                                ${side.alias}$.$tie.changingColumnName ${side.comparison}$ v.$tie.changingColumnName
+                            AND
+                                ${side.alias}$.$tie.assertionColumnName = v.$tie.assertionColumnName
+                            ORDER BY
+                                ${side.alias}$.$tie.changingColumnName ${side.order}$,
+                                ${side.alias}$.$tie.positingColumnName DESC
+                        ) s
                         WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                            fol.$role.columnName = v.$role.columnName
-                        AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                fol.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? AND
+                            s.$role.columnName = v.$role.columnName
+                        $(tie.hasMoreValues())? AND
 ~*/
                 }
 /*~
-                        )
-                        AND
+                    )
 ~*/
+                if(side.alias == 'pre') {
+/*~
+                    THEN 'R' -- restatement of the previous version
+~*/
+                }
+                else if(tie.isIdempotent()) {
+/*~
+                    THEN 'F' -- the following version restates this one, so it is retracted
+~*/
+                }
+                else {
+/*~
+                    THEN 'R' -- restatement of the following version
+~*/
+                }
             }
-/*~
-                            fol.$tie.changingColumnName > v.$tie.changingColumnName
-                        AND
-                            fol.$tie.assertionColumnName = v.$tie.assertionColumnName
-                        ORDER BY
-                            fol.$tie.changingColumnName ASC,
-                            fol.$tie.positingColumnName DESC
-                    ) s
-                    WHERE
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                        s.$role.columnName = v.$role.columnName
-                    $(tie.hasMoreValues())? AND
-~*/
-            }
-/*~
-                    ) > 0
-                    THEN 'R' -- restatement
-~*/
         }
 /*~
                     ELSE 'N' -- new statement
@@ -345,6 +350,87 @@ BEGIN
             $tie.versionColumnName = @currentVersion
         AND
             $tie.statementTypeColumnName in ($positStatementTypes);
+~*/
+        if(tie.isHistorized() && tie.isIdempotent() && tie.hasMoreValues()) {
+/*~
+        -- retract the following versions that the new ones make restatements
+        INSERT INTO [$tie.capsule].[$tie.annexName] (
+            $(schema.METADATA)? $tie.metadataColumnName,
+            $tie.identityColumnName,
+            $tie.positorColumnName,
+            $tie.positingColumnName,
+            $tie.reliabilityColumnName
+        )
+        SELECT
+            $(schema.METADATA)? v.$tie.metadataColumnName,
+            fol.$tie.identityColumnName,
+            v.$tie.positorColumnName,
+            v.$tie.positingColumnName,
+            $schema.metadata.deleteReliability
+        FROM
+            @inserted v
+        CROSS APPLY (
+            SELECT TOP 1
+                f.$tie.identityColumnName,
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                f.$role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+/*~
+            FROM
+                [$tie.capsule].[f$tie.name] (
+                    v.$tie.positorColumnName,
+                    v.$tie.changingColumnName,
+                    v.$tie.positingColumnName
+                ) f
+            WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+/*~
+                f.$role.columnName = v.$role.columnName
+            AND
+~*/
+                }
+            }
+            else {
+/*~
+            (
+~*/
+                while(role = tie.nextValue()) {
+/*~
+                    f.$role.columnName = v.$role.columnName
+                $(tie.hasMoreValues())? AND
+~*/
+                }
+/*~
+            )
+            AND
+~*/
+            }
+/*~
+                f.$tie.changingColumnName > v.$tie.changingColumnName
+            AND
+                f.$tie.assertionColumnName = v.$tie.assertionColumnName
+            ORDER BY
+                f.$tie.changingColumnName ASC,
+                f.$tie.positingColumnName DESC
+        ) fol
+        WHERE
+            v.$tie.versionColumnName = @currentVersion
+        AND
+            v.$tie.statementTypeColumnName = 'F'
+~*/
+            while(role = tie.nextValue()) {
+/*~
+        AND
+            fol.$role.columnName = v.$role.columnName$(!tie.hasMoreValues())?;
+~*/
+            }
+        }
+/*~
 
         INSERT INTO [$tie.capsule].[$tie.annexName] (
             $(schema.METADATA)? $tie.metadataColumnName,

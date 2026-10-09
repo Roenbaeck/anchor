@@ -88,7 +88,33 @@ $/ endif
         ),
         'X'
     FROM
-        inserted i;
+        inserted i
+    WHERE NOT EXISTS ( -- exclude the identical, which is already stored
+        SELECT TOP 1
+            42
+        FROM
+            [$attribute.capsule$].[$attribute.positName$] p
+        JOIN
+            [$attribute.capsule$].[$attribute.annexName$] a
+        ON
+            a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+        WHERE
+            p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+        AND
+$/ if attribute.hasChecksum
+            p.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+$/ else
+            p.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
+        AND
+            a.$attribute.positorColumnName$ = i.$attribute.positorColumnName$
+        AND
+            a.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+    );
     SELECT
         @maxVersion = max($attribute.versionColumnName$),
         @currentVersion = 0
@@ -145,7 +171,13 @@ $/ endif
                                     v.$attribute.positingColumnName$,
                                     v.$attribute.assertionColumnName$
                                 )
+$/ if attribute.isIdempotent
+                    )
+                    THEN 'R' -- restatement of the previous version
+                    WHEN EXISTS (
+$/ else
                     ) OR EXISTS (
+$/ endif
                         SELECT
 $/ if attribute.hasChecksum
                             v.$attribute.checksumColumnName$ $--$
@@ -166,7 +198,11 @@ $/ endif
                                     v.$attribute.assertionColumnName$
                                 )
                     )
+$/ if attribute.isIdempotent
+                    THEN 'F' -- the following version restates this one, so it is retracted
+$/ else
                     THEN 'R' -- restatement
+$/ endif
 $/ endif
                     ELSE 'N' -- new statement
                 END
@@ -206,7 +242,63 @@ $/ endif
         WHERE
             $attribute.versionColumnName$ = @currentVersion
         AND
-            $attribute.statementTypeColumnName$ in ('N'$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif);
+            $attribute.statementTypeColumnName$ in ('N'$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif$/ if attribute.isHistorized and attribute.isIdempotent ,'F'$/ endif);
+$/ if attribute.isHistorized and attribute.isIdempotent
+        -- retract the following versions that the new ones make restatements
+        INSERT INTO [$attribute.capsule$].[$attribute.annexName$] (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.identityColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.positingColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            v.$attribute.metadataColumnName$,
+$/ endif
+            fol.$attribute.identityColumnName$,
+            v.$attribute.positorColumnName$,
+            v.$attribute.positingColumnName$,
+            $schema.metadata.deleteReliability$
+        FROM
+            @$attribute.name$ v
+        CROSS APPLY (
+            SELECT TOP 1
+                f.$attribute.identityColumnName$,
+$/ if attribute.hasChecksum
+                f.$attribute.checksumColumnName$ $--$
+$/ else
+                f.$attribute.valueColumnName$
+$/ endif
+            FROM
+                [$attribute.capsule$].[f$attribute.name$](
+                    v.$attribute.positorColumnName$,
+                    v.$attribute.changingColumnName$,
+                    v.$attribute.positingColumnName$
+                ) f
+            WHERE
+                f.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
+            AND
+                f.$attribute.changingColumnName$ > v.$attribute.changingColumnName$
+            AND
+                f.$attribute.assertionColumnName$ = v.$attribute.assertionColumnName$
+            ORDER BY
+                f.$attribute.changingColumnName$ ASC,
+                f.$attribute.positingColumnName$ DESC
+        ) fol
+        WHERE
+            v.$attribute.versionColumnName$ = @currentVersion
+        AND
+            v.$attribute.statementTypeColumnName$ = 'F'
+        AND
+$/ if attribute.hasChecksum
+            fol.$attribute.checksumColumnName$ = v.$attribute.checksumColumnName$; $--$
+$/ else
+            fol.$attribute.valueColumnName$ = v.$attribute.valueColumnName$;
+$/ endif
+$/ endif
         INSERT INTO [$attribute.capsule$].[$attribute.annexName$] (
 $/ if schema.METADATA
             $attribute.metadataColumnName$,
@@ -243,7 +335,7 @@ $/ endif
         WHERE
             v.$attribute.versionColumnName$ = @currentVersion
         AND
-            $attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif);
+            $attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif$/ if attribute.isHistorized and attribute.isIdempotent ,'F'$/ endif);
     END
 END
 GO

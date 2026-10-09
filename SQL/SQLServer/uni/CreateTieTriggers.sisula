@@ -79,6 +79,35 @@ $/ endfor
         AND
             x.$tie.changingColumnName$ = i.$tie.changingColumnName$
     );
+$/ if tie.identifiers and tie.values
+    -- other values for identifiers that already have values at that time are a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+$/ foreach role in tie.identifiers
+            i.$role.columnName$,
+$/ endfor
+            i.$tie.changingColumnName$
+        FROM
+            @inserted i
+        JOIN
+            [$tie.capsule$].[$tie.name$] x
+        ON
+$/ foreach role in tie.identifiers
+            x.$role.columnName$ = i.$role.columnName$
+        AND
+$/ endfor
+            x.$tie.changingColumnName$ = i.$tie.changingColumnName$
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $tie.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
+$/ endif
 $/ if tie.isIdempotent
     INSERT INTO @inserted
     SELECT
@@ -217,7 +246,6 @@ $/ endfor
 END
 GO
 $/ else
-$/ if tie.isIdempotent
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it$tie.name$ instead of INSERT trigger on $tie.name$
 -----------------------------------------------------------------------------------------------------------------------
@@ -229,6 +257,43 @@ INSTEAD OF INSERT
 AS
 BEGIN
     SET NOCOUNT ON;
+$/ if tie.identifiers and tie.values
+    -- other values for identifiers that already have values are a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+$/ foreach role in tie.identifiers
+            i.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            inserted i
+        JOIN
+            [$tie.capsule$].[$tie.name$] x
+        ON
+$/ foreach role in tie.identifiers
+            x.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        WHERE NOT (
+$/ foreach role in tie.values
+            x.$role.columnName$ = i.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $tie.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
+$/ endif
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
         $tie.metadataColumnName$, $--$
@@ -261,7 +326,6 @@ $/ endfor
     );
 END
 GO
-$/ endif
 $/ endif
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_l$tie.name$ instead of INSERT trigger on l$tie.name$

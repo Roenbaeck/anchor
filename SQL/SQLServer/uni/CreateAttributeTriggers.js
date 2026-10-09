@@ -85,6 +85,32 @@ BEGIN
         AND
             $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
     ); -- the posit must be different (exclude the identical)
+    -- another value at a time that already has a value is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+            $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
+            i.$attribute.entityReferenceName,
+            i.$attribute.changingColumnName
+        FROM
+            @$attribute.name i
+        JOIN
+            [$attribute.capsule].[$attribute.name] x
+        ON
+            $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+        $(attribute.isEquivalent())? AND
+            x.$attribute.entityReferenceName = i.$attribute.entityReferenceName
+        AND
+            x.$attribute.changingColumnName = i.$attribute.changingColumnName
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $attribute.name for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
 ~*/
         // fill table with entire history in these cases
         if(attribute.isIdempotent()) {
@@ -186,7 +212,7 @@ END
 GO
 ~*/
     } // end of historized attribute
-    else if (!attribute.isHistorized() && attribute.isIdempotent()) {
+    else { // static attribute
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name instead of INSERT trigger on $attribute.name
@@ -216,6 +242,43 @@ BEGIN
     ~*/
             }    
     /*~
+    -- another value for an entity that already has a value is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+            $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
+            i.$attribute.entityReferenceName
+        FROM
+            inserted i
+        JOIN
+            [$attribute.capsule].[$attribute.name] x
+        ON
+            $(attribute.isEquivalent())? x.$attribute.equivalentColumnName = i.$attribute.equivalentColumnName
+        $(attribute.isEquivalent())? AND
+            x.$attribute.entityReferenceName = i.$attribute.entityReferenceName
+        WHERE NOT (
+~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+            DECRYPTBYKEY(x.$attribute.valueColumnName) = DECRYPTBYKEY(i.$attribute.valueColumnName)
+~*/
+            }
+            else {
+/*~
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+~*/
+            }
+/*~
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $attribute.name for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
     INSERT INTO [$attribute.capsule].[$attribute.name] (
         $(schema.METADATA)? $attribute.metadataColumnName,
         $attribute.entityReferenceName,
@@ -239,11 +302,22 @@ BEGIN
         $(attribute.isEquivalent())? AND    
             x.$attribute.entityReferenceName = i.$attribute.entityReferenceName
         AND
+~*/
+            if(attribute.getEncryptionGroup()) {
+/*~
+            DECRYPTBYKEY(x.$attribute.valueColumnName) = DECRYPTBYKEY(i.$attribute.valueColumnName)
+~*/
+            }
+            else {
+/*~
             $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+~*/
+            }
+/*~
     );    
 END
 GO       
 ~*/
-        } // end of static idempotent attribute
+        } // end of static attribute
 }
 }

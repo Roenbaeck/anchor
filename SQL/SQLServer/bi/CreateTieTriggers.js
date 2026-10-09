@@ -433,11 +433,21 @@ BEGIN
                 @inserted s
             WHERE
 ~*/
-            while(role = tie.nextRole()) {
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
 /*~
                 s.$role.columnName = a.$role.columnName
             AND
 ~*/
+                }
+            }
+            else {
+                while(role = tie.nextRole()) {
+/*~
+                s.$role.columnName = a.$role.columnName
+            AND
+~*/
+                }
             }
 /*~
                 $(tie.isHistorized())? s.$tie.changingColumnName = a.$tie.changingColumnName
@@ -445,8 +455,18 @@ BEGIN
                 s.$tie.positingColumnName < a.$tie.positingColumnName
             ORDER BY 
                 s.$tie.positingColumnName DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextValue()) {
+/*~
+            a.$role.columnName = pre.$role.columnName
+        AND
+~*/
+                }
+            }
+/*~
             a.$tie.reliabilityColumnName = pre.$tie.reliabilityColumnName
     ) u
     WHERE
