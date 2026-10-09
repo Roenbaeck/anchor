@@ -414,6 +414,72 @@ attribute that is not historized, so a value update of a static attribute create
 **To update this port:** as for uni: change the template and the original sisulet together while the original is still here, or regenerate the golden files
 from the templates once the originals are removed (`regenerate-golden.ps1`). The originals can go when someone has run the output on a SQL Server.
 
+## SQL Server triggers made consistent (2026-10-09)
+
+After the port, the triggers of the latest views (insert, update, delete) and of the attributes and ties (insert)
+were made to follow one set of rules in uni, bi and crt. The rules are in `docs/ANCHOR.md` ("Loading through the
+latest views"); in short:
+
+- **The flags.** Every incoming statement is identical (already stored: always ignored), a repetition (the same value
+  again later in changing time, a restatement; or the same reliability again later in positing time, a
+  re-assertion), or a contradiction (another value for a slot that is taken). `restatable` says whether restatements
+  may exist (if not, the restatement checks raise an error), `idempotent` makes the triggers skip restatements, and
+  `assertive` makes them keep re-assertions (off: skipped). No flag swallows a contradiction: in uni it is an error
+  ("Contradiction in <name> for: <key>"), and bi and crt have none, since a later assertion corrects an earlier one.
+  This reading follows from the code and from the history: idempotency was defined in 2012 as ignoring a value
+  identical to the current one, assertiveness took over the positing-time half of it in 2014, and in 2021 static
+  idempotency was changed to "only ignore identical".
+- **An update states what it changes.** A value (or a reliability) left as it is states nothing, unless a changing
+  time, a positing time or a positor is set too. A static attribute or tie is updated like a historized one at a
+  fixed changing time: in uni a missing value is filled and another one is a contradiction, in bi and crt another
+  one is a correction. A reliability without a new value asserts the shown version again at its own changing time;
+  0 retracts it. Null retracts the shown posit in bi and crt (attributes and ties).
+- **A delete** retracts each shown posit once, for the row's positor (bi and crt).
+
+**Defects fixed on the way** (each in the original and the template):
+- bi and crt: the attributes of a nexus had no assembled view and no insert trigger, so an insert into the latest
+  view of a nexus failed with an invalid object name.
+- bi and crt: DELETE on a latest view wrote one retraction per annex row of the shown posit, which collides on the
+  annex key once a posit has been asserted twice, and crt retracted for every positor.
+- bi and crt ties: a value role set to null went on to the insert trigger, whose table variable does not allow
+  nulls. crt ties: an update was always positor 0's statement, and so was an insert through the latest view that
+  gave only the Positor column.
+- crt: an identical assertion was not excluded first, so with Assertive on (the default) the same row loaded twice
+  violated the annex key.
+- crt ties: the restatement check and the restatement finder used `SELECT TOP 1 ... ORDER BY ... UNION SELECT TOP 1
+  ... ORDER BY ...`, which T-SQL does not accept.
+- crt: an update of a row without a value (for a positor that shows none) was positor 0's statement.
+- bi, not assertive: a re-assertion was compared with the posit's own previous assertion instead of what is shown,
+  so A, then B, then A again at the same changing time lost the last A.
+- crt, idempotent: a new version that restates the following one was dropped (the earlier start was lost); it is now
+  kept and the following one retracted, as uni and bi do.
+- uni: a static attribute or tie that is not idempotent had no insert trigger, so the same value again violated
+  the key; and a static tie's update was silently ignored.
+
+**Behaviour that changes for existing users** (all deliberate, see above): `UPDATE ... SET x = x` no longer stores a
+restatement at now; changing a uni static value raises a contradiction error instead of a key violation, and changing
+a uni static tie raises it instead of being ignored; bi and crt static values can be corrected by an update; in crt an
+update of a positor's row is that positor's statement; the same static value inserted again in uni is ignored instead
+of violating the key.
+
+**What was verified:** the golden files were made from the changed originals (`golden.ps1`) and every template
+matches them for all 56 SQL Server models (1 735 comparisons with the whole outputs), in the C# renderer too (1 679
+renderings), and the modeler gives the same SQL and JSON bindings for the 53 canonical ones; the 19 crt models were
+checked again after the last change. **None of it has been run on a SQL Server.** `sisula/examples/anchor-snowflake/sqlserver-tests/` has one
+script per temporalization that exercises each rule on the output for `models/sqlserver-base*.xml` and prints PASS or
+FAIL: run the generated SQL in an empty database, then the script.
+
+**Not done or kept:**
+- PostgreSQL has its own copies of these triggers (`SQL/PostgreSQL/*/Create*Triggers.js`); they were not changed.
+- An encrypted historized attribute in uni compares encrypted values in its insert trigger, so neither identical
+  rows nor restatements are recognised (as before); a static one now compares the decrypted values.
+- crt, idempotent: the following version is retracted only when it is visible at the positing time of the new one;
+  a statement posited earlier than the following version is stored as before.
+- Two different values for the same slot in one insert statement still fail on the key of the trigger's table
+  variable rather than with the contradiction message.
+- In bi and crt, retracting the newest posit shows the one before it, also after a correction of a static value
+  (the corrected posit stays asserted). This is how corrections work in the posit model and was left as it is.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
