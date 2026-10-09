@@ -11,8 +11,7 @@ $/ if schema.TRIGGERS
 -- the previous or following value are stored. Others are silently ignored in
 -- order to avoid unnecessary temporal duplicates.
 --
-$/ foreach anchor in schema.anchors
-$/ foreach attribute in anchor.attributes
+$/ foreach attribute in schema.attributes
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
 -----------------------------------------------------------------------------------------------------------------------
@@ -27,7 +26,7 @@ BEGIN
     DECLARE @maxVersion int;
     DECLARE @currentVersion int;
     DECLARE @$attribute.name$ TABLE (
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -106,7 +105,7 @@ $/ endif
                         SELECT TOP 1
                             t.$attribute.identityColumnName$
                         FROM
-                            [$anchor.capsule$].[t$anchor.name$](v.$attribute.positorColumnName$, $/ if attribute.isHistorized v.$attribute.changingColumnName$$/ else DEFAULT$/ endif, v.$attribute.positingColumnName$, v.$attribute.assertionColumnName$) t
+                            [$attribute.parent.capsule$].[t$attribute.parent.name$](v.$attribute.positorColumnName$, $/ if attribute.isHistorized v.$attribute.changingColumnName$$/ else DEFAULT$/ endif, v.$attribute.positingColumnName$, v.$attribute.assertionColumnName$) t
                         WHERE
                             t.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
 $/ if attribute.isHistorized
@@ -248,6 +247,5 @@ $/ endif
     END
 END
 GO
-$/ endfor
 $/ endfor
 $/ endif

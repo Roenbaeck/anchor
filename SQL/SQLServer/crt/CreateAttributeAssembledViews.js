@@ -6,10 +6,8 @@
 -- defined elsewhere.
 --
 ~*/
-var anchor;
-while (anchor = schema.nextAnchor()) {
-    var knot, attribute;
-    while (attribute = anchor.nextAttribute()) {
+var attribute;
+while (attribute = schema.nextAttribute()) {
 /*~
 -- Attribute assembled view -------------------------------------------------------------------------------------------
 -- $attribute.name assembled view of the posit and annex tables,
@@ -59,5 +57,4 @@ BEGIN
 END
 GO
 ~*/
-    }
 }

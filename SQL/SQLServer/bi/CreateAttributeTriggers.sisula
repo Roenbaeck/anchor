@@ -11,8 +11,7 @@ $/ if schema.TRIGGERS
 -- the previous or following value are stored. Others are silently ignored in
 -- order to avoid unnecessary temporal duplicates.
 --
-$/ foreach anchor in schema.anchors
-$/ foreach attribute in anchor.attributes
+$/ foreach attribute in schema.attributes
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
 -----------------------------------------------------------------------------------------------------------------------
@@ -25,7 +24,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @$attribute.name$ TABLE (
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -138,7 +137,7 @@ $/ endif
     ON $--$
         a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$;
     DECLARE @retracted TABLE (
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -256,7 +255,7 @@ $/ if not attribute.isAssertive
     )
     BEGIN --- (only run if necessary) ---
     DECLARE @updated TABLE (
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -380,7 +379,7 @@ $/ if attribute.isHistorized and attribute.isIdempotent
     )
     BEGIN --- (only run if necessary) ---
     DECLARE @restated TABLE (
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -586,6 +585,5 @@ $/ endif
         $attribute.statementTypeColumnName$ in ('P', 'A');
 END
 GO
-$/ endfor
 $/ endfor
 $/ endif

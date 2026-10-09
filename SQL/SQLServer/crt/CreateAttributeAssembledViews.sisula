@@ -4,8 +4,7 @@
 -- It can be used to maintain entity integrity through a primary key, which cannot be
 -- defined elsewhere.
 --
-$/ foreach anchor in schema.anchors
-$/ foreach attribute in anchor.attributes
+$/ foreach attribute in schema.attributes
 -- Attribute assembled view -------------------------------------------------------------------------------------------
 -- $attribute.name$ assembled view of the posit and annex tables,
 -- pk$attribute.name$ optional temporal consistency constraint
@@ -67,5 +66,4 @@ $/ endif
 $/ endif
 END
 GO
-$/ endfor
 $/ endfor

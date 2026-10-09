@@ -13,9 +13,9 @@ if(schema.TRIGGERS) {
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor, attribute;
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
+var attribute, parent;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;   // an anchor or a nexus
         var annexStatementTypes = "'N'", positStatementTypes = "'N'";
         if(attribute.isAssertive()) {
             annexStatementTypes += ",'D'";
@@ -41,7 +41,7 @@ BEGIN
     DECLARE @currentVersion int;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positorColumnName $schema.metadata.positorRange not null,
@@ -103,7 +103,7 @@ BEGIN
                         SELECT TOP 1
                             t.$attribute.identityColumnName
                         FROM
-                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.assertionColumnName) t
+                            [$parent.capsule].[t$parent.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.assertionColumnName) t
                         WHERE
                             t.$attribute.entityReferenceName = v.$attribute.entityReferenceName
                         $(attribute.isHistorized())? AND
@@ -210,6 +210,5 @@ BEGIN
 END
 GO
 ~*/
-    } // end of loop over attributes
-}
+} // end of loop over attributes
 }
