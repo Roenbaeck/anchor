@@ -28,6 +28,9 @@ BEGIN
         $nexus.identityColumnName$ $nexus.identity$ not null
     );
     INSERT INTO [$nexus.capsule$].[$nexus.name$] (
+$/ foreach role in nexus.roles
+        $role.columnName$,
+$/ endfor
         $/ if schema.METADATA $nexus.metadataColumnName$ $/ else $nexus.dummyColumnName$$/ endif
     )
     OUTPUT
@@ -35,6 +38,9 @@ BEGIN
     INTO
         @$nexus.mnemonic$
     SELECT
+$/ foreach role in nexus.roles
+        $role.columnName$,
+$/ endfor
         $/ if schema.METADATA $nexus.metadataColumnName$ $/ else null$/ endif
     FROM
         inserted

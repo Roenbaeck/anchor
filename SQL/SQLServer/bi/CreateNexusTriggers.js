@@ -32,6 +32,13 @@ BEGIN
         $nexus.identityColumnName $nexus.identity not null
     );
     INSERT INTO [$nexus.capsule].[$nexus.name] (
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+        }
+/*~
         $(schema.METADATA)? $nexus.metadataColumnName : $nexus.dummyColumnName
     )
     OUTPUT
@@ -39,6 +46,13 @@ BEGIN
     INTO
         @$nexus.mnemonic
     SELECT
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+        }
+/*~
         $(schema.METADATA)? $nexus.metadataColumnName : null
     FROM
         inserted
