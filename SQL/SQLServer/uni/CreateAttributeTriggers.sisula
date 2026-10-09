@@ -107,7 +107,7 @@ $/ if attribute.isHistorized
 $/ endif
         AND
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -329,7 +329,7 @@ $/ if attribute.encryptionGroup
             DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
 $/ else
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -383,7 +383,7 @@ $/ if attribute.encryptionGroup
             DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
 $/ else
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif

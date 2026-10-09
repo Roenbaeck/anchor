@@ -83,7 +83,7 @@ BEGIN
         $(attribute.isHistorized())? AND
             $(attribute.isHistorized())? x.$attribute.changingColumnName = i.$attribute.changingColumnName
         AND
-            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : x.$attribute.valueColumnName = i.$attribute.valueColumnName
     ); -- the posit must be different (exclude the identical)
     -- another value at a time that already has a value is a contradiction
     DECLARE @message varchar(max);
@@ -265,7 +265,7 @@ BEGIN
             }
             else {
 /*~
-            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : x.$attribute.valueColumnName = i.$attribute.valueColumnName
 ~*/
             }
 /*~
@@ -310,7 +310,7 @@ BEGIN
             }
             else {
 /*~
-            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = i.$attribute.checksumColumnName : x.$attribute.valueColumnName = i.$attribute.valueColumnName
+            $(attribute.hasChecksum())? x.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : x.$attribute.valueColumnName = i.$attribute.valueColumnName
 ~*/
             }
 /*~
