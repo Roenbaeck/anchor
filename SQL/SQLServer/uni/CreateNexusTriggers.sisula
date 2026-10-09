@@ -255,8 +255,19 @@ $/ if attribute.knot.isEquivalent
         AND
             [k$attribute.knot.mnemonic$].$attribute.knot.equivalentColumnName$ = i.$attribute.equivalentKnotColumnName$
 $/ endif
+        LEFT JOIN
+            deleted d
+        ON
+            d.$nexus.identityColumnName$ = i.$nexus.identityColumnName$
         WHERE
-            CASE WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END is not null;
+            CASE WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END is not null
+        AND ( -- a value that is left as it is states nothing
+$/ if attribute.isHistorized
+            UPDATE($attribute.changingColumnName$) OR
+$/ endif
+            d.$attribute.valueColumnName$ is null OR
+            d.$attribute.valueColumnName$ <> CASE WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END
+        );
 $/ if attribute.isDeletable
         SELECT
 $/ if attribute.isHistorized
@@ -328,7 +339,7 @@ $/ if schema.METADATA
 $/ endif
             ISNULL(i.$attribute.entityReferenceName$, i.$nexus.identityColumnName$),
 $/ if attribute.isEquivalent
-            i.$attribute.equivalentColumnName$,
+            ISNULL(i.$attribute.equivalentColumnName$, 0),
 $/ endif
 $/ if attribute.isHistorized
             cast(ISNULL(CASE
@@ -343,8 +354,30 @@ $/ else
 $/ endif
         FROM
             inserted i
+        LEFT JOIN
+            deleted d
+        ON
+            d.$nexus.identityColumnName$ = i.$nexus.identityColumnName$
         WHERE
-            i.$attribute.valueColumnName$ is not null;
+            i.$attribute.valueColumnName$ is not null
+        AND ( -- a value that is left as it is states nothing
+$/ if attribute.isHistorized
+            UPDATE($attribute.changingColumnName$) OR
+$/ endif
+$/ if attribute.isEquivalent
+            UPDATE($attribute.equivalentColumnName$) OR
+$/ endif
+            d.$attribute.valueColumnName$ is null OR
+$/ if attribute.encryptionGroup
+            d.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ else
+$/ if attribute.hasChecksum
+            d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+            d.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+$/ endif
+        );
 $/ if attribute.isDeletable
         SELECT
 $/ if attribute.isHistorized

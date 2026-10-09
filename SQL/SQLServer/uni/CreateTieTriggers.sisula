@@ -396,12 +396,13 @@ $/ foreach role in tie.identifiers
     IF(UPDATE($role.columnName$))
         RAISERROR('The identity column $role.columnName$ is not updatable.', 16, 1);
 $/ endfor
-$/ if tie.isHistorized
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
         $tie.metadataColumnName$,
 $/ endif
+$/ if tie.isHistorized
         $tie.changingColumnName$,
+$/ endif
 $/ foreach role in tie.roles
         $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
@@ -410,7 +411,9 @@ $/ endfor
 $/ if schema.METADATA
         i.$tie.metadataColumnName$,
 $/ endif
+$/ if tie.isHistorized
         cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
+$/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.last()
@@ -423,22 +426,44 @@ $/ else
 $/ endif
 $/ endfor
     FROM
-$/ if tie.knotRoles
         inserted i
 $/ foreach role in tie.knotRoles
     LEFT JOIN
         [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
     ON
-$/ if role.last()
-        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$; $--$
-$/ else
         [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
+$/ endfor
+    WHERE
+$/ foreach role in tie.values
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null $--$
+$/ else
+        i.$role.columnName$ is not null
+$/ endif
+    AND
+$/ endfor
+        ( -- values that are left as they are state nothing
+$/ if tie.isHistorized
+            UPDATE($tie.changingColumnName$) OR
+$/ endif
+            NOT EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+$/ foreach role in tie.roles
+$/ if role.knot
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+                    d.$role.columnName$ = i.$role.columnName$
+$/ endif
+$/ if not role.last()
+                AND
 $/ endif
 $/ endfor
-$/ else
-        inserted i; $--$
-$/ endif
-$/ endif
+            )
+        );
 $/ endif
 $/ if tie.isDeletable and tie.identifiers and tie.values
     SELECT

@@ -699,10 +699,56 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon$;
     SET @now = $schema.metadata.now$;
+    IF(UPDATE($tie.identityColumnName$))
+        RAISERROR('The identity column $tie.identityColumnName$ is not updatable.', 16, 1);
 $/ foreach role in tie.identifiers
     IF(UPDATE($role.columnName$))
         RAISERROR('The identity column $role.columnName$ is not updatable.', 16, 1);
 $/ endfor
+    -- a value set to null retracts the shown posit
+    INSERT INTO [$tie.capsule$].[$tie.annexName$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.identityColumnName$,
+        $tie.positingColumnName$,
+        $tie.reliabilityColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$tie.metadataColumnName$,
+$/ endif
+        i.$tie.identityColumnName$,
+        cast(ISNULL(CASE
+            WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$
+$/ if tie.isHistorized
+            WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$
+$/ endif
+        END, @now) as $schema.metadata.positingRange$),
+        0
+    FROM
+        inserted i
+$/ foreach role in tie.knotRoles
+    LEFT JOIN
+        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
+    ON
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
+$/ endfor
+    WHERE
+        i.$tie.identityColumnName$ is not null
+    AND (
+$/ foreach role in tie.values
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is null $--$
+$/ else
+        i.$role.columnName$ is null
+$/ endif
+$/ if not role.last()
+    OR
+$/ endif
+$/ endfor
+    );
+    -- the other rows are statements, unless they leave everything as it is
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
         $tie.metadataColumnName$,
@@ -721,7 +767,26 @@ $/ if schema.METADATA
         i.$tie.metadataColumnName$,
 $/ endif
 $/ if tie.isHistorized
-        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
+        cast(CASE
+            WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$
+            WHEN EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName$ = i.$tie.identityColumnName$
+$/ foreach role in tie.values
+                AND
+$/ if role.knot
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+                    d.$role.columnName$ = i.$role.columnName$
+$/ endif
+$/ endfor
+            ) THEN i.$tie.changingColumnName$ -- the shown version is asserted again
+            ELSE @now
+        END as $tie.timeRange$),
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -731,30 +796,48 @@ $/ else
 $/ endif
 $/ endfor
         cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$),
-        CASE
-            WHEN
-$/ foreach role in tie.values
-                i.$role.columnName$ is null
-$/ if not role.last()
-            OR
-$/ endif
-$/ endfor
-            THEN 0
-            WHEN UPDATE($tie.reliabilityColumnName$) THEN i.$tie.reliabilityColumnName$
-            ELSE 1
-        END
+        ISNULL(i.$tie.reliabilityColumnName$, 1)
     FROM
-$/ if tie.knotRoles
         inserted i
 $/ foreach role in tie.knotRoles
     LEFT JOIN
         [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
     ON
-        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$$/ if role.last() ;$/ endif
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
 $/ endfor
+    WHERE
+$/ foreach role in tie.values
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null $--$
 $/ else
-        inserted i;
+        i.$role.columnName$ is not null
 $/ endif
+    AND
+$/ endfor
+        ( -- a statement that leaves everything as it is states nothing
+$/ if tie.isHistorized
+            UPDATE($tie.changingColumnName$) OR
+$/ endif
+            UPDATE($tie.positingColumnName$) OR
+            NOT EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName$ = i.$tie.identityColumnName$
+$/ foreach role in tie.values
+                AND
+$/ if role.knot
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+                    d.$role.columnName$ = i.$role.columnName$
+$/ endif
+$/ endfor
+                AND
+                    d.$tie.reliabilityColumnName$ = ISNULL(i.$tie.reliabilityColumnName$, 1)
+            )
+        );
 END
 GO
 $/ endif
