@@ -392,7 +392,7 @@ The settings then decide what happens to what is stated, the same way for insert
 | What is stated | What happens |
 |---|---|
 | Something already stored (identical) | Nothing |
-| The same value again later in changing time (a restatement) | Stored if restatable; otherwise skipped if idempotent, or an error |
+| The same value again later in changing time (a restatement) | Skipped if idempotent; otherwise stored if restatable, or an error |
 | The same reliability again later in positing time (a re-assertion, bi and crt) | Stored if assertive, otherwise skipped |
 | Another value at a changing time that already has one (uni only) | An error, whatever the settings say |
 
