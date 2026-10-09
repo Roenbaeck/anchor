@@ -241,7 +241,8 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
 3. crt tie perspectives: a role is always followed by the temporal columns, so its comma is unconditional.
 4. bi knots now get their metadata column (`knot.metadataDefinition` was only set in crt).
 5. uni, in configurations that the base model does not reach: with metadata off a knot's dummy column had no
-   name (`knot.dummyColumnName` was never set; now in `SQL/Snowflake/NamingConvention.js`), and the dummy columns
+   name (`knot.dummyColumnName` was never set; it was set in `SQL/Snowflake/NamingConvention.js`, and since
+   2026-10-09 is in the common `SQL/NamingConvention.js`, for every database), and the dummy columns
    of knots and nexuses were typed `bit`, which Snowflake does not have (now `boolean`). With the original naming
    convention a knotted attribute or nexus attribute had no `knotEquivalentColumnName` and
    `knotChecksumColumnName` (roles had them), giving `pAC.,` and nameless columns; the common
@@ -461,6 +462,14 @@ latest views"); in short:
   as bi and crt do.
 - uni, bi and crt: an insert through the latest view of a nexus gave the new nexus rows only their metadata, but
   every role column is not null, so no nexus row could be inserted that way (found while writing the tests below).
+- uni, bi and crt: the same trigger paired the identities it made with the inserted rows by row numbers, in an order
+  that SQL Server does not guarantee, so in an insert of several rows the attributes of one could end up with the
+  roles of another. It now makes the new nexus rows with `MERGE ... ON 1 = 0 WHEN NOT MATCHED THEN INSERT`, whose
+  `OUTPUT` gives every new identity together with the values of its own row (an `INSERT`'s `OUTPUT` cannot name the
+  source row, and a nexus row has no key to find it by); rows that give an identity are added after it. The anchors
+  still pair by row numbers, which is harmless there, since new anchor rows are alike. The `OUTPUT` of a `MERGE` may
+  only call schema-bound functions that read no data: the generated `MD5` (HASHBYTES, SQL Server 2016 and later) is
+  one, and it is called there only for a knotted attribute of a nexus whose knot has a checksum.
 
 **Behaviour that changes for existing users** (all deliberate, see above): `UPDATE ... SET x = x` no longer stores a
 restatement at now; changing a uni static value raises a contradiction error instead of a key violation, and changing
@@ -468,16 +477,18 @@ a uni static tie raises it instead of being ignored; bi and crt static values ca
 update of a positor's row is that positor's statement; the same static value inserted again in uni is ignored instead
 of violating the key.
 
-**What was verified:** the golden files were made from the changed originals (`golden.ps1`) and every template
-matches them for all 59 SQL Server models (1 828 comparisons with the whole outputs), in the C# renderer too (1 769
-renderings), and the modeler gives the same SQL for the 56 canonical ones; its JSON bindings equal the resolver's for
-the three test models below and, in the run before the last changes (which did not touch the bindings), for the 53
-others. **None of it has been run on a SQL Server.**
+**What was verified** (last run after the nexus merge and the fixes below): the golden files were made from the
+changed originals (`golden.ps1`) and every template matches them for all 59 SQL Server models (1 828 comparisons with
+the whole outputs); the Snowflake templates still give their committed golden files (36 models), also through the
+hosted generator; the C# renderer gives the same for the SQL Server models and the Snowflake models that the fixes
+reach (1 898 renderings); the modeler gives the same SQL for the 56 canonical SQL Server models and those Snowflake
+models, and its JSON bindings equal the resolver's for the same 65 models. **None of it has been run on a SQL
+Server.**
 
 **Tests of what the triggers do.** `sisula/examples/anchor-snowflake/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
 is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
 without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
-deletes through its views and prints PASS or FAIL for each rule above (36, 31 and 38 checks), and
+deletes through its views and prints PASS or FAIL for each rule above (37, 32 and 39 checks), and
 `tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per temporalization, runs the golden output of the
 model and then the script in it, drops the database again, and exits 1 if a check failed. Run it after every change
 to a trigger, once the golden files of the three models have been regenerated. The scripts parse (see below) and the
@@ -486,19 +497,32 @@ runner was tried against a stand-in for sqlcmd; neither has met a SQL Server yet
 **A syntax check of the generated SQL.** Every one of the 59 generated scripts, and the test scripts, were parsed once
 with Microsoft's T-SQL parser (ScriptDom, SQL Server 2016 grammar, the SQL inside `EXEC('...')` strings included),
 from a scratch folder; it is not a tool in the repository. It checks syntax, not names, and it accepts some things
-that SQL Server does not (an `ORDER BY` in a `UNION` member). The test models and the test scripts parse. The other
-errors are all in the originals too, in models that reach them:
+that SQL Server does not (an `ORDER BY` in a `UNION` member); a lexical error (such as `[]`) ends its run, so what it
+reports for a file is not always all there is. The test models and the test scripts parse. What it found is in the
+originals too, in models that reach it:
 - the known `STschema.metadata.equivalentSuffix` column (uni, natural keys with equivalence: `equivalence`,
-  `distinct-equivalence`, `equivalence-plain`, `flags`, `partitioned`) and the identity columns without a type of the
-  `handwritten` bi and crt models (the model), both listed above;
-- with the original naming convention the business perspectives give a knotted attribute the alias `[]`
-  (`CreateAnchorBusinessPerspectives`, `CreateNexusBusinessPerspectives`; `plain` and `equivalence-original`, all
-  three temporalizations);
-- an encrypted knotted attribute is decrypted with `CAST(DECRYPTBYKEY(...) AS )`, without a type (uni
-  `CreateAnchorPerspectives`, `encrypted`);
-- with metadata off, the identity table of an equivalent knot has a dummy column without a name (` bit null`, uni
-  `CreateKnots`, `equivalence-plain`), as Snowflake had before it was fixed there.
-None of these was fixed.
+  `distinct-equivalence`, `equivalence-original`, `equivalence-plain`, `flags`, `partitioned`) and the identity
+  columns without a type of the `handwritten` bi and crt models (the model), both listed above; kept;
+- fixed (2026-10-09): with the original naming convention a knotted attribute had no `knotBusinessName`, so the
+  business perspectives aliased it `[]` (`plain` and `equivalence-original`, all temporalizations);
+  `SQL/NamingConvention.js` sets it as the improved naming does;
+- fixed: an encrypted knotted attribute was decrypted with `CAST(DECRYPTBYKEY(...) AS )`, without a type (uni
+  `encrypted`). A knotted attribute cannot be encrypted, which is the modeler's rule, but the modeler tested the
+  group name with `> 0`, which a name never is, so it kept and saved the group; the generators then decrypted and
+  encrypted a knot reference that the table stores as the knot's identity. The modeler applies the rule now, and
+  `getEncryptionGroup` in `SQL/Helpers.js` is empty for a knotted attribute (as `isEquivalent` is false), so older
+  files generate correctly too; the three `encrypted` models were saved through the modeler again;
+- fixed: with metadata off the tables of an equivalent knot had a dummy column without a name (` bit null`, uni
+  `equivalence-plain`): `knot.dummyColumnName` was set for Snowflake only. The dummy column is a SQL Server
+  workaround (a table of nothing but an identity column cannot take several new rows in one insert), so the name is
+  now set in `SQL/SQLServer/NamingConvention.js` too, not in the common naming convention: other databases may need
+  something else. PostgreSQL, BigQuery and Vertica read `knot.dummyColumnName` in their `CreateKnots` and still get no
+  name there.
+
+Not a syntax error, so not found by the parser: with the original naming convention a knotted attribute's columns in
+the perspectives are named after its knot alone (`UTL_Utilization`, `UTL_ID`), so two knotted attributes of one
+anchor on the same knot (`AVG` and `MIN` in the `plain` and `equivalence-original` models) give a view the same
+column twice, which SQL Server rejects. That is a limit of the original naming, left as it is.
 
 **Not done or kept:**
 - PostgreSQL has its own copies of these triggers (`SQL/PostgreSQL/*/Create*Triggers.js`); they were not changed.
@@ -510,9 +534,6 @@ None of these was fixed.
   variable rather than with the contradiction message.
 - In bi and crt, retracting the newest posit shows the one before it, also after a correction of a static value
   (the corrected posit stays asserted). This is how corrections work in the posit model and was left as it is.
-- An insert of several new nexus rows through the latest view pairs the identities it makes with the inserted rows by
-  row numbers, in an order that SQL Server does not guarantee, as the anchors do (where the new rows are alike); for
-  a nexus the attributes of one new row could end up with the roles of another. One new row per statement is safe.
 - The key generator of a uni nexus (`k<nexus>`) inserts only the metadata too, so it cannot make rows for a nexus
   with roles. It was left as it is.
 
