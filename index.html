@@ -3084,7 +3084,7 @@
                     this.editables.push(Editables.equivalenceEdit);
                 else if (knotted && index >= 0)
                     this.editables.splice(index, 1);
-                if(this.encryptionGroup > 0 && knotted)
+                if(this.encryptionGroup && knotted)
                     this.encryptionGroup = ''; // knotted cannot be encrypted
                 if(this.checksum && knotted)
                     this.checksum = false; // knotted cannot be checksummed

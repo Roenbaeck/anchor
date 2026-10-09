@@ -206,7 +206,8 @@ while (nexus = schema.nextNexus()) {
             return !!this['timeRange'];
         };
         nxAttribute.getEncryptionGroup = function() {
-            if(!this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0) 
+            // the modeler's rule: a knotted attribute is never encrypted (it holds a reference to its knot), whatever a file says
+            if(this.isKnotted() || !this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0)
                 return;
             return this.metadata.encryptionGroup;
         };
@@ -375,7 +376,8 @@ while (anchor = schema.nextAnchor()) {
             return !!this['timeRange'];
         };
         attribute.getEncryptionGroup = function() {
-            if(!this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0) 
+            // the modeler's rule: a knotted attribute is never encrypted (it holds a reference to its knot), whatever a file says
+            if(this.isKnotted() || !this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0)
                 return;
             return this.metadata.encryptionGroup;
         };
