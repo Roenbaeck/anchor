@@ -212,8 +212,8 @@ BEGIN
 				knot = attribute.knot;
 /*~
     IF (
-        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
-        $(attribute.isHistorized())? UPDATE($attribute.knotValueColumnName) OR
+        UPDATE($attribute.valueColumnName) OR
+        UPDATE($attribute.knotValueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
@@ -248,8 +248,9 @@ BEGIN
                 if(attribute.isHistorized()) {
 /*~
             cast(ISNULL(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                WHEN d.$attribute.valueColumnName = CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+                THEN i.$attribute.changingColumnName -- the shown version is asserted again
             END, @now) as $attribute.timeRange),
 ~*/
                 }
@@ -258,12 +259,12 @@ BEGIN
                 WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
-                ELSE i.$attribute.positorColumnName
+                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
+                ELSE i.$schema.metadata.positorSuffix
             END, 0),
             ISNULL(CASE
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN i.$schema.metadata.reliabilitySuffix
                 ELSE i.$attribute.reliabilityColumnName
             END, $schema.metadata.defaultReliability)
         FROM
@@ -272,11 +273,30 @@ BEGIN
             [$knot.capsule].[$knot.name] [k$knot.mnemonic]
         ON
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
+        LEFT JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName = i.$anchor.identityColumnName
+        AND
+            d.$schema.metadata.positorSuffix = i.$schema.metadata.positorSuffix
         WHERE
             CASE
                 WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName
                 ELSE [k$knot.mnemonic].$knot.identityColumnName
-            END is not null;
+            END is not null
+        AND ( -- a statement that leaves everything as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            UPDATE($attribute.positingColumnName) OR
+            UPDATE($attribute.positorColumnName) OR
+            UPDATE($schema.metadata.positorSuffix) OR
+            d.$attribute.valueColumnName is null OR
+            d.$attribute.valueColumnName <> CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END OR
+            d.$attribute.reliabilityColumnName <> ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN i.$schema.metadata.reliabilitySuffix
+                ELSE i.$attribute.reliabilityColumnName
+            END, $schema.metadata.defaultReliability)
+        );
     END
 
     -- logical delete by setting to value to null
@@ -316,8 +336,8 @@ BEGIN
                 $(attribute.isHistorized())? WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
-                ELSE i.$attribute.positorColumnName
+                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
+                ELSE i.$schema.metadata.positorSuffix
             END, 0),
             $schema.metadata.deleteReliability
         FROM
@@ -337,7 +357,7 @@ BEGIN
 			else { // not knotted
 /*~
     IF (
-        $(attribute.isHistorized())? UPDATE($attribute.valueColumnName) OR
+        UPDATE($attribute.valueColumnName) OR
         UPDATE($attribute.reliabilityColumnName) OR
         UPDATE($schema.metadata.reliabilitySuffix)
     )
@@ -369,8 +389,9 @@ BEGIN
                 if(attribute.isHistorized()) {
 /*~
             cast(ISNULL(CASE
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) AND NOT UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
                 WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
+                WHEN $(attribute.hasChecksum())? d.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : d.$attribute.valueColumnName = i.$attribute.valueColumnName
+                THEN i.$attribute.changingColumnName -- the shown version is asserted again
             END, @now) as $attribute.timeRange),
 ~*/
                 }
@@ -379,18 +400,37 @@ BEGIN
                 WHEN UPDATE($attribute.positingColumnName) THEN i.$attribute.positingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
-                ELSE i.$attribute.positorColumnName
+                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
+                ELSE i.$schema.metadata.positorSuffix
             END, 0),
             ISNULL(CASE
                 WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
-                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN $schema.metadata.reliabilitySuffix
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN i.$schema.metadata.reliabilitySuffix
                 ELSE i.$attribute.reliabilityColumnName
             END, $schema.metadata.defaultReliability)
         FROM
             inserted i
+        LEFT JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName = i.$anchor.identityColumnName
+        AND
+            d.$schema.metadata.positorSuffix = i.$schema.metadata.positorSuffix
         WHERE
             i.$attribute.valueColumnName is not null
+        AND ( -- a statement that leaves everything as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            UPDATE($attribute.positingColumnName) OR
+            UPDATE($attribute.positorColumnName) OR
+            UPDATE($schema.metadata.positorSuffix) OR
+            d.$attribute.valueColumnName is null OR
+            $(attribute.hasChecksum())? d.$attribute.checksumColumnName <> ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) OR : d.$attribute.valueColumnName <> i.$attribute.valueColumnName OR
+            d.$attribute.reliabilityColumnName <> ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName) THEN i.$attribute.reliabilityColumnName
+                WHEN UPDATE($schema.metadata.reliabilitySuffix) THEN i.$schema.metadata.reliabilitySuffix
+                ELSE i.$attribute.reliabilityColumnName
+            END, $schema.metadata.defaultReliability)
+        )
     END
 
     -- logical delete by setting to value to null
@@ -429,8 +469,8 @@ BEGIN
                 $(attribute.isHistorized())? WHEN UPDATE($attribute.changingColumnName) THEN i.$attribute.changingColumnName
             END, @now) as $schema.metadata.positingRange),
             ISNULL(CASE
-                WHEN UPDATE($schema.metadata.positorSuffix) THEN i.$schema.metadata.positorSuffix
-                ELSE i.$attribute.positorColumnName
+                WHEN UPDATE($attribute.positorColumnName) THEN i.$attribute.positorColumnName
+                ELSE i.$schema.metadata.positorSuffix
             END, 0),
             $schema.metadata.deleteReliability
         FROM
@@ -473,17 +513,15 @@ BEGIN
         $attribute.reliabilityColumnName
     )
     SELECT
-        $(schema.METADATA)? p.$attribute.metadataColumnName,
-        p.$attribute.identityColumnName,
-        p.$attribute.positorColumnName,
+        $(schema.METADATA)? d.$attribute.metadataColumnName,
+        d.$attribute.identityColumnName,
+        d.$attribute.positorColumnName,
         @now,
         $schema.metadata.deleteReliability
     FROM
         deleted d
-    JOIN
-        [$attribute.capsule].[$attribute.annexName] p
-    ON
-        p.$attribute.identityColumnName = d.$attribute.identityColumnName;
+    WHERE
+        d.$attribute.identityColumnName is not null;
 ~*/
         }
 /*~

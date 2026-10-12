@@ -52,6 +52,7 @@ $/ endfor
         SELECT
             COUNT(*)
         FROM (
+            SELECT * FROM (
             SELECT TOP 1
 $/ foreach role in tie.values
                 pre.$role.columnName$$/ if not role.last() ,$/ endif
@@ -85,7 +86,9 @@ $/ endif
             ORDER BY
                 pre.$tie.changingColumnName$ DESC,
                 pre.$tie.positingColumnName$ DESC
+            ) previous
             UNION
+            SELECT * FROM (
             SELECT TOP 1
 $/ foreach role in tie.values
                 fol.$role.columnName$$/ if not role.last() ,$/ endif
@@ -119,6 +122,7 @@ $/ endif
             ORDER BY
                 fol.$tie.changingColumnName$ ASC,
                 fol.$tie.positingColumnName$ DESC
+            ) following
         ) s
         WHERE
 $/ foreach role in tie.values

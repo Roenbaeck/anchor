@@ -130,18 +130,45 @@ BEGIN
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
 /*~
-    $(!tie.isFirstIdentifier())? AND
-        i.$role.columnName is not null~*/
+        i.$role.columnName is not null
+    AND
+~*/
             }
         }
         else {
             while(role = tie.nextValue()) {
 /*~
-    $(!tie.isFirstValue())? AND
-        i.$role.columnName is not null~*/
+        i.$role.columnName is not null
+    AND
+~*/
             }
         }
-/*~;~*/
+/*~
+        NOT EXISTS ( -- exclude the identical, which is already stored
+            SELECT TOP 1
+                42
+            FROM
+                [$tie.capsule].[$tie.positName] p
+            JOIN
+                [$tie.capsule].[$tie.annexName] a
+            ON
+                a.$tie.identityColumnName = p.$tie.identityColumnName
+            WHERE
+~*/
+        while(role = tie.nextRole()) {
+/*~
+                p.$role.columnName = i.$role.columnName
+            AND
+~*/
+        }
+/*~
+                $(tie.isHistorized())? p.$tie.changingColumnName = ISNULL(i.$tie.changingColumnName, @now)
+            $(tie.isHistorized())? AND
+                a.$tie.positorColumnName = ISNULL(i.$tie.positorColumnName, 0)
+            AND
+                a.$tie.positingColumnName = ISNULL(i.$tie.positingColumnName, @now)
+        );
+~*/
         var changingParameter = tie.isHistorized() ? 'v.' + tie.changingColumnName : 'DEFAULT';
         var positStatementTypes = "'N'", annexStatementTypes = "'N'";
         if(tie.isAssertive()) {
@@ -150,6 +177,10 @@ BEGIN
         if(tie.isHistorized() && !tie.isIdempotent()) {
             positStatementTypes += ",'R'";
             annexStatementTypes += ",'R'";
+        }
+        if(tie.isHistorized() && tie.isIdempotent() && tie.hasMoreValues()) {
+            positStatementTypes += ",'F'";
+            annexStatementTypes += ",'F'";
         }
 /*~
     SELECT
@@ -187,117 +218,91 @@ BEGIN
                     THEN 'S' -- duplicate statement
 ~*/
         if(tie.isHistorized() && tie.hasMoreValues()) {
+            // the version before and the version after, as shown at the positing time, each in a check of its own
+            var sides = [
+                { alias: 'pre', rewinder: 'r', comparison: '<', order: 'DESC' },
+                { alias: 'fol', rewinder: 'f', comparison: '>', order: 'ASC' }
+            ];
+            for(var s = 0, side; side = sides[s]; s++) {
 /*~
-                    WHEN (
-                    SELECT
-                        COUNT(*)
-                    FROM (
-                        SELECT TOP 1
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                            pre.$role.columnName$(tie.hasMoreValues())?,
-~*/
-            }
-/*~
-                        FROM
-                            [$tie.capsule].[r$tie.name] (
-                                v.$tie.positorColumnName,
-                                v.$tie.changingColumnName,
-                                v.$tie.positingColumnName
-                            ) pre
-                        WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                            pre.$role.columnName = v.$role.columnName
-                        AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
+                    WHEN EXISTS (
+                        SELECT
+                            42
+                        FROM (
+                            SELECT TOP 1
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                pre.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? AND
+                                ${side.alias}$.$role.columnName$(tie.hasMoreValues())?,
 ~*/
                 }
 /*~
-                        )
-                        AND
+                            FROM
+                                [$tie.capsule].[${side.rewinder + tie.name}$] (
+                                    v.$tie.positorColumnName,
+                                    v.$tie.changingColumnName,
+                                    v.$tie.positingColumnName
+                                ) ${side.alias}$
+                            WHERE
 ~*/
-            }
+                if(tie.hasMoreIdentifiers()) {
+                    while(role = tie.nextIdentifier()) {
 /*~
-                            pre.$tie.changingColumnName < v.$tie.changingColumnName
-                        AND
-                            pre.$tie.assertionColumnName = v.$tie.assertionColumnName
-                        ORDER BY
-                            pre.$tie.changingColumnName DESC,
-                            pre.$tie.positingColumnName DESC
-                        UNION
-                        SELECT TOP 1
+                                ${side.alias}$.$role.columnName = v.$role.columnName
+                            AND
 ~*/
-            while(role = tie.nextValue()) {
+                    }
+                }
+                else {
 /*~
-                            fol.$role.columnName$(tie.hasMoreValues())?,
+                            (
 ~*/
-            }
+                    while(role = tie.nextValue()) {
 /*~
-                        FROM
-                            [$tie.capsule].[f$tie.name] (
-                                v.$tie.positorColumnName,
-                                v.$tie.changingColumnName,
-                                v.$tie.positingColumnName
-                            ) fol
+                                    ${side.alias}$.$role.columnName = v.$role.columnName
+                                $(tie.hasMoreValues())? AND
+~*/
+                    }
+/*~
+                            )
+                            AND
+~*/
+                }
+/*~
+                                ${side.alias}$.$tie.changingColumnName ${side.comparison}$ v.$tie.changingColumnName
+                            AND
+                                ${side.alias}$.$tie.assertionColumnName = v.$tie.assertionColumnName
+                            ORDER BY
+                                ${side.alias}$.$tie.changingColumnName ${side.order}$,
+                                ${side.alias}$.$tie.positingColumnName DESC
+                        ) s
                         WHERE
-~*/
-            if(tie.hasMoreIdentifiers()) {
-                while(role = tie.nextIdentifier()) {
-/*~
-                            fol.$role.columnName = v.$role.columnName
-                        AND
-~*/
-                }
-            }
-            else {
-/*~
-                        (
 ~*/
                 while(role = tie.nextValue()) {
 /*~
-                                fol.$role.columnName = v.$role.columnName
-                            $(tie.hasMoreValues())? AND
+                            s.$role.columnName = v.$role.columnName
+                        $(tie.hasMoreValues())? AND
 ~*/
                 }
 /*~
-                        )
-                        AND
+                    )
 ~*/
+                if(side.alias == 'pre') {
+/*~
+                    THEN 'R' -- restatement of the previous version
+~*/
+                }
+                else if(tie.isIdempotent()) {
+/*~
+                    THEN 'F' -- the following version restates this one, so it is retracted
+~*/
+                }
+                else {
+/*~
+                    THEN 'R' -- restatement of the following version
+~*/
+                }
             }
-/*~
-                            fol.$tie.changingColumnName > v.$tie.changingColumnName
-                        AND
-                            fol.$tie.assertionColumnName = v.$tie.assertionColumnName
-                        ORDER BY
-                            fol.$tie.changingColumnName ASC,
-                            fol.$tie.positingColumnName DESC
-                    ) s
-                    WHERE
-~*/
-            while(role = tie.nextValue()) {
-/*~
-                        s.$role.columnName = v.$role.columnName
-                    $(tie.hasMoreValues())? AND
-~*/
-            }
-/*~
-                    ) > 0
-                    THEN 'R' -- restatement
-~*/
         }
 /*~
                     ELSE 'N' -- new statement
@@ -345,6 +350,87 @@ BEGIN
             $tie.versionColumnName = @currentVersion
         AND
             $tie.statementTypeColumnName in ($positStatementTypes);
+~*/
+        if(tie.isHistorized() && tie.isIdempotent() && tie.hasMoreValues()) {
+/*~
+        -- retract the following versions that the new ones make restatements
+        INSERT INTO [$tie.capsule].[$tie.annexName] (
+            $(schema.METADATA)? $tie.metadataColumnName,
+            $tie.identityColumnName,
+            $tie.positorColumnName,
+            $tie.positingColumnName,
+            $tie.reliabilityColumnName
+        )
+        SELECT
+            $(schema.METADATA)? v.$tie.metadataColumnName,
+            fol.$tie.identityColumnName,
+            v.$tie.positorColumnName,
+            v.$tie.positingColumnName,
+            $schema.metadata.deleteReliability
+        FROM
+            @inserted v
+        CROSS APPLY (
+            SELECT TOP 1
+                f.$tie.identityColumnName,
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                f.$role.columnName$(tie.hasMoreValues())?,
+~*/
+            }
+/*~
+            FROM
+                [$tie.capsule].[f$tie.name] (
+                    v.$tie.positorColumnName,
+                    v.$tie.changingColumnName,
+                    v.$tie.positingColumnName
+                ) f
+            WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
+/*~
+                f.$role.columnName = v.$role.columnName
+            AND
+~*/
+                }
+            }
+            else {
+/*~
+            (
+~*/
+                while(role = tie.nextValue()) {
+/*~
+                    f.$role.columnName = v.$role.columnName
+                $(tie.hasMoreValues())? AND
+~*/
+                }
+/*~
+            )
+            AND
+~*/
+            }
+/*~
+                f.$tie.changingColumnName > v.$tie.changingColumnName
+            AND
+                f.$tie.assertionColumnName = v.$tie.assertionColumnName
+            ORDER BY
+                f.$tie.changingColumnName ASC,
+                f.$tie.positingColumnName DESC
+        ) fol
+        WHERE
+            v.$tie.versionColumnName = @currentVersion
+        AND
+            v.$tie.statementTypeColumnName = 'F'
+~*/
+            while(role = tie.nextValue()) {
+/*~
+        AND
+            fol.$role.columnName = v.$role.columnName$(!tie.hasMoreValues())?;
+~*/
+            }
+        }
+/*~
 
         INSERT INTO [$tie.capsule].[$tie.annexName] (
             $(schema.METADATA)? $tie.metadataColumnName,
@@ -418,7 +504,7 @@ BEGIN
 ~*/
         }
 /*~
-        i.$tie.positorColumnName,
+        ISNULL(i.$tie.positorColumnName, i.$schema.metadata.positorSuffix),
         i.$tie.positingColumnName,
         i.$tie.reliabilityColumnName
     FROM
@@ -449,6 +535,8 @@ BEGIN
     SET @now = $schema.metadata.now;
     IF(UPDATE($tie.assertionColumnName))
         RAISERROR('The computed assertion column $tie.assertionColumnName is not updatable.', 16, 1);
+    IF(UPDATE($tie.identityColumnName))
+        RAISERROR('The identity column $tie.identityColumnName is not updatable.', 16, 1);
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
@@ -459,6 +547,49 @@ BEGIN
             }
         }
 /*~
+    -- a value set to null retracts the shown posit
+    INSERT INTO [$tie.capsule].[$tie.annexName] (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $tie.identityColumnName,
+        $tie.positorColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName
+    )
+    SELECT
+        $(schema.METADATA)? i.$tie.metadataColumnName,
+        i.$tie.identityColumnName,
+        ISNULL(CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE i.$schema.metadata.positorSuffix END, 0),
+        cast(ISNULL(CASE
+            WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName
+            $(tie.isHistorized())? WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName
+        END, @now) as $schema.metadata.positingRange),
+        $schema.metadata.deleteReliability
+    FROM
+        inserted i
+~*/
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [$role.name]
+    ON
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName
+~*/
+        }
+/*~
+    WHERE
+        i.$tie.identityColumnName is not null
+    AND (
+~*/
+        while(role = tie.nextValue()) {
+/*~
+        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END is null : i.$role.columnName is null
+    $(tie.hasMoreValues())? OR
+~*/
+        }
+/*~
+    );
+    -- the other rows are statements, unless they leave everything as it is
     INSERT INTO [$tie.capsule].[$tie.name] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $(tie.isHistorized())? $tie.changingColumnName,
@@ -475,41 +606,90 @@ BEGIN
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
-        $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
 ~*/
+        if(tie.isHistorized()) {
+/*~
+        cast(CASE
+            WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName
+            WHEN EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName = i.$tie.identityColumnName
+                AND
+                    d.$tie.positorColumnName = i.$tie.positorColumnName
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                AND
+                    $(role.knot)? d.$role.columnName = CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END : d.$role.columnName = i.$role.columnName
+~*/
+            }
+/*~
+            ) THEN i.$tie.changingColumnName -- the shown version is asserted again
+            ELSE @now
+        END as $tie.timeRange),
+~*/
+        }
         while (role = tie.nextRole()) {
 /*~
         $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END, : i.$role.columnName,
 ~*/
         }
 /*~
-        CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE 0 END,
+        ISNULL(CASE WHEN UPDATE($tie.positorColumnName) THEN i.$tie.positorColumnName ELSE i.$schema.metadata.positorSuffix END, 0),
         cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
-        CASE
-            WHEN
-~*/
-        while(role = tie.nextValue()) {
-/*~
-                i.$role.columnName is null
-            $(tie.hasMoreValues())? OR
-~*/
-        }
-/*~
-            THEN $schema.metadata.deleteReliability
-            WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName
-            ELSE $schema.metadata.defaultReliability
-        END
+        ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.defaultReliability)
     FROM
-        inserted i~*/
+        inserted i
+~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [$role.name]
     ON
-        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName
+~*/
         }
-/*~;
+/*~
+    WHERE
+~*/
+        while(role = tie.nextValue()) {
+/*~
+        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END is not null : i.$role.columnName is not null
+    AND
+~*/
+        }
+/*~
+        ( -- a statement that leaves everything as it is states nothing
+            $(tie.isHistorized())? UPDATE($tie.changingColumnName) OR
+            UPDATE($tie.positingColumnName) OR
+            UPDATE($tie.positorColumnName) OR
+            UPDATE($schema.metadata.positorSuffix) OR
+            NOT EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName = i.$tie.identityColumnName
+                AND
+                    d.$tie.positorColumnName = i.$tie.positorColumnName
+~*/
+        while(role = tie.nextValue()) {
+/*~
+                AND
+                    $(role.knot)? d.$role.columnName = CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END : d.$role.columnName = i.$role.columnName
+~*/
+        }
+/*~
+                AND
+                    d.$tie.reliabilityColumnName = ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.defaultReliability)
+            )
+        );
 END
 GO
 ~*/

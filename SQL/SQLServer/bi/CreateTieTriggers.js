@@ -433,11 +433,21 @@ BEGIN
                 @inserted s
             WHERE
 ~*/
-            while(role = tie.nextRole()) {
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextIdentifier()) {
 /*~
                 s.$role.columnName = a.$role.columnName
             AND
 ~*/
+                }
+            }
+            else {
+                while(role = tie.nextRole()) {
+/*~
+                s.$role.columnName = a.$role.columnName
+            AND
+~*/
+                }
             }
 /*~
                 $(tie.isHistorized())? s.$tie.changingColumnName = a.$tie.changingColumnName
@@ -445,8 +455,18 @@ BEGIN
                 s.$tie.positingColumnName < a.$tie.positingColumnName
             ORDER BY 
                 s.$tie.positingColumnName DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+~*/
+            if(tie.hasMoreIdentifiers()) {
+                while(role = tie.nextValue()) {
+/*~
+            a.$role.columnName = pre.$role.columnName
+        AND
+~*/
+                }
+            }
+/*~
             a.$tie.reliabilityColumnName = pre.$tie.reliabilityColumnName
     ) u
     WHERE
@@ -779,6 +799,8 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
+    IF(UPDATE($tie.identityColumnName))
+        RAISERROR('The identity column $tie.identityColumnName is not updatable.', 16, 1);
 ~*/
         if(tie.hasMoreIdentifiers()) {
             while(role = tie.nextIdentifier()) {
@@ -789,6 +811,47 @@ BEGIN
             }
         }
 /*~
+    -- a value set to null retracts the shown posit
+    INSERT INTO [$tie.capsule].[$tie.annexName] (
+        $(schema.METADATA)? $tie.metadataColumnName,
+        $tie.identityColumnName,
+        $tie.positingColumnName,
+        $tie.reliabilityColumnName
+    )
+    SELECT
+        $(schema.METADATA)? i.$tie.metadataColumnName,
+        i.$tie.identityColumnName,
+        cast(ISNULL(CASE
+            WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName
+            $(tie.isHistorized())? WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName
+        END, @now) as $schema.metadata.positingRange),
+        0
+    FROM
+        inserted i
+~*/
+        while (role = tie.nextKnotRole()) {
+            knot = role.knot;
+/*~
+    LEFT JOIN
+        [$knot.capsule].[$knot.name] [$role.name]
+    ON
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName
+~*/
+        }
+/*~
+    WHERE
+        i.$tie.identityColumnName is not null
+    AND (
+~*/
+        while(role = tie.nextValue()) {
+/*~
+        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END is null : i.$role.columnName is null
+    $(tie.hasMoreValues())? OR
+~*/
+        }
+/*~
+    );
+    -- the other rows are statements, unless they leave everything as it is
     INSERT INTO [$tie.capsule].[$tie.name] (
         $(schema.METADATA)? $tie.metadataColumnName,
         $(tie.isHistorized())? $tie.changingColumnName,
@@ -804,8 +867,31 @@ BEGIN
     )
     SELECT
         $(schema.METADATA)? i.$tie.metadataColumnName,
-        $(tie.isHistorized())? cast(CASE WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName ELSE @now END as $tie.timeRange),
 ~*/
+        if(tie.isHistorized()) {
+/*~
+        cast(CASE
+            WHEN UPDATE($tie.changingColumnName) THEN i.$tie.changingColumnName
+            WHEN EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName = i.$tie.identityColumnName
+~*/
+            while(role = tie.nextValue()) {
+/*~
+                AND
+                    $(role.knot)? d.$role.columnName = CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END : d.$role.columnName = i.$role.columnName
+~*/
+            }
+/*~
+            ) THEN i.$tie.changingColumnName -- the shown version is asserted again
+            ELSE @now
+        END as $tie.timeRange),
+~*/
+        }
         while (role = tie.nextRole()) {
 /*~
         $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END, : i.$role.columnName,
@@ -813,31 +899,51 @@ BEGIN
         }
 /*~
         cast(CASE WHEN UPDATE($tie.positingColumnName) THEN i.$tie.positingColumnName ELSE @now END as $schema.metadata.positingRange),
-        CASE
-            WHEN
-~*/
-        while(role = tie.nextValue()) {
-/*~
-                i.$role.columnName is null
-            $(tie.hasMoreValues())? OR
-~*/
-        }
-/*~
-            THEN 0
-            WHEN UPDATE($tie.reliabilityColumnName) THEN i.$tie.reliabilityColumnName
-            ELSE 1
-        END
+        ISNULL(i.$tie.reliabilityColumnName, 1)
     FROM
-        inserted i~*/
+        inserted i
+~*/
         while (role = tie.nextKnotRole()) {
             knot = role.knot;
 /*~
     LEFT JOIN
         [$knot.capsule].[$knot.name] [$role.name]
     ON
-        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName~*/
+        [$role.name].$knot.valueColumnName = i.$role.knotValueColumnName
+~*/
         }
-/*~;
+/*~
+    WHERE
+~*/
+        while(role = tie.nextValue()) {
+/*~
+        $(role.knot)? CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END is not null : i.$role.columnName is not null
+    AND
+~*/
+        }
+/*~
+        ( -- a statement that leaves everything as it is states nothing
+            $(tie.isHistorized())? UPDATE($tie.changingColumnName) OR
+            UPDATE($tie.positingColumnName) OR
+            NOT EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName = i.$tie.identityColumnName
+~*/
+        while(role = tie.nextValue()) {
+/*~
+                AND
+                    $(role.knot)? d.$role.columnName = CASE WHEN UPDATE($role.knotValueColumnName) THEN [$role.name].$role.knot.identityColumnName ELSE i.$role.columnName END : d.$role.columnName = i.$role.columnName
+~*/
+        }
+/*~
+                AND
+                    d.$tie.reliabilityColumnName = ISNULL(i.$tie.reliabilityColumnName, 1)
+            )
+        );
 END
 GO
 ~*/

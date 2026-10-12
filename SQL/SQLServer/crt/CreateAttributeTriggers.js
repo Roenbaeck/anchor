@@ -13,9 +13,9 @@ if(schema.TRIGGERS) {
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor, attribute;
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
+var attribute, parent;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;   // an anchor or a nexus
         var annexStatementTypes = "'N'", positStatementTypes = "'N'";
         if(attribute.isAssertive()) {
             annexStatementTypes += ",'D'";
@@ -23,6 +23,10 @@ while (anchor = schema.nextAnchor()) {
         if(attribute.isHistorized() && !attribute.isIdempotent()) {
             annexStatementTypes += ",'R'";
             positStatementTypes += ",'R'";
+        }
+        if(attribute.isHistorized() && attribute.isIdempotent()) {
+            annexStatementTypes += ",'F'";
+            positStatementTypes += ",'F'";
         }
         var changingParameter = attribute.isHistorized() ? 'v.' + attribute.changingColumnName : 'DEFAULT';
 /*~
@@ -41,7 +45,7 @@ BEGIN
     DECLARE @currentVersion int;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positorColumnName $schema.metadata.positorRange not null,
@@ -85,7 +89,27 @@ BEGIN
         ),
         'X'
     FROM
-        inserted i;
+        inserted i
+    WHERE NOT EXISTS ( -- exclude the identical, which is already stored
+        SELECT TOP 1
+            42
+        FROM
+            [$attribute.capsule].[$attribute.positName] p
+        JOIN
+            [$attribute.capsule].[$attribute.annexName] a
+        ON
+            a.$attribute.identityColumnName = p.$attribute.identityColumnName
+        WHERE
+            p.$attribute.entityReferenceName = i.$attribute.entityReferenceName
+        $(attribute.isHistorized())? AND
+            $(attribute.isHistorized())? p.$attribute.changingColumnName = i.$attribute.changingColumnName
+        AND
+            $(attribute.hasChecksum())? p.$attribute.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max))) : p.$attribute.valueColumnName = i.$attribute.valueColumnName
+        AND
+            a.$attribute.positorColumnName = i.$attribute.positorColumnName
+        AND
+            a.$attribute.positingColumnName = i.$attribute.positingColumnName
+    );
 
     SELECT
         @maxVersion = max($attribute.versionColumnName),
@@ -103,7 +127,7 @@ BEGIN
                         SELECT TOP 1
                             t.$attribute.identityColumnName
                         FROM
-                            [$anchor.capsule].[t$anchor.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.assertionColumnName) t
+                            [$parent.capsule].[t$parent.name](v.$attribute.positorColumnName, $changingParameter, v.$attribute.positingColumnName, v.$attribute.assertionColumnName) t
                         WHERE
                             t.$attribute.entityReferenceName = v.$attribute.entityReferenceName
                         $(attribute.isHistorized())? AND
@@ -131,7 +155,20 @@ BEGIN
                                     v.$attribute.positingColumnName,
                                     v.$attribute.assertionColumnName
                                 )
+~*/
+                if(attribute.isIdempotent()) {
+/*~
+                    )
+                    THEN 'R' -- restatement of the previous version
+                    WHEN EXISTS (
+~*/
+                }
+                else {
+/*~
                     ) OR EXISTS (
+~*/
+                }
+/*~
                         SELECT
                             $(attribute.hasChecksum())? v.$attribute.checksumColumnName : v.$attribute.valueColumnName
                         WHERE
@@ -144,8 +181,17 @@ BEGIN
                                     v.$attribute.assertionColumnName
                                 )
                     )
+~*/
+                if(attribute.isIdempotent()) {
+/*~
+                    THEN 'F' -- the following version restates this one, so it is retracted
+~*/
+                }
+                else {
+/*~
                     THEN 'R' -- restatement
 ~*/
+                }
             }
 /*~
                     ELSE 'N' -- new statement
@@ -178,6 +224,54 @@ BEGIN
             $attribute.versionColumnName = @currentVersion
         AND
             $attribute.statementTypeColumnName in ($positStatementTypes);
+~*/
+        if(attribute.isHistorized() && attribute.isIdempotent()) {
+/*~
+        -- retract the following versions that the new ones make restatements
+        INSERT INTO [$attribute.capsule].[$attribute.annexName] (
+            $(schema.METADATA)? $attribute.metadataColumnName,
+            $attribute.identityColumnName,
+            $attribute.positorColumnName,
+            $attribute.positingColumnName,
+            $attribute.reliabilityColumnName
+        )
+        SELECT
+            $(schema.METADATA)? v.$attribute.metadataColumnName,
+            fol.$attribute.identityColumnName,
+            v.$attribute.positorColumnName,
+            v.$attribute.positingColumnName,
+            $schema.metadata.deleteReliability
+        FROM
+            @$attribute.name v
+        CROSS APPLY (
+            SELECT TOP 1
+                f.$attribute.identityColumnName,
+                $(attribute.hasChecksum())? f.$attribute.checksumColumnName : f.$attribute.valueColumnName
+            FROM
+                [$attribute.capsule].[f$attribute.name](
+                    v.$attribute.positorColumnName,
+                    v.$attribute.changingColumnName,
+                    v.$attribute.positingColumnName
+                ) f
+            WHERE
+                f.$attribute.entityReferenceName = v.$attribute.entityReferenceName
+            AND
+                f.$attribute.changingColumnName > v.$attribute.changingColumnName
+            AND
+                f.$attribute.assertionColumnName = v.$attribute.assertionColumnName
+            ORDER BY
+                f.$attribute.changingColumnName ASC,
+                f.$attribute.positingColumnName DESC
+        ) fol
+        WHERE
+            v.$attribute.versionColumnName = @currentVersion
+        AND
+            v.$attribute.statementTypeColumnName = 'F'
+        AND
+            $(attribute.hasChecksum())? fol.$attribute.checksumColumnName = v.$attribute.checksumColumnName; : fol.$attribute.valueColumnName = v.$attribute.valueColumnName;
+~*/
+        }
+/*~
 
         INSERT INTO [$attribute.capsule].[$attribute.annexName] (
             $(schema.METADATA)? $attribute.metadataColumnName,
@@ -210,6 +304,5 @@ BEGIN
 END
 GO
 ~*/
-    } // end of loop over attributes
-}
+} // end of loop over attributes
 }

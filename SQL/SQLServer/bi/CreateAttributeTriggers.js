@@ -13,9 +13,9 @@ if(schema.TRIGGERS) {
 -- order to avoid unnecessary temporal duplicates.
 --
 ~*/
-var anchor, attribute;
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
+var attribute, parent;
+while (attribute = schema.nextAttribute()) {
+    parent = attribute.parent;   // an anchor or a nexus
 /*~
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name instead of INSERT trigger on $attribute.name
@@ -30,7 +30,7 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @$attribute.name TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -110,7 +110,7 @@ BEGIN
         a.$attribute.identityColumnName = p.$attribute.identityColumnName;
 
     DECLARE @retracted TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -209,7 +209,7 @@ BEGIN
     BEGIN --- (only run if necessary) ---
 
     DECLARE @updated TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -260,14 +260,14 @@ BEGIN
                 s.$attribute.entityReferenceName = a.$attribute.entityReferenceName
             $(attribute.isHistorized())? AND
                 $(attribute.isHistorized())? s.$attribute.changingColumnName = a.$attribute.changingColumnName
-            AND
-                $(attribute.hasChecksum())? s.$attribute.checksumColumnName = a.$attribute.checksumColumnName : s.$attribute.valueColumnName = a.$attribute.valueColumnName
             AND 
                 s.$attribute.positingColumnName < a.$attribute.positingColumnName
             ORDER BY 
                 s.$attribute.positingColumnName DESC
-        ) pre
+        ) pre -- what is shown just before
         WHERE
+            $(attribute.hasChecksum())? a.$attribute.checksumColumnName = pre.$attribute.checksumColumnName : a.$attribute.valueColumnName = pre.$attribute.valueColumnName
+        AND
             a.$attribute.reliabilityColumnName = pre.$attribute.reliabilityColumnName
     ) u
     WHERE
@@ -304,7 +304,7 @@ BEGIN
     BEGIN --- (only run if necessary) ---
 
     DECLARE @restated TABLE (
-        $attribute.entityReferenceName $anchor.identity not null,
+        $attribute.entityReferenceName $parent.identity not null,
         $(schema.METADATA)? $attribute.metadataColumnName $schema.metadata.metadataType not null,
         $(attribute.isHistorized())? $attribute.changingColumnName $attribute.timeRange not null,
         $attribute.positingColumnName $schema.metadata.positingRange not null,
@@ -466,6 +466,5 @@ BEGIN
 END
 GO
 ~*/
-    } // end of loop over attributes
-}
+} // end of loop over attributes
 }

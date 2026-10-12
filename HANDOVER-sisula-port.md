@@ -76,6 +76,7 @@ powershell -File tools\browser-check.ps1                 # the real modeler in h
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
+powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the SQL Server triggers do
 ```
 
 And in this repo: `.\tools\sync-sisula.ps1 -Check`.
@@ -240,7 +241,8 @@ operator with nothing after it, missing and dangling commas, unbalanced parenthe
 3. crt tie perspectives: a role is always followed by the temporal columns, so its comma is unconditional.
 4. bi knots now get their metadata column (`knot.metadataDefinition` was only set in crt).
 5. uni, in configurations that the base model does not reach: with metadata off a knot's dummy column had no
-   name (`knot.dummyColumnName` was never set; now in `SQL/Snowflake/NamingConvention.js`), and the dummy columns
+   name (`knot.dummyColumnName` was never set; it was set in `SQL/Snowflake/NamingConvention.js`, and since
+   2026-10-09 is in the common `SQL/NamingConvention.js`, for every database), and the dummy columns
    of knots and nexuses were typed `bit`, which Snowflake does not have (now `boolean`). With the original naming
    convention a knotted attribute or nexus attribute had no `knotEquivalentColumnName` and
    `knotChecksumColumnName` (roles had them), giving `pAC.,` and nameless columns; the common
@@ -414,6 +416,127 @@ attribute that is not historized, so a value update of a static attribute create
 **To update this port:** as for uni: change the template and the original sisulet together while the original is still here, or regenerate the golden files
 from the templates once the originals are removed (`regenerate-golden.ps1`). The originals can go when someone has run the output on a SQL Server.
 
+## SQL Server triggers made consistent (2026-10-09)
+
+After the port, the triggers of the latest views (insert, update, delete) and of the attributes and ties (insert)
+were made to follow one set of rules in uni, bi and crt. The rules are in `docs/ANCHOR.md` ("Loading through the
+latest views"); in short:
+
+- **The flags.** Every incoming statement is identical (already stored: always ignored), a repetition (the same value
+  again later in changing time, a restatement; or the same reliability again later in positing time, a
+  re-assertion), or a contradiction (another value for a slot that is taken). `restatable` says whether restatements
+  may exist (if not, the restatement checks raise an error), `idempotent` makes the triggers skip restatements, and
+  `assertive` makes them keep re-assertions (off: skipped). No flag swallows a contradiction: in uni it is an error
+  ("Contradiction in <name> for: <key>"), and bi and crt have none, since a later assertion corrects an earlier one.
+  This reading follows from the code and from the history: idempotency was defined in 2012 as ignoring a value
+  identical to the current one, assertiveness took over the positing-time half of it in 2014, and in 2021 static
+  idempotency was changed to "only ignore identical".
+- **An update states what it changes.** A value (or a reliability) left as it is states nothing, unless a changing
+  time, a positing time or a positor is set too. A static attribute or tie is updated like a historized one at a
+  fixed changing time: in uni a missing value is filled and another one is a contradiction, in bi and crt another
+  one is a correction. A reliability without a new value asserts the shown version again at its own changing time;
+  0 retracts it. Null retracts the shown posit in bi and crt (attributes and ties).
+- **A delete** retracts each shown posit once, for the row's positor (bi and crt).
+
+**Defects fixed on the way** (each in the original and the template):
+- bi and crt: the attributes of a nexus had no assembled view and no insert trigger, so an insert into the latest
+  view of a nexus failed with an invalid object name.
+- bi and crt: DELETE on a latest view wrote one retraction per annex row of the shown posit, which collides on the
+  annex key once a posit has been asserted twice, and crt retracted for every positor.
+- bi and crt ties: a value role set to null went on to the insert trigger, whose table variable does not allow
+  nulls. crt ties: an update was always positor 0's statement, and so was an insert through the latest view that
+  gave only the Positor column.
+- crt: an identical assertion was not excluded first, so with Assertive on (the default) the same row loaded twice
+  violated the annex key.
+- crt ties: the restatement check and the restatement finder used `SELECT TOP 1 ... ORDER BY ... UNION SELECT TOP 1
+  ... ORDER BY ...`, which T-SQL does not accept.
+- crt: an update of a row without a value (for a positor that shows none) was positor 0's statement.
+- bi, not assertive: a re-assertion was compared with the posit's own previous assertion instead of what is shown,
+  so A, then B, then A again at the same changing time lost the last A.
+- crt, idempotent: a new version that restates the following one was dropped (the earlier start was lost); it is now
+  kept and the following one retracted, as uni and bi do.
+- uni: a static attribute or tie that is not idempotent had no insert trigger, so the same value again violated
+  the key; and a static tie's update was silently ignored.
+- uni: the insert triggers of an attribute with a checksum compared the stored checksum with the computed checksum
+  column of `inserted`, which an instead of trigger may leave unfilled; they now compute it from the incoming value,
+  as bi and crt do.
+- uni, bi and crt: an insert through the latest view of a nexus gave the new nexus rows only their metadata, but
+  every role column is not null, so no nexus row could be inserted that way (found while writing the tests below).
+- uni, bi and crt: the same trigger paired the identities it made with the inserted rows by row numbers, in an order
+  that SQL Server does not guarantee, so in an insert of several rows the attributes of one could end up with the
+  roles of another. It now makes the new nexus rows with `MERGE ... ON 1 = 0 WHEN NOT MATCHED THEN INSERT`, whose
+  `OUTPUT` gives every new identity together with the values of its own row (an `INSERT`'s `OUTPUT` cannot name the
+  source row, and a nexus row has no key to find it by); rows that give an identity are added after it. The anchors
+  still pair by row numbers, which is harmless there, since new anchor rows are alike. The `OUTPUT` of a `MERGE` may
+  only call schema-bound functions that read no data: the generated `MD5` (HASHBYTES, SQL Server 2016 and later) is
+  one, and it is called there only for a knotted attribute of a nexus whose knot has a checksum.
+
+**Behaviour that changes for existing users** (all deliberate, see above): `UPDATE ... SET x = x` no longer stores a
+restatement at now; changing a uni static value raises a contradiction error instead of a key violation, and changing
+a uni static tie raises it instead of being ignored; bi and crt static values can be corrected by an update; in crt an
+update of a positor's row is that positor's statement; the same static value inserted again in uni is ignored instead
+of violating the key.
+
+**What was verified** (last run after the nexus merge and the fixes below): the golden files were made from the
+changed originals (`golden.ps1`) and every template matches them for all 59 SQL Server models (1 828 comparisons with
+the whole outputs); the Snowflake templates still give their committed golden files (36 models), also through the
+hosted generator; the C# renderer gives the same for the SQL Server models and the Snowflake models that the fixes
+reach (1 898 renderings); the modeler gives the same SQL for the 56 canonical SQL Server models and those Snowflake
+models, and its JSON bindings equal the resolver's for the same 65 models. **None of it has been run on a SQL
+Server.**
+
+**Tests of what the triggers do.** `sisula/examples/anchor-snowflake/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
+is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
+without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
+deletes through its views and prints PASS or FAIL for each rule above (37, 32 and 39 checks), and
+`tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per temporalization, runs the golden output of the
+model and then the script in it, drops the database again, and exits 1 if a check failed. Run it after every change
+to a trigger, once the golden files of the three models have been regenerated. The scripts parse (see below) and the
+runner was tried against a stand-in for sqlcmd; neither has met a SQL Server yet.
+
+**A syntax check of the generated SQL.** Every one of the 59 generated scripts, and the test scripts, were parsed once
+with Microsoft's T-SQL parser (ScriptDom, SQL Server 2016 grammar, the SQL inside `EXEC('...')` strings included),
+from a scratch folder; it is not a tool in the repository. It checks syntax, not names, and it accepts some things
+that SQL Server does not (an `ORDER BY` in a `UNION` member); a lexical error (such as `[]`) ends its run, so what it
+reports for a file is not always all there is. The test models and the test scripts parse. What it found is in the
+originals too, in models that reach it:
+- the known `STschema.metadata.equivalentSuffix` column (uni, natural keys with equivalence: `equivalence`,
+  `distinct-equivalence`, `equivalence-original`, `equivalence-plain`, `flags`, `partitioned`) and the identity
+  columns without a type of the `handwritten` bi and crt models (the model), both listed above; kept;
+- fixed (2026-10-09): with the original naming convention a knotted attribute had no `knotBusinessName`, so the
+  business perspectives aliased it `[]` (`plain` and `equivalence-original`, all temporalizations);
+  `SQL/NamingConvention.js` sets it as the improved naming does;
+- fixed: an encrypted knotted attribute was decrypted with `CAST(DECRYPTBYKEY(...) AS )`, without a type (uni
+  `encrypted`). A knotted attribute cannot be encrypted, which is the modeler's rule, but the modeler tested the
+  group name with `> 0`, which a name never is, so it kept and saved the group; the generators then decrypted and
+  encrypted a knot reference that the table stores as the knot's identity. The modeler applies the rule now, and
+  `getEncryptionGroup` in `SQL/Helpers.js` is empty for a knotted attribute (as `isEquivalent` is false), so older
+  files generate correctly too; the three `encrypted` models were saved through the modeler again;
+- fixed: with metadata off the tables of an equivalent knot had a dummy column without a name (` bit null`, uni
+  `equivalence-plain`): `knot.dummyColumnName` was set for Snowflake only. The dummy column is a SQL Server
+  workaround (a table of nothing but an identity column cannot take several new rows in one insert), so the name is
+  now set in `SQL/SQLServer/NamingConvention.js` too, not in the common naming convention: other databases may need
+  something else. PostgreSQL, BigQuery and Vertica read `knot.dummyColumnName` in their `CreateKnots` and still get no
+  name there.
+
+Not a syntax error, so not found by the parser: with the original naming convention a knotted attribute's columns in
+the perspectives are named after its knot alone (`UTL_Utilization`, `UTL_ID`), so two knotted attributes of one
+anchor on the same knot (`AVG` and `MIN` in the `plain` and `equivalence-original` models) give a view the same
+column twice, which SQL Server rejects. That is a limit of the original naming, left as it is.
+
+**Not done or kept:**
+- PostgreSQL has its own copies of these triggers (`SQL/PostgreSQL/*/Create*Triggers.js`); they were not changed.
+- An encrypted historized attribute in uni compares encrypted values in its insert trigger, so neither identical
+  rows nor restatements are recognised (as before); a static one now compares the decrypted values.
+- crt, idempotent: the following version is retracted only when it is visible at the positing time of the new one;
+  a statement posited earlier than the following version is stored as before.
+- Two different values for the same slot in one insert statement still fail on the key of the trigger's table
+  variable rather than with the contradiction message.
+- In bi and crt, retracting the newest posit shows the one before it, also after a correction of a static value
+  (the corrected posit stays asserted). This is how corrections work in the posit model and was left as it is.
+- The key generator of a uni nexus (`k<nexus>`) inserts only the metadata too, so it cannot make rows for a nexus
+  with roles. It was left as it is.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
@@ -468,7 +591,7 @@ Unported Snowflake sisulets stay as commented lines in the directives, so nothin
 
 - **anchor:** this file, the engine copy, the resolver, the templates, the directives, the modeler.
 - **sisula:** the engine's source, the language reference, the fixtures, `examples/anchor-snowflake`
-  (models, golden files, tools), `lib/Jint.2.11.58.dll`.
+  (models, golden files, tools, and `sqlserver-tests` for the SQL Server triggers), `lib/Jint.2.11.58.dll`.
 - **sisula-mssql:** the C# renderer (`clr/SisulaRenderer.cs`) and `tests/run-fixtures.ps1`.
 - **workflower:** vendors the engine the same way (`tools/sync-sisula.ps1`, `webapp/sisula.js`).
 - **dw-framework:** the old ETL framework, which uses dialect A and is not meant to change.

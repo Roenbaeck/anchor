@@ -263,8 +263,17 @@ BEGIN
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
+        LEFT JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName = i.$anchor.identityColumnName
         WHERE
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null;
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null
+        AND ( -- a value that is left as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            d.$attribute.valueColumnName is null OR
+            d.$attribute.valueColumnName <> CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        );
 ~*/
                 if(attribute.isDeletable()) {
                     var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
@@ -341,7 +350,7 @@ BEGIN
                 }
 /*~
             ISNULL(i.$attribute.entityReferenceName, i.$anchor.identityColumnName),
-            $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
+            $(attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
 ~*/
                 if(attribute.isHistorized()) {
 /*~
@@ -364,8 +373,29 @@ BEGIN
 /*~
         FROM
             inserted i
+        LEFT JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName = i.$anchor.identityColumnName
         WHERE
-            i.$attribute.valueColumnName is not null;
+            i.$attribute.valueColumnName is not null
+        AND ( -- a value that is left as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            $(attribute.isEquivalent())? UPDATE($attribute.equivalentColumnName) OR
+            d.$attribute.valueColumnName is null OR
+~*/
+                if(attribute.hasChecksum() && !attribute.getEncryptionGroup()) {
+/*~
+            d.$attribute.checksumColumnName <> ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max)))
+~*/
+                }
+                else {
+/*~
+            d.$attribute.valueColumnName <> i.$attribute.valueColumnName
+~*/
+                }
+/*~
+        );
 ~*/
                 if(attribute.isDeletable()) {
                     var timeType = attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;

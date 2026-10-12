@@ -92,6 +92,7 @@ while (anchor = schema.nextAnchor()) {
                 attribute.knotEquivalentColumnName = knot.equivalentColumnName;
                 attribute.knotChecksumColumnName = knot.checksumColumnName;
                 attribute.knotMetadataColumnName = knot.metadataColumnName;
+                attribute.knotBusinessName = attribute.businessName + D + knot.businessName;
             }
         }
         attribute.valueColumnName = attribute.knotReferenceName || attribute.name;
@@ -157,6 +158,7 @@ while (nexus = schema.nextNexus()) {
                 nxAttribute.knotEquivalentColumnName = knot.equivalentColumnName;
                 nxAttribute.knotChecksumColumnName = knot.checksumColumnName;
                 nxAttribute.knotMetadataColumnName = knot.metadataColumnName;
+                nxAttribute.knotBusinessName = nxAttribute.businessName + D + knot.businessName;
             }
         }
         nxAttribute.valueColumnName = nxAttribute.knotReferenceName || nxAttribute.name;

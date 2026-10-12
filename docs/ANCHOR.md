@@ -122,10 +122,13 @@ in the knot's value for you.
 
 **Settings in `<metadata>`:**
 
-- `restatable`: whether the same value may be recorded twice in a row over time. Turn it off to
-  add a constraint that rejects such restatements.
-- `idempotent`: if on, an incoming value that equals the current one is silently skipped. Not
+- `restatable`: whether the same value may be recorded twice in a row over changing time (a
+  restatement). Turn it off to add a constraint that rejects restatements with an error.
+- `idempotent`: if on, the triggers silently skip a restatement instead of storing it, so loading
+  the same data again changes nothing. This holds even when restatements are allowed. Not
   recommended when data can arrive out of order with respect to changing time.
+- `assertive` (bi and crt): if on, the same value asserted again later with the same reliability
+  gets an assertion of its own. If off, the triggers silently skip such a re-assertion.
 - `deletable`: allows "deleting" values by updating to null, moving the affected rows to a
   deletion table.
 - `equivalent`: allows several equivalent values at once, for example one per language or per
@@ -210,8 +213,8 @@ A historized tie cannot delete a relationship that has ended, since history is o
 common pattern is to include a knot role that records the state, as the `Ongoing` knot does for
 partnerships: the end of a partnership is recorded as a new row saying it is no longer ongoing.
 
-Ties support `restatable`, `idempotent` and `deletable` in their metadata, with the same meaning
-as for attributes.
+Ties support `restatable`, `idempotent`, `assertive` and `deletable` in their metadata, with the
+same meaning as for attributes.
 
 ## Nexus
 
@@ -360,3 +363,38 @@ The model's temporalization setting decides what kinds of time the database keep
 
 The constructs and the model are the same in all three. Only the generated tables and
 perspectives differ.
+
+## Loading through the latest views
+
+In SQL Server the latest views have triggers, so that data can be loaded with plain `INSERT`,
+`UPDATE` and `DELETE` statements against them. Every statement is turned into new rows, since
+history is only added to. The same rules hold for attributes and ties, in all three
+temporalizations:
+
+- **An insert** states each value given, valid from its changing time, or from now if none is
+  given.
+- **An update** states only what it changes. A value set to what it already is states nothing,
+  unless a changing time or a positing time is set too, which states it again on purpose. A
+  new value is a new version from the changing time given, or from now.
+- **A static attribute or tie** behaves as if all its values had the same changing time. In
+  uni, a value can be added where none is shown, and another value is an error (a
+  contradiction). In bi and crt, another value corrects the shown one.
+- **A reliability without a new value** (bi and crt) asserts the shown version again with that
+  reliability. A reliability of 0 retracts it.
+- **Null** in a value retracts the shown version in bi and crt. In uni, for a deletable attribute
+  whose deletable column is set to 1 in the same update, it moves the history to a deletion table;
+  otherwise it does nothing.
+- **A delete** retracts the shown versions in bi and crt, each for the positor of the row. In
+  uni it removes the shown versions.
+
+The settings then decide what happens to what is stated, the same way for inserts and updates:
+
+| What is stated | What happens |
+|---|---|
+| Something already stored (identical) | Nothing |
+| The same value again later in changing time (a restatement) | Skipped if idempotent; otherwise stored if restatable, or an error |
+| The same reliability again later in positing time (a re-assertion, bi and crt) | Stored if assertive, otherwise skipped |
+| Another value at a changing time that already has one (uni only) | An error, whatever the settings say |
+
+In bi and crt there are no contradictions: a later assertion corrects an earlier one, and in crt
+positors may disagree.

@@ -107,11 +107,41 @@ $/ if attribute.isHistorized
 $/ endif
         AND
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
     ); -- the posit must be different (exclude the identical)
+    -- another value at a time that already has a value is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+$/ if attribute.isEquivalent
+            i.$attribute.equivalentColumnName$,
+$/ endif
+            i.$attribute.entityReferenceName$,
+            i.$attribute.changingColumnName$
+        FROM
+            @$attribute.name$ i
+        JOIN
+            [$attribute.capsule$].[$attribute.name$] x
+        ON
+$/ if attribute.isEquivalent
+            x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+        AND
+$/ endif
+            x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+        AND
+            x.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $attribute.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
 $/ if attribute.isIdempotent
     INSERT INTO @$attribute.name$
     SELECT
@@ -251,7 +281,7 @@ $/ endif
 END
 GO
 $/ endif
-$/ if not attribute.isHistorized and attribute.isIdempotent
+$/ if not attribute.isHistorized
 -- Insert trigger -----------------------------------------------------------------------------------------------------
 -- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
 -----------------------------------------------------------------------------------------------------------------------
@@ -276,6 +306,44 @@ $/ if attribute.encryptionGroup
             RAISERROR('The key [$attribute.encryptionGroup$] must be open in order to modify the attribute $attribute.name$.', 16, 1);
         END $--$
 $/ endif
+    -- another value for an entity that already has a value is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+$/ if attribute.isEquivalent
+            i.$attribute.equivalentColumnName$,
+$/ endif
+            i.$attribute.entityReferenceName$
+        FROM
+            inserted i
+        JOIN
+            [$attribute.capsule$].[$attribute.name$] x
+        ON
+$/ if attribute.isEquivalent
+            x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
+        AND
+$/ endif
+            x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+        WHERE NOT (
+$/ if attribute.encryptionGroup
+            DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
+$/ else
+$/ if attribute.hasChecksum
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+$/ else
+            x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
+$/ endif
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $attribute.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
     INSERT INTO [$attribute.capsule$].[$attribute.name$] (
 $/ if schema.METADATA
         $attribute.metadataColumnName$,
@@ -311,10 +379,14 @@ $/ if attribute.isEquivalent
 $/ endif
             x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
         AND
+$/ if attribute.encryptionGroup
+            DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
+$/ else
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = i.$attribute.checksumColumnName$ $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
 $/ endif
     ); $--$
 END

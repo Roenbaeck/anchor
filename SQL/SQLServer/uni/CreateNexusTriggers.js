@@ -31,23 +31,6 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon;
     SET @now = $schema.metadata.now;
-    DECLARE @$nexus.mnemonic TABLE (
-        Row bigint IDENTITY(1,1) not null primary key,
-        $nexus.identityColumnName $nexus.identity not null
-    );
-    INSERT INTO [$nexus.capsule].[$nexus.name] (
-        $(schema.METADATA)? $nexus.metadataColumnName : $nexus.dummyColumnName
-    )
-    OUTPUT
-        inserted.$nexus.identityColumnName
-    INTO
-        @$nexus.mnemonic
-    SELECT
-        $(schema.METADATA)? $nexus.metadataColumnName : null
-    FROM
-        inserted
-    WHERE
-        inserted.$nexus.identityColumnName is null;
     DECLARE @inserted TABLE (
         $nexus.identityColumnName $nexus.identity not null,
         $(schema.METADATA)? $nexus.metadataColumnName $schema.metadata.metadataType not null,
@@ -79,14 +62,38 @@ BEGIN
         }
 /*~
     );
-    INSERT INTO @inserted
-    SELECT
-        ISNULL(i.$nexus.identityColumnName, a.$nexus.identityColumnName),
+    -- a nexus row for each row without an identity; the merge outputs every new identity together with the values of
+    -- the row it was made for, so each new row keeps its own attributes, also when several are inserted at once
+    MERGE INTO [$nexus.capsule].[$nexus.name]
+    USING inserted AS i
+    ON 1 = 0
+    WHEN NOT MATCHED AND i.$nexus.identityColumnName is null THEN INSERT (
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        $role.columnName,
+~*/
+        }
+/*~
+        $(schema.METADATA)? $nexus.metadataColumnName : $nexus.dummyColumnName
+    )
+    VALUES (
+~*/
+        while (role = nexus.nextRole()) {
+/*~
+        i.$role.columnName,
+~*/
+        }
+/*~
+        $(schema.METADATA)? i.$nexus.metadataColumnName : null
+    )
+    OUTPUT
+        inserted.$nexus.identityColumnName,
         $(schema.METADATA)? i.$nexus.metadataColumnName,
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-        $(schema.IMPROVED)? ISNULL(ISNULL(i.$attribute.entityReferenceName, i.$nexus.identityColumnName), a.$nexus.identityColumnName),
+        $(schema.IMPROVED)? ISNULL(i.$attribute.entityReferenceName, inserted.$nexus.identityColumnName),
         $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$nexus.metadataColumnName),
         $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
         $(attribute.isEquivalent && attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
@@ -106,41 +113,40 @@ BEGIN
 ~*/
         }
 /*~
-    FROM (
-        SELECT
-            $nexus.identityColumnName,
-            $(schema.METADATA)? $nexus.metadataColumnName,
+    INTO
+        @inserted;
+    -- the rows that come with the identity of a nexus row
+    INSERT INTO @inserted
+    SELECT
+        i.$nexus.identityColumnName,
+        $(schema.METADATA)? i.$nexus.metadataColumnName,
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-            $(schema.IMPROVED)? $attribute.entityReferenceName,
-            $(schema.METADATA)? $attribute.metadataColumnName,
-            $(attribute.timeRange)? $attribute.changingColumnName,
-            $(attribute.isEquivalent && attribute.isEquivalent())? $attribute.equivalentColumnName,
+        $(schema.IMPROVED)? ISNULL(i.$attribute.entityReferenceName, i.$nexus.identityColumnName),
+        $(schema.METADATA)? ISNULL(i.$attribute.metadataColumnName, i.$nexus.metadataColumnName),
+        $(attribute.timeRange)? ISNULL(i.$attribute.changingColumnName, @now),
+        $(attribute.isEquivalent && attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
 ~*/
             if(attribute.isKnotted && attribute.isKnotted()) {
                 knot = attribute.knot;
                 equivalent = schema.IMPROVED ? attribute.knotEquivalentColumnName : knot.equivalentColumnName;
 /*~
-            $attribute.knotValueColumnName,
-            $(knot.hasChecksum())? $attribute.knotChecksumColumnName,
-            $(knot.isEquivalent())? $equivalent,
-            $(schema.METADATA)? $attribute.knotMetadataColumnName,
+        i.$attribute.knotValueColumnName,
+        $(knot.hasChecksum())? ISNULL(i.$attribute.knotChecksumColumnName, ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max)))),
+        $(knot.isEquivalent())? ISNULL(i.$equivalent, 0),
+        $(schema.METADATA)? ISNULL(i.$attribute.knotMetadataColumnName, i.$nexus.metadataColumnName),
 ~*/
             }
 /*~
-            $attribute.valueColumnName,
+        i.$attribute.valueColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
-            ROW_NUMBER() OVER (PARTITION BY $nexus.identityColumnName ORDER BY $nexus.identityColumnName) AS Row
-        FROM
-            inserted
-    ) i
-    LEFT JOIN
-        @$nexus.mnemonic a
-    ON
-        a.Row = i.Row;
+    FROM
+        inserted i
+    WHERE
+        i.$nexus.identityColumnName is not null;
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
             knot = attribute.knot;
@@ -266,8 +272,17 @@ BEGIN
             $(knot.hasChecksum())? [k$knot.mnemonic].$knot.checksumColumnName = ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.knotValueColumnName as varbinary(max))) : [k$knot.mnemonic].$knot.valueColumnName = i.$attribute.knotValueColumnName
         $(knot.isEquivalent())? AND
             $(knot.isEquivalent())? [k$knot.mnemonic].$knot.equivalentColumnName = i.$equivalent
+        LEFT JOIN
+            deleted d
+        ON
+            d.$nexus.identityColumnName = i.$nexus.identityColumnName
         WHERE
-            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null;
+            CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END is not null
+        AND ( -- a value that is left as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            d.$attribute.valueColumnName is null OR
+            d.$attribute.valueColumnName <> CASE WHEN UPDATE($attribute.valueColumnName) THEN i.$attribute.valueColumnName ELSE [k$knot.mnemonic].$knot.identityColumnName END
+        );
 ~*/
                 if(attribute.isDeletable && attribute.isDeletable()) {
                     var timeType = attribute.isHistorized && attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;
@@ -344,7 +359,7 @@ BEGIN
                 }
 /*~
             ISNULL(i.$attribute.entityReferenceName, i.$nexus.identityColumnName),
-            $(attribute.isEquivalent())? i.$attribute.equivalentColumnName,
+            $(attribute.isEquivalent())? ISNULL(i.$attribute.equivalentColumnName, 0),
 ~*/
                 if(attribute.isHistorized && attribute.isHistorized()) {
 /*~
@@ -367,8 +382,29 @@ BEGIN
 /*~
         FROM
             inserted i
+        LEFT JOIN
+            deleted d
+        ON
+            d.$nexus.identityColumnName = i.$nexus.identityColumnName
         WHERE
-            i.$attribute.valueColumnName is not null;
+            i.$attribute.valueColumnName is not null
+        AND ( -- a value that is left as it is states nothing
+            $(attribute.isHistorized())? UPDATE($attribute.changingColumnName) OR
+            $(attribute.isEquivalent())? UPDATE($attribute.equivalentColumnName) OR
+            d.$attribute.valueColumnName is null OR
+~*/
+                if(attribute.hasChecksum() && !attribute.getEncryptionGroup()) {
+/*~
+            d.$attribute.checksumColumnName <> ${schema.metadata.encapsulation}$.MD5(cast(i.$attribute.valueColumnName as varbinary(max)))
+~*/
+                }
+                else {
+/*~
+            d.$attribute.valueColumnName <> i.$attribute.valueColumnName
+~*/
+                }
+/*~
+        );
 ~*/
                 if(attribute.isDeletable && attribute.isDeletable()) {
                     var timeType = attribute.isHistorized && attribute.isHistorized() ? attribute.timeRange : schema.metadata.chronon;

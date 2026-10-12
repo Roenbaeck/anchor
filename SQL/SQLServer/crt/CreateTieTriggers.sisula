@@ -109,19 +109,37 @@ $/ endfor
     WHERE
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
-        i.$role.columnName$ is not null$/ if role.last() ;$/ endif
-$/ if not role.last()
+        i.$role.columnName$ is not null
     AND
-$/ endif
 $/ endfor
 $/ else
 $/ foreach role in tie.values
-        i.$role.columnName$ is not null$/ if role.last() ;$/ endif
-$/ if not role.last()
+        i.$role.columnName$ is not null
     AND
-$/ endif
 $/ endfor
 $/ endif
+        NOT EXISTS ( -- exclude the identical, which is already stored
+            SELECT TOP 1
+                42
+            FROM
+                [$tie.capsule$].[$tie.positName$] p
+            JOIN
+                [$tie.capsule$].[$tie.annexName$] a
+            ON
+                a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+            WHERE
+$/ foreach role in tie.roles
+                p.$role.columnName$ = i.$role.columnName$
+            AND
+$/ endfor
+$/ if tie.isHistorized
+                p.$tie.changingColumnName$ = ISNULL(i.$tie.changingColumnName$, @now)
+            AND
+$/ endif
+                a.$tie.positorColumnName$ = ISNULL(i.$tie.positorColumnName$, 0)
+            AND
+                a.$tie.positingColumnName$ = ISNULL(i.$tie.positingColumnName$, @now)
+        );
     SELECT
         @maxVersion = max($tie.versionColumnName$),
         @currentVersion = 0
@@ -154,87 +172,104 @@ $/ endfor
                     WHEN p.$tie.identityColumnName$ is not null
                     THEN 'S' -- duplicate statement
 $/ if tie.isHistorized and tie.values
-                    WHEN (
-                    SELECT
-                        COUNT(*)
-                    FROM (
-                        SELECT TOP 1
+                    WHEN EXISTS (
+                        SELECT
+                            42
+                        FROM (
+                            SELECT TOP 1
 $/ foreach role in tie.values
-                            pre.$role.columnName$$/ if not role.last() ,$/ endif
+                                pre.$role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
-                        FROM
-                            [$tie.capsule$].[r$tie.name$] (
-                                v.$tie.positorColumnName$,
-                                v.$tie.changingColumnName$,
-                                v.$tie.positingColumnName$
-                            ) pre
-                        WHERE
+                            FROM
+                                [$tie.capsule$].[r$tie.name$] (
+                                    v.$tie.positorColumnName$,
+                                    v.$tie.changingColumnName$,
+                                    v.$tie.positingColumnName$
+                                ) pre
+                            WHERE
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
-                            pre.$role.columnName$ = v.$role.columnName$
-                        AND
-$/ endfor
-$/ else
-                        (
-$/ foreach role in tie.values
                                 pre.$role.columnName$ = v.$role.columnName$
-$/ if not role.last()
                             AND
-$/ endif
-$/ endfor
-                        )
-                        AND
-$/ endif
-                            pre.$tie.changingColumnName$ < v.$tie.changingColumnName$
-                        AND
-                            pre.$tie.assertionColumnName$ = v.$tie.assertionColumnName$
-                        ORDER BY
-                            pre.$tie.changingColumnName$ DESC,
-                            pre.$tie.positingColumnName$ DESC
-                        UNION
-                        SELECT TOP 1
-$/ foreach role in tie.values
-                            fol.$role.columnName$$/ if not role.last() ,$/ endif
-$/ endfor
-                        FROM
-                            [$tie.capsule$].[f$tie.name$] (
-                                v.$tie.positorColumnName$,
-                                v.$tie.changingColumnName$,
-                                v.$tie.positingColumnName$
-                            ) fol
-                        WHERE
-$/ if tie.identifiers
-$/ foreach role in tie.identifiers
-                            fol.$role.columnName$ = v.$role.columnName$
-                        AND
 $/ endfor
 $/ else
-                        (
+                            (
 $/ foreach role in tie.values
-                                fol.$role.columnName$ = v.$role.columnName$
+                                    pre.$role.columnName$ = v.$role.columnName$
 $/ if not role.last()
+                                AND
+$/ endif
+$/ endfor
+                            )
                             AND
 $/ endif
-$/ endfor
-                        )
-                        AND
-$/ endif
-                            fol.$tie.changingColumnName$ > v.$tie.changingColumnName$
-                        AND
-                            fol.$tie.assertionColumnName$ = v.$tie.assertionColumnName$
-                        ORDER BY
-                            fol.$tie.changingColumnName$ ASC,
-                            fol.$tie.positingColumnName$ DESC
-                    ) s
-                    WHERE
+                                pre.$tie.changingColumnName$ < v.$tie.changingColumnName$
+                            AND
+                                pre.$tie.assertionColumnName$ = v.$tie.assertionColumnName$
+                            ORDER BY
+                                pre.$tie.changingColumnName$ DESC,
+                                pre.$tie.positingColumnName$ DESC
+                        ) s
+                        WHERE
 $/ foreach role in tie.values
-                        s.$role.columnName$ = v.$role.columnName$
+                            s.$role.columnName$ = v.$role.columnName$
 $/ if not role.last()
-                    AND
+                        AND
 $/ endif
 $/ endfor
-                    ) > 0
-                    THEN 'R' -- restatement
+                    )
+                    THEN 'R' -- restatement of the previous version
+                    WHEN EXISTS (
+                        SELECT
+                            42
+                        FROM (
+                            SELECT TOP 1
+$/ foreach role in tie.values
+                                fol.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+                            FROM
+                                [$tie.capsule$].[f$tie.name$] (
+                                    v.$tie.positorColumnName$,
+                                    v.$tie.changingColumnName$,
+                                    v.$tie.positingColumnName$
+                                ) fol
+                            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                                fol.$role.columnName$ = v.$role.columnName$
+                            AND
+$/ endfor
+$/ else
+                            (
+$/ foreach role in tie.values
+                                    fol.$role.columnName$ = v.$role.columnName$
+$/ if not role.last()
+                                AND
+$/ endif
+$/ endfor
+                            )
+                            AND
+$/ endif
+                                fol.$tie.changingColumnName$ > v.$tie.changingColumnName$
+                            AND
+                                fol.$tie.assertionColumnName$ = v.$tie.assertionColumnName$
+                            ORDER BY
+                                fol.$tie.changingColumnName$ ASC,
+                                fol.$tie.positingColumnName$ DESC
+                        ) s
+                        WHERE
+$/ foreach role in tie.values
+                            s.$role.columnName$ = v.$role.columnName$
+$/ if not role.last()
+                        AND
+$/ endif
+$/ endfor
+                    )
+$/ if tie.isIdempotent
+                    THEN 'F' -- the following version restates this one, so it is retracted
+$/ else
+                    THEN 'R' -- restatement of the following version
+$/ endif
 $/ endif
                     ELSE 'N' -- new statement
                 END
@@ -275,7 +310,73 @@ $/ endfor
         WHERE
             $tie.versionColumnName$ = @currentVersion
         AND
-            $tie.statementTypeColumnName$ in ('N'$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif);
+            $tie.statementTypeColumnName$ in ('N'$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif$/ if tie.isHistorized and tie.isIdempotent and tie.values ,'F'$/ endif);
+$/ if tie.isHistorized and tie.isIdempotent and tie.values
+        -- retract the following versions that the new ones make restatements
+        INSERT INTO [$tie.capsule$].[$tie.annexName$] (
+$/ if schema.METADATA
+            $tie.metadataColumnName$,
+$/ endif
+            $tie.identityColumnName$,
+            $tie.positorColumnName$,
+            $tie.positingColumnName$,
+            $tie.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            v.$tie.metadataColumnName$,
+$/ endif
+            fol.$tie.identityColumnName$,
+            v.$tie.positorColumnName$,
+            v.$tie.positingColumnName$,
+            $schema.metadata.deleteReliability$
+        FROM
+            @inserted v
+        CROSS APPLY (
+            SELECT TOP 1
+                f.$tie.identityColumnName$,
+$/ foreach role in tie.values
+                f.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                [$tie.capsule$].[f$tie.name$] (
+                    v.$tie.positorColumnName$,
+                    v.$tie.changingColumnName$,
+                    v.$tie.positingColumnName$
+                ) f
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                f.$role.columnName$ = v.$role.columnName$
+            AND
+$/ endfor
+$/ else
+            (
+$/ foreach role in tie.values
+                    f.$role.columnName$ = v.$role.columnName$
+$/ if not role.last()
+                AND
+$/ endif
+$/ endfor
+            )
+            AND
+$/ endif
+                f.$tie.changingColumnName$ > v.$tie.changingColumnName$
+            AND
+                f.$tie.assertionColumnName$ = v.$tie.assertionColumnName$
+            ORDER BY
+                f.$tie.changingColumnName$ ASC,
+                f.$tie.positingColumnName$ DESC
+        ) fol
+        WHERE
+            v.$tie.versionColumnName$ = @currentVersion
+        AND
+            v.$tie.statementTypeColumnName$ = 'F'
+$/ foreach role in tie.values
+        AND
+            fol.$role.columnName$ = v.$role.columnName$$/ if role.last() ;$/ endif
+$/ endfor
+$/ endif
         INSERT INTO [$tie.capsule$].[$tie.annexName$] (
 $/ if schema.METADATA
             $tie.metadataColumnName$,
@@ -311,7 +412,7 @@ $/ endif
         WHERE
             v.$tie.versionColumnName$ = @currentVersion
         AND
-            v.$tie.statementTypeColumnName$ in ('S','N'$/ if tie.isAssertive ,'D'$/ endif$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif);
+            v.$tie.statementTypeColumnName$ in ('S','N'$/ if tie.isAssertive ,'D'$/ endif$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif$/ if tie.isHistorized and tie.isIdempotent and tie.values ,'F'$/ endif);
     END
 END
 GO
@@ -353,7 +454,7 @@ $/ else
         i.$role.columnName$,
 $/ endif
 $/ endfor
-        i.$tie.positorColumnName$,
+        ISNULL(i.$tie.positorColumnName$, i.$schema.metadata.positorSuffix$),
         i.$tie.positingColumnName$,
         i.$tie.reliabilityColumnName$
     FROM
@@ -383,10 +484,58 @@ BEGIN
     SET @now = $schema.metadata.now$;
     IF(UPDATE($tie.assertionColumnName$))
         RAISERROR('The computed assertion column $tie.assertionColumnName$ is not updatable.', 16, 1);
+    IF(UPDATE($tie.identityColumnName$))
+        RAISERROR('The identity column $tie.identityColumnName$ is not updatable.', 16, 1);
 $/ foreach role in tie.identifiers
     IF(UPDATE($role.columnName$))
         RAISERROR('The identity column $role.columnName$ is not updatable.', 16, 1);
 $/ endfor
+    -- a value set to null retracts the shown posit
+    INSERT INTO [$tie.capsule$].[$tie.annexName$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.identityColumnName$,
+        $tie.positorColumnName$,
+        $tie.positingColumnName$,
+        $tie.reliabilityColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$tie.metadataColumnName$,
+$/ endif
+        i.$tie.identityColumnName$,
+        ISNULL(CASE WHEN UPDATE($tie.positorColumnName$) THEN i.$tie.positorColumnName$ ELSE i.$schema.metadata.positorSuffix$ END, 0),
+        cast(ISNULL(CASE
+            WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$
+$/ if tie.isHistorized
+            WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$
+$/ endif
+        END, @now) as $schema.metadata.positingRange$),
+        $schema.metadata.deleteReliability$
+    FROM
+        inserted i
+$/ foreach role in tie.knotRoles
+    LEFT JOIN
+        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
+    ON
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
+$/ endfor
+    WHERE
+        i.$tie.identityColumnName$ is not null
+    AND (
+$/ foreach role in tie.values
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is null $--$
+$/ else
+        i.$role.columnName$ is null
+$/ endif
+$/ if not role.last()
+    OR
+$/ endif
+$/ endfor
+    );
+    -- the other rows are statements, unless they leave everything as it is
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
         $tie.metadataColumnName$,
@@ -406,7 +555,28 @@ $/ if schema.METADATA
         i.$tie.metadataColumnName$,
 $/ endif
 $/ if tie.isHistorized
-        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
+        cast(CASE
+            WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$
+            WHEN EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName$ = i.$tie.identityColumnName$
+                AND
+                    d.$tie.positorColumnName$ = i.$tie.positorColumnName$
+$/ foreach role in tie.values
+                AND
+$/ if role.knot
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+                    d.$role.columnName$ = i.$role.columnName$
+$/ endif
+$/ endfor
+            ) THEN i.$tie.changingColumnName$ -- the shown version is asserted again
+            ELSE @now
+        END as $tie.timeRange$),
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -415,32 +585,54 @@ $/ else
         i.$role.columnName$,
 $/ endif
 $/ endfor
-        CASE WHEN UPDATE($tie.positorColumnName$) THEN i.$tie.positorColumnName$ ELSE 0 END,
+        ISNULL(CASE WHEN UPDATE($tie.positorColumnName$) THEN i.$tie.positorColumnName$ ELSE i.$schema.metadata.positorSuffix$ END, 0),
         cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$),
-        CASE
-            WHEN
-$/ foreach role in tie.values
-                i.$role.columnName$ is null
-$/ if not role.last()
-            OR
-$/ endif
-$/ endfor
-            THEN $schema.metadata.deleteReliability$
-            WHEN UPDATE($tie.reliabilityColumnName$) THEN i.$tie.reliabilityColumnName$
-            ELSE $schema.metadata.defaultReliability$
-        END
+        ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$)
     FROM
-$/ if tie.knotRoles
         inserted i
 $/ foreach role in tie.knotRoles
     LEFT JOIN
         [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
     ON
-        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$$/ if role.last() ;$/ endif
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
 $/ endfor
+    WHERE
+$/ foreach role in tie.values
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null $--$
 $/ else
-        inserted i;
+        i.$role.columnName$ is not null
 $/ endif
+    AND
+$/ endfor
+        ( -- a statement that leaves everything as it is states nothing
+$/ if tie.isHistorized
+            UPDATE($tie.changingColumnName$) OR
+$/ endif
+            UPDATE($tie.positingColumnName$) OR
+            UPDATE($tie.positorColumnName$) OR
+            UPDATE($schema.metadata.positorSuffix$) OR
+            NOT EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    deleted d
+                WHERE
+                    d.$tie.identityColumnName$ = i.$tie.identityColumnName$
+                AND
+                    d.$tie.positorColumnName$ = i.$tie.positorColumnName$
+$/ foreach role in tie.values
+                AND
+$/ if role.knot
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+$/ else
+                    d.$role.columnName$ = i.$role.columnName$
+$/ endif
+$/ endfor
+                AND
+                    d.$tie.reliabilityColumnName$ = ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$)
+            )
+        );
 END
 GO
 $/ endif
