@@ -1,0 +1,183 @@
+$/ if schema.TRIGGERS
+-- NEXUS TRIGGERS ---------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates.
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$nexus.name$ instead of INSERT trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TRIGGER [$nexus.capsule$].[it_l$nexus.name$] ON [$nexus.capsule$].[l$nexus.name$]
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @now $schema.metadata.chronon$;
+    SET @now = $schema.metadata.now$;
+    DECLARE @$nexus.mnemonic$ TABLE (
+        Row bigint IDENTITY(1,1) not null primary key,
+        $nexus.identityColumnName$ $nexus.identity$ not null
+    );
+    INSERT INTO [$nexus.capsule$].[$nexus.name$] (
+        $/ if schema.METADATA $nexus.metadataColumnName$ $/ else $nexus.dummyColumnName$$/ endif
+    )
+    OUTPUT
+        inserted.$nexus.identityColumnName$
+    INTO
+        @$nexus.mnemonic$
+    SELECT
+        $/ if schema.METADATA $nexus.metadataColumnName$ $/ else null$/ endif
+    FROM
+        inserted
+    WHERE
+        inserted.$nexus.identityColumnName$ is null;
+    DECLARE @inserted TABLE (
+        $nexus.identityColumnName$ $nexus.identity$ not null,
+$/ if schema.METADATA
+        $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+        $attribute.entityReferenceName$ $nexus.identity$ null,
+$/ endif
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ null,
+$/ endif
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$ $attribute.timeRange$ null,
+$/ endif
+        $attribute.positingColumnName$ $schema.metadata.positingRange$ null,
+        $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$ null,
+$/ if attribute.isKnotted
+        $attribute.knotValueColumnName$ $attribute.knot.dataRange$ null,
+$/ if attribute.knot.hasChecksum
+        $attribute.knotChecksumColumnName$ varbinary(16) null,
+$/ endif
+$/ if schema.METADATA
+        $attribute.knotMetadataColumnName$ $schema.metadata.metadataType$ null,
+$/ endif
+        $attribute.valueColumnName$ $attribute.knot.identity$ null$/ if not attribute.last() ,$/ endif
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ null$/ if not attribute.last() ,$/ endif
+$/ endif
+$/ endfor
+    );
+    INSERT INTO @inserted
+    SELECT
+        ISNULL(i.$nexus.identityColumnName$, a.$nexus.identityColumnName$),
+$/ if schema.METADATA
+        i.$nexus.metadataColumnName$,
+$/ endif
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+        ISNULL(ISNULL(i.$attribute.entityReferenceName$, i.$nexus.identityColumnName$), a.$nexus.identityColumnName$),
+$/ endif
+$/ if schema.METADATA
+        ISNULL(i.$attribute.metadataColumnName$, i.$nexus.metadataColumnName$),
+$/ endif
+$/ if attribute.isHistorized
+        ISNULL(i.$attribute.changingColumnName$, @now),
+$/ endif
+        ISNULL(i.$attribute.positingColumnName$, @now),
+        ISNULL(ISNULL(i.$attribute.reliabilityColumnName$, i.$schema.metadata.reliabilitySuffix$), 1),
+$/ if attribute.isKnotted
+        i.$attribute.knotValueColumnName$,
+$/ if attribute.knot.hasChecksum
+        ISNULL(i.$attribute.knotChecksumColumnName$, $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))),
+$/ endif
+$/ if schema.METADATA
+        ISNULL(i.$attribute.knotMetadataColumnName$, i.$nexus.metadataColumnName$),
+$/ endif
+$/ endif
+        i.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+    FROM (
+        SELECT
+            $schema.metadata.reliabilitySuffix$,
+            $nexus.identityColumnName$,
+$/ if schema.METADATA
+            $nexus.metadataColumnName$,
+$/ endif
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+            $attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.positingColumnName$,
+            $attribute.reliabilityColumnName$,
+$/ if attribute.isKnotted
+            $attribute.knotValueColumnName$,
+$/ if attribute.knot.hasChecksum
+            $attribute.knotChecksumColumnName$,
+$/ endif
+$/ if schema.METADATA
+            $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+            $attribute.valueColumnName$,
+$/ endfor
+            ROW_NUMBER() OVER (PARTITION BY $nexus.identityColumnName$ ORDER BY $nexus.identityColumnName$) AS Row
+        FROM
+            inserted
+    ) i
+    LEFT JOIN
+        @$nexus.mnemonic$ a
+    ON
+        a.Row = i.Row;
+$/ foreach attribute in nexus.attributes
+    INSERT INTO [$attribute.capsule$].[$attribute.name$] (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+        $attribute.valueColumnName$,
+$/ if attribute.timeRange
+        $attribute.changingColumnName$,
+$/ endif
+        $attribute.positingColumnName$,
+        $attribute.reliabilityColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$attribute.metadataColumnName$,
+$/ endif
+        i.$attribute.entityReferenceName$,
+        $/ if attribute.isKnotted ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$), $/ else i.$attribute.valueColumnName$,$/ endif
+$/ if attribute.timeRange
+        i.$attribute.changingColumnName$,
+$/ endif
+        i.$attribute.positingColumnName$,
+        i.$attribute.reliabilityColumnName$
+    FROM
+        @inserted i
+$/ if attribute.isKnotted
+    LEFT JOIN
+        [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
+    ON
+        $/ if attribute.knot.hasChecksum [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$ $/ else [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$$/ endif
+    WHERE
+        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$) is not null;
+$/ else
+    WHERE
+        i.$attribute.valueColumnName$ is not null;
+$/ endif
+$/ endfor
+END
+GO
+$/ endif
+$/ endfor
+$/ endif

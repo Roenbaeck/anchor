@@ -1,0 +1,27 @@
+-- ANCHORS -----------------------------------------------------------------------------------------------------------
+--
+-- Anchors store the identities of entities and are immutable.
+-- (Attribute tables moved to CreateAttributes.js.)
+--
+$/ foreach anchor in schema.anchors
+-- Anchor table -------------------------------------------------------------------------------------------------------
+-- $anchor.name$ table (with $anchor.attributeCount$ attributes)
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$anchor.capsule$.$anchor.name$', 'U') IS NULL
+CREATE TABLE [$anchor.capsule$].[$anchor.name$] (
+$/ if anchor.isGenerator
+    $anchor.identityColumnName$ $anchor.identity$ IDENTITY(1,1) not null,
+$/ else
+    $anchor.identityColumnName$ $anchor.identity$ not null,
+$/ endif
+$/ if schema.METADATA
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$ not null, $--$
+$/ else
+    $anchor.dummyColumnName$ bit null,
+$/ endif
+    constraint pk$anchor.name$ primary key (
+        $anchor.identityColumnName$ asc
+    )
+);
+GO
+$/ endfor

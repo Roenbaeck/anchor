@@ -266,3 +266,36 @@ if (schema.serialization && typeof schema.serialization._serialization === 'stri
     schema.serialization.chunks = serializedPieces;
 }
 // ---- end schema tracking ----
+
+// ---- bi-crt attributes: restatement constraints ----
+//   hasHistorizedAnchorAttributes   whether some anchor has a historized attribute (crt: the restatement
+//                                   finder functions are made for every one of them)
+//   hasUnrestatableAnchorAttributes whether some anchor has a historized attribute that may not store
+//                                   restatements (bi: the restatement checking triggers). Both look at the
+//                                   attributes of anchors only, as the original sisulets do, not at those of nexuses.
+(function () {
+    var anchor, attribute;
+    schema.hasHistorizedAnchorAttributes = false;
+    schema.hasUnrestatableAnchorAttributes = false;
+    while (anchor = schema.nextAnchor()) {
+        while (attribute = anchor.nextAttribute()) {
+            if (attribute.isHistorized()) {
+                schema.hasHistorizedAnchorAttributes = true;
+                if (!attribute.isRestatable()) schema.hasUnrestatableAnchorAttributes = true;
+            }
+        }
+    }
+})();
+// ---- end bi-crt attributes ----
+
+// ---- bi-crt tieviews: tie restatement constraints ----
+//   hasHistorizedTiesWithValues  whether some historized tie has roles outside of its identifier (crt writes a
+//                                restatement finder for each, whether or not it may store restatements)
+(function () {
+    var tie;
+    schema.hasHistorizedTiesWithValues = false;
+    while (tie = schema.nextHistorizedTie())
+        if (tie.values.length > 0)
+            schema.hasHistorizedTiesWithValues = true;
+})();
+// ---- end bi-crt tieviews ----

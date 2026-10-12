@@ -1,0 +1,89 @@
+$/ foreach anchor in schema.anchors
+$/ foreach attribute in anchor.historizedAttributes
+-- Attribute sheet stack ----------------------------------------------------------------------------------------------
+-- ss$attribute.name$ procedure returning one temporal sheet per positor
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$attribute.capsule$.ss$attribute.name$', 'P') IS NOT NULL
+DROP PROCEDURE [$attribute.capsule$].[ss$attribute.name$];
+GO
+CREATE PROCEDURE [$attribute.capsule$].[ss$attribute.name$] (
+    @$anchor.identityColumnName$ $anchor.identity$ = null
+)
+AS
+BEGIN
+    DECLARE @pivot varchar(max);
+    SET @pivot = REPLACE((
+        SELECT DISTINCT
+            '[' + convert(varchar(23), $attribute.changingColumnName$, 126) + ']' AS [text()]
+        FROM
+            [$attribute.capsule$].[$attribute.name$]
+        WHERE
+            $attribute.entityReferenceName$ = ISNULL(@$anchor.identityColumnName$, $attribute.entityReferenceName$)
+        FOR XML PATH('')
+    ), '][', '], [');
+    DECLARE positor CURSOR FOR
+    SELECT DISTINCT
+        $attribute.positorColumnName$
+    FROM
+        [$attribute.capsule$].[$attribute.name$]
+    WHERE
+        $attribute.entityReferenceName$ = ISNULL(@$anchor.identityColumnName$, $attribute.entityReferenceName$)
+    AND
+        $attribute.valueColumnName$ is not null;
+    DECLARE @positor varchar(20);
+    OPEN positor;
+    FETCH NEXT FROM positor INTO @positor;
+    DECLARE @sql varchar(max);
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @sql = '
+            SELECT
+                b.$attribute.positorColumnName$,
+                x.$attribute.entityReferenceName$,
+                x.$attribute.positingColumnName$,
+                b.$attribute.assertionColumnName$,
+                ' + @pivot + '
+            FROM (
+                SELECT DISTINCT
+                    $attribute.entityReferenceName$,
+                    $attribute.positingColumnName$
+                FROM
+                    [$attribute.capsule$].[$attribute.name$]
+                WHERE
+                    $attribute.entityReferenceName$ = ISNULL(@$anchor.identityColumnName$, $attribute.entityReferenceName$)
+            ) x
+            LEFT JOIN (
+                SELECT
+                    $attribute.positorColumnName$,
+                    $attribute.entityReferenceName$,
+                    $attribute.positingColumnName$,
+                    $attribute.assertionColumnName$,
+                    ' + @pivot + '
+                FROM
+                    [$attribute.capsule$].[$attribute.name$]
+                PIVOT (
+                    MIN($attribute.valueColumnName$) FOR $attribute.changingColumnName$ IN (' + @pivot + ')
+                ) p
+                WHERE
+                    $attribute.entityReferenceName$ = ISNULL(@$anchor.identityColumnName$, $attribute.entityReferenceName$)
+                AND
+                    $attribute.positorColumnName$ = ' + @positor + '
+            ) b
+            ON
+                b.$attribute.entityReferenceName$ = x.$attribute.entityReferenceName$
+            AND
+                b.$attribute.positingColumnName$ = x.$attribute.positingColumnName$
+            ORDER BY
+                $attribute.entityReferenceName$,
+                $attribute.positingColumnName$,
+                $attribute.assertionColumnName$
+        ';
+        EXEC(@sql);
+        FETCH NEXT FROM positor INTO @positor;
+    END
+    CLOSE positor;
+    DEALLOCATE positor;
+END
+GO
+$/ endfor
+$/ endfor
