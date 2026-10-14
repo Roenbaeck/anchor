@@ -50,6 +50,52 @@ $/ endif
             $attribute.positingColumnName$ desc
         )
     );
+    -- another reliability at a positing time that already has an assertion of the posit is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+            i.$attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+            i.$attribute.changingColumnName$,
+$/ endif
+            i.$attribute.positingColumnName$
+        FROM
+            inserted i
+        WHERE EXISTS (
+            SELECT TOP 1
+                42
+            FROM
+                [$attribute.capsule$].[$attribute.positName$] p
+            JOIN
+                [$attribute.capsule$].[$attribute.annexName$] a
+            ON
+                a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+            WHERE
+                p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+            AND
+                p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+            AND
+$/ if attribute.hasChecksum
+                p.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+$/ else
+                p.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
+$/ endif
+            AND
+                a.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+            AND
+                a.$attribute.reliabilityColumnName$ <> i.$attribute.reliabilityColumnName$
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $attribute.name$ for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
     INSERT INTO @$attribute.name$
     SELECT
         i.$attribute.entityReferenceName$,
