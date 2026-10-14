@@ -140,15 +140,17 @@ CREATE VIEW [$key.capsule$].[$key.checkName$] AS
 SELECT
     '$key.name$' AS Construct,
     'duplicate natural key' AS Violation,
-    (
-        SELECT
+    CONCAT(
 $/ if schema.CRT
-            d.$schema.metadata.positorSuffix$,
+        '$schema.metadata.positorSuffix$=', d.$schema.metadata.positorSuffix$, ', ',
 $/ endif
 $/ foreach match in key.matches
-            d.$match.name$$/ if not match.last() ,$/ endif
+$/ if match.isChecksum
+        '$match.name$=', CONVERT(varchar(max), d.$match.name$, 1)$/ if not match.last() , ', ',$/ endif
+$/ else
+        '$match.name$=', d.$match.name$$/ if not match.last() , ', ',$/ endif
+$/ endif
 $/ endfor
-        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
     ) AS ViolationKey,
     d.Occurrences
 FROM (
@@ -183,13 +185,11 @@ UNION ALL
 SELECT
     '$key.name$',
     'more than one natural key',
-    (
-        SELECT
+    CONCAT(
 $/ if schema.CRT
-            d.$schema.metadata.positorSuffix$,
+        '$schema.metadata.positorSuffix$=', d.$schema.metadata.positorSuffix$, ', ',
 $/ endif
-            d.$key.identityColumnName$
-        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+        '$key.identityColumnName$=', d.$key.identityColumnName$
     ),
     d.Occurrences
 FROM (

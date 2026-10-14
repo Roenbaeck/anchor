@@ -685,7 +685,7 @@ SQL Server is unchanged; its output is identical for every test model.
 
 **Then, after the merge (2026-10-14; the user decided the shape):** SQL Server's keys are the same as Snowflake's, in
 uni, bi and crt: `SQL/SQLServer/uni/CreateKeys.sisula`, listed by all three directives after the perspectives it reads,
-makes `key_`, `pkey_` and `ic_key_` (with `FOR JSON` for the key of a violation, so SQL Server 2016 or later), and,
+makes `key_`, `pkey_` and `ic_key_` (the key of a violation as text, `name=value, ...`, with checksums in hex), and,
 with `naturalKeyAttributes`, a key table per route with a primary key on the identity and a unique constraint on the
 key, filled by `refresh_<entity>_<route>`, which fails, and leaves the table as it was, on a duplicate key. A (max) value
 without a checksum can be compared but not be in a unique index, so such a route gets no key table, and a geography,
@@ -698,6 +698,13 @@ generators leave out, and every step that is not functional, to the console, nex
 `sqlserver-keys.xml`, `-bi`, `-crt` (the same routes on `sqlserver-base`) and `sqlserver-tests/keys-<t>.sql`, which
 `tools/sqlserver-tests.ps1` now runs after the trigger tests (`-Suite triggers,keys`): lookups through every kind of
 route, the point-in-time key, the checks, the refresh procedure and its failure, and crt per positor.
+
+**The first run of the key tests on a SQL Server** failed before any test: the checks used `FOR JSON` for the key of a
+violation, which SQL Server reads only at compatibility level 130 and later, and the databases that the tests create
+take their level from `model`, which on the user's server must be lower (the server runs JSON functions; "Incorrect syntax near 'WITHOUT_ARRAY_WRAPPER'").
+The trigger tests use nothing of the kind. The checks now write the key with `CONCAT`. Generated SQL should not depend
+on the compatibility level: parse it with the grammar of SQL Server 2014 too (ScriptDom's `TSql120Parser`), which
+gives "Expected XML but encountered JSON" for the old checks and nothing for the new ones or the trigger tests.
 
 ## Where things are, by repository
 
