@@ -94,8 +94,11 @@ under Jint, which made them an independent check: the templates matched those si
 was made in both. Once the Snowflake output had been run on Snowflake (uni, bi, crt and equivalence) the sisulets
 that had a template, and the three `.legacy.directive` files, were removed from Anchor, which halves the work of a
 change. They are in the git history: Anchor at `b9c6948` has them, and `tools/golden.ps1` in the sisula repo at
-`34d0b93` shows how they were run (use it for the next database, see below). What checks the golden files now:
-the other implementations (`csharp-check.ps1`, `browser-check.ps1`), the lint, and above all running the SQL.
+`34d0b93` shows how they were run (use it for the next database, see below). The same was done for SQL Server on
+2026-10-14, once its output had been run on a SQL Server (the DDL, and the trigger tests of uni, bi and crt): its 74
+sisulets and three legacy directives are at Anchor `729cd9c`, and `golden.ps1` in the sisula repo at `2115504`, which
+reads a model's database from the model. What checks the golden files now: the other implementations
+(`csharp-check.ps1`, `browser-check.ps1`), the lint, the trigger tests, and above all running the SQL.
 
 ### The models
 
@@ -138,7 +141,7 @@ test make the pieces independent); the other databases follow the same path.
    but still name `Snowflake` (the directive names, the `SQL/Snowflake/` paths, the prelude and `derive.js`
    in `tools/directive.ps1`, the assertion in `browser-check.ps1`). Parametrize those, put the models for
    the new database in a folder of their own, and make the golden files from the original sisulets with
-   `golden.ps1` (restore it from sisula `34d0b93`; it takes the original directive and splits the output per
+   `golden.ps1` (restore it from sisula `2115504`, where it reads the database from the model; it takes the original directive and splits the output per
    sisulet), then, once the templates match, switch to `check.ps1 -Update` as for Snowflake. Check first
    that the original sisulets run at all: parse each one after the engine's translation (the Jint parser
    reports the line), because a generator that was never run can fail on a syntax error, as bi and crt did.
@@ -176,10 +179,7 @@ match (they never did before).
 - **Port the rest:** the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone needs one.
   SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and the trigger
   tests of all three temporalizations); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`, 2026-10-14).
-- **Retire SQL Server's original sisulets**, as was done for Snowflake: `SQL/SQLServer/{uni,bi,crt,biz,clr}/*.js`,
-  `SQL/SQLServer/CreateSchemaTracking.js` and the three `SQLServer_<t>.legacy.directive` (not `NamingConvention.js`
-  or `derive.js`, which the directives run), then `tools/golden.ps1` and the `LegacyFile` of `tools/directive.ps1`
-  in the sisula repository. Every fix is made twice until then. Decided by the user on 2026-10-14; not yet done.
+  Its original sisulets were then removed, as Snowflake's had been, so a fix is made once.
 - **Run the generated Snowflake SQL** after a change: uni, bi, crt and equivalence have been run on Snowflake
   (2026-10-02), and so have the integrity checks (2026-10-08). The natural keys (2026-10-14) have not.
 - **Natural keys** (see *Natural keys as routes* below): SQL Server's `CreateKeys` should read `naturalKeys()` instead
@@ -327,8 +327,8 @@ change.
 
 `SQLServer_uni.directive` lists 31 Sisula templates (`SQL/SQLServer/{uni,biz,clr}/*.sisula`, `SQL/SQLServer/CreateSchemaTracking.sisula`)
 and the prelude `Helpers.js`, `NamingConvention.js`, `SQL/SQLServer/NamingConvention.js`, `SQL/SQLServer/derive.js`. The original sisulets and
-their directive, `SQLServer_uni.legacy.directive`, are still here: they are what `golden.ps1` runs to make the independent output. bi and crt
-for SQL Server are ported too, see the next section.
+their directive, `SQLServer_uni.legacy.directive`, were what `golden.ps1` ran to make the independent output while the port was checked; they were
+removed on 2026-10-14 (see *What the golden files are*). bi and crt for SQL Server are ported too, see the next section.
 
 **What was verified (no SQL Server on the development machine):** for 18 models (`models/sqlserver-*.xml`: the uni models of Snowflake converted
 with the data type converter and saved through the modeler, plus variants for business views and knot aliases, no triggers, partitioning, natural
@@ -376,15 +376,14 @@ not been run on a SQL Server.** Since it is the original output except for the c
 - `CreateSchemaTracking`: the serialization is not escaped for the T-SQL literal `N'...'`, so a model with an apostrophe anywhere in its XML breaks the
   script.
 
-**To update this port:** change the template and the original sisulet together while the original is still here (the golden files come from it:
-`golden.ps1`, see `tools/make-sqlserver-models.ps1` and the tools README), or regenerate the golden files from the templates (`regenerate-golden.ps1`) once
-the originals are removed. The originals can go when someone has run the output on a SQL Server.
+**To update this port:** change the template, regenerate the golden files from the templates (`regenerate-golden.ps1`), and read the diff; the
+originals are gone, so a change is made once. Run `tools/sqlserver-tests.ps1` on a SQL Server when it touches the triggers or the keys.
 
 ## SQL Server bi and crt on the Sisula engine (ported 2026-10-08)
 
 `SQLServer_bi.directive` (28 templates) and `SQLServer_crt.directive` (31) list Sisula templates only: `SQL/SQLServer/{bi,crt,biz,clr}/*.sisula` and
 `SQL/SQLServer/CreateSchemaTracking.sisula`, after the same prelude as uni. The original sisulets, and their directives `SQLServer_bi.legacy.directive`
-and `SQLServer_crt.legacy.directive`, are still here for `golden.ps1`. The work was done by seven parallel workers (tables; attributes; tie views;
+and `SQLServer_crt.legacy.directive`, were there for `golden.ps1` until 2026-10-14. The work was done by seven parallel workers (tables; attributes; tie views;
 perspectives and key generators; anchor triggers; attribute and nexus triggers; tie triggers), each in its own worktree, starting from the uni templates
 and the difference between the uni and the bi/crt originals. `derive.js` got two small blocks (`bi-crt attributes`, `bi-crt tieviews`: whether any
 anchor attribute is historized, or may not store restatements, and whether a historized tie has values); the rest was reachable by paths.
@@ -409,7 +408,8 @@ originals of bi and crt, like the uni one, still paste it as it is.
 **Behaviour that differs between bi and crt, worth a look** (kept, the oracle has it): in crt the update trigger of an attribute leaves out `UPDATE(value)` for an
 attribute that is not historized, so a value update of a static attribute creates no posit and only a change of reliability or positor does; bi has no such condition.
 
-**Known defects of the original that are kept, because the golden files carry them:**
+**Known defects of the original that are kept, because the golden files carry them** (now that the originals are gone, each can be fixed in its template
+alone):
 - The `handwritten` models (no `identity` on attributes and one tie): the identity column of the posit and annex tables, of the restatement tables and of
   the `@inserted` and `@posit` table variables is declared without a type (`EV_DAT_ID not null,`), which is invalid SQL. It is the model, not the generator.
 - `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true), as in uni.
@@ -422,8 +422,7 @@ attribute that is not historized, so a value update of a static attribute create
 - Trailing spaces and tabs that the original engine left in a few lines (after `JOIN`, `OR`, `AND`, `AFTER INSERT`, `AS`, `p.*,`) are reproduced with `$--$`,
   because the golden files have them. They are harmless.
 
-**To update this port:** as for uni: change the template and the original sisulet together while the original is still here, or regenerate the golden files
-from the templates once the originals are removed (`regenerate-golden.ps1`). The originals can go when someone has run the output on a SQL Server.
+**To update this port:** as for uni: change the template, regenerate the golden files from the templates (`regenerate-golden.ps1`) and read the diff.
 
 ## SQL Server triggers made consistent (2026-10-09)
 
