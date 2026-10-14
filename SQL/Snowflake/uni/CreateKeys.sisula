@@ -1,0 +1,208 @@
+$/ if schema.naturalKeys
+-- NATURAL KEYS -------------------------------------------------------------------------------------------------------
+--
+-- A natural key is a route in the model: the values that identify an anchor or a nexus, reached from it through its
+-- attributes, its roles and ties (see naturalKeys() in Helpers.js for the rules a route follows). For each route of
+-- each anchor and nexus there is
+--
+--   key_<anchor or nexus>_<route>          the key of every identity, from the latest values, with one column for
+--                                          each value; a value with a checksum, such as a geography, is followed by
+--                                          the checksum, hash(value), which is what it is matched on
+--   pkey_<anchor or nexus>_<route>(time)   the key of every identity at a changing time, for a route that passes
+--                                          something historized, since its key can change
+--   ic_key_<anchor or nexus>_<route>       the keys that more than one identity has, and the identities that have
+--                                          more than one key; part of IntegrityViolations
+--
+-- Snowflake does not enforce that a key is unique, so a lookup through a key view can find more than one identity
+-- when ic_key_ is not empty.
+$/ if schema.CRT
+-- Every key is per positor, as the perspectives are.
+$/ endif
+--
+$/ foreach key in schema.naturalKeys
+$/ if key.usable
+-- Key view -----------------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$
+$/ foreach note in key.notes
+-- Note: $|note.text|$
+$/ endfor
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $key.capsule$."$key.name$" (
+$/ if schema.CRT
+    "$schema.metadata.positorSuffix$",
+$/ endif
+    "$key.identityColumnName$",
+$/ foreach column in key.columns
+    "$column.name$"$/ if not column.last() ,$/ endif
+$/ endfor
+) COPY GRANTS
+AS
+SELECT
+$/ if schema.CRT
+$/ if key.perspective
+    "$key.of$"."$schema.metadata.positorSuffix$",
+$/ else
+    p."$schema.metadata.positorSuffix$",
+$/ endif
+$/ endif
+    "$key.of$"."$key.identityColumnName$",
+$/ foreach column in key.columns
+    "$column.alias$"."$column.source$"$/ if not column.last() ,$/ endif
+$/ endfor
+FROM
+$/ if key.perspective
+    $key.capsule$."l$key.entityName$" "$key.of$"
+$/ else
+$/ if schema.CRT
+    $schema.metadata.encapsulation$."_$schema.metadata.positorSuffix$" p
+CROSS JOIN
+$/ endif
+    $key.capsule$."$key.entityName$" "$key.of$"
+$/ endif
+$/ foreach join in key.joins
+LEFT JOIN
+$/ if join.perspective
+    $join.capsule$."l$join.name$" "$join.alias$"
+$/ else
+    $join.capsule$."$join.name$" "$join.alias$"
+$/ endif
+ON
+    "$join.alias$"."$join.column$" = "$join.fromAlias$"."$join.fromColumn$"
+$/ if schema.CRT and join.perspective
+AND
+$/ if key.perspective
+    "$join.alias$"."$schema.metadata.positorSuffix$" = "$key.of$"."$schema.metadata.positorSuffix$"
+$/ else
+    "$join.alias$"."$schema.metadata.positorSuffix$" = p."$schema.metadata.positorSuffix$"
+$/ endif
+$/ endif
+$/ endfor
+;
+$/ if key.historized
+-- Point-in-time key --------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$ at a changing time
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $key.capsule$."$key.pointInTimeName$" (
+    changingTimepoint timestamp_ntz(9)
+)
+COPY GRANTS
+RETURNS TABLE (
+$/ if schema.CRT
+    "$schema.metadata.positorSuffix$" $schema.metadata.positorRange$,
+$/ endif
+    "$key.identityColumnName$" $key.identity$,
+$/ foreach column in key.columns
+    "$column.name$" $column.type$$/ if not column.last() ,$/ endif
+$/ endfor
+)
+AS
+$$
+SELECT
+$/ if schema.CRT
+$/ if key.perspective
+    "$key.of$"."$schema.metadata.positorSuffix$",
+$/ else
+    p."$schema.metadata.positorSuffix$",
+$/ endif
+$/ endif
+    "$key.of$"."$key.identityColumnName$",
+$/ foreach column in key.columns
+    "$column.alias$"."$column.source$"$/ if not column.last() ,$/ endif
+$/ endfor
+FROM
+$/ if key.perspective
+    TABLE($key.capsule$."p$key.entityName$"(changingTimepoint)) "$key.of$"
+$/ else
+$/ if schema.CRT
+    $schema.metadata.encapsulation$."_$schema.metadata.positorSuffix$" p
+CROSS JOIN
+$/ endif
+    $key.capsule$."$key.entityName$" "$key.of$"
+$/ endif
+$/ foreach join in key.joins
+LEFT JOIN
+$/ if join.perspective
+    TABLE($join.capsule$."p$join.name$"(changingTimepoint)) "$join.alias$"
+$/ else
+    $join.capsule$."$join.name$" "$join.alias$"
+$/ endif
+ON
+    "$join.alias$"."$join.column$" = "$join.fromAlias$"."$join.fromColumn$"
+$/ if schema.CRT and join.perspective
+AND
+$/ if key.perspective
+    "$join.alias$"."$schema.metadata.positorSuffix$" = "$key.of$"."$schema.metadata.positorSuffix$"
+$/ else
+    "$join.alias$"."$schema.metadata.positorSuffix$" = p."$schema.metadata.positorSuffix$"
+$/ endif
+$/ endif
+$/ endfor
+$$
+;
+$/ endif
+-- Key integrity ------------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $key.capsule$."$key.checkName$" (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+SELECT
+    '$key.name$',
+    'duplicate natural key',
+    OBJECT_CONSTRUCT(
+$/ if schema.CRT
+        '$schema.metadata.positorSuffix$', "$schema.metadata.positorSuffix$",
+$/ endif
+$/ foreach match in key.matches
+        '$match.name$', "$match.name$"$/ if not match.last() ,$/ endif
+$/ endfor
+    ),
+    COUNT(DISTINCT "$key.identityColumnName$")
+FROM
+    $key.capsule$."$key.name$"
+WHERE
+$/ foreach match in key.matches
+$/ if not match.first()
+AND
+$/ endif
+    "$match.name$" IS NOT NULL
+$/ endfor
+GROUP BY
+$/ if schema.CRT
+    "$schema.metadata.positorSuffix$",
+$/ endif
+$/ foreach match in key.matches
+    "$match.name$"$/ if not match.last() ,$/ endif
+$/ endfor
+HAVING
+    COUNT(DISTINCT "$key.identityColumnName$") > 1
+UNION ALL
+SELECT
+    '$key.name$',
+    'more than one natural key',
+    OBJECT_CONSTRUCT(
+$/ if schema.CRT
+        '$schema.metadata.positorSuffix$', "$schema.metadata.positorSuffix$",
+$/ endif
+        '$key.identityColumnName$', "$key.identityColumnName$"
+    ),
+    COUNT(*)
+FROM
+    $key.capsule$."$key.name$"
+GROUP BY
+$/ if schema.CRT
+    "$schema.metadata.positorSuffix$",
+$/ endif
+    "$key.identityColumnName$"
+HAVING
+    COUNT(*) > 1;
+$/ else
+-- The $key.route$ key of $key.entityName$ is not generated: $|key.problem|$
+$/ endif
+$/ endfor
+$/ endif
