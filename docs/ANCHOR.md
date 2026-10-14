@@ -46,7 +46,7 @@ tables a query against a perspective does not use.
 | <img src="images/tie.svg" height="24" alt="Tie: filled grey diamond"> <img src="images/tie_historized.svg" height="24" alt="Historized tie: double diamond"> | [Tie](#tie) | `<tie>` | A relationship between anchors, such as who is cast in what | A table with one column per role |
 | <img src="images/nexus.svg" height="24" alt="Nexus: red square with a white diamond inside"> | [Nexus](#nexus) | `<nexus>` | An event with its own identity and properties, such as a performance | A table holding the identity and its role references |
 | <img src="images/role.svg" height="24" alt="Role: line with a single bar"> <img src="images/role_identifier.svg" height="24" alt="Identifier role: line with three bars"> | [Role](#role) | `<role>` | How an anchor, nexus or knot takes part in a tie or nexus | A column in the tie or nexus table |
-| <img src="images/identifier.svg" height="24" alt="Identifier: grey circle with a keyhole"> <img src="images/identifier_historized.svg" height="24" alt="Historized identifier: double grey circle with a keyhole"> | [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (Snowflake; SQL Server uni) |
+| <img src="images/identifier.svg" height="24" alt="Identifier: grey circle with a keyhole"> <img src="images/identifier_historized.svg" height="24" alt="Historized identifier: double grey circle with a keyhole"> | [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (Snowflake, SQL Server) |
 
 Where a construct has two symbols, the second, doubled outline marks the historized variant. On a
 role, a single bar marks a role that is not an identifier and three bars mark an identifier role.
@@ -322,23 +322,32 @@ An `<identifier route="..."/>` on an anchor or nexus declares that the route is 
 identifier for it. An identifier is historized if an attribute or a tie on its route is historized,
 since the key can then change over time.
 
-In the modeler, keys are drawn as routes on the diagram. Snowflake (uni, bi and crt) turns every
-route into three objects:
+In the modeler, keys are drawn as routes on the diagram. To make one, select the anchor or nexus it
+identifies and then what the route passes, in order (attributes and roles; a knot is not a stop),
+and pick *Create key from selected*; *Add selected to key* continues the selected route, on a new
+branch when the anchor or nexus is in the selection too. When a model is opened, the modeler checks
+its routes with the same rules as the generators and writes what is wrong to the browser's console.
+
+Snowflake and SQL Server (uni, bi and crt) turn every route into three objects:
 
 - `key_<anchor>_<route>`, a view with the key of every identity, from the latest perspectives. A
-  value that has a checksum, such as a geography, is followed by the checksum, `hash(value)`, which
-  is what it is matched on.
+  value that has a checksum, such as a geography, is followed by the checksum, which is what it is
+  matched on (`hash(value)` in Snowflake, the MD5 of the value in SQL Server).
 - `pkey_<anchor>_<route>(changingTimepoint)`, the key of every identity at a changing time, for a
   route that passes something historized.
 - `ic_key_<anchor>_<route>`, the keys that more than one identity has and the identities that have
-  more than one key, since Snowflake does not enforce either. `IntegrityViolations` includes it.
+  more than one key, since neither database enforces that on a view. In Snowflake
+  `IntegrityViolations` includes it.
+
+With `naturalKeyAttributes` (*Create natural key attributes*), SQL Server also makes a table of the
+key of every identity that has all of its values, `<anchor>_<route>`, with a primary key on the
+identity and a unique constraint on the key, and a procedure that fills it from the key view,
+`refresh_<anchor>_<route>`. The procedure fails, and leaves the table as it was, when two identities
+have the same key; the table gives lookups an index.
 
 A route that breaks one of the rules above is left out, with a comment in the script that says why,
 and one that is not functional is generated with a comment that says where. In crt every key is per
-positor. SQL Server (uni-temporal) turns routes into key views and, with `naturalKeyAttributes`,
-tables that nothing fills; only a route of attributes of the anchor itself comes out right there
-(the handover lists what goes wrong with the others). Other targets keep the keys in the model
-without generating objects from them.
+positor. Other targets keep the keys in the model without generating objects from them.
 
 ## Descriptions
 
