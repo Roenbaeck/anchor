@@ -30,7 +30,7 @@ deliberately. No submodules.
 | Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 11 + 12 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
-| The tests | `sisula/examples/anchor-snowflake` (in the **sisula** repo) | 33 models, golden files (approved output from the templates), and the tools that compare. See below. |
+| The tests | `sisula/examples/anchor` (in the **sisula** repo) | 95 models, golden files (approved output from the templates), and the tools that compare. See below. |
 
 ### The directive
 
@@ -66,7 +66,7 @@ the C# implementation in `sisula-mssql` must follow every feature.
 
 Everything below runs on Windows PowerShell 5.1 with the repos side by side
 (`anchor`, `sisula`, `sisula-mssql`). No Node, no .NET SDK, no SQL Server, no Snowflake on that machine.
-The engines run under the Jint in `sisula/lib`. Run from `sisula/examples/anchor-snowflake`:
+The engines run under the Jint in `sisula/lib`. Run from `sisula/examples/anchor`:
 
 ```
 powershell -File tools\run-all.ps1                       # Anchor's templates against the golden files, all 33 models
@@ -122,7 +122,7 @@ test make the pieces independent); the other databases follow the same path.
 
 1. **Pick the directive** (for example `PostgreSQL_uni.directive`) and list its enabled sisulets.
 2. **Port each sisulet** to `SQL/PostgreSQL/uni/<Name>.sisula`. The pattern table is in
-   `sisula/examples/anchor-snowflake/README.md` ("Porting the sisulets"): `while (x = schema.nextX())`
+   `sisula/examples/anchor/README.md` ("Porting the sisulets"): `while (x = schema.nextX())`
    becomes `$/ foreach x in schema.xs`; `$(cond)? a : b` becomes `$/ if cond` / `$/ else`; escaping
    uses `$'path'$` (SQL string literal) and `$|path|$` (safe in a `--` comment). The templates must
    produce the final text, because the original engine removes blank lines and runs of spaces
@@ -202,7 +202,7 @@ match (they never did before).
   and works with all the others. Snowflake and BigQuery have theirs. Only the values of the attributes in
   `DataTypeConverter.ATTRIBUTES` are converted (not any text that looks like a type), the first matching rule
   of a list decides (the rules used to chain: `real` became `double`), and `convertText` is the DOM-free part, which
-  `examples/anchor-snowflake/tools/converter-check.ps1` in the sisula repository tests for every pair. Lossy
+  `examples/anchor/tools/converter-check.ps1` in the sisula repository tests for every pair. Lossy
   conversions are by design and come from the target (BigQuery has no time with a zone, no money; Snowflake no
   time with a zone, no uuid or XML type; Oracle widens `tinyint` to `number(3)`): converting there and back does not
   restore the original. Not covered: the modeler's own menu (the page is tested through `convert`, in headless Edge,
@@ -488,7 +488,7 @@ models, and its JSON bindings equal the resolver's for the same 65 models. On a 
 the base and equivalence models has run (before these changes), and that of the three test models, with the tests
 (see below); the other output has not.
 
-**Tests of what the triggers do.** `sisula/examples/anchor-snowflake/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
+**Tests of what the triggers do.** `sisula/examples/anchor/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
 is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
 without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
 deletes through its views and prints PASS or FAIL for each rule above (37, 35 and 42 checks), and
@@ -605,7 +605,7 @@ Unported Snowflake sisulets stay as commented lines in the directives, so nothin
 ## Where things are, by repository
 
 - **anchor:** this file, the engine copy, the resolver, the templates, the directives, the modeler.
-- **sisula:** the engine's source, the language reference, the fixtures, `examples/anchor-snowflake`
+- **sisula:** the engine's source, the language reference, the fixtures, `examples/anchor`
   (models, golden files, tools, and `sqlserver-tests` for the SQL Server triggers), `lib/Jint.2.11.58.dll`.
 - **sisula-mssql:** the C# renderer (`clr/SisulaRenderer.cs`) and `tests/run-fixtures.ps1`.
 - **workflower:** vendors the engine the same way (`tools/sync-sisula.ps1`, `webapp/sisula.js`).
