@@ -395,6 +395,15 @@ The settings then decide what happens to what is stated, the same way for insert
 | The same value again later in changing time (a restatement) | Skipped if idempotent; otherwise stored if restatable, or an error |
 | The same reliability again later in positing time (a re-assertion, bi and crt) | Stored if assertive, otherwise skipped |
 | Another value at a changing time that already has one (uni only) | An error, whatever the settings say |
+| Another reliability for a version at a positing time that already has one (bi and crt) | An error, whatever the settings say |
 
-In bi and crt there are no contradictions: a later assertion corrects an earlier one, and in crt
-positors may disagree.
+In bi and crt a later assertion corrects an earlier one, and in crt positors may disagree. What
+cannot hold is two assertions of the same version, by the same positor, at the same positing time:
+that is a contradiction, as another value at a taken changing time is in uni (a delete, which
+writes its retractions directly, is refused by the key of the table instead).
+
+The positing time is now (`sysdatetime()`) unless it is given, and the clock does not necessarily
+move between two statements in a row. A retraction or a new reliability that follows the assertion
+it is about within the same tick would get the same positing time and be refused as a
+contradiction, so give positing times explicitly when statements about the same version follow
+each other closely.

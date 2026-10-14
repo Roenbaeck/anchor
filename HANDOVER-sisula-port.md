@@ -426,8 +426,10 @@ latest views"); in short:
   again later in changing time, a restatement; or the same reliability again later in positing time, a
   re-assertion), or a contradiction (another value for a slot that is taken). `restatable` says whether restatements
   may exist (if not, the restatement checks raise an error), `idempotent` makes the triggers skip restatements, and
-  `assertive` makes them keep re-assertions (off: skipped). No flag swallows a contradiction: in uni it is an error
-  ("Contradiction in <name> for: <key>"), and bi and crt have none, since a later assertion corrects an earlier one.
+  `assertive` makes them keep re-assertions (off: skipped). No flag swallows a contradiction, which is an error
+  ("Contradiction in <name> for: <key>"): in uni another value at a changing time that has one, in bi and crt another
+  reliability for a posit at a positing time that has an assertion of it (by the same positor in crt). Otherwise bi
+  and crt have no contradictions, since a later assertion corrects an earlier one.
   This reading follows from the code and from the history: idempotency was defined in 2012 as ignoring a value
   identical to the current one, assertiveness took over the positing-time half of it in 2014, and in 2021 static
   idempotency was changed to "only ignore identical".
@@ -482,17 +484,30 @@ changed originals (`golden.ps1`) and every template matches them for all 59 SQL 
 the whole outputs); the Snowflake templates still give their committed golden files (36 models), also through the
 hosted generator; the C# renderer gives the same for the SQL Server models and the Snowflake models that the fixes
 reach (1 898 renderings); the modeler gives the same SQL for the 56 canonical SQL Server models and those Snowflake
-models, and its JSON bindings equal the resolver's for the same 65 models. **None of it has been run on a SQL
-Server.**
+models, and its JSON bindings equal the resolver's for the same 65 models. On a SQL Server, the uni output of
+the base and equivalence models has run (before these changes), and that of the three test models, with the tests
+(see below); the other output has not.
 
 **Tests of what the triggers do.** `sisula/examples/anchor-snowflake/models/sqlserver-triggers.xml` (and `-bi`, `-crt`)
 is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
 without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
-deletes through its views and prints PASS or FAIL for each rule above (37, 32 and 39 checks), and
+deletes through its views and prints PASS or FAIL for each rule above (37, 35 and 42 checks), and
 `tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per temporalization, runs the golden output of the
 model and then the script in it, drops the database again, and exits 1 if a check failed. Run it after every change
-to a trigger, once the golden files of the three models have been regenerated. The scripts parse (see below) and the
-runner was tried against a stand-in for sqlcmd; neither has met a SQL Server yet.
+to a trigger, once the golden files of the three models have been regenerated.
+
+**The first run on a SQL Server (2026-10-14)**: the generated SQL of all three test models ran without errors, uni
+passed all its checks, and so did the nexus merge in all three. Five checks of bi and crt failed for one reason: the
+server's `sysdatetime()` did not move between statements in a row, so a retraction or a new reliability got the
+positing time of the assertion it was about. The insert triggers of the assembled views then took it for the identical
+statement and skipped it (b08, b09, c08), and a delete collided on the annex key (c13). Two changes followed: the
+tests give every statement about a posit a positing time of its own, as their header promised, and the triggers treat
+another reliability at a taken positing time as the contradiction it is (see the flags above), instead of losing it.
+Deletes, and a tie value set to null, write their retractions to the annex directly and are refused by its key in the
+same case. `docs/ANCHOR.md` advises giving positing times explicitly when statements about one version follow each
+other closely. After the change the 40 bi and crt models were made from the changed originals and every template
+matches them (1 220 comparisons), in the C# renderer too (1 180), and the modeler gives the same SQL for the 38
+canonical ones; on the SQL Server all the checks then passed (37, 35 and 42).
 
 **A syntax check of the generated SQL.** Every one of the 59 generated scripts, and the test scripts, were parsed once
 with Microsoft's T-SQL parser (ScriptDom, SQL Server 2016 grammar, the SQL inside `EXEC('...')` strings included),
