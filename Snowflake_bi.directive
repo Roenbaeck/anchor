@@ -33,5 +33,6 @@ SQL/Snowflake/bi/CreateTiePerspectives.sisula
 #SQL/Snowflake/biz/CreateTieBusinessPerspectives.js
 #SQL/Snowflake/bi/CreateTieTriggers.js
 #SQL/Snowflake/CreateSchemaTracking.js
+SQL/Snowflake/uni/CreateKeys.sisula
 SQL/Snowflake/bi/CreateIntegrityChecks.sisula
 SQL/Snowflake/uni/AddDescriptions.sisula

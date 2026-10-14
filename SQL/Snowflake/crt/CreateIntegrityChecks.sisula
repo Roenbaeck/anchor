@@ -11,6 +11,9 @@
 -- checked is restatement and whether the time of a posit overlaps another: the uni-temporal checks do not carry over.
 --
 -- A view that returns nothing has nothing wrong. IntegrityViolations is all of them together; it reads every table.
+-- It also has the checks of the natural keys, ic_key_<anchor or nexus>_<route>, which are made with the keys: a key
+-- that more than one identity has (duplicate natural key), and an identity with more than one key (more than one
+-- natural key).
 --
 --   Construct     the table
 --   Violation     what is wrong
@@ -429,5 +432,8 @@ $/ endfor
 $/ foreach tie in schema.ties
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.positName$"
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.annexName$"
+$/ endfor
+$/ foreach key in schema.naturalKeys where key.usable
+UNION ALL SELECT * FROM $key.capsule$."$key.checkName$"
 $/ endfor
 ;

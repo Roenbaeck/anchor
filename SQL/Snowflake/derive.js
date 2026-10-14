@@ -82,3 +82,33 @@ while (schemaOwner = schema.nextAnchor()) schemaOwner.capsule = quoteSchemaName(
 while (schemaOwner = schema.nextNexus()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
 while (schemaOwner = schema.nextAttribute()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
 while (schemaOwner = schema.nextTie()) schemaOwner.capsule = quoteSchemaName(schemaOwner.capsule);
+// Natural keys: the routes of every anchor and nexus, from naturalKeys() in Helpers.js, after the schema names above
+// have been quoted, since a key reads them. A checksum is hash(value), a numeric(19,0) like the column it is read from.
+// A value is compared with = when a key is looked up and when the integrity check looks for a key that two identities
+// have; a geography, a geometry and the semi-structured types cannot be, so a route with such a value and no checksum
+// on it is not usable.
+//
+//   schema.naturalKeys   one item for each route, as naturalKeys() describes it
+schema.naturalKeys = naturalKeys();
+var naturalKey, naturalKeyColumn;
+for (var nk = 0; nk < schema.naturalKeys.length; nk++) {
+    naturalKey = schema.naturalKeys[nk];
+    for (var nc = 0; nc < naturalKey.columns.length; nc++) {
+        naturalKeyColumn = naturalKey.columns[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'numeric(19,0)';
+    }
+    for (nc = 0; nc < naturalKey.matches.length; nc++) {
+        naturalKeyColumn = naturalKey.matches[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'numeric(19,0)';
+        else if (naturalKey.usable && /^\s*(geography|geometry|variant|object|array)\b/i.test(naturalKeyColumn.type || '')) {
+            naturalKey.usable = false;
+            naturalKey.problem = naturalKeyColumn.name + ' is a ' + naturalKeyColumn.type + ', which cannot be compared, and it has no checksum';
+        }
+    }
+    if (!naturalKey.usable) {
+        naturalKey.notes = [];
+        naturalKey.joins = [];
+        naturalKey.columns = [];
+        naturalKey.matches = [];
+    }
+}
