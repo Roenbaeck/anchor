@@ -76,6 +76,57 @@ BEGIN
 /*~
         )
     );
+    -- another reliability at a positing time that already has an assertion of the posit by the positor is a contradiction
+    DECLARE @message varchar(max);
+    SET @message = (
+        SELECT TOP 1
+~*/
+        while (role = tie.nextRole()) {
+/*~
+            i.$role.columnName,
+~*/
+        }
+/*~
+            $(tie.isHistorized())? ISNULL(i.$tie.changingColumnName, @now) AS $tie.changingColumnName,
+            ISNULL(i.$tie.positorColumnName, 0) AS $tie.positorColumnName,
+            ISNULL(i.$tie.positingColumnName, @now) AS $tie.positingColumnName
+        FROM
+            inserted i
+        WHERE EXISTS (
+            SELECT TOP 1
+                42
+            FROM
+                [$tie.capsule].[$tie.positName] p
+            JOIN
+                [$tie.capsule].[$tie.annexName] a
+            ON
+                a.$tie.identityColumnName = p.$tie.identityColumnName
+            WHERE
+~*/
+        while (role = tie.nextRole()) {
+/*~
+                p.$role.columnName = i.$role.columnName
+            AND
+~*/
+        }
+/*~
+                $(tie.isHistorized())? p.$tie.changingColumnName = ISNULL(i.$tie.changingColumnName, @now)
+            $(tie.isHistorized())? AND
+                a.$tie.positorColumnName = ISNULL(i.$tie.positorColumnName, 0)
+            AND
+                a.$tie.positingColumnName = ISNULL(i.$tie.positingColumnName, @now)
+            AND
+                a.$tie.reliabilityColumnName <> ISNULL(i.$tie.reliabilityColumnName, $schema.metadata.defaultReliability)
+        )
+        FOR XML PATH('')
+    );
+    IF @message is not null
+    BEGIN
+        SET @message = 'Contradiction in $tie.name for: ' + @message;
+        RAISERROR(@message, 16, 1);
+        ROLLBACK;
+        RETURN;
+    END
     INSERT INTO @inserted
     SELECT
         $(schema.METADATA)? ISNULL(i.$tie.metadataColumnName, 0),
