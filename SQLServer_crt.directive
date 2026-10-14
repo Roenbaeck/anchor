@@ -34,6 +34,7 @@ SQL/SQLServer/crt/CreateTieRewinders.sisula
 SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
 SQL/SQLServer/crt/CreateTiePerspectives.sisula
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateKeys.sisula
 SQL/SQLServer/crt/CreateTieTriggers.sisula
 SQL/SQLServer/crt/CreateAttributeSheetStacks.sisula
 SQL/SQLServer/CreateSchemaTracking.sisula

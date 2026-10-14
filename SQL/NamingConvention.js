@@ -204,34 +204,7 @@ if(schema.BUSINESS_VIEWS) {
 }
 
 
-// second pass over anchor to set key names
-while (anchor = schema.nextAnchor()) {
-    if(anchor.keys) {
-        var role, key, route, stop, component;
-        for(route in anchor.keys) {
-            key = anchor.keys[route];
-            key.name = 'key' + D + anchor.mnemonic + D + anchor.descriptor + D + route;
-            // Physical table name for materialized natural key attributes (drop 'key' prefix)
-            key.tableName = anchor.mnemonic + D + anchor.descriptor + D + route;
-            key.changingColumnName = anchor.mnemonic + D + schema.metadata.changingSuffix;
-            role = undefined; // a role prefixes the stop after it, but not the first stop of the next route
-            for(stop in key.stops) {
-                component = key.stops[stop];
-                if(component.attribute) {
-                    component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
-                    component.routedChecksumColumnName = (role ? role.role + D : '') + component.attribute.checksumColumnName;
-                    if(component.attribute.timeRange) {
-                        component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
-                    }
-                    component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName + D + schema.metadata.changingSuffix;
-                }
-                role = component.role;
-            }
-        }
-    }
-} 
-
-// second pass over nexus to set key names
+// second pass over nexus to set role names
 var nexus;
 while (nexus = schema.nextNexus()) {
 var role;
@@ -264,28 +237,6 @@ var role;
                 role.knotMetadataColumnName = knot.metadataColumnName;
                 role.knotEquivalentColumnName = knot.equivalentColumnName;
                 role.knotChecksumColumnName = knot.checksumColumnName;
-            }
-        }
-    }
-    if(nexus.keys) {
-        var role, key, route, stop, component;
-        for(route in nexus.keys) {
-            key = nexus.keys[route];
-            key.name = 'key' + D + nexus.mnemonic + D + nexus.descriptor + D + route;
-            key.tableName = nexus.mnemonic + D + nexus.descriptor + D + route;
-            key.changingColumnName = nexus.mnemonic + D + schema.metadata.changingSuffix;
-            role = undefined; // a role prefixes the stop after it, but not the first stop of the next route
-            for(stop in key.stops) {
-                component = key.stops[stop];
-                if(component.attribute) {
-                    component.routedValueColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName;
-                    component.routedChecksumColumnName = (role ? role.role + D : '') + component.attribute.checksumColumnName;
-                    if(component.attribute.timeRange) {
-                        component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.changingColumnName;
-                    }
-                    component.routedChangingColumnName = (role ? role.role + D : '') + component.attribute.valueColumnName + D + schema.metadata.changingSuffix;
-                }
-                role = component.role; // may be undefined for pure attribute stops
             }
         }
     }

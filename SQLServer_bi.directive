@@ -32,6 +32,7 @@ SQL/SQLServer/bi/CreateTieRewinders.sisula
 SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
 SQL/SQLServer/bi/CreateTiePerspectives.sisula
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateKeys.sisula
 SQL/SQLServer/bi/CreateTieTriggers.sisula
 SQL/SQLServer/CreateSchemaTracking.sisula
 SQL/SQLServer/bi/AddDescriptions.sisula

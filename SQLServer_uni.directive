@@ -16,7 +16,6 @@ SQL/SQLServer/uni/CreateAnchors.sisula
 SQL/SQLServer/uni/CreateNexuses.sisula
 SQL/SQLServer/uni/CreateAttributes.sisula
 SQL/SQLServer/uni/CreateTies.sisula
-SQL/SQLServer/uni/CreateKeys.sisula
 SQL/SQLServer/uni/CreateKnotEquivalenceViews.sisula
 SQL/SQLServer/uni/CreateAttributeEquivalenceViews.sisula
 SQL/SQLServer/uni/AddAttributeRestatementConstraints.sisula
@@ -35,6 +34,7 @@ SQL/SQLServer/uni/AddTieRestatementConstraints.sisula
 SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
 SQL/SQLServer/uni/CreateTiePerspectives.sisula
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateKeys.sisula
 SQL/SQLServer/uni/CreateTieTriggers.sisula
 SQL/SQLServer/CreateSchemaTracking.sisula
 SQL/SQLServer/uni/AddDescriptions.sisula

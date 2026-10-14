@@ -1,323 +1,293 @@
-$/ foreach anchor in schema.anchors
-$/ foreach key in anchor.keyRoutes
+$/ if schema.naturalKeys
+-- NATURAL KEYS -------------------------------------------------------------------------------------------------------
+--
+-- A natural key is a route in the model: the values that identify an anchor or a nexus, reached from it through its
+-- attributes, its roles and ties (see naturalKeys() in Helpers.js for the rules a route follows). For each route of
+-- each anchor and nexus there is
+--
+--   key_<anchor or nexus>_<route>          the key of every identity, from the latest values, with one column for
+--                                          each value; a value with a checksum, such as a geography, is followed by
+--                                          its checksum, which is what it is matched on
+--   pkey_<anchor or nexus>_<route>(time)   the key of every identity at a changing time, for a route that passes
+--                                          something historized, since its key can change
+--   ic_key_<anchor or nexus>_<route>       the keys that more than one identity has, and the identities that have
+--                                          more than one key; a view that returns nothing has nothing wrong
 $/ if schema.NATURAL_KEY_ATTRIBUTES
--- Materialized Natural Key Table -------------------------------------------------
--- $key.route$ key table for lookups of identities in $anchor.name$
+--   <anchor or nexus>_<route>              a table with the key of every identity that has all of its values, and a
+--   refresh_<anchor or nexus>_<route>      procedure that fills it from the key view; its unique constraint makes the
+--                                          procedure fail when two identities have the same key, and it can be indexed
+$/ endif
+$/ if schema.CRT
+--
+-- Every key is per positor, as the perspectives are.
+$/ endif
+--
+$/ foreach key in schema.naturalKeys
+$/ if key.usable
+-- Key view -----------------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$
+$/ foreach note in key.notes
+-- Note: $|note.text|$
+$/ endfor
 -----------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.$key.tableName$', 'U') IS NOT NULL
-DROP TABLE [$anchor.capsule$].[$key.tableName$];
+IF Object_ID('$key.capsule$.$key.name$', 'V') IS NOT NULL
+DROP VIEW [$key.capsule$].[$key.name$];
 GO
-CREATE TABLE [$anchor.capsule$].[$key.tableName$](
-    $anchor.identityColumnName$ $anchor.identity$ NOT NULL,
-$/ foreach stop in key.attributeStops
-    $stop.routedValueColumnName$ $stop.dataRange$ NOT NULL,
-$/ if stop.hasChecksum
-    $stop.routedChecksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($stop.routedValueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
+CREATE VIEW [$key.capsule$].[$key.name$] AS
+SELECT
+$/ if schema.CRT
+$/ if key.perspective
+    [$key.of$].$schema.metadata.positorSuffix$,
+$/ else
+    p.$schema.metadata.positorSuffix$,
+$/ endif
+$/ endif
+    [$key.of$].$key.identityColumnName$,
+$/ foreach column in key.columns
+    [$column.alias$].$column.source$ AS $column.name$$/ if not column.last() ,$/ endif
+$/ endfor
+FROM
+$/ if key.perspective
+    [$key.capsule$].[l$key.entityName$] [$key.of$]
+$/ else
+$/ if schema.CRT
+    [$schema.metadata.encapsulation$].[_$schema.metadata.positorSuffix$] p
+CROSS JOIN
+$/ endif
+    [$key.capsule$].[$key.entityName$] [$key.of$]
+$/ endif
+$/ foreach join in key.joins
+LEFT JOIN
+$/ if join.perspective
+    [$join.capsule$].[l$join.name$] [$join.alias$]
+$/ else
+    [$join.capsule$].[$join.name$] [$join.alias$]
+$/ endif
+ON
+    [$join.alias$].$join.column$ = [$join.fromAlias$].$join.fromColumn$
+$/ if schema.CRT and join.perspective
+AND
+$/ if key.perspective
+    [$join.alias$].$schema.metadata.positorSuffix$ = [$key.of$].$schema.metadata.positorSuffix$
+$/ else
+    [$join.alias$].$schema.metadata.positorSuffix$ = p.$schema.metadata.positorSuffix$
+$/ endif
 $/ endif
 $/ endfor
+;
+GO
 $/ if key.historized
-    $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,
+-- Point-in-time key --------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$ at a changing time
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$key.capsule$.$key.pointInTimeName$', 'IF') IS NOT NULL
+DROP FUNCTION [$key.capsule$].[$key.pointInTimeName$];
+GO
+CREATE FUNCTION [$key.capsule$].[$key.pointInTimeName$] (
+    @changingTimepoint $schema.metadata.chronon$
+)
+RETURNS TABLE AS RETURN
+SELECT
+$/ if schema.CRT
+$/ if key.perspective
+    [$key.of$].$schema.metadata.positorSuffix$,
+$/ else
+    p.$schema.metadata.positorSuffix$,
 $/ endif
-$/ if schema.EQUIVALENCE
-    $anchor.mnemonic$schema.metadata.equivalentSuffix $schema.metadata.equivalentRange$ NOT NULL,
 $/ endif
-$/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$ NOT NULL,
+    [$key.of$].$key.identityColumnName$,
+$/ foreach column in key.columns
+    [$column.alias$].$column.source$ AS $column.name$$/ if not column.last() ,$/ endif
+$/ endfor
+FROM
+$/ if key.perspective
+    [$key.capsule$].[p$key.entityName$](@changingTimepoint) [$key.of$]
+$/ else
+$/ if schema.CRT
+    [$schema.metadata.encapsulation$].[_$schema.metadata.positorSuffix$] p
+CROSS JOIN
 $/ endif
-    CONSTRAINT pk$key.tableName$ PRIMARY KEY CLUSTERED (
-$/ if schema.EQUIVALENCE
-        $anchor.mnemonic$schema.metadata.equivalentSuffix,
+    [$key.capsule$].[$key.entityName$] [$key.of$]
 $/ endif
-        $anchor.identityColumnName$$/ if key.historized ,$/ endif
-$/ if key.historized
-        $key.changingColumnName$
+$/ foreach join in key.joins
+LEFT JOIN
+$/ if join.perspective
+    [$join.capsule$].[p$join.name$](@changingTimepoint) [$join.alias$]
+$/ else
+    [$join.capsule$].[$join.name$] [$join.alias$]
 $/ endif
+ON
+    [$join.alias$].$join.column$ = [$join.fromAlias$].$join.fromColumn$
+$/ if schema.CRT and join.perspective
+AND
+$/ if key.perspective
+    [$join.alias$].$schema.metadata.positorSuffix$ = [$key.of$].$schema.metadata.positorSuffix$
+$/ else
+    [$join.alias$].$schema.metadata.positorSuffix$ = p.$schema.metadata.positorSuffix$
+$/ endif
+$/ endif
+$/ endfor
+;
+GO
+$/ endif
+-- Key integrity ------------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$key.capsule$.$key.checkName$', 'V') IS NOT NULL
+DROP VIEW [$key.capsule$].[$key.checkName$];
+GO
+CREATE VIEW [$key.capsule$].[$key.checkName$] AS
+SELECT
+    '$key.name$' AS Construct,
+    'duplicate natural key' AS Violation,
+    (
+        SELECT
+$/ if schema.CRT
+            d.$schema.metadata.positorSuffix$,
+$/ endif
+$/ foreach match in key.matches
+            d.$match.name$$/ if not match.last() ,$/ endif
+$/ endfor
+        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
+    ) AS ViolationKey,
+    d.Occurrences
+FROM (
+    SELECT
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
+$/ endif
+$/ foreach match in key.matches
+        $match.name$,
+$/ endfor
+        COUNT(DISTINCT $key.identityColumnName$) AS Occurrences
+    FROM
+        [$key.capsule$].[$key.name$]
+    WHERE
+$/ foreach match in key.matches
+$/ if not match.first()
+    AND
+$/ endif
+        $match.name$ is not null
+$/ endfor
+    GROUP BY
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
+$/ endif
+$/ foreach match in key.matches
+        $match.name$$/ if not match.last() ,$/ endif
+$/ endfor
+    HAVING
+        COUNT(DISTINCT $key.identityColumnName$) > 1
+) d
+UNION ALL
+SELECT
+    '$key.name$',
+    'more than one natural key',
+    (
+        SELECT
+$/ if schema.CRT
+            d.$schema.metadata.positorSuffix$,
+$/ endif
+            d.$key.identityColumnName$
+        FOR JSON PATH, WITHOUT_ARRAY_WRAPPER
     ),
-    CONSTRAINT uq$key.tableName$ UNIQUE (
-$/ if schema.EQUIVALENCE
-        $anchor.mnemonic$schema.metadata.equivalentSuffix,
+    d.Occurrences
+FROM (
+    SELECT
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
 $/ endif
-$/ foreach stop in key.attributeStops
-$/ if stop.uniqueColumnName
-        $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
+        $key.identityColumnName$,
+        COUNT(*) AS Occurrences
+    FROM
+        [$key.capsule$].[$key.name$]
+    GROUP BY
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
 $/ endif
+        $key.identityColumnName$
+    HAVING
+        COUNT(*) > 1
+) d;
+GO
+$/ if schema.NATURAL_KEY_ATTRIBUTES
+$/ if key.indexable
+-- Key table ----------------------------------------------------------------------------------------------------------
+-- $key.route$ key of $key.entityName$, filled by $key.refreshName$
+-----------------------------------------------------------------------------------------------------------------------
+IF Object_ID('$key.capsule$.$key.tableName$', 'U') IS NOT NULL
+DROP TABLE [$key.capsule$].[$key.tableName$];
+GO
+CREATE TABLE [$key.capsule$].[$key.tableName$] (
+$/ if schema.CRT
+    $schema.metadata.positorSuffix$ $schema.metadata.positorRange$ not null,
+$/ endif
+    $key.identityColumnName$ $key.identity$ not null,
+$/ foreach column in key.columns
+    $column.name$ $column.type$ not null,
 $/ endfor
-$/ if key.historized
-        $key.changingColumnName$
+    constraint pk$key.tableName$ primary key (
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
 $/ endif
+        $key.identityColumnName$
+    ),
+    constraint uq$key.tableName$ unique (
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
+$/ endif
+$/ foreach match in key.matches
+        $match.name$$/ if not match.last() ,$/ endif
+$/ endfor
     )
 );
 GO
-$/ endif
--- Key view -----------------------------------------------------------------------------------------------------------
--- $key.route$ key view for lookups of identities in $anchor.name$
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$anchor.capsule$.$key.name$', 'V') IS NOT NULL
-DROP VIEW [$anchor.capsule$].[$key.name$];
+IF Object_ID('$key.capsule$.$key.refreshName$', 'P') IS NOT NULL
+DROP PROCEDURE [$key.capsule$].[$key.refreshName$];
 GO
-CREATE VIEW [$anchor.capsule$].[$key.name$] WITH SCHEMABINDING AS
-SELECT
-$/ foreach stop in key.attributeStops
-    twine.$stop.routedValueColumnName$,
+CREATE PROCEDURE [$key.capsule$].[$key.refreshName$] AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+    DELETE FROM [$key.capsule$].[$key.tableName$];
+    INSERT INTO [$key.capsule$].[$key.tableName$] (
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
+$/ endif
+        $key.identityColumnName$,
+$/ foreach column in key.columns
+        $column.name$$/ if not column.last() ,$/ endif
 $/ endfor
-$/ if key.historizedAttributeCount > 0 and key.viewStopCount > 1
-    twine.[$schema.metadata.changingSuffix$],
-$/ endif
-$/ if key.historizedAttributeCount > 0 and key.viewStopCount == 1
-    twine.$key.lastAttribute.changingColumnName$ AS [$schema.metadata.changingSuffix$],
-$/ endif
-    [$anchor.mnemonic$].$anchor.identityColumnName$
-FROM
-    [$anchor.capsule$].[$anchor.name$] [$anchor.mnemonic$]
-$/ if key.viewStopCount == 1
-LEFT JOIN $--$
-    [$key.lastAttribute.capsule$].[$key.lastAttribute.name$] twine
-ON
-    twine.$key.lastAttribute.entityReferenceName$ = [$anchor.mnemonic$].$anchor.identityColumnName$;
-GO
-$/ else
-LEFT JOIN (
-    SELECT TOP 1 WITH TIES
-$/ foreach stop in key.attributeStops
-        CAST(
-            MAX(CASE
-                WHEN [QualifiedType] = '$stop.routedValueColumnName$'
-                THEN [Value] END
-            ) OVER (
-                PARTITION BY $--$
-                    $anchor.identityColumnName$, $--$
-                    $stop.routedChangingColumnName$
-            ) AS $stop.dataRange$
-        ) AS $stop.routedValueColumnName$,
-$/ endfor
-        $anchor.identityColumnName$,
-        [$schema.metadata.changingSuffix$]
-    FROM (
-        SELECT
-$/ foreach stop in key.attributeStops
-            MAX(CASE
-                WHEN [QualifiedType] = '$stop.routedValueColumnName$' $--$
-                 AND [Value] is not null
-                THEN [$schema.metadata.changingSuffix$] END
-            ) OVER (
-                PARTITION BY $anchor.identityColumnName$ $--$
-                ORDER BY [$schema.metadata.changingSuffix$]
-            ) AS $stop.routedChangingColumnName$,
-$/ endfor
-            $anchor.identityColumnName$,
-            [Value],
-            [QualifiedType],
-            [$schema.metadata.changingSuffix$]
-        FROM (
-$/ foreach branch in key.branches
-            SELECT
-                $branch.idColumn$ AS $anchor.identityColumnName$, $--$
-                CAST($branch.valueColumnName$ AS VARBINARY(max)) AS [Value],
-                '$branch.qualifiedType$' AS [QualifiedType],
-$/ if branch.isHistorized
-                CAST($branch.changingColumnName$ AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
-$/ else
-                CAST(NULL AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
-$/ endif
-            FROM
-$/ if branch.componentCount == 1
-                [$branch.capsule$].[$branch.name$] $--$
-$/ else
-$/ foreach step in branch.steps
-$/ if step.isTie
-                [$step.tieCapsule$].[$step.tieName$] [$step.mnemonic$] $--$
-            JOIN $--$
-$/ if step.hasAnchor
-                [$step.anchorCapsule$].[$step.anchorName$] [$step.anchorMnemonic$] $--$
-            ON
-                [$step.anchorMnemonic$].$step.anchorIdentityColumnName$ = [$step.mnemonic$].$step.roleColumnName$
-            JOIN
-$/ endif
-$/ else
-                [$step.capsule$].[$step.name$] [$step.mnemonic$] $--$
-            ON
-                [$step.mnemonic$].$step.entityReferenceName$ = [$step.referencedAnchorMnemonic$].$step.referencedAnchorIdentityColumnName$
-$/ endif
-$/ endfor
-$/ endif
-$/ if not branch.last()
-            UNION ALL
-$/ endif
-$/ endfor
-        ) unified_timelines
-    ) resolved_changes
-    ORDER BY $--$
-        ROW_NUMBER() OVER (
-            PARTITION BY $--$
-                $anchor.identityColumnName$, $--$
-                [$schema.metadata.changingSuffix$] $--$
-            ORDER BY
-                (select 1)
-        )
-) twine
-ON
-    twine.$anchor.identityColumnName$ = [$anchor.mnemonic$].$anchor.identityColumnName$;
-GO
-$/ endif
-$/ endfor
-$/ endfor
-$/ foreach nexus in schema.nexuses
-$/ foreach key in nexus.keyRoutes
-$/ if schema.NATURAL_KEY_ATTRIBUTES
--- Materialized Natural Key Table -------------------------------------------------
--- $key.route$ key table for lookups of identities in $nexus.name$
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$nexus.capsule$.$key.tableName$', 'U') IS NOT NULL
-DROP TABLE [$nexus.capsule$].[$key.tableName$];
-GO
-CREATE TABLE [$nexus.capsule$].[$key.tableName$](
-    $nexus.identityColumnName$ $nexus.identity$ NOT NULL,
-$/ foreach stop in key.attributeStops
-    $stop.routedValueColumnName$ $stop.dataRange$ NULL,
-$/ if stop.hasChecksum
-    $stop.routedChecksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($stop.routedValueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
-$/ endif
-$/ endfor
-$/ if key.historized
-    $key.changingColumnName$ $schema.metadata.chronon$ NOT NULL,
-$/ endif
-$/ if schema.EQUIVALENCE
-    $nexus.mnemonic$schema.metadata.equivalentSuffix $schema.metadata.equivalentRange$ NOT NULL,
-$/ endif
-$/ if schema.METADATA
-    $nexus.metadataColumnName$ $schema.metadata.metadataType$ NOT NULL,
-$/ endif
-    CONSTRAINT pk$key.tableName$ PRIMARY KEY CLUSTERED (
-        $nexus.identityColumnName$$/ if key.historized ,$/ endif
-$/ if key.historized
-        $key.changingColumnName$
-$/ endif
-    ),
-    CONSTRAINT uq$key.tableName$ UNIQUE (
-$/ if schema.EQUIVALENCE
-        $nexus.mnemonic$schema.metadata.equivalentSuffix,
-$/ endif
-$/ foreach stop in key.attributeStops
-$/ if stop.uniqueColumnName
-        $stop.uniqueColumnName$$/ if key.historized or not stop.isLastStop ,$/ endif
-$/ endif
-$/ endfor
-$/ if key.historized
-        $key.changingColumnName$
-$/ endif
     )
-);
-GO
+    SELECT
+$/ if schema.CRT
+        $schema.metadata.positorSuffix$,
 $/ endif
--- Key view -----------------------------------------------------------------------------------------------------------
--- $key.route$ key view for lookups of identities in $nexus.name$
------------------------------------------------------------------------------------------------------------------------
-IF Object_ID('$nexus.capsule$.$key.name$', 'V') IS NOT NULL
-DROP VIEW [$nexus.capsule$].[$key.name$];
-GO
-CREATE VIEW [$nexus.capsule$].[$key.name$] WITH SCHEMABINDING AS
-SELECT
-$/ foreach stop in key.attributeStops
-    twine.$stop.routedValueColumnName$,
+        $key.identityColumnName$,
+$/ foreach column in key.columns
+        $column.name$$/ if not column.last() ,$/ endif
 $/ endfor
-$/ if key.historizedAttributeCount > 0 and key.viewStopCount > 1
-    twine.[$schema.metadata.changingSuffix$],
+    FROM
+        [$key.capsule$].[$key.name$]
+    WHERE
+$/ foreach match in key.matches
+$/ if not match.first()
+    AND
 $/ endif
-$/ if key.historizedAttributeCount > 0 and key.viewStopCount == 1
-    twine.$key.lastAttribute.changingColumnName$ AS [$schema.metadata.changingSuffix$],
-$/ endif
-    [$nexus.mnemonic$].$nexus.identityColumnName$
-FROM
-    [$nexus.capsule$].[$nexus.name$] [$nexus.mnemonic$]
-$/ if key.viewStopCount == 1
-LEFT JOIN $--$
-    [$key.lastAttribute.capsule$].[$key.lastAttribute.name$] twine
-ON
-    twine.$key.lastAttribute.entityReferenceName$ = [$nexus.mnemonic$].$nexus.identityColumnName$;
+        $match.name$ is not null
+$/ endfor
+    ;
+    COMMIT;
+END
 GO
 $/ else
-LEFT JOIN (
-    SELECT TOP 1 WITH TIES
-$/ foreach stop in key.attributeStops
-        CAST(
-            MAX(CASE
-                WHEN [QualifiedType] = '$stop.routedValueColumnName$'
-                THEN [Value] END
-            ) OVER (
-                PARTITION BY $--$
-                    $nexus.identityColumnName$, $--$
-                    $stop.routedChangingColumnName$
-            ) AS $stop.dataRange$
-        ) AS $stop.routedValueColumnName$,
-$/ endfor
-        $nexus.identityColumnName$,
-        [$schema.metadata.changingSuffix$]
-    FROM (
-        SELECT
-$/ foreach stop in key.attributeStops
-            MAX(CASE
-                WHEN [QualifiedType] = '$stop.routedValueColumnName$' $--$
-                 AND [Value] is not null
-                THEN [$schema.metadata.changingSuffix$] END
-            ) OVER (
-                PARTITION BY $nexus.identityColumnName$ $--$
-                ORDER BY [$schema.metadata.changingSuffix$]
-            ) AS $stop.routedChangingColumnName$,
-$/ endfor
-            $nexus.identityColumnName$,
-            [Value],
-            [QualifiedType],
-            [$schema.metadata.changingSuffix$]
-        FROM (
-$/ foreach branch in key.branches
-            SELECT
-                $branch.idColumn$ AS $nexus.identityColumnName$, $--$
-                CAST($branch.valueColumnName$ AS VARBINARY(max)) AS [Value],
-                '$branch.qualifiedType$' AS [QualifiedType],
-$/ if branch.isHistorized
-                CAST($branch.changingColumnName$ AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
-$/ else
-                CAST(NULL AS $schema.metadata.chronon$) AS [$schema.metadata.changingSuffix$]
+-- The $key.route$ key of $key.entityName$ has no key table: $key.unindexable$ is a (max) type, which a unique index cannot
+-- hold; give its attribute a checksum.
 $/ endif
-            FROM
-$/ if branch.componentCount == 1
-                [$branch.capsule$].[$branch.name$] $--$
-$/ else
-$/ foreach step in branch.steps
-$/ if step.isTie
-                [$step.tieCapsule$].[$step.tieName$] [$step.mnemonic$] $--$
-            JOIN $--$
-$/ if step.hasAnchor
-                [$step.anchorCapsule$].[$step.anchorName$] [$step.anchorMnemonic$] $--$
-            ON
-                [$step.anchorMnemonic$].$step.anchorIdentityColumnName$ = [$step.mnemonic$].$step.roleColumnName$
-            JOIN
 $/ endif
 $/ else
-                [$step.capsule$].[$step.name$] [$step.mnemonic$] $--$
-            ON
-                [$step.mnemonic$].$step.entityReferenceName$ = [$step.referencedAnchorMnemonic$].$step.referencedAnchorIdentityColumnName$
+-- The $key.route$ key of $key.entityName$ is not generated: $|key.problem|$
 $/ endif
 $/ endfor
 $/ endif
-$/ if not branch.last()
-            UNION ALL
-$/ endif
-$/ endfor
-        ) unified_timelines
-    ) resolved_changes
-    ORDER BY $--$
-        ROW_NUMBER() OVER (
-            PARTITION BY $--$
-                $nexus.identityColumnName$, $--$
-                [$schema.metadata.changingSuffix$] $--$
-            ORDER BY
-                (select 1)
-        )
-) twine
-ON
-    twine.$nexus.identityColumnName$ = [$nexus.mnemonic$].$nexus.identityColumnName$;
-GO
-$/ endif
-$/ endfor
-$/ endfor
