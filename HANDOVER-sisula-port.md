@@ -1,8 +1,9 @@
 # Handover: porting the generators to the Sisula engine
 
-**Status:** the Snowflake generators for all three temporalizations (uni, bi and crt) are ported and are
-what the modeler runs. The other databases still run on the original engine.
-**Written on:** 2026-10-01, updated the same day when bi and crt were ported.
+**Status:** the Snowflake and SQL Server generators for all three temporalizations (uni, bi and crt) are ported
+and are what the modeler runs. The other databases (PostgreSQL, Oracle, Vertica, BigQuery) still run on the
+original engine.
+**Written on:** 2026-10-01, last updated on 2026-10-14 (natural keys for Snowflake).
 **Read first:** `docs/SISULA.md` (the language), then this file.
 
 ## The goal
@@ -27,10 +28,10 @@ deliberately. No submodules.
 | The resolver | `modules/Resolver.js` | ES5, no DOM. Runs the directive's prelude scripts on the modeler's `schema` object and flattens it to plain JSON. |
 | The export | `Actions.bindings()` in `index.html` | The model as JSON for the selected target: `{bindingsVersion, database, temporalization, schema}`. Menu: Generate > JSON bindings. |
 | Generate SQL | `Actions.sql()` in `index.html` | A directive that lists `.sisula` templates is rendered by the new engine, one template after the other, output concatenated. A directive that lists `.js` sisulets runs on the original `Sisulator`. |
-| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | 13 + 11 + 12 templates, one per sisulet. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet. |
+| Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | The directives list 15, 15 and 16 templates. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet, and `uni/CreateKeys.sisula`. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
-| The tests | `sisula/examples/anchor` (in the **sisula** repo) | 95 models, golden files (approved output from the templates), and the tools that compare. See below. |
+| The tests | `sisula/examples/anchor` (in the **sisula** repo) | 98 models, golden files (approved output from the templates), and the tools that compare. See below. |
 
 ### The directive
 
@@ -69,7 +70,7 @@ Everything below runs on Windows PowerShell 5.1 with the repos side by side
 The engines run under the Jint in `sisula/lib`. Run from `sisula/examples/anchor`:
 
 ```
-powershell -File tools\run-all.ps1                       # Anchor's templates against the golden files, all 33 models
+powershell -File tools\run-all.ps1                       # Anchor's templates against the golden files, every model
 powershell -File tools\run-all.ps1 -Temporalization bi -Name CreateKnots   # a part of it; -Anchor <worktree> reads another checkout
 powershell -File tools\csharp-check.ps1                  # the C# renderer (SQL Server) on the same templates and bindings
 powershell -File tools\browser-check.ps1                 # the real modeler in headless Edge: Generate SQL against the golden files
@@ -172,10 +173,19 @@ match (they never did before).
 
 ## Open items
 
-- **Port the rest:** SQL Server bi and crt (uni is done, see above), and the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone
-  needs one. Delete a database's old `.js` sisulets, as was done for Snowflake, once its output has been run.
-- **Run the generated Snowflake SQL** for uni, bi and crt on a real account (nothing has been run, and the lint
-  is only a heuristic), and look at what is still open under the defects above.
+- **Port the rest:** the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone needs one.
+  SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and the trigger
+  tests of all three temporalizations); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`, 2026-10-14).
+- **Retire SQL Server's original sisulets**, as was done for Snowflake: `SQL/SQLServer/{uni,bi,crt,biz,clr}/*.js`,
+  `SQL/SQLServer/CreateSchemaTracking.js` and the three `SQLServer_<t>.legacy.directive` (not `NamingConvention.js`
+  or `derive.js`, which the directives run), then `tools/golden.ps1` and the `LegacyFile` of `tools/directive.ps1`
+  in the sisula repository. Every fix is made twice until then. Decided by the user on 2026-10-14; not yet done.
+- **Run the generated Snowflake SQL** after a change: uni, bi, crt and equivalence have been run on Snowflake
+  (2026-10-02), and so have the integrity checks (2026-10-08). The natural keys (2026-10-14) have not.
+- **Natural keys** (see *Natural keys as routes* below): SQL Server's `CreateKeys` should read `naturalKeys()` instead
+  of the `keys` that Helpers.js builds, which would make its nexus routes, ties and knots right, best after its original
+  sisulets are gone; the modeler should check a route with the same rules, let a route start at a nexus, and stop
+  offering keys on knots; and whether a route may use another route (composition) is undecided.
 - **The Snowflake skill** (`anchor-snowflake-skill`): the generator hosted in Snowflake exists.
   `tools/build-snowflake-generator.ps1` writes one SQL script that creates `SISULATE` (the engine as a JavaScript
   function), `ANCHOR_BINDINGS` (the model XML to the bindings; `modules/XmlTree.js` reads the XML, since a JavaScript
@@ -185,7 +195,8 @@ match (they never did before).
   provenance in the first lines, and the docs (`references/generator.md`, `model-xml.md`) and workflow that use it.
   `hosted-check.ps1` in the sisula repository runs the JavaScript of the two functions under Jint on all models
   and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake, and
-  **has not been run yet**. To update the skill: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
+  as far as this file knows (2026-10-07) **has not been run yet**. To update the skill, after a change to a template or
+  a prelude script: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
   Identities: every identity that is generated takes its value from a sequence, never `IDENTITY(1,1)` (no generated
   script has one): knots, anchors and nexuses with `generator="true"` (`<name>_ID_SEQ`), and in bi and crt the posit
   identity of attributes and ties (`<posit table>_ID_SEQ`, for example `ST_NAM_Stage_Name_Posit_ID_SEQ`). The names
@@ -207,8 +218,6 @@ match (they never did before).
   time with a zone, no uuid or XML type; Oracle widens `tinyint` to `number(3)`): converting there and back does not
   restore the original. Not covered: the modeler's own menu (the page is tested through `convert`, in headless Edge,
   by hand) and database-specific defaults other than `now` and the schema.
-- **Unverified on a server:** the T-SQL in `sisula-mssql` (`sql/test_fixtures.sql` was generated and
-  never run).
 - **The sisula repo's example** refers to an Anchor checkout next to it for the templates. If that is
   awkward, the example's tools could move here.
 
@@ -577,7 +586,9 @@ and governance layer**.
   `CreateLoadTasks` template over model and mapping. A design task, not a port.
 - **Natural-key lookups** (`uni/CreateKeys`, 500 lines). The example model defines nine `<key>` elements, so
   this is used: key tables and views that resolve an anchor's identity from its business key by walking
-  attributes and ties. It is the read half of the write path, and a loader needs it.
+  attributes and ties. It is the read half of the write path, and a loader needs it. **Done for Snowflake**
+  (uni, bi and crt, 2026-10-14), differently and more completely than SQL Server does it; see *Natural keys as
+  routes*.
 - **Integrity checking.** SQL Server enforces primary, foreign and unique keys, the restatement
   constraints (`AddAttributeRestatementConstraints`, `AddTieRestatementConstraints`) and, in bi and crt,
   entity integrity through indexed assembled views. Snowflake enforces none of it, and since every key is
@@ -601,6 +612,73 @@ the database, useful for governance, and the bindings already carry `schema.seri
 sheet stacks (`CreateAttributeSheetStacks`, a procedure returning one temporal sheet per positor).
 
 Unported Snowflake sisulets stay as commented lines in the directives, so nothing is hidden.
+
+## Natural keys as routes (2026-10-14)
+
+The user asked for natural-key lookups in Snowflake, and for a check that treating keys as routes and stops in
+the graph holds up, in theory and in the implementation. `docs/ANCHOR.md` ("Keys and identifiers") has the rules
+as a modeler reads them; `naturalKeys()` in `SQL/Helpers.js` has them as code.
+
+**The idea holds up.** A natural key is a tuple of values reached from the anchor or nexus it identifies. The
+`<key>` elements describe a tree rooted there: each branch is a path to one value, `stop` orders the walk along a
+path and the values of the key among themselves, and `route` names one of several keys. That expresses the keys
+that occur: the entity's own attributes, one or many; attributes of other anchors through nexus roles and ties,
+at any depth; and the values of knots. Two stops per tie are necessary, since an anchor can play two roles in one
+tie (`parent`, `child`); one stop per nexus role is enough, since a nexus role is a direct edge. What the format
+cannot promise, and what therefore has to be checked, is:
+
+- that a route is well formed: each branch a connected path from the entity that ends in a value, every stop a
+  number used once. Nothing checked it before; `naturalKeys()` does, and gives the first thing that is wrong.
+- that every step is functional, so an identity has one value of each kind. An attribute and a role leaving a nexus
+  are; a tie is when no role other than the one it is entered by is an identifier (the identifier roles are the
+  tie's key, and none means one-to-one); a branch that enters a nexus by one of its roles is not. The model shows it,
+  so `naturalKeys()` notes it; the data shows it, so `ic_key_` checks it.
+- that the key is unique: no model can promise it, Snowflake cannot enforce it (`ic_key_` reports it), and the key
+  tables of SQL Server could, but nothing fills them.
+
+A route that passes something historized, an attribute or a tie, gives a key that changes, so a lookup is made at a
+time, and uniqueness holds at each time; a `UNIQUE (values, ChangedAt)` constraint, which SQL Server's key table has,
+does not say that. Limits of the format, left as they are: a stop on a knot (the modeler allows it, the XML schema
+does not) adds nothing that a knotted attribute or a knot role does not, so it is an error; a route cannot use
+another route (the event's key repeats the stage's path, and has to be changed with it), where a branch that ends in
+the related identity, found first by its own key, would match how loads run; and a key on an equivalent attribute
+takes what the perspective shows, with no way to name the equivalent.
+
+**The implementation did not hold up.** Found by rendering models with more routes (the scratch copy of
+`sqlserver-base` with a tie route, two ties in a row and a knotted attribute, and `keys.xml`):
+
+- `Helpers.js` builds `keys` from anchor attributes and tie roles only, so keys on nexus attributes and nexus roles
+  are dropped. The example's own event key (`EV 1st`, in `docs/ANCHOR.md`) keeps two of its five stops, and a nexus
+  whose keys are on its own attributes gets none.
+- The stops are an object read with `for..in`, which a browser orders by number and Jint, which makes the golden
+  files, by insertion (`3,1,10,2` stays `3,1,10,2`). Attribute stops are inserted before tie role stops, so every
+  route through a tie comes out in another order in Jint than in the modeler.
+- SQL Server's `CreateKeys` (the original and the template, which match): a branch of one stop takes the identity of
+  the attribute's own anchor and calls it the key's (`ST_LOC_ST_ID AS EV_ID`), so the event key view pairs events with
+  the stages that have the same number, and the key table's `UNIQUE` without the date rejects valid data; a knotted
+  attribute gets no data type (`CAST(... AS )`, `ST_MIN_UTL_ID  NOT NULL`); a second tie in a row is joined without an
+  `ON`; in Jint even one tie renders `SELECT  AS EV_ID` and joins to the anchor of the previous route; a historized
+  tie does not make the key historized, and the view takes the `MAX` over all of its versions; and the key tables of
+  `naturalKeyAttributes` are created but never filled.
+- `NamingConvention.js`: the role of the last stop of a route prefixed the first column of the next route (in the
+  test, `PR 1st` became `child_PR_NAM_Program_Name` after a route of `AC`). Fixed; no test model changes. The first
+  assignment of `routedChangingColumnName` is dead, which changes nothing.
+- The modeler (`index.html`, "WIP: keys"): a route can only start at an anchor, so a nexus key has to be written by
+  hand; knots offer the key operations and write `<key>` into `<knot>`; a route is not checked beyond its `of` and
+  its name; a removed stop keeps its number on the drawing (the numbers are added as numbers and removed as text).
+
+**What was done.** `naturalKeys()` (shared, in `Helpers.js`; called from a `derive.js`) reads every `<key>`, orders
+stops by number, follows the rules above, and returns plain data: per route the joins (only the anchors and nexuses
+whose columns are read; one without attributes is read as its table, since it has no perspectives), the columns,
+the columns that are compared (the checksum where there is one), notes and the problem. `SQL/Snowflake/derive.js`
+calls it, types the checksums and refuses a value that cannot be compared (a geography without a checksum).
+`SQL/Snowflake/uni/CreateKeys.sisula`, listed by all three Snowflake directives before the integrity checks, makes
+per route `key_<entity>_<route>` (from the latest perspectives), `pkey_<entity>_<route>(changingTimepoint)` (from
+the point-in-time perspectives, when the route passes something historized) and `ic_key_<entity>_<route>`, which
+`IntegrityViolations` includes; crt keys are per positor, and an entity without perspectives gets its positors from
+`_Positor`. A route that breaks a rule is a comment in the script with the reason. Tests: `keys.xml`, `-bi`, `-crt`
+in the sisula example (made by `tools/make-keys-models.ps1`), which reach every rule and every way of breaking one.
+SQL Server is unchanged; its output is identical for every test model.
 
 ## Where things are, by repository
 
