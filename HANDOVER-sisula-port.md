@@ -652,7 +652,9 @@ takes what the perspective shows, with no way to name the equivalent.
   whose keys are on its own attributes gets none.
 - The stops are an object read with `for..in`, which a browser orders by number and Jint, which makes the golden
   files, by insertion (`3,1,10,2` stays `3,1,10,2`). Attribute stops are inserted before tie role stops, so every
-  route through a tie comes out in another order in Jint than in the modeler.
+  route through a tie came out in another order in Jint than in the modeler; the JSON bindings of `keys.xml` differed
+  between the two. Fixed: `Helpers.js` adds the stops and routes again in a browser's order, so every engine reads
+  the same one; no golden file changed.
 - SQL Server's `CreateKeys` (the original and the template, which match): a branch of one stop takes the identity of
   the attribute's own anchor and calls it the key's (`ST_LOC_ST_ID AS EV_ID`), so the event key view pairs events with
   the stages that have the same number, and the key table's `UNIQUE` without the date rejects valid data; a knotted

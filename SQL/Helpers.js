@@ -735,12 +735,27 @@ while (tie = schema.nextTie()) {
 
 if(DEBUG) console.log(schema);
 
+    // for..in gives the names that are whole numbers in ascending order in a browser, but in the order they were added in
+    // Jint, which makes the golden files; stops are added as their elements are found, so a route through a tie came out
+    // in another order there. Adding them again in a browser's order makes every engine read the same order.
+    function _inBrowserOrder(object) {
+        var numbers = [], others = [], ordered = {}, name, i;
+        for(name in object) {
+            if(/^(0|[1-9][0-9]*)$/.test(name)) numbers.push(name); else others.push(name);
+        }
+        numbers.sort(function(a, b) { return parseInt(a, 10) - parseInt(b, 10); });
+        for(i = 0; i < numbers.length; i++) ordered[numbers[i]] = object[numbers[i]];
+        for(i = 0; i < others.length; i++) ordered[others[i]] = object[others[i]];
+        return ordered;
+    }
     // Derive key level properties (historization) for anchors and nexuses
     var _entityWithKeys, _routeId, _component;
     function _decorateKeys(entity) {
         if(!entity || !entity.keys) return;
+        entity.keys = _inBrowserOrder(entity.keys);
         for(_routeId in entity.keys) {
             var _key = entity.keys[_routeId];
+            if(_key.stops) _key.stops = _inBrowserOrder(_key.stops);
             var historized = false;
             if(_key.stops) {
                 for(var _stopId in _key.stops) {
