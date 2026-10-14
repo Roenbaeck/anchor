@@ -760,6 +760,285 @@ if(DEBUG) console.log(schema);
         for(var _nexusName in schema.nexus) _decorateKeys(schema.nexus[_nexusName]);
     }
 
+// Natural keys as routes ----------------------------------------------------------------------------------------------
+// A natural key of an anchor or a nexus is a route: the <key> elements that share an `of` and a `route`, placed on the
+// attributes and roles the route passes. Each branch of the route is a path that starts at the anchor or nexus and ends
+// in a value, and `stop` orders the elements, along each path and the values of the key among themselves. Along a path
+//   - an attribute of what the path has reached is a value and ends the path; a knotted attribute gives its knot's value;
+//   - a role of the nexus the path has reached leads to what the role refers to; a role that refers to what the path
+//     has reached leads into its nexus instead, which is not functional, since one anchor can be in many of them;
+//   - a tie takes two stops in a row: the role the path enters it by, played by what the path has reached, and the role
+//     it leaves it by. It is functional when no role other than the one it is entered by is an identifier;
+//   - a knot role, of a nexus or of a tie, gives the value of its knot and ends the path.
+// A route that does not follow these rules is not usable, and says why. A route that passes something historized
+// changes over time, and one that passes something that is not functional can give an identity more than one key.
+//
+// The `keys` built above are what the SQL Server generator reads; they leave out the keys on nexus attributes and roles,
+// and keep the order in which the elements were found. naturalKeys() reads every key element and orders the stops by
+// number. It reads names, so it is called after the naming conventions, from a derive.js. It does not use the iterators,
+// so it can be called from inside a loop over them. It returns plain data, one item for each route, by anchor and then
+// nexus in the order of the model, and by route name (1st before 2nd before 10th):
+//   of, route, entityName, capsule, identityColumnName, identity   the anchor or nexus
+//   perspective   whether it has perspectives (an anchor or nexus has them when it has attributes); if not, its table
+//                 is read instead
+//   name, pointInTimeName, checkName   key_<name>_<route>, pkey_<name>_<route> and ic_key_<name>_<route>
+//   historized    whether an attribute or a tie on the route is historized
+//   usable        whether the route follows the rules; if not, problem says why, and the lists below are empty
+//   notes         a {text} for each step of the route that is not functional
+//   joins         what to join after the anchor or nexus, which is aliased by its mnemonic, in order:
+//                 {capsule, name, perspective, alias, column, fromAlias, fromColumn}, where alias.column equals
+//                 fromAlias.fromColumn, and perspective says whether name has perspectives or is read as a table. An
+//                 anchor or nexus on the way is joined only when a column of its own is read
+//   columns       the values of the key, each followed by its checksum if it has one: {name, alias, source, type,
+//                 isChecksum}, where source is the column in what alias is; name is source prefixed by the roles the
+//                 path left through, so two values cannot get the same name; the type of a checksum is left to the
+//                 database
+//   matches       the column each value is compared on, its checksum if it has one: {name, type, isChecksum}
+function naturalKeys() {
+    var routes = {}, list = [], result = [];
+    function each(ids, map, f) {
+        if(!ids || !map) return;
+        for(var n = 0; n < ids.length; n++) if(map[ids[n]]) f(map[ids[n]]);
+    }
+    function entityOf(mnemonic) {
+        return (schema.anchor && schema.anchor[mnemonic]) || (schema.nexus && schema.nexus[mnemonic]) || null;
+    }
+    function knotOf(mnemonic) {
+        return (schema.knot && schema.knot[mnemonic]) || null;
+    }
+    function hasAttributes(entity) {
+        return !!(entity.attributes && entity.attributes.length);
+    }
+    function collect(element, kind, owner) {
+        if(!element || !element.key) return;
+        for(var keyId in element.key) {
+            var mark = element.key[keyId];
+            if(!mark || !mark.of || !mark.route) continue;
+            var hash = mark.of + '|' + mark.route;
+            if(!routes[hash]) {
+                routes[hash] = { of: mark.of, route: mark.route, marks: [] };
+                list.push(routes[hash]);
+            }
+            routes[hash].marks.push({ stop: String(mark.stop), branch: String(mark.branch || '1'), kind: kind, element: element, owner: owner });
+        }
+    }
+    each(schema.anchors, schema.anchor, function(anchor) {
+        each(anchor.attributes, anchor.attribute, function(attribute) { collect(attribute, 'attribute', anchor); });
+    });
+    each(schema.nexuses, schema.nexus, function(nexus) {
+        each(nexus.attributes, nexus.attribute, function(attribute) { collect(attribute, 'attribute', nexus); });
+        each(nexus.roles, nexus.role, function(role) { collect(role, 'nexusRole', nexus); });
+    });
+    each(schema.ties, schema.tie, function(tie) {
+        each(tie.roles, tie.role, function(role) { collect(role, 'tieRole', tie); });
+    });
+    // the modeler can put a key on a knot, which the XML schema does not allow; it is reported, not followed
+    each(schema.knots, schema.knot, function(knot) { collect(knot, 'knot', knot); });
+
+    function analyze(entity, route) {
+        var key = {
+            of: entity.mnemonic,
+            route: route.route,
+            entityName: entity.name,
+            capsule: entity.capsule,
+            identityColumnName: entity.identityColumnName,
+            identity: entity.identity,
+            perspective: hasAttributes(entity),
+            name: 'key' + D + entity.name + D + route.route,
+            pointInTimeName: 'pkey' + D + entity.name + D + route.route,
+            checkName: 'ic' + D + 'key' + D + entity.name + D + route.route,
+            historized: false,
+            usable: true,
+            problem: null,
+            notes: [],
+            joins: [],
+            columns: [],
+            matches: []
+        };
+        function fail(text) {
+            if(key.usable) {
+                key.usable = false;
+                key.problem = text;
+            }
+        }
+        var marks = route.marks.slice(0), taken = {}, n, m;
+        for(n = 0; n < marks.length; n++) {
+            m = marks[n];
+            if(!/^[0-9]+$/.test(m.stop)) fail('stop "' + m.stop + '" is not a number');
+            else if(taken[parseInt(m.stop, 10)]) fail('more than one element is stop ' + m.stop);
+            else taken[parseInt(m.stop, 10)] = true;
+        }
+        marks.sort(function(a, b) { return parseInt(a.stop, 10) - parseInt(b.stop, 10); });
+        // the branches, in the order of their first stops
+        var branches = [], branchOf = {};
+        for(n = 0; n < marks.length; n++) {
+            m = marks[n];
+            if(!branchOf[m.branch]) {
+                branchOf[m.branch] = [];
+                branches.push(branchOf[m.branch]);
+            }
+            branchOf[m.branch].push(m);
+        }
+        // Where a path is: the anchor or nexus it has reached, and the alias and column that hold its identity. Only an
+        // anchor or nexus whose columns are read is joined, so an identity can pass straight from one tie to the next.
+        // What is joined is the perspective of an anchor or nexus that has attributes, and otherwise its table, since
+        // only those with attributes have perspectives; a tie always has them.
+        var names = {}, at;
+        function reach(target, alias, column, stop) {
+            at = { entity: target, alias: alias, column: column, joined: false, stop: stop };
+        }
+        function join() {
+            if(at.joined) return;
+            key.joins.push({ capsule: at.entity.capsule, name: at.entity.name, perspective: hasAttributes(at.entity), alias: 's' + at.stop, column: at.entity.identityColumnName, fromAlias: at.alias, fromColumn: at.column });
+            at = { entity: at.entity, alias: 's' + at.stop, column: at.entity.identityColumnName, joined: true, stop: at.stop };
+        }
+        for(var b = 0; b < branches.length && key.usable; b++) {
+            var path = branches[b], prefix = '', value = null;
+            at = { entity: entity, alias: entity.mnemonic, column: entity.identityColumnName, joined: true, stop: null };
+            for(var s = 0; s < path.length && key.usable; s++) {
+                m = path[s];
+                var where = 'stop ' + m.stop;
+                if(value) {
+                    fail(where + ' comes after the value that ends branch ' + m.branch);
+                }
+                else if(m.kind == 'attribute') {
+                    if(m.owner.mnemonic != at.entity.mnemonic) {
+                        fail(where + ': ' + m.element.name + ' is not an attribute of ' + at.entity.name);
+                    }
+                    else {
+                        join();
+                        value = { attribute: m.element, alias: at.alias };
+                    }
+                }
+                else if(m.kind == 'nexusRole') {
+                    var role = m.element, nexus = m.owner;
+                    if(nexus.mnemonic == at.entity.mnemonic) {
+                        // leaving the nexus by one of its roles, which has one value, so functional
+                        join();
+                        if(knotOf(role.type)) {
+                            if(!hasAttributes(nexus))
+                                fail(where + ': the value of the knot of ' + role.role + ' is in the perspectives of ' + nexus.name + ', which has none without attributes');
+                            else
+                                value = { knot: knotOf(role.type), role: role, alias: at.alias };
+                        }
+                        else if(!entityOf(role.type)) {
+                            fail(where + ': the role ' + role.role + ' of ' + nexus.name + ' refers to nothing in the model');
+                        }
+                        else {
+                            reach(entityOf(role.type), at.alias, role.columnName, m.stop);
+                            prefix += role.role + D;
+                        }
+                    }
+                    else if(role.type == at.entity.mnemonic) {
+                        // entering the nexus by the role that refers to what the path has reached
+                        key.joins.push({ capsule: nexus.capsule, name: nexus.name, perspective: hasAttributes(nexus), alias: 's' + m.stop, column: role.columnName, fromAlias: at.alias, fromColumn: at.column });
+                        key.notes.push({ text: at.entity.name + ' can be ' + role.role + ' in more than one ' + nexus.name + ', so an identity can have more than one key' });
+                        at = { entity: nexus, alias: 's' + m.stop, column: nexus.identityColumnName, joined: true, stop: m.stop };
+                        prefix += role.role + D;
+                    }
+                    else {
+                        fail(where + ': the role ' + role.role + ' of ' + nexus.name + ' does not connect to ' + at.entity.name);
+                    }
+                }
+                else if(m.kind == 'tieRole') {
+                    var tie = m.owner, enter = m.element, next = path[s + 1];
+                    if(!next || next.kind != 'tieRole' || next.owner !== tie || next.element === enter) {
+                        fail(where + ': a tie takes two stops in a row in one branch, the role it is entered by and the role it is left by');
+                    }
+                    else if(enter.type != at.entity.mnemonic) {
+                        fail(where + ': ' + at.entity.name + ' does not play the role ' + enter.role + ' in ' + tie.name);
+                    }
+                    else {
+                        var leave = next.element, functional = true;
+                        s++;
+                        each(tie.roles, tie.role, function(other) {
+                            if(other !== enter && other.isIdentifier && other.isIdentifier()) functional = false;
+                        });
+                        if(tie.isHistorized && tie.isHistorized()) key.historized = true;
+                        key.joins.push({ capsule: tie.capsule, name: tie.name, perspective: true, alias: 's' + m.stop, column: enter.columnName, fromAlias: at.alias, fromColumn: at.column });
+                        if(!functional)
+                            key.notes.push({ text: tie.name + ' has identifiers other than ' + enter.role + ', so it can lead to more than one ' + leave.role + ' and an identity to more than one key' });
+                        if(knotOf(leave.type)) {
+                            value = { knot: knotOf(leave.type), role: leave, alias: 's' + m.stop };
+                        }
+                        else if(!entityOf(leave.type)) {
+                            fail('stop ' + next.stop + ': the role ' + leave.role + ' of ' + tie.name + ' refers to nothing in the model');
+                        }
+                        else {
+                            reach(entityOf(leave.type), 's' + m.stop, leave.columnName, next.stop);
+                            prefix += leave.role + D;
+                        }
+                    }
+                }
+                else {
+                    fail(where + ' is on the knot ' + m.element.name + ', which a route reaches through a knotted attribute or a knot role instead');
+                }
+            }
+            if(!key.usable) break;
+            if(!value) {
+                fail('branch ' + path[0].branch + ' does not end in a value, an attribute or a knot');
+                break;
+            }
+            var source, type, checksum = null, knot;
+            if(value.attribute) {
+                var attribute = value.attribute;
+                if(attribute.isHistorized && attribute.isHistorized()) key.historized = true;
+                if(attribute.isKnotted && attribute.isKnotted()) {
+                    knot = attribute.knot;
+                    source = attribute.knotValueColumnName;
+                    type = knot.dataRange;
+                    if(knot.hasChecksum()) checksum = attribute.knotChecksumColumnName;
+                }
+                else {
+                    source = attribute.valueColumnName;
+                    type = attribute.dataRange;
+                    if(attribute.hasChecksum()) checksum = attribute.checksumColumnName;
+                }
+            }
+            else {
+                knot = value.knot;
+                source = value.role.knotValueColumnName;
+                type = knot.dataRange;
+                if(knot.hasChecksum()) checksum = value.role.knotChecksumColumnName;
+            }
+            if(names[prefix + source]) {
+                fail('two branches give the column ' + prefix + source);
+                break;
+            }
+            names[prefix + source] = true;
+            key.columns.push({ name: prefix + source, alias: value.alias, source: source, type: type, isChecksum: false });
+            if(checksum) {
+                key.columns.push({ name: prefix + checksum, alias: value.alias, source: checksum, type: null, isChecksum: true });
+                key.matches.push({ name: prefix + checksum, type: null, isChecksum: true });
+            }
+            else {
+                key.matches.push({ name: prefix + source, type: type, isChecksum: false });
+            }
+        }
+        if(!key.usable) {
+            key.notes = [];
+            key.joins = [];
+            key.columns = [];
+            key.matches = [];
+        }
+        return key;
+    }
+    function byRouteName(a, b) {
+        var x = parseInt(a.route, 10), y = parseInt(b.route, 10);
+        if(!isNaN(x) && !isNaN(y) && x != y) return x - y;
+        return a.route < b.route ? -1 : a.route > b.route ? 1 : 0;
+    }
+    function routesOf(entity) {
+        var own = [], r;
+        for(r = 0; r < list.length; r++) if(list[r].of == entity.mnemonic) own.push(list[r]);
+        own.sort(byRouteName);
+        for(r = 0; r < own.length; r++) result.push(analyze(entity, own[r]));
+    }
+    each(schema.anchors, schema.anchor, routesOf);
+    each(schema.nexuses, schema.nexus, routesOf);
+    return result;
+}
+
 // "global" variables
 schema.METADATA = schema.metadata.metadataUsage === 'true';
 schema.IMPROVED = schema.metadata.naming === 'improved';
