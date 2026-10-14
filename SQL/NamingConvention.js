@@ -214,6 +214,7 @@ while (anchor = schema.nextAnchor()) {
             // Physical table name for materialized natural key attributes (drop 'key' prefix)
             key.tableName = anchor.mnemonic + D + anchor.descriptor + D + route;
             key.changingColumnName = anchor.mnemonic + D + schema.metadata.changingSuffix;
+            role = undefined; // a role prefixes the stop after it, but not the first stop of the next route
             for(stop in key.stops) {
                 component = key.stops[stop];
                 if(component.attribute) {
@@ -273,6 +274,7 @@ var role;
             key.name = 'key' + D + nexus.mnemonic + D + nexus.descriptor + D + route;
             key.tableName = nexus.mnemonic + D + nexus.descriptor + D + route;
             key.changingColumnName = nexus.mnemonic + D + schema.metadata.changingSuffix;
+            role = undefined; // a role prefixes the stop after it, but not the first stop of the next route
             for(stop in key.stops) {
                 component = key.stops[stop];
                 if(component.attribute) {
