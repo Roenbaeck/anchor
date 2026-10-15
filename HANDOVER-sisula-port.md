@@ -405,22 +405,25 @@ crashed it (`anchor is undefined`; the `flags` and `handwritten` models have one
 the original and the template. The uni corrections to `AddDescriptions` (a single quote in a description is doubled) apply to the templates only: the `.js`
 originals of bi and crt, like the uni one, still paste it as it is.
 
-**Behaviour that differs between bi and crt, worth a look** (kept, the oracle has it): in crt the update trigger of an attribute leaves out `UPDATE(value)` for an
-attribute that is not historized, so a value update of a static attribute creates no posit and only a change of reliability or positor does; bi has no such condition.
+**Behaviour that differed between bi and crt** (kept at the port, the oracle had it): in crt the update trigger of an attribute left out `UPDATE(value)` for an
+attribute that is not historized, so a value update of a static attribute created no posit. Fixed when the triggers were made consistent (2026-10-09), and
+since 2026-10-15 such an update is a correction that also retracts what it corrects (see *Corrections and what nexuses lacked*).
 
-**Known defects of the original that are kept, because the golden files carry them** (now that the originals are gone, each can be fixed in its template
-alone):
+**Known defects of the original that were kept, because the golden files carried them**, and what became of them (fixed 2026-10-15 unless said otherwise):
 - The `handwritten` models (no `identity` on attributes and one tie): the identity column of the posit and annex tables, of the restatement tables and of
-  the `@inserted` and `@posit` table variables is declared without a type (`EV_DAT_ID not null,`), which is invalid SQL. It is the model, not the generator.
-- `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true), as in uni.
-- `CreateNexuses` (bi, crt): a knot role of a nexus that is equivalent refers to an `_ID` table that bi and crt never create; only with equivalence on.
-- `AddDescriptions`, the CLR check and the restatement checks of bi and crt look at the attributes of anchors only, not those of nexuses.
-- `CreateNexusPerspectives` (bi, crt): every role line of the time traveling function gets a comma (the original tests `hasMoreAttributes()` inside the branch
-  where it is always true); the bi and crt nexus functions use unbracketed names (`[capsule].tNAME`) where the crt anchor functions bracket them. The
-  perspectives of bi and crt have no equivalence perspectives, and the "drop" block is written for every anchor and nexus, also one without attributes.
-- `CreateTieTriggers` (bi): Swedish text in an SQL comment (`-- ta bort isnull för assertive`), a tab-indented `DELETE @inserted` / `WHERE`, and `U.` in capitals.
-- Trailing spaces and tabs that the original engine left in a few lines (after `JOIN`, `OR`, `AND`, `AFTER INSERT`, `AS`, `p.*,`) are reproduced with `$--$`,
-  because the golden files have them. They are harmless.
+  the `@inserted` and `@posit` table variables is declared without a type (`EV_DAT_ID not null,`), which is invalid SQL. It is the model, not the generator,
+  and is left as it is.
+- `CreateTies`: every tie got the header "Knotted static tie table" (`tie.isKnotted()` was always true, since `Helpers.js` makes `knotRole` empty for every
+  tie). It now looks at the list of knot roles, which also changes the headers of the other databases back to what the original modeler wrote.
+- `CreateNexuses` (bi, crt): a knot role of a nexus that is equivalent referred to an `_ID` table that bi and crt never create. The branch is gone.
+- `AddDescriptions`, the CLR check and the restatement checks of bi and crt looked at the attributes of anchors only. They take those of nexuses too, and
+  the descriptions of nexus roles are added in all three temporalizations; so are the encryption groups of nexus attributes in uni.
+- `CreateNexusPerspectives` (bi, crt): the unbracketed names (`[capsule].tNAME`) are bracketed. The comma after every role is right, since the functions are
+  made only for a nexus with attributes, and the "drop" block for every nexus is harmless; both are left. The difference perspective called functions that
+  no SQL Server template makes (`_AnchorTimepoints`, `_SplitMnemonic`, `_AttributeTimepoints`); it is now made the way the anchor one is.
+- `CreateTieTriggers` and `CreateAttributeTriggers` (bi): the Swedish comment says in English what the line does, the tabs are spaces, and `U.` is `u.`.
+- Trailing spaces and tabs that the original engine left in a few lines were reproduced with `$--$`. The markers and the spaces are gone from the SQL Server
+  templates (not from Snowflake's).
 
 **To update this port:** as for uni: change the template, regenerate the golden files from the templates (`regenerate-golden.ps1`) and read the diff.
 
@@ -555,10 +558,56 @@ column twice, which SQL Server rejects. That is a limit of the original naming, 
   a statement posited earlier than the following version is stored as before.
 - Two different values for the same slot in one insert statement still fail on the key of the trigger's table
   variable rather than with the contradiction message.
-- In bi and crt, retracting the newest posit shows the one before it, also after a correction of a static value
-  (the corrected posit stays asserted). This is how corrections work in the posit model and was left as it is.
+- In bi and crt, retracting the newest posit showed the one before it, also after a correction of a static value
+  (the corrected posit stayed asserted). Since 2026-10-15 a correction retracts what it corrects, so this is gone.
 - The key generator of a uni nexus (`k<nexus>`) inserts only the metadata too, so it cannot make rows for a nexus
-  with roles. It was left as it is.
+  with roles. It was left as it is, and bi and crt were not given one.
+
+## Corrections and what nexuses lacked (2026-10-15)
+
+**Corrections.** The rules come from the transitional modeling paper (`transitional.tex`, at commit 4c5b7e89 of the
+`transitional` repository): a correction is a retraction of the posit that was held and an assertion of another, at
+the same positing time; information in effect excludes what is retracted. The triggers now write that retraction:
+
+- bi (decisive by nature) and crt with decisiveness: the insert trigger of an attribute or a tie with identifiers and
+  other roles retracts, at the positing time of a positive assertion, the posit in effect for the positor at the same
+  changing time when it has another value. Only the one in effect: a database loaded before this can hold several
+  from older corrections, and retracting them all would break the unique index of a decisive crt assembled view (one
+  uncertain assertion per positing time). Loading out of order in positing time does not retract a later assertion.
+- crt without decisiveness: an insert is an alternative and retracts nothing; the update triggers of the latest views
+  (anchors, nexuses, ties with identifiers) write a retraction of the shown posit when the value changes at its
+  changing time. The latest and point-in-time views still show one row for each identity and positor; the assembled
+  views show every value held (the user's choice).
+- bi's assembled views had a unique index on (entity, changing, positing): one row per positing time, which a
+  correction and its retraction break. The index has the reliability now (for ties only those with identifiers and
+  other roles), and the generated SQL makes an older index again with `DROP_EXISTING` when it finds one without the
+  reliability, since the views themselves are made only when they are missing. The existing data of the bi insert
+  triggers is read as one row per positing time (the assertion wins over a retraction at the same time), and the bi
+  restatement triggers key their table on the reliability too.
+
+**Defects found on the way.** A crt insert in which two positors state the same posit made the posit twice, and so
+did a bi insert with one new posit at two positing times (an assertion and its retraction, for one): the posit is
+made once now. The table of the crt tie insert trigger had no positor and, for a static tie, no version in its key.
+The crt sheet stacks (`ss<attribute>`) ran their statement with `EXEC`, where the parameter of the procedure is not
+seen, so they always failed; they use `sp_executesql` and are made for nexus attributes too. The schema tracking read
+the roles of ties as `anchorRole` and `knotRole`, which the modeler no longer writes, so `_Tie` gave empty names and
+everything built on it (`_Evolution`, `_GenerateCopyScript`, `_DeleteWhereMetadataEquals`, `_FindWhatToRemove`,
+`_Key` for ties) was wrong; it reads `role` elements now (and still the old ones). `_Evolution` and
+`_GenerateCopyScript` knew uni and crt only; bi is there now.
+
+**Nexuses** came late to Anchor, so what anchors have and nexuses lacked was added (the user's direction: assume a
+nexus should have it): update and delete triggers on the latest views of bi and crt (uni had them), roles that cannot
+be updated (all three), the restatement constraints of bi and crt, the crt sheet stacks, descriptions of nexus
+attributes (bi, crt) and roles (all), the CLR and encryption setup for nexus attributes, a difference perspective
+that works (bi, crt), and in the schema tracking a `_Nexus` view, nexus attributes in `_Attribute` (with a `parent`
+column), nexuses in `_Evolution`, the copy script and the delete procedure, and keys on nexus roles in `_Key`. Not
+added: a key generator for nexuses in bi and crt, since the uni one cannot work for a nexus with roles. The Snowflake
+templates were only compared by what they iterate over, where nothing was missing.
+
+**Tests.** `triggers-bi.sql` b16 to b20, `triggers-crt.sql` c17 to c23, a new suite `indecisive` (crt only, the trigger
+model with decisiveness off, `indecisive-crt.sql`), and an upgrade step for bi (`triggers-bi-upgrade.sql`, then the
+generated SQL again, then `triggers-bi-upgraded.sql`). The nexus of the trigger models got a historized attribute
+that may not be restated (`EV_PLC_Event_Place`).
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

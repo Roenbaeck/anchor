@@ -28,14 +28,14 @@ BEGIN
     SET @now = $schema.metadata.now$;
 $/ if attribute.encryptionGroup
     IF NOT EXISTS (
-        SELECT * FROM sys.openkeys $--$
+        SELECT * FROM sys.openkeys
         WHERE [key_name] = '$attribute.encryptionGroup$' AND [database_id] = DB_ID()
     ) AND EXISTS (
         SELECT TOP 1 $attribute.entityReferenceName$ FROM inserted
     )
     BEGIN
         RAISERROR('The key [$attribute.encryptionGroup$] must be open in order to modify the attribute $attribute.name$.', 16, 1);
-    END $--$
+    END
 $/ endif
     DECLARE @$attribute.name$ TABLE (
     $attribute.entityReferenceName$ $attribute.parentIdentityRange$ not null,
@@ -49,7 +49,7 @@ $/ if attribute.isHistorized
         $attribute.changingColumnName$ $attribute.timeRange$ not null,
 $/ endif
 $/ if attribute.knotRange
-        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null,
 $/ else
         $attribute.valueColumnName$ $attribute.dataRange$ not null,
 $/ endif
@@ -61,7 +61,7 @@ $/ endif
 $/ if attribute.isEquivalent
             $attribute.equivalentColumnName$ asc,
 $/ endif
-            $attribute.entityReferenceName$ asc, $--$
+            $attribute.entityReferenceName$ asc,
 $/ if attribute.timeRange
             $attribute.changingColumnName$ desc
 $/ endif
@@ -96,7 +96,7 @@ $/ if attribute.isEquivalent
             x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-        AND $--$
+        AND
 $/ endif
             x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
 $/ if attribute.isHistorized
@@ -107,7 +107,7 @@ $/ if attribute.isHistorized
 $/ endif
         AND
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -161,12 +161,12 @@ $/ if attribute.hasChecksum
 $/ endif
         'X' -- existing data
     FROM (
-        SELECT DISTINCT $--$
+        SELECT DISTINCT
 $/ if attribute.isEquivalent
             $attribute.equivalentColumnName$,
 $/ endif
-            $attribute.entityReferenceName$ $--$
-        FROM $--$
+            $attribute.entityReferenceName$
+        FROM
             @$attribute.name$
     ) i
     JOIN
@@ -176,7 +176,7 @@ $/ if attribute.isEquivalent
         p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-    AND $--$
+    AND
 $/ endif
         p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$;
     DECLARE @restated TABLE (
@@ -189,7 +189,7 @@ $/ if attribute.isHistorized
 $/ endif
     );
     INSERT INTO @restated
-    SELECT $--$
+    SELECT
         x.$attribute.entityReferenceName$,
 $/ if attribute.isEquivalent
         x.$attribute.equivalentColumnName$,
@@ -197,35 +197,35 @@ $/ endif
         x.$attribute.changingColumnName$
     FROM (
         DELETE a
-        OUTPUT $--$
+        OUTPUT
             deleted.*
-        FROM $--$
+        FROM
             @$attribute.name$ a
         OUTER APPLY (
             SELECT TOP 1
 $/ if attribute.hasChecksum
-                h.$attribute.checksumColumnName$ $--$
+                h.$attribute.checksumColumnName$
 $/ else
                 h.$attribute.valueColumnName$
 $/ endif
-            FROM $--$
+            FROM
                 @$attribute.name$ h
             WHERE
 $/ if attribute.isEquivalent
                 h.$attribute.equivalentColumnName$ = a.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-            AND $--$
+            AND
 $/ endif
                 h.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
             AND
                 h.$attribute.changingColumnName$ < a.$attribute.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$attribute.changingColumnName$ DESC
         ) pre
         WHERE
 $/ if attribute.hasChecksum
-            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$
 $/ else
             a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
 $/ endif
@@ -233,21 +233,21 @@ $/ endif
     WHERE
         x.$attribute.statementTypeColumnName$ = 'X';
     -- remove the quenches (should happen rarely)
-	DELETE a
-	FROM $--$
-		[$attribute.capsule$].[$attribute.name$] a
-	JOIN $--$
-		@restated d
-	ON $--$
-		d.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
-	AND $--$
+    DELETE a
+    FROM
+        [$attribute.capsule$].[$attribute.name$] a
+    JOIN
+        @restated d
+    ON
+        d.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
+    AND
 $/ if attribute.isEquivalent
         d.$attribute.equivalentColumnName$ = a.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-    AND $--$
+    AND
 $/ endif
-		d.$attribute.changingColumnName$ = a.$attribute.changingColumnName$; $--$
+        d.$attribute.changingColumnName$ = a.$attribute.changingColumnName$;
 $/ endif
     INSERT INTO [$attribute.capsule$].[$attribute.name$] (
 $/ if schema.METADATA
@@ -297,14 +297,14 @@ BEGIN
     SET @now = $schema.metadata.now$;
 $/ if attribute.encryptionGroup
         IF NOT EXISTS (
-            SELECT * FROM sys.openkeys $--$
+            SELECT * FROM sys.openkeys
             WHERE [key_name] = '$attribute.encryptionGroup$' AND [database_id] = DB_ID()
         ) AND EXISTS (
             SELECT TOP 1 $attribute.entityReferenceName$ FROM inserted
         )
         BEGIN
             RAISERROR('The key [$attribute.encryptionGroup$] must be open in order to modify the attribute $attribute.name$.', 16, 1);
-        END $--$
+        END
 $/ endif
     -- another value for an entity that already has a value is a contradiction
     DECLARE @message varchar(max);
@@ -329,7 +329,7 @@ $/ if attribute.encryptionGroup
             DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
 $/ else
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -375,7 +375,7 @@ $/ if attribute.isEquivalent
             x.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-        AND $--$
+        AND
 $/ endif
             x.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
         AND
@@ -383,14 +383,14 @@ $/ if attribute.encryptionGroup
             DECRYPTBYKEY(x.$attribute.valueColumnName$) = DECRYPTBYKEY(i.$attribute.valueColumnName$)
 $/ else
 $/ if attribute.hasChecksum
-            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+            x.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
             x.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
 $/ endif
-    ); $--$
+    );
 END
-GO $--$
+GO
 $/ endif
 $/ endfor
 $/ endif

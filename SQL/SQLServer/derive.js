@@ -19,9 +19,10 @@ while (anchor = schema.nextAnchor())
 //   roleCount            the number of roles of a nexus or tie
 //   hasDescription       whether the construct (knot, anchor, nexus, tie, role, attribute) has a description
 //   descriptionText      the description as the body of a SQL string literal (single quotes doubled), or null
-//   hasChecksums         whether the CLR (the MD5 function) is needed: a knot or an anchor's attribute has a checksum
-//   encryptionGroups     the encryption groups of the anchors' attributes, in order of first use, each as
-//                        {name, attributes: [{name}]}; the attributes are listed last first, as the original does
+//   hasChecksums         whether the CLR (the MD5 function) is needed: a knot or an attribute, of an anchor or a
+//                        nexus, has a checksum
+//   encryptionGroups     the encryption groups of the attributes, of anchors and nexuses, in order of first use,
+//                        each as {name, attributes: [{name}]}; the attributes are listed last first, as the original does
 (function () {
     function deriveDescription(construct) {
         var text = construct.description && construct.description._description;
@@ -34,13 +35,12 @@ while (anchor = schema.nextAnchor())
         deriveDescription(knot);
         if (knot.hasChecksum()) checksums = true;
     }
-    while (anchor = schema.nextAnchor()) {
+    while (anchor = schema.nextAnchor())
         deriveDescription(anchor);
-        while (attribute = anchor.nextAttribute())
-            if (attribute.hasChecksum()) checksums = true;
-    }
-    while (attribute = schema.nextAttribute())
+    while (attribute = schema.nextAttribute()) {
         deriveDescription(attribute);
+        if (attribute.hasChecksum()) checksums = true;
+    }
     while (nexus = schema.nextNexus()) {
         deriveDescription(nexus);
         nexus.attributeCount = nexus.attributes ? nexus.attributes.length : 0;
@@ -55,12 +55,10 @@ while (anchor = schema.nextAnchor())
     schema.hasChecksums = checksums;
 
     var groups = {}, group, names = [];
-    while (anchor = schema.nextAnchor()) {
-        while (attribute = anchor.nextAttribute()) {
-            if (group = attribute.getEncryptionGroup()) {
-                if (!groups[group]) groups[group] = [];
-                groups[group].push(attribute.name);
-            }
+    while (attribute = schema.nextAttribute()) {
+        if (group = attribute.getEncryptionGroup()) {
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(attribute.name);
         }
     }
     var list = [];
@@ -182,23 +180,14 @@ if (schema.serialization && typeof schema.serialization._serialization === 'stri
 // ---- end schema tracking ----
 
 // ---- bi-crt attributes: restatement constraints ----
-//   hasHistorizedAnchorAttributes   whether some anchor has a historized attribute (crt: the restatement
-//                                   finder functions are made for every one of them)
-//   hasUnrestatableAnchorAttributes whether some anchor has a historized attribute that may not store
-//                                   restatements (bi: the restatement checking triggers). Both look at the
-//                                   attributes of anchors only, as the original sisulets do, not at those of nexuses.
+//   hasHistorizedAttributes  whether some attribute, of an anchor or a nexus, is historized (crt: the restatement
+//                            finder functions are made for every one of them; bi uses hasUnrestatableAttributes)
 (function () {
-    var anchor, attribute;
-    schema.hasHistorizedAnchorAttributes = false;
-    schema.hasUnrestatableAnchorAttributes = false;
-    while (anchor = schema.nextAnchor()) {
-        while (attribute = anchor.nextAttribute()) {
-            if (attribute.isHistorized()) {
-                schema.hasHistorizedAnchorAttributes = true;
-                if (!attribute.isRestatable()) schema.hasUnrestatableAnchorAttributes = true;
-            }
-        }
-    }
+    var attribute;
+    schema.hasHistorizedAttributes = false;
+    while (attribute = schema.nextAttribute())
+        if (attribute.isHistorized())
+            schema.hasHistorizedAttributes = true;
 })();
 // ---- end bi-crt attributes ----
 

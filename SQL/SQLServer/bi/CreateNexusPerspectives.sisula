@@ -147,10 +147,10 @@ $/ if attribute.isKnotted
         [k$attribute.mnemonic$].$attribute.knot.identityColumnName$ = [r$attribute.mnemonic$].$attribute.knotReferenceName$
 $/ endif
     WHERE
-		[r$attribute.mnemonic$].$attribute.entityReferenceName$ = [$nexus.mnemonic$].$nexus.identityColumnName$
-	AND $--$
-		[r$attribute.mnemonic$].$attribute.reliabilityColumnName$ = 1
-	ORDER BY
+        [r$attribute.mnemonic$].$attribute.entityReferenceName$ = [$nexus.mnemonic$].$nexus.identityColumnName$
+    AND
+        [r$attribute.mnemonic$].$attribute.reliabilityColumnName$ = 1
+    ORDER BY
 $/ if attribute.isHistorized
         [r$attribute.mnemonic$].$attribute.changingColumnName$ DESC,
 $/ endif
@@ -167,7 +167,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$nexus.mnemonic$].*
 FROM
-    [$nexus.capsule$].t$nexus.name$ (
+    [$nexus.capsule$].[t$nexus.name$] (
         DEFAULT,
         DEFAULT
     ) [$nexus.mnemonic$];
@@ -175,7 +175,7 @@ GO
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
 -- p$nexus.name$ viewed as it was on the given timepoint
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$nexus.capsule$].p$nexus.name$ (
+CREATE FUNCTION [$nexus.capsule$].[p$nexus.name$] (
     @changingTimepoint $schema.metadata.chronon$
 )
 RETURNS TABLE AS RETURN
@@ -183,7 +183,7 @@ SELECT
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$nexus.mnemonic$].*
 FROM
-    [$nexus.capsule$].t$nexus.name$ (
+    [$nexus.capsule$].[t$nexus.name$] (
         @changingTimepoint,
         DEFAULT
     ) [$nexus.mnemonic$];
@@ -191,13 +191,13 @@ GO
 -- Now perspective ----------------------------------------------------------------------------------------------------
 -- n$nexus.name$ viewed as it currently is (cannot include future versions)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE VIEW [$nexus.capsule$].n$nexus.name$
+CREATE VIEW [$nexus.capsule$].[n$nexus.name$]
 AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$nexus.mnemonic$].*
 FROM
-    [$nexus.capsule$].t$nexus.name$ (
+    [$nexus.capsule$].[t$nexus.name$] (
         $schema.metadata.now$,
         DEFAULT
     ) [$nexus.mnemonic$];
@@ -206,7 +206,7 @@ $/ if nexus.historizedAttributes
 -- Difference perspective ---------------------------------------------------------------------------------------------
 -- d$nexus.name$ showing all differences between the given timepoints and optionally for a subset of attributes
 -----------------------------------------------------------------------------------------------------------------------
-CREATE FUNCTION [$nexus.capsule$].d$nexus.name$ (
+CREATE FUNCTION [$nexus.capsule$].[d$nexus.name$] (
     @intervalStart $schema.metadata.chronon$,
     @intervalEnd $schema.metadata.chronon$,
     @selection varchar(max) = null
@@ -215,49 +215,30 @@ RETURNS TABLE AS RETURN
 SELECT
     timepoints.inspectedTimepoint,
     [$nexus.mnemonic$].*
-FROM
-    (
-        SELECT DISTINCT
-            timepoint AS inspectedTimepoint
-        FROM
-            [$schema.metadata.encapsulation$].[_AnchorTimepoints](
-                @intervalStart,
-                @intervalEnd
-            )
-    ) timepoints
+FROM (
+$/ foreach attribute in nexus.historizedAttributes
+    SELECT DISTINCT
+        $attribute.entityReferenceName$ AS $nexus.identityColumnName$,
+        $attribute.changingColumnName$ AS inspectedTimepoint,
+        '$attribute.mnemonic$' AS mnemonic
+    FROM
+        [$attribute.capsule$].[$attribute.name$]
+    WHERE
+        (@selection is null OR @selection like '%$attribute.mnemonic$%')
+    AND
+        $attribute.changingColumnName$ BETWEEN @intervalStart AND @intervalEnd
+$/ if not attribute.last()
+    UNION
+$/ endif
+$/ endfor
+) timepoints
 CROSS APPLY
-    [$nexus.capsule$].p$nexus.name$(timepoints.inspectedTimepoint) [$nexus.mnemonic$]
-WHERE
-    @selection is null
-OR
-    EXISTS (
-        SELECT
-            1
-        FROM
-            [$schema.metadata.encapsulation$].[p$schema.metadata.positorSuffix$]
-        CROSS APPLY
-            [$schema.metadata.encapsulation$].[_SplitMnemonic](@selection)
-        JOIN
-            [$schema.metadata.encapsulation$].[_AnchorAttributes]
-        ON
-            mnemonic = [attribute]
-        AND
-            [anchor] = '$nexus.name$'
-        JOIN
-            [$schema.metadata.encapsulation$].[p$schema.metadata.positorSuffix$] positors
-        ON
-            positors.$schema.metadata.positorSuffix$ = 0
-        CROSS APPLY
-            [$schema.metadata.encapsulation$].[_AttributeTimepoints](
-                [capsule],
-                [attribute],
-                positors.$schema.metadata.positorSuffix$,
-                @intervalStart,
-                @intervalEnd
-            )
-        WHERE
-            timepoint = timepoints.inspectedTimepoint
-    );
+    [$nexus.capsule$].[t$nexus.name$] (
+        timepoints.inspectedTimepoint,
+        DEFAULT
+    ) [$nexus.mnemonic$]
+ WHERE
+    [$nexus.mnemonic$].$nexus.identityColumnName$ = timepoints.$nexus.identityColumnName$;
 GO
 $/ endif
 $/ endif

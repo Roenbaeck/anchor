@@ -29,7 +29,7 @@ BEGIN
     );
     INSERT INTO [$anchor.capsule$].[$anchor.name$] (
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         $anchor.dummyColumnName$
 $/ endif
@@ -40,7 +40,7 @@ $/ endif
         @$anchor.mnemonic$
     SELECT
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         null
 $/ endif
@@ -181,10 +181,10 @@ $/ if attribute.timeRange
         i.$attribute.changingColumnName$,
 $/ endif
 $/ if attribute.encryptionGroup
-        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
 $/ if attribute.isKnotted
-        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$) $--$
+        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$)
 $/ else
         i.$attribute.valueColumnName$
 $/ endif
@@ -196,7 +196,7 @@ $/ if attribute.isKnotted
         [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
     ON
 $/ if attribute.knot.hasChecksum
-        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$ $--$
+        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$
 $/ else
         [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -265,7 +265,7 @@ $/ endif
             [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
         ON
 $/ if attribute.knot.hasChecksum
-            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max))) $--$
+            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))
 $/ else
             [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -311,18 +311,18 @@ $/ endif
         IF(@@ROWCOUNT > 0)
         BEGIN
             IF OBJECT_ID('[$attribute.capsule$].[$attribute.deletionName$]') is null
-            SELECT TOP 0 $--$
-                *, $--$
+            SELECT TOP 0
+                *,
                 CAST(null as $/ if attribute.isHistorized $attribute.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $attribute.deletionTimeColumnName$
-            INTO $--$
+            INTO
                 [$attribute.capsule$].[$attribute.deletionName$]
-            FROM $--$
+            FROM
                 [$attribute.capsule$].[$attribute.name$];
             DELETE [$attribute.mnemonic$]
             OUTPUT
                 deleted.*,
 $/ if attribute.isHistorized
-                ISNULL(d.$attribute.deletionTimeColumnName$, @now) $--$
+                ISNULL(d.$attribute.deletionTimeColumnName$, @now)
 $/ else
                 @now
 $/ endif
@@ -372,7 +372,7 @@ $/ if attribute.isHistorized
             END, @now) as $attribute.timeRange$),
 $/ endif
 $/ if attribute.encryptionGroup
-        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
             i.$attribute.valueColumnName$
 $/ endif
@@ -425,18 +425,18 @@ $/ endif
         IF(@@ROWCOUNT > 0)
         BEGIN
             IF OBJECT_ID('[$attribute.capsule$].[$attribute.deletionName$]') is null
-            SELECT TOP 0 $--$
-                *, $--$
+            SELECT TOP 0
+                *,
                 CAST(null as $/ if attribute.isHistorized $attribute.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $attribute.deletionTimeColumnName$
-            INTO $--$
+            INTO
                 [$attribute.capsule$].[$attribute.deletionName$]
-            FROM $--$
+            FROM
                 [$attribute.capsule$].[$attribute.name$];
             DELETE [$attribute.mnemonic$]
             OUTPUT
                 deleted.*,
 $/ if attribute.isHistorized
-                ISNULL(d.$attribute.deletionTimeColumnName$, @now) $--$
+                ISNULL(d.$attribute.deletionTimeColumnName$, @now)
 $/ else
                 @now
 $/ endif

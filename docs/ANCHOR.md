@@ -420,7 +420,8 @@ temporalizations:
   new value is a new version from the changing time given, or from now.
 - **A static attribute or tie** behaves as if all its values had the same changing time. In
   uni, a value can be added where none is shown, and another value is an error (a
-  contradiction). In bi and crt, another value corrects the shown one.
+  contradiction). In bi and crt, another value corrects the shown one (see "Corrections"
+  below).
 - **A reliability without a new value** (bi and crt) asserts the shown version again with that
   reliability. A reliability of 0 retracts it.
 - **Null** in a value retracts the shown version in bi and crt. In uni, for a deletable attribute
@@ -428,6 +429,9 @@ temporalizations:
   otherwise it does nothing.
 - **A delete** retracts the shown versions in bi and crt, each for the positor of the row. In
   uni it removes the shown versions.
+
+The latest views of nexuses take the same statements as those of anchors, in all three
+temporalizations; the roles of a nexus are part of its identity and cannot be updated.
 
 The settings then decide what happens to what is stated, the same way for inserts and updates:
 
@@ -437,6 +441,7 @@ The settings then decide what happens to what is stated, the same way for insert
 | The same value again later in changing time (a restatement) | Skipped if idempotent; otherwise stored if restatable, or an error |
 | The same reliability again later in positing time (a re-assertion, bi and crt) | Stored if assertive, otherwise skipped |
 | Another value at a changing time that already has one (uni only) | An error, whatever the settings say |
+| Another value at a changing time where the positor holds one (bi, and crt with decisiveness) | A correction: the held posit is retracted at the new positing time |
 | Another reliability for a version at a positing time that already has one (bi and crt) | An error, whatever the settings say |
 
 In bi and crt a later assertion corrects an earlier one, and in crt positors may disagree. What
@@ -449,3 +454,36 @@ move between two statements in a row. A retraction or a new reliability that fol
 it is about within the same tick would get the same positing time and be refused as a
 contradiction, so give positing times explicitly when statements about the same version follow
 each other closely.
+
+### Corrections
+
+Another value at the same changing time, or any other value of a static attribute or tie, is a
+correction: in transitional terms, a retraction of the posit that was held and an assertion of the
+new one, both at the positing time of the new value. The triggers write the retraction as a row of
+its own, with reliability 0 (the delete reliability in crt), so the data says what happened.
+Retracting the correction later therefore leaves nothing of the corrected value in effect, where it
+used to come back. A historized correction retracts only the version it corrects, so retracting it
+shows the version before.
+
+- **bi** is decisive: one value at a time is asserted. Every positive assertion, inserted or
+  updated, retracts the posit in effect at its changing time when that has another value. The
+  constraint of each assembled view has the reliability, so that the retraction and the new
+  assertion can share a positing time; running the generated SQL again on an older database makes
+  an older constraint again with it.
+- **crt with decisiveness** works the same way, for each positor on its own: what one positor
+  asserts never retracts what another holds.
+- **crt without decisiveness** lets a positor hold several values at once. An insert adds an
+  alternative and retracts nothing. An update of a value at the changing time of the shown version
+  (always, for a static attribute or tie) is a correction, which retracts the shown posit. The
+  latest and point-in-time views still show one row for each identity and positor, the latest
+  positive assertion; the assembled views show every value that is held, for whoever wants to
+  weigh the alternatives.
+
+A tie has corrections when it has identifiers and other roles: other values for the same
+identifiers. A tie without identifiers is all identity, so another value is another posit, and
+nothing is retracted.
+
+Only the posit in effect is retracted, the one that would be shown. In a database loaded before
+corrections retracted, a positor can hold several values from earlier corrections; they are left as
+they are, and a correction retracts the one in effect. Loading out of order in positing time, a
+value asserted before one that is already stored does not retract the later one.

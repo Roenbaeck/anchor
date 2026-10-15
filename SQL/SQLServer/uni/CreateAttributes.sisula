@@ -35,9 +35,9 @@ $/ endif
     )
 $/ if attribute.isEquivalent
 $/ if schema.PARTITIONING
-) ON EquivalenceScheme($attribute.equivalentColumnName$); $--$
+) ON EquivalenceScheme($attribute.equivalentColumnName$);
 $/ else
-); $--$
+);
 $/ endif
 $/ else
 );
@@ -128,9 +128,9 @@ $/ endif
     )
 $/ if attribute.isEquivalent
 $/ if schema.PARTITIONING
-) ON EquivalenceScheme($attribute.equivalentColumnName$); $--$
+) ON EquivalenceScheme($attribute.equivalentColumnName$);
 $/ else
-); $--$
+);
 $/ endif
 $/ else
 );

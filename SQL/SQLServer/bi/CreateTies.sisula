@@ -30,7 +30,7 @@ $/ else
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.entity
-    $role.columnName$ $role.entity.identity$ not null, $--$
+    $role.columnName$ $role.entity.identity$ not null,
 $/ else
     $role.columnName$ $role.knot.identity$ not null,
 $/ endif
@@ -42,7 +42,7 @@ $/ foreach role in tie.roles
     constraint $tie.positName$_fk$role.name$ foreign key (
         $role.columnName$
 $/ if role.entity
-    ) references [$role.entity.capsule$].[$role.entity.name$]($role.entity.identityColumnName$), $--$
+    ) references [$role.entity.capsule$].[$role.entity.name$]($role.entity.identityColumnName$),
 $/ else
     ) references [$role.knot.capsule$].[$role.knot.name$]($role.knot.identityColumnName$),
 $/ endif

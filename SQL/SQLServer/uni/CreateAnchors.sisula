@@ -15,7 +15,7 @@ $/ else
     $anchor.identityColumnName$ $anchor.identity$ not null,
 $/ endif
 $/ if schema.METADATA
-    $anchor.metadataColumnName$ $schema.metadata.metadataType$ not null, $--$
+    $anchor.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ else
     $anchor.dummyColumnName$ bit null,
 $/ endif

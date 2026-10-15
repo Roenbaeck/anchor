@@ -175,7 +175,7 @@ $/ if attribute.timeRange
         i.$attribute.changingColumnName$,
 $/ endif
 $/ if attribute.encryptionGroup
-        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
         $/ if attribute.isKnotted ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$) $/ else i.$attribute.valueColumnName$$/ endif
 $/ endif
@@ -211,6 +211,14 @@ BEGIN
     SET @now = $schema.metadata.now$;
     IF(UPDATE($nexus.identityColumnName$))
         RAISERROR('The identity column $nexus.identityColumnName$ is not updatable.', 16, 1);
+$/ foreach role in nexus.roles
+    IF(UPDATE($role.columnName$))
+        RAISERROR('The role column $role.columnName$ is not updatable.', 16, 1);
+$/ if role.knot
+    IF(UPDATE($role.knotValueColumnName$))
+        RAISERROR('The role column $role.knotValueColumnName$ is not updatable.', 16, 1);
+$/ endif
+$/ endfor
 $/ foreach attribute in nexus.attributes
     IF(UPDATE($attribute.entityReferenceName$))
         RAISERROR('The foreign key column $attribute.entityReferenceName$ is not updatable.', 16, 1);
@@ -289,12 +297,12 @@ $/ endif
         IF(@@ROWCOUNT > 0)
         BEGIN
             IF OBJECT_ID('[$attribute.capsule$].[$attribute.deletionName$]') is null
-            SELECT TOP 0 $--$
-                *, $--$
+            SELECT TOP 0
+                *,
                 CAST(null as $/ if attribute.isHistorized $attribute.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $attribute.deletionTimeColumnName$
-            INTO $--$
+            INTO
                 [$attribute.capsule$].[$attribute.deletionName$]
-            FROM $--$
+            FROM
                 [$attribute.capsule$].[$attribute.name$];
             DELETE [$attribute.mnemonic$]
             OUTPUT
@@ -346,7 +354,7 @@ $/ if attribute.isHistorized
             END, @now) as $attribute.timeRange$),
 $/ endif
 $/ if attribute.encryptionGroup
-        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+        ENCRYPTBYKEY(KEY_GUID('$attribute.encryptionGroup$'), cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
             i.$attribute.valueColumnName$
 $/ endif
@@ -399,12 +407,12 @@ $/ endif
         IF(@@ROWCOUNT > 0)
         BEGIN
             IF OBJECT_ID('[$attribute.capsule$].[$attribute.deletionName$]') is null
-            SELECT TOP 0 $--$
-                *, $--$
+            SELECT TOP 0
+                *,
                 CAST(null as $/ if attribute.isHistorized $attribute.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $attribute.deletionTimeColumnName$
-            INTO $--$
+            INTO
                 [$attribute.capsule$].[$attribute.deletionName$]
-            FROM $--$
+            FROM
                 [$attribute.capsule$].[$attribute.name$];
             DELETE [$attribute.mnemonic$]
             OUTPUT

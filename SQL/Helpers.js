@@ -475,7 +475,8 @@ while(tie = schema.nextTie()) {
         return this.metadata.generator == 'true';
     };
     tie.isKnotted = function() {
-        return !!this['knotRole'];
+        // knotRole is made empty for every tie, so it is the list of knot roles that tells
+        return this.knotRoles.length > 0;
     };
     tie.isHistorized = function() {
         return !!this['timeRange'];

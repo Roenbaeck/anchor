@@ -43,7 +43,8 @@ EXEC sp_addextendedproperty
 GO
 $/ endfor
 $/ endfor
-$/ foreach nexus in schema.nexuses where nexus.hasDescription
+$/ foreach nexus in schema.nexuses
+$/ if nexus.hasDescription
 BEGIN TRY
 EXEC sp_dropextendedproperty
 @name = N'MS_Description',
@@ -56,6 +57,37 @@ EXEC sp_addextendedproperty
 @level0type = N'Schema', @level0name = '$nexus.capsule$',
 @level1type = N'Table', @level1name = '$nexus.name$';
 GO
+$/ endif
+$/ foreach attribute in nexus.attributes where attribute.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$attribute.capsule$',
+@level1type = N'Table', @level1name = '$attribute.positName$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$attribute.descriptionText$',
+@level0type = N'Schema', @level0name = '$attribute.capsule$',
+@level1type = N'Table', @level1name = '$attribute.positName$';
+GO
+$/ endfor
+$/ foreach role in nexus.roles where role.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$role.descriptionText$',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+GO
+$/ endfor
 $/ endfor
 $/ foreach tie in schema.ties
 $/ if tie.hasDescription
