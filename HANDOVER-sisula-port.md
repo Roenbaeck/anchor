@@ -177,15 +177,17 @@ match (they never did before).
 ## Open items
 
 - **Port the rest:** the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone needs one.
-  SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and the trigger
-  tests of all three temporalizations); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`, 2026-10-14).
-  Its original sisulets were then removed, as Snowflake's had been, so a fix is made once.
+  SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and every suite of
+  `tools/sqlserver-tests.ps1`: the triggers of all three temporalizations with the bi upgrade, the natural keys, and crt
+  without decisiveness, all passing on 2026-10-15); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`,
+  2026-10-14). Its original sisulets were then removed, as Snowflake's had been, so a fix is made once.
+- **Assertions that arrive late** in bi and decisive crt: a choice for the user, see *Corrections and what nexuses
+  lacked*.
 - **Run the generated Snowflake SQL** after a change: uni, bi, crt and equivalence have been run on Snowflake
   (2026-10-02), and so have the integrity checks (2026-10-08). The natural keys (2026-10-14) have not.
 - **Natural keys** (see *Natural keys as routes* below): Snowflake and SQL Server generate them from `naturalKeys()`,
-  and the modeler checks routes with the same rules. Run `tools/sqlserver-tests.ps1` on a SQL Server (the keys suite
-  is new) and the Snowflake output on Snowflake. Whether a route may use another route (composition) is left for later
-  (the user, 2026-10-14).
+  and the modeler checks routes with the same rules. The SQL Server key tests pass; the Snowflake output has not been
+  run on Snowflake. Whether a route may use another route (composition) is left for later (the user, 2026-10-14).
 - **The Snowflake skill** (`anchor-snowflake-skill`): the generator hosted in Snowflake exists.
   `tools/build-snowflake-generator.ps1` writes one SQL script that creates `SISULATE` (the engine as a JavaScript
   function), `ANCHOR_BINDINGS` (the model XML to the bindings; `modules/XmlTree.js` reads the XML, since a JavaScript
@@ -607,7 +609,36 @@ templates were only compared by what they iterate over, where nothing was missin
 **Tests.** `triggers-bi.sql` b16 to b20, `triggers-crt.sql` c17 to c23, a new suite `indecisive` (crt only, the trigger
 model with decisiveness off, `indecisive-crt.sql`), and an upgrade step for bi (`triggers-bi-upgrade.sql`, then the
 generated SQL again, then `triggers-bi-upgraded.sql`). The nexus of the trigger models got a historized attribute
-that may not be restated (`EV_PLC_Event_Place`).
+that may not be restated (`EV_PLC_Event_Place`). All of them pass on the user's SQL Server (2026-10-15, after a fix to
+c22, which filtered the crt difference perspective on a column it did not have).
+
+**The positor in the crt difference perspectives** (2026-10-15, the user: "a necessity"). The difference perspectives of
+crt anchors and nexuses gave a row for each positor that changed something, but no column said whose row it was (the
+attribute columns each have a positor, which is empty where the attribute has no value). They now start with
+`Positor`, as Snowflake's crt difference perspectives do and as the other crt perspectives have it (`p.*`). Test c24.
+
+**Assertions that arrive late (open, for the user to decide, 2026-10-15).** A positor's assertions are ordered by
+their positing time, which is when the positor made them, not when they reach the database. With decisiveness each
+positive assertion holds until the positor's next positive assertion of another value at the same changing time, or
+until it is retracted, whatever the order in which they arrive: A at T1, C at T3, then B at T2, then D at T2.5 mean A
+held over [T1, T2), B over [T2, T2.5), D over [T2.5, T3) and C from T3. So the intention can be told. What cannot be
+done is to store the retractions that decisiveness implies so that the rows do not depend on the order of arrival: when
+C arrives first, the trigger retracts A at T3; once B and D are known, it is D that ends at T3, and A ended at T2. The
+stored rows would have to change (A's retraction at T3 removed, D's written), and the trigger cannot tell a retraction it
+derived from one that a positor stated; keeping both gives two retractions at T3, which the unique index of a decisive
+crt assembled view (one uncertain assertion per positing time) and that of bi refuse. Today (forward only) B and D get
+their own start right, but nothing ends them: the views still show C after T3, and only retracting C shows D instead of
+nothing. The choices put to the user:
+- **The views apply decisiveness, the triggers store only what is stated** (recommended): the decisive perspectives
+  (bi, crt with decisiveness) take, for each positor and changing time, the latest positive assertion and show it unless
+  its posit has been retracted since; the insert triggers stop writing the retractions that decisiveness implies. The
+  result does not depend on the order of arrival, nothing stored is ever changed, and no index is in the way. It undoes
+  the decisive part of the corrections of 2026-10-14 in the triggers (the indecisive update keeps its retraction, which
+  is what the update states), and the perspectives get one more lookup per row.
+- **The triggers keep the implied retractions complete:** on a late arrival they move the end of what was held from the
+  later assertion to the late one, which needs a mark on the retractions they derive (a column of the annex) so that a
+  stated retraction is never removed. The stored rows change when late data arrives.
+- **Leave it as it is** and document the case above.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
