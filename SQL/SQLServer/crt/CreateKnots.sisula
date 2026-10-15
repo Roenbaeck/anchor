@@ -29,7 +29,7 @@ $/ endif
     ),
     constraint uq$knot.name$ unique (
 $/ if knot.hasChecksum
-        $knot.checksumColumnName$ $--$
+        $knot.checksumColumnName$
 $/ else
         $knot.valueColumnName$
 $/ endif

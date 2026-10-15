@@ -136,7 +136,7 @@ GO
 CREATE VIEW [$anchor.capsule$].[l$anchor.name$]
 AS
 SELECT
-    p.*, $--$
+    p.*,
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$anchor.mnemonic$].*
 FROM
@@ -176,7 +176,7 @@ GO
 CREATE VIEW [$anchor.capsule$].[n$anchor.name$]
 AS
 SELECT
-    p.*, $--$
+    p.*,
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$anchor.mnemonic$].*
 FROM

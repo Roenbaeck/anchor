@@ -129,10 +129,10 @@ $/ if attribute.isKnotted
         [k$attribute.mnemonic$].$attribute.knot.identityColumnName$ = [r$attribute.mnemonic$].$attribute.knotReferenceName$
 $/ endif
     WHERE
-		[r$attribute.mnemonic$].$attribute.entityReferenceName$ = [$anchor.mnemonic$].$anchor.identityColumnName$
-	AND $--$
-		[r$attribute.mnemonic$].$attribute.reliabilityColumnName$ = 1
-	ORDER BY
+        [r$attribute.mnemonic$].$attribute.entityReferenceName$ = [$anchor.mnemonic$].$anchor.identityColumnName$
+    AND
+        [r$attribute.mnemonic$].$attribute.reliabilityColumnName$ = 1
+    ORDER BY
 $/ if attribute.isHistorized
         [r$attribute.mnemonic$].$attribute.changingColumnName$ DESC,
 $/ endif

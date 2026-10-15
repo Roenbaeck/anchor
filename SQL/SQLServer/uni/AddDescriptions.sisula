@@ -5,7 +5,7 @@ EXEC sp_dropextendedproperty
 @name = N'MS_Description',
 @level0type = N'Schema', @level0name = '$knot.capsule$',
 $/ if knot.isEquivalent
-@level1type = N'Table', @level1name = '$knot.identityName$'; $--$
+@level1type = N'Table', @level1name = '$knot.identityName$';
 $/ else
 @level1type = N'Table', @level1name = '$knot.name$';
 $/ endif
@@ -15,7 +15,7 @@ EXEC sp_addextendedproperty
 @value = '$knot.descriptionText$',
 @level0type = N'Schema', @level0name = '$knot.capsule$',
 $/ if knot.isEquivalent
-@level1type = N'Table', @level1name = '$knot.identityName$'; $--$
+@level1type = N'Table', @level1name = '$knot.identityName$';
 $/ else
 @level1type = N'Table', @level1name = '$knot.name$';
 $/ endif
@@ -67,7 +67,8 @@ EXEC sp_addextendedproperty
 GO
 $/ endfor
 $/ endfor
-$/ foreach nexus in schema.nexuses where nexus.hasDescription
+$/ foreach nexus in schema.nexuses
+$/ if nexus.hasDescription
 BEGIN TRY
 EXEC sp_dropextendedproperty
 @name = N'MS_Description',
@@ -80,6 +81,23 @@ EXEC sp_addextendedproperty
 @level0type = N'Schema', @level0name = '$nexus.capsule$',
 @level1type = N'Table', @level1name = '$nexus.name$';
 GO
+$/ endif
+$/ foreach role in nexus.roles where role.hasDescription
+BEGIN TRY
+EXEC sp_dropextendedproperty
+@name = N'MS_Description',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+END TRY BEGIN CATCH BEGIN TRY ROLLBACK END TRY BEGIN CATCH END CATCH END CATCH -- workaround for MS bug 658556
+EXEC sp_addextendedproperty
+@name = N'MS_Description',
+@value = '$role.descriptionText$',
+@level0type = N'Schema', @level0name = '$nexus.capsule$',
+@level1type = N'Table', @level1name = '$nexus.name$',
+@level2type = N'Column', @level2name = '$role.columnName$';
+GO
+$/ endfor
 $/ endfor
 $/ foreach attribute in schema.attributes where attribute.hasDescription
 BEGIN TRY

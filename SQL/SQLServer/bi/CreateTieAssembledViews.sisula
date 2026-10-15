@@ -34,7 +34,12 @@ $/ endif
     ON
         a.$tie.identityColumnName$ = p.$tie.identityColumnName$;
     ');
+$/ if tie.identifiers and tie.values
+    -- Constraint ensuring that recorded and erased posits are temporally consistent: one posit at a time is asserted,
+    -- and a correction retracts what it corrects at the same positing time
+$/ else
     -- Constraint ensuring that recorded and erased posits are temporally consistent
+$/ endif
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$tie.name$]
     ON [$tie.capsule$].[$tie.name$] (
@@ -50,9 +55,62 @@ $/ endif
 $/ if tie.timeRange
         $tie.changingColumnName$ desc,
 $/ endif
+$/ if tie.identifiers and tie.values
+        $tie.positingColumnName$ desc,
+        $tie.reliabilityColumnName$ desc
+$/ else
         $tie.positingColumnName$ desc
+$/ endif
     );
     ');
 END
 GO
+$/ if tie.identifiers and tie.values
+-- the constraint of an assembled view made before corrections retracted what they correct has no reliability
+IF EXISTS (
+    SELECT TOP 1
+        42
+    FROM
+        sys.indexes x
+    WHERE
+        x.object_id = Object_ID('$tie.capsule$.$tie.name$', 'V')
+    AND
+        x.name = 'pk$tie.name$'
+    AND NOT EXISTS (
+        SELECT TOP 1
+            42
+        FROM
+            sys.index_columns c
+        JOIN
+            sys.columns k
+        ON
+            k.object_id = c.object_id
+        AND
+            k.column_id = c.column_id
+        WHERE
+            c.object_id = x.object_id
+        AND
+            c.index_id = x.index_id
+        AND
+            k.name = '$tie.reliabilityColumnName$'
+    )
+)
+BEGIN
+    EXEC('
+    CREATE UNIQUE CLUSTERED INDEX [pk$tie.name$]
+    ON [$tie.capsule$].[$tie.name$] (
+$/ foreach role in tie.identifiers
+        $role.columnName$ asc,
+$/ endfor
+$/ if tie.timeRange
+        $tie.changingColumnName$ desc,
+$/ endif
+        $tie.positingColumnName$ desc,
+        $tie.reliabilityColumnName$ desc
+    )
+    WITH (DROP_EXISTING = ON);
+    ');
+END
+GO
+$/ endif
 $/ endfor

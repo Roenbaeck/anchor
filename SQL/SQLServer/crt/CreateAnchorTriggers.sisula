@@ -29,7 +29,7 @@ BEGIN
     );
     INSERT INTO [$anchor.capsule$].[$anchor.name$] (
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         $anchor.dummyColumnName$
 $/ endif
@@ -40,7 +40,7 @@ $/ endif
         @$anchor.mnemonic$
     SELECT
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         null
 $/ endif
@@ -170,7 +170,7 @@ $/ if schema.METADATA
 $/ endif
         i.$attribute.entityReferenceName$,
 $/ if attribute.isKnotted
-        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$), $--$
+        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$),
 $/ else
         i.$attribute.valueColumnName$,
 $/ endif
@@ -187,7 +187,7 @@ $/ if attribute.isKnotted
         [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
     ON
 $/ if attribute.knot.hasChecksum
-        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$ $--$
+        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$
 $/ else
         [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -280,7 +280,7 @@ $/ endif
             [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
         ON
 $/ if attribute.knot.hasChecksum
-            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max))) $--$
+            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))
 $/ else
             [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -311,12 +311,102 @@ $/ endif
             END, $schema.metadata.defaultReliability$)
         );
     END
+$/ if not schema.DECISIVENESS
+$/ if attribute.isHistorized
+    -- indecisive: another value at the same changing time is a correction, which also retracts the shown one
+$/ else
+    -- indecisive: another value is a correction, which also retracts the shown one
+$/ endif
+    IF (
+        UPDATE($attribute.valueColumnName$) OR
+        UPDATE($attribute.knotValueColumnName$)
+    )
+    BEGIN
+        INSERT INTO [$attribute.capsule$].[$attribute.name$] (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.entityReferenceName$,
+            $attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.positingColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            ISNULL(CASE
+                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                THEN i.$anchor.metadataColumnName$
+                ELSE i.$attribute.metadataColumnName$
+            END, i.$anchor.metadataColumnName$),
+$/ endif
+            p.$attribute.entityReferenceName$,
+            p.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            p.$attribute.changingColumnName$,
+$/ endif
+            cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+            END, @now) as $schema.metadata.positingRange$),
+            d.$attribute.positorColumnName$,
+            $schema.metadata.deleteReliability$
+        FROM
+            inserted i
+        LEFT JOIN
+            [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
+        ON
+$/ if attribute.knot.hasChecksum
+            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))
+$/ else
+            [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
+$/ endif
+        JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName$ = i.$anchor.identityColumnName$
+        AND
+            d.$schema.metadata.positorSuffix$ = i.$schema.metadata.positorSuffix$
+        JOIN
+            [$attribute.capsule$].[$attribute.positName$] p
+        ON
+            p.$attribute.identityColumnName$ = d.$attribute.identityColumnName$
+        WHERE
+            p.$attribute.valueColumnName$ <> CASE
+                WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$
+                ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$
+            END
+$/ if attribute.isHistorized
+        AND
+            UPDATE($attribute.changingColumnName$)
+        AND
+            p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+        AND
+            d.$attribute.positorColumnName$ = ISNULL(CASE
+                WHEN UPDATE($attribute.positorColumnName$) THEN i.$attribute.positorColumnName$
+                ELSE i.$schema.metadata.positorSuffix$
+            END, 0)
+        AND
+            d.$attribute.positingColumnName$ < cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+            END, @now) as $schema.metadata.positingRange$)
+        AND
+            ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
+                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                ELSE i.$attribute.reliabilityColumnName$
+            END, $schema.metadata.defaultReliability$) > $schema.metadata.deleteReliability$;
+    END
+$/ endif
     -- logical delete by setting to value to null
     -- note that an UPDATE SET AN_ATT_Anchor_Attribute = NULL, AN_ATT_ChangedAt = @timepoint
     -- will use @timepoint as a proxy for positing time
     IF (
         UPDATE($attribute.valueColumnName$) OR
-        UPDATE($attribute.knotValueColumnName$) $--$
+        UPDATE($attribute.knotValueColumnName$)
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -358,13 +448,13 @@ $/ endif
             $schema.metadata.deleteReliability$
         FROM
             inserted i
-        JOIN $--$
+        JOIN
             [$attribute.capsule$].[$attribute.positName$] p
         ON
             p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$
         WHERE
             (UPDATE($attribute.valueColumnName$) AND i.$attribute.valueColumnName$ is null)
-        OR $--$
+        OR
             (UPDATE($attribute.knotValueColumnName$) AND i.$attribute.knotValueColumnName$ is null);
     END
 $/ else
@@ -401,7 +491,7 @@ $/ if attribute.isHistorized
             cast(ISNULL(CASE
                 WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
 $/ if attribute.hasChecksum
-                WHEN d.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+                WHEN d.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
                 WHEN d.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -439,7 +529,7 @@ $/ endif
             UPDATE($schema.metadata.positorSuffix$) OR
             d.$attribute.valueColumnName$ is null OR
 $/ if attribute.hasChecksum
-            d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) OR $--$
+            d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) OR
 $/ else
             d.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$ OR
 $/ endif
@@ -450,11 +540,93 @@ $/ endif
             END, $schema.metadata.defaultReliability$)
         )
     END
+$/ if not schema.DECISIVENESS
+$/ if attribute.isHistorized
+    -- indecisive: another value at the same changing time is a correction, which also retracts the shown one
+$/ else
+    -- indecisive: another value is a correction, which also retracts the shown one
+$/ endif
+    IF (
+        UPDATE($attribute.valueColumnName$)
+    )
+    BEGIN
+        INSERT INTO [$attribute.capsule$].[$attribute.name$] (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.entityReferenceName$,
+            $attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.positingColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            ISNULL(CASE
+                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                THEN i.$anchor.metadataColumnName$
+                ELSE i.$attribute.metadataColumnName$
+            END, i.$anchor.metadataColumnName$),
+$/ endif
+            p.$attribute.entityReferenceName$,
+            p.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            p.$attribute.changingColumnName$,
+$/ endif
+            cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+            END, @now) as $schema.metadata.positingRange$),
+            d.$attribute.positorColumnName$,
+            $schema.metadata.deleteReliability$
+        FROM
+            inserted i
+        JOIN
+            deleted d
+        ON
+            d.$anchor.identityColumnName$ = i.$anchor.identityColumnName$
+        AND
+            d.$schema.metadata.positorSuffix$ = i.$schema.metadata.positorSuffix$
+        JOIN
+            [$attribute.capsule$].[$attribute.positName$] p
+        ON
+            p.$attribute.identityColumnName$ = d.$attribute.identityColumnName$
+        WHERE
+$/ if attribute.hasChecksum
+            p.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+            p.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+$/ if attribute.isHistorized
+        AND
+            UPDATE($attribute.changingColumnName$)
+        AND
+            p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+        AND
+            d.$attribute.positorColumnName$ = ISNULL(CASE
+                WHEN UPDATE($attribute.positorColumnName$) THEN i.$attribute.positorColumnName$
+                ELSE i.$schema.metadata.positorSuffix$
+            END, 0)
+        AND
+            d.$attribute.positingColumnName$ < cast(ISNULL(CASE
+                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+            END, @now) as $schema.metadata.positingRange$)
+        AND
+            ISNULL(CASE
+                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
+                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                ELSE i.$attribute.reliabilityColumnName$
+            END, $schema.metadata.defaultReliability$) > $schema.metadata.deleteReliability$;
+    END
+$/ endif
     -- logical delete by setting to value to null
     -- note that an UPDATE SET AN_ATT_Anchor_Attribute = NULL, AN_ATT_ChangedAt = @timepoint
     -- will use @timepoint as a proxy for positing time
     IF (
-        UPDATE($attribute.valueColumnName$) $--$
+        UPDATE($attribute.valueColumnName$)
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -496,7 +668,7 @@ $/ endif
             $schema.metadata.deleteReliability$
         FROM
             inserted i
-        JOIN $--$
+        JOIN
             [$attribute.capsule$].[$attribute.positName$] p
         ON
             p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$

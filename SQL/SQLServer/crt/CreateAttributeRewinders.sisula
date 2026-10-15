@@ -4,7 +4,7 @@
 -- point in changing time, or an attribute annex table to the given point
 -- in positing time. It does not pick a temporal perspective and
 -- instead shows all rows that have been in effect before that point
--- in time. The forwarder is the opposite of the rewinder, such that the $--$
+-- in time. The forwarder is the opposite of the rewinder, such that the
 -- union of the two will produce all rows in a posit table.
 --
 -- @positor the view of which positor to adopt (defaults to 0)
@@ -201,7 +201,7 @@ BEGIN
         @id $attribute.parent.identity$,
         @positor $schema.metadata.positorRange$ = 0,
         @changingTimepoint $attribute.timeRange$ = '$schema.EOT$',
-        @positingTimepoint $schema.metadata.positingRange$ = '$schema.EOT$', $--$
+        @positingTimepoint $schema.metadata.positingRange$ = '$schema.EOT$',
         @assertion char(1) = null
     )
 $/ if attribute.isKnotted
@@ -217,7 +217,7 @@ $/ endif
     BEGIN RETURN (
         SELECT TOP 1
 $/ if attribute.hasChecksum
-            pre.$attribute.checksumColumnName$ $--$
+            pre.$attribute.checksumColumnName$
 $/ else
             pre.$attribute.valueColumnName$
 $/ endif
@@ -251,7 +251,7 @@ BEGIN
         @id $attribute.parent.identity$,
         @positor $schema.metadata.positorRange$ = 0,
         @changingTimepoint $attribute.timeRange$ = '$schema.EOT$',
-        @positingTimepoint $schema.metadata.positingRange$ = '$schema.EOT$', $--$
+        @positingTimepoint $schema.metadata.positingRange$ = '$schema.EOT$',
         @assertion char(1) = null
     )
 $/ if attribute.isKnotted
@@ -267,7 +267,7 @@ $/ endif
     BEGIN RETURN (
         SELECT TOP 1
 $/ if attribute.hasChecksum
-            fol.$attribute.checksumColumnName$ $--$
+            fol.$attribute.checksumColumnName$
 $/ else
             fol.$attribute.valueColumnName$
 $/ endif

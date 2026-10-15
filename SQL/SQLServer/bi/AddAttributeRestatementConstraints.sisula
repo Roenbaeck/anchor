@@ -1,4 +1,4 @@
-$/ if schema.hasUnrestatableAnchorAttributes
+$/ if schema.hasUnrestatableAttributes
 -- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
 --
 -- Attributes may be prevented from storing restatements.
@@ -9,8 +9,7 @@ $/ if schema.hasUnrestatableAnchorAttributes
 -- If actual deletes are made, the remaining information will not
 -- be checked for restatements.
 --
-$/ foreach anchor in schema.anchors
-$/ foreach attribute in anchor.attributes where attribute.isHistorized and not attribute.isRestatable
+$/ foreach attribute in schema.attributes where attribute.isHistorized and not attribute.isRestatable
 -- Restatement Checking Trigger ---------------------------------------------------------------------------------------
 -- rt_$attribute.name$ (available only in attributes that cannot have restatements)
 -----------------------------------------------------------------------------------------------------------------------
@@ -18,14 +17,14 @@ IF Object_ID('$attribute.capsule$.rt_$attribute.name$', 'TR') IS NOT NULL
 DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name$];
 GO
 CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name$] ON [$attribute.capsule$].[$attribute.annexName$]
-AFTER INSERT $--$
-AS $--$
+AFTER INSERT
+AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(max);
     DECLARE @$attribute.name$ TABLE (
         $attribute.identityColumnName$ $/ if attribute.identity $attribute.identity$ $/ endif not null,
-        $attribute.entityReferenceName$ $anchor.identity$ not null,
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
         $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ endif
@@ -33,7 +32,7 @@ $/ endif
         $attribute.positingColumnName$ $schema.metadata.positingRange$ not null,
         $attribute.reliabilityColumnName$ $schema.metadata.reliabilityRange$ not null,
 $/ if attribute.knotRange
-        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null,
 $/ else
         $attribute.valueColumnName$ $attribute.dataRange$ not null,
 $/ endif
@@ -41,9 +40,10 @@ $/ if attribute.hasChecksum
         $attribute.checksumColumnName$ varbinary(16) not null,
 $/ endif
         primary key (
-            $attribute.entityReferenceName$ asc, $--$
+            $attribute.entityReferenceName$ asc,
             $attribute.changingColumnName$ desc,
-            $attribute.positingColumnName$ desc
+            $attribute.positingColumnName$ desc,
+            $attribute.reliabilityColumnName$ desc
         ),
         unique (
             $attribute.identityColumnName$,
@@ -77,11 +77,11 @@ $/ if attribute.hasChecksum
         p.$attribute.checksumColumnName$,
 $/ endif
         p.$attribute.valueColumnName$
-    FROM $--$
+    FROM
         inserted i
-    JOIN $--$
+    JOIN
         [$attribute.capsule$].[$attribute.positName$] p
-    ON $--$
+    ON
         p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$; -- the posit has already been created
     INSERT INTO @$attribute.name$ (
         $attribute.identityColumnName$,
@@ -110,13 +110,13 @@ $/ if attribute.hasChecksum
         p.$attribute.checksumColumnName$,
 $/ endif
         p.$attribute.valueColumnName$
-    FROM $--$
+    FROM
         (SELECT DISTINCT $attribute.entityReferenceName$ FROM @$attribute.name$) i
     JOIN
         [$attribute.capsule$].[$attribute.name$] p
-    ON $--$
+    ON
         p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
-    LEFT JOIN $--$
+    LEFT JOIN
         @$attribute.name$ x
     ON
         x.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
@@ -125,13 +125,13 @@ $/ endif
     WHERE
         x.$attribute.identityColumnName$ is null;
     -- no need to check retracted information
-    DELETE a $--$
-    FROM $--$
+    DELETE a
+    FROM
         @$attribute.name$ a
     OUTER APPLY (
         SELECT TOP 1
             x.$attribute.reliabilityColumnName$
-        FROM $--$
+        FROM
             @$attribute.name$ x
         WHERE
             x.$attribute.identityColumnName$ = a.$attribute.identityColumnName$
@@ -139,11 +139,11 @@ $/ endif
             x.$attribute.positingColumnName$ < a.$attribute.positingColumnName$
         ORDER BY
             x.$attribute.positingColumnName$ DESC
-    ) pre $--$
+    ) pre
     OUTER APPLY (
         SELECT TOP 1
             x.$attribute.reliabilityColumnName$
-        FROM $--$
+        FROM
             @$attribute.name$ x
         WHERE
             x.$attribute.identityColumnName$ = a.$attribute.identityColumnName$
@@ -151,7 +151,7 @@ $/ endif
             x.$attribute.positingColumnName$ > a.$attribute.positingColumnName$
         ORDER BY
             x.$attribute.positingColumnName$ ASC
-    ) fol $--$
+    ) fol
     WHERE
         (a.$attribute.reliabilityColumnName$ = 1 AND fol.$attribute.reliabilityColumnName$ = 0)
     OR
@@ -160,30 +160,31 @@ $/ endif
     SET @message = (
         SELECT TOP 1
             pre.*
-        FROM $--$
+        FROM
             @$attribute.name$ a
         CROSS APPLY (
             SELECT TOP 1
                 h.$attribute.entityReferenceName$,
                 h.$attribute.changingColumnName$,
 $/ if attribute.hasChecksum
-                h.$attribute.checksumColumnName$ $--$
+                h.$attribute.checksumColumnName$
 $/ else
                 h.$attribute.valueColumnName$
 $/ endif
-            FROM $--$
+            FROM
                 @$attribute.name$ h
             WHERE
                 h.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
             AND
                 h.$attribute.changingColumnName$ < a.$attribute.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$attribute.changingColumnName$ DESC,
-                h.$attribute.positingColumnName$ DESC
+                h.$attribute.positingColumnName$ DESC,
+                h.$attribute.reliabilityColumnName$ DESC
         ) pre
         WHERE
 $/ if attribute.hasChecksum
-            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+            a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$
 $/ else
             a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
 $/ endif
@@ -199,6 +200,5 @@ $/ endif
     END
 END
 GO
-$/ endfor
 $/ endfor
 $/ endif

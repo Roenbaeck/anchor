@@ -19,7 +19,7 @@ DROP TRIGGER [$tie.capsule$].[rt_$tie.name$];
 GO
 CREATE TRIGGER [$tie.capsule$].[rt_$tie.name$] ON [$tie.capsule$].[$tie.name$]
 AFTER INSERT
-AS $--$
+AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(max);
@@ -103,8 +103,8 @@ $/ foreach role in tie.values
             $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
 $/ endif
-        FROM $--$
-            @inserted $--$
+        FROM
+            @inserted
     ) i
     JOIN
         [$tie.capsule$].[$tie.name$] p
@@ -129,7 +129,7 @@ $/ endif
             42
         FROM
             @inserted x
-        WHERE $--$
+        WHERE
             x.$tie.changingColumnName$ = p.$tie.changingColumnName$
 $/ if tie.identifiers
 $/ foreach role in tie.identifiers
@@ -147,7 +147,7 @@ $/ endif
     SET @message = (
         SELECT TOP 1
             pre.*
-        FROM $--$
+        FROM
             @inserted i
         CROSS APPLY (
             SELECT TOP 1
@@ -170,9 +170,9 @@ $/ foreach role in tie.values
 $/ endfor
 $/ endif
                 h.$tie.changingColumnName$ < i.$tie.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$tie.changingColumnName$ DESC
-        ) pre $--$
+        ) pre
         WHERE
 $/ foreach role in tie.roles
             i.$role.columnName$ = pre.$role.columnName$

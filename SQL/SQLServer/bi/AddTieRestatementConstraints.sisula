@@ -19,7 +19,7 @@ DROP TRIGGER [$tie.capsule$].[rt_$tie.name$];
 GO
 CREATE TRIGGER [$tie.capsule$].[rt_$tie.name$] ON [$tie.capsule$].[$tie.annexName$]
 AFTER INSERT
-AS $--$
+AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(max);
@@ -49,9 +49,10 @@ $/ foreach role in tie.values
 $/ endfor
 $/ endif
             $tie.changingColumnName$ desc,
-            $tie.positingColumnName$ desc
-        ), $--$
-        unique ( $--$
+            $tie.positingColumnName$ desc,
+            $tie.reliabilityColumnName$ desc
+        ),
+        unique (
             $tie.identityColumnName$,
             $tie.positingColumnName$
         )
@@ -67,7 +68,7 @@ $/ endif
 $/ foreach role in tie.roles
         $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
-    ) $--$
+    )
     SELECT
         i.$tie.identityColumnName$,
 $/ if schema.METADATA
@@ -81,9 +82,9 @@ $/ foreach role in tie.roles
 $/ endfor
     FROM
         inserted i
-    JOIN $--$
+    JOIN
         [$tie.capsule$].[$tie.positName$] p
-    ON $--$
+    ON
         p.$tie.identityColumnName$ = i.$tie.identityColumnName$; -- the posit has already been created
     INSERT INTO @inserted (
         $tie.identityColumnName$,
@@ -96,7 +97,7 @@ $/ endif
 $/ foreach role in tie.roles
         $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
-    ) $--$
+    )
     SELECT
         p.$tie.identityColumnName$,
 $/ if schema.METADATA
@@ -119,8 +120,8 @@ $/ foreach role in tie.values
             $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
 $/ endif
-        FROM $--$
-            @inserted $--$
+        FROM
+            @inserted
     ) i
     JOIN
         [$tie.capsule$].[$tie.name$] p
@@ -140,7 +141,7 @@ $/ if not role.last()
 $/ endif
 $/ endfor
 $/ endif
-    LEFT JOIN $--$
+    LEFT JOIN
         @inserted x
     ON
         x.$tie.identityColumnName$ = p.$tie.identityColumnName$
@@ -149,13 +150,13 @@ $/ endif
     WHERE
         x.$tie.identityColumnName$ is null;
     -- no need to check retracted information
-    DELETE a $--$
-    FROM $--$
+    DELETE a
+    FROM
         @inserted a
     OUTER APPLY (
         SELECT TOP 1
             x.$tie.reliabilityColumnName$
-        FROM $--$
+        FROM
             @inserted x
         WHERE
             x.$tie.identityColumnName$ = a.$tie.identityColumnName$
@@ -163,11 +164,11 @@ $/ endif
             x.$tie.positingColumnName$ < a.$tie.positingColumnName$
         ORDER BY
             x.$tie.positingColumnName$ DESC
-    ) pre $--$
+    ) pre
     OUTER APPLY (
         SELECT TOP 1
             x.$tie.reliabilityColumnName$
-        FROM $--$
+        FROM
             @inserted x
         WHERE
             x.$tie.identityColumnName$ = a.$tie.identityColumnName$
@@ -175,7 +176,7 @@ $/ endif
             x.$tie.positingColumnName$ > a.$tie.positingColumnName$
         ORDER BY
             x.$tie.positingColumnName$ ASC
-    ) fol $--$
+    ) fol
     WHERE
         (a.$tie.reliabilityColumnName$ = 1 AND fol.$tie.reliabilityColumnName$ = 0)
     OR
@@ -184,7 +185,7 @@ $/ endif
     SET @message = (
         SELECT TOP 1
             pre.*
-        FROM $--$
+        FROM
             @inserted a
         CROSS APPLY (
             SELECT TOP 1
@@ -207,10 +208,11 @@ $/ foreach role in tie.values
 $/ endfor
 $/ endif
                 h.$tie.changingColumnName$ < a.$tie.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$tie.changingColumnName$ DESC,
-                h.$tie.positingColumnName$ DESC
-        ) pre $--$
+                h.$tie.positingColumnName$ DESC,
+                h.$tie.reliabilityColumnName$ DESC
+        ) pre
         WHERE
 $/ foreach role in tie.roles
             a.$role.columnName$ = pre.$role.columnName$

@@ -4,7 +4,7 @@
 -- point in changing time, or a tie annex table to the given point
 -- in positing time. It does not pick a temporal perspective and
 -- instead shows all rows that have been in effect before that point
--- in time. The forwarder is the opposite of the rewinder, such that $--$
+-- in time. The forwarder is the opposite of the rewinder, such that
 -- their union corresponds to all rows in the posit table.
 --
 -- @positor the view of which positor to adopt (defaults to 0)
@@ -117,7 +117,7 @@ $/ endif
         a.$tie.assertionColumnName$
     FROM
 $/ if tie.isHistorized
-        [$tie.capsule$].[r$tie.positName$](@changingTimepoint) p $--$
+        [$tie.capsule$].[r$tie.positName$](@changingTimepoint) p
 $/ else
         [$tie.capsule$].[$tie.positName$] p
 $/ endif
@@ -174,7 +174,7 @@ $/ endif
         a.$tie.assertionColumnName$
     FROM
 $/ if tie.isHistorized
-        [$tie.capsule$].[f$tie.positName$](@changingTimepoint) p $--$
+        [$tie.capsule$].[f$tie.positName$](@changingTimepoint) p
 $/ else
         [$tie.capsule$].[$tie.positName$] p
 $/ endif

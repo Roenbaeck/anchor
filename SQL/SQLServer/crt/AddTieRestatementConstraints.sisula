@@ -32,7 +32,7 @@ BEGIN
     DECLARE @changed $tie.timeRange$;
 $/ foreach role in tie.roles
 $/ if role.entity
-    DECLARE @$role.name$ $role.entity.identity$; $--$
+    DECLARE @$role.name$ $role.entity.identity$;
 $/ else
     DECLARE @$role.name$ $role.knot.identity$;
 $/ endif
@@ -97,7 +97,7 @@ $/ endfor
                 [$tie.capsule$].[f$tie.name$] (
                     @positor,
                     @changed,
-                    @posited $--$
+                    @posited
                 ) fol
             WHERE
 $/ if tie.identifiers

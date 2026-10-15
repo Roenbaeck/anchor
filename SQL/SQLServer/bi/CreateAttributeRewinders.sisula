@@ -4,7 +4,7 @@
 -- point in changing time, or an attribute annex table to the given point
 -- in positing time. It does not pick a temporal perspective and
 -- instead shows all rows that have been in effect before that point
--- in time. The forwarder is the opposite of the rewinder, such that the $--$
+-- in time. The forwarder is the opposite of the rewinder, such that the
 -- union of the two will produce all rows in a posit table.
 --
 -- @changingTimepoint the point in changing time to rewind to (defaults to End of Time, no rewind)
@@ -198,7 +198,7 @@ $/ endif
     BEGIN RETURN (
         SELECT TOP 1
 $/ if attribute.hasChecksum
-            pre.$attribute.checksumColumnName$ $--$
+            pre.$attribute.checksumColumnName$
 $/ else
             pre.$attribute.valueColumnName$
 $/ endif
@@ -245,7 +245,7 @@ $/ endif
     BEGIN RETURN (
         SELECT TOP 1
 $/ if attribute.hasChecksum
-            fol.$attribute.checksumColumnName$ $--$
+            fol.$attribute.checksumColumnName$
 $/ else
             fol.$attribute.valueColumnName$
 $/ endif

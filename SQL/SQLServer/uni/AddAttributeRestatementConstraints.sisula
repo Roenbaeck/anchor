@@ -18,7 +18,7 @@ DROP TRIGGER [$attribute.capsule$].[rt_$attribute.name$];
 GO
 CREATE TRIGGER [$attribute.capsule$].[rt_$attribute.name$] ON [$attribute.capsule$].[$attribute.name$]
 AFTER INSERT
-AS $--$
+AS
 BEGIN
     SET NOCOUNT ON;
     DECLARE @message varchar(max);
@@ -34,7 +34,7 @@ $/ if attribute.isHistorized
         $attribute.changingColumnName$ $attribute.timeRange$ not null,
 $/ endif
 $/ if attribute.knotRange
-        $attribute.valueColumnName$ $attribute.knot.identity$ not null, $--$
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null,
 $/ else
         $attribute.valueColumnName$ $attribute.dataRange$ not null,
 $/ endif
@@ -42,7 +42,7 @@ $/ if attribute.hasChecksum
         $attribute.checksumColumnName$ varbinary(16) not null,
 $/ endif
         primary key(
-            $attribute.entityReferenceName$ asc, $--$
+            $attribute.entityReferenceName$ asc,
 $/ if attribute.timeRange
             $attribute.changingColumnName$ desc
 $/ endif
@@ -60,7 +60,7 @@ $/ if attribute.isHistorized
         $attribute.changingColumnName$,
 $/ endif
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$, $--$
+        $attribute.checksumColumnName$,
 $/ endif
         $attribute.valueColumnName$
     )
@@ -76,10 +76,10 @@ $/ if attribute.isHistorized
         $attribute.changingColumnName$,
 $/ endif
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$, $--$
+        $attribute.checksumColumnName$,
 $/ endif
         $attribute.valueColumnName$
-    FROM $--$
+    FROM
         inserted;
     INSERT INTO @$attribute.name$ (
         $attribute.entityReferenceName$,
@@ -93,7 +93,7 @@ $/ if attribute.isHistorized
         $attribute.changingColumnName$,
 $/ endif
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$, $--$
+        $attribute.checksumColumnName$,
 $/ endif
         $attribute.valueColumnName$
     )
@@ -109,26 +109,26 @@ $/ if attribute.isHistorized
         p.$attribute.changingColumnName$,
 $/ endif
 $/ if attribute.hasChecksum
-        p.$attribute.checksumColumnName$, $--$
+        p.$attribute.checksumColumnName$,
 $/ endif
         p.$attribute.valueColumnName$
     FROM (
-        SELECT DISTINCT $--$
+        SELECT DISTINCT
 $/ if attribute.isEquivalent
             $attribute.equivalentColumnName$,
 $/ endif
-            $attribute.entityReferenceName$ $--$
-        FROM $--$
+            $attribute.entityReferenceName$
+        FROM
             @$attribute.name$
-    ) i $--$
+    ) i
     JOIN
         [$attribute.capsule$].[$attribute.name$] p
-    ON $--$
+    ON
 $/ if attribute.isEquivalent
         p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-    AND $--$
+    AND
 $/ endif
         p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
     WHERE NOT EXISTS (
@@ -141,7 +141,7 @@ $/ if attribute.isEquivalent
             p.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-        AND $--$
+        AND
 $/ endif
             x.$attribute.entityReferenceName$ = p.$attribute.entityReferenceName$
 $/ if attribute.isHistorized
@@ -155,7 +155,7 @@ $/ endif
     SET @message = (
         SELECT TOP 1
             pre.*
-        FROM $--$
+        FROM
             @$attribute.name$ i
         CROSS APPLY (
             SELECT TOP 1
@@ -167,28 +167,28 @@ $/ if attribute.isHistorized
                 h.$attribute.changingColumnName$,
 $/ endif
 $/ if attribute.hasChecksum
-                h.$attribute.checksumColumnName$ $--$
+                h.$attribute.checksumColumnName$
 $/ else
                 h.$attribute.valueColumnName$
 $/ endif
-            FROM $--$
+            FROM
                 @$attribute.name$ h
             WHERE
 $/ if attribute.isEquivalent
                 h.$attribute.equivalentColumnName$ = i.$attribute.equivalentColumnName$
 $/ endif
 $/ if attribute.isEquivalent
-            AND $--$
+            AND
 $/ endif
                 h.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
             AND
                 h.$attribute.changingColumnName$ < i.$attribute.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$attribute.changingColumnName$ DESC
         ) pre
         WHERE
 $/ if attribute.hasChecksum
-            i.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$ $--$
+            i.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$
 $/ else
             i.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$
 $/ endif

@@ -20,7 +20,7 @@ $/ else
     $knot.identityColumnName$ $knot.identity$ not null,
 $/ endif
 $/ if schema.METADATA
-    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null, $--$
+    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ else
     $knot.dummyColumnName$ bit null,
 $/ endif
@@ -41,7 +41,7 @@ $/ if knot.hasChecksum
     $knot.checksumColumnName$ as cast($schema.metadata.encapsulation$.MD5(cast($knot.valueColumnName$ as varbinary(max))) as varbinary(16)) persisted,
 $/ endif
 $/ if schema.METADATA
-    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null, $--$
+    $knot.metadataColumnName$ $schema.metadata.metadataType$ not null,
 $/ else
     $knot.dummyColumnName$ bit null,
 $/ endif
@@ -55,7 +55,7 @@ $/ endif
     constraint uq$knot.equivalentName$ unique (
         $knot.equivalentColumnName$,
 $/ if knot.hasChecksum
-        $knot.checksumColumnName$ $--$
+        $knot.checksumColumnName$
 $/ else
         $knot.valueColumnName$
 $/ endif
@@ -89,7 +89,7 @@ $/ endif
     ),
     constraint uq$knot.name$ unique (
 $/ if knot.hasChecksum
-        $knot.checksumColumnName$ $--$
+        $knot.checksumColumnName$
 $/ else
         $knot.valueColumnName$
 $/ endif

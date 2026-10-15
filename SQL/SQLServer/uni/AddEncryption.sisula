@@ -22,7 +22,7 @@ BEGIN
     CREATE CERTIFICATE [$group.name$] WITH SUBJECT = '$group.name$';
 END
 -- GROUP KEY ----------------------------------------------------------------------------------------------------------
--- An encryption key used to encrypt the data in the attributes: $--$
+-- An encryption key used to encrypt the data in the attributes:
 $/ foreach attribute in group.attributes
 --	$attribute.name$
 $/ endfor
@@ -30,7 +30,7 @@ $/ endfor
 IF NOT EXISTS (SELECT * FROM sys.symmetric_keys WHERE [name] = '$group.name$')
 BEGIN
     CREATE SYMMETRIC KEY [$group.name$]
-    WITH ALGORITHM = AES_256, $--$
+    WITH ALGORITHM = AES_256,
     IDENTITY_VALUE = '$group.name$'
     ENCRYPTION BY CERTIFICATE [$group.name$];
 END

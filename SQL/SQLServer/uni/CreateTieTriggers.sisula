@@ -69,7 +69,7 @@ $/ endfor
             42
         FROM
             [$tie.capsule$].[$tie.name$] x
-        WHERE $--$
+        WHERE
 $/ foreach role in tie.roles
             x.$role.columnName$ = i.$role.columnName$
 $/ if not role.last()
@@ -112,10 +112,10 @@ $/ if tie.isIdempotent
     INSERT INTO @inserted
     SELECT
 $/ if schema.METADATA
-        p.$tie.metadataColumnName$, $--$
+        p.$tie.metadataColumnName$,
 $/ endif
         'X', -- existing data
-        p.$tie.changingColumnName$, $--$
+        p.$tie.changingColumnName$,
 $/ foreach role in tie.roles
         p.$role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
@@ -130,8 +130,8 @@ $/ foreach role in tie.values
             $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
 $/ endif
-        FROM $--$
-            @inserted $--$
+        FROM
+            @inserted
     ) i
     JOIN
         [$tie.capsule$].[$tie.name$] p
@@ -162,16 +162,16 @@ $/ endif
 $/ endfor
     );
     INSERT INTO @restated
-    SELECT $--$
+    SELECT
         x.$tie.changingColumnName$,
 $/ foreach role in tie.roles
         x.$role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
     FROM (
         DELETE t
-        OUTPUT $--$
+        OUTPUT
             deleted.*
-        FROM $--$
+        FROM
             @inserted t
         OUTER APPLY (
             SELECT TOP 1
@@ -193,10 +193,10 @@ $/ foreach role in tie.values
 $/ endfor
 $/ endif
                 h.$tie.changingColumnName$ < t.$tie.changingColumnName$
-            ORDER BY $--$
+            ORDER BY
                 h.$tie.changingColumnName$ DESC
         ) pre
-        WHERE $--$
+        WHERE
 $/ foreach role in tie.roles
             t.$role.columnName$ = pre.$role.columnName$
 $/ if not role.last()
@@ -208,11 +208,11 @@ $/ endfor
         x.$tie.statementTypeColumnName$ = 'X';
     -- delete the quenches (should be rare)
     DELETE t
-    FROM $--$
+    FROM
         [$tie.capsule$].[$tie.name$] t
-    JOIN $--$
+    JOIN
         @restated d
-    ON $--$
+    ON
         d.$tie.changingColumnName$ = t.$tie.changingColumnName$
     AND
 $/ foreach role in tie.roles
@@ -224,7 +224,7 @@ $/ endfor
 $/ endif
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
-        $tie.metadataColumnName$, $--$
+        $tie.metadataColumnName$,
 $/ endif
         $tie.changingColumnName$,
 $/ foreach role in tie.roles
@@ -296,7 +296,7 @@ $/ endfor
 $/ endif
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
-        $tie.metadataColumnName$, $--$
+        $tie.metadataColumnName$,
 $/ endif
 $/ foreach role in tie.roles
         $role.columnName$$/ if not role.last() ,$/ endif
@@ -316,7 +316,7 @@ $/ endfor
             42
         FROM
             [$tie.capsule$].[$tie.name$] x
-        WHERE $--$
+        WHERE
 $/ foreach role in tie.roles
             x.$role.columnName$ = i.$role.columnName$
 $/ if not role.last()
@@ -358,9 +358,9 @@ $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.last()
-        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$) $--$
+        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$)
 $/ else
-        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$), $--$
+        ISNULL(i.$role.columnName$, [$role.name$].$role.knot.identityColumnName$),
 $/ endif
 $/ else
         i.$role.columnName$$/ if not role.last() ,$/ endif
@@ -417,9 +417,9 @@ $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.last()
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
 $/ else
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END, $--$
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END,
 $/ endif
 $/ else
         i.$role.columnName$$/ if not role.last() ,$/ endif
@@ -436,7 +436,7 @@ $/ endfor
     WHERE
 $/ foreach role in tie.values
 $/ if role.knot
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null $--$
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null
 $/ else
         i.$role.columnName$ is not null
 $/ endif
@@ -454,7 +454,7 @@ $/ endif
                 WHERE
 $/ foreach role in tie.roles
 $/ if role.knot
-                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END $--$
+                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
 $/ else
                     d.$role.columnName$ = i.$role.columnName$
 $/ endif
@@ -476,7 +476,7 @@ $/ endfor
     INTO
         #$tie.name$
     FROM
-        inserted i $--$
+        inserted i
     WHERE
 $/ foreach role in tie.values
         i.$role.columnName$ is null
@@ -486,20 +486,20 @@ $/ endfor
     IF(@@ROWCOUNT > 0)
     BEGIN
         IF OBJECT_ID('[$tie.capsule$].[$tie.deletionName$]') is null
-        SELECT TOP 0 $--$
+        SELECT TOP 0
             * ,
             CAST(null as $/ if tie.isHistorized $tie.timeRange$$/ else $schema.metadata.chronon$$/ endif) as $tie.deletionTimeColumnName$
-        INTO $--$
+        INTO
             [$tie.capsule$].[$tie.deletionName$]
-        FROM $--$
+        FROM
             [$tie.capsule$].[$tie.name$];
         DELETE tie
-        OUTPUT $--$
+        OUTPUT
             deleted.*,
 $/ if tie.isHistorized
-            ISNULL(d.$tie.deletionTimeColumnName$, @now) $--$
+            ISNULL(d.$tie.deletionTimeColumnName$, @now)
 $/ else
-            @now $--$
+            @now
 $/ endif
         INTO
             [$tie.capsule$].[$tie.deletionName$]

@@ -36,7 +36,8 @@ $/ endif
     ON
         a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$;
     ');
-    -- Constraint ensuring that recorded and erased posits are temporally consistent
+    -- Constraint ensuring that recorded and erased posits are temporally consistent: one posit at a time is asserted,
+    -- and a correction retracts what it corrects at the same positing time
     EXEC('
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name$]
     ON [$attribute.capsule$].[$attribute.name$] (
@@ -44,8 +45,53 @@ $/ endif
 $/ if attribute.timeRange
         $attribute.changingColumnName$ desc,
 $/ endif
-        $attribute.positingColumnName$ desc
+        $attribute.positingColumnName$ desc,
+        $attribute.reliabilityColumnName$ desc
     );
+    ');
+END
+GO
+-- the constraint of an assembled view made before corrections retracted what they correct has no reliability
+IF EXISTS (
+    SELECT TOP 1
+        42
+    FROM
+        sys.indexes x
+    WHERE
+        x.object_id = Object_ID('$attribute.capsule$.$attribute.name$', 'V')
+    AND
+        x.name = 'pk$attribute.name$'
+    AND NOT EXISTS (
+        SELECT TOP 1
+            42
+        FROM
+            sys.index_columns c
+        JOIN
+            sys.columns k
+        ON
+            k.object_id = c.object_id
+        AND
+            k.column_id = c.column_id
+        WHERE
+            c.object_id = x.object_id
+        AND
+            c.index_id = x.index_id
+        AND
+            k.name = '$attribute.reliabilityColumnName$'
+    )
+)
+BEGIN
+    EXEC('
+    CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name$]
+    ON [$attribute.capsule$].[$attribute.name$] (
+        $attribute.entityReferenceName$ asc,
+$/ if attribute.timeRange
+        $attribute.changingColumnName$ desc,
+$/ endif
+        $attribute.positingColumnName$ desc,
+        $attribute.reliabilityColumnName$ desc
+    )
+    WITH (DROP_EXISTING = ON);
     ');
 END
 GO

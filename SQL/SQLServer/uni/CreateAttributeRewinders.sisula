@@ -36,7 +36,7 @@ $/ endif
         $attribute.changingColumnName$
     FROM
 $/ if attribute.isEquivalent
-        [$attribute.capsule$].[e$attribute.name$](@equivalent) $--$
+        [$attribute.capsule$].[e$attribute.name$](@equivalent)
 $/ else
         [$attribute.capsule$].[$attribute.name$]
 $/ endif

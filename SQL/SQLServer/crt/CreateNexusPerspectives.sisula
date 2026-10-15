@@ -154,7 +154,7 @@ GO
 CREATE VIEW [$nexus.capsule$].[l$nexus.name$]
 AS
 SELECT
-    p.*, $--$
+    p.*,
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$nexus.mnemonic$].*
 FROM
@@ -194,7 +194,7 @@ GO
 CREATE VIEW [$nexus.capsule$].[n$nexus.name$]
 AS
 SELECT
-    p.*, $--$
+    p.*,
     cast(null as $schema.metadata.reliabilityRange$) as $schema.metadata.reliabilitySuffix$,
     [$nexus.mnemonic$].*
 FROM
@@ -218,50 +218,39 @@ CREATE FUNCTION [$nexus.capsule$].[d$nexus.name$] (
 )
 RETURNS TABLE AS RETURN
 SELECT
-    p.$schema.metadata.positorSuffix$,
     timepoints.inspectedTimepoint,
     [$nexus.mnemonic$].*
 FROM
     [$schema.metadata.encapsulation$].[_$schema.metadata.positorSuffix$] p
-CROSS JOIN
-    (
-        SELECT DISTINCT
-            timepoint AS inspectedTimepoint
-        FROM
-            [$schema.metadata.encapsulation$].[p$schema.metadata.positorSuffix$]
-        CROSS APPLY
-            [$schema.metadata.encapsulation$].[_AnchorTimepoints](
-                @intervalStart,
-                @intervalEnd
-            )
-    ) timepoints
+JOIN (
+$/ foreach attribute in nexus.historizedAttributes
+    SELECT DISTINCT
+        $attribute.positorColumnName$ AS positor,
+        $attribute.entityReferenceName$ AS $nexus.identityColumnName$,
+        $attribute.changingColumnName$ AS inspectedTimepoint,
+        '$attribute.mnemonic$' AS mnemonic
+    FROM
+        [$attribute.capsule$].[$attribute.name$]
+    WHERE
+        (@selection is null OR @selection like '%$attribute.mnemonic$%')
+    AND
+        $attribute.changingColumnName$ BETWEEN @intervalStart AND @intervalEnd
+$/ if not attribute.last()
+    UNION
+$/ endif
+$/ endfor
+) timepoints
+ON
+    timepoints.positor = p.$schema.metadata.positorSuffix$
 CROSS APPLY
-    [$nexus.capsule$].[t$nexus.name$](p.$schema.metadata.positorSuffix$, timepoints.inspectedTimepoint, DEFAULT, '+') [$nexus.mnemonic$]
-WHERE
-    @selection is null
-OR
-    EXISTS (
-        SELECT
-            1
-        FROM
-            [$schema.metadata.encapsulation$].[_SplitMnemonic](@selection)
-        JOIN
-            [$schema.metadata.encapsulation$].[_AnchorAttributes]
-        ON
-            mnemonic = [attribute]
-        AND
-            [anchor] = '$nexus.name$'
-        CROSS APPLY
-            [$schema.metadata.encapsulation$].[_AttributeTimepoints](
-                [capsule],
-                [attribute],
-                p.$schema.metadata.positorSuffix$,
-                @intervalStart,
-                @intervalEnd
-            )
-        WHERE
-            timepoint = timepoints.inspectedTimepoint
-    );
+    [$nexus.capsule$].[t$nexus.name$] (
+        timepoints.positor,
+        timepoints.inspectedTimepoint,
+        DEFAULT,
+        '+' -- positve assertions only
+    ) [$nexus.mnemonic$]
+ WHERE
+    [$nexus.mnemonic$].$nexus.identityColumnName$ = timepoints.$nexus.identityColumnName$;
 GO
 $/ endif
 $/ endif

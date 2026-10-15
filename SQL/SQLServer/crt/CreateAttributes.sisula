@@ -32,7 +32,7 @@ $/ endif
         $attribute.entityReferenceName$ asc,
         $attribute.changingColumnName$ desc,
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$ asc $--$
+        $attribute.checksumColumnName$ asc
 $/ else
         $attribute.valueColumnName$ asc
 $/ endif
@@ -125,7 +125,7 @@ $/ endif
     constraint uq$attribute.positName$ unique clustered (
         $attribute.entityReferenceName$ asc,
 $/ if attribute.hasChecksum
-        $attribute.checksumColumnName$ asc $--$
+        $attribute.checksumColumnName$ asc
 $/ else
         $attribute.valueColumnName$ asc
 $/ endif

@@ -29,7 +29,7 @@ BEGIN
     );
     INSERT INTO [$anchor.capsule$].[$anchor.name$] (
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         $anchor.dummyColumnName$
 $/ endif
@@ -40,7 +40,7 @@ $/ endif
         @$anchor.mnemonic$
     SELECT
 $/ if schema.METADATA
-        $anchor.metadataColumnName$ $--$
+        $anchor.metadataColumnName$
 $/ else
         null
 $/ endif
@@ -165,7 +165,7 @@ $/ if schema.METADATA
 $/ endif
         i.$attribute.entityReferenceName$,
 $/ if attribute.isKnotted
-        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$), $--$
+        ISNULL(i.$attribute.valueColumnName$, [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$),
 $/ else
         i.$attribute.valueColumnName$,
 $/ endif
@@ -181,7 +181,7 @@ $/ if attribute.isKnotted
         [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
     ON
 $/ if attribute.knot.hasChecksum
-        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$ $--$
+        [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = i.$attribute.knotChecksumColumnName$
 $/ else
         [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -267,7 +267,7 @@ $/ endif
             [$attribute.knot.capsule$].[$attribute.knot.name$] [k$attribute.knot.mnemonic$]
         ON
 $/ if attribute.knot.hasChecksum
-            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max))) $--$
+            [k$attribute.knot.mnemonic$].$attribute.knot.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.knotValueColumnName$ as varbinary(max)))
 $/ else
             [k$attribute.knot.mnemonic$].$attribute.knot.valueColumnName$ = i.$attribute.knotValueColumnName$
 $/ endif
@@ -299,7 +299,7 @@ $/ endif
     -- will use @timepoint as a proxy for positing time
     IF (
         UPDATE($attribute.valueColumnName$) OR
-        UPDATE($attribute.knotValueColumnName$) $--$
+        UPDATE($attribute.knotValueColumnName$)
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -336,13 +336,13 @@ $/ endif
             0
         FROM
             inserted i
-        JOIN $--$
+        JOIN
             [$attribute.capsule$].[$attribute.positName$] p
         ON
             p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$
         WHERE
             (UPDATE($attribute.valueColumnName$) AND i.$attribute.valueColumnName$ is null)
-        OR $--$
+        OR
             (UPDATE($attribute.knotValueColumnName$) AND i.$attribute.knotValueColumnName$ is null);
     END
 $/ else
@@ -378,7 +378,7 @@ $/ if attribute.isHistorized
             cast(ISNULL(CASE
                 WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
 $/ if attribute.hasChecksum
-                WHEN d.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) $--$
+                WHEN d.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
                 WHEN d.$attribute.valueColumnName$ = i.$attribute.valueColumnName$
 $/ endif
@@ -408,7 +408,7 @@ $/ endif
             UPDATE($attribute.positingColumnName$) OR
             d.$attribute.valueColumnName$ is null OR
 $/ if attribute.hasChecksum
-            d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) OR $--$
+            d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) OR
 $/ else
             d.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$ OR
 $/ endif
@@ -423,7 +423,7 @@ $/ endif
     -- note that an UPDATE SET AN_ATT_Anchor_Attribute = NULL, AN_ATT_ChangedAt = @timepoint
     -- will use @timepoint as a proxy for positing time
     IF (
-        UPDATE($attribute.valueColumnName$) $--$
+        UPDATE($attribute.valueColumnName$)
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -460,7 +460,7 @@ $/ endif
             0
         FROM
             inserted i
-        JOIN $--$
+        JOIN
             [$attribute.capsule$].[$attribute.positName$] p
         ON
             p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$

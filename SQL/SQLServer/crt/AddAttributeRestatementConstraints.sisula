@@ -1,4 +1,4 @@
-$/ if schema.hasHistorizedAnchorAttributes
+$/ if schema.hasHistorizedAttributes
 -- ATTRIBUTE RESTATEMENT CONSTRAINTS ----------------------------------------------------------------------------------
 --
 -- Attributes may be prevented from storing restatements.
@@ -13,8 +13,7 @@ $/ if schema.hasHistorizedAnchorAttributes
 -- @positor the one who made the posit
 -- @assertion whether this posit is positively or negatively asserted, or unreliable
 --
-$/ foreach anchor in schema.anchors
-$/ foreach attribute in anchor.attributes where attribute.isHistorized
+$/ foreach attribute in schema.attributes where attribute.isHistorized
 -- Restatement Finder Function and Constraint -------------------------------------------------------------------------
 -- rf$attribute.name$ restatement finder, also used by the insert and update triggers for idempotent attributes
 -- rc$attribute.name$ restatement constraint (available only in attributes that cannot have restatements)
@@ -23,14 +22,14 @@ IF Object_ID('$attribute.capsule$.rf$attribute.name$', 'FN') IS NULL
 BEGIN
     EXEC('
     CREATE FUNCTION [$attribute.capsule$].[rf$attribute.name$] (
-        @posit $anchor.identity$,
+        @posit $attribute.identity$,
         @posited $schema.metadata.positingRange$,
         @positor $schema.metadata.positorRange$,
         @assertion char(1)
     )
     RETURNS tinyint AS
     BEGIN
-    DECLARE @id $anchor.identity$;
+    DECLARE @id $attribute.parent.identity$;
 $/ if attribute.isKnotted
     DECLARE @value $attribute.knot.identity$;
 $/ else
@@ -69,7 +68,7 @@ $/ endif
                     @id,
                     @positor,
                     @changed,
-                    @posited, $--$
+                    @posited,
                     @assertion
                 )
         ) OR EXISTS (
@@ -80,7 +79,7 @@ $/ endif
                     @id,
                     @positor,
                     @changed,
-                    @posited, $--$
+                    @posited,
                     @assertion
                 )
         )
@@ -103,6 +102,5 @@ $/ if not attribute.isRestatable
 $/ endif
 END
 GO
-$/ endfor
 $/ endfor
 $/ endif

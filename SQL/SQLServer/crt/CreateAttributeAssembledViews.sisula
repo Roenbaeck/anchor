@@ -44,7 +44,7 @@ $/ if schema.INTEGRITY
     CREATE UNIQUE CLUSTERED INDEX [pk$attribute.name$]
     ON [$attribute.capsule$].[$attribute.name$] (
 $/ if schema.DECISIVENESS
-        $attribute.assertionColumnName$ desc, $--$
+        $attribute.assertionColumnName$ desc,
 $/ else
         $attribute.identityColumnName$ asc,
 $/ endif
