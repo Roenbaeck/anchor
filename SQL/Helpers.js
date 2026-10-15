@@ -683,97 +683,7 @@ while (tie = schema.nextTie()) {
     };
 }
 
-// create a key lookup
-var keyIdentifier, key;
-while (anchor = schema.nextAnchor()) {
-    while(attribute = anchor.nextAttribute()) {
-        if(attribute.key) {
-            for(keyIdentifier in attribute.key) {
-                key = attribute.key[keyIdentifier];
-                // Determine key target (anchor or nexus)
-                var keyTarget = (schema.anchor && schema.anchor[key.of]) ? schema.anchor[key.of] : (schema.nexus && schema.nexus[key.of] ? schema.nexus[key.of] : null);
-                if(!keyTarget) continue; // unknown target
-                if(!keyTarget.keys)
-                    keyTarget.keys = {};
-                if(!keyTarget.keys[key.route])
-                    keyTarget.keys[key.route] = {};
-                if(!keyTarget.keys[key.route].stops)
-                    keyTarget.keys[key.route].stops = {};
-                keyTarget.keys[key.route].stops[key.stop] = {
-                    branch: key.branch,
-                    stop: key.stop,
-                    attribute: attribute,
-                    anchor: anchor // original anchor context (even if target is nexus)
-                };
-            }
-        }
-    }
-}
-while (tie = schema.nextTie()) {
-    while(role = tie.nextRole()) {
-        if(role.key) {
-            for(keyIdentifier in role.key) {
-                key = role.key[keyIdentifier];
-                var keyTarget = (schema.anchor && schema.anchor[key.of]) ? schema.anchor[key.of] : (schema.nexus && schema.nexus[key.of] ? schema.nexus[key.of] : null);
-                if(!keyTarget) continue;
-                if(!keyTarget.keys)
-                    keyTarget.keys = {};
-                if(!keyTarget.keys[key.route])
-                    keyTarget.keys[key.route] = {};
-                if(!keyTarget.keys[key.route].stops)
-                    keyTarget.keys[key.route].stops = {};
-                keyTarget.keys[key.route].stops[key.stop] = {
-                    branch: key.branch,
-                    stop: key.stop,
-                    role: role,
-                    tie: tie
-                }
-            }
-        }
-    }
-}
-
 if(DEBUG) console.log(schema);
-
-    // for..in gives the names that are whole numbers in ascending order in a browser, but in the order they were added in
-    // Jint, which makes the golden files; stops are added as their elements are found, so a route through a tie came out
-    // in another order there. Adding them again in a browser's order makes every engine read the same order.
-    function _inBrowserOrder(object) {
-        var numbers = [], others = [], ordered = {}, name, i;
-        for(name in object) {
-            if(/^(0|[1-9][0-9]*)$/.test(name)) numbers.push(name); else others.push(name);
-        }
-        numbers.sort(function(a, b) { return parseInt(a, 10) - parseInt(b, 10); });
-        for(i = 0; i < numbers.length; i++) ordered[numbers[i]] = object[numbers[i]];
-        for(i = 0; i < others.length; i++) ordered[others[i]] = object[others[i]];
-        return ordered;
-    }
-    // Derive key level properties (historization) for anchors and nexuses
-    var _entityWithKeys, _routeId, _component;
-    function _decorateKeys(entity) {
-        if(!entity || !entity.keys) return;
-        entity.keys = _inBrowserOrder(entity.keys);
-        for(_routeId in entity.keys) {
-            var _key = entity.keys[_routeId];
-            if(_key.stops) _key.stops = _inBrowserOrder(_key.stops);
-            var historized = false;
-            if(_key.stops) {
-                for(var _stopId in _key.stops) {
-                    _component = _key.stops[_stopId];
-                    if(_component.attribute && _component.attribute.timeRange) {
-                        historized = true; break;
-                    }
-                }
-            }
-            _key.historized = historized;
-        }
-    }
-    if(schema.anchor) {
-        for(var _anchorName in schema.anchor) _decorateKeys(schema.anchor[_anchorName]);
-    }
-    if(schema.nexus) {
-        for(var _nexusName in schema.nexus) _decorateKeys(schema.nexus[_nexusName]);
-    }
 
 // Natural keys as routes ----------------------------------------------------------------------------------------------
 // A natural key of an anchor or a nexus is a route: the <key> elements that share an `of` and a `route`, placed on the
@@ -788,15 +698,17 @@ if(DEBUG) console.log(schema);
 // A route that does not follow these rules is not usable, and says why. A route that passes something historized
 // changes over time, and one that passes something that is not functional can give an identity more than one key.
 //
-// The `keys` built above are what the SQL Server generator reads; they leave out the keys on nexus attributes and roles,
-// and keep the order in which the elements were found. naturalKeys() reads every key element and orders the stops by
-// number. It reads names, so it is called after the naming conventions, from a derive.js. It does not use the iterators,
+// naturalKeys() reads every key element, on the attributes of anchors and nexuses and on the roles of nexuses and ties,
+// and orders the stops by number (not in the order for..in gives, which is not the same in every JavaScript engine). It
+// reads names, so it is called after the naming conventions, from a derive.js. It does not use the iterators,
 // so it can be called from inside a loop over them. It returns plain data, one item for each route, by anchor and then
 // nexus in the order of the model, and by route name (1st before 2nd before 10th):
 //   of, route, entityName, capsule, identityColumnName, identity   the anchor or nexus
 //   perspective   whether it has perspectives (an anchor or nexus has them when it has attributes); if not, its table
 //                 is read instead
 //   name, pointInTimeName, checkName   key_<name>_<route>, pkey_<name>_<route> and ic_key_<name>_<route>
+//   tableName, refreshName             <name>_<route> and refresh_<name>_<route>, a table that holds the key of every
+//                                      identity and the procedure that fills it, where a database has them
 //   historized    whether an attribute or a tie on the route is historized
 //   usable        whether the route follows the rules; if not, problem says why, and the lists below are empty
 //   notes         a {text} for each step of the route that is not functional
@@ -862,6 +774,8 @@ function naturalKeys() {
             name: 'key' + D + entity.name + D + route.route,
             pointInTimeName: 'pkey' + D + entity.name + D + route.route,
             checkName: 'ic' + D + 'key' + D + entity.name + D + route.route,
+            tableName: entity.name + D + route.route,
+            refreshName: 'refresh' + D + entity.name + D + route.route,
             historized: false,
             usable: true,
             problem: null,

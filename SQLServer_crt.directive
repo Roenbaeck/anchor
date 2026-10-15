@@ -3,7 +3,6 @@
 # The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
 # modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
 # bindings are made from; they run once, before the templates. A line starting with # is not run.
-# The original sisulets, which these replace, are listed in SQLServer_crt.legacy.directive.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/SQLServer/NamingConvention.js
@@ -35,6 +34,7 @@ SQL/SQLServer/crt/CreateTieRewinders.sisula
 SQL/SQLServer/biz/DropTieBusinessPerspectives.sisula
 SQL/SQLServer/crt/CreateTiePerspectives.sisula
 SQL/SQLServer/biz/CreateTieBusinessPerspectives.sisula
+SQL/SQLServer/uni/CreateKeys.sisula
 SQL/SQLServer/crt/CreateTieTriggers.sisula
 SQL/SQLServer/crt/CreateAttributeSheetStacks.sisula
 SQL/SQLServer/CreateSchemaTracking.sisula

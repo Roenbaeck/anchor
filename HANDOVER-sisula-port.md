@@ -77,7 +77,7 @@ powershell -File tools\browser-check.ps1                 # the real modeler in h
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
-powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the SQL Server triggers do
+powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the triggers and the natural keys do
 ```
 
 And in this repo: `.\tools\sync-sisula.ps1 -Check`.
@@ -94,8 +94,11 @@ under Jint, which made them an independent check: the templates matched those si
 was made in both. Once the Snowflake output had been run on Snowflake (uni, bi, crt and equivalence) the sisulets
 that had a template, and the three `.legacy.directive` files, were removed from Anchor, which halves the work of a
 change. They are in the git history: Anchor at `b9c6948` has them, and `tools/golden.ps1` in the sisula repo at
-`34d0b93` shows how they were run (use it for the next database, see below). What checks the golden files now:
-the other implementations (`csharp-check.ps1`, `browser-check.ps1`), the lint, and above all running the SQL.
+`34d0b93` shows how they were run (use it for the next database, see below). The same was done for SQL Server on
+2026-10-14, once its output had been run on a SQL Server (the DDL, and the trigger tests of uni, bi and crt): its 74
+sisulets and three legacy directives are at Anchor `729cd9c`, and `golden.ps1` in the sisula repo at `2115504`, which
+reads a model's database from the model. What checks the golden files now: the other implementations
+(`csharp-check.ps1`, `browser-check.ps1`), the lint, the trigger tests, and above all running the SQL.
 
 ### The models
 
@@ -138,7 +141,7 @@ test make the pieces independent); the other databases follow the same path.
    but still name `Snowflake` (the directive names, the `SQL/Snowflake/` paths, the prelude and `derive.js`
    in `tools/directive.ps1`, the assertion in `browser-check.ps1`). Parametrize those, put the models for
    the new database in a folder of their own, and make the golden files from the original sisulets with
-   `golden.ps1` (restore it from sisula `34d0b93`; it takes the original directive and splits the output per
+   `golden.ps1` (restore it from sisula `2115504`, where it reads the database from the model; it takes the original directive and splits the output per
    sisulet), then, once the templates match, switch to `check.ps1 -Update` as for Snowflake. Check first
    that the original sisulets run at all: parse each one after the engine's translation (the Jint parser
    reports the line), because a generator that was never run can fail on a syntax error, as bi and crt did.
@@ -176,16 +179,13 @@ match (they never did before).
 - **Port the rest:** the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone needs one.
   SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and the trigger
   tests of all three temporalizations); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`, 2026-10-14).
-- **Retire SQL Server's original sisulets**, as was done for Snowflake: `SQL/SQLServer/{uni,bi,crt,biz,clr}/*.js`,
-  `SQL/SQLServer/CreateSchemaTracking.js` and the three `SQLServer_<t>.legacy.directive` (not `NamingConvention.js`
-  or `derive.js`, which the directives run), then `tools/golden.ps1` and the `LegacyFile` of `tools/directive.ps1`
-  in the sisula repository. Every fix is made twice until then. Decided by the user on 2026-10-14; not yet done.
+  Its original sisulets were then removed, as Snowflake's had been, so a fix is made once.
 - **Run the generated Snowflake SQL** after a change: uni, bi, crt and equivalence have been run on Snowflake
   (2026-10-02), and so have the integrity checks (2026-10-08). The natural keys (2026-10-14) have not.
-- **Natural keys** (see *Natural keys as routes* below): SQL Server's `CreateKeys` should read `naturalKeys()` instead
-  of the `keys` that Helpers.js builds, which would make its nexus routes, ties and knots right, best after its original
-  sisulets are gone; the modeler should check a route with the same rules, let a route start at a nexus, and stop
-  offering keys on knots; and whether a route may use another route (composition) is undecided.
+- **Natural keys** (see *Natural keys as routes* below): Snowflake and SQL Server generate them from `naturalKeys()`,
+  and the modeler checks routes with the same rules. Run `tools/sqlserver-tests.ps1` on a SQL Server (the keys suite
+  is new) and the Snowflake output on Snowflake. Whether a route may use another route (composition) is left for later
+  (the user, 2026-10-14).
 - **The Snowflake skill** (`anchor-snowflake-skill`): the generator hosted in Snowflake exists.
   `tools/build-snowflake-generator.ps1` writes one SQL script that creates `SISULATE` (the engine as a JavaScript
   function), `ANCHOR_BINDINGS` (the model XML to the bindings; `modules/XmlTree.js` reads the XML, since a JavaScript
@@ -327,8 +327,8 @@ change.
 
 `SQLServer_uni.directive` lists 31 Sisula templates (`SQL/SQLServer/{uni,biz,clr}/*.sisula`, `SQL/SQLServer/CreateSchemaTracking.sisula`)
 and the prelude `Helpers.js`, `NamingConvention.js`, `SQL/SQLServer/NamingConvention.js`, `SQL/SQLServer/derive.js`. The original sisulets and
-their directive, `SQLServer_uni.legacy.directive`, are still here: they are what `golden.ps1` runs to make the independent output. bi and crt
-for SQL Server are ported too, see the next section.
+their directive, `SQLServer_uni.legacy.directive`, were what `golden.ps1` ran to make the independent output while the port was checked; they were
+removed on 2026-10-14 (see *What the golden files are*). bi and crt for SQL Server are ported too, see the next section.
 
 **What was verified (no SQL Server on the development machine):** for 18 models (`models/sqlserver-*.xml`: the uni models of Snowflake converted
 with the data type converter and saved through the modeler, plus variants for business views and knot aliases, no triggers, partitioning, natural
@@ -376,15 +376,14 @@ not been run on a SQL Server.** Since it is the original output except for the c
 - `CreateSchemaTracking`: the serialization is not escaped for the T-SQL literal `N'...'`, so a model with an apostrophe anywhere in its XML breaks the
   script.
 
-**To update this port:** change the template and the original sisulet together while the original is still here (the golden files come from it:
-`golden.ps1`, see `tools/make-sqlserver-models.ps1` and the tools README), or regenerate the golden files from the templates (`regenerate-golden.ps1`) once
-the originals are removed. The originals can go when someone has run the output on a SQL Server.
+**To update this port:** change the template, regenerate the golden files from the templates (`regenerate-golden.ps1`), and read the diff; the
+originals are gone, so a change is made once. Run `tools/sqlserver-tests.ps1` on a SQL Server when it touches the triggers or the keys.
 
 ## SQL Server bi and crt on the Sisula engine (ported 2026-10-08)
 
 `SQLServer_bi.directive` (28 templates) and `SQLServer_crt.directive` (31) list Sisula templates only: `SQL/SQLServer/{bi,crt,biz,clr}/*.sisula` and
 `SQL/SQLServer/CreateSchemaTracking.sisula`, after the same prelude as uni. The original sisulets, and their directives `SQLServer_bi.legacy.directive`
-and `SQLServer_crt.legacy.directive`, are still here for `golden.ps1`. The work was done by seven parallel workers (tables; attributes; tie views;
+and `SQLServer_crt.legacy.directive`, were there for `golden.ps1` until 2026-10-14. The work was done by seven parallel workers (tables; attributes; tie views;
 perspectives and key generators; anchor triggers; attribute and nexus triggers; tie triggers), each in its own worktree, starting from the uni templates
 and the difference between the uni and the bi/crt originals. `derive.js` got two small blocks (`bi-crt attributes`, `bi-crt tieviews`: whether any
 anchor attribute is historized, or may not store restatements, and whether a historized tie has values); the rest was reachable by paths.
@@ -409,7 +408,8 @@ originals of bi and crt, like the uni one, still paste it as it is.
 **Behaviour that differs between bi and crt, worth a look** (kept, the oracle has it): in crt the update trigger of an attribute leaves out `UPDATE(value)` for an
 attribute that is not historized, so a value update of a static attribute creates no posit and only a change of reliability or positor does; bi has no such condition.
 
-**Known defects of the original that are kept, because the golden files carry them:**
+**Known defects of the original that are kept, because the golden files carry them** (now that the originals are gone, each can be fixed in its template
+alone):
 - The `handwritten` models (no `identity` on attributes and one tie): the identity column of the posit and annex tables, of the restatement tables and of
   the `@inserted` and `@posit` table variables is declared without a type (`EV_DAT_ID not null,`), which is invalid SQL. It is the model, not the generator.
 - `CreateTies`: every tie gets the header "Knotted static tie table" (`tie.isKnotted()` is always true), as in uni.
@@ -422,8 +422,7 @@ attribute that is not historized, so a value update of a static attribute create
 - Trailing spaces and tabs that the original engine left in a few lines (after `JOIN`, `OR`, `AND`, `AFTER INSERT`, `AS`, `p.*,`) are reproduced with `$--$`,
   because the golden files have them. They are harmless.
 
-**To update this port:** as for uni: change the template and the original sisulet together while the original is still here, or regenerate the golden files
-from the templates once the originals are removed (`regenerate-golden.ps1`). The originals can go when someone has run the output on a SQL Server.
+**To update this port:** as for uni: change the template, regenerate the golden files from the templates (`regenerate-golden.ps1`) and read the diff.
 
 ## SQL Server triggers made consistent (2026-10-09)
 
@@ -501,7 +500,7 @@ the base and equivalence models has run (before these changes), and that of the 
 is a model made for them: an attribute for each combination of the settings that the triggers read, ties with and
 without identifiers, and a nexus with an attribute. `sqlserver-tests/triggers-<t>.sql` there inserts, updates and
 deletes through its views and prints PASS or FAIL for each rule above (37, 35 and 42 checks), and
-`tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per temporalization, runs the golden output of the
+`tools/sqlserver-tests.ps1 -Server <name>` makes an empty database per suite (triggers, and keys since 2026-10-14) and temporalization, runs the golden output of the
 model and then the script in it, drops the database again, and exits 1 if a check failed. Run it after every change
 to a trigger, once the golden files of the three models have been regenerated.
 
@@ -649,7 +648,8 @@ takes what the perspective shows, with no way to name the equivalent.
 
 - `Helpers.js` builds `keys` from anchor attributes and tie roles only, so keys on nexus attributes and nexus roles
   are dropped. The example's own event key (`EV 1st`, in `docs/ANCHOR.md`) keeps two of its five stops, and a nexus
-  whose keys are on its own attributes gets none.
+  whose keys are on its own attributes gets none. Fixed: those `keys` are gone, and every generator reads
+  `naturalKeys()`.
 - The stops are an object read with `for..in`, which a browser orders by number and Jint, which makes the golden
   files, by insertion (`3,1,10,2` stays `3,1,10,2`). Attribute stops are inserted before tie role stops, so every
   route through a tie came out in another order in Jint than in the modeler; the JSON bindings of `keys.xml` differed
@@ -661,13 +661,14 @@ takes what the perspective shows, with no way to name the equivalent.
   attribute gets no data type (`CAST(... AS )`, `ST_MIN_UTL_ID  NOT NULL`); a second tie in a row is joined without an
   `ON`; in Jint even one tie renders `SELECT  AS EV_ID` and joins to the anchor of the previous route; a historized
   tie does not make the key historized, and the view takes the `MAX` over all of its versions; and the key tables of
-  `naturalKeyAttributes` are created but never filled.
+  `naturalKeyAttributes` are created but never filled. Fixed: replaced, see below.
 - `NamingConvention.js`: the role of the last stop of a route prefixed the first column of the next route (in the
   test, `PR 1st` became `child_PR_NAM_Program_Name` after a route of `AC`). Fixed; no test model changes. The first
   assignment of `routedChangingColumnName` is dead, which changes nothing.
 - The modeler (`index.html`, "WIP: keys"): a route can only start at an anchor, so a nexus key has to be written by
   hand; knots offer the key operations and write `<key>` into `<knot>`; a route is not checked beyond its `of` and
   its name; a removed stop keeps its number on the drawing (the numbers are added as numbers and removed as text).
+  Fixed, see below; a knot still reads and writes the `<key>` of a file that has one, so nothing is lost.
 
 **What was done.** `naturalKeys()` (shared, in `Helpers.js`; called from a `derive.js`) reads every `<key>`, orders
 stops by number, follows the rules above, and returns plain data: per route the joins (only the anchors and nexuses
@@ -681,6 +682,29 @@ the point-in-time perspectives, when the route passes something historized) and 
 `_Positor`. A route that breaks a rule is a comment in the script with the reason. Tests: `keys.xml`, `-bi`, `-crt`
 in the sisula example (made by `tools/make-keys-models.ps1`), which reach every rule and every way of breaking one.
 SQL Server is unchanged; its output is identical for every test model.
+
+**Then, after the merge (2026-10-14; the user decided the shape):** SQL Server's keys are the same as Snowflake's, in
+uni, bi and crt: `SQL/SQLServer/uni/CreateKeys.sisula`, listed by all three directives after the perspectives it reads,
+makes `key_`, `pkey_` and `ic_key_` (the key of a violation as text, `name=value, ...`, with checksums in hex), and,
+with `naturalKeyAttributes`, a key table per route with a primary key on the identity and a unique constraint on the
+key, filled by `refresh_<entity>_<route>`, which fails, and leaves the table as it was, on a duplicate key. A (max) value
+without a checksum can be compared but not be in a unique index, so such a route gets no key table, and a geography,
+geometry, xml, text, ntext or image without one makes the route unusable (`SQL/SQLServer/derive.js`). The `keys`
+that Helpers.js built, their naming in `NamingConvention.js` and `keyRoutes` in the SQL Server `derive.js` are gone.
+The modeler: a route can start at a nexus; a knot is not offered as a stop (one already in a file can still be
+removed); a removed stop takes its number off the drawing and the others are renumbered there too; and when a model is
+opened, `Actions.checkKeys()` runs `naturalKeys()` after the shared naming convention and writes every route that the
+generators leave out, and every step that is not functional, to the console, next to the integrity check. Tests:
+`sqlserver-keys.xml`, `-bi`, `-crt` (the same routes on `sqlserver-base`) and `sqlserver-tests/keys-<t>.sql`, which
+`tools/sqlserver-tests.ps1` now runs after the trigger tests (`-Suite triggers,keys`): lookups through every kind of
+route, the point-in-time key, the checks, the refresh procedure and its failure, and crt per positor.
+
+**The first run of the key tests on a SQL Server** failed before any test: the checks used `FOR JSON` for the key of a
+violation, which SQL Server reads only at compatibility level 130 and later, and the databases that the tests create
+take their level from `model`, which on the user's server must be lower (the server runs JSON functions; "Incorrect syntax near 'WITHOUT_ARRAY_WRAPPER'").
+The trigger tests use nothing of the kind. The checks now write the key with `CONCAT`. Generated SQL should not depend
+on the compatibility level: parse it with the grammar of SQL Server 2014 too (ScriptDom's `TSql120Parser`), which
+gives "Expected XML but encountered JSON" for the old checks and nothing for the new ones or the trigger tests.
 
 ## Where things are, by repository
 

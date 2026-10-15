@@ -514,6 +514,8 @@
                     if(console && console.groupCollapsed) console.groupCollapsed('Model integrity check');
                     try { this.validateIntegrity(); } catch(e) { if(console) console.warn('Integrity check failed:', e); }
                     if(console && console.groupEnd) console.groupEnd();
+                    // the key routes, with the rules of the generators (it reads their scripts, so it ends later)
+                    Actions.checkKeys().catch(e => { if(console) console.warn('Key check failed:', e); });
                     if(DEBUG) console.log(this);
                 }
             },
@@ -797,15 +799,18 @@
                 DrawingEngine.start(false);
                 return true; // close menu
             },
-            // WIP: keys operations
+            // keys operations: a route starts at the anchor or nexus in the selection, and the other selected items are
+            // its stops, in the order they were selected (naturalKeys() in SQL/Helpers.js has the rules they follow)
             createKey: function(components) {
                 var i, id, anchor, component, stopComponents = [];
                 for(i = 0; component = components[i]; i++) {
-                    if(component.node.type === NodeType.ANCHOR) 
+                    if(component.node.type === NodeType.ANCHOR || component.node.type === NodeType.NEXUS)
                         anchor = component;
                     else
                         stopComponents.push(component);
                 }
+                if(!anchor)
+                    return true; // nothing to start the route at
                 if(stopComponents.length > 0)
                     id = UniqueIdentity.nextId();
                 for(i = 0; component = stopComponents[i]; i++) {
@@ -830,7 +835,7 @@
                 if(route) {
                     var component, anchor, stopComponents = [];
                     for(i = 0; component = components[i]; i++) {
-                        if(component.node.type === NodeType.ANCHOR) 
+                        if(component.node.type === NodeType.ANCHOR || component.node.type === NodeType.NEXUS)
                             anchor = component;
                         else
                             stopComponents.push(component);
@@ -847,8 +852,8 @@
                         }
                     }
                     var actualBranchNumber = maxBranchNumber;
-                    if(anchor) // start a new branch if an anchor was in the selection
-                        actualBranchNumber = maxBranchNumber + 1;  
+                    if(anchor) // start a new branch if an anchor or a nexus was in the selection
+                        actualBranchNumber = maxBranchNumber + 1;
                     for(i = 0; i < stopComponents.length; i++) {
                         component = stopComponents[i];
                         // last stop cannot be the same stop
@@ -861,7 +866,7 @@
                                 branch: actualBranchNumber.toString()
                             };
                             component.keys.push(key);
-                            component.postfixes.push(maxStopNumber);
+                            component.postfixes.push(key.stop);
                             route.stops[maxStopNumber] = {
                                 component: component,
                                 branch: key.branch, 
@@ -887,10 +892,6 @@
                             if(route.stops[stopNumber].component == component) {
                                 var keyIndex = component.keys.indexOf(route.stops[stopNumber].key);
                                 component.keys.splice(keyIndex, 1);
-                                var postfixIndex = component.postfixes.indexOf(stopNumber);
-                                if(postfixIndex >= 0)
-                                    component.postfixes.splice(postfixIndex, 1);
-                                component.postfixes.splice
                                 delete route.stops[stopNumber];
                                 deletesHaveBeenMade = true;
                             }
@@ -917,6 +918,15 @@
                             var hash = route.start.mnemonic + '|' + route.name;
                             delete Model.routes[hash];
                         }
+                        // the numbers on the drawing: none on what was removed, and the new numbers of the stops that
+                        // are left while the route is highlighted
+                        for(i = 0; i < components.length; i++)
+                            components[i].postfixes = [];
+                        for(var shown in route.stops)
+                            route.stops[shown].component.postfixes = [];
+                        if(route.hightlighted)
+                            for(var shown in route.stops)
+                                route.stops[shown].component.postfixes.push(shown);
                     }
                     this.recordState();
                     EventHandler.clearSelection();
@@ -3801,7 +3811,9 @@
             this.encapsulation = Defaults.encapsulation;
             this.checksum = false;
             this.equivalent = Defaults.equivalence === 'true';
-            this.operations.push('addToKey', 'removeFromKey', 'createKey');
+            // a knot is not a stop of a key route (a route reaches its value through a knotted attribute or a knot role), but
+            // a stop on a knot in a model written by hand can still be removed
+            this.operations.push('removeFromKey');
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -4430,7 +4442,7 @@
             this.editables.push(Editables.encapsulationEdit);
             this.editables.push(Editables.identityEdit);
             this.editables.push(Editables.generatorEdit);
-            this.operations.push('addAttribute','addKnot','addAnchor','explode');
+            this.operations.push('addAttribute','addKnot','addAnchor','explode', 'addToKey', 'createKey');
             // SVG
             this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
             this.svg.graphicsElement.component = this;
@@ -5337,7 +5349,7 @@
                         return EventHandler.selectedRoute;
                     }],
                 ['removeFromKey',
-                    'Remvove selected from key',
+                    'Remove selected from key',
                     'Removes the selected item(s) from the selected key route.',
                     function(allComponents) {
                         return EventHandler.selectedRoute;
@@ -5352,7 +5364,8 @@
                             return false;
                         var component, anchors = 0, ties = 0, knots = 0, attributes = 0, roles = 0;
                         for(var i = 0; component = allComponents[i]; i++) {
-                            if(component.node.type === NodeType.ANCHOR)
+                            // a route starts at an anchor or a nexus
+                            if(component.node.type === NodeType.ANCHOR || component.node.type === NodeType.NEXUS)
                                 anchors++;
                             else if(component.node.type === NodeType.TIE)
                                 ties++;
@@ -5363,7 +5376,8 @@
                             else if(component.node.type === NodeType.EDGE) 
                                 roles++;
                         }
-                        if(anchors != 1 || roles + knots + attributes == 0 || ties > 0)
+                        // a knot is not a stop: a route reaches its value through a knotted attribute or a knot role
+                        if(anchors != 1 || roles + attributes == 0 || ties > 0 || knots > 0)
                             return false;
                         return true;
                     }],
@@ -6551,6 +6565,26 @@
                     temporalization: temporalization,
                     schema: Resolver.resolve(schema, scripts)
                 }, null, 2);
+            },
+            // Checks the key routes of the model with the rules that the generators follow (naturalKeys() in
+            // SQL/Helpers.js), after the naming conventions that name what it reads, and logs a route that the
+            // generators leave out, with the reason, and a step that is not functional, as the integrity check logs.
+            checkKeys: async function() {
+                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                var scripts = [
+                    await Actions.getDirectives('SQL/Helpers.js'),
+                    await Actions.getDirectives('SQL/NamingConvention.js'),
+                    'schema.keyCheck = naturalKeys();'
+                ];
+                var keys = Resolver.resolve(schema, scripts).keyCheck || [];
+                for(var i = 0; i < keys.length; i++) {
+                    var key = keys[i], where = '[Keys] ' + key.route + ' key of ' + key.entityName + ': ';
+                    if(!key.usable)
+                        console.warn(where + key.problem + '; it is left out of the generated SQL');
+                    for(var j = 0; j < key.notes.length; j++)
+                        console.info(where + key.notes[j].text);
+                }
+                return keys;
             },
             generateBindings: function() {
                 Actions.bindings().then(json => {
