@@ -181,8 +181,8 @@ match (they never did before).
   `tools/sqlserver-tests.ps1`: the triggers of all three temporalizations with the bi upgrade, the natural keys, and crt
   without decisiveness, all passing on 2026-10-15); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`,
   2026-10-14). Its original sisulets were then removed, as Snowflake's had been, so a fix is made once.
-- **Assertions that arrive late** in bi and decisive crt: a choice for the user, see *Corrections and what nexuses
-  lacked*.
+- **Assertions that arrive late** in bi and decisive crt are left as they are (the user, 2026-10-16); see *Corrections
+  and what nexuses lacked*.
 - **Run the generated Snowflake SQL** after a change: uni, bi, crt and equivalence have been run on Snowflake
   (2026-10-02), and so have the integrity checks (2026-10-08). The natural keys (2026-10-14) have not.
 - **Natural keys** (see *Natural keys as routes* below): Snowflake and SQL Server generate them from `naturalKeys()`,
@@ -617,28 +617,44 @@ crt anchors and nexuses gave a row for each positor that changed something, but 
 attribute columns each have a positor, which is empty where the attribute has no value). They now start with
 `Positor`, as Snowflake's crt difference perspectives do and as the other crt perspectives have it (`p.*`). Test c24.
 
-**Assertions that arrive late (open, for the user to decide, 2026-10-15).** A positor's assertions are ordered by
-their positing time, which is when the positor made them, not when they reach the database. With decisiveness each
-positive assertion holds until the positor's next positive assertion of another value at the same changing time, or
-until it is retracted, whatever the order in which they arrive: A at T1, C at T3, then B at T2, then D at T2.5 mean A
-held over [T1, T2), B over [T2, T2.5), D over [T2.5, T3) and C from T3. So the intention can be told. What cannot be
-done is to store the retractions that decisiveness implies so that the rows do not depend on the order of arrival: when
-C arrives first, the trigger retracts A at T3; once B and D are known, it is D that ends at T3, and A ended at T2. The
-stored rows would have to change (A's retraction at T3 removed, D's written), and the trigger cannot tell a retraction it
-derived from one that a positor stated; keeping both gives two retractions at T3, which the unique index of a decisive
-crt assembled view (one uncertain assertion per positing time) and that of bi refuse. Today (forward only) B and D get
-their own start right, but nothing ends them: the views still show C after T3, and only retracting C shows D instead of
-nothing. The choices put to the user:
-- **The views apply decisiveness, the triggers store only what is stated** (recommended): the decisive perspectives
-  (bi, crt with decisiveness) take, for each positor and changing time, the latest positive assertion and show it unless
-  its posit has been retracted since; the insert triggers stop writing the retractions that decisiveness implies. The
-  result does not depend on the order of arrival, nothing stored is ever changed, and no index is in the way. It undoes
-  the decisive part of the corrections of 2026-10-14 in the triggers (the indecisive update keeps its retraction, which
-  is what the update states), and the perspectives get one more lookup per row.
-- **The triggers keep the implied retractions complete:** on a late arrival they move the end of what was held from the
-  later assertion to the late one, which needs a mark on the retractions they derive (a column of the annex) so that a
-  stated retraction is never removed. The stored rows change when late data arrives.
-- **Leave it as it is** and document the case above.
+**Assertions that arrive late (decided 2026-10-16: left as they are, documented).** A positor's assertions are ordered
+by their positing time, which is when the positor made them, not when they reach the database. With decisiveness each
+assertion holds until the positor's next assertion of another value at the same changing time, or until it is
+retracted: A at T1, C at T3, then B at T2, then D at T2.5 mean A held over [T1, T2), B over [T2, T2.5), D over
+[T2.5, T3) and C from T3, whatever the order in which they arrive. What cannot be done is to store the retractions that
+decisiveness implies so that the rows do not depend on the order of arrival: when C arrives first, the trigger retracts
+A at T3; once B and D are known, it is D that ends at T3, and A ended at T2. The stored rows would have to change, the
+trigger cannot tell a retraction it derived from one that a positor stated, and keeping both gives two retractions at
+T3, which the decisive crt and bi indexes refuse. Three choices were put to the user: let the views apply decisiveness
+and store only what is stated; mark derived retractions and move them on a late arrival; or leave it. The user rejected
+the first ("what is written should be consistent, and not resolved at query time", since not everyone reads through the
+views), doubted that the second can always know what was meant ("it would be even worse if we enforce consistency at
+write time, but end up with something the user did not intend"), and chose the third. A late assertion gets its start
+(it retracts what was held before it) but nothing ends it; `docs/ANCHOR.md` says so, and to load in positing order.
+
+**Consistency for data that arrives in order (2026-10-16).** Asked whether in-order data is now safe, the answer was yes
+for positive assertions with positing times of their own, with these exceptions, which were then fixed:
+- **Another value at the same positing time** (two statements in one tick of the clock, for one): bi refused it with a
+  key error, decisive crt with entity integrity with an index error, and decisive crt without it stored both. The bi and
+  decisive crt insert triggers now raise "Contradiction in <name> for: <key>", for a value already stored and for two in
+  one insert, since which one was meant cannot be told.
+- **A correction to the value of the version before** is a restatement, which an idempotent attribute or tie skipped
+  entirely, so the corrected version stayed held. In crt the skipped statement (type `R`) now writes the decisive
+  retraction; in bi the restatements that the idempotent part drops are kept in `@skipped` for it. One that may not be
+  restated still refuses it.
+- **Negative assertions.** The paper defines a decisive positor as one with a single assertion in effect, positive or
+  negative, so the decisive crt triggers now count any assertion that is not a retraction, on both sides. bi has only 0
+  and 1.
+- **Non-contradiction without decisiveness** (the user pointed to the formula): the crt insert triggers check, for each
+  new assertion that is not a retraction, the slice it is in (its positor, its changing time, as of its positing time):
+  positive reliabilities count as they are, negative ones as one plus them, and the sum may not exceed one. The user's
+  example: "40% not A" and "40% not B" are 60% A and 60% B. The update triggers therefore retract the shown posit before
+  they assert the new value, or a replacement at full reliability would count twice. The working table of the crt
+  insert triggers is keyed on the value too (ties: on all roles) when the model is not decisive, so that one insert can
+  hold alternatives with the same positing time and reliability.
+- In bi, a retraction followed by an assertion at the same positing time (a correction written in two statements) broke
+  the key of the insert trigger's table; the existing data at a positing time that a new row has is now left out of it.
+Tests: b21, c25 to c27, i07 (and i05 at reliabilities that leave room for an alternative).
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

@@ -50,7 +50,8 @@ $/ endif
             $attribute.positingColumnName$ desc
         )
     );
-    -- another reliability at a positing time that already has an assertion of the posit is a contradiction
+    -- another reliability at a positing time that already has an assertion of the posit is a contradiction, and so, since
+    -- one posit at a time is asserted, is an assertion of another value at that time
     DECLARE @message varchar(max);
     SET @message = (
         SELECT TOP 1
@@ -86,6 +87,59 @@ $/ endif
                 a.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
             AND
                 a.$attribute.reliabilityColumnName$ <> i.$attribute.reliabilityColumnName$
+        )
+        OR (
+            i.$attribute.reliabilityColumnName$ = 1
+        AND (
+            EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    [$attribute.capsule$].[$attribute.positName$] p
+                JOIN
+                    [$attribute.capsule$].[$attribute.annexName$] a
+                ON
+                    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+                WHERE
+                    p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                AND
+                    p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+                AND
+$/ if attribute.hasChecksum
+                    p.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+                    p.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+                AND
+                    a.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+                AND
+                    a.$attribute.reliabilityColumnName$ = 1
+            )
+            OR EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    inserted j
+                WHERE
+                    j.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                AND
+                    j.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+                AND
+$/ if attribute.hasChecksum
+                    $schema.metadata.encapsulation$.MD5(cast(j.$attribute.valueColumnName$ as varbinary(max))) <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+                    j.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+                AND
+                    j.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+                AND
+                    j.$attribute.reliabilityColumnName$ = 1
+            )
+        )
         )
         FOR XML PATH('')
     );
@@ -210,7 +264,21 @@ $/ endif
             a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
     ) x
     WHERE
-        x.shown = 1;
+        x.shown = 1
+    AND NOT EXISTS ( -- at a positing time that a new row has, the new row is what counts
+        SELECT TOP 1
+            42
+        FROM
+            @$attribute.name$ n
+        WHERE
+            n.$attribute.entityReferenceName$ = x.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+        AND
+            n.$attribute.changingColumnName$ = x.$attribute.changingColumnName$
+$/ endif
+        AND
+            n.$attribute.positingColumnName$ = x.$attribute.positingColumnName$
+    );
     DECLARE @retracted TABLE (
         $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
 $/ if schema.METADATA
@@ -444,6 +512,24 @@ $/ endif
     END --- (only run if necessary) ---
 $/ endif
 $/ if attribute.isHistorized and attribute.isIdempotent
+    -- the new values that only restate the previous version, which are skipped, though what they correct is retracted
+    DECLARE @skipped TABLE (
+        $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+        $attribute.changingColumnName$ $attribute.timeRange$ not null,
+        $attribute.positingColumnName$ $schema.metadata.positingRange$ not null,
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$ varbinary(16) not null
+$/ else
+$/ if attribute.knotRange
+        $attribute.valueColumnName$ $attribute.knot.identity$ not null
+$/ else
+        $attribute.valueColumnName$ $attribute.dataRange$ not null
+$/ endif
+$/ endif
+    );
     IF EXISTS (
         SELECT TOP 1
             $attribute.statementTypeColumnName$
@@ -473,6 +559,60 @@ $/ if attribute.hasChecksum
 $/ endif
         $attribute.statementTypeColumnName$ char(1) not null
     );
+    INSERT INTO @skipped (
+        $attribute.entityReferenceName$,
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.changingColumnName$,
+        $attribute.positingColumnName$,
+$/ if attribute.hasChecksum
+        $attribute.checksumColumnName$
+$/ else
+        $attribute.valueColumnName$
+$/ endif
+    )
+    SELECT
+        a.$attribute.entityReferenceName$,
+$/ if schema.METADATA
+        a.$attribute.metadataColumnName$,
+$/ endif
+        a.$attribute.changingColumnName$,
+        a.$attribute.positingColumnName$,
+$/ if attribute.hasChecksum
+        a.$attribute.checksumColumnName$
+$/ else
+        a.$attribute.valueColumnName$
+$/ endif
+    FROM
+        @$attribute.name$ a
+    CROSS APPLY (
+        SELECT TOP 1
+$/ if attribute.hasChecksum
+            h.$attribute.checksumColumnName$
+$/ else
+            h.$attribute.valueColumnName$
+$/ endif
+        FROM
+            @$attribute.name$ h
+        WHERE
+            h.$attribute.entityReferenceName$ = a.$attribute.entityReferenceName$
+        AND
+            h.$attribute.changingColumnName$ < a.$attribute.changingColumnName$
+        ORDER BY
+            h.$attribute.changingColumnName$ DESC,
+            h.$attribute.positingColumnName$ DESC
+    ) pre
+    WHERE
+        a.$attribute.statementTypeColumnName$ in ('P', 'A')
+    AND
+        a.$attribute.reliabilityColumnName$ = 1
+    AND
+$/ if attribute.hasChecksum
+        a.$attribute.checksumColumnName$ = pre.$attribute.checksumColumnName$;
+$/ else
+        a.$attribute.valueColumnName$ = pre.$attribute.valueColumnName$;
+$/ endif
     INSERT INTO @restated (
         $attribute.entityReferenceName$,
 $/ if schema.METADATA
@@ -685,7 +825,8 @@ $/ if attribute.isHistorized
 $/ else
     -- an assertion retracts, at its positing time, the posit in effect when that has another
 $/ endif
-    -- value (a correction), so that one posit at a time is asserted
+    -- value (a correction), so that one posit at a time is asserted; also when the assertion is a restatement that an
+    -- idempotent attribute skips
     INSERT INTO [$attribute.capsule$].[$attribute.annexName$] (
 $/ if schema.METADATA
         $attribute.metadataColumnName$,
@@ -701,8 +842,45 @@ $/ endif
         e.$attribute.identityColumnName$,
         v.$attribute.positingColumnName$,
         0
-    FROM
-        @$attribute.name$ v
+    FROM (
+        SELECT
+$/ if schema.METADATA
+            n.$attribute.metadataColumnName$,
+$/ endif
+            n.$attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+            n.$attribute.changingColumnName$,
+$/ endif
+            n.$attribute.positingColumnName$,
+$/ if attribute.hasChecksum
+            n.$attribute.checksumColumnName$
+$/ else
+            n.$attribute.valueColumnName$
+$/ endif
+        FROM
+            @$attribute.name$ n
+        WHERE
+            n.$attribute.statementTypeColumnName$ in ('P', 'A')
+        AND
+            n.$attribute.reliabilityColumnName$ = 1
+$/ if attribute.isHistorized and attribute.isIdempotent
+        UNION ALL
+        SELECT
+$/ if schema.METADATA
+            k.$attribute.metadataColumnName$,
+$/ endif
+            k.$attribute.entityReferenceName$,
+            k.$attribute.changingColumnName$,
+            k.$attribute.positingColumnName$,
+$/ if attribute.hasChecksum
+            k.$attribute.checksumColumnName$
+$/ else
+            k.$attribute.valueColumnName$
+$/ endif
+        FROM
+            @skipped k
+$/ endif
+    ) v
     CROSS APPLY (
         SELECT TOP 1
             p.$attribute.identityColumnName$,
@@ -740,10 +918,6 @@ $/ endif
             a.$attribute.positingColumnName$ DESC
     ) e
     WHERE
-        v.$attribute.statementTypeColumnName$ in ('P', 'A')
-    AND
-        v.$attribute.reliabilityColumnName$ = 1
-    AND
 $/ if attribute.hasChecksum
         e.$attribute.checksumColumnName$ <> v.$attribute.checksumColumnName$
 $/ else

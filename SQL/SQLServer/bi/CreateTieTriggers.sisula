@@ -93,6 +93,72 @@ $/ endif
             AND
                 a.$tie.reliabilityColumnName$ <> ISNULL(i.$tie.reliabilityColumnName$, 1)
         )
+$/ if tie.identifiers and tie.values
+        -- and so, since one posit at a time is asserted for the identifiers, is an assertion of other values at that time
+        OR (
+            ISNULL(i.$tie.reliabilityColumnName$, 1) = 1
+        AND (
+            EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    [$tie.capsule$].[$tie.positName$] p
+                JOIN
+                    [$tie.capsule$].[$tie.annexName$] a
+                ON
+                    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+                WHERE
+$/ foreach role in tie.identifiers
+                    p.$role.columnName$ = i.$role.columnName$
+                AND
+$/ endfor
+$/ if tie.isHistorized
+                    p.$tie.changingColumnName$ = ISNULL(i.$tie.changingColumnName$, @now)
+                AND
+$/ endif
+                    (
+$/ foreach role in tie.values
+                        p.$role.columnName$ <> i.$role.columnName$
+$/ if not role.last()
+                    OR
+$/ endif
+$/ endfor
+                    )
+                AND
+                    a.$tie.positingColumnName$ = ISNULL(i.$tie.positingColumnName$, @now)
+                AND
+                    a.$tie.reliabilityColumnName$ = 1
+            )
+            OR EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    inserted j
+                WHERE
+$/ foreach role in tie.identifiers
+                    j.$role.columnName$ = i.$role.columnName$
+                AND
+$/ endfor
+$/ if tie.isHistorized
+                    ISNULL(j.$tie.changingColumnName$, @now) = ISNULL(i.$tie.changingColumnName$, @now)
+                AND
+$/ endif
+                    (
+$/ foreach role in tie.values
+                        j.$role.columnName$ <> i.$role.columnName$
+$/ if not role.last()
+                    OR
+$/ endif
+$/ endfor
+                    )
+                AND
+                    ISNULL(j.$tie.positingColumnName$, @now) = ISNULL(i.$tie.positingColumnName$, @now)
+                AND
+                    ISNULL(j.$tie.reliabilityColumnName$, 1) = 1
+            )
+        )
+        )
+$/ endif
         FOR XML PATH('')
     );
     IF @message is not null
@@ -244,7 +310,30 @@ $/ endif
             a.$tie.identityColumnName$ = p.$tie.identityColumnName$
     ) x
     WHERE
-        x.shown = 1;
+        x.shown = 1
+    AND NOT EXISTS ( -- at a positing time that a new row has, the new row is what counts
+        SELECT TOP 1
+            42
+        FROM
+            @inserted n
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            n.$role.columnName$ = x.$role.columnName$
+        AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            n.$role.columnName$ = x.$role.columnName$
+        AND
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+            n.$tie.changingColumnName$ = x.$tie.changingColumnName$
+        AND
+$/ endif
+            n.$tie.positingColumnName$ = x.$tie.positingColumnName$
+    );
     DECLARE @retracted TABLE (
 $/ if schema.METADATA
         $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
@@ -507,6 +596,21 @@ $/ endif
     END --- (only run if necessary) ---
 $/ endif
 $/ if tie.isHistorized and tie.isIdempotent
+    -- the new rows that only restate the previous version, which are skipped, though what they correct is retracted
+    DECLARE @skipped TABLE (
+$/ if schema.METADATA
+        $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+        $tie.changingColumnName$ $tie.timeRange$ not null,
+        $tie.positingColumnName$ $schema.metadata.positingRange$ not null,
+$/ foreach role in tie.roles
+$/ if role.knot
+        $role.columnName$ $role.knot.identity$ not null$/ if not role.last() ,$/ endif
+$/ else
+        $role.columnName$ $role.entity.identity$ not null$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+    );
     IF EXISTS (
         SELECT TOP 1
             $tie.statementTypeColumnName$
@@ -532,6 +636,57 @@ $/ else
 $/ endif
 $/ endfor
     );
+    INSERT INTO @skipped (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.changingColumnName$,
+        $tie.positingColumnName$,
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        a.$tie.metadataColumnName$,
+$/ endif
+        a.$tie.changingColumnName$,
+        a.$tie.positingColumnName$,
+$/ foreach role in tie.roles
+        a.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    FROM
+        @inserted a
+    CROSS APPLY (
+        SELECT TOP 1
+            h.*
+        FROM
+            @inserted h
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            h.$role.columnName$ = a.$role.columnName$
+        AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            h.$role.columnName$ = a.$role.columnName$
+        AND
+$/ endfor
+$/ endif
+            h.$tie.changingColumnName$ < a.$tie.changingColumnName$
+        ORDER BY
+            h.$tie.changingColumnName$ DESC,
+            h.$tie.positingColumnName$ DESC
+    ) pre
+    WHERE
+        a.$tie.statementTypeColumnName$ in ('P', 'A')
+    AND
+        a.$tie.reliabilityColumnName$ = 1
+$/ foreach role in tie.roles
+    AND
+        a.$role.columnName$ = pre.$role.columnName$$/ if role.last() ;$/ endif
+$/ endfor
     INSERT INTO @restated (
 $/ if schema.METADATA
         $tie.metadataColumnName$,
@@ -718,7 +873,8 @@ $/ if tie.isHistorized
 $/ else
     -- an assertion retracts, at its positing time, the posit in effect for the identifiers when
 $/ endif
-    -- that has other values (a correction), so that one posit at a time is asserted
+    -- that has other values (a correction), so that one posit at a time is asserted; also when the assertion is a
+    -- restatement that an idempotent tie skips
     INSERT INTO [$tie.capsule$].[$tie.annexName$] (
 $/ if schema.METADATA
         $tie.metadataColumnName$,
@@ -734,8 +890,39 @@ $/ endif
         e.$tie.identityColumnName$,
         v.$tie.positingColumnName$,
         0
-    FROM
-        @inserted v
+    FROM (
+        SELECT
+$/ if schema.METADATA
+            n.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+            n.$tie.changingColumnName$,
+$/ endif
+            n.$tie.positingColumnName$,
+$/ foreach role in tie.roles
+            n.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            @inserted n
+        WHERE
+            n.$tie.statementTypeColumnName$ in ('P', 'A')
+        AND
+            n.$tie.reliabilityColumnName$ = 1
+$/ if tie.isHistorized and tie.isIdempotent
+        UNION ALL
+        SELECT
+$/ if schema.METADATA
+            k.$tie.metadataColumnName$,
+$/ endif
+            k.$tie.changingColumnName$,
+            k.$tie.positingColumnName$,
+$/ foreach role in tie.roles
+            k.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            @skipped k
+$/ endif
+    ) v
     CROSS APPLY (
         SELECT TOP 1
             p.$tie.identityColumnName$,
@@ -772,11 +959,7 @@ $/ endif
         ORDER BY
             a.$tie.positingColumnName$ DESC
     ) e
-    WHERE
-        v.$tie.statementTypeColumnName$ in ('P', 'A')
-    AND
-        v.$tie.reliabilityColumnName$ = 1
-    AND (
+    WHERE (
 $/ foreach role in tie.values
         e.$role.columnName$ <> v.$role.columnName$
 $/ if not role.last()

@@ -442,7 +442,9 @@ The settings then decide what happens to what is stated, the same way for insert
 | The same reliability again later in positing time (a re-assertion, bi and crt) | Stored if assertive, otherwise skipped |
 | Another value at a changing time that already has one (uni only) | An error, whatever the settings say |
 | Another value at a changing time where the positor holds one (bi, and crt with decisiveness) | A correction: the held posit is retracted at the new positing time |
+| Another value at a positing time where the positor holds one (bi, and crt with decisiveness) | An error, whatever the settings say |
 | Another reliability for a version at a positing time that already has one (bi and crt) | An error, whatever the settings say |
+| An assertion that would make what the positor holds contradict itself (crt without decisiveness) | An error, whatever the settings say |
 
 In bi and crt a later assertion corrects an earlier one, and in crt positors may disagree. What
 cannot hold is two assertions of the same version, by the same positor, at the same positing time:
@@ -465,19 +467,37 @@ Retracting the correction later therefore leaves nothing of the corrected value 
 used to come back. A historized correction retracts only the version it corrects, so retracting it
 shows the version before.
 
-- **bi** is decisive: one value at a time is asserted. Every positive assertion, inserted or
-  updated, retracts the posit in effect at its changing time when that has another value. The
-  constraint of each assembled view has the reliability, so that the retraction and the new
-  assertion can share a positing time; running the generated SQL again on an older database makes
-  an older constraint again with it.
+- **bi** is decisive: one value at a time is asserted. Every assertion, inserted or updated,
+  retracts the posit in effect at its changing time when that has another value. The constraint
+  of each assembled view has the reliability, so that the retraction and the new assertion can
+  share a positing time; running the generated SQL again on an older database makes an older
+  constraint again with it.
 - **crt with decisiveness** works the same way, for each positor on its own: what one positor
-  asserts never retracts what another holds.
+  asserts never retracts what another holds. A decisive positor holds a single assertion in effect
+  at a time, positive or negative (as the transitional modeling paper defines decisiveness), so a
+  negative assertion of another value retracts what was held as well.
 - **crt without decisiveness** lets a positor hold several values at once. An insert adds an
   alternative and retracts nothing. An update of a value at the changing time of the shown version
-  (always, for a static attribute or tie) is a correction, which retracts the shown posit. The
-  latest and point-in-time views still show one row for each identity and positor, the latest
-  positive assertion; the assembled views show every value that is held, for whoever wants to
-  weigh the alternatives.
+  (always, for a static attribute or tie) is a correction, which retracts the shown posit before
+  the new value is asserted. The latest and point-in-time views still show one row for each
+  identity and positor, the latest positive assertion; the assembled views show every value that
+  is held, for whoever wants to weigh the alternatives.
+
+What a positor holds may not contradict itself. In decisive models that is so by construction,
+and another value at a positing time where the positor already holds one is refused as a
+contradiction, since which of the two was meant cannot be told. Without decisiveness the triggers
+apply the non-contradiction of transitional modeling: in what the positor holds at the changing
+time of a new assertion, as of its positing time, a positive reliability counts as it is and a
+negative one as one plus it, and the sum may not be more than one. "40 percent not A" and "40
+percent not B" are 60 percent A and 60 percent B, which is refused; being certain that any number
+of values are not it is not. The check is made on the slice that the new assertion is in (its
+positor, its changing time, its positing time), which is the only one an assertion that arrives in
+order can make contradictory: other changing times are slices of their own, and a retraction only
+lowers the sum.
+
+A correction to the value that the version before already has is a restatement. An idempotent
+attribute or tie skips the restatement, but in a decisive model it still retracts what it corrects;
+one that may not be restated refuses it, and the version has to be retracted instead.
 
 A tie has corrections when it has identifiers and other roles: other values for the same
 identifiers. A tie without identifiers is all identity, so another value is another posit, and
@@ -485,5 +505,15 @@ nothing is retracted.
 
 Only the posit in effect is retracted, the one that would be shown. In a database loaded before
 corrections retracted, a positor can hold several values from earlier corrections; they are left as
-they are, and a correction retracts the one in effect. Loading out of order in positing time, a
-value asserted before one that is already stored does not retract the later one.
+they are, and a correction retracts the one in effect.
+
+**Assertions that arrive late.** The rules above hold when each positor's assertions arrive in the
+order of their positing times. An assertion posited before one already stored is stored with its
+start: it retracts what was held before it, at its own positing time. Nothing ends it, though:
+with decisiveness it should end at the next assertion of another value that is already stored,
+and the triggers do not move or add that retraction, since that would change rows already written
+on what may be a wrong positing time. The views still show the later assertion after its positing
+time; only if that one is retracted does the late one show where nothing should. Without
+decisiveness the non-contradiction check is only made at the positing time of the late assertion,
+not at the later ones it also falls in. Load in positing order, or check the result, when the
+order cannot be relied on.
