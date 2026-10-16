@@ -21,7 +21,7 @@
 -- @changingTimepoint the point in changing time to travel to
 --
 -- The difference perspective shows changes between the two given timepoints, and for
--- changes in all or a selection of attributes, with latest positing time.
+-- changes in all or a selection of attributes, with latest positing time, for each positor, which each row names.
 --
 -- @intervalStart the start of the interval for finding changes
 -- @intervalEnd the end of the interval for finding changes
@@ -218,6 +218,7 @@ CREATE FUNCTION [$nexus.capsule$].[d$nexus.name$] (
 )
 RETURNS TABLE AS RETURN
 SELECT
+    p.$schema.metadata.positorSuffix$,
     timepoints.inspectedTimepoint,
     [$nexus.mnemonic$].*
 FROM
