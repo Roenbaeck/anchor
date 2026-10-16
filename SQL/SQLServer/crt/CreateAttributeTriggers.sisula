@@ -50,10 +50,22 @@ $/ endif
         primary key(
             $attribute.versionColumnName$,
             $attribute.positorColumnName$,
+$/ if schema.DECISIVENESS
             $attribute.entityReferenceName$
+$/ else
+            $attribute.entityReferenceName$,
+$/ if attribute.hasChecksum
+            $attribute.checksumColumnName$ -- an indecisive positor may state alternatives in one insert
+$/ else
+            $attribute.valueColumnName$ -- an indecisive positor may state alternatives in one insert
+$/ endif
+$/ endif
         )
     );
     -- another reliability at a positing time that already has an assertion of the posit by the positor is a contradiction
+$/ if schema.DECISIVENESS
+    -- and so, since a decisive positor holds one assertion at a time, is an assertion of another value at that time
+$/ endif
     DECLARE @message varchar(max);
     SET @message = (
         SELECT TOP 1
@@ -93,6 +105,65 @@ $/ endif
             AND
                 a.$attribute.reliabilityColumnName$ <> i.$attribute.reliabilityColumnName$
         )
+$/ if schema.DECISIVENESS
+        OR (
+            i.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+        AND (
+            EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    [$attribute.capsule$].[$attribute.positName$] p
+                JOIN
+                    [$attribute.capsule$].[$attribute.annexName$] a
+                ON
+                    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+                WHERE
+                    p.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                AND
+                    p.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+                AND
+$/ if attribute.hasChecksum
+                    p.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+                    p.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+                AND
+                    a.$attribute.positorColumnName$ = i.$attribute.positorColumnName$
+                AND
+                    a.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+                AND
+                    a.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            )
+            OR EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    inserted j
+                WHERE
+                    j.$attribute.entityReferenceName$ = i.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                AND
+                    j.$attribute.changingColumnName$ = i.$attribute.changingColumnName$
+$/ endif
+                AND
+$/ if attribute.hasChecksum
+                    $schema.metadata.encapsulation$.MD5(cast(j.$attribute.valueColumnName$ as varbinary(max))) <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
+$/ else
+                    j.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$
+$/ endif
+                AND
+                    j.$attribute.positorColumnName$ = i.$attribute.positorColumnName$
+                AND
+                    j.$attribute.positingColumnName$ = i.$attribute.positingColumnName$
+                AND
+                    j.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            )
+        )
+        )
+$/ endif
         FOR XML PATH('')
     );
     IF @message is not null
@@ -409,12 +480,82 @@ $/ endif
             v.$attribute.versionColumnName$ = @currentVersion
         AND
             $attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif$/ if attribute.isHistorized and attribute.isIdempotent ,'F'$/ endif);
-$/ if schema.DECISIVENESS
-        -- decisive: a positor holds one value at a time, so a positive assertion retracts, at its positing time, the posit
+$/ if not schema.DECISIVENESS
 $/ if attribute.isHistorized
-        -- in effect for the positor at the same changing time when that has another value (a correction)
+        -- indecisive: what a positor holds at the same changing time may not contradict itself: a positive reliability
 $/ else
-        -- in effect for the positor when that has another value (a correction)
+        -- indecisive: what a positor holds may not contradict itself: a positive reliability
+$/ endif
+        -- counts as it is and a negative one as one plus it, and they may not sum up to more than one (non-contradiction)
+        SET @message = (
+            SELECT TOP 1
+                v.$attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+                v.$attribute.changingColumnName$,
+$/ endif
+                v.$attribute.positorColumnName$,
+                v.$attribute.positingColumnName$
+            FROM
+                @$attribute.name$ v
+            CROSS APPLY (
+                SELECT
+                    sum(CASE
+                        WHEN a.$attribute.reliabilityColumnName$ > $schema.metadata.deleteReliability$ THEN a.$attribute.reliabilityColumnName$
+                        ELSE 1 + a.$attribute.reliabilityColumnName$
+                    END) AS total
+                FROM
+                    [$attribute.capsule$].[$attribute.positName$] p
+                JOIN
+                    [$attribute.capsule$].[$attribute.annexName$] a
+                ON
+                    a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+                AND
+                    a.$attribute.positorColumnName$ = v.$attribute.positorColumnName$
+                AND
+                    a.$attribute.positingColumnName$ = (
+                        SELECT
+                            max(s.$attribute.positingColumnName$)
+                        FROM
+                            [$attribute.capsule$].[$attribute.annexName$] s
+                        WHERE
+                            s.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+                        AND
+                            s.$attribute.positorColumnName$ = v.$attribute.positorColumnName$
+                        AND
+                            s.$attribute.positingColumnName$ <= v.$attribute.positingColumnName$
+                    )
+                WHERE
+                    p.$attribute.entityReferenceName$ = v.$attribute.entityReferenceName$
+$/ if attribute.isHistorized
+                AND
+                    p.$attribute.changingColumnName$ = v.$attribute.changingColumnName$
+$/ endif
+                AND
+                    a.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            ) held
+            WHERE
+                v.$attribute.versionColumnName$ = @currentVersion
+            AND
+                v.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            AND
+                held.total > 1
+            FOR XML PATH('')
+        );
+        IF @message is not null
+        BEGIN
+            SET @message = 'Contradiction in $attribute.name$ for: ' + @message;
+            RAISERROR(@message, 16, 1);
+            ROLLBACK;
+            RETURN;
+        END
+$/ endif
+$/ if schema.DECISIVENESS
+        -- decisive: a positor holds one assertion at a time, so an assertion that is not a retraction, positive or negative,
+$/ if attribute.isHistorized
+        -- retracts at its positing time the posit in effect for the positor at the same changing time when that has another
+        -- value (a correction); also when the assertion itself is not stored, as the restatement an idempotent attribute skips
+$/ else
+        -- retracts at its positing time the posit in effect for the positor when that has another value (a correction)
 $/ endif
         INSERT INTO [$attribute.capsule$].[$attribute.annexName$] (
 $/ if schema.METADATA
@@ -471,7 +612,7 @@ $/ if attribute.isHistorized
                 p.$attribute.changingColumnName$ = v.$attribute.changingColumnName$
 $/ endif
             AND
-                a.$attribute.reliabilityColumnName$ > $schema.metadata.deleteReliability$
+                a.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
             ORDER BY
                 a.$attribute.positingColumnName$ DESC,
                 a.$attribute.reliabilityColumnName$ DESC
@@ -479,9 +620,9 @@ $/ endif
         WHERE
             v.$attribute.versionColumnName$ = @currentVersion
         AND
-            v.$attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized and not attribute.isIdempotent ,'R'$/ endif$/ if attribute.isHistorized and attribute.isIdempotent ,'F'$/ endif)
+            v.$attribute.statementTypeColumnName$ in ('S','N'$/ if attribute.isAssertive ,'D'$/ endif$/ if attribute.isHistorized ,'R'$/ endif$/ if attribute.isHistorized and attribute.isIdempotent ,'F'$/ endif)
         AND
-            v.$attribute.reliabilityColumnName$ > $schema.metadata.deleteReliability$
+            v.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
         AND
 $/ if attribute.hasChecksum
             e.$attribute.checksumColumnName$ <> v.$attribute.checksumColumnName$

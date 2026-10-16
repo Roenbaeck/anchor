@@ -50,12 +50,15 @@ $/ endfor
         primary key (
             $tie.versionColumnName$,
             $tie.positorColumnName$,
-$/ if tie.identifiers
+$/ if tie.identifiers and schema.DECISIVENESS
 $/ foreach role in tie.identifiers
             $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
 $/ else
-$/ foreach role in tie.values
+$/ if tie.identifiers
+            -- all roles: without decisiveness a positor may state alternatives for the identifiers in one insert
+$/ endif
+$/ foreach role in tie.roles
             $role.columnName$$/ if not role.last() ,$/ endif
 $/ endfor
 $/ endif
@@ -99,6 +102,76 @@ $/ endif
             AND
                 a.$tie.reliabilityColumnName$ <> ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$)
         )
+$/ if schema.DECISIVENESS and tie.identifiers and tie.values
+        -- and so, since a decisive positor holds one assertion at a time, is an assertion of other values at that time
+        OR (
+            ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$) <> $schema.metadata.deleteReliability$
+        AND (
+            EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    [$tie.capsule$].[$tie.positName$] p
+                JOIN
+                    [$tie.capsule$].[$tie.annexName$] a
+                ON
+                    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+                WHERE
+$/ foreach role in tie.identifiers
+                    p.$role.columnName$ = i.$role.columnName$
+                AND
+$/ endfor
+$/ if tie.isHistorized
+                    p.$tie.changingColumnName$ = ISNULL(i.$tie.changingColumnName$, @now)
+                AND
+$/ endif
+                    (
+$/ foreach role in tie.values
+                        p.$role.columnName$ <> i.$role.columnName$
+$/ if not role.last()
+                    OR
+$/ endif
+$/ endfor
+                    )
+                AND
+                    a.$tie.positorColumnName$ = ISNULL(i.$tie.positorColumnName$, 0)
+                AND
+                    a.$tie.positingColumnName$ = ISNULL(i.$tie.positingColumnName$, @now)
+                AND
+                    a.$tie.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            )
+            OR EXISTS (
+                SELECT TOP 1
+                    42
+                FROM
+                    inserted j
+                WHERE
+$/ foreach role in tie.identifiers
+                    j.$role.columnName$ = i.$role.columnName$
+                AND
+$/ endfor
+$/ if tie.isHistorized
+                    ISNULL(j.$tie.changingColumnName$, @now) = ISNULL(i.$tie.changingColumnName$, @now)
+                AND
+$/ endif
+                    (
+$/ foreach role in tie.values
+                        j.$role.columnName$ <> i.$role.columnName$
+$/ if not role.last()
+                    OR
+$/ endif
+$/ endfor
+                    )
+                AND
+                    ISNULL(j.$tie.positorColumnName$, 0) = ISNULL(i.$tie.positorColumnName$, 0)
+                AND
+                    ISNULL(j.$tie.positingColumnName$, @now) = ISNULL(i.$tie.positingColumnName$, @now)
+                AND
+                    ISNULL(j.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$) <> $schema.metadata.deleteReliability$
+            )
+        )
+        )
+$/ endif
         FOR XML PATH('')
     );
     IF @message is not null
@@ -459,12 +532,89 @@ $/ endif
             v.$tie.versionColumnName$ = @currentVersion
         AND
             v.$tie.statementTypeColumnName$ in ('S','N'$/ if tie.isAssertive ,'D'$/ endif$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif$/ if tie.isHistorized and tie.isIdempotent and tie.values ,'F'$/ endif);
-$/ if schema.DECISIVENESS and tie.identifiers and tie.values
-        -- decisive: a positor holds one posit at a time for the identifiers, so a positive assertion retracts, at its
+$/ if tie.identifiers and tie.values and not schema.DECISIVENESS
 $/ if tie.isHistorized
-        -- positing time, the posit in effect for the positor at the same changing time when that has other values (a correction)
+        -- indecisive: what a positor holds for the identifiers at the same changing time may not contradict itself: a
 $/ else
-        -- positing time, the posit in effect for the positor when that has other values (a correction)
+        -- indecisive: what a positor holds for the identifiers may not contradict itself: a
+$/ endif
+        -- positive reliability counts as it is and a negative one as one plus it, and they may not sum up to more than one
+        -- (non-contradiction)
+        SET @message = (
+            SELECT TOP 1
+$/ foreach role in tie.identifiers
+                v.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+                v.$tie.changingColumnName$,
+$/ endif
+                v.$tie.positorColumnName$,
+                v.$tie.positingColumnName$
+            FROM
+                @inserted v
+            CROSS APPLY (
+                SELECT
+                    sum(CASE
+                        WHEN a.$tie.reliabilityColumnName$ > $schema.metadata.deleteReliability$ THEN a.$tie.reliabilityColumnName$
+                        ELSE 1 + a.$tie.reliabilityColumnName$
+                    END) AS total
+                FROM
+                    [$tie.capsule$].[$tie.positName$] p
+                JOIN
+                    [$tie.capsule$].[$tie.annexName$] a
+                ON
+                    a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+                AND
+                    a.$tie.positorColumnName$ = v.$tie.positorColumnName$
+                AND
+                    a.$tie.positingColumnName$ = (
+                        SELECT
+                            max(s.$tie.positingColumnName$)
+                        FROM
+                            [$tie.capsule$].[$tie.annexName$] s
+                        WHERE
+                            s.$tie.identityColumnName$ = p.$tie.identityColumnName$
+                        AND
+                            s.$tie.positorColumnName$ = v.$tie.positorColumnName$
+                        AND
+                            s.$tie.positingColumnName$ <= v.$tie.positingColumnName$
+                    )
+                WHERE
+$/ foreach role in tie.identifiers
+                    p.$role.columnName$ = v.$role.columnName$
+                AND
+$/ endfor
+$/ if tie.isHistorized
+                    p.$tie.changingColumnName$ = v.$tie.changingColumnName$
+                AND
+$/ endif
+                    a.$tie.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            ) held
+            WHERE
+                v.$tie.versionColumnName$ = @currentVersion
+            AND
+                v.$tie.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
+            AND
+                held.total > 1
+            FOR XML PATH('')
+        );
+        IF @message is not null
+        BEGIN
+            SET @message = 'Contradiction in $tie.name$ for: ' + @message;
+            RAISERROR(@message, 16, 1);
+            ROLLBACK;
+            RETURN;
+        END
+$/ endif
+$/ if schema.DECISIVENESS and tie.identifiers and tie.values
+        -- decisive: a positor holds one assertion at a time for the identifiers, so an assertion that is not a retraction,
+$/ if tie.isHistorized
+        -- positive or negative, retracts at its positing time the posit in effect for the positor at the same changing time
+        -- when that has other values (a correction); also when the assertion is not stored, as the restatement an idempotent
+        -- tie skips
+$/ else
+        -- positive or negative, retracts at its positing time the posit in effect for the positor when that has other values
+        -- (a correction)
 $/ endif
         INSERT INTO [$tie.capsule$].[$tie.annexName$] (
 $/ if schema.METADATA
@@ -521,7 +671,7 @@ $/ if tie.isHistorized
                 p.$tie.changingColumnName$ = v.$tie.changingColumnName$
             AND
 $/ endif
-                a.$tie.reliabilityColumnName$ > $schema.metadata.deleteReliability$
+                a.$tie.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
             ORDER BY
                 a.$tie.positingColumnName$ DESC,
                 a.$tie.reliabilityColumnName$ DESC
@@ -529,9 +679,9 @@ $/ endif
         WHERE
             v.$tie.versionColumnName$ = @currentVersion
         AND
-            v.$tie.statementTypeColumnName$ in ('S','N'$/ if tie.isAssertive ,'D'$/ endif$/ if tie.isHistorized and not tie.isIdempotent ,'R'$/ endif$/ if tie.isHistorized and tie.isIdempotent ,'F'$/ endif)
+            v.$tie.statementTypeColumnName$ in ('S','N'$/ if tie.isAssertive ,'D'$/ endif$/ if tie.isHistorized ,'R'$/ endif$/ if tie.isHistorized and tie.isIdempotent ,'F'$/ endif)
         AND
-            v.$tie.reliabilityColumnName$ > $schema.metadata.deleteReliability$
+            v.$tie.reliabilityColumnName$ <> $schema.metadata.deleteReliability$
         AND (
 $/ foreach role in tie.values
             e.$role.columnName$ <> v.$role.columnName$
@@ -675,6 +825,78 @@ $/ if not role.last()
 $/ endif
 $/ endfor
     );
+$/ if tie.identifiers and not schema.DECISIVENESS
+$/ if tie.isHistorized
+    -- indecisive: other values at the same changing time are a correction, which retracts the shown posit first, so
+    -- that the new values are not taken for an alternative to it
+$/ else
+    -- indecisive: other values are a correction, which retracts the shown posit first, so that the new values are not
+    -- taken for an alternative to it
+$/ endif
+    INSERT INTO [$tie.capsule$].[$tie.annexName$] (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+        $tie.identityColumnName$,
+        $tie.positorColumnName$,
+        $tie.positingColumnName$,
+        $tie.reliabilityColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        i.$tie.metadataColumnName$,
+$/ endif
+        d.$tie.identityColumnName$,
+        d.$tie.positorColumnName$,
+        cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$),
+        $schema.metadata.deleteReliability$
+    FROM
+        inserted i
+$/ foreach role in tie.knotRoles
+    LEFT JOIN
+        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
+    ON
+        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
+$/ endfor
+    JOIN
+        deleted d
+    ON
+        d.$tie.identityColumnName$ = i.$tie.identityColumnName$
+    AND
+        d.$tie.positorColumnName$ = i.$tie.positorColumnName$
+    WHERE (
+$/ foreach role in tie.values
+$/ if role.knot
+        d.$role.columnName$ <> CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
+$/ else
+        d.$role.columnName$ <> i.$role.columnName$
+$/ endif
+$/ if not role.last()
+    OR
+$/ endif
+$/ endfor
+    )
+$/ foreach role in tie.values
+    AND
+$/ if role.knot
+        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null
+$/ else
+        i.$role.columnName$ is not null
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    AND
+        UPDATE($tie.changingColumnName$)
+    AND
+        d.$tie.changingColumnName$ = i.$tie.changingColumnName$
+$/ endif
+    AND
+        d.$tie.positorColumnName$ = ISNULL(CASE WHEN UPDATE($tie.positorColumnName$) THEN i.$tie.positorColumnName$ ELSE i.$schema.metadata.positorSuffix$ END, 0)
+    AND
+        d.$tie.positingColumnName$ < cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$)
+    AND
+        ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$) <> $schema.metadata.deleteReliability$;
+$/ endif
     -- the other rows are statements, unless they leave everything as it is
     INSERT INTO [$tie.capsule$].[$tie.name$] (
 $/ if schema.METADATA
@@ -773,76 +995,6 @@ $/ endfor
                     d.$tie.reliabilityColumnName$ = ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$)
             )
         );
-$/ if tie.identifiers and not schema.DECISIVENESS
-$/ if tie.isHistorized
-    -- indecisive: other values at the same changing time are a correction, which also retracts the shown posit
-$/ else
-    -- indecisive: other values are a correction, which also retracts the shown posit
-$/ endif
-    INSERT INTO [$tie.capsule$].[$tie.annexName$] (
-$/ if schema.METADATA
-        $tie.metadataColumnName$,
-$/ endif
-        $tie.identityColumnName$,
-        $tie.positorColumnName$,
-        $tie.positingColumnName$,
-        $tie.reliabilityColumnName$
-    )
-    SELECT
-$/ if schema.METADATA
-        i.$tie.metadataColumnName$,
-$/ endif
-        d.$tie.identityColumnName$,
-        d.$tie.positorColumnName$,
-        cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$),
-        $schema.metadata.deleteReliability$
-    FROM
-        inserted i
-$/ foreach role in tie.knotRoles
-    LEFT JOIN
-        [$role.knot.capsule$].[$role.knot.name$] [$role.name$]
-    ON
-        [$role.name$].$role.knot.valueColumnName$ = i.$role.knotValueColumnName$
-$/ endfor
-    JOIN
-        deleted d
-    ON
-        d.$tie.identityColumnName$ = i.$tie.identityColumnName$
-    AND
-        d.$tie.positorColumnName$ = i.$tie.positorColumnName$
-    WHERE (
-$/ foreach role in tie.values
-$/ if role.knot
-        d.$role.columnName$ <> CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
-$/ else
-        d.$role.columnName$ <> i.$role.columnName$
-$/ endif
-$/ if not role.last()
-    OR
-$/ endif
-$/ endfor
-    )
-$/ foreach role in tie.values
-    AND
-$/ if role.knot
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null
-$/ else
-        i.$role.columnName$ is not null
-$/ endif
-$/ endfor
-$/ if tie.isHistorized
-    AND
-        UPDATE($tie.changingColumnName$)
-    AND
-        d.$tie.changingColumnName$ = i.$tie.changingColumnName$
-$/ endif
-    AND
-        d.$tie.positorColumnName$ = ISNULL(CASE WHEN UPDATE($tie.positorColumnName$) THEN i.$tie.positorColumnName$ ELSE i.$schema.metadata.positorSuffix$ END, 0)
-    AND
-        d.$tie.positingColumnName$ < cast(CASE WHEN UPDATE($tie.positingColumnName$) THEN i.$tie.positingColumnName$ ELSE @now END as $schema.metadata.positingRange$)
-    AND
-        ISNULL(i.$tie.reliabilityColumnName$, $schema.metadata.defaultReliability$) > $schema.metadata.deleteReliability$;
-$/ endif
 END
 GO
 $/ endif
