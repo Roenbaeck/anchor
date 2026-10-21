@@ -391,6 +391,14 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon$;
     SET @now = $schema.metadata.now$;
+    -- whether a column is set is asked once, here: with UPDATE() in the statements below, which read inserted and
+    -- deleted, SQL Server 2014 used gigabytes of memory to create a trigger like this one, and could run out
+$/ if tie.isHistorized
+    DECLARE @updated_$tie.changingColumnName$ bit = CASE WHEN UPDATE($tie.changingColumnName$) THEN 1 ELSE 0 END;
+$/ endif
+$/ foreach role in tie.knotRoles
+    DECLARE @updated_$role.knotValueColumnName$ bit = CASE WHEN UPDATE($role.knotValueColumnName$) THEN 1 ELSE 0 END;
+$/ endfor
 $/ if tie.values
 $/ foreach role in tie.identifiers
     IF(UPDATE($role.columnName$))
@@ -412,14 +420,14 @@ $/ if schema.METADATA
         i.$tie.metadataColumnName$,
 $/ endif
 $/ if tie.isHistorized
-        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
+        cast(CASE WHEN @updated_$tie.changingColumnName$ = 1 THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$),
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.last()
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
+        CASE WHEN @updated_$role.knotValueColumnName$ = 1 THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
 $/ else
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END,
+        CASE WHEN @updated_$role.knotValueColumnName$ = 1 THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END,
 $/ endif
 $/ else
         i.$role.columnName$$/ if not role.last() ,$/ endif
@@ -436,7 +444,7 @@ $/ endfor
     WHERE
 $/ foreach role in tie.values
 $/ if role.knot
-        CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null
+        CASE WHEN @updated_$role.knotValueColumnName$ = 1 THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END is not null
 $/ else
         i.$role.columnName$ is not null
 $/ endif
@@ -444,7 +452,7 @@ $/ endif
 $/ endfor
         ( -- values that are left as they are state nothing
 $/ if tie.isHistorized
-            UPDATE($tie.changingColumnName$) OR
+            @updated_$tie.changingColumnName$ = 1 OR
 $/ endif
             NOT EXISTS (
                 SELECT TOP 1
@@ -454,7 +462,7 @@ $/ endif
                 WHERE
 $/ foreach role in tie.roles
 $/ if role.knot
-                    d.$role.columnName$ = CASE WHEN UPDATE($role.knotValueColumnName$) THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
+                    d.$role.columnName$ = CASE WHEN @updated_$role.knotValueColumnName$ = 1 THEN [$role.name$].$role.knot.identityColumnName$ ELSE i.$role.columnName$ END
 $/ else
                     d.$role.columnName$ = i.$role.columnName$
 $/ endif
@@ -468,7 +476,7 @@ $/ endif
 $/ if tie.isDeletable and tie.identifiers and tie.values
     SELECT
 $/ if tie.isHistorized
-        cast(CASE WHEN UPDATE($tie.changingColumnName$) THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$) as $tie.deletionTimeColumnName$,
+        cast(CASE WHEN @updated_$tie.changingColumnName$ = 1 THEN i.$tie.changingColumnName$ ELSE @now END as $tie.timeRange$) as $tie.deletionTimeColumnName$,
 $/ endif
 $/ foreach role in tie.identifiers
         i.$role.columnName$$/ if not role.last() ,$/ endif

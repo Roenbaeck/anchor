@@ -206,19 +206,37 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @now $schema.metadata.chronon$;
     SET @now = $schema.metadata.now$;
+    -- whether a column is set is asked once, here: with UPDATE() in the statements below, which read inserted and
+    -- deleted, SQL Server 2014 used gigabytes of memory to create a trigger like this one, and could run out
+$/ if schema.METADATA
+    DECLARE @updated_$anchor.metadataColumnName$ bit = CASE WHEN UPDATE($anchor.metadataColumnName$) THEN 1 ELSE 0 END;
+$/ endif
+    DECLARE @updated_$schema.metadata.reliabilitySuffix$ bit = CASE WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN 1 ELSE 0 END;
     IF(UPDATE($anchor.identityColumnName$))
         RAISERROR('The identity column $anchor.identityColumnName$ is not updatable.', 16, 1);
 $/ foreach attribute in anchor.attributes
+    DECLARE @updated_$attribute.valueColumnName$ bit = CASE WHEN UPDATE($attribute.valueColumnName$) THEN 1 ELSE 0 END;
+$/ if attribute.isKnotted
+    DECLARE @updated_$attribute.knotValueColumnName$ bit = CASE WHEN UPDATE($attribute.knotValueColumnName$) THEN 1 ELSE 0 END;
+$/ endif
+$/ if schema.METADATA
+    DECLARE @updated_$attribute.metadataColumnName$ bit = CASE WHEN UPDATE($attribute.metadataColumnName$) THEN 1 ELSE 0 END;
+$/ endif
+$/ if attribute.isHistorized
+    DECLARE @updated_$attribute.changingColumnName$ bit = CASE WHEN UPDATE($attribute.changingColumnName$) THEN 1 ELSE 0 END;
+$/ endif
+    DECLARE @updated_$attribute.positingColumnName$ bit = CASE WHEN UPDATE($attribute.positingColumnName$) THEN 1 ELSE 0 END;
+    DECLARE @updated_$attribute.reliabilityColumnName$ bit = CASE WHEN UPDATE($attribute.reliabilityColumnName$) THEN 1 ELSE 0 END;
     IF(UPDATE($attribute.identityColumnName$))
         RAISERROR('The identity column $attribute.identityColumnName$ is not updatable.', 16, 1);
     IF(UPDATE($attribute.entityReferenceName$))
         RAISERROR('The foreign key column $attribute.entityReferenceName$ is not updatable.', 16, 1);
 $/ if attribute.isKnotted
     IF (
-        UPDATE($attribute.valueColumnName$) OR
-        UPDATE($attribute.knotValueColumnName$) OR
-        UPDATE($attribute.reliabilityColumnName$) OR
-        UPDATE($schema.metadata.reliabilitySuffix$)
+        @updated_$attribute.valueColumnName$ = 1 OR
+        @updated_$attribute.knotValueColumnName$ = 1 OR
+        @updated_$attribute.reliabilityColumnName$ = 1 OR
+        @updated_$schema.metadata.reliabilitySuffix$ = 1
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -236,29 +254,29 @@ $/ endif
         SELECT
 $/ if schema.METADATA
             ISNULL(CASE
-                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                WHEN @updated_$anchor.metadataColumnName$ = 1 AND @updated_$attribute.metadataColumnName$ = 0
                 THEN i.$anchor.metadataColumnName$
                 ELSE i.$attribute.metadataColumnName$
             END, i.$anchor.metadataColumnName$),
 $/ endif
             ISNULL(i.$attribute.entityReferenceName$, i.$anchor.identityColumnName$),
             CASE
-                WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$
+                WHEN @updated_$attribute.valueColumnName$ = 1 THEN i.$attribute.valueColumnName$
                 ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$
             END,
 $/ if attribute.isHistorized
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
-                WHEN d.$attribute.valueColumnName$ = CASE WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END
+                WHEN @updated_$attribute.changingColumnName$ = 1 THEN i.$attribute.changingColumnName$
+                WHEN d.$attribute.valueColumnName$ = CASE WHEN @updated_$attribute.valueColumnName$ = 1 THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END
                 THEN i.$attribute.changingColumnName$ -- the shown version is asserted again
             END, @now) as $attribute.timeRange$),
 $/ endif
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+                WHEN @updated_$attribute.positingColumnName$ = 1 THEN i.$attribute.positingColumnName$
             END, @now) as $schema.metadata.positingRange$),
             ISNULL(CASE
-                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
-                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                WHEN @updated_$attribute.reliabilityColumnName$ = 1 THEN i.$attribute.reliabilityColumnName$
+                WHEN @updated_$schema.metadata.reliabilitySuffix$ = 1 THEN i.$schema.metadata.reliabilitySuffix$
                 ELSE i.$attribute.reliabilityColumnName$
             END, 1)
         FROM
@@ -277,19 +295,19 @@ $/ endif
             d.$anchor.identityColumnName$ = i.$anchor.identityColumnName$
         WHERE
             CASE
-                WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$
+                WHEN @updated_$attribute.valueColumnName$ = 1 THEN i.$attribute.valueColumnName$
                 ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$
             END is not null
         AND ( -- a statement that leaves everything as it is states nothing
 $/ if attribute.isHistorized
-            UPDATE($attribute.changingColumnName$) OR
+            @updated_$attribute.changingColumnName$ = 1 OR
 $/ endif
-            UPDATE($attribute.positingColumnName$) OR
+            @updated_$attribute.positingColumnName$ = 1 OR
             d.$attribute.valueColumnName$ is null OR
-            d.$attribute.valueColumnName$ <> CASE WHEN UPDATE($attribute.valueColumnName$) THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END OR
+            d.$attribute.valueColumnName$ <> CASE WHEN @updated_$attribute.valueColumnName$ = 1 THEN i.$attribute.valueColumnName$ ELSE [k$attribute.knot.mnemonic$].$attribute.knot.identityColumnName$ END OR
             d.$attribute.reliabilityColumnName$ <> ISNULL(CASE
-                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
-                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                WHEN @updated_$attribute.reliabilityColumnName$ = 1 THEN i.$attribute.reliabilityColumnName$
+                WHEN @updated_$schema.metadata.reliabilitySuffix$ = 1 THEN i.$schema.metadata.reliabilitySuffix$
                 ELSE i.$attribute.reliabilityColumnName$
             END, 1)
         );
@@ -298,8 +316,8 @@ $/ endif
     -- note that an UPDATE SET AN_ATT_Anchor_Attribute = NULL, AN_ATT_ChangedAt = @timepoint
     -- will use @timepoint as a proxy for positing time
     IF (
-        UPDATE($attribute.valueColumnName$) OR
-        UPDATE($attribute.knotValueColumnName$)
+        @updated_$attribute.valueColumnName$ = 1 OR
+        @updated_$attribute.knotValueColumnName$ = 1
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -317,7 +335,7 @@ $/ endif
         SELECT
 $/ if schema.METADATA
             ISNULL(CASE
-                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                WHEN @updated_$anchor.metadataColumnName$ = 1 AND @updated_$attribute.metadataColumnName$ = 0
                 THEN i.$anchor.metadataColumnName$
                 ELSE i.$attribute.metadataColumnName$
             END, i.$anchor.metadataColumnName$),
@@ -328,9 +346,9 @@ $/ if attribute.isHistorized
             p.$attribute.changingColumnName$,
 $/ endif
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+                WHEN @updated_$attribute.positingColumnName$ = 1 THEN i.$attribute.positingColumnName$
 $/ if attribute.isHistorized
-                WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
+                WHEN @updated_$attribute.changingColumnName$ = 1 THEN i.$attribute.changingColumnName$
 $/ endif
             END, @now) as $schema.metadata.positingRange$),
             0
@@ -341,15 +359,15 @@ $/ endif
         ON
             p.$attribute.identityColumnName$ = i.$attribute.identityColumnName$
         WHERE
-            (UPDATE($attribute.valueColumnName$) AND i.$attribute.valueColumnName$ is null)
+            (@updated_$attribute.valueColumnName$ = 1 AND i.$attribute.valueColumnName$ is null)
         OR
-            (UPDATE($attribute.knotValueColumnName$) AND i.$attribute.knotValueColumnName$ is null);
+            (@updated_$attribute.knotValueColumnName$ = 1 AND i.$attribute.knotValueColumnName$ is null);
     END
 $/ else
     IF (
-        UPDATE($attribute.valueColumnName$) OR
-        UPDATE($attribute.reliabilityColumnName$) OR
-        UPDATE($schema.metadata.reliabilitySuffix$)
+        @updated_$attribute.valueColumnName$ = 1 OR
+        @updated_$attribute.reliabilityColumnName$ = 1 OR
+        @updated_$schema.metadata.reliabilitySuffix$ = 1
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -367,7 +385,7 @@ $/ endif
         SELECT
 $/ if schema.METADATA
             ISNULL(CASE
-                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                WHEN @updated_$anchor.metadataColumnName$ = 1 AND @updated_$attribute.metadataColumnName$ = 0
                 THEN i.$anchor.metadataColumnName$
                 ELSE i.$attribute.metadataColumnName$
             END, i.$anchor.metadataColumnName$),
@@ -376,7 +394,7 @@ $/ endif
             i.$attribute.valueColumnName$,
 $/ if attribute.isHistorized
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
+                WHEN @updated_$attribute.changingColumnName$ = 1 THEN i.$attribute.changingColumnName$
 $/ if attribute.hasChecksum
                 WHEN d.$attribute.checksumColumnName$ = $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max)))
 $/ else
@@ -386,11 +404,11 @@ $/ endif
             END, @now) as $attribute.timeRange$),
 $/ endif
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+                WHEN @updated_$attribute.positingColumnName$ = 1 THEN i.$attribute.positingColumnName$
             END, @now) as $schema.metadata.positingRange$),
             ISNULL(CASE
-                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
-                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                WHEN @updated_$attribute.reliabilityColumnName$ = 1 THEN i.$attribute.reliabilityColumnName$
+                WHEN @updated_$schema.metadata.reliabilitySuffix$ = 1 THEN i.$schema.metadata.reliabilitySuffix$
                 ELSE i.$attribute.reliabilityColumnName$
             END, 1)
         FROM
@@ -403,9 +421,9 @@ $/ endif
             i.$attribute.valueColumnName$ is not null
         AND ( -- a statement that leaves everything as it is states nothing
 $/ if attribute.isHistorized
-            UPDATE($attribute.changingColumnName$) OR
+            @updated_$attribute.changingColumnName$ = 1 OR
 $/ endif
-            UPDATE($attribute.positingColumnName$) OR
+            @updated_$attribute.positingColumnName$ = 1 OR
             d.$attribute.valueColumnName$ is null OR
 $/ if attribute.hasChecksum
             d.$attribute.checksumColumnName$ <> $schema.metadata.encapsulation$.MD5(cast(i.$attribute.valueColumnName$ as varbinary(max))) OR
@@ -413,8 +431,8 @@ $/ else
             d.$attribute.valueColumnName$ <> i.$attribute.valueColumnName$ OR
 $/ endif
             d.$attribute.reliabilityColumnName$ <> ISNULL(CASE
-                WHEN UPDATE($attribute.reliabilityColumnName$) THEN i.$attribute.reliabilityColumnName$
-                WHEN UPDATE($schema.metadata.reliabilitySuffix$) THEN i.$schema.metadata.reliabilitySuffix$
+                WHEN @updated_$attribute.reliabilityColumnName$ = 1 THEN i.$attribute.reliabilityColumnName$
+                WHEN @updated_$schema.metadata.reliabilitySuffix$ = 1 THEN i.$schema.metadata.reliabilitySuffix$
                 ELSE i.$attribute.reliabilityColumnName$
             END, 1)
         )
@@ -423,7 +441,7 @@ $/ endif
     -- note that an UPDATE SET AN_ATT_Anchor_Attribute = NULL, AN_ATT_ChangedAt = @timepoint
     -- will use @timepoint as a proxy for positing time
     IF (
-        UPDATE($attribute.valueColumnName$)
+        @updated_$attribute.valueColumnName$ = 1
     )
     BEGIN
         INSERT INTO [$attribute.capsule$].[$attribute.name$] (
@@ -441,7 +459,7 @@ $/ endif
         SELECT
 $/ if schema.METADATA
             ISNULL(CASE
-                WHEN UPDATE($anchor.metadataColumnName$) AND NOT UPDATE($attribute.metadataColumnName$)
+                WHEN @updated_$anchor.metadataColumnName$ = 1 AND @updated_$attribute.metadataColumnName$ = 0
                 THEN i.$anchor.metadataColumnName$
                 ELSE i.$attribute.metadataColumnName$
             END, i.$anchor.metadataColumnName$),
@@ -452,9 +470,9 @@ $/ if attribute.isHistorized
             p.$attribute.changingColumnName$,
 $/ endif
             cast(ISNULL(CASE
-                WHEN UPDATE($attribute.positingColumnName$) THEN i.$attribute.positingColumnName$
+                WHEN @updated_$attribute.positingColumnName$ = 1 THEN i.$attribute.positingColumnName$
 $/ if attribute.isHistorized
-                WHEN UPDATE($attribute.changingColumnName$) THEN i.$attribute.changingColumnName$
+                WHEN @updated_$attribute.changingColumnName$ = 1 THEN i.$attribute.changingColumnName$
 $/ endif
             END, @now) as $schema.metadata.positingRange$),
             0
