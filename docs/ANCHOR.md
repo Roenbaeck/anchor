@@ -392,6 +392,23 @@ attributes and knots into one row:
 For querying and for semantic models, the latest perspectives are usually the right starting
 point, rather than the individual tables.
 
+### Perspectives in Snowflake
+
+Snowflake compiles the body of a view or a function when it is used, not when it is created, and
+it cannot evaluate everything that SQL Server can:
+
+- A point-in-time or time-traveling function cannot be called for each row of another table, as in
+  `FROM dates d, TABLE(pAC_Actor(d.at))`. Snowflake rejects a function called like that when its
+  argument is used in an outer join, a window or a subquery ("Unsupported subquery type"), and a
+  perspective needs all three. Call it once for each time instead. The difference perspectives
+  show every change in an interval, and they are built without such calls: they join each change
+  to the values in effect then.
+- In crt the time-traveling functions work out the views of all positors and keep the one asked
+  for, so that the latest, point-in-time and now perspectives can call them for each positor. A
+  positor has to be in the table of positors (`_Positor`) for anything of its to show.
+- An attribute in an encryption group is stored as `binary`, where SQL Server has `varbinary(max)`.
+  Nothing encrypts it on the way in, since Snowflake has no triggers: load the encrypted value.
+
 ## Temporalization
 
 The model's temporalization setting decides what kinds of time the database keeps:
