@@ -76,11 +76,11 @@ $/ endif
     "$attribute.mnemonic$"."$attribute.assertionColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
+    "$attribute.mnemonic$"."$attribute.knotChecksumColumnName$",
 $/ endif
-    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
+    "$attribute.mnemonic$"."$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
+    "$attribute.mnemonic$"."$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
@@ -90,67 +90,83 @@ $/ endif
 $/ endfor
 FROM
     $anchor.capsule$."$anchor.name$" "$anchor.mnemonic$"
+-- the views of all positors are worked out, and the one asked for is picked last: the latest, point-in-time and now
+-- perspectives call this one for each positor, and Snowflake cannot do that when the positor is used before a window
+-- or in an outer join (so a positor has to be in the table of positors to be shown)
+CROSS JOIN
+    $schema.metadata.encapsulation$."_$schema.metadata.positorSuffix$" p
 $/ foreach attribute in anchor.attributes
-LEFT JOIN
-    TABLE($attribute.capsule$."r$attribute.name$"(
-        positor,
-$/ if attribute.isHistorized
-        changingTimepoint::$attribute.timeRange$,
-$/ endif
-        positingTimepoint::$schema.metadata.positingRange$
-    )) "$attribute.mnemonic$"
-ON
-    "$attribute.mnemonic$"."$attribute.identityColumnName$" = (
-        SELECT
-            sub."$attribute.identityColumnName$"
-        FROM
-$/ if attribute.isHistorized
-            (
-                SELECT
-                    r.*,
-                    -- the latest changing time with an assertion that is not a retraction, which supersedes those before
-                    -- it whatever its sign
-                    max(iff(r."$attribute.assertionColumnName$" <> '?', r."$attribute.changingColumnName$", null)) OVER (
-                        PARTITION BY r."$attribute.entityReferenceName$"
-                    ) AS "inEffect"
-                FROM
-                    TABLE($attribute.capsule$."r$attribute.name$"(
-                        positor,
-                        changingTimepoint::$attribute.timeRange$,
-                        positingTimepoint::$schema.metadata.positingRange$
-                    )) r
-            ) sub
-$/ else
-            TABLE($attribute.capsule$."r$attribute.name$"(
-                positor,
-                positingTimepoint::$schema.metadata.positingRange$
-            )) sub
-$/ endif
-        WHERE
-            sub."$attribute.entityReferenceName$" = "$anchor.mnemonic$"."$anchor.identityColumnName$"
-        AND
-            sub."$attribute.assertionColumnName$" = coalesce(assertion, sub."$attribute.assertionColumnName$")
-$/ if attribute.isHistorized
-        AND ( -- asked for positive or negative assertions, only those at that changing time
-            coalesce(assertion, '?') = '?'
-        OR
-            sub."$attribute.changingColumnName$" = sub."inEffect"
-        )
-$/ endif
-        ORDER BY
-$/ if attribute.isHistorized
-            sub."$attribute.changingColumnName$" DESC,
-$/ endif
-            sub."$attribute.positingColumnName$" DESC
-        LIMIT 1
-    )
+LEFT JOIN (
 $/ if attribute.isKnotted
-LEFT JOIN
-    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
-ON
-    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
+    -- the knot joined in here, since Snowflake cannot call this function for each positor with it joined outside
+    SELECT
+        y.*,
+$/ if attribute.knot.hasChecksum
+        k."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
 $/ endif
+$/ if schema.METADATA
+        k."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
+$/ endif
+        k."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$"
+    FROM (
+$/ endif
+    -- the posit in effect for each anchor and positor, picked by a window: Snowflake cannot evaluate a subquery that
+    -- refers to the outer row and takes the first row of an ordering
+    SELECT
+        x.*
+    FROM (
+        SELECT
+            r.*$/ if attribute.isHistorized ,$/ endif
+$/ if attribute.isHistorized
+            -- the latest changing time with an assertion that is not a retraction, which supersedes those before it
+            -- whatever its sign
+            max(iff(r."$attribute.assertionColumnName$" <> '?', r."$attribute.changingColumnName$", null)) OVER (
+                PARTITION BY r."$attribute.positorColumnName$", r."$attribute.entityReferenceName$"
+            ) AS "inEffect"
+$/ endif
+        FROM
+            TABLE($attribute.capsule$."r$attribute.name$"(
+                null::$schema.metadata.positorRange$,
+$/ if attribute.isHistorized
+                changingTimepoint::$attribute.timeRange$,
+$/ endif
+                positingTimepoint::$schema.metadata.positingRange$
+            )) r
+    ) x
+    WHERE
+        x."$attribute.assertionColumnName$" = coalesce(assertion, x."$attribute.assertionColumnName$")
+$/ if attribute.isHistorized
+    AND ( -- asked for positive or negative assertions, only those at that changing time
+        coalesce(assertion, '?') = '?'
+    OR
+        x."$attribute.changingColumnName$" = x."inEffect"
+    )
+$/ endif
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY x."$attribute.positorColumnName$", x."$attribute.entityReferenceName$"
+            ORDER BY
+$/ if attribute.isHistorized
+                x."$attribute.changingColumnName$" DESC,
+$/ endif
+                x."$attribute.positingColumnName$" DESC,
+                x."$attribute.reliabilityColumnName$" DESC
+        ) = 1
+$/ if attribute.isKnotted
+    ) y
+    LEFT JOIN
+        $attribute.knot.capsule$."$attribute.knot.name$" k
+    ON
+        k."$attribute.knot.identityColumnName$" = y."$attribute.knotReferenceName$"
+$/ endif
+) "$attribute.mnemonic$"
+ON
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$" = "$anchor.mnemonic$"."$anchor.identityColumnName$"
+AND
+    "$attribute.mnemonic$"."$attribute.positorColumnName$" = p."$schema.metadata.positorSuffix$"
 $/ if attribute.last()
+WHERE
+    p."$schema.metadata.positorSuffix$" = positor
 $$
 ;
 $/ endif
@@ -334,6 +350,11 @@ $/ endfor
 )
 AS
 $$
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now, for each
+-- positor: the posit shown at each changing time is joined with the changing time until which it holds, when the next
+-- changing time with an assertion that is not a retraction is. Snowflake cannot call the time-traveling perspective
+-- for each change, since it cannot evaluate a function with an outer join on its argument for each row of another
+-- table.
 SELECT
     p."$schema.metadata.positorSuffix$",
     timepoints.inspectedTimepoint,
@@ -343,32 +364,32 @@ $/ if schema.METADATA
 $/ endif
 $/ foreach attribute in anchor.attributes
 $/ if schema.IMPROVED
-    "$anchor.mnemonic$"."$attribute.entityReferenceName$",
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    "$anchor.mnemonic$"."$attribute.metadataColumnName$",
+    "$attribute.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    "$anchor.mnemonic$"."$attribute.identityColumnName$",
+    "$attribute.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    "$anchor.mnemonic$"."$attribute.changingColumnName$",
+    "$attribute.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    "$anchor.mnemonic$"."$attribute.positingColumnName$",
-    "$anchor.mnemonic$"."$attribute.positorColumnName$",
-    "$anchor.mnemonic$"."$attribute.reliabilityColumnName$",
-    "$anchor.mnemonic$"."$attribute.assertionColumnName$",
+    "$attribute.mnemonic$"."$attribute.positingColumnName$",
+    "$attribute.mnemonic$"."$attribute.positorColumnName$",
+    "$attribute.mnemonic$"."$attribute.reliabilityColumnName$",
+    "$attribute.mnemonic$"."$attribute.assertionColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    "$anchor.mnemonic$"."$attribute.knotChecksumColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
 $/ endif
-    "$anchor.mnemonic$"."$attribute.knotValueColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    "$anchor.mnemonic$"."$attribute.knotMetadataColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    "$anchor.mnemonic$"."$attribute.checksumColumnName$",
+    "$attribute.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    "$anchor.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
+    "$attribute.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM
     $schema.metadata.encapsulation$."_$schema.metadata.positorSuffix$" p
@@ -392,15 +413,83 @@ $/ endif
 $/ endfor
 ) timepoints
 ON
-    timepoints.positor = p."$schema.metadata.positorSuffix$",
-    TABLE($anchor.capsule$."t$anchor.name$"(
-        timepoints.positor,
-        timepoints.inspectedTimepoint::$schema.metadata.chronon$,
-        $schema.EOT$::$schema.metadata.positingRange$,
-        '+'
-    )) "$anchor.mnemonic$"
-WHERE
+    timepoints.positor = p."$schema.metadata.positorSuffix$"
+JOIN
+    $anchor.capsule$."$anchor.name$" "$anchor.mnemonic$"
+ON
     "$anchor.mnemonic$"."$anchor.identityColumnName$" = timepoints."$anchor.identityColumnName$"
+$/ foreach attribute in anchor.attributes
+LEFT JOIN (
+$/ if attribute.isHistorized
+    SELECT
+        y.*,
+        lead(y."$attribute.changingColumnName$") OVER (
+            PARTITION BY y."$attribute.positorColumnName$", y."$attribute.entityReferenceName$"
+            ORDER BY y."$attribute.changingColumnName$"
+        ) AS "until"
+    FROM (
+        -- one posit for each changing time with an assertion that is not a retraction: the positive one that is shown
+        -- if there is one, and otherwise a negative one, which means that nothing is shown from that time on
+        SELECT
+            r.*
+        FROM
+            TABLE($attribute.capsule$."r$attribute.name$"(
+                null::$schema.metadata.positorRange$,
+                $schema.EOT$::$attribute.timeRange$,
+                $schema.EOT$::$schema.metadata.positingRange$
+            )) r
+        WHERE
+            r."$attribute.assertionColumnName$" <> '?'
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY r."$attribute.positorColumnName$", r."$attribute.entityReferenceName$", r."$attribute.changingColumnName$"
+                ORDER BY
+                    iff(r."$attribute.assertionColumnName$" = '+', 0, 1),
+                    r."$attribute.positingColumnName$" DESC,
+                    r."$attribute.reliabilityColumnName$" DESC
+            ) = 1
+    ) y
+$/ else
+    SELECT
+        r.*
+    FROM
+        TABLE($attribute.capsule$."r$attribute.name$"(
+            null::$schema.metadata.positorRange$,
+            $schema.EOT$::$schema.metadata.positingRange$
+        )) r
+    WHERE
+        r."$attribute.assertionColumnName$" = '+'
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r."$attribute.positorColumnName$", r."$attribute.entityReferenceName$"
+            ORDER BY
+                r."$attribute.positingColumnName$" DESC,
+                r."$attribute.reliabilityColumnName$" DESC
+        ) = 1
+$/ endif
+) "$attribute.mnemonic$"
+ON
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$" = "$anchor.mnemonic$"."$anchor.identityColumnName$"
+AND
+    "$attribute.mnemonic$"."$attribute.positorColumnName$" = timepoints.positor
+$/ if attribute.isHistorized
+AND
+    "$attribute.mnemonic$"."$attribute.assertionColumnName$" = '+'
+AND
+    "$attribute.mnemonic$"."$attribute.changingColumnName$" <= timepoints.inspectedTimepoint::$attribute.timeRange$
+AND (
+    "$attribute.mnemonic$"."until" IS NULL
+OR
+    "$attribute.mnemonic$"."until" > timepoints.inspectedTimepoint::$attribute.timeRange$
+)
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
+ON
+    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
+$/ endif
+$/ endfor
 $$
 ;
 $/ endif

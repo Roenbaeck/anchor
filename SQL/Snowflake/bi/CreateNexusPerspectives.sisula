@@ -110,35 +110,32 @@ ON
     "k$role.name$"."$role.knot.identityColumnName$" = "$nexus.mnemonic$"."$role.columnName$"
 $/ endfor
 $/ foreach attribute in nexus.attributes
-LEFT JOIN
-    TABLE($attribute.capsule$."r$attribute.name$"(
+LEFT JOIN (
+    -- the latest asserted posit for each nexus, picked by a window: Snowflake cannot evaluate a subquery that refers to
+    -- the outer row and takes the first row of an ordering
+    SELECT
+        r.*
+    FROM
+        TABLE($attribute.capsule$."r$attribute.name$"(
 $/ if attribute.isHistorized
-        changingTimepoint::$attribute.timeRange$,
+            changingTimepoint::$attribute.timeRange$,
 $/ endif
-        positingTimepoint::$schema.metadata.positingRange$
-    )) "$attribute.mnemonic$"
+            positingTimepoint::$schema.metadata.positingRange$
+        )) r
+    WHERE
+        r."$attribute.reliabilityColumnName$" = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r."$attribute.entityReferenceName$"
+            ORDER BY
+$/ if attribute.isHistorized
+                r."$attribute.changingColumnName$" DESC,
+$/ endif
+                r."$attribute.positingColumnName$" DESC
+        ) = 1
+) "$attribute.mnemonic$"
 ON
-    "$attribute.mnemonic$"."$attribute.identityColumnName$" = (
-        SELECT
-            sub."$attribute.identityColumnName$"
-        FROM
-            TABLE($attribute.capsule$."r$attribute.name$"(
-$/ if attribute.isHistorized
-                changingTimepoint::$attribute.timeRange$,
-$/ endif
-                positingTimepoint::$schema.metadata.positingRange$
-            )) sub
-        WHERE
-            sub."$attribute.entityReferenceName$" = "$nexus.mnemonic$"."$nexus.identityColumnName$"
-        AND
-            sub."$attribute.reliabilityColumnName$" = 1
-        ORDER BY
-$/ if attribute.isHistorized
-            sub."$attribute.changingColumnName$" DESC,
-$/ endif
-            sub."$attribute.positingColumnName$" DESC
-        LIMIT 1
-    )
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$" = "$nexus.mnemonic$"."$nexus.identityColumnName$"
 $/ if attribute.isKnotted
 LEFT JOIN
     $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
@@ -327,8 +324,12 @@ $/ endfor
 )
 AS
 $$
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now: every latest
+-- asserted posit is joined with the changing time until which it holds, when the next one does. Snowflake cannot call
+-- the time-traveling perspective for each change, since it cannot evaluate a function with an outer join on its
+-- argument for each row of another table.
 SELECT
-    tp.inspectedTimepoint,
+    timepoints.inspectedTimepoint,
     "$nexus.mnemonic$"."$nexus.identityColumnName$",
 $/ if schema.METADATA
     "$nexus.mnemonic$"."$nexus.metadataColumnName$",
@@ -336,41 +337,41 @@ $/ endif
 $/ foreach role in nexus.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    "$nexus.mnemonic$"."$role.knotChecksumColumnName$",
+    "k$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    "$nexus.mnemonic$"."$role.knotValueColumnName$",
+    "k$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if schema.METADATA
-    "$nexus.mnemonic$"."$role.knotMetadataColumnName$",
+    "k$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
     "$nexus.mnemonic$"."$role.columnName$",
 $/ endfor
 $/ foreach attribute in nexus.attributes
 $/ if schema.IMPROVED
-    "$nexus.mnemonic$"."$attribute.entityReferenceName$",
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$",
 $/ endif
 $/ if schema.METADATA
-    "$nexus.mnemonic$"."$attribute.metadataColumnName$",
+    "$attribute.mnemonic$"."$attribute.metadataColumnName$",
 $/ endif
-    "$nexus.mnemonic$"."$attribute.identityColumnName$",
+    "$attribute.mnemonic$"."$attribute.identityColumnName$",
 $/ if attribute.timeRange
-    "$nexus.mnemonic$"."$attribute.changingColumnName$",
+    "$attribute.mnemonic$"."$attribute.changingColumnName$",
 $/ endif
-    "$nexus.mnemonic$"."$attribute.positingColumnName$",
-    "$nexus.mnemonic$"."$attribute.reliabilityColumnName$",
+    "$attribute.mnemonic$"."$attribute.positingColumnName$",
+    "$attribute.mnemonic$"."$attribute.reliabilityColumnName$",
 $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
-    "$nexus.mnemonic$"."$attribute.knotChecksumColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
 $/ endif
-    "$nexus.mnemonic$"."$attribute.knotValueColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
 $/ if schema.METADATA
-    "$nexus.mnemonic$"."$attribute.knotMetadataColumnName$",
+    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
 $/ endif
 $/ endif
 $/ if attribute.hasChecksum
-    "$nexus.mnemonic$"."$attribute.checksumColumnName$",
+    "$attribute.mnemonic$"."$attribute.checksumColumnName$",
 $/ endif
-    "$nexus.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
+    "$attribute.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
 $/ endfor
 FROM (
 $/ foreach historized in nexus.historizedAttributes
@@ -388,13 +389,77 @@ $/ if not historized.last()
     UNION
 $/ endif
 $/ endfor
-) tp,
-    TABLE($nexus.capsule$."t$nexus.name$"(
-        tp.inspectedTimepoint::$schema.metadata.chronon$,
-        $schema.EOT$::$schema.metadata.positingRange$
-    )) "$nexus.mnemonic$"
-WHERE
-    "$nexus.mnemonic$"."$nexus.identityColumnName$" = tp."$nexus.identityColumnName$"
+) timepoints
+JOIN
+    $nexus.capsule$."$nexus.name$" "$nexus.mnemonic$"
+ON
+    "$nexus.mnemonic$"."$nexus.identityColumnName$" = timepoints."$nexus.identityColumnName$"
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+    $role.knot.capsule$."$role.knot.name$" "k$role.name$"
+ON
+    "k$role.name$"."$role.knot.identityColumnName$" = "$nexus.mnemonic$"."$role.columnName$"
+$/ endfor
+$/ foreach attribute in nexus.attributes
+LEFT JOIN (
+$/ if attribute.isHistorized
+    SELECT
+        x.*,
+        lead(x."$attribute.changingColumnName$") OVER (
+            PARTITION BY x."$attribute.entityReferenceName$"
+            ORDER BY x."$attribute.changingColumnName$"
+        ) AS "until"
+    FROM (
+        -- the latest asserted posit at each changing time
+        SELECT
+            r.*
+        FROM
+            TABLE($attribute.capsule$."r$attribute.name$"(
+                $schema.EOT$::$attribute.timeRange$,
+                $schema.EOT$::$schema.metadata.positingRange$
+            )) r
+        WHERE
+            r."$attribute.reliabilityColumnName$" = 1
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY r."$attribute.entityReferenceName$", r."$attribute.changingColumnName$"
+                ORDER BY r."$attribute.positingColumnName$" DESC
+            ) = 1
+    ) x
+$/ else
+    SELECT
+        r.*
+    FROM
+        TABLE($attribute.capsule$."r$attribute.name$"(
+            $schema.EOT$::$schema.metadata.positingRange$
+        )) r
+    WHERE
+        r."$attribute.reliabilityColumnName$" = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r."$attribute.entityReferenceName$"
+            ORDER BY r."$attribute.positingColumnName$" DESC
+        ) = 1
+$/ endif
+) "$attribute.mnemonic$"
+ON
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$" = "$nexus.mnemonic$"."$nexus.identityColumnName$"
+$/ if attribute.isHistorized
+AND
+    "$attribute.mnemonic$"."$attribute.changingColumnName$" <= timepoints.inspectedTimepoint::$attribute.timeRange$
+AND (
+    "$attribute.mnemonic$"."until" IS NULL
+OR
+    "$attribute.mnemonic$"."until" > timepoints.inspectedTimepoint::$attribute.timeRange$
+)
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
+ON
+    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
+$/ endif
+$/ endfor
 $$
 ;
 $/ endif

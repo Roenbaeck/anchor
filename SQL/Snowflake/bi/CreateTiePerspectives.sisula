@@ -65,42 +65,39 @@ ON
 $/ endfor
 WHERE
     t."$tie.reliabilityColumnName$" = 1
-AND
-    t."$tie.identityColumnName$" = (
-        SELECT
-            sub."$tie.identityColumnName$"
-        FROM
-            TABLE($tie.capsule$."r$tie.name$"(
-$/ if tie.isHistorized
-                changingTimepoint::$tie.timeRange$,
-$/ endif
-                positingTimepoint::$schema.metadata.positingRange$
-            )) sub
-        WHERE
+QUALIFY -- picked by a window: Snowflake cannot evaluate a subquery that refers to the outer row and takes the first row
+        -- of an ordering
 $/ if tie.identifiers
+    -- the latest posit for the identifiers
+    row_number() OVER (
+        PARTITION BY
 $/ foreach role in tie.identifiers
-            sub."$role.columnName$" = t."$role.columnName$"
-$/ if not role.last()
-        AND
-$/ endif
+            t."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
-$/ else
-            (
-$/ foreach role in tie.anchorRoles
-                sub."$role.columnName$" = t."$role.columnName$"
-$/ if not role.last()
-            OR
-$/ endif
-$/ endfor
-            )
-$/ endif
         ORDER BY
 $/ if tie.isHistorized
-            sub."$tie.changingColumnName$" DESC,
+            t."$tie.changingColumnName$" DESC,
 $/ endif
-            sub."$tie.positingColumnName$" DESC
-        LIMIT 1
-    )
+            t."$tie.positingColumnName$" DESC,
+            t."$tie.identityColumnName$" DESC
+    ) = 1
+$/ else
+    -- a tie without identifiers is one to one: the latest posit for each of its anchors
+$/ foreach role in tie.anchorRoles
+    row_number() OVER (
+        PARTITION BY t."$role.columnName$"
+        ORDER BY
+$/ if tie.isHistorized
+            t."$tie.changingColumnName$" DESC,
+$/ endif
+            t."$tie.positingColumnName$" DESC,
+            t."$tie.identityColumnName$" DESC
+    ) = 1
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
 $$
 ;
 CREATE OR REPLACE VIEW $tie.capsule$."l$tie.name$" COPY GRANTS AS

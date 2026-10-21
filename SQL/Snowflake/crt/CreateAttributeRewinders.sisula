@@ -7,7 +7,7 @@
 -- in time. The forwarder is the opposite of the rewinder, such that the $--$
 -- union of the two will produce all rows in a posit table.
 --
--- @positor the view of which positor to adopt (defaults to 0)
+-- @positor the view of which positor to adopt, or null for the views of all of them
 -- @changingTimepoint the point in changing time to rewind to (defaults to End of Time, no rewind)
 -- @positingTimepoint the point in positing time to rewind to (defaults to End of Time, no rewind)
 --
@@ -158,10 +158,10 @@ JOIN
 ON
     a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
 AND
-    a."$attribute.positorColumnName$" = positor
+    a."$attribute.positorColumnName$" = coalesce(positor, a."$attribute.positorColumnName$")
 QUALIFY
     row_number() OVER (
-        PARTITION BY p."$attribute.identityColumnName$"
+        PARTITION BY p."$attribute.identityColumnName$", a."$attribute.positorColumnName$"
         ORDER BY a."$attribute.positingColumnName$" DESC
     ) = 1
 $$
@@ -214,10 +214,10 @@ JOIN
 ON
     a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
 AND
-    a."$attribute.positorColumnName$" = positor
+    a."$attribute.positorColumnName$" = coalesce(positor, a."$attribute.positorColumnName$")
 QUALIFY
     row_number() OVER (
-        PARTITION BY p."$attribute.identityColumnName$"
+        PARTITION BY p."$attribute.identityColumnName$", a."$attribute.positorColumnName$"
         ORDER BY a."$attribute.positingColumnName$" DESC
     ) = 1
 $$
@@ -342,10 +342,10 @@ JOIN
 ON
     a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
 AND
-    a."$attribute.positorColumnName$" = positor
+    a."$attribute.positorColumnName$" = coalesce(positor, a."$attribute.positorColumnName$")
 QUALIFY
     row_number() OVER (
-        PARTITION BY p."$attribute.identityColumnName$"
+        PARTITION BY p."$attribute.identityColumnName$", a."$attribute.positorColumnName$"
         ORDER BY a."$attribute.positingColumnName$" DESC
     ) = 1
 $$
