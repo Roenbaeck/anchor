@@ -78,6 +78,8 @@ powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bi
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
 powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the triggers and the natural keys do
+powershell -File tools\snowflake-tests.ps1 -Account <id> -TokenFile <path> -Warehouse <name> -Role <name>
+                                                         # needs a Snowflake account: what the perspectives show
 ```
 
 And in this repo: `.\tools\sync-sisula.ps1 -Check`.
@@ -196,8 +198,9 @@ match (they never did before).
   and `ANCHOR_GENERATE(model_xml, temporalization)`. The skill repository holds the built script, with its
   provenance in the first lines, and the docs (`references/generator.md`, `model-xml.md`) and workflow that use it.
   `hosted-check.ps1` in the sisula repository runs the JavaScript of the two functions under Jint on all models
-  and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake, and
-  as far as this file knows (2026-10-07) **has not been run yet**. To update the skill, after a change to a template or
+  and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake. On
+  2026-10-21 the script built from Anchor 3f14aa0 was installed on a test account, and `ANCHOR_GENERATE` gave the
+  golden file for each of the 39 Snowflake models, byte for byte. To update the skill, after a change to a template or
   a prelude script: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
   Identities: every identity that is generated takes its value from a sequence, never `IDENTITY(1,1)` (no generated
   script has one): knots, anchors and nexuses with `generator="true"` (`<name>_ID_SEQ`), and in bi and crt the posit
@@ -668,7 +671,47 @@ correlated subquery is nested in another); asked for all or for the uncertain, t
 limited to positive assertions (the user's decision): a negative assertion in effect shows as nothing. The same change
 found that the Snowflake crt tie function returned every posit of a tie whose latest assertion was of the requested
 kind, every version and every corrected value, where uni and bi pick the one in effect for the identifiers; it now picks
-it too. Tests c28 and i08; the Snowflake part has only been generated, not run on Snowflake.
+it too. Tests c28 and i08; on Snowflake, c02 and c06 of the Snowflake tests (see the next section).
+
+## The Snowflake perspectives run on Snowflake (2026-10-21)
+
+The user gave a programmatic access token for a test account, and the generated SQL was run there with rows in it for
+the first time. Before, only the DDL had been run, and Snowflake compiles the body of a view or a function only when it
+is used, so that said little. `tools/snowflake-tests.ps1` in the sisula repo talks to the SQL API. For distinct,
+distinct-bi, distinct-crt and distinct-equivalence it makes a database and runs the golden SQL in it. It then runs
+`snowflake-tests/<suite>-<t>.sql`, which puts rows straight into the tables and writes its checks to `test_result`, and
+last `compile.sql`, which queries every view and calls every function once. What it found:
+
+- **A subquery that refers to the outer row and takes the first row of an ordering** (`ORDER BY ... LIMIT 1`): every bi
+  and crt latest, point-in-time, now and difference perspective failed with "Unsupported subquery type". They use windows
+  now (`QUALIFY row_number() ...`), as SQL Server uses `TOP 1`.
+- **A function called for each row of another table** fails when its argument is used in an outer join, a window or a
+  subquery, and empty tables hide it. This affected three groups:
+  - the uni and equivalence difference perspectives, which called the point-in-time function for each change;
+  - every bi and crt difference perspective, which called the time-traveling function the same way;
+  - the crt latest, point-in-time and now perspectives, once a second positor had stated something, since they call the
+    time-traveling function for each positor.
+
+  The fixes:
+  - The difference perspectives join each change with every value and the changing time until which it holds, a
+    `lead()` over its history. In bi that is the latest asserted posit at each changing time; in crt it is the positive
+    posit at each changing time with an assertion that is not a retraction, or nothing if there is none.
+  - The crt time-traveling functions work out the views of all positors and keep the one asked for in the outermost
+    WHERE. Their rewinders take a null positor for all positors.
+  - A knotted attribute's knot is joined inside its derived table; joined outside, Snowflake failed again.
+
+  So a crt positor has to be in `_Positor` to show (documented in ANCHOR.md, "Perspectives in Snowflake").
+- **A wrong result from Snowflake.** The uni one-to-one tie perspectives compared with the `max()` changing time of
+  the rows that share either anchor, a subquery correlated with OR, and Snowflake kept rows that it should not. The same
+  subquery in the select list gives the right maximum. They use windows partitioned by each anchor role now, joined
+  with AND.
+- **`varbinary(max)`** for an attribute in an encryption group, which Helpers.js gives in every database. Snowflake
+  has `binary` (derive.js), and the lint flags `(max)` now.
+
+The uni point-in-time and latest perspectives keep their correlated `max()`. It is right, and Snowflake takes it as long
+as nothing calls them for each row of another table. The difference perspectives are now built apart from the
+time-traveling functions, and the tests check that they show the same at each change. Checks: perspectives uni 22, bi
+15, crt 17 (two positors and the Red/Green supersession), equivalence 13, each with the compile check.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
@@ -820,7 +863,8 @@ gives "Expected XML but encountered JSON" for the old checks and nothing for the
 
 - **anchor:** this file, the engine copy, the resolver, the templates, the directives, the modeler.
 - **sisula:** the engine's source, the language reference, the fixtures, `examples/anchor`
-  (models, golden files, tools, and `sqlserver-tests` for the SQL Server triggers), `lib/Jint.2.11.58.dll`.
+  (models, golden files, tools, `sqlserver-tests` for the SQL Server triggers and `snowflake-tests` for the Snowflake
+  perspectives), `lib/Jint.2.11.58.dll`.
 - **sisula-mssql:** the C# renderer (`clr/SisulaRenderer.cs`) and `tests/run-fixtures.ps1`.
 - **workflower:** vendors the engine the same way (`tools/sync-sisula.ps1`, `webapp/sisula.js`).
 - **dw-framework:** the old ETL framework, which uses dialect A and is not meant to change.

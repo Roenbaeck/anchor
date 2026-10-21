@@ -64,14 +64,87 @@ $/ endif
     t."$tie.positorColumnName$",
     t."$tie.reliabilityColumnName$",
     t."$tie.assertionColumnName$"
-FROM
-    TABLE($tie.capsule$."r$tie.name$"(
-        positor,
+FROM (
+    -- the views of all positors are worked out, and the one asked for is picked last: the latest, point-in-time and now
+    -- perspectives call this one for each positor, and Snowflake cannot do that when the positor is used before a
+    -- window
+    SELECT
+        s.*
+    FROM (
+        SELECT
+            r.*$/ if tie.isHistorized ,$/ endif
 $/ if tie.isHistorized
-        changingTimepoint::$tie.timeRange$,
+            -- the latest changing time with an assertion that is not a retraction, which supersedes those before it
+            -- whatever its sign
+            max(iff(r."$tie.assertionColumnName$" <> '?', r."$tie.changingColumnName$", null)) OVER (
+                PARTITION BY
+                    r."$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                    r."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                    r."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
 $/ endif
-        positingTimepoint::$schema.metadata.positingRange$
-    )) t
+            ) AS "inEffect"
+$/ endif
+        FROM
+            TABLE($tie.capsule$."r$tie.name$"(
+                null::$schema.metadata.positorRange$,
+$/ if tie.isHistorized
+                changingTimepoint::$tie.timeRange$,
+$/ endif
+                positingTimepoint::$schema.metadata.positingRange$
+            )) r
+    ) s
+    WHERE
+        s."$tie.assertionColumnName$" = coalesce(assertion, s."$tie.assertionColumnName$")
+$/ if tie.isHistorized
+    AND ( -- asked for positive or negative assertions, only those at that changing time
+        coalesce(assertion, '?') = '?'
+    OR
+        s."$tie.changingColumnName$" = s."inEffect"
+    )
+$/ endif
+    QUALIFY -- picked by a window: Snowflake cannot evaluate a subquery that refers to the outer row and takes the first
+            -- row of an ordering
+$/ if tie.identifiers
+        -- the latest posit for the identifiers
+        row_number() OVER (
+            PARTITION BY
+                s."$tie.positorColumnName$",
+$/ foreach role in tie.identifiers
+                s."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+            ORDER BY
+$/ if tie.isHistorized
+                s."$tie.changingColumnName$" DESC,
+$/ endif
+                s."$tie.positingColumnName$" DESC,
+                s."$tie.reliabilityColumnName$" DESC,
+                s."$tie.identityColumnName$" DESC
+        ) = 1
+$/ else
+        -- a tie without identifiers is one to one: the latest posit for each of its anchors
+$/ foreach role in tie.anchorRoles
+        row_number() OVER (
+            PARTITION BY s."$tie.positorColumnName$", s."$role.columnName$"
+            ORDER BY
+$/ if tie.isHistorized
+                s."$tie.changingColumnName$" DESC,
+$/ endif
+                s."$tie.positingColumnName$" DESC,
+                s."$tie.reliabilityColumnName$" DESC,
+                s."$tie.identityColumnName$" DESC
+        ) = 1
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+) t
 $/ foreach role in tie.knotRoles
 LEFT JOIN
     $role.knot.capsule$."$role.knot.name$" "k$role.name$"
@@ -79,75 +152,7 @@ ON
     "k$role.name$"."$role.knot.identityColumnName$" = t."$role.columnName$"
 $/ endfor
 WHERE
-    t."$tie.assertionColumnName$" = coalesce(assertion, t."$tie.assertionColumnName$")
-AND -- the posit in effect for the identifiers, as in uni and bi (all of them used to be shown)
-    t."$tie.identityColumnName$" = (
-        SELECT
-            sub."$tie.identityColumnName$"
-        FROM
-$/ if tie.isHistorized
-            (
-                SELECT
-                    r.*,
-                    -- the latest changing time with an assertion that is not a retraction, which supersedes those before
-                    -- it whatever its sign
-                    max(iff(r."$tie.assertionColumnName$" <> '?', r."$tie.changingColumnName$", null)) OVER (
-                        PARTITION BY
-$/ if tie.identifiers
-$/ foreach role in tie.identifiers
-                            r."$role.columnName$"$/ if not role.last() ,$/ endif
-$/ endfor
-$/ else
-$/ foreach role in tie.roles
-                            r."$role.columnName$"$/ if not role.last() ,$/ endif
-$/ endfor
-$/ endif
-                    ) AS "inEffect"
-                FROM
-                    TABLE($tie.capsule$."r$tie.name$"(
-                        positor,
-                        changingTimepoint::$tie.timeRange$,
-                        positingTimepoint::$schema.metadata.positingRange$
-                    )) r
-            ) sub
-$/ else
-            TABLE($tie.capsule$."r$tie.name$"(
-                positor,
-                positingTimepoint::$schema.metadata.positingRange$
-            )) sub
-$/ endif
-        WHERE
-$/ if tie.identifiers
-$/ foreach role in tie.identifiers
-            sub."$role.columnName$" = t."$role.columnName$"
-        AND
-$/ endfor
-$/ else
-            (
-$/ foreach role in tie.anchorRoles
-                sub."$role.columnName$" = t."$role.columnName$"
-$/ if not role.last()
-            OR
-$/ endif
-$/ endfor
-            )
-        AND
-$/ endif
-            sub."$tie.assertionColumnName$" = coalesce(assertion, sub."$tie.assertionColumnName$")
-$/ if tie.isHistorized
-        AND ( -- asked for positive or negative assertions, only those at that changing time
-            coalesce(assertion, '?') = '?'
-        OR
-            sub."$tie.changingColumnName$" = sub."inEffect"
-        )
-$/ endif
-        ORDER BY
-$/ if tie.isHistorized
-            sub."$tie.changingColumnName$" DESC,
-$/ endif
-            sub."$tie.positingColumnName$" DESC
-        LIMIT 1
-    )
+    t."$tie.positorColumnName$" = positor
 $$
 ;
 -- Latest perspective -------------------------------------------------------------------------------------------------
@@ -285,6 +290,10 @@ $/ endfor
 )
 AS
 $$
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now, for each
+-- positor: the posit shown at each changing time is joined with the changing time until which it holds, when the next
+-- changing time with an assertion that is not a retraction is. Snowflake cannot call the time-traveling perspective
+-- for each change, since it cannot evaluate a function with a window over its argument for each row of another table.
 SELECT
     p."$schema.metadata.positorSuffix$",
     tp.inspectedTimepoint,
@@ -294,11 +303,11 @@ $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
 $/ if role.knot.hasChecksum
-    t."$role.knotChecksumColumnName$",
+    "k$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
 $/ endif
-    t."$role.knotValueColumnName$",
+    "k$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
 $/ if schema.METADATA
-    t."$role.knotMetadataColumnName$",
+    "k$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
 $/ endif
 $/ endif
     t."$role.columnName$",
@@ -320,13 +329,92 @@ JOIN (
         "$tie.changingColumnName$" BETWEEN intervalStart AND intervalEnd
 ) tp
 ON
-    tp.positor = p."$schema.metadata.positorSuffix$",
-    TABLE($tie.capsule$."t$tie.name$"(
-        tp.positor,
-        tp.inspectedTimepoint::$schema.metadata.chronon$,
-        $schema.EOT$::$schema.metadata.positingRange$,
-        '+'
-    )) t
+    tp.positor = p."$schema.metadata.positorSuffix$"
+JOIN (
+    SELECT
+        y.*,
+        lead(y."$tie.changingColumnName$") OVER (
+            PARTITION BY
+                y."$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                y."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                y."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+            ORDER BY y."$tie.changingColumnName$"
+        ) AS "until"
+    FROM (
+        -- one posit for each changing time with an assertion that is not a retraction: the positive one that is shown
+        -- if there is one, and otherwise a negative one, which means that nothing is shown from that time on
+        SELECT
+            r.*
+        FROM
+            TABLE($tie.capsule$."r$tie.name$"(
+                null::$schema.metadata.positorRange$,
+                $schema.EOT$::$tie.timeRange$,
+                $schema.EOT$::$schema.metadata.positingRange$
+            )) r
+        WHERE
+            r."$tie.assertionColumnName$" <> '?'
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY
+                    r."$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                    r."$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                    r."$role.columnName$",
+$/ endfor
+$/ endif
+                    r."$tie.changingColumnName$"
+                ORDER BY
+                    iff(r."$tie.assertionColumnName$" = '+', 0, 1),
+                    r."$tie.positingColumnName$" DESC,
+                    r."$tie.reliabilityColumnName$" DESC,
+                    r."$tie.identityColumnName$" DESC
+            ) = 1
+    ) y
+) t
+ON
+    t."$tie.positorColumnName$" = tp.positor
+AND
+    t."$tie.assertionColumnName$" = '+'
+AND
+    t."$tie.changingColumnName$" <= tp.inspectedTimepoint::$tie.timeRange$
+AND (
+    t."until" IS NULL
+OR
+    t."until" > tp.inspectedTimepoint::$tie.timeRange$
+)
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$."$role.knot.name$" "k$role.name$"
+ON
+    "k$role.name$"."$role.knot.identityColumnName$" = t."$role.columnName$"
+$/ endfor
+$/ if not tie.identifiers
+QUALIFY -- a tie without identifiers is one to one: of the posits shown at the time, the latest for each of its anchors
+$/ foreach role in tie.anchorRoles
+    row_number() OVER (
+        PARTITION BY tp.positor, tp.inspectedTimepoint, t."$role.columnName$"
+        ORDER BY
+            t."$tie.changingColumnName$" DESC,
+            t."$tie.positingColumnName$" DESC,
+            t."$tie.reliabilityColumnName$" DESC,
+            t."$tie.identityColumnName$" DESC
+    ) = 1
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
 $$
 ;
 $/ endif

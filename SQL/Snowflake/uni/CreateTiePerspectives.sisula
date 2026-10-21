@@ -66,29 +66,25 @@ ON
     "$role.name$"."$role.knot.identityColumnName$" = tie."$role.columnName$"
 $/ endfor
 $/ if tie.isHistorized
-WHERE
-    tie."$tie.changingColumnName$" = (
-        SELECT
-            max(sub."$tie.changingColumnName$")
-        FROM
-            $tie.capsule$."$tie.name$" sub
-        WHERE
+QUALIFY -- picked by a window rather than by a subquery that refers to the outer row: for a tie without identifiers that
+        -- subquery compares with OR, and then Snowflake keeps rows that it should not
 $/ if tie.identifiers
+    -- the latest value for the identifiers
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (
+        PARTITION BY
 $/ foreach role in tie.identifiers
-            sub."$role.columnName$" = tie."$role.columnName$"
-$/ if not role.last()
-        AND
-$/ endif
+            tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
+    )
 $/ else
+    -- a tie without identifiers is one to one: the latest value for each of its anchors
 $/ foreach role in tie.anchorRoles
-            sub."$role.columnName$" = tie."$role.columnName$"
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (PARTITION BY tie."$role.columnName$")
 $/ if not role.last()
-        OR
+AND
 $/ endif
 $/ endfor
 $/ endif
-   )
 $/ endif
 ;
 -- Point-in-time perspective ------------------------------------------------------------------------------------------
@@ -158,30 +154,26 @@ ON
 $/ endfor
 $/ if tie.isHistorized
 WHERE
-    tie."$tie.changingColumnName$" = (
-        SELECT
-            max(sub."$tie.changingColumnName$")
-        FROM
-            $tie.capsule$."$tie.name$" sub
-        WHERE
+    tie."$tie.changingColumnName$" <= changingTimepoint
+QUALIFY -- picked by a window rather than by a subquery that refers to the outer row: for a tie without identifiers that
+        -- subquery compares with OR, and then Snowflake keeps rows that it should not
 $/ if tie.identifiers
+    -- the latest value for the identifiers
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (
+        PARTITION BY
 $/ foreach role in tie.identifiers
-            sub."$role.columnName$" = tie."$role.columnName$"
-        AND
+            tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
+    )
 $/ else
-        (
+    -- a tie without identifiers is one to one: the latest value for each of its anchors
 $/ foreach role in tie.anchorRoles
-            sub."$role.columnName$" = tie."$role.columnName$"
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (PARTITION BY tie."$role.columnName$")
 $/ if not role.last()
-        OR
+AND
 $/ endif
 $/ endfor
-        )
-        AND
 $/ endif
-            sub."$tie.changingColumnName$" <= changingTimepoint
-   )
 $/ endif
 $$
 ;
@@ -330,30 +322,26 @@ ON
 $/ endfor
 $/ if tie.isHistorized
 WHERE
-    tie."$tie.changingColumnName$" = (
-        SELECT
-            max(sub."$tie.changingColumnName$")
-        FROM
-            $tie.capsule$."$tie.name$" sub
-        WHERE
+    tie."$tie.changingColumnName$" <= changingTimepoint
+QUALIFY -- picked by a window rather than by a subquery that refers to the outer row: for a tie without identifiers that
+        -- subquery compares with OR, and then Snowflake keeps rows that it should not
 $/ if tie.identifiers
+    -- the latest value for the identifiers
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (
+        PARTITION BY
 $/ foreach role in tie.identifiers
-            sub."$role.columnName$" = tie."$role.columnName$"
-        AND
+            tie."$role.columnName$"$/ if not role.last() ,$/ endif
 $/ endfor
+    )
 $/ else
-        (
+    -- a tie without identifiers is one to one: the latest value for each of its anchors
 $/ foreach role in tie.anchorRoles
-            sub."$role.columnName$" = tie."$role.columnName$"
+    tie."$tie.changingColumnName$" = max(tie."$tie.changingColumnName$") OVER (PARTITION BY tie."$role.columnName$")
 $/ if not role.last()
-        OR
+AND
 $/ endif
 $/ endfor
-        )
-        AND
 $/ endif
-            sub."$tie.changingColumnName$" <= changingTimepoint
-   )
 $/ endif
 $$
 ;

@@ -1,6 +1,7 @@
 -- TIE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------------
 --
--- CRT rewinders over changing and positing time with positor-aware annex selection.
+-- CRT rewinders over changing and positing time with positor-aware annex selection: the view of the positor given,
+-- or of all of them for null.
 --
 $/ foreach tie in schema.ties
 $/ if tie.isHistorized
@@ -138,10 +139,10 @@ JOIN
 ON
     a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
 AND
-    a."$tie.positorColumnName$" = positor
+    a."$tie.positorColumnName$" = coalesce(positor, a."$tie.positorColumnName$")
 QUALIFY
     row_number() OVER (
-        PARTITION BY p."$tie.identityColumnName$"
+        PARTITION BY p."$tie.identityColumnName$", a."$tie.positorColumnName$"
         ORDER BY a."$tie.positingColumnName$" DESC
     ) = 1
 $$
@@ -198,10 +199,10 @@ JOIN
 ON
     a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
 AND
-    a."$tie.positorColumnName$" = positor
+    a."$tie.positorColumnName$" = coalesce(positor, a."$tie.positorColumnName$")
 QUALIFY
     row_number() OVER (
-        PARTITION BY p."$tie.identityColumnName$"
+        PARTITION BY p."$tie.identityColumnName$", a."$tie.positorColumnName$"
         ORDER BY a."$tie.positingColumnName$" DESC
     ) = 1
 $$

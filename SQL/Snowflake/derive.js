@@ -44,6 +44,9 @@ while (anchor = schema.nextAnchor()) {
 var attribute;
 while (attribute = schema.nextAttribute()) {
     deriveComment(attribute);
+    // Helpers.js gives an attribute in an encryption group SQL Server's type for the encrypted value, varbinary(max),
+    // which Snowflake does not have; its binary holds up to the most that a value can
+    if (attribute.getEncryptionGroup()) attribute.dataRange = 'binary';
     var checksummed = !attribute.isKnotted() && attribute.hasChecksum();
     attribute.comparedColumnName = checksummed ? attribute.checksumColumnName : attribute.valueColumnName;
     attribute.isComparable = checksummed || attribute.isKnotted() || !/^\s*(geography|geometry|variant|object|array)\b/i.test(attribute.dataRange || '');
