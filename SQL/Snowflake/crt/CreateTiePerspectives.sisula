@@ -80,6 +80,74 @@ ON
 $/ endfor
 WHERE
     t."$tie.assertionColumnName$" = coalesce(assertion, t."$tie.assertionColumnName$")
+AND -- the posit in effect for the identifiers, as in uni and bi (all of them used to be shown)
+    t."$tie.identityColumnName$" = (
+        SELECT
+            sub."$tie.identityColumnName$"
+        FROM
+$/ if tie.isHistorized
+            (
+                SELECT
+                    r.*,
+                    -- the latest changing time with an assertion that is not a retraction, which supersedes those before
+                    -- it whatever its sign
+                    max(iff(r."$tie.assertionColumnName$" <> '?', r."$tie.changingColumnName$", null)) OVER (
+                        PARTITION BY
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                            r."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                            r."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+                    ) AS "inEffect"
+                FROM
+                    TABLE($tie.capsule$."r$tie.name$"(
+                        positor,
+                        changingTimepoint::$tie.timeRange$,
+                        positingTimepoint::$schema.metadata.positingRange$
+                    )) r
+            ) sub
+$/ else
+            TABLE($tie.capsule$."r$tie.name$"(
+                positor,
+                positingTimepoint::$schema.metadata.positingRange$
+            )) sub
+$/ endif
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            sub."$role.columnName$" = t."$role.columnName$"
+        AND
+$/ endfor
+$/ else
+            (
+$/ foreach role in tie.anchorRoles
+                sub."$role.columnName$" = t."$role.columnName$"
+$/ if not role.last()
+            OR
+$/ endif
+$/ endfor
+            )
+        AND
+$/ endif
+            sub."$tie.assertionColumnName$" = coalesce(assertion, sub."$tie.assertionColumnName$")
+$/ if tie.isHistorized
+        AND ( -- asked for positive or negative assertions, only those at that changing time
+            coalesce(assertion, '?') = '?'
+        OR
+            sub."$tie.changingColumnName$" = sub."inEffect"
+        )
+$/ endif
+        ORDER BY
+$/ if tie.isHistorized
+            sub."$tie.changingColumnName$" DESC,
+$/ endif
+            sub."$tie.positingColumnName$" DESC
+        LIMIT 1
+    )
 $$
 ;
 -- Latest perspective -------------------------------------------------------------------------------------------------

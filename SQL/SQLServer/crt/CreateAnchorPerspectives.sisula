@@ -115,6 +115,27 @@ $/ endif
             sub.$attribute.entityReferenceName$ = [$anchor.mnemonic$].$anchor.identityColumnName$
         AND
             sub.$attribute.assertionColumnName$ = isnull(@assertion, sub.$attribute.assertionColumnName$)
+$/ if attribute.isHistorized
+        AND ( -- asked for positive or negative assertions: those at the latest changing time with an assertion that is
+              -- not a retraction, which supersedes those at earlier changing times whatever its sign
+            isnull(@assertion, '?') = '?'
+        OR
+            sub.$attribute.changingColumnName$ = (
+                SELECT
+                    max(e.$attribute.changingColumnName$)
+                FROM
+                    [$attribute.capsule$].[r$attribute.name$](
+                        @positor,
+                        @changingTimepoint,
+                        @positingTimepoint
+                    ) e
+                WHERE
+                    e.$attribute.entityReferenceName$ = sub.$attribute.entityReferenceName$
+                AND
+                    e.$attribute.assertionColumnName$ <> '?'
+            )
+        )
+$/ endif
         ORDER BY
 $/ if attribute.isHistorized
             sub.$attribute.changingColumnName$ DESC,

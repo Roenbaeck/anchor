@@ -111,6 +111,36 @@ $/ endfor
         AND
 $/ endif
             sub.$tie.assertionColumnName$ = isnull(@assertion, sub.$tie.assertionColumnName$)
+$/ if tie.isHistorized
+        AND ( -- asked for positive or negative assertions: those at the latest changing time with an assertion that is
+              -- not a retraction, which supersedes those at earlier changing times whatever its sign
+            isnull(@assertion, '?') = '?'
+        OR
+            sub.$tie.changingColumnName$ = (
+                SELECT
+                    max(e.$tie.changingColumnName$)
+                FROM
+                    [$tie.capsule$].[r$tie.name$](
+                        @positor,
+                        @changingTimepoint,
+                        @positingTimepoint
+                    ) e
+                WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                    e.$role.columnName$ = sub.$role.columnName$
+                AND
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                    e.$role.columnName$ = sub.$role.columnName$
+                AND
+$/ endfor
+$/ endif
+                    e.$tie.assertionColumnName$ <> '?'
+            )
+        )
+$/ endif
         ORDER BY
 $/ if tie.isHistorized
             sub.$tie.changingColumnName$ DESC,
