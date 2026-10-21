@@ -517,3 +517,18 @@ time; only if that one is retracted does the late one show where nothing should.
 decisiveness the non-contradiction check is only made at the positing time of the late assertion,
 not at the later ones it also falls in. Load in positing order, or check the result, when the
 order cannot be relied on.
+
+### What the crt views show
+
+The latest, point-in-time, now and difference perspectives of crt, in SQL Server and in Snowflake,
+show positive assertions only, one row for each identity and positor. What they show is the information in effect, as transitional
+modeling defines it: for a historized attribute or tie, the latest changing time at which the
+positor has an assertion that is not a retraction decides, and an assertion there supersedes those
+at earlier changing times whatever its sign. So "Red" from 2000 followed by "certainly not Green"
+from 2001 shows nothing from 2001 on (the views used to show Red), while a point in time in 2000
+still shows Red. To go on believing Red past 2001, assert Red at 2001 too; without decisiveness it
+is then held together with "not Green", and with decisiveness it replaces it, since being certain
+of Red already says that it is not Green. A retraction does not supersede anything: retracting
+"not Green" brings Red from 2000 back. The time-traveling functions (`t<name>`) take the assertion
+to show as an argument; asked for positive or negative assertions they follow the same rule, asked
+for all or for the uncertain they show the latest assertion as it is.

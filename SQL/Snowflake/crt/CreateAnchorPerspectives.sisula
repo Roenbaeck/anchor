@@ -104,17 +104,39 @@ ON
         SELECT
             sub."$attribute.identityColumnName$"
         FROM
+$/ if attribute.isHistorized
+            (
+                SELECT
+                    r.*,
+                    -- the latest changing time with an assertion that is not a retraction, which supersedes those before
+                    -- it whatever its sign
+                    max(iff(r."$attribute.assertionColumnName$" <> '?', r."$attribute.changingColumnName$", null)) OVER (
+                        PARTITION BY r."$attribute.entityReferenceName$"
+                    ) AS "inEffect"
+                FROM
+                    TABLE($attribute.capsule$."r$attribute.name$"(
+                        positor,
+                        changingTimepoint::$attribute.timeRange$,
+                        positingTimepoint::$schema.metadata.positingRange$
+                    )) r
+            ) sub
+$/ else
             TABLE($attribute.capsule$."r$attribute.name$"(
                 positor,
-$/ if attribute.isHistorized
-                changingTimepoint::$attribute.timeRange$,
-$/ endif
                 positingTimepoint::$schema.metadata.positingRange$
             )) sub
+$/ endif
         WHERE
             sub."$attribute.entityReferenceName$" = "$anchor.mnemonic$"."$anchor.identityColumnName$"
         AND
             sub."$attribute.assertionColumnName$" = coalesce(assertion, sub."$attribute.assertionColumnName$")
+$/ if attribute.isHistorized
+        AND ( -- asked for positive or negative assertions, only those at that changing time
+            coalesce(assertion, '?') = '?'
+        OR
+            sub."$attribute.changingColumnName$" = sub."inEffect"
+        )
+$/ endif
         ORDER BY
 $/ if attribute.isHistorized
             sub."$attribute.changingColumnName$" DESC,
