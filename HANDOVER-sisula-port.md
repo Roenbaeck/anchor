@@ -198,8 +198,9 @@ match (they never did before).
   and `ANCHOR_GENERATE(model_xml, temporalization)`. The skill repository holds the built script, with its
   provenance in the first lines, and the docs (`references/generator.md`, `model-xml.md`) and workflow that use it.
   `hosted-check.ps1` in the sisula repository runs the JavaScript of the two functions under Jint on all models
-  and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake, and
-  as far as this file knows (2026-10-07) **has not been run yet**. To update the skill, after a change to a template or
+  and compares with the golden files; the SQL around it (the `CREATE`s, `LISTAGG`) is only run by Snowflake. On
+  2026-10-21 the script built from Anchor 3f14aa0 was installed on a test account, and `ANCHOR_GENERATE` gave the
+  golden file for each of the 39 Snowflake models, byte for byte. To update the skill, after a change to a template or
   a prelude script: rebuild into `.snowflake/cortex/skills/anchor-modeling/generator/`.
   Identities: every identity that is generated takes its value from a sequence, never `IDENTITY(1,1)` (no generated
   script has one): knots, anchors and nexuses with `generator="true"` (`<name>_ID_SEQ`), and in bi and crt the posit
