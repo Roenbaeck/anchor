@@ -656,6 +656,20 @@ for positive assertions with positing times of their own, with these exceptions,
   the key of the insert trigger's table; the existing data at a positing time that a new row has is now left out of it.
 Tests: b21, c25 to c27, i07 (and i05 at reliabilities that leave room for an alternative).
 
+**Supersession in the crt views (2026-10-21).** The crt time-traveling functions picked, for each identity, the
+assertion of the requested kind with the latest changing time: asked for positive ones (as the latest, point-in-time,
+now and difference perspectives are), they left a negative assertion out first and so showed the version before it,
+"Red" from 2000 under "certainly not Green" from 2001. The user's reasoning, which is the paper's information in effect:
+the latest changing time with an assertion that is not a retraction decides, an assertion there supersedes those at
+earlier changing times whatever its sign, and a belief that is to last past it has to be asserted at that changing time
+too (Red at 2001, concurrent with not Green). Asked for positive or negative assertions, the functions now keep only
+those at that changing time (SQL Server: a correlated `max` over the rewinder; Snowflake: a window over it, so that no
+correlated subquery is nested in another); asked for all or for the uncertain, they are as they were. The views stay
+limited to positive assertions (the user's decision): a negative assertion in effect shows as nothing. The same change
+found that the Snowflake crt tie function returned every posit of a tie whose latest assertion was of the requested
+kind, every version and every corrected value, where uni and bi pick the one in effect for the identifiers; it now picks
+it too. Tests c28 and i08; the Snowflake part has only been generated, not run on Snowflake.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
