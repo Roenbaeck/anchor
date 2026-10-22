@@ -121,9 +121,6 @@ $/ if attribute.isKnotted
 $/ if attribute.knot.hasChecksum
         [k$attribute.mnemonic$].$attribute.knot.checksumColumnName$,
 $/ endif
-$/ if schema.KNOT_ALIASES
-        [k$attribute.mnemonic$].$attribute.knot.valueColumnName$,
-$/ endif
         [k$attribute.mnemonic$].$attribute.knot.valueColumnName$,
 $/ if schema.METADATA
         [k$attribute.mnemonic$].$attribute.knot.metadataColumnName$,

@@ -3,6 +3,10 @@
 -- BI attributes use posit and annex split with changing/positing time and reliability.
 --
 $/ foreach attribute in schema.attributes
+$/ if attribute.ignoredEncryptionGroup
+-- $attribute.name$ is in the encryption group $attribute.ignoredEncryptionGroup$, which is not used: this database does not encrypt
+-- in this temporalization, so the values are stored as they are
+$/ endif
 $/ if attribute.isHistorized and not attribute.isKnotted
 $/ if attribute.isGenerator
 CREATE SEQUENCE IF NOT EXISTS $attribute.capsule$."$attribute.identitySequenceName$" START 1 INCREMENT 1;

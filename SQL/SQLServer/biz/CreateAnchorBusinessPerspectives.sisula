@@ -32,7 +32,7 @@ $/ if anchor.attributes
 CREATE VIEW [$anchor.capsule$].[Latest_$anchor.businessName$] AS
 SELECT
 $/ if schema.CRT
-    [$anchor.mnemonic$].Positor,
+    [$anchor.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$anchor.mnemonic$].$anchor.identityColumnName$ as [$anchor.businessIdentityColumnName$],
 $/ foreach attribute in anchor.attributes
@@ -58,7 +58,7 @@ CREATE FUNCTION [$anchor.capsule$].[Point_$anchor.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$anchor.mnemonic$].Positor,
+    [$anchor.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$anchor.mnemonic$].$anchor.identityColumnName$ as [$anchor.businessIdentityColumnName$],
 $/ foreach attribute in anchor.attributes
@@ -131,7 +131,7 @@ CREATE FUNCTION [$anchor.capsule$].[EQ_Latest_$anchor.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$anchor.mnemonic$].Positor,
+    [$anchor.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$anchor.mnemonic$].$anchor.identityColumnName$ as [$anchor.businessIdentityColumnName$],
 $/ foreach attribute in anchor.attributes
@@ -157,7 +157,7 @@ CREATE FUNCTION [$anchor.capsule$].[EQ_Point_$anchor.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$anchor.mnemonic$].Positor,
+    [$anchor.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$anchor.mnemonic$].$anchor.identityColumnName$ as [$anchor.businessIdentityColumnName$],
 $/ foreach attribute in anchor.attributes
