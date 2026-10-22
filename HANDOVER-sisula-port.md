@@ -748,7 +748,13 @@ defects, and the user decided each:
   ignored in bi and crt**, as Snowflake does.
 - With the original naming, two attributes on one knot give a perspective two columns of one name, in every database.
   **Left as it is:** documented in ANCHOR.md ("Generated objects and naming"), and the modeler warns in the console
-  when it loads such a model (`Actions.checkNaming`).
+  when it loads such a model (`Actions.checkNaming`). The deploy suite reports these models as KNOWN, not as failures.
+
+The first fix uncovered two more defects, which encryption had hidden:
+- The business views named the positor column `Positor` instead of using the model's positor suffix.
+- With knot aliases on, the bi time-traveling functions selected a knot's value a second time, without a name.
+
+Both are fixed. All 60 SQL Server models now deploy, except the six known cases.
 
 The first two are done with a table of features in `SQL/Helpers.js` (`FEATURES`): what the templates of a database
 implement for each temporalization. A feature that they do not implement is ignored, as if the model did not have it.
