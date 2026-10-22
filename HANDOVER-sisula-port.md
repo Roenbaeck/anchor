@@ -77,7 +77,7 @@ powershell -File tools\browser-check.ps1                 # the real modeler in h
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
-powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: what the triggers and the natural keys do
+powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: the triggers, the natural keys, and deploying every model
 powershell -File tools\snowflake-tests.ps1 -Account <id> -TokenFile <path> -Warehouse <name> -Role <name>
                                                          # needs a Snowflake account: what the perspectives show
 ```
@@ -712,6 +712,57 @@ The uni point-in-time and latest perspectives keep their correlated `max()`. It 
 as nothing calls them for each row of another table. The difference perspectives are now built apart from the
 time-traveling functions, and the tests check that they show the same at each change. Checks: perspectives uni 22, bi
 15, crt 17 (two positors and the Red/Green supersession), equivalence 13, each with the compile check.
+
+## SQL Server tests from the development machine (2026-10-21 and 22)
+
+The user's test server, s-k1dw-db-t, can be reached from the laptop: SQL Server 2014 (12.0.6433.1, Developer Edition),
+Windows authentication, with an expired certificate, so `-TrustServerCertificate`. There is no sqlcmd here, so
+`sqlserver-tests.ps1` runs the scripts with the .NET Framework's SqlClient when it finds none: one connection for a script,
+the batches split at GO, rows, messages and errors printed as sqlcmd prints them, and an error that does not end its
+batch, as in sqlcmd. The tests run on 2014, and the docs now ask for 2014 or later.
+
+**The update triggers and SQL Server 2014's memory.** Creating the crt update trigger of an anchor with twelve
+attributes, `ut_lSU_Subject`, took 59 s and failed with error 701. All the while `MEMOBJ_PARSE` grew from 60 MB to over
+6.5 GB. Narrowed down on the server:
+- The cost grew faster than the trigger: about 1.4 GB for two attributes, 4.2 GB for four.
+- Empty nested triggers on the views it inserts into changed nothing.
+- `UPDATE(column)` replaced by a constant, or `inserted` and `deleted` copied into temporary tables, made it cheap.
+
+So the cost is `UPDATE(column)` inside a statement that reads `inserted` or `deleted`, presumably binding the view behind
+them again for each call. The user remembered a 2014 bug with nested triggers that made memory run wild. The update
+triggers of anchors, nexuses and ties, in uni, bi and crt, now ask each `UPDATE()` once into `@updated_<column>`, and
+the checks that a column is not updatable keep `IF(UPDATE(...))`.
+
+The crt trigger is now created in about a second, and the updates run as fast as before (uni and bi, old against new,
+2,000 rows). A variable name holds 128 characters with the `@`, so a column name of 120 or more would need a shorter
+flag. The server's max server memory is unlimited, and SQL Server kept about 12 GB of free memory after the spike. That
+is the user's to change.
+
+**The deploy suite** (`-Suite deploy`, in the default run) runs the generated SQL of every SQL Server model but the
+handwritten ones, each in an empty database. The generated SQL creates no schemas; the original sisulets did not
+either, so the suite makes them first. It also replaces the placeholder of the encryption password. It found three
+defects, and the user decided each:
+- Encryption groups exist only in SQL Server uni. In bi and crt an encrypted attribute became an unencrypted
+  `varbinary(max)` that the posit table's key cannot hold. **Ignored in bi and crt.**
+- The business views, shared by uni, bi and crt, read the equivalence functions that only uni makes. **Equivalence is
+  ignored in bi and crt**, as Snowflake does.
+- With the original naming, two attributes on one knot give a perspective two columns of one name, in every database.
+  **Left as it is:** documented in ANCHOR.md ("Generated objects and naming"), and the modeler warns in the console
+  when it loads such a model (`Actions.checkNaming`). The deploy suite reports these models as KNOWN, not as failures.
+
+The first fix uncovered two more defects, which encryption had hidden:
+- The business views named the positor column `Positor` instead of using the model's positor suffix.
+- With knot aliases on, the bi time-traveling functions selected a knot's value a second time, without a name.
+
+Both are fixed. All 60 SQL Server models now deploy, except the six known cases.
+
+The first two are done with a table of features in `SQL/Helpers.js` (`FEATURES`): what the templates of a database
+implement for each temporalization. A feature that they do not implement is ignored, as if the model did not have it.
+`isEquivalent()` and `schema.EQUIVALENCE` are false, and `getEncryptionGroup()` gives nothing; the attribute's
+`ignoredEncryptionGroup` names the group instead, for a comment in the SQL. A database that is not listed has every
+feature. Snowflake implements no encryption, so its encrypted attributes keep their own type now, instead of the
+`binary` of the day before. The user would like the modeler to hide what a database and temporalization do not
+implement; the same table is meant to drive that, and the interface has not been done.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

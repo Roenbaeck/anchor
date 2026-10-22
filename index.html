@@ -516,6 +516,7 @@
                     if(console && console.groupEnd) console.groupEnd();
                     // the key routes, with the rules of the generators (it reads their scripts, so it ends later)
                     Actions.checkKeys().catch(e => { if(console) console.warn('Key check failed:', e); });
+                    try { Actions.checkNaming(); } catch(e) { if(console) console.warn('Naming check failed:', e); }
                     if(DEBUG) console.log(this);
                 }
             },
@@ -6585,6 +6586,29 @@
                         console.info(where + key.notes[j].text);
                 }
                 return keys;
+            },
+            // With the original naming the knot value of a knotted attribute is named after the knot alone in the
+            // perspectives, so two attributes of an anchor or a nexus on the same knot give a view two columns of one
+            // name, which no database takes (docs/ANCHOR.md, "Generated objects and naming"). Logs where that happens.
+            checkNaming: function() {
+                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                if(!schema.metadata || schema.metadata.naming !== 'original') return;
+                var owners = [];
+                (schema.anchors || []).forEach(function(mnemonic) { owners.push(schema.anchor[mnemonic]); });
+                (schema.nexuses || []).forEach(function(mnemonic) { owners.push(schema.nexus[mnemonic]); });
+                owners.forEach(function(owner) {
+                    var byKnot = Object.create(null);
+                    (owner.attributes || []).forEach(function(mnemonic) {
+                        var attribute = owner.attribute[mnemonic];
+                        if(attribute && attribute.knotRange) (byKnot[attribute.knotRange] = byKnot[attribute.knotRange] || []).push(mnemonic);
+                    });
+                    for(var knot in byKnot) {
+                        if(byKnot[knot].length > 1)
+                            console.warn('[Naming] ' + owner.mnemonic + ': the attributes ' + byKnot[knot].join(', ') + ' are all knotted to ' + knot +
+                                ', so with the original naming their knot values get the same column name in the perspectives, which the database' +
+                                ' refuses; use the improved naming, or a knot for each of them');
+                    }
+                });
             },
             generateBindings: function() {
                 Actions.bindings().then(json => {

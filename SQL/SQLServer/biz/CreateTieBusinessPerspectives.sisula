@@ -28,7 +28,7 @@ $/ foreach tie in schema.ties
 CREATE VIEW [$tie.capsule$].[Latest_$tie.businessName$] AS
 SELECT
 $/ if schema.CRT
-    tie.Positor,
+    tie.$schema.metadata.positorSuffix$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -49,7 +49,7 @@ CREATE FUNCTION [$tie.capsule$].[Point_$tie.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    tie.Positor,
+    tie.$schema.metadata.positorSuffix$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -82,7 +82,7 @@ CREATE FUNCTION [$tie.capsule$].[Difference_$tie.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    tie.$tie.positorColumnName$ as [Positor],
+    tie.$tie.positorColumnName$ as [$schema.metadata.positorSuffix$],
 $/ endif
     tie.$tie.changingColumnName$ as [Time_of_Change],
 $/ foreach role in tie.roles
@@ -106,7 +106,7 @@ CREATE FUNCTION [$tie.capsule$].[EQ_Latest_$tie.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    tie.Positor,
+    tie.$schema.metadata.positorSuffix$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -128,7 +128,7 @@ CREATE FUNCTION [$tie.capsule$].[EQ_Point_$tie.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    tie.Positor,
+    tie.$schema.metadata.positorSuffix$,
 $/ endif
 $/ foreach role in tie.roles
 $/ if role.knot
@@ -164,7 +164,7 @@ CREATE FUNCTION [$tie.capsule$].[EQ_Difference_$tie.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    tie.$tie.positorColumnName$ as [Positor],
+    tie.$tie.positorColumnName$ as [$schema.metadata.positorSuffix$],
 $/ endif
     tie.$tie.changingColumnName$ as [Time_of_Change],
 $/ foreach role in tie.roles

@@ -27,7 +27,7 @@ $/ if nexus.attributes
 CREATE VIEW [$nexus.capsule$].[Latest_$nexus.businessName$] AS
 SELECT
 $/ if schema.CRT
-    [$nexus.mnemonic$].Positor,
+    [$nexus.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
 $/ foreach role in nexus.roles
@@ -60,7 +60,7 @@ CREATE FUNCTION [$nexus.capsule$].[Point_$nexus.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$nexus.mnemonic$].Positor,
+    [$nexus.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
 $/ foreach role in nexus.roles
@@ -140,7 +140,7 @@ CREATE FUNCTION [$nexus.capsule$].[EQ_Latest_$nexus.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$nexus.mnemonic$].Positor,
+    [$nexus.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
 $/ foreach role in nexus.roles
@@ -173,7 +173,7 @@ CREATE FUNCTION [$nexus.capsule$].[EQ_Point_$nexus.businessName$] (
 RETURNS TABLE AS RETURN
 SELECT
 $/ if schema.CRT
-    [$nexus.mnemonic$].Positor,
+    [$nexus.mnemonic$].$schema.metadata.positorSuffix$,
 $/ endif
     [$nexus.mnemonic$].$nexus.identityColumnName$ as [$nexus.businessIdentityColumnName$],
 $/ foreach role in nexus.roles

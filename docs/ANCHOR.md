@@ -379,6 +379,12 @@ With the default naming, names are built from mnemonics and descriptors:
 | Tie table | `{type}_{role}` for each role, joined by `_` | `AC_part_PR_in_RAT_got` |
 | Tie role column | `{type}_ID_{role}` | `AC_ID_part` |
 
+The original naming (`naming="original"`, which came before these names) names the knot value of a knotted attribute
+in the perspectives after the knot alone, such as `UTL_Utilization`. So a model with that naming cannot have two
+attributes of one anchor or nexus on the same knot: a perspective would get two columns of the same name, which no
+database takes. The modeler warns about it in the browser's console when it loads such a model. Use the default
+naming, or a knot for each attribute.
+
 The generator also creates perspectives, which join an anchor, nexus or tie together with its
 attributes and knots into one row:
 
@@ -406,8 +412,8 @@ it cannot evaluate everything that SQL Server can:
 - In crt the time-traveling functions work out the views of all positors and keep the one asked
   for, so that the latest, point-in-time and now perspectives can call them for each positor. A
   positor has to be in the table of positors (`_Positor`) for anything of its to show.
-- An attribute in an encryption group is stored as `binary`, where SQL Server has `varbinary(max)`.
-  Nothing encrypts it on the way in, since Snowflake has no triggers: load the encrypted value.
+- Snowflake has no encryption groups (see *What each database implements*): an attribute in one keeps its own type,
+  and its values are stored as they are loaded.
 
 ## Temporalization
 
@@ -422,6 +428,22 @@ The model's temporalization setting decides what kinds of time the database keep
 
 The constructs and the model are the same in all three. Only the generated tables and
 perspectives differ.
+
+### What each database implements
+
+Some features are implemented only for some databases and temporalizations:
+
+| Feature | SQL Server uni | SQL Server bi, crt | Snowflake uni | Snowflake bi, crt |
+|---|---|---|---|---|
+| Equivalence | yes | no | yes | no |
+| Encryption groups | yes | no | no | no |
+
+Where a feature is not implemented, the generator ignores it, as if the model did not have it:
+- No knot or attribute is equivalent.
+- An attribute in an encryption group keeps its own type and is stored unencrypted. The generated SQL says so in a
+  comment above the attribute's table.
+
+The table is in `SQL/Helpers.js` (`FEATURES`), for every generator that runs on the model.
 
 ## Loading through the latest views
 

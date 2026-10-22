@@ -26,6 +26,28 @@ schema._iterator.value = 0;
 // unified attribute collection (anchor + nexus) for later global iteration/refactor
 schema.allAttributes = [];
 
+// What the templates of a database implement, for each temporalization. A feature that they do not implement is
+// ignored, as if the model did not have it: no knot or attribute is equivalent, and an attribute in an encryption group
+// keeps its own type and is stored unencrypted (ignoredEncryptionGroup names the group, so that the SQL can say so). A
+// database that is not listed has every feature, as before.
+var FEATURES = {
+    SQLServer: {
+        uni: { equivalence: true, encryption: true },
+        bi: { equivalence: false, encryption: false },
+        crt: { equivalence: false, encryption: false }
+    },
+    Snowflake: {
+        uni: { equivalence: true, encryption: false },
+        bi: { equivalence: false, encryption: false },
+        crt: { equivalence: false, encryption: false }
+    }
+};
+function hasFeature(feature) {
+    var database = FEATURES[schema.metadata.databaseTarget];
+    var features = database ? database[schema.metadata.temporalization] : null;
+    return !features || features[feature] !== false;
+}
+
 // set up helpers for knots
 schema.nextKnot = function() {
     if(!schema.knots) return null;
@@ -49,7 +71,7 @@ while(knot = schema.nextKnot()) {
         return this.metadata.generator == 'true';
     };
     knot.isEquivalent = function() {
-        return this.metadata.equivalent == 'true';
+        return this.metadata.equivalent == 'true' && hasFeature('equivalence');
     };
     knot.hasChecksum = function() {
         return this.metadata.checksum == 'true';
@@ -191,7 +213,7 @@ while (nexus = schema.nextNexus()) {
         };
         nxAttribute.isEquivalent = function() {
             // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
-            return this.metadata.equivalent == 'true' && !this.isKnotted();
+            return this.metadata.equivalent == 'true' && !this.isKnotted() && hasFeature('equivalence');
         };
         nxAttribute.isDeletable = function() {
             return this.metadata.deletable == 'true';
@@ -209,6 +231,10 @@ while (nexus = schema.nextNexus()) {
             // the modeler's rule: a knotted attribute is never encrypted (it holds a reference to its knot), whatever a file says
             if(this.isKnotted() || !this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0)
                 return;
+            if(!hasFeature('encryption')) {
+                this.ignoredEncryptionGroup = this.metadata.encryptionGroup;
+                return;
+            }
             return this.metadata.encryptionGroup;
         };
         if(nxAttribute.isHistorized())
@@ -361,7 +387,7 @@ while (anchor = schema.nextAnchor()) {
         };
         attribute.isEquivalent = function() {
             // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
-            return this.metadata.equivalent == 'true' && !this.isKnotted();
+            return this.metadata.equivalent == 'true' && !this.isKnotted() && hasFeature('equivalence');
         };
         attribute.isDeletable = function() {
             return this.metadata.deletable == 'true';
@@ -379,6 +405,10 @@ while (anchor = schema.nextAnchor()) {
             // the modeler's rule: a knotted attribute is never encrypted (it holds a reference to its knot), whatever a file says
             if(this.isKnotted() || !this.metadata.encryptionGroup || this.metadata.encryptionGroup.trim().length === 0)
                 return;
+            if(!hasFeature('encryption')) {
+                this.ignoredEncryptionGroup = this.metadata.encryptionGroup;
+                return;
+            }
             return this.metadata.encryptionGroup;
         };
         if(attribute.isHistorized())
@@ -978,7 +1008,7 @@ schema.BUSINESS_VIEWS = schema.metadata.businessViews === 'true';
 schema.KNOT_ALIASES = schema.metadata.knotAliases === 'true';
 schema.TRIGGERS = schema.metadata.triggers === 'true';
 schema.NATURAL_KEY_ATTRIBUTES = schema.metadata.naturalKeyAttributes === 'true';
-schema.EQUIVALENCE = schema.metadata.equivalence === 'true';
+schema.EQUIVALENCE = schema.metadata.equivalence === 'true' && hasFeature('equivalence');
 schema.DECISIVENESS = schema.metadata.decisiveness === 'true';
 schema.UNI = schema.metadata.temporalization === 'uni';
 schema.CRT = schema.metadata.temporalization === 'crt';

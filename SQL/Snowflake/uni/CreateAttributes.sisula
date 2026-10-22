@@ -4,6 +4,10 @@
 -- Attributes have four flavors: static, historized, knotted static, and knotted historized.
 --
 $/ foreach attribute in schema.attributes
+$/ if attribute.ignoredEncryptionGroup
+-- $attribute.name$ is in the encryption group $attribute.ignoredEncryptionGroup$, which is not used: this database does not encrypt
+-- in this temporalization, so the values are stored as they are
+$/ endif
 $/ if attribute.isHistorized and not attribute.isKnotted
 -- Historized attribute table -----------------------------------------------------------------------------------------
 -- $attribute.name$ table (on $attribute.parent.name$)
