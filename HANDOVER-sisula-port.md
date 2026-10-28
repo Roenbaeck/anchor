@@ -75,6 +75,7 @@ powershell -File tools\run-all.ps1 -Temporalization bi -Name CreateKnots   # a p
 powershell -File tools\csharp-check.ps1                  # the C# renderer (SQL Server) on the same templates and bindings
 powershell -File tools\browser-check.ps1                 # the real modeler in headless Edge: Generate SQL against the golden files
 powershell -File tools\browser-check.ps1 -Bindings       # the modeler's JSON bindings against the resolver's
+powershell -File tools\browser-check.ps1 -Features       # the modeler hides what the selected database does not implement
 powershell -File tools\regenerate-golden.ps1             # golden files from the templates; read git diff afterwards
 powershell -File tools\make-variants.ps1                 # after a change to base.xml (see the models below)
 powershell -File tools\sqlserver-tests.ps1 -Server <name>   # needs SQL Server: the triggers, the natural keys, and deploying every model
@@ -761,8 +762,13 @@ implement for each temporalization. A feature that they do not implement is igno
 `isEquivalent()` and `schema.EQUIVALENCE` are false, and `getEncryptionGroup()` gives nothing; the attribute's
 `ignoredEncryptionGroup` names the group instead, for a comment in the SQL. A database that is not listed has every
 feature. Snowflake implements no encryption, so its encrypted attributes keep their own type now, instead of the
-`binary` of the day before. The user would like the modeler to hide what a database and temporalization do not
-implement; the same table is meant to drive that, and the interface has not been done.
+`binary` of the day before. The modeler hides it too (2026-10-22, the user wanted hidden, not disabled): `Features` in `index.html` reads the
+table from `SQL/Helpers.js` (the JSON between `/*features*/` and `/*end features*/`, so that there is one table),
+sets the body classes `no-equivalence` and `no-encryption` that `application.css` hides the settings with, and the
+editables carry a `feature` that the hover panel and the tabular editor check. It does it when the database or the
+temporalization changes and when a model is loaded; before the table is read, and for a database it does not list,
+nothing is hidden. Nothing in the model is changed, only reported in the console. `browser-check.ps1 -Features` in the
+sisula repository checks it in headless Edge for seven combinations against the table.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

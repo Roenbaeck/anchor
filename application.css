@@ -119,6 +119,11 @@ body.temporal-crt li.uni { display:none !important; }
 body:not(.metadata)    li.metadata { display:none !important; }
 body:not(.equivalence) li.equivalence { display:none !important; }
 
+/* Features that the selected database and temporalization do not implement (Features in index.html reads the table in
+   SQL/Helpers.js and sets these classes on <body>) */
+body.no-equivalence li.feature-equivalence,
+body.no-encryption  li.feature-encryption { display:none !important; }
+
 /* Route key labels (text on key routes) */
 text.routeText {
     font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;

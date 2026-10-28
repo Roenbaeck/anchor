@@ -443,7 +443,11 @@ Where a feature is not implemented, the generator ignores it, as if the model di
 - An attribute in an encryption group keeps its own type and is stored unencrypted. The generated SQL says so in a
   comment above the attribute's table.
 
-The table is in `SQL/Helpers.js` (`FEATURES`), for every generator that runs on the model.
+The table is in `SQL/Helpers.js` (`FEATURES`), for every generator that runs on the model. The modeler reads the same table and
+hides what the selected database and temporalization do not implement: the setting of equivalence and its suffix and
+type, the default encryption group, and the Equivalent and Encryption group fields of knots, attributes and
+identifiers. What a model already says about them stays in it (saving writes it out), and the modeler logs in the
+browser's console how many items have it, since the generated SQL ignores it.
 
 ## Loading through the latest views
 
