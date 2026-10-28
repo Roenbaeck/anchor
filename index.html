@@ -517,6 +517,7 @@
                     // the key routes, with the rules of the generators (it reads their scripts, so it ends later)
                     Actions.checkKeys().catch(e => { if(console) console.warn('Key check failed:', e); });
                     try { Actions.checkNaming(); } catch(e) { if(console) console.warn('Naming check failed:', e); }
+                    try { Features.apply(); Features.report(); } catch(e) { if(console) console.warn('Features check failed:', e); }
                     if(DEBUG) console.log(this);
                 }
             },
@@ -1891,6 +1892,7 @@
             },
             equivalenceEdit: {
                 name: 'Equivalent',
+                feature: 'equivalence', // hidden where the selected database and temporalization do not implement it (Features)
                 description:
                         'Checking this makes it possible to store several equivalent values, ' +
                         'which for example is useful when multilingualism or multitenancy is desired.',
@@ -1920,6 +1922,7 @@
             },
             encryptionGroupEdit: {
                 name: 'Encryption group',
+                feature: 'encryption',
                 description:
                         'Setting this to anything but an empty string indicates that your data should be encrypted at rest. ' +
                         'When encryption is used, data is encrypted according to different encryption gruoups. These ' +
@@ -2692,6 +2695,7 @@
                 var j, i = 0, editable;
                 var table = document.createElement('table');
                 while(editable = this.editables[i++]) {
+                    if(!Features.has(editable.feature)) continue;
                     var element = document.createElement(editable.type);
                     element.className = 'tabularEditable';
                     if(editable.pattern) {
@@ -5543,7 +5547,7 @@
             else if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
                 this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredComponent.node.type]));
                 for(i = 0; editable = hoveredComponent.editables[i]; i++) {
-                    if(editable.editable) {
+                    if(editable.editable && Features.has(editable.feature)) {
                         this.showEditables = true;
                         var element = document.createElement(editable.type);
                         element.className = 'editable';
@@ -6625,6 +6629,57 @@
             }
         };
 
+        // What the templates of the selected database implement for the selected temporalization. The table is in
+        // SQL/Helpers.js (FEATURES), which the generators read, and is read from there. A feature that is not implemented
+        // is hidden, in the settings and in what can be edited, and ignored by the generated SQL; what a model says about
+        // it stays in the model. Until the table has been read, and for a database that it does not list, nothing is hidden.
+        var Features = {
+            table: null,
+            names: ["equivalence", "encryption"],
+            load: async function() {
+                try {
+                    var text = await Actions.getDirectives("SQL/Helpers.js");
+                    var found = /\/\*features\*\/([\s\S]*?)\/\*end features\*\//.exec(text);
+                    if(!found) throw new Error("no table of features in SQL/Helpers.js");
+                    this.table = JSON.parse(found[1]);
+                }
+                catch(e) {
+                    this.table = null;
+                    if(console) console.warn("The table of features could not be read, so nothing is hidden:", e);
+                }
+            },
+            // whether the selected database and temporalization implement a feature (also true for no feature)
+            has: function(feature) {
+                if(!feature || !this.table) return true;
+                var database = this.table[Defaults.databaseTarget];
+                var features = database ? database[Defaults.temporalization] : null;
+                return !features || features[feature] !== false;
+            },
+            // hides what is not implemented: body classes that application.css hides the settings with
+            apply: function() {
+                var body = document.body;
+                for(var i = 0; i < this.names.length; i++)
+                    body.classList.toggle("no-" + this.names[i], !this.has(this.names[i]));
+                // the settings of equivalence only show when equivalence is on, and implemented
+                body.classList.toggle("equivalence", Defaults.equivalence === "true" && this.has("equivalence"));
+            },
+            // says in the console what the model has that the generated SQL will ignore
+            report: function() {
+                if(!this.table || typeof Model === "undefined" || !Model.components) return;
+                var equivalent = 0, encrypted = 0;
+                for(var i = 0; i < Model.components.length; i++) {
+                    var component = Model.components[i];
+                    if(component.equivalent === true) equivalent++;
+                    if(component.encryptionGroup && String(component.encryptionGroup).trim()) encrypted++;
+                }
+                var where = Defaults.databaseTarget + " " + Defaults.temporalization;
+                if(equivalent && !this.has("equivalence"))
+                    console.warn("[Features] " + equivalent + " items are equivalent, which " + where + " does not implement: the generated SQL ignores it");
+                if(encrypted && !this.has("encryption"))
+                    console.warn("[Features] " + encrypted + " items are in an encryption group, which " + where + " does not implement: the generated SQL stores them as they are");
+            }
+        };
+
         var Settings = {
             // default values for some 'global' settings
             calculations: 'simple',
@@ -7021,6 +7076,8 @@
                 Editables.setEditability(Editables.assertivenessEdit, enable);
                 // Deletability only in uni-temporal
                 Editables.setEditability(Editables.deletabilityEdit, value === 'uni');
+                Features.apply();
+                Features.report();
             },
             setDeletablePrefix: function(value) {
                 Defaults.deletablePrefix = value;
@@ -7087,11 +7144,8 @@
             },
             setEquivalence: function(value) {
                 Defaults.equivalence = value;
-                var body = document.body;
-                // Toggle dedicated body class for equivalence-specific UI items
-                if (value === 'true') body.classList.add('equivalence');
-                else body.classList.remove('equivalence');
                 this.init();
+                Features.apply(); // the body class of the equivalence settings, which needs it implemented too
                 var enable = (value === 'true');
                 Editables.setEditability(Editables.equivalenceEdit, enable);
             },
@@ -7185,6 +7239,8 @@
                     var field = document.getElementById('defaultNow');
                     if(field) field.value = Defaults.now;
                 }
+                Features.apply();
+                Features.report();
             },
             setMiniRate: function(value) {
                 DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
@@ -7510,6 +7566,8 @@
             }
             // set values in the settings and defaults input fields
             Settings.loadSettings(window.localStorage);
+            // hide what the selected database and temporalization do not implement, once the table has been read
+            Features.load().then(function() { Features.apply(); Features.report(); });
             // initialize theme (light/dark)
             if(window.Actions && typeof Actions.initTheme === 'function') {
                 var storedTheme = window.localStorage.getItem("theme");
@@ -7774,7 +7832,7 @@
                 <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" onchange="Settings.setKnotAliases(this.checked ? 'true' : 'false', true)"/> Use knot aliases</li>
                 <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
                 <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" onchange="Settings.setNaturalKeyAttributes(this.checked ? 'true' : 'false', true)"/> Create natural key attributes</li>
-                <li title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
+                <li class="feature-equivalence" title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
                 <li class="crt" title="With decisiveness a positor holds a single assertion at a time, positive or negative, for an attribute of an anchor or nexus, or for the other roles of a tie, so an assertion of another value corrects the one held, which is retracted. Without it a positor may hold several at once, as long as they do not contradict each other: positive reliabilities count as they are, negative ones as one plus them, and together they may not exceed one."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
                 <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
                 <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
@@ -7833,7 +7891,7 @@
                 <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
                 <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
                 <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
-                <li title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
+                <li class="feature-encryption" title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
                 <!-- Temporalization dependent items (static, visibility controlled by body class) -->
                 <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" onblur="Settings.setPositIdentityRange(this.value)"/> Posit identity</li>
                 <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" onblur="Settings.setPositingRange(this.value)"/> Positing time range</li>

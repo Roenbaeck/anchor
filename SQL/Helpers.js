@@ -29,19 +29,20 @@ schema.allAttributes = [];
 // What the templates of a database implement, for each temporalization. A feature that they do not implement is
 // ignored, as if the model did not have it: no knot or attribute is equivalent, and an attribute in an encryption group
 // keeps its own type and is stored unencrypted (ignoredEncryptionGroup names the group, so that the SQL can say so). A
-// database that is not listed has every feature, as before.
-var FEATURES = {
-    SQLServer: {
-        uni: { equivalence: true, encryption: true },
-        bi: { equivalence: false, encryption: false },
-        crt: { equivalence: false, encryption: false }
+// database that is not listed has every feature, as before. The table is JSON between the markers, since the modeler
+// reads it from this file too, to hide what the selected database and temporalization do not implement.
+var FEATURES = /*features*/{
+    "SQLServer": {
+        "uni": { "equivalence": true, "encryption": true },
+        "bi": { "equivalence": false, "encryption": false },
+        "crt": { "equivalence": false, "encryption": false }
     },
-    Snowflake: {
-        uni: { equivalence: true, encryption: false },
-        bi: { equivalence: false, encryption: false },
-        crt: { equivalence: false, encryption: false }
+    "Snowflake": {
+        "uni": { "equivalence": true, "encryption": false },
+        "bi": { "equivalence": false, "encryption": false },
+        "crt": { "equivalence": false, "encryption": false }
     }
-};
+}/*end features*/;
 function hasFeature(feature) {
     var database = FEATURES[schema.metadata.databaseTarget];
     var features = database ? database[schema.metadata.temporalization] : null;
