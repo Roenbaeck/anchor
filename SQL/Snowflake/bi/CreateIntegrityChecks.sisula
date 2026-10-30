@@ -7,8 +7,17 @@
 --   duplicate primary key, duplicate unique key   the same key more than once
 --   no row in <table> for <column>                a reference to a row that does not exist
 --
--- In a bitemporal model an attribute and a tie are a posit table and an annex table, each with a view. What is not
--- checked is restatement and whether the time of a posit overlaps another: the uni-temporal checks do not carry over.
+-- In a bitemporal model an attribute and a tie are a posit table and an annex table, each with a view
+-- (ic_<posit table>, ic_<annex table>), and a third view, ic_<attribute or tie>, for what the two say together:
+--
+--   temporal duplicate                            the unique key of the assembled view in SQL Server: two annex rows with the
+--                                                 same entity (the identifiers of a tie, or all its roles), changing time,
+--                                                 positing time and reliability
+--   more than one posit asserted at a time        for the same entity (the identifiers of a tie) and changing time, more than
+--                                                 one posit asserted at a positing time: a correction retracts what it corrects
+--                                                 at its own positing time
+--   restatement                                   in an attribute or a tie that may not store them, a value that is asserted at
+--                                                 the changing time after the one that has it already
 --
 -- A view that returns nothing has nothing wrong. IntegrityViolations is all of them together; it reads every table.
 -- It also has the checks of the natural keys, ic_key_<anchor or nexus>_<route>, which are made with the keys: a key
@@ -251,6 +260,152 @@ WHERE
 GROUP BY
     c."$attribute.identityColumnName$"
 ;
+-- $attribute.name$ integrity ---------------------------------------------------------------------------------------
+-- What the posit and the annex say together, which no key can hold in Snowflake.
+CREATE OR REPLACE VIEW $attribute.capsule$."ic_$attribute.name$" (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+-- entity integrity, the unique key that the assembled view has in SQL Server
+SELECT
+    '$attribute.name$',
+    'temporal duplicate',
+    OBJECT_CONSTRUCT(
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$",
+$/ endif
+        '$attribute.positingColumnName$', "$attribute.positingColumnName$",
+        '$attribute.reliabilityColumnName$', "$attribute.reliabilityColumnName$"
+    ),
+    COUNT(*)
+FROM
+    $attribute.capsule$."$attribute.name$"
+GROUP BY
+    "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+    "$attribute.changingColumnName$",
+$/ endif
+    "$attribute.positingColumnName$",
+    "$attribute.reliabilityColumnName$"
+HAVING
+    COUNT(*) > 1
+UNION ALL
+-- what is asserted at one time for the same entity and changing time: a posit is asserted from its annex row until the next
+-- annex row of its own, so what is asserted at a positing time is the running sum of the changes up to it
+SELECT
+    '$attribute.name$',
+    'more than one posit asserted at a time',
+    OBJECT_CONSTRUCT(
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$",
+$/ endif
+        '$attribute.positingColumnName$', "$attribute.positingColumnName$"
+    ),
+    asserted
+FROM (
+    SELECT
+        "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        "$attribute.changingColumnName$",
+$/ endif
+        "$attribute.positingColumnName$",
+        SUM(asserted_change) OVER (
+            PARTITION BY
+                "$attribute.entityReferenceName$"$/ if attribute.isHistorized ,$/ endif
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$attribute.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS asserted
+    FROM (
+        SELECT
+            "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            "$attribute.changingColumnName$",
+$/ endif
+            "$attribute.positingColumnName$",
+            is_asserted - COALESCE(LAG(is_asserted) OVER (
+                PARTITION BY "$attribute.identityColumnName$" ORDER BY "$attribute.positingColumnName$"
+            ), 0) AS asserted_change
+        FROM (
+            SELECT
+                "$attribute.identityColumnName$",
+                "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$",
+$/ endif
+                "$attribute.positingColumnName$",
+                IFF("$attribute.reliabilityColumnName$" = 1, 1, 0) AS is_asserted
+            FROM
+                $attribute.capsule$."$attribute.name$"
+        )
+    )
+)
+WHERE
+    asserted > 1
+GROUP BY
+    "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+    "$attribute.changingColumnName$",
+$/ endif
+    "$attribute.positingColumnName$",
+    asserted
+$/ if attribute.isHistorized and not attribute.isRestatable and attribute.isComparable
+UNION ALL
+-- restatement in what is in effect: the latest annex row of each posit, when it asserts the posit
+SELECT
+    '$attribute.name$',
+    'restatement',
+    OBJECT_CONSTRUCT(
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$"
+    ),
+    1
+FROM (
+    SELECT
+        "$attribute.entityReferenceName$",
+        "$attribute.changingColumnName$",
+        "$attribute.comparedColumnName$" AS compared,
+        LAG("$attribute.comparedColumnName$") OVER (
+            PARTITION BY "$attribute.entityReferenceName$"
+            ORDER BY "$attribute.changingColumnName$", "$attribute.identityColumnName$"
+        ) AS previous,
+        LAG("$attribute.changingColumnName$") OVER (
+            PARTITION BY "$attribute.entityReferenceName$"
+            ORDER BY "$attribute.changingColumnName$", "$attribute.identityColumnName$"
+        ) AS previous_changing
+    FROM (
+        SELECT
+            "$attribute.identityColumnName$",
+            "$attribute.entityReferenceName$",
+            "$attribute.changingColumnName$",
+            "$attribute.comparedColumnName$",
+            "$attribute.reliabilityColumnName$"
+        FROM
+            $attribute.capsule$."$attribute.name$"
+        QUALIFY
+            ROW_NUMBER() OVER (
+                PARTITION BY "$attribute.identityColumnName$"
+                ORDER BY "$attribute.positingColumnName$" DESC
+            ) = 1
+    )
+    WHERE
+        "$attribute.reliabilityColumnName$" = 1
+)
+WHERE
+    compared = previous
+AND
+    previous_changing < "$attribute.changingColumnName$"
+$/ endif
+;
 $/ endfor
 $/ foreach tie in schema.ties
 -- $tie.positName$ integrity ----------------------------------------------------------------------------------------
@@ -393,6 +548,242 @@ WHERE
 GROUP BY
     c."$tie.identityColumnName$"
 ;
+-- $tie.name$ integrity ---------------------------------------------------------------------------------------------
+-- What the posit and the annex say together, which no key can hold in Snowflake.
+CREATE OR REPLACE VIEW $tie.capsule$."ic_$tie.name$" (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+-- entity integrity, the unique key that the assembled view has in SQL Server
+SELECT
+    '$tie.name$',
+    'temporal duplicate',
+    OBJECT_CONSTRUCT(
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', "$tie.changingColumnName$",
+$/ endif
+$/ if tie.identifiers and tie.values
+        '$tie.positingColumnName$', "$tie.positingColumnName$",
+        '$tie.reliabilityColumnName$', "$tie.reliabilityColumnName$"
+$/ else
+        '$tie.positingColumnName$', "$tie.positingColumnName$"
+$/ endif
+    ),
+    COUNT(*)
+FROM
+    $tie.capsule$."$tie.name$"
+GROUP BY
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+    "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+    "$tie.changingColumnName$",
+$/ endif
+$/ if tie.identifiers and tie.values
+    "$tie.positingColumnName$",
+    "$tie.reliabilityColumnName$"
+$/ else
+    "$tie.positingColumnName$"
+$/ endif
+HAVING
+    COUNT(*) > 1
+UNION ALL
+-- what is asserted at one time for the same identifiers (all the roles, if there are none) and changing time: a posit is
+-- asserted from its annex row until the next annex row of its own, so what is asserted at a positing time is the running
+-- sum of the changes up to it
+SELECT
+    '$tie.name$',
+    'more than one posit asserted at a time',
+    OBJECT_CONSTRUCT(
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', "$tie.changingColumnName$",
+$/ endif
+        '$tie.positingColumnName$', "$tie.positingColumnName$"
+    ),
+    asserted
+FROM (
+    SELECT
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        "$tie.changingColumnName$",
+$/ endif
+        "$tie.positingColumnName$",
+        SUM(asserted_change) OVER (
+            PARTITION BY
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                "$tie.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$tie.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS asserted
+    FROM (
+        SELECT
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+            "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+            "$tie.changingColumnName$",
+$/ endif
+            "$tie.positingColumnName$",
+            is_asserted - COALESCE(LAG(is_asserted) OVER (
+                PARTITION BY "$tie.identityColumnName$" ORDER BY "$tie.positingColumnName$"
+            ), 0) AS asserted_change
+        FROM (
+            SELECT
+                "$tie.identityColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                "$tie.changingColumnName$",
+$/ endif
+                "$tie.positingColumnName$",
+                IFF("$tie.reliabilityColumnName$" = 1, 1, 0) AS is_asserted
+            FROM
+                $tie.capsule$."$tie.name$"
+        )
+    )
+)
+WHERE
+    asserted > 1
+GROUP BY
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+    "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+    "$tie.changingColumnName$",
+$/ endif
+    "$tie.positingColumnName$",
+    asserted
+$/ if tie.isHistorized and tie.identifiers and tie.values and not tie.isRestatable
+UNION ALL
+-- restatement in what is in effect: the latest annex row of each posit, when it asserts the posit
+SELECT
+    '$tie.name$',
+    'restatement',
+    OBJECT_CONSTRUCT(
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+        '$tie.changingColumnName$', "$tie.changingColumnName$"
+    ),
+    1
+FROM (
+    SELECT
+$/ foreach role in tie.identifiers
+        "$role.columnName$",
+$/ endfor
+        "$tie.changingColumnName$",
+$/ foreach role in tie.values
+        "$role.columnName$",
+        LAG("$role.columnName$") OVER (
+            PARTITION BY
+$/ foreach identifier in tie.identifiers
+                "$identifier.columnName$"$/ if not identifier.last() ,$/ endif
+$/ endfor
+            ORDER BY
+                "$tie.changingColumnName$", "$tie.identityColumnName$"
+        ) AS "previous_$role.columnName$",
+$/ endfor
+        LAG("$tie.changingColumnName$") OVER (
+            PARTITION BY
+$/ foreach identifier in tie.identifiers
+                "$identifier.columnName$"$/ if not identifier.last() ,$/ endif
+$/ endfor
+            ORDER BY
+                "$tie.changingColumnName$", "$tie.identityColumnName$"
+        ) AS previous_changing
+    FROM (
+        SELECT
+            "$tie.identityColumnName$",
+$/ foreach role in tie.roles
+            "$role.columnName$",
+$/ endfor
+            "$tie.changingColumnName$",
+            "$tie.reliabilityColumnName$"
+        FROM
+            $tie.capsule$."$tie.name$"
+        QUALIFY
+            ROW_NUMBER() OVER (
+                PARTITION BY "$tie.identityColumnName$"
+                ORDER BY "$tie.positingColumnName$" DESC
+            ) = 1
+    )
+    WHERE
+        "$tie.reliabilityColumnName$" = 1
+)
+WHERE
+$/ foreach role in tie.values
+    "$role.columnName$" = "previous_$role.columnName$"
+AND
+$/ endfor
+    previous_changing < "$tie.changingColumnName$"
+$/ endif
+;
 $/ endfor
 -- IntegrityViolations ------------------------------------------------------------------------------------------------
 -- Every integrity check of the model, in one view.
@@ -424,10 +815,12 @@ $/ endfor
 $/ foreach attribute in schema.attributes
 UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.positName$"
 UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.annexName$"
+UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.name$"
 $/ endfor
 $/ foreach tie in schema.ties
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.positName$"
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.annexName$"
+UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.name$"
 $/ endfor
 $/ foreach key in schema.naturalKeys where key.usable
 UNION ALL SELECT * FROM $key.capsule$."$key.checkName$"

@@ -821,8 +821,16 @@ and governance layer**.
   for every table and `IntegrityViolations` for the model (a check for every key the tables declare, and for an
   attribute or tie that may not restate). The orphan checks use a column of the referred table in the WHERE clause
   so that a `RELY` foreign key cannot make the optimizer remove the join; whether that holds is only shown by a test
-  on an account (the skill's `generator.md` says how). **Not done:** restatement in bi and crt (posit and annex
-  semantics), overlapping intervals, and entity integrity in the bitemporal sense.
+  on an account (the skill's `generator.md` says how). **Done for bi and crt (2026-10-30):** a view `ic_<attribute>` / `ic_<tie>` next to the posit and annex views, for what the two say together (posit and annex
+  semantics). *Temporal duplicate* is the unique key of SQL Server's assembled view (bi always; crt only with entity integrity and
+  decisiveness). *More than one posit asserted at a time* (bi), *more than one assertion at a time* (decisive crt) and *assertions
+  that contradict at a time* (crt not decisive: a positive reliability weighs itself, a negative one 1 + itself, and more than 1 per
+  positor, entity or identifiers, and changing time is a contradiction) are found with a running sum over the positing times of the
+  change that each annex row makes, per posit (and positor), so a correction that withdraws what it corrects at its own positing time
+  is not flagged. *Restatement* looks at what is in effect, the latest annex row of each posit (and positor) that asserts it, in changing
+  time order. Tested in `sisula/examples/anchor/snowflake-tests/integrity-bi.sql`, `integrity-crt.sql` and `decisive-crt.sql`
+  (`snowflake-tests.ps1 -Suite integrity,decisive`). Snowflake cannot run a correlated `ORDER BY ... LIMIT 1` subquery, which is why it
+  is window functions throughout. **Not done:** reliability thresholds (SQL Server has no check for them either).
 
 **Not applicable on Snowflake:** the CLR (`clr/Anchor.js`); partitioning (`Setup*Partitioning`; micro-partitions
 and `CLUSTER BY` do that job); key generator procedures (`CreateKeyGenerators`; sequences do it);
