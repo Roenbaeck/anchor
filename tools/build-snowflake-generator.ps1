@@ -83,7 +83,7 @@ $sections.Add(@'
 var tree = XmlTree.parse(MODEL_XML);
 var metadata = null;
 for (var i = 0; i < tree.c.length; i++) if (tree.c[i].t === 1 && tree.c[i].n === 'metadata') metadata = tree.c[i];
-if (!metadata) throw new Error('The model has no <metadata> element; it has to be an Anchor model as the modeler saves it (Generate > XML code).');
+if (!metadata) throw new Error('The model has no metadata element; it has to be an Anchor model as the modeler saves it (Generate > XML code).');
 function setMetadata(name, value) {
     for (var k = 0; k < metadata.a.length; k++) if (metadata.a[k][0] === name) { metadata.a[k][1] = value; return; }
     metadata.a.push([name, value]);

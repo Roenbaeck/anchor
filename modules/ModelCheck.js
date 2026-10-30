@@ -52,14 +52,14 @@ var ModelCheck = (function () {
         function problem(where, message) { found.push((where ? where + ': ' : '') + message); }
 
         if (!root || root.nodeName !== 'schema') {
-            problem('', 'the XML has to start with a <schema> element, as the Anchor Modeler saves a model (Generate > XML code)');
+            problem('', 'the XML has to start with a schema element, as the Anchor Modeler saves a model (Generate > XML code)');
             return found;
         }
 
         // the settings of the model
         var metadataElements = elements(root, 'metadata');
         if (metadataElements.length !== 1) {
-            problem('', 'the schema has to have one <metadata> element of its own, and it has ' + metadataElements.length);
+            problem('', 'the schema has to have one metadata element of its own, and it has ' + metadataElements.length);
         } else {
             var metadata = metadataElements[0];
             var missing = [];
@@ -69,23 +69,23 @@ var ModelCheck = (function () {
                 }
             }
             if (missing.length > 0) {
-                problem('<metadata>', 'these settings are missing (the generator does not fill in a setting; the values are what the modeler would give a ' +
+                problem('the metadata', 'these settings are missing (the generator does not fill in a setting; the values are what the modeler would give a ' +
                     'Snowflake model): ' + missing.join(', '));
             }
             for (var setting in METADATA) {
                 if (!Object.prototype.hasOwnProperty.call(METADATA, setting)) continue;
                 var given = attribute(metadata, setting);
                 if (given !== null && (METADATA[setting] === 'true' || METADATA[setting] === 'false') && given !== 'true' && given !== 'false') {
-                    problem('<metadata>', setting + ' has to be "true" or "false", not "' + given + '"');
+                    problem('the metadata', setting + ' has to be "true" or "false", not "' + given + '"');
                 }
             }
             var naming = attribute(metadata, 'naming');
             if (naming !== null && naming !== 'original' && naming !== 'improved') {
-                problem('<metadata>', 'naming has to be "original" or "improved", not "' + naming + '"');
+                problem('the metadata', 'naming has to be "original" or "improved", not "' + naming + '"');
             }
             var temporalization = attribute(metadata, 'temporalization');
             if (temporalization !== null && temporalization !== 'uni' && temporalization !== 'bi' && temporalization !== 'crt') {
-                problem('<metadata>', 'temporalization has to be "uni", "bi" or "crt", not "' + temporalization + '"');
+                problem('the metadata', 'temporalization has to be "uni", "bi" or "crt", not "' + temporalization + '"');
             }
         }
 
@@ -172,7 +172,7 @@ var ModelCheck = (function () {
             for (var i = 0; i < list.length; i++) {
                 var route = attribute(list[i], 'route'), mnemonic = attribute(owner, 'mnemonic');
                 if (blank(route)) problem(where, 'an identifier has no route');
-                else if (!routes[mnemonic + ' ' + route]) problem(where, 'the identifier route "' + route + '" is not made up by any key of ' + mnemonic + ' (<key of="' + mnemonic + '" route="' + route + '" .../> in its attributes or roles)');
+                else if (!routes[mnemonic + ' ' + route]) problem(where, 'the identifier route "' + route + '" is not made up by any key of ' + mnemonic + ' (a key element with of="' + mnemonic + '" and route="' + route + '", in its attributes or roles)');
             }
         }
 
