@@ -770,6 +770,20 @@ temporalization changes and when a model is loaded; before the table is read, an
 nothing is hidden. Nothing in the model is changed, only reported in the console. `browser-check.ps1 -Features` in the
 sisula repository checks it in headless Edge for seven combinations against the table.
 
+## Model checks in the hosted generator (2026-10-30)
+
+The generator that runs in Snowflake used to take whatever XML it was given: a missing setting in `<metadata>` gave names
+such as `GEN_undefined`, and a knot or role that referred to nothing gave an error far from its cause. `modules/ModelCheck.js`
+now checks the model first and throws one error that lists every problem and where it is (`The model has N problems, so
+nothing was generated`). It is the rules of `anchor.xsd` that need no XML Schema 1.1 processor, plus the 46 settings that the
+generators read (with the value that the modeler would give each, which the message shows). It reads the model through the
+parts of the DOM that a browser and `DomFacade.js` share, so the modeler could use it as well; it does not yet.
+
+`hosted-check.ps1` in the sisula repository runs the 39 Snowflake models through it (none may be refused) and eleven models
+that were broken in one way each, and checks what the message says. One check is not made, on purpose: with the original
+naming, two attributes on one knot give a perspective two columns of one name (see *Generated objects and naming* in
+ANCHOR.md). Several models in the tests have that, to show it, so the generator cannot refuse it without refusing them.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
