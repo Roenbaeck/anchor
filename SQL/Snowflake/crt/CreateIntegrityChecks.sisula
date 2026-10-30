@@ -7,8 +7,20 @@
 --   duplicate primary key, duplicate unique key   the same key more than once
 --   no row in <table> for <column>                a reference to a row that does not exist
 --
--- In a concurrent reliance temporal model an attribute and a tie are a posit table and an annex table, each with a view. What is not
--- checked is restatement and whether the time of a posit overlaps another: the uni-temporal checks do not carry over.
+-- In a concurrent reliance temporal model an attribute and a tie are a posit table and an annex table, each with a view
+-- (ic_<posit table>, ic_<annex table>), and a third view, ic_<attribute or tie>, for what the two say together:
+--
+--   temporal duplicate                            the unique key of the assembled view in SQL Server: two annex rows of the same
+--                                                 assertion for the same entity, changing time, positing time and positor
+--                                                 (in a model with decisiveness and entity integrity)
+--   more than one assertion at a time             a positor that has asserted more than one posit for the same entity (the
+--                                                 identifiers of a tie) and changing time at a positing time, positive or
+--                                                 negative, where decisiveness says one
+--   assertions that contradict at a time          the same without decisiveness: the reliabilities of what a positor asserts
+--                                                 add up to more than one, a positive one as it is and a negative one as one
+--                                                 plus it, which is the non-contradiction of transitional modeling
+--   restatement                                   in an attribute or a tie that may not store them, a value that the positor
+--                                                 asserts at the changing time after the one that has it already
 --
 -- A view that returns nothing has nothing wrong. IntegrityViolations is all of them together; it reads every table.
 -- It also has the checks of the natural keys, ic_key_<anchor or nexus>_<route>, which are made with the keys: a key
@@ -253,6 +265,198 @@ WHERE
 GROUP BY
     c."$attribute.identityColumnName$"
 ;
+-- $attribute.name$ integrity ---------------------------------------------------------------------------------------
+-- What the posit and the annex say together, which no key can hold in Snowflake.
+CREATE OR REPLACE VIEW $attribute.capsule$."ic_$attribute.name$" (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+$/ if schema.INTEGRITY and schema.DECISIVENESS
+-- entity integrity, the unique key that the assembled view has in SQL Server
+SELECT
+    '$attribute.name$',
+    'temporal duplicate',
+    OBJECT_CONSTRUCT(
+        '$attribute.assertionColumnName$', "$attribute.assertionColumnName$",
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$",
+$/ endif
+        '$attribute.positingColumnName$', "$attribute.positingColumnName$",
+        '$attribute.positorColumnName$', "$attribute.positorColumnName$"
+    ),
+    COUNT(*)
+FROM
+    $attribute.capsule$."$attribute.name$"
+GROUP BY
+    "$attribute.assertionColumnName$",
+    "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+    "$attribute.changingColumnName$",
+$/ endif
+    "$attribute.positingColumnName$",
+    "$attribute.positorColumnName$"
+HAVING
+    COUNT(*) > 1
+UNION ALL
+$/ endif
+-- what a positor asserts at one time for the same entity and changing time: a posit is asserted from its annex row until the
+-- next annex row of its own, so what is asserted at a positing time is the running sum of the changes up to it
+SELECT
+    '$attribute.name$',
+$/ if schema.DECISIVENESS
+    'more than one assertion at a time',
+$/ else
+    'assertions that contradict at a time',
+$/ endif
+    OBJECT_CONSTRUCT(
+        '$attribute.positorColumnName$', "$attribute.positorColumnName$",
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$",
+$/ endif
+$/ if not schema.DECISIVENESS
+        'Weight', weight,
+$/ endif
+        '$attribute.positingColumnName$', "$attribute.positingColumnName$"
+    ),
+    asserted
+FROM (
+    SELECT
+        "$attribute.positorColumnName$",
+        "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+        "$attribute.changingColumnName$",
+$/ endif
+        "$attribute.positingColumnName$",
+        SUM(asserted_change) OVER (
+            PARTITION BY
+                "$attribute.positorColumnName$",
+                "$attribute.entityReferenceName$"$/ if attribute.isHistorized ,$/ endif
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$attribute.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS asserted,
+        SUM(weight_change) OVER (
+            PARTITION BY
+                "$attribute.positorColumnName$",
+                "$attribute.entityReferenceName$"$/ if attribute.isHistorized ,$/ endif
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$attribute.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS weight
+    FROM (
+        SELECT
+            "$attribute.positorColumnName$",
+            "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            "$attribute.changingColumnName$",
+$/ endif
+            "$attribute.positingColumnName$",
+            is_asserted - COALESCE(LAG(is_asserted) OVER (
+                PARTITION BY "$attribute.identityColumnName$", "$attribute.positorColumnName$" ORDER BY "$attribute.positingColumnName$"
+            ), 0) AS asserted_change,
+            weight_of - COALESCE(LAG(weight_of) OVER (
+                PARTITION BY "$attribute.identityColumnName$", "$attribute.positorColumnName$" ORDER BY "$attribute.positingColumnName$"
+            ), 0) AS weight_change
+        FROM (
+            SELECT
+                "$attribute.identityColumnName$",
+                "$attribute.positorColumnName$",
+                "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$",
+$/ endif
+                "$attribute.positingColumnName$",
+                IFF("$attribute.assertionColumnName$" <> '?', 1, 0) AS is_asserted,
+                CASE "$attribute.assertionColumnName$"
+                    WHEN '+' THEN "$attribute.reliabilityColumnName$"
+                    WHEN '-' THEN 1 + "$attribute.reliabilityColumnName$"
+                    ELSE 0
+                END AS weight_of
+            FROM
+                $attribute.capsule$."$attribute.name$"
+        )
+    )
+)
+WHERE
+$/ if schema.DECISIVENESS
+    asserted > 1
+$/ else
+    weight > 1
+$/ endif
+GROUP BY
+    "$attribute.positorColumnName$",
+    "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+    "$attribute.changingColumnName$",
+$/ endif
+$/ if not schema.DECISIVENESS
+    weight,
+$/ endif
+    "$attribute.positingColumnName$",
+    asserted
+$/ if attribute.isHistorized and not attribute.isRestatable and attribute.isComparable
+UNION ALL
+-- restatement in what is in effect: the latest annex row of each posit of a positor, when it asserts the posit
+SELECT
+    '$attribute.name$',
+    'restatement',
+    OBJECT_CONSTRUCT(
+        '$attribute.positorColumnName$', "$attribute.positorColumnName$",
+        '$attribute.entityReferenceName$', "$attribute.entityReferenceName$",
+        '$attribute.changingColumnName$', "$attribute.changingColumnName$"
+    ),
+    1
+FROM (
+    SELECT
+        "$attribute.positorColumnName$",
+        "$attribute.entityReferenceName$",
+        "$attribute.changingColumnName$",
+        "$attribute.comparedColumnName$" AS compared,
+        LAG("$attribute.comparedColumnName$") OVER (
+            PARTITION BY "$attribute.positorColumnName$", "$attribute.entityReferenceName$"
+            ORDER BY "$attribute.changingColumnName$", "$attribute.identityColumnName$"
+        ) AS previous,
+        LAG("$attribute.changingColumnName$") OVER (
+            PARTITION BY "$attribute.positorColumnName$", "$attribute.entityReferenceName$"
+            ORDER BY "$attribute.changingColumnName$", "$attribute.identityColumnName$"
+        ) AS previous_changing
+    FROM (
+        SELECT
+            "$attribute.identityColumnName$",
+            "$attribute.positorColumnName$",
+            "$attribute.entityReferenceName$",
+            "$attribute.changingColumnName$",
+            "$attribute.comparedColumnName$",
+            "$attribute.assertionColumnName$"
+        FROM
+            $attribute.capsule$."$attribute.name$"
+        QUALIFY
+            ROW_NUMBER() OVER (
+                PARTITION BY "$attribute.identityColumnName$", "$attribute.positorColumnName$"
+                ORDER BY "$attribute.positingColumnName$" DESC
+            ) = 1
+    )
+    WHERE
+        "$attribute.assertionColumnName$" = '+'
+)
+WHERE
+    compared = previous
+AND
+    previous_changing < "$attribute.changingColumnName$"
+$/ endif
+;
 $/ endfor
 $/ foreach tie in schema.ties
 -- $tie.positName$ integrity ----------------------------------------------------------------------------------------
@@ -397,6 +601,290 @@ WHERE
 GROUP BY
     c."$tie.identityColumnName$"
 ;
+-- $tie.name$ integrity ---------------------------------------------------------------------------------------------
+-- What the posit and the annex say together, which no key can hold in Snowflake.
+CREATE OR REPLACE VIEW $tie.capsule$."ic_$tie.name$" (
+    Construct,
+    Violation,
+    ViolationKey,
+    Occurrences
+)
+COPY GRANTS
+AS
+$/ if schema.INTEGRITY and schema.DECISIVENESS
+-- entity integrity, the unique key that the assembled view has in SQL Server
+SELECT
+    '$tie.name$',
+    'temporal duplicate',
+    OBJECT_CONSTRUCT(
+        '$tie.assertionColumnName$', "$tie.assertionColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', "$tie.changingColumnName$",
+$/ endif
+        '$tie.positingColumnName$', "$tie.positingColumnName$",
+        '$tie.positorColumnName$', "$tie.positorColumnName$"
+    ),
+    COUNT(*)
+FROM
+    $tie.capsule$."$tie.name$"
+GROUP BY
+    "$tie.assertionColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+    "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+    "$tie.changingColumnName$",
+$/ endif
+    "$tie.positingColumnName$",
+    "$tie.positorColumnName$"
+HAVING
+    COUNT(*) > 1
+UNION ALL
+$/ endif
+-- what a positor asserts at one time for the same identifiers (all the roles, if there are none) and changing time: a posit
+-- is asserted from its annex row until the next annex row of its own, so what is asserted at a positing time is the
+-- running sum of the changes up to it
+SELECT
+    '$tie.name$',
+$/ if schema.DECISIVENESS
+    'more than one assertion at a time',
+$/ else
+    'assertions that contradict at a time',
+$/ endif
+    OBJECT_CONSTRUCT(
+        '$tie.positorColumnName$', "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        '$tie.changingColumnName$', "$tie.changingColumnName$",
+$/ endif
+$/ if not schema.DECISIVENESS
+        'Weight', weight,
+$/ endif
+        '$tie.positingColumnName$', "$tie.positingColumnName$"
+    ),
+    asserted
+FROM (
+    SELECT
+        "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        "$tie.changingColumnName$",
+$/ endif
+        "$tie.positingColumnName$",
+        SUM(asserted_change) OVER (
+            PARTITION BY
+                "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                "$tie.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$tie.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS asserted,
+        SUM(weight_change) OVER (
+            PARTITION BY
+                "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                "$role.columnName$"$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                "$tie.changingColumnName$"
+$/ endif
+            ORDER BY
+                "$tie.positingColumnName$"
+            RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        ) AS weight
+    FROM (
+        SELECT
+            "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+            "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+            "$tie.changingColumnName$",
+$/ endif
+            "$tie.positingColumnName$",
+            is_asserted - COALESCE(LAG(is_asserted) OVER (
+                PARTITION BY "$tie.identityColumnName$", "$tie.positorColumnName$" ORDER BY "$tie.positingColumnName$"
+            ), 0) AS asserted_change,
+            weight_of - COALESCE(LAG(weight_of) OVER (
+                PARTITION BY "$tie.identityColumnName$", "$tie.positorColumnName$" ORDER BY "$tie.positingColumnName$"
+            ), 0) AS weight_change
+        FROM (
+            SELECT
+                "$tie.identityColumnName$",
+                "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                "$tie.changingColumnName$",
+$/ endif
+                "$tie.positingColumnName$",
+                IFF("$tie.assertionColumnName$" <> '?', 1, 0) AS is_asserted,
+                CASE "$tie.assertionColumnName$"
+                    WHEN '+' THEN "$tie.reliabilityColumnName$"
+                    WHEN '-' THEN 1 + "$tie.reliabilityColumnName$"
+                    ELSE 0
+                END AS weight_of
+            FROM
+                $tie.capsule$."$tie.name$"
+        )
+    )
+)
+WHERE
+$/ if schema.DECISIVENESS
+    asserted > 1
+$/ else
+    weight > 1
+$/ endif
+GROUP BY
+    "$tie.positorColumnName$",
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+    "$role.columnName$",
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+    "$tie.changingColumnName$",
+$/ endif
+$/ if not schema.DECISIVENESS
+    weight,
+$/ endif
+    "$tie.positingColumnName$",
+    asserted
+$/ if tie.isHistorized and tie.identifiers and tie.values and not tie.isRestatable
+UNION ALL
+-- restatement in what is in effect: the latest annex row of each posit of a positor, when it asserts the posit
+SELECT
+    '$tie.name$',
+    'restatement',
+    OBJECT_CONSTRUCT(
+        '$tie.positorColumnName$', "$tie.positorColumnName$",
+$/ foreach role in tie.identifiers
+        '$role.columnName$', "$role.columnName$",
+$/ endfor
+        '$tie.changingColumnName$', "$tie.changingColumnName$"
+    ),
+    1
+FROM (
+    SELECT
+        "$tie.positorColumnName$",
+$/ foreach role in tie.identifiers
+        "$role.columnName$",
+$/ endfor
+        "$tie.changingColumnName$",
+$/ foreach role in tie.values
+        "$role.columnName$",
+        LAG("$role.columnName$") OVER (
+            PARTITION BY
+                "$tie.positorColumnName$",
+$/ foreach identifier in tie.identifiers
+                "$identifier.columnName$"$/ if not identifier.last() ,$/ endif
+$/ endfor
+            ORDER BY
+                "$tie.changingColumnName$", "$tie.identityColumnName$"
+        ) AS "previous_$role.columnName$",
+$/ endfor
+        LAG("$tie.changingColumnName$") OVER (
+            PARTITION BY
+                "$tie.positorColumnName$",
+$/ foreach identifier in tie.identifiers
+                "$identifier.columnName$"$/ if not identifier.last() ,$/ endif
+$/ endfor
+            ORDER BY
+                "$tie.changingColumnName$", "$tie.identityColumnName$"
+        ) AS previous_changing
+    FROM (
+        SELECT
+            "$tie.identityColumnName$",
+            "$tie.positorColumnName$",
+$/ foreach role in tie.roles
+            "$role.columnName$",
+$/ endfor
+            "$tie.changingColumnName$",
+            "$tie.assertionColumnName$"
+        FROM
+            $tie.capsule$."$tie.name$"
+        QUALIFY
+            ROW_NUMBER() OVER (
+                PARTITION BY "$tie.identityColumnName$", "$tie.positorColumnName$"
+                ORDER BY "$tie.positingColumnName$" DESC
+            ) = 1
+    )
+    WHERE
+        "$tie.assertionColumnName$" = '+'
+)
+WHERE
+$/ foreach role in tie.values
+    "$role.columnName$" = "previous_$role.columnName$"
+AND
+$/ endfor
+    previous_changing < "$tie.changingColumnName$"
+$/ endif
+;
 $/ endfor
 -- IntegrityViolations ------------------------------------------------------------------------------------------------
 -- Every integrity check of the model, in one view.
@@ -428,10 +916,12 @@ $/ endfor
 $/ foreach attribute in schema.attributes
 UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.positName$"
 UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.annexName$"
+UNION ALL SELECT * FROM $attribute.capsule$."ic_$attribute.name$"
 $/ endfor
 $/ foreach tie in schema.ties
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.positName$"
 UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.annexName$"
+UNION ALL SELECT * FROM $tie.capsule$."ic_$tie.name$"
 $/ endfor
 $/ foreach key in schema.naturalKeys where key.usable
 UNION ALL SELECT * FROM $key.capsule$."$key.checkName$"

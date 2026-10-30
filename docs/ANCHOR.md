@@ -339,6 +339,12 @@ Snowflake and SQL Server (uni, bi and crt) turn every route into three objects:
   more than one key, since neither database enforces that on a view. In Snowflake
   `IntegrityViolations` includes it.
 
+Snowflake enforces no keys, so its generated SQL has the integrity checks instead, as views (`ic_<table>`
+for every table, `ic_<attribute>` and `ic_<tie>` for what a posit and its annex say together in bi
+and crt) and `IntegrityViolations`, which holds them all. Besides keys, references and restatements,
+they find temporal duplicates and assertions that overlap or contradict at a time, which SQL Server's
+assembled views and triggers reject.
+
 With `naturalKeyAttributes` (*Create natural key attributes*), SQL Server also makes a table of the
 key of every identity that has all of its values, `<anchor>_<route>`, with a primary key on the
 identity and a unique constraint on the key, and a procedure that fills it from the key view,
