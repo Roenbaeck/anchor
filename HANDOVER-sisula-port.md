@@ -807,10 +807,14 @@ makes the schemas first, and `FEATURES` says there is no equivalence or encrypti
 `vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files; PostgreSQL has no uni models
 because its uni generator is still the original one.
 
-What is not done: **none of the SQL has been run on a server**, and Snowflake's showed what that finds. The windows that Snowflake needed
-(`QUALIFY`, no correlated `LIMIT`) became `DISTINCT ON` or a window column and a filter in PostgreSQL, and `LIMIT 1 OVER` or the same in Vertica;
-the first conversion put a `DISTINCT ON` into the wrong select, found only by reading the output, which is the kind of defect that a server
-finds at once. PostgreSQL has no triggers, integrity checks or natural keys yet; Vertica has no functions, so no time traveling,
+**PostgreSQL was run on a PostgreSQL 16.4 server** (a portable build in a scratch directory, no PostGIS; `tools/postgres-tests.ps1` in the sisula
+repository, which takes any server through psql). All 12 models deploy, except the two with the original naming (`postgresql-plain-*`), which
+fail like every database does on two attributes of one anchor on the same knot; the perspective tests of Snowflake, translated
+(listagg to `string_agg ... ORDER BY`, `TABLE(f(...))` to `f(...)`, a smallint for the positor), passed at once (15 for bi, 17 for crt, every view and function called). The models that are run have text where Snowflake's have geography.
+The windows that Snowflake needed (`QUALIFY`, no correlated `LIMIT`) became `DISTINCT ON` or a window column and a filter in PostgreSQL; the first conversion
+put a `DISTINCT ON` into the wrong select, found by reading the output before the server was there to find it.
+**Vertica was not run**, and Snowflake's showed what that finds: it has `LIMIT 1 OVER` or the same window and filter, and is only linted.
+PostgreSQL has no triggers, integrity checks or natural keys yet; Vertica has no functions, so no time traveling,
 point-in-time or difference perspective and no rewinder that takes a time. A PostgreSQL uni generator on the Sisula engine would also give it
 the nexus and tie perspectives that it lacks. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
 

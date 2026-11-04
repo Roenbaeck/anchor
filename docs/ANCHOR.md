@@ -471,8 +471,10 @@ them makes triggers, so data is loaded into the tables, as it is in Snowflake.
   attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
   only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.
 
-The SQL of these generators has been generated and checked for the defects that the Snowflake SQL had (`tools/lint-sql.ps1`), but it has not
-been run on a server of either database yet: Snowflake's was found to need changes only by running it.
+The SQL of PostgreSQL's generators has been run on PostgreSQL 16 (`tools/postgres-tests.ps1` in the sisula repository: every model is
+deployed, and the latest, time-traveling, point-in-time and difference perspectives are tested over rows, as Snowflake's are). The SQL of
+Vertica's has been generated and checked for the defects that the Snowflake SQL had (`tools/lint-sql.ps1`), but it has not been run on a
+Vertica server yet: Snowflake's was found to need changes only by running it.
 
 ## Loading through the latest views
 
