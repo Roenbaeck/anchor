@@ -195,7 +195,7 @@ prompt Populate TIE l$tie.name;
     }
     var i = 0, l_currentIdentityColumn = '', l_previousIdentityColumn = ''
     while (role = tie.nextRole()) {
-        l_currentIdentityColumn = (role.anchor)? role.columnName + '.' + role.anchor.identityColumnName : role.columnName + '.' + role.knot.identityColumnName
+        l_currentIdentityColumn = (role.entity)? role.columnName + '.' + role.entity.identityColumnName : role.columnName + '.' + role.knot.identityColumnName
         if (i == 0){
 /*~ 
     WHERE 1=1
@@ -207,7 +207,7 @@ prompt Populate TIE l$tie.name;
 ~*/
             }
         }
-        l_previousIdentityColumn = (role.anchor)? role.columnName + '.' + role.anchor.identityColumnName : role.columnName + '.' + role.knot.identityColumnName
+        l_previousIdentityColumn = (role.entity)? role.columnName + '.' + role.entity.identityColumnName : role.columnName + '.' + role.knot.identityColumnName
         i++
     }
 /*~

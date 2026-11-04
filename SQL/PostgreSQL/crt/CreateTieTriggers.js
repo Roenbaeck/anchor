@@ -47,7 +47,7 @@ BEGIN
 ~*/
             }
             else {
-                anchor = role.anchor;
+                anchor = role.anchor || role.nexus;
 /*~
         $role.columnName $anchor.identity not null,
 ~*/

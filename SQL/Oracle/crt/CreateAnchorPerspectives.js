@@ -16,13 +16,13 @@ SELECT
         var attribute, knot;
         while (attribute = anchor.nextAttribute()) {
 /*~
-    r$attribute.mnemonic.$attribute.valueColumnName,
-    $(attribute.isHistorized())? r$attribute.mnemonic.$attribute.changingColumnName,
-    r$attribute.mnemonic.$attribute.positingColumnName,
-    r$attribute.mnemonic.$attribute.positorColumnName,
-    r$attribute.mnemonic.$attribute.reliabilityColumnName,
-    r$attribute.mnemonic.$attribute.assertionColumnName,
-    r$attribute.mnemonic.$attribute.reliableColumnName$(anchor.hasMoreAttributes())?,
+    r${attribute.mnemonic}$.$attribute.valueColumnName,
+    $(attribute.isHistorized())? r${attribute.mnemonic}$.$attribute.changingColumnName,
+    r${attribute.mnemonic}$.$attribute.positingColumnName,
+    r${attribute.mnemonic}$.$attribute.positorColumnName,
+    r${attribute.mnemonic}$.$attribute.reliabilityColumnName,
+    r${attribute.mnemonic}$.$attribute.assertionColumnName,
+    r${attribute.mnemonic}$.$attribute.reliableColumnName$(anchor.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -34,7 +34,7 @@ FROM
 LEFT JOIN
     ${attribute.capsule}$.r$attribute.name r$attribute.mnemonic
 ON
-    r$attribute.mnemonic.$attribute.entityReferenceName = a.$anchor.identityColumnName
+    r${attribute.mnemonic}$.$attribute.entityReferenceName = a.$anchor.identityColumnName
 ~*/
             if(attribute.isKnotted()) {
                 knot = attribute.knot;
@@ -42,10 +42,10 @@ ON
 LEFT JOIN
     ${knot.capsule}$.$knot.name k$attribute.mnemonic
 ON
-    k$attribute.mnemonic.$knot.identityColumnName = r$attribute.mnemonic.$attribute.knotReferenceName
+    k${attribute.mnemonic}$.$knot.identityColumnName = r${attribute.mnemonic}$.$attribute.knotReferenceName
 ~*/
             }
-            if(!anchor.hasMoreAttributes()) {
+        }
 /*~
 ;
 
@@ -77,7 +77,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-                    t.$attribute.positorColumnName = positor$(anchor.hasMoreAttributes())? OR
+                    t.$attribute.positorColumnName = positor $(anchor.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -90,7 +90,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-                    t.$attribute.assertionColumnName = assertion$(anchor.hasMoreAttributes())? OR
+                    t.$attribute.assertionColumnName = assertion $(anchor.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -99,15 +99,25 @@ BEGIN
         AND
             (
                 changingTimepoint IS NULL
-                $(anchor.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(anchor.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName <= changingTimepoint$(anchor.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName <= changingTimepoint $(anchor.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
                 )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
         AND
             (
@@ -116,7 +126,7 @@ BEGIN
 ~*/
         while (attribute = anchor.nextAttribute()) {
 /*~
-                    t.$attribute.positingColumnName <= positingTimepoint$(anchor.hasMoreAttributes())? OR
+                    t.$attribute.positingColumnName <= positingTimepoint $(anchor.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -140,15 +150,25 @@ BEGIN
         WHERE
             (
                 changingTimepoint IS NULL
-                $(anchor.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(anchor.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName <= changingTimepoint$(anchor.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName <= changingTimepoint $(anchor.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
-            ) : OR 1 = 1
+            )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
     ]';
 END;
@@ -171,20 +191,29 @@ BEGIN
             (
                 intervalStart IS NULL
                 OR intervalEnd IS NULL
-                $(anchor.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(anchor.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = anchor.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName BETWEEN intervalStart AND intervalEnd$(anchor.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName BETWEEN intervalStart AND intervalEnd $(anchor.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
-                ) : OR 1 = 1
+                )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
     ]';
 END;
 /
-            }
-        }
+~*/
     }
 }

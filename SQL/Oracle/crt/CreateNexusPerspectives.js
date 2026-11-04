@@ -20,13 +20,13 @@ SELECT
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-    r$attribute.mnemonic.$attribute.valueColumnName,
-    $(attribute.isHistorized())? r$attribute.mnemonic.$attribute.changingColumnName,
-    r$attribute.mnemonic.$attribute.positingColumnName,
-    r$attribute.mnemonic.$attribute.positorColumnName,
-    r$attribute.mnemonic.$attribute.reliabilityColumnName,
-    r$attribute.mnemonic.$attribute.assertionColumnName,
-    r$attribute.mnemonic.$attribute.reliableColumnName$(nexus.hasMoreAttributes())?,
+    r${attribute.mnemonic}$.$attribute.valueColumnName,
+    $(attribute.isHistorized())? r${attribute.mnemonic}$.$attribute.changingColumnName,
+    r${attribute.mnemonic}$.$attribute.positingColumnName,
+    r${attribute.mnemonic}$.$attribute.positorColumnName,
+    r${attribute.mnemonic}$.$attribute.reliabilityColumnName,
+    r${attribute.mnemonic}$.$attribute.assertionColumnName,
+    r${attribute.mnemonic}$.$attribute.reliableColumnName$(nexus.hasMoreAttributes())?,
 ~*/
         }
 /*~
@@ -38,7 +38,7 @@ FROM
 LEFT JOIN
     ${attribute.capsule}$.r$attribute.name r$attribute.mnemonic
 ON
-    r$attribute.mnemonic.$attribute.entityReferenceName = n.$nexus.identityColumnName
+    r${attribute.mnemonic}$.$attribute.entityReferenceName = n.$nexus.identityColumnName
 ~*/
         }
 /*~
@@ -72,7 +72,7 @@ BEGIN
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-                    t.$attribute.positorColumnName = positor$(nexus.hasMoreAttributes())? OR
+                    t.$attribute.positorColumnName = positor $(nexus.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -85,7 +85,7 @@ BEGIN
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-                    t.$attribute.assertionColumnName = assertion$(nexus.hasMoreAttributes())? OR
+                    t.$attribute.assertionColumnName = assertion $(nexus.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -94,15 +94,25 @@ BEGIN
         AND
             (
                 changingTimepoint IS NULL
-                $(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName <= changingTimepoint$(nexus.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName <= changingTimepoint $(nexus.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
                 )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
         AND
             (
@@ -111,7 +121,7 @@ BEGIN
 ~*/
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
 /*~
-                    t.$attribute.positingColumnName <= positingTimepoint$(nexus.hasMoreAttributes())? OR
+                    t.$attribute.positingColumnName <= positingTimepoint $(nexus.hasMoreAttributes())? OR
 ~*/
         }
 /*~
@@ -135,15 +145,25 @@ BEGIN
         WHERE
             (
                 changingTimepoint IS NULL
-                $(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName <= changingTimepoint$(nexus.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName <= changingTimepoint $(nexus.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
-            ) : OR 1 = 1
+            )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
     ]';
 END;
@@ -166,18 +186,29 @@ BEGIN
             (
                 intervalStart IS NULL
                 OR intervalEnd IS NULL
-                $(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes())? OR (
+~*/
+        if(nexus.hasMoreHistorizedAttributes && nexus.hasMoreHistorizedAttributes()) {
+/*~
+                OR (
 ~*/
         while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {
 /*~
-                    t.$attribute.changingColumnName BETWEEN intervalStart AND intervalEnd$(nexus.hasMoreHistorizedAttributes())? OR
+                    t.$attribute.changingColumnName BETWEEN intervalStart AND intervalEnd $(nexus.hasMoreHistorizedAttributes())? OR
 ~*/
         }
 /*~
-                ) : OR 1 = 1
+                )
+~*/
+        } else {
+/*~
+                OR 1 = 1
+~*/
+        }
+/*~
             )
     ]';
 END;
 /
+~*/
     }
 }
