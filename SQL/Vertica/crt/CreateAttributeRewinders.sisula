@@ -1,0 +1,38 @@
+-- ATTRIBUTE REWINDERS ------------------------------------------------------------------------------------------------
+--
+-- A rewinder shows the posits of an attribute with the latest row of their annex for each positor: what is known now about each
+-- posit, which each positor asserts, retracts or denies. Vertica has no function that returns a table, so it is a view and shows
+-- what is known now (the rewinders of the other databases can be asked about an earlier time, or about a positor); the
+-- perspectives that Vertica has are over it.
+--
+$/ foreach attribute in schema.attributes
+CREATE OR REPLACE VIEW $attribute.capsule$."r$attribute.name$" AS
+SELECT
+$/ if schema.METADATA
+    a."$attribute.metadataColumnName$",
+$/ endif
+    p."$attribute.identityColumnName$",
+    a."$attribute.positingColumnName$",
+    a."$attribute.positorColumnName$",
+    a."$attribute.reliabilityColumnName$",
+    a."$attribute.assertionColumnName$",
+    p."$attribute.entityReferenceName$",
+$/ if attribute.hasChecksum
+    p."$attribute.checksumColumnName$",
+$/ endif
+    p."$attribute.valueColumnName$"$/ if attribute.isHistorized ,$/ endif
+$/ if attribute.isHistorized
+    p."$attribute.changingColumnName$"
+$/ endif
+FROM
+    $attribute.capsule$."$attribute.positName$" p
+JOIN
+    $attribute.capsule$."$attribute.annexName$" a
+ON
+    a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
+LIMIT 1 OVER (
+    PARTITION BY p."$attribute.identityColumnName$", a."$attribute.positorColumnName$"
+    ORDER BY a."$attribute.positingColumnName$" DESC
+)
+;
+$/ endfor

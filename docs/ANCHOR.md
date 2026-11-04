@@ -439,10 +439,10 @@ perspectives differ.
 
 Some features are implemented only for some databases and temporalizations:
 
-| Feature | SQL Server uni | SQL Server bi, crt | Snowflake uni | Snowflake bi, crt |
-|---|---|---|---|---|
-| Equivalence | yes | no | yes | no |
-| Encryption groups | yes | no | no | no |
+| Feature | SQL Server uni | SQL Server bi, crt | Snowflake uni | Snowflake bi, crt | PostgreSQL uni | PostgreSQL bi, crt | Vertica bi, crt |
+|---|---|---|---|---|---|---|---|
+| Equivalence | yes | no | yes | no | yes | no | no |
+| Encryption groups | yes | no | no | no | no | no | no |
 
 Where a feature is not implemented, the generator ignores it, as if the model did not have it:
 - No knot or attribute is equivalent.
@@ -454,6 +454,27 @@ hides what the selected database and temporalization do not implement: the setti
 type, the default encryption group, and the Equivalent and Encryption group fields of knots, attributes and
 identifiers. What a model already says about them stays in it (saving writes it out), and the modeler logs in the
 browser's console how many items have it, since the generated SQL ignores it.
+
+### PostgreSQL and Vertica, bi and crt
+
+The bi and crt generators of PostgreSQL and Vertica are Sisula templates over the JSON bindings, like Snowflake's, in each database's
+own SQL. They make the tables of knots, anchors, nexuses, attributes and ties (the posit and annex tables of attributes and ties),
+the assembled views, the rewinders and the perspectives, the schemas that the model names, and the descriptions as comments. None of
+them makes triggers, so data is loaded into the tables, as it is in Snowflake.
+
+- **PostgreSQL** makes every perspective: time traveling (`t`), latest (`l`), point-in-time (`p`), now (`n`) and difference (`d`), with
+  functions in SQL that return a table. Keys are enforced by the database. An identifier is at most 63 bytes in PostgreSQL, and the
+  longest of the generated ones, such as the name of a sequence or a constraint, has to stay within it. A geography
+  needs PostGIS. The uni-temporal generator is the original one, which makes the tables, the keys, the equivalence views and the
+  attribute and anchor perspectives only.
+- **Vertica** has no function that returns a table, so the rewinders are views that show what is known now (`r` before the name of an
+  attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
+  only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.
+
+The SQL of PostgreSQL's generators has been run on PostgreSQL 16 (`tools/postgres-tests.ps1` in the sisula repository: every model is
+deployed, and the latest, time-traveling, point-in-time and difference perspectives are tested over rows, as Snowflake's are). The SQL of
+Vertica's has been generated and checked for the defects that the Snowflake SQL had (`tools/lint-sql.ps1`), but it has not been run on a
+Vertica server yet: Snowflake's was found to need changes only by running it.
 
 ## Loading through the latest views
 

@@ -1,0 +1,7 @@
+-- SCHEMAS ------------------------------------------------------------------------------------------------------------
+--
+-- The schemas that the model puts its tables, views and functions in, made before anything is made in them.
+--
+$/ foreach capsule in schema.capsules
+CREATE SCHEMA IF NOT EXISTS $capsule.name$;
+$/ endfor

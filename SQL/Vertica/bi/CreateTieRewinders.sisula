@@ -1,0 +1,33 @@
+-- TIE REWINDERS ------------------------------------------------------------------------------------------------------
+--
+-- A rewinder shows the posits of a tie with the latest row of their annex: what is known now about each posit, which is
+-- asserted or retracted. Vertica has no function that returns a table, so it is a view and shows what is known now
+-- (the rewinders of the other databases can be asked about an earlier time); the perspectives that Vertica has are over it.
+--
+$/ foreach tie in schema.ties
+CREATE OR REPLACE VIEW $tie.capsule$."r$tie.name$" AS
+SELECT
+$/ if schema.METADATA
+    a."$tie.metadataColumnName$",
+$/ endif
+    p."$tie.identityColumnName$",
+$/ foreach role in tie.roles
+    p."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+    p."$tie.changingColumnName$",
+$/ endif
+    a."$tie.positingColumnName$",
+    a."$tie.reliabilityColumnName$"
+FROM
+    $tie.capsule$."$tie.positName$" p
+JOIN
+    $tie.capsule$."$tie.annexName$" a
+ON
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
+LIMIT 1 OVER (
+    PARTITION BY p."$tie.identityColumnName$"
+    ORDER BY a."$tie.positingColumnName$" DESC
+)
+;
+$/ endfor
