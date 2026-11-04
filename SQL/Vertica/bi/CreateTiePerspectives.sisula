@@ -1,0 +1,89 @@
+-- TIE TEMPORAL PERSPECTIVES ------------------------------------------------------------------------------------------
+--
+-- BI tie perspectives: latest (l) and now (n). Vertica has no function that returns a table, so the perspectives that take
+-- a time (time traveling, point-in-time and difference) are not made; the latest and the now perspectives take none, and are
+-- views over the rewinder of the tie (a view that shows the latest annex row of every posit).
+--
+$/ foreach tie in schema.ties
+$/ foreach perspective in tie.perspectives
+CREATE OR REPLACE VIEW $tie.capsule$."$perspective.name$" AS
+SELECT
+    t."$tie.identityColumnName$",
+$/ if schema.METADATA
+    t."$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isHistorized
+    t."$tie.changingColumnName$",
+$/ endif
+    t."$tie.positingColumnName$",
+    t."$tie.reliabilityColumnName$",
+$/ foreach role in tie.roles
+$/ if role.knot
+    "k$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
+$/ if schema.METADATA
+    "k$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
+$/ endif
+$/ endif
+    t."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+FROM (
+    -- the latest asserted posit, picked by a window and kept by the filter outside it
+    SELECT
+        r.*,
+$/ if tie.identifiers
+        -- the latest posit for the identifiers
+        row_number() OVER (
+            PARTITION BY
+$/ foreach role in tie.identifiers
+                r."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+            ORDER BY
+$/ if tie.isHistorized
+                r."$tie.changingColumnName$" DESC,
+$/ endif
+                r."$tie.positingColumnName$" DESC,
+                r."$tie.identityColumnName$" DESC
+        ) AS "latest"
+$/ else
+        -- a tie without identifiers is one to one: the latest posit for each of its anchors
+$/ foreach role in tie.anchorRoles
+        row_number() OVER (
+            PARTITION BY r."$role.columnName$"
+            ORDER BY
+$/ if tie.isHistorized
+                r."$tie.changingColumnName$" DESC,
+$/ endif
+                r."$tie.positingColumnName$" DESC,
+                r."$tie.identityColumnName$" DESC
+        ) AS "latest$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+    FROM
+        $tie.capsule$."r$tie.name$" r
+    WHERE
+        r."$tie.reliabilityColumnName$" = 1
+$/ if perspective.filtered and tie.isHistorized
+    AND
+        r."$tie.changingColumnName$" <= $schema.metadata.now$::$tie.timeRange$
+$/ endif
+) t
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$."$role.knot.name$" "k$role.name$"
+ON
+    "k$role.name$"."$role.knot.identityColumnName$" = t."$role.columnName$"
+$/ endfor
+WHERE
+$/ if tie.identifiers
+    t."latest" = 1
+$/ else
+$/ foreach role in tie.anchorRoles
+    t."latest$role.columnName$" = 1
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
+;
+$/ endfor
+$/ endfor

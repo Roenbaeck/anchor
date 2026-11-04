@@ -1,0 +1,98 @@
+-- NEXUS TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------------
+--
+-- BI nexus perspectives: latest (l) and now (n). Vertica has no function that returns a table, so the perspectives that
+-- take a time (time traveling, point-in-time and difference) are not made; the latest and the now perspectives take none,
+-- and are views over the rewinders of the attributes (views that show the latest annex row of every posit).
+--
+$/ foreach nexus in schema.nexuss
+$/ if nexus.attributes
+$/ foreach perspective in nexus.perspectives
+CREATE OR REPLACE VIEW $nexus.capsule$."$perspective.name$" AS
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) AS "$schema.metadata.reliabilitySuffix$",
+    "$nexus.mnemonic$"."$nexus.identityColumnName$",
+$/ if schema.METADATA
+    "$nexus.mnemonic$"."$nexus.metadataColumnName$",
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    "k$role.name$"."$role.knot.checksumColumnName$" AS "$role.knotChecksumColumnName$",
+$/ endif
+    "k$role.name$"."$role.knot.valueColumnName$" AS "$role.knotValueColumnName$",
+$/ if schema.METADATA
+    "k$role.name$"."$role.knot.metadataColumnName$" AS "$role.knotMetadataColumnName$",
+$/ endif
+$/ endif
+    "$nexus.mnemonic$"."$role.columnName$",
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$",
+$/ endif
+$/ if schema.METADATA
+    "$attribute.mnemonic$"."$attribute.metadataColumnName$",
+$/ endif
+    "$attribute.mnemonic$"."$attribute.identityColumnName$",
+$/ if attribute.timeRange
+    "$attribute.mnemonic$"."$attribute.changingColumnName$",
+$/ endif
+    "$attribute.mnemonic$"."$attribute.positingColumnName$",
+    "$attribute.mnemonic$"."$attribute.reliabilityColumnName$",
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    "k$attribute.mnemonic$"."$attribute.knot.checksumColumnName$" AS "$attribute.knotChecksumColumnName$",
+$/ endif
+    "k$attribute.mnemonic$"."$attribute.knot.valueColumnName$" AS "$attribute.knotValueColumnName$",
+$/ if schema.METADATA
+    "k$attribute.mnemonic$"."$attribute.knot.metadataColumnName$" AS "$attribute.knotMetadataColumnName$",
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    "$attribute.mnemonic$"."$attribute.checksumColumnName$",
+$/ endif
+    "$attribute.mnemonic$"."$attribute.valueColumnName$"$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$."$nexus.name$" "$nexus.mnemonic$"
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+    $role.knot.capsule$."$role.knot.name$" "k$role.name$"
+ON
+    "k$role.name$"."$role.knot.identityColumnName$" = "$nexus.mnemonic$"."$role.columnName$"
+$/ endfor
+$/ foreach attribute in nexus.attributes
+LEFT JOIN (
+    -- the latest asserted posit for each nexus
+    SELECT
+        r.*
+    FROM
+        $attribute.capsule$."r$attribute.name$" r
+    WHERE
+        r."$attribute.reliabilityColumnName$" = 1
+$/ if perspective.filtered and attribute.isHistorized
+    AND
+        r."$attribute.changingColumnName$" <= $schema.metadata.now$::$attribute.timeRange$
+$/ endif
+    LIMIT 1 OVER (
+        PARTITION BY r."$attribute.entityReferenceName$"
+        ORDER BY
+$/ if attribute.isHistorized
+            r."$attribute.changingColumnName$" DESC,
+$/ endif
+            r."$attribute.positingColumnName$" DESC
+    )
+) "$attribute.mnemonic$"
+ON
+    "$attribute.mnemonic$"."$attribute.entityReferenceName$" = "$nexus.mnemonic$"."$nexus.identityColumnName$"
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$."$attribute.knot.name$" "k$attribute.mnemonic$"
+ON
+    "k$attribute.mnemonic$"."$attribute.knot.identityColumnName$" = "$attribute.mnemonic$"."$attribute.knotReferenceName$"
+$/ endif
+$/ endfor
+;
+$/ endfor
+$/ endif
+$/ endfor

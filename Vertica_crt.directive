@@ -1,32 +1,27 @@
-# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in SQL Server
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Vertica
+#
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+#
+# Vertica has no function that returns a table, so the rewinders are views of what is known now, and of the perspectives
+# only the latest and the now perspectives are made, for each positor. It has no triggers either.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
-SQL/Vertica/crt/CreatePositorAndDefault.js
-SQL/Vertica/crt/CreateKnots.js
-SQL/Vertica/crt/CreateAnchors.js
-SQL/Vertica/crt/CreateNexuses.js
-SQL/Vertica/crt/CreateAttributes.js
-SQL/Vertica/crt/CreateAttributeAssembledProjections.js
-SQL/Vertica/crt/CreateTies.js
-SQL/Vertica/crt/CreateTieAssembledProjections.js
-# to be done later
-SQL/Vertica/crt/CreateAttributeRewinders.js
-#SQL/Vertica/crt/AddAttributeRestatementConstraints.js
-#SQL/Vertica/biz/DropAnchorBusinessPerspectives.js
-SQL/Vertica/crt/CreateAnchorPerspectives.js
-SQL/Vertica/crt/CreateNexusPerspectives.js
-#SQL/Vertica/biz/CreateAnchorBusinessPerspectives.js
-#SQL/Vertica/crt/CreateKeyGenerators.js
-#SQL/Vertica/crt/CreateAttributeTriggers.js
-#SQL/Vertica/crt/CreateAnchorTriggers.js
-#SQL/Vertica/crt/CreateTies.js
-#SQL/Vertica/crt/AddTieRestatementConstraints.js
-#SQL/Vertica/crt/CreateTieRewinders.js
-#SQL/Vertica/biz/DropTieBusinessPerspectives.js
-SQL/Vertica/crt/CreateTiePerspectives.js
-#SQL/Vertica/biz/CreateTieBusinessPerspectives.js
-#SQL/Vertica/crt/CreateTieTriggers.js
-#SQL/Vertica/crt/CreateAttributeSheetStacks.js
-#SQL/Vertica/CreateSchemaTracking.js
-#SQL/Vertica/crt/AddDescriptions.js
+SQL/Vertica/derive.js
+SQL/Vertica/CreateSchemas.sisula
+SQL/Vertica/crt/CreatePositorAndDefault.sisula
+SQL/Vertica/crt/CreateKnots.sisula
+SQL/Vertica/crt/CreateAnchors.sisula
+SQL/Vertica/crt/CreateNexuses.sisula
+SQL/Vertica/crt/CreateAttributes.sisula
+SQL/Vertica/crt/CreateAttributeAssembledViews.sisula
+SQL/Vertica/crt/CreateAttributeRewinders.sisula
+SQL/Vertica/crt/CreateAnchorPerspectives.sisula
+SQL/Vertica/crt/CreateNexusPerspectives.sisula
+SQL/Vertica/crt/CreateTies.sisula
+SQL/Vertica/crt/CreateTieAssembledViews.sisula
+SQL/Vertica/crt/CreateTieRewinders.sisula
+SQL/Vertica/crt/CreateTiePerspectives.sisula
+SQL/Vertica/AddDescriptions.sisula

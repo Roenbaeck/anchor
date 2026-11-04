@@ -784,6 +784,36 @@ that were broken in one way each, and checks what the message says. One check is
 naming, two attributes on one knot give a perspective two columns of one name (see *Generated objects and naming* in
 ANCHOR.md). Several models in the tests have that, to show it, so the generator cannot refuse it without refusing them.
 
+## Generation of the other databases, and PostgreSQL and Vertica bi and crt (2026-11-04)
+
+A user reported that BigQuery generation failed (`Unexpected token '?'`). Generating Anchor's `example.xml` for every database and
+temporalization in the modeler (`browser-check.ps1 -Targets`, which also catches the template text that is never evaluated)
+showed what the databases that have no golden files had gone without. Found and fixed:
+
+- **BigQuery** (all three): a line with two `$(...)?` conditionals, which the original Sisulator takes to the end of the line, so the second
+  came out as text and its comma was lost (uni, since the target was added); `$anchor.mnemonic.*`, a reference with a trailing dot,
+  a syntax error (bi and crt). The same trailing dot was in Oracle's crt perspectives.
+- **Oracle**: crt lacked the closing of the last template in two scripts, had an `OR ( ... ) : OR 1 = 1` over several lines and no space before
+  `OR`, and listed `SQL/Oracle/uni/AddDescriptions.js`, which does not exist; uni's test data took `role.anchor`, which a nexus role does
+  not have (`role.entity`); bi had no directive (it now says it is not supported).
+- **PostgreSQL**: the schema tracking calls `Actions.jsonify`, which the JSON bindings commit removed (it is back, in `index.html`); the crt directive
+  listed a script that is not there; the tie triggers and restatement constraints took `role.anchor` only.
+- **Vertica crt**: `anchorRoles` was never defined.
+
+PostgreSQL and Vertica bi and crt were SQL Server's templates copied (`IF Object_ID`, brackets, clustered keys). They are now Sisula templates
+over the JSON bindings, made from Snowflake's with what each database does differently (see *PostgreSQL and Vertica, bi and crt* in
+ANCHOR.md): `SQL/PostgreSQL/derive.js` and `SQL/Vertica/derive.js` hold the facts, the naming conventions the sequence names, `CreateSchemas`
+makes the schemas first, and `FEATURES` says there is no equivalence or encryption. The models are `postgresql-<name>-bi|crt` and
+`vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files; PostgreSQL has no uni models
+because its uni generator is still the original one.
+
+What is not done: **none of the SQL has been run on a server**, and Snowflake's showed what that finds. The windows that Snowflake needed
+(`QUALIFY`, no correlated `LIMIT`) became `DISTINCT ON` or a window column and a filter in PostgreSQL, and `LIMIT 1 OVER` or the same in Vertica;
+the first conversion put a `DISTINCT ON` into the wrong select, found only by reading the output, which is the kind of defect that a server
+finds at once. PostgreSQL has no triggers, integrity checks or natural keys yet; Vertica has no functions, so no time traveling,
+point-in-time or difference perspective and no rewinder that takes a time. A PostgreSQL uni generator on the Sisula engine would also give it
+the nexus and tie perspectives that it lacks. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
