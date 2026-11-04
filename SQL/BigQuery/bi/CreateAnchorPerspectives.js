@@ -37,7 +37,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -119,7 +119,7 @@ $$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -154,7 +154,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -163,7 +163,7 @@ AS
 $$
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         changingTimepoint::$schema.metadata.chronon,
@@ -175,7 +175,7 @@ $$
 CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     TABLE(${anchor.capsule}$.t$anchor.name(
         $schema.metadata.now::$schema.metadata.chronon,
@@ -214,7 +214,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -223,7 +223,7 @@ AS
 $$
 SELECT
     tp.inspectedTimepoint,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM (
 ~*/
             while (attribute = anchor.nextHistorizedAttribute()) {

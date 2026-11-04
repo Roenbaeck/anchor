@@ -105,7 +105,7 @@ RETURNS TABLE (
 ~*/
         }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
     }
 /*~
@@ -227,7 +227,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -305,7 +305,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -340,7 +340,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -450,7 +450,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -489,7 +489,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(tie.hasMoreRoles())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (tie.hasMoreRoles() ? ',' : '')}$
 ~*/
             }
 /*~

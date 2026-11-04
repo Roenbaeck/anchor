@@ -148,7 +148,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -169,7 +169,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -356,7 +356,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -377,7 +377,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -439,7 +439,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -460,7 +460,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -606,7 +606,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -627,7 +627,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -799,7 +799,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -820,7 +820,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -861,7 +861,7 @@ RETURNS TABLE (
 ~*/
                     }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreRoles() || nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreRoles() || nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
                 }
                 while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -882,7 +882,7 @@ RETURNS TABLE (
                     }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
                 }
 /*~

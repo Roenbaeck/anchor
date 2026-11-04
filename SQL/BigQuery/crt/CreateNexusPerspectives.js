@@ -31,7 +31,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -56,7 +56,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -168,7 +168,7 @@ CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -201,7 +201,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -226,7 +226,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -236,7 +236,7 @@ $$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -255,7 +255,7 @@ CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff AS $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -292,7 +292,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -317,7 +317,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -327,7 +327,7 @@ $$
 SELECT
     p.$schema.metadata.positorSuffix,
     tp.inspectedTimepoint,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN (

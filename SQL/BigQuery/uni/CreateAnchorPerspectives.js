@@ -122,7 +122,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -284,7 +284,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -353,7 +353,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -395,7 +395,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -541,7 +541,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -590,7 +590,7 @@ RETURNS TABLE (
                     }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
                 }
 /*~
