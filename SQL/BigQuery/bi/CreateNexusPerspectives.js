@@ -27,7 +27,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -49,7 +49,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -153,7 +153,7 @@ $$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.l$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.EOT::$schema.metadata.chronon,
@@ -179,7 +179,7 @@ RETURNS TABLE (
 ~*/
             }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
         while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -201,7 +201,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -210,7 +210,7 @@ AS
 $$
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         changingTimepoint::$schema.metadata.chronon,
@@ -222,7 +222,7 @@ $$
 CREATE OR REPLACE VIEW ${nexus.capsule}$.n$nexus.name AS
 SELECT
     cast(null as $schema.metadata.reliabilityRange) as $schema.metadata.reliabilitySuffix,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM
     TABLE(${nexus.capsule}$.t$nexus.name(
         $schema.metadata.now::$schema.metadata.chronon,
@@ -252,7 +252,7 @@ RETURNS TABLE (
 ~*/
                 }
 /*~
-    $role.columnName $(role.entity)? $role.entity.identity : $role.knot.identity$(nexus.hasMoreAttributes())?,
+    $role.columnName ${(role.entity ? role.entity.identity : role.knot.identity) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
             while (attribute = nexus.nextAttribute && nexus.nextAttribute()) {
@@ -274,7 +274,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(nexus.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (nexus.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -283,7 +283,7 @@ AS
 $$
 SELECT
     tp.inspectedTimepoint,
-    $nexus.mnemonic.*
+    ${nexus.mnemonic}$.*
 FROM (
 ~*/
             while (attribute = nexus.nextHistorizedAttribute && nexus.nextHistorizedAttribute()) {

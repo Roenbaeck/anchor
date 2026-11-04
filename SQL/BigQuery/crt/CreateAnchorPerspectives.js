@@ -43,7 +43,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -133,7 +133,7 @@ CREATE OR REPLACE VIEW ${anchor.capsule}$.l$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -178,7 +178,7 @@ RETURNS TABLE (
             }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
         }
 /*~
@@ -188,7 +188,7 @@ $$
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -207,7 +207,7 @@ CREATE OR REPLACE VIEW ${anchor.capsule}$.n$anchor.name AS
 SELECT
     p.$schema.metadata.positorSuffix,
     $schema.metadata.reliableCutoff as $schema.metadata.reliabilitySuffix,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 CROSS JOIN LATERAL
@@ -256,7 +256,7 @@ RETURNS TABLE (
                 }
 /*~
     $(attribute.hasChecksum())? $attribute.checksumColumnName numeric(19,0),
-    $attribute.valueColumnName $(attribute.isKnotted())? $knot.identity : $attribute.dataRange$(anchor.hasMoreAttributes())?,
+    $attribute.valueColumnName ${(attribute.isKnotted() ? knot.identity : attribute.dataRange) + (anchor.hasMoreAttributes() ? ',' : '')}$
 ~*/
             }
 /*~
@@ -266,7 +266,7 @@ $$
 SELECT
     p.$schema.metadata.positorSuffix,
     timepoints.inspectedTimepoint,
-    $anchor.mnemonic.*
+    ${anchor.mnemonic}$.*
 FROM
     ${schema.metadata.encapsulation}$._$schema.metadata.positorSuffix p
 JOIN
