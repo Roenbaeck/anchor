@@ -40,8 +40,9 @@ while (tie = schema.nextTie()) {
 CREATE TABLE IF NOT EXISTS ${tie.capsule}$.$tie.positName (
     $tie.identityColumnName $tie.identity $tie.identityGenerator not null,
 ~*/
-    var role;
+    var role, anchorRoles = [];
     while (role = tie.nextRole()) {
+        if(role.entity) anchorRoles.push(role);
 /*~
     $role.columnName $(role.entity)? $role.entity.identity not null, : $role.knot.identity not null,
 ~*/

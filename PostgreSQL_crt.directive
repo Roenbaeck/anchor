@@ -5,7 +5,8 @@ SQL/PostgreSQL/NamingConvention.js
 SQL/PostgreSQL/crt/SetupPositorPartitioning.js
 SQL/PostgreSQL/crt/CreatePositorAndDefault.js
 SQL/PostgreSQL/crt/CreateKnots.js
-SQL/PostgreSQL/crt/CreateKnotTriggers.js
+# knots have no triggers in uni and bi, and CreateKnotTriggers.js is no longer in the repository
+#SQL/PostgreSQL/crt/CreateKnotTriggers.js
 SQL/PostgreSQL/crt/CreateAnchors.js
 SQL/PostgreSQL/crt/CreateNexuses.js
 SQL/PostgreSQL/crt/CreateAttributes.js

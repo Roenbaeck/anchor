@@ -6549,6 +6549,13 @@
                     html.body.appendChild(fragment);
                 });
             },
+            // The model as the raw objectified tree, as a JSON string. SQL/PostgreSQL/CreateSchemaTracking.js stores it
+            // in the schema table (jsonb) and its views read it, so it has to stay although Generate > JSON bindings
+            // replaced the menu item that showed it.
+            jsonify: function(xml) {
+                var object = Sisulator.objectify(xml, MAP);
+                return JSON.stringify(object, null, 3);
+            },
             // The input of the Sisula templates for the selected target database and temporalization:
             // the model as the generators see it (Helpers.js and the naming conventions applied, plus
             // the target's derive.js if it has one), flattened to plain JSON by modules/Resolver.js.

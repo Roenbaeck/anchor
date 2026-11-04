@@ -15,4 +15,5 @@ SQL/Oracle/crt/CreateTieRewinders.js
 SQL/Oracle/crt/CreateAnchorPerspectives.js
 SQL/Oracle/crt/CreateNexusPerspectives.js
 SQL/Oracle/crt/CreateTiePerspectives.js
-SQL/Oracle/uni/AddDescriptions.js
+# AddDescriptions is not written for Oracle yet
+#SQL/Oracle/uni/AddDescriptions.js
