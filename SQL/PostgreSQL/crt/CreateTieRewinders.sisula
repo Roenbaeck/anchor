@@ -1,0 +1,196 @@
+-- TIE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------------
+--
+-- CRT rewinders over changing and positing time with positor-aware annex selection: the view of the positor given,
+-- or of all of them for null.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.positName$" (
+    changingTimepoint $tie.timeRange$
+)
+RETURNS TABLE (
+    "$tie.identityColumnName$" $tie.identity$,
+$/ foreach role in tie.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+$/ endfor
+    "$tie.changingColumnName$" $tie.timeRange$
+)
+AS
+$$
+SELECT
+    "$tie.identityColumnName$",
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+    "$tie.changingColumnName$"
+FROM
+    $tie.capsule$."$tie.positName$"
+WHERE
+    "$tie.changingColumnName$" <= changingTimepoint
+$$ LANGUAGE sql STABLE;
+CREATE OR REPLACE FUNCTION $tie.capsule$."f$tie.positName$" (
+    changingTimepoint $tie.timeRange$
+)
+RETURNS TABLE (
+    "$tie.identityColumnName$" $tie.identity$,
+$/ foreach role in tie.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+$/ endfor
+    "$tie.changingColumnName$" $tie.timeRange$
+)
+AS
+$$
+SELECT
+    "$tie.identityColumnName$",
+$/ foreach role in tie.roles
+    "$role.columnName$",
+$/ endfor
+    "$tie.changingColumnName$"
+FROM
+    $tie.capsule$."$tie.positName$"
+WHERE
+    "$tie.changingColumnName$" > changingTimepoint
+$$ LANGUAGE sql STABLE;
+$/ endif
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.annexName$" (
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
+$/ endif
+    "$tie.identityColumnName$" $tie.identity$,
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.positorColumnName$" $schema.metadata.positorRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
+    "$tie.assertionColumnName$" char(1)
+)
+AS
+$$
+SELECT
+$/ if schema.METADATA
+    "$tie.metadataColumnName$",
+$/ endif
+    "$tie.identityColumnName$",
+    "$tie.positingColumnName$",
+    "$tie.positorColumnName$",
+    "$tie.reliabilityColumnName$",
+    "$tie.assertionColumnName$"
+FROM
+    $tie.capsule$."$tie.annexName$"
+WHERE
+    "$tie.positingColumnName$" <= positingTimepoint
+$$ LANGUAGE sql STABLE;
+CREATE OR REPLACE FUNCTION $tie.capsule$."r$tie.name$" (
+    positor $schema.metadata.positorRange$,
+$/ if tie.isHistorized
+    changingTimepoint $tie.timeRange$,
+$/ endif
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
+$/ endif
+    "$tie.identityColumnName$" $tie.identity$,
+$/ foreach role in tie.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    "$tie.changingColumnName$" $tie.timeRange$,
+$/ endif
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.positorColumnName$" $schema.metadata.positorRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
+    "$tie.assertionColumnName$" char(1)
+)
+AS
+$$
+SELECT DISTINCT ON (p."$tie.identityColumnName$", a."$tie.positorColumnName$")
+$/ if schema.METADATA
+    a."$tie.metadataColumnName$",
+$/ endif
+    p."$tie.identityColumnName$",
+$/ foreach role in tie.roles
+    p."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+    p."$tie.changingColumnName$",
+$/ endif
+    a."$tie.positingColumnName$",
+    a."$tie.positorColumnName$",
+    a."$tie.reliabilityColumnName$",
+    a."$tie.assertionColumnName$"
+FROM
+$/ if tie.isHistorized
+    $tie.capsule$."r$tie.positName$"(changingTimepoint) p $--$
+$/ else
+    $tie.capsule$."$tie.positName$" p
+$/ endif
+JOIN
+    $tie.capsule$."r$tie.annexName$"(positingTimepoint) a
+ON
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
+AND
+    a."$tie.positorColumnName$" = coalesce(positor, a."$tie.positorColumnName$")
+ORDER BY
+    p."$tie.identityColumnName$", a."$tie.positorColumnName$",
+    a."$tie.positingColumnName$" DESC
+$$ LANGUAGE sql STABLE;
+CREATE OR REPLACE FUNCTION $tie.capsule$."f$tie.name$" (
+    positor $schema.metadata.positorRange$,
+$/ if tie.isHistorized
+    changingTimepoint $tie.timeRange$,
+$/ endif
+    positingTimepoint $schema.metadata.positingRange$
+)
+RETURNS TABLE (
+$/ if schema.METADATA
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$,
+$/ endif
+    "$tie.identityColumnName$" $tie.identity$,
+$/ foreach role in tie.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$, $/ else $role.knot.identity$,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    "$tie.changingColumnName$" $tie.timeRange$,
+$/ endif
+    "$tie.positingColumnName$" $schema.metadata.positingRange$,
+    "$tie.positorColumnName$" $schema.metadata.positorRange$,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$,
+    "$tie.assertionColumnName$" char(1)
+)
+AS
+$$
+SELECT DISTINCT ON (p."$tie.identityColumnName$", a."$tie.positorColumnName$")
+$/ if schema.METADATA
+    a."$tie.metadataColumnName$",
+$/ endif
+    p."$tie.identityColumnName$",
+$/ foreach role in tie.roles
+    p."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+    p."$tie.changingColumnName$",
+$/ endif
+    a."$tie.positingColumnName$",
+    a."$tie.positorColumnName$",
+    a."$tie.reliabilityColumnName$",
+    a."$tie.assertionColumnName$"
+FROM
+$/ if tie.isHistorized
+    $tie.capsule$."f$tie.positName$"(changingTimepoint) p $--$
+$/ else
+    $tie.capsule$."$tie.positName$" p
+$/ endif
+JOIN
+    $tie.capsule$."r$tie.annexName$"(positingTimepoint) a
+ON
+    a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
+AND
+    a."$tie.positorColumnName$" = coalesce(positor, a."$tie.positorColumnName$")
+ORDER BY
+    p."$tie.identityColumnName$", a."$tie.positorColumnName$",
+    a."$tie.positingColumnName$" DESC
+$$ LANGUAGE sql STABLE;
+$/ endfor

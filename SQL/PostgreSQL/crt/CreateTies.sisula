@@ -1,0 +1,83 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- CRT ties use posit and annex split with changing/positing time, positor, reliability, and assertion.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $tie.capsule$."$tie.identitySequenceName$" START 1 INCREMENT 1;
+$/ endif
+CREATE TABLE IF NOT EXISTS $tie.capsule$."$tie.positName$" (
+$/ if tie.isGenerator
+    "$tie.identityColumnName$" $/ if tie.identity $tie.identity$ $/ endif default nextval('$tie.capsule$."$tie.identitySequenceName$"') not null, $--$
+$/ else
+    "$tie.identityColumnName$" $/ if tie.identity $tie.identity$ $/ endif not null,
+$/ endif
+$/ foreach role in tie.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.timeRange
+    "$tie.changingColumnName$" $tie.timeRange$ not null,
+$/ endif
+$/ foreach role in tie.roles
+    constraint "$tie.positName$_fk$role.name$" foreign key (
+        "$role.columnName$"
+$/ if role.entity
+    ) references $role.entity.capsule$."$role.entity.name$"("$role.entity.identityColumnName$"), $--$
+$/ else
+    ) references $role.knot.capsule$."$role.knot.name$"("$role.knot.identityColumnName$"),
+$/ endif
+$/ endfor
+$/ if not tie.identifiers
+$/ foreach role in tie.roles where role.isAnchorRole
+$/ if tie.isHistorized
+    constraint "$tie.positName$_uq$role.name$" unique (
+        "$role.columnName$",
+        "$tie.changingColumnName$"
+    ),
+$/ else
+    constraint "$tie.positName$_uq$role.name$" unique (
+        "$role.columnName$"
+    ),
+$/ endif
+$/ endfor
+$/ endif
+    constraint "pk$tie.positName$" primary key (
+        "$tie.identityColumnName$"
+    ),
+    constraint "uq$tie.name$" unique (
+$/ foreach role in tie.identifiers
+        "$role.columnName$"$/ if not role.last() or tie.values or tie.isHistorized ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        "$tie.changingColumnName$"$/ if tie.values ,$/ endif
+$/ endif
+$/ foreach role in tie.values
+        "$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+);
+CREATE TABLE IF NOT EXISTS $tie.capsule$."$tie.annexName$" (
+    "$tie.identityColumnName$" $/ if tie.identity $tie.identity$ $/ endif not null,
+    "$tie.positingColumnName$" $schema.metadata.positingRange$ not null,
+    "$tie.positorColumnName$" $schema.metadata.positorRange$ not null,
+    "$tie.reliabilityColumnName$" $schema.metadata.reliabilityRange$ not null,
+    "$tie.assertionColumnName$" char(1) generated always as (
+        case
+            when "$tie.reliabilityColumnName$" > $schema.metadata.deleteReliability$ then '+'
+            when "$tie.reliabilityColumnName$" = $schema.metadata.deleteReliability$ then '?'
+            else '-'
+        end
+    ) stored,
+$/ if schema.METADATA
+    "$tie.metadataColumnName$" $schema.metadata.metadataType$ not null,
+$/ endif
+    constraint "fk$tie.annexName$" foreign key (
+        "$tie.identityColumnName$"
+    ) references $tie.capsule$."$tie.positName$"("$tie.identityColumnName$"),
+    constraint "pk$tie.annexName$" primary key (
+        "$tie.identityColumnName$",
+        "$tie.positorColumnName$",
+        "$tie.positingColumnName$"
+    )
+);
+$/ endfor
