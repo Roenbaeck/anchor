@@ -1,0 +1,434 @@
+$/ if schema.TRIGGERS
+-- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
+--
+-- The following triggers make a tie and its latest view behave like a table that is loaded with plain statements.
+-- The tie table has a trigger for insert, which stores a row only when it is not there already, refuses a contradiction
+-- and, for an idempotent tie, leaves out what only states again what the row before it says. The latest view has
+-- three 'instead of' triggers: insert, update, and delete. They propagate such operations to the tie table in a consistent
+-- way. Default values are used for some columns if not provided by the corresponding SQL statements.
+--
+-- For idempotent ties, only changes that represent values different from the previous or following value are stored.
+-- Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+-- PostgreSQL runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+$/ foreach tie in schema.ties
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$tie.name$ before INSERT trigger on $tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."it_$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+BEGIN
+$/ if schema.METADATA
+    NEW."$tie.metadataColumnName$" := coalesce(NEW."$tie.metadataColumnName$", 0);
+$/ endif
+$/ if tie.isHistorized
+    NEW."$tie.changingColumnName$" := coalesce(NEW."$tie.changingColumnName$", _now);
+$/ endif
+    -- the identical is not stored again
+    IF EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.name$" x
+        WHERE
+$/ foreach role in tie.roles
+            x."$role.columnName$" = NEW."$role.columnName$"
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            x."$tie.changingColumnName$" = NEW."$tie.changingColumnName$"
+$/ else
+            true
+$/ endif
+    ) THEN
+        RETURN NULL;
+    END IF;
+$/ if tie.identifiers and tie.values
+    -- other values for identifiers that already have values (at that time) are a contradiction
+    IF EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.name$" x
+        WHERE
+$/ foreach role in tie.identifiers
+            x."$role.columnName$" = NEW."$role.columnName$"
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            x."$tie.changingColumnName$" = NEW."$tie.changingColumnName$"
+$/ else
+            true
+$/ endif
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.identifiers
+            NEW."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            NEW."$tie.changingColumnName$"
+$/ else
+            ''
+$/ endif
+        );
+    END IF;
+$/ endif
+$/ if tie.isHistorized
+$/ if tie.isIdempotent or not tie.isRestatable
+    -- what has the same values as the row before it, or as the row after it, is a restatement
+$/ if tie.isIdempotent
+    -- (an idempotent tie does not store it, and removes the row after it that the new row makes a restatement of)
+$/ else
+    -- (a tie that may not be restated refuses it)
+$/ endif
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+$/ foreach role in tie.roles
+                p."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                $tie.capsule$."$tie.name$" p
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                p."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                p."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ endif
+                p."$tie.changingColumnName$" < NEW."$tie.changingColumnName$"
+            ORDER BY
+                p."$tie.changingColumnName$" DESC
+            LIMIT 1
+        ) pre
+        WHERE
+$/ foreach role in tie.roles
+            pre."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    ) THEN
+$/ if tie.isIdempotent
+        RETURN NULL;
+$/ else
+        RAISE EXCEPTION 'Restatement in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+            NEW."$tie.changingColumnName$"
+        );
+$/ endif
+    END IF;
+$/ if tie.isIdempotent
+    DELETE FROM
+        $tie.capsule$."$tie.name$" x
+    WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        x."$role.columnName$" = NEW."$role.columnName$"
+    AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        x."$role.columnName$" = NEW."$role.columnName$"
+    AND
+$/ endfor
+$/ endif
+        x."$tie.changingColumnName$" = (
+            SELECT
+                min(f."$tie.changingColumnName$")
+            FROM
+                $tie.capsule$."$tie.name$" f
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                f."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                f."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ endif
+                f."$tie.changingColumnName$" > NEW."$tie.changingColumnName$"
+        )
+$/ foreach role in tie.roles
+    AND
+        x."$role.columnName$" = NEW."$role.columnName$"
+$/ endfor
+    ;
+$/ else
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+$/ foreach role in tie.roles
+                f."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                $tie.capsule$."$tie.name$" f
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                f."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                f."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ endif
+                f."$tie.changingColumnName$" > NEW."$tie.changingColumnName$"
+            ORDER BY
+                f."$tie.changingColumnName$" ASC
+            LIMIT 1
+        ) fol
+        WHERE
+$/ foreach role in tie.roles
+            fol."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    ) THEN
+        RAISE EXCEPTION 'Restatement in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+            NEW."$tie.changingColumnName$"
+        );
+    END IF;
+$/ endif
+$/ endif
+$/ endif
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_$tie.name$" ON $tie.capsule$."$tie.name$";
+CREATE TRIGGER "it_$tie.name$"
+BEFORE INSERT ON $tie.capsule$."$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."it_$tie.name$"();
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$tie.name$ instead of INSERT trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."it_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+BEGIN
+    INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+        "$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isHistorized
+        "$tie.changingColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+        "$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    SELECT
+$/ if schema.METADATA
+        NEW."$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isHistorized
+        NEW."$tie.changingColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+        coalesce(NEW."$role.columnName$", (
+            SELECT
+                k."$role.knot.identityColumnName$"
+            FROM
+$/ if role.knot.isEquivalent
+                $role.knot.capsule$."$role.knot.equivalentName$" k
+$/ else
+                $role.knot.capsule$."$role.knot.name$" k
+$/ endif
+            WHERE
+                k."$role.knot.valueColumnName$" = NEW."$role.knotValueColumnName$"
+$/ if role.knot.isEquivalent
+            AND
+                k."$role.knot.equivalentColumnName$" = coalesce(NEW."$role.knotEquivalentColumnName$", 0)
+$/ endif
+            LIMIT 1
+        ))$/ if not role.last() ,$/ endif
+$/ else
+        NEW."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+    ;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "it_l$tie.name$"
+INSTEAD OF INSERT ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."it_l$tie.name$"();
+$/ if tie.values
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$tie.name$ instead of UPDATE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."ut_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+$/ foreach role in tie.knotRoles
+    _$role.name$ $role.knot.identity$;
+$/ endfor
+BEGIN
+$/ foreach role in tie.identifiers
+    IF NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$" THEN
+        RAISE EXCEPTION 'The identity column $role.columnName$ is not updatable.';
+    END IF;
+$/ endfor
+$/ foreach role in tie.roles
+$/ if role.knot
+    _$role.name$ := NEW."$role.columnName$";
+    IF NEW."$role.knotValueColumnName$" IS DISTINCT FROM OLD."$role.knotValueColumnName$" THEN
+        SELECT
+            k."$role.knot.identityColumnName$"
+        INTO
+            _$role.name$
+        FROM
+$/ if role.knot.isEquivalent
+            $role.knot.capsule$."$role.knot.equivalentName$" k
+$/ else
+            $role.knot.capsule$."$role.knot.name$" k
+$/ endif
+        WHERE
+            k."$role.knot.valueColumnName$" = NEW."$role.knotValueColumnName$"
+$/ if role.knot.isEquivalent
+        AND
+            k."$role.knot.equivalentColumnName$" = coalesce(NEW."$role.knotEquivalentColumnName$", 0)
+$/ endif
+        LIMIT 1;
+    END IF;
+$/ endif
+$/ endfor
+    -- values that are left as they are state nothing
+    IF
+$/ foreach role in tie.values
+$/ if role.knot
+        _$role.name$ IS NOT NULL
+$/ else
+        NEW."$role.columnName$" IS NOT NULL
+$/ endif
+    AND
+$/ endfor
+        (
+$/ if tie.isHistorized
+            NEW."$tie.changingColumnName$" IS DISTINCT FROM OLD."$tie.changingColumnName$" OR
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+            _$role.name$ IS DISTINCT FROM OLD."$role.columnName$"
+$/ if not role.last()
+        OR
+$/ endif
+$/ else
+            NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$"
+$/ if not role.last()
+        OR
+$/ endif
+$/ endif
+$/ endfor
+        )
+    THEN
+        INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+            "$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isHistorized
+            "$tie.changingColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+            "$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+        )
+        VALUES (
+$/ if schema.METADATA
+            NEW."$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isHistorized
+            CASE
+                WHEN NEW."$tie.changingColumnName$" IS DISTINCT FROM OLD."$tie.changingColumnName$" THEN NEW."$tie.changingColumnName$"
+                ELSE _now
+            END,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+            _$role.name$$/ if not role.last() ,$/ endif
+$/ else
+            NEW."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endif
+$/ endfor
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "ut_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "ut_l$tie.name$"
+INSTEAD OF UPDATE ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."ut_l$tie.name$"();
+$/ endif
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$tie.name$ instead of DELETE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."dt_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+BEGIN
+    DELETE FROM
+        $tie.capsule$."$tie.name$" x
+    WHERE
+$/ if tie.isHistorized
+        x."$tie.changingColumnName$" = OLD."$tie.changingColumnName$"
+    AND
+$/ endif
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        x."$role.columnName$" = OLD."$role.columnName$"
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        x."$role.columnName$" = OLD."$role.columnName$"
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+    ;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "dt_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "dt_l$tie.name$"
+INSTEAD OF DELETE ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."dt_l$tie.name$"();
+$/ endfor
+$/ endif

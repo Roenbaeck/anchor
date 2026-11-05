@@ -20,4 +20,8 @@ SQL/PostgreSQL/uni/CreateAttributeRewinders.sisula
 SQL/PostgreSQL/uni/CreateAnchorPerspectives.sisula
 SQL/PostgreSQL/uni/CreateNexusPerspectives.sisula
 SQL/PostgreSQL/uni/CreateTiePerspectives.sisula
+SQL/PostgreSQL/uni/CreateAttributeTriggers.sisula
+SQL/PostgreSQL/uni/CreateAnchorTriggers.sisula
+SQL/PostgreSQL/uni/CreateNexusTriggers.sisula
+SQL/PostgreSQL/uni/CreateTieTriggers.sisula
 SQL/PostgreSQL/AddDescriptions.sisula
