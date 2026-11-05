@@ -465,8 +465,8 @@ them makes triggers, so data is loaded into the tables, as it is in Snowflake.
 - **PostgreSQL** makes every perspective: time traveling (`t`), latest (`l`), point-in-time (`p`), now (`n`) and difference (`d`), with
   functions in SQL that return a table. Keys are enforced by the database. An identifier is at most 63 bytes in PostgreSQL, and the
   longest of the generated ones, such as the name of a sequence or a constraint, has to stay within it. A geography
-  needs PostGIS. The uni-temporal generator is the original one, which makes the tables, the keys, the equivalence views and the
-  attribute and anchor perspectives only.
+  needs PostGIS. The uni-temporal generator is a set of Sisula templates as well (from Snowflake's, with equivalence, and the
+  latest, point-in-time, now and difference perspectives of anchors, nexuses and ties).
 - **Vertica** has no function that returns a table, so the rewinders are views that show what is known now (`r` before the name of an
   attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
   only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.

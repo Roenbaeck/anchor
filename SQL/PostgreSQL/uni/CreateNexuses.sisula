@@ -1,0 +1,36 @@
+-- NEXUSES ------------------------------------------------------------------------------------------------------------
+--
+-- Nexuses are used to store identities for event-like entities.
+-- Nexuses are immutable.
+--
+$/ foreach nexus in schema.nexuses
+-- Nexus table --------------------------------------------------------------------------------------------------------
+-- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+$/ if nexus.isGenerator
+CREATE SEQUENCE IF NOT EXISTS $nexus.capsule$."$nexus.identitySequenceName$" START 1 INCREMENT 1;
+$/ endif
+CREATE TABLE IF NOT EXISTS $nexus.capsule$."$nexus.name$" (
+    "$nexus.identityColumnName$" $/ if nexus.isGenerator $nexus.identity$ default nextval('$nexus.capsule$."$nexus.identitySequenceName$"') not null, $/ else $nexus.identity$ not null,$/ endif
+$/ foreach role in nexus.roles
+    "$role.columnName$" $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ foreach role in nexus.roles
+    constraint "$nexus.name$_fk$role.name$" foreign key (
+        "$role.columnName$"
+$/ if role.entity
+    ) references $role.entity.capsule$."$role.entity.name$"("$role.entity.identityColumnName$"), $--$
+$/ else
+$/ if role.knot.isEquivalent
+    ) references $role.knot.capsule$."$role.knot.identityName$"("$role.knot.identityColumnName$"),
+$/ else
+    ) references $role.knot.capsule$."$role.knot.name$"("$role.knot.identityColumnName$"),
+$/ endif
+$/ endif
+$/ endfor
+    $/ if schema.METADATA "$nexus.metadataColumnName$" $schema.metadata.metadataType$ not null, $/ else "$nexus.dummyColumnName$" boolean null,$/ endif
+    constraint "pk$nexus.name$" primary key (
+        "$nexus.identityColumnName$"
+    )
+);
+$/ endfor

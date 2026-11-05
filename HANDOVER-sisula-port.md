@@ -804,8 +804,7 @@ PostgreSQL and Vertica bi and crt were SQL Server's templates copied (`IF Object
 over the JSON bindings, made from Snowflake's with what each database does differently (see *PostgreSQL and Vertica, bi and crt* in
 ANCHOR.md): `SQL/PostgreSQL/derive.js` and `SQL/Vertica/derive.js` hold the facts, the naming conventions the sequence names, `CreateSchemas`
 makes the schemas first, and `FEATURES` says there is no equivalence or encryption. The models are `postgresql-<name>-bi|crt` and
-`vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files; PostgreSQL has no uni models
-because its uni generator is still the original one.
+`vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files, and so are the uni models (2026-11-05: PostgreSQL uni is on the Sisula engine too, from Snowflake's uni templates; it has the nexus and tie perspectives and equivalence; 22 perspective checks and 13 equivalence checks pass on PostgreSQL 16).
 
 **PostgreSQL was run on a PostgreSQL 16.4 server** (a portable build in a scratch directory, no PostGIS; `tools/postgres-tests.ps1` in the sisula
 repository, which takes any server through psql). All 12 models deploy, except the two with the original naming (`postgresql-plain-*`), which
@@ -815,8 +814,7 @@ The windows that Snowflake needed (`QUALIFY`, no correlated `LIMIT`) became `DIS
 put a `DISTINCT ON` into the wrong select, found by reading the output before the server was there to find it.
 **Vertica was not run**, and Snowflake's showed what that finds: it has `LIMIT 1 OVER` or the same window and filter, and is only linted.
 PostgreSQL has no triggers, integrity checks or natural keys yet; Vertica has no functions, so no time traveling,
-point-in-time or difference perspective and no rewinder that takes a time. A PostgreSQL uni generator on the Sisula engine would also give it
-the nexus and tie perspectives that it lacks. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
+point-in-time or difference perspective and no rewinder that takes a time. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
