@@ -1,0 +1,390 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the assembled views make them behave like tables.
+-- There is one 'instead of' trigger for: insert.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- The rules are the ones in Anchor's docs/ANCHOR.md, "Loading through the latest views". Bitemporal modeling is decisive:
+-- one posit at a time is asserted for an entity (and a changing time). An assertion of another value therefore retracts, at
+-- its own positing time, the posit that is in effect, which is a correction; a posit is in effect at a positing time when its
+-- latest annex row up to then asserts it. The positing time is now (the clock, which moves between two statements) unless it is
+-- given.
+--
+-- For idempotent attributes, only changes that represent a value different from the previous or following value are stored.
+-- Others are silently ignored in order to avoid unnecessary temporal duplicates, although what they correct is retracted.
+--
+-- PostgreSQL runs a trigger of this kind for each row.
+--
+$/ foreach attribute in schema.attributes
+-- Equality of two values -----------------------------------------------------------------------------------------------
+-- eq_$attribute.name$ tells whether two values of $attribute.name$ are the same (by checksum, if it has one)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.capsule$."eq_$attribute.name$"(
+$/ if attribute.isKnotted
+    l $attribute.knot.identity$,
+    r $attribute.knot.identity$
+$/ else
+    l $attribute.dataRange$,
+    r $attribute.dataRange$
+$/ endif
+)
+RETURNS boolean
+AS
+$$
+$/ if attribute.hasChecksum
+    SELECT md5(l::text) = md5(r::text)
+$/ else
+$/ if attribute.isComparable
+    SELECT l = r
+$/ else
+    SELECT l::text = r::text
+$/ endif
+$/ endif
+$$ LANGUAGE sql IMMUTABLE;
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name$ instead of INSERT trigger on $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.capsule$."it_$attribute.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _positing $schema.metadata.positingRange$;
+    _reliability $schema.metadata.reliabilityRange$;
+$/ if attribute.isHistorized
+    _changing $attribute.timeRange$;
+$/ endif
+    _posit $attribute.identity$;
+    _other $attribute.identity$;
+    _following $attribute.identity$;
+BEGIN
+    _positing := coalesce(NEW."$attribute.positingColumnName$", _now);
+    _reliability := coalesce(NEW."$attribute.reliabilityColumnName$", 1);
+$/ if attribute.isHistorized
+    _changing := coalesce(NEW."$attribute.changingColumnName$", _now);
+$/ endif
+    -- the posit, if there is one
+    SELECT
+        p."$attribute.identityColumnName$"
+    INTO
+        _posit
+    FROM
+        $attribute.capsule$."$attribute.positName$" p
+    WHERE
+        p."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+$/ if attribute.isHistorized
+    AND
+        p."$attribute.changingColumnName$" = _changing
+$/ endif
+    AND
+        $attribute.capsule$."eq_$attribute.name$"(p."$attribute.valueColumnName$", NEW."$attribute.valueColumnName$")
+    LIMIT 1;
+    -- another reliability at a positing time that already has an assertion of the posit is a contradiction, and so, since
+    -- one posit at a time is asserted, is an assertion of another value at that time
+    IF _posit IS NOT NULL AND EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.annexName$" a
+        WHERE
+            a."$attribute.identityColumnName$" = _posit
+        AND
+            a."$attribute.positingColumnName$" = _positing
+        AND
+            a."$attribute.reliabilityColumnName$" <> _reliability
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            _changing,
+$/ endif
+            _positing);
+    END IF;
+    IF _reliability = 1 AND EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.positName$" p
+        JOIN
+            $attribute.capsule$."$attribute.annexName$" a
+        ON
+            a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
+        WHERE
+            p."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+$/ if attribute.isHistorized
+        AND
+            p."$attribute.changingColumnName$" = _changing
+$/ endif
+        AND
+            NOT $attribute.capsule$."eq_$attribute.name$"(p."$attribute.valueColumnName$", NEW."$attribute.valueColumnName$")
+        AND
+            a."$attribute.positingColumnName$" = _positing
+        AND
+            a."$attribute.reliabilityColumnName$" = 1
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            _changing,
+$/ endif
+            _positing);
+    END IF;
+    -- the identical (the posit and the assertion are there already) states nothing
+    IF _posit IS NOT NULL AND EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.annexName$" a
+        WHERE
+            a."$attribute.identityColumnName$" = _posit
+        AND
+            a."$attribute.positingColumnName$" = _positing
+    ) THEN
+        RETURN NULL;
+    END IF;
+    -- whether the posit is asserted at the positing time
+    IF _reliability = 0 THEN
+        -- a retraction of what is not asserted states nothing
+        IF _posit IS NULL OR NOT coalesce((
+            SELECT
+                a."$attribute.reliabilityColumnName$" = 1
+            FROM
+                $attribute.capsule$."$attribute.annexName$" a
+            WHERE
+                a."$attribute.identityColumnName$" = _posit
+            AND
+                a."$attribute.positingColumnName$" <= _positing
+            ORDER BY
+                a."$attribute.positingColumnName$" DESC
+            LIMIT 1
+        ), false) THEN
+            RETURN NULL;
+        END IF;
+        INSERT INTO $attribute.capsule$."$attribute.annexName$" (
+$/ if schema.METADATA
+            "$attribute.metadataColumnName$",
+$/ endif
+            "$attribute.identityColumnName$",
+            "$attribute.positingColumnName$",
+            "$attribute.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$attribute.metadataColumnName$", 0),
+$/ endif
+            _posit,
+            _positing,
+            _reliability
+        );
+        RETURN NEW;
+    END IF;
+    -- an assertion that is asserted already, at the positing time, is skipped unless the attribute is assertive
+$/ if not attribute.isAssertive
+    IF _posit IS NOT NULL AND coalesce((
+        SELECT
+            a."$attribute.reliabilityColumnName$" = 1
+        FROM
+            $attribute.capsule$."$attribute.annexName$" a
+        WHERE
+            a."$attribute.identityColumnName$" = _posit
+        AND
+            a."$attribute.positingColumnName$" <= _positing
+        ORDER BY
+            a."$attribute.positingColumnName$" DESC
+        LIMIT 1
+    ), false) THEN
+        RETURN NULL;
+    END IF;
+$/ endif
+    -- an assertion corrects what is asserted at the positing time for the same entity (and changing time), when that has
+    -- another value: it is retracted at the positing time of the assertion, so that one posit at a time is asserted
+    FOR _other IN
+        SELECT
+            p."$attribute.identityColumnName$"
+        FROM
+            $attribute.capsule$."$attribute.positName$" p
+        WHERE
+            p."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+$/ if attribute.isHistorized
+        AND
+            p."$attribute.changingColumnName$" = _changing
+$/ endif
+        AND
+            NOT $attribute.capsule$."eq_$attribute.name$"(p."$attribute.valueColumnName$", NEW."$attribute.valueColumnName$")
+        AND
+            coalesce((
+                SELECT
+                    a."$attribute.reliabilityColumnName$" = 1
+                FROM
+                    $attribute.capsule$."$attribute.annexName$" a
+                WHERE
+                    a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
+                AND
+                    a."$attribute.positingColumnName$" <= _positing
+                ORDER BY
+                    a."$attribute.positingColumnName$" DESC
+                LIMIT 1
+            ), false)
+    LOOP
+        INSERT INTO $attribute.capsule$."$attribute.annexName$" (
+$/ if schema.METADATA
+            "$attribute.metadataColumnName$",
+$/ endif
+            "$attribute.identityColumnName$",
+            "$attribute.positingColumnName$",
+            "$attribute.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$attribute.metadataColumnName$", 0),
+$/ endif
+            _other,
+            _positing,
+            0
+        )
+        ON CONFLICT DO NOTHING;
+    END LOOP;
+$/ if attribute.isHistorized
+$/ if attribute.isIdempotent or not attribute.isRestatable
+    -- the same value as the version before it, which is asserted at the positing time, is a restatement
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+                p."$attribute.valueColumnName$"
+            FROM
+                $attribute.capsule$."$attribute.positName$" p
+            WHERE
+                p."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+            AND
+                p."$attribute.changingColumnName$" < _changing
+            AND
+                coalesce((
+                    SELECT
+                        a."$attribute.reliabilityColumnName$" = 1
+                    FROM
+                        $attribute.capsule$."$attribute.annexName$" a
+                    WHERE
+                        a."$attribute.identityColumnName$" = p."$attribute.identityColumnName$"
+                    AND
+                        a."$attribute.positingColumnName$" <= _positing
+                    ORDER BY
+                        a."$attribute.positingColumnName$" DESC
+                    LIMIT 1
+                ), false)
+            ORDER BY
+                p."$attribute.changingColumnName$" DESC
+            LIMIT 1
+        ) pre
+        WHERE
+            $attribute.capsule$."eq_$attribute.name$"(pre."$attribute.valueColumnName$", NEW."$attribute.valueColumnName$")
+    ) THEN
+$/ if attribute.isIdempotent
+        -- (an idempotent attribute does not store it)
+        RETURN NULL;
+$/ else
+        RAISE EXCEPTION 'Restatement in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$", _changing, _positing);
+$/ endif
+    END IF;
+    -- the same value as the version after it makes that version a restatement
+    SELECT
+        f."$attribute.identityColumnName$"
+    INTO
+        _following
+    FROM
+        $attribute.capsule$."$attribute.positName$" f
+    WHERE
+        f."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+    AND
+        f."$attribute.changingColumnName$" > _changing
+    AND
+        coalesce((
+            SELECT
+                a."$attribute.reliabilityColumnName$" = 1
+            FROM
+                $attribute.capsule$."$attribute.annexName$" a
+            WHERE
+                a."$attribute.identityColumnName$" = f."$attribute.identityColumnName$"
+            AND
+                a."$attribute.positingColumnName$" <= _positing
+            ORDER BY
+                a."$attribute.positingColumnName$" DESC
+            LIMIT 1
+        ), false)
+    ORDER BY
+        f."$attribute.changingColumnName$" ASC
+    LIMIT 1;
+    IF _following IS NOT NULL AND $attribute.capsule$."eq_$attribute.name$"((
+        SELECT x."$attribute.valueColumnName$" FROM $attribute.capsule$."$attribute.positName$" x WHERE x."$attribute.identityColumnName$" = _following
+    ), NEW."$attribute.valueColumnName$") THEN
+$/ if attribute.isIdempotent
+        -- (an idempotent attribute retracts it)
+        INSERT INTO $attribute.capsule$."$attribute.annexName$" (
+$/ if schema.METADATA
+            "$attribute.metadataColumnName$",
+$/ endif
+            "$attribute.identityColumnName$",
+            "$attribute.positingColumnName$",
+            "$attribute.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$attribute.metadataColumnName$", 0),
+$/ endif
+            _following,
+            _positing,
+            0
+        )
+        ON CONFLICT DO NOTHING;
+$/ else
+        RAISE EXCEPTION 'Restatement in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$", _changing, _positing);
+$/ endif
+    END IF;
+$/ endif
+$/ endif
+    -- the posit, which is new when it was not found
+    IF _posit IS NULL THEN
+        INSERT INTO $attribute.capsule$."$attribute.positName$" (
+            "$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            "$attribute.changingColumnName$",
+$/ endif
+            "$attribute.valueColumnName$"
+        )
+        VALUES (
+            NEW."$attribute.entityReferenceName$",
+$/ if attribute.isHistorized
+            _changing,
+$/ endif
+            NEW."$attribute.valueColumnName$"
+        )
+        RETURNING "$attribute.identityColumnName$" INTO _posit;
+    END IF;
+    INSERT INTO $attribute.capsule$."$attribute.annexName$" (
+$/ if schema.METADATA
+        "$attribute.metadataColumnName$",
+$/ endif
+        "$attribute.identityColumnName$",
+        "$attribute.positingColumnName$",
+        "$attribute.reliabilityColumnName$"
+    )
+    VALUES (
+$/ if schema.METADATA
+        coalesce(NEW."$attribute.metadataColumnName$", 0),
+$/ endif
+        _posit,
+        _positing,
+        _reliability
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_$attribute.name$" ON $attribute.capsule$."$attribute.name$";
+CREATE TRIGGER "it_$attribute.name$"
+INSTEAD OF INSERT ON $attribute.capsule$."$attribute.name$"
+FOR EACH ROW EXECUTE FUNCTION $attribute.capsule$."it_$attribute.name$"();
+$/ endfor
+$/ endif
