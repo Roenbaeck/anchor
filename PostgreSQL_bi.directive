@@ -20,4 +20,8 @@ SQL/PostgreSQL/bi/CreateTies.sisula
 SQL/PostgreSQL/bi/CreateTieAssembledViews.sisula
 SQL/PostgreSQL/bi/CreateTieRewinders.sisula
 SQL/PostgreSQL/bi/CreateTiePerspectives.sisula
+SQL/PostgreSQL/bi/CreateAttributeTriggers.sisula
+SQL/PostgreSQL/bi/CreateAnchorTriggers.sisula
+SQL/PostgreSQL/bi/CreateNexusTriggers.sisula
+SQL/PostgreSQL/bi/CreateTieTriggers.sisula
 SQL/PostgreSQL/AddDescriptions.sisula

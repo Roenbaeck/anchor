@@ -1,34 +1,27 @@
-# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+# This is the processing directive for uni-temporal Anchor Modeling in PostgreSQL
+#
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
 SQL/Helpers.js
-SQL/PostgreSQL/NamingConvention.js
 SQL/NamingConvention.js
-SQL/PostgreSQL/DatabaseInitialization.js
-#SQL/PostgreSQL/uni/AddEncryption.js
-#SQL/PostgreSQL/uni/SetupEquivalentPartitioning.js
-SQL/PostgreSQL/uni/CreateEquivalentAndDefault.js
-SQL/PostgreSQL/uni/CreateKnots.js
-SQL/PostgreSQL/uni/CreateAnchors.js
-SQL/PostgreSQL/uni/CreateNexuses.js
-SQL/PostgreSQL/uni/CreateAttributes.js
-SQL/PostgreSQL/uni/CreateTies.js
-SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.js
-SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.js
-SQL/PostgreSQL/uni/AddAttributeRestatementConstraints.js
-SQL/PostgreSQL/uni/CreateKeyGenerators.js
-SQL/PostgreSQL/uni/CreateAttributePerspectives.js
-#SQL/PostgreSQL/biz/DropAnchorBusinessPerspectives.js
-SQL/PostgreSQL/uni/CreateAnchorPerspectives.js
-#SQL/PostgreSQL/biz/CreateAnchorBusinessPerspectives.js
-#SQL/PostgreSQL/biz/DropNexusBusinessPerspectives.js
-#SQL/PostgreSQL/uni/CreateNexusPerspectives.js
-#SQL/PostgreSQL/biz/CreateNexusBusinessPerspectives.js
-#SQL/PostgreSQL/uni/CreateAttributeTriggers.js
-#SQL/PostgreSQL/uni/CreateAnchorTriggers.js
-#SQL/PostgreSQL/uni/CreateNexusTriggers.js
-#SQL/PostgreSQL/uni/AddTieRestatementConstraints.js
-#SQL/PostgreSQL/biz/DropTieBusinessPerspectives.js
-#SQL/PostgreSQL/uni/CreateTiePerspectives.js
-#SQL/PostgreSQL/biz/CreateTieBusinessPerspectives.js
-#SQL/PostgreSQL/uni/CreateTieTriggers.js
-SQL/PostgreSQL/CreateSchemaTracking.js
-#SQL/PostgreSQL/uni/AddDescriptions.js
+SQL/PostgreSQL/NamingConvention.js
+SQL/PostgreSQL/derive.js
+SQL/PostgreSQL/CreateSchemas.sisula
+SQL/PostgreSQL/uni/CreateEquivalentAndDefault.sisula
+SQL/PostgreSQL/uni/CreateKnots.sisula
+SQL/PostgreSQL/uni/CreateAnchors.sisula
+SQL/PostgreSQL/uni/CreateNexuses.sisula
+SQL/PostgreSQL/uni/CreateAttributes.sisula
+SQL/PostgreSQL/uni/CreateTies.sisula
+SQL/PostgreSQL/uni/CreateKnotEquivalenceViews.sisula
+SQL/PostgreSQL/uni/CreateAttributeEquivalenceViews.sisula
+SQL/PostgreSQL/uni/CreateAttributeRewinders.sisula
+SQL/PostgreSQL/uni/CreateAnchorPerspectives.sisula
+SQL/PostgreSQL/uni/CreateNexusPerspectives.sisula
+SQL/PostgreSQL/uni/CreateTiePerspectives.sisula
+SQL/PostgreSQL/uni/CreateAttributeTriggers.sisula
+SQL/PostgreSQL/uni/CreateAnchorTriggers.sisula
+SQL/PostgreSQL/uni/CreateNexusTriggers.sisula
+SQL/PostgreSQL/uni/CreateTieTriggers.sisula
+SQL/PostgreSQL/AddDescriptions.sisula

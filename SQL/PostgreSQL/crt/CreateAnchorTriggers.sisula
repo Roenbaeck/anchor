@@ -1,0 +1,426 @@
+$/ if schema.TRIGGERS
+-- ANCHOR TRIGGERS ---------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the assembled views of the attributes (whose triggers keep the
+-- posit and annex tables) in a consistent way. Default values are used for some columns if not provided by the
+-- corresponding SQL statements: the positor is 0, the changing and positing times are now, the reliability is 1.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates (the triggers of the attributes see to that).
+--
+-- PostgreSQL runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+$/ foreach anchor in schema.anchors
+$/ if anchor.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$anchor.name$ instead of INSERT trigger on l$anchor.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$."it_l$anchor.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _id $anchor.identity$;
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    _id := NEW."$anchor.identityColumnName$";
+    IF _id IS NULL THEN
+        INSERT INTO $anchor.capsule$."$anchor.name$" (
+$/ if schema.METADATA
+            "$anchor.metadataColumnName$"
+$/ else
+            "$anchor.dummyColumnName$"
+$/ endif
+        )
+        VALUES (
+$/ if schema.METADATA
+            NEW."$anchor.metadataColumnName$"
+$/ else
+            null
+$/ endif
+        )
+        RETURNING "$anchor.identityColumnName$" INTO _id;
+    END IF;
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ := NEW."$attribute.valueColumnName$";
+    IF _$attribute.mnemonic$ IS NULL AND NEW."$attribute.knotValueColumnName$" IS NOT NULL THEN
+        SELECT
+            k."$attribute.knot.identityColumnName$"
+        INTO
+            _$attribute.mnemonic$
+        FROM
+            $attribute.knot.capsule$."$attribute.knot.name$" k
+        WHERE
+$/ if attribute.knot.hasChecksum
+            k."$attribute.knot.checksumColumnName$" = decode(md5(NEW."$attribute.knotValueColumnName$"::text), 'hex')
+$/ else
+            k."$attribute.knot.valueColumnName$" = NEW."$attribute.knotValueColumnName$"
+$/ endif
+        LIMIT 1;
+    END IF;
+    IF _$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+    IF NEW."$attribute.valueColumnName$" IS NOT NULL THEN
+$/ endif
+        INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+            "$attribute.metadataColumnName$",
+$/ endif
+            "$attribute.entityReferenceName$",
+            "$attribute.valueColumnName$",
+$/ if attribute.isHistorized
+            "$attribute.changingColumnName$",
+$/ endif
+            "$attribute.positorColumnName$",
+            "$attribute.positingColumnName$",
+            "$attribute.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$attribute.metadataColumnName$", NEW."$anchor.metadataColumnName$"),
+$/ endif
+$/ if schema.IMPROVED
+            coalesce(NEW."$attribute.entityReferenceName$", _id),
+$/ else
+            _id,
+$/ endif
+$/ if attribute.isKnotted
+            _$attribute.mnemonic$,
+$/ else
+            NEW."$attribute.valueColumnName$",
+$/ endif
+$/ if attribute.isHistorized
+            coalesce(NEW."$attribute.changingColumnName$", _now),
+$/ endif
+            coalesce(NEW."$attribute.positorColumnName$", NEW."$schema.metadata.positorSuffix$", 0),
+            coalesce(NEW."$attribute.positingColumnName$", _now),
+            coalesce(NEW."$attribute.reliabilityColumnName$", NEW."$schema.metadata.reliabilitySuffix$", 1)
+        );
+    END IF;
+$/ endfor
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_l$anchor.name$" ON $anchor.capsule$."l$anchor.name$";
+CREATE TRIGGER "it_l$anchor.name$"
+INSTEAD OF INSERT ON $anchor.capsule$."l$anchor.name$"
+FOR EACH ROW EXECUTE FUNCTION $anchor.capsule$."it_l$anchor.name$"();
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$anchor.name$ instead of UPDATE trigger on l$anchor.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$."ut_l$anchor.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _reliability $schema.metadata.reliabilityRange$;
+    _positing $schema.metadata.positingRange$;
+    _positor $schema.metadata.positorRange$;
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    IF NEW."$anchor.identityColumnName$" IS DISTINCT FROM OLD."$anchor.identityColumnName$" THEN
+        RAISE EXCEPTION 'The identity column $anchor.identityColumnName$ is not updatable.';
+    END IF;
+$/ foreach attribute in anchor.attributes
+    IF NEW."$attribute.identityColumnName$" IS DISTINCT FROM OLD."$attribute.identityColumnName$" THEN
+        RAISE EXCEPTION 'The identity column $attribute.identityColumnName$ is not updatable.';
+    END IF;
+$/ if schema.IMPROVED
+    IF NEW."$attribute.entityReferenceName$" IS DISTINCT FROM OLD."$attribute.entityReferenceName$" THEN
+        RAISE EXCEPTION 'The foreign key column $attribute.entityReferenceName$ is not updatable.';
+    END IF;
+$/ endif
+    -- what the update says about the reliability of $attribute.name$, and when it posits
+    _reliability := CASE
+        WHEN NEW."$attribute.reliabilityColumnName$" IS DISTINCT FROM OLD."$attribute.reliabilityColumnName$" THEN NEW."$attribute.reliabilityColumnName$"
+        WHEN NEW."$schema.metadata.reliabilitySuffix$" IS DISTINCT FROM OLD."$schema.metadata.reliabilitySuffix$" THEN NEW."$schema.metadata.reliabilitySuffix$"
+        ELSE NEW."$attribute.reliabilityColumnName$"
+    END;
+    _positor := coalesce(CASE
+        WHEN NEW."$attribute.positorColumnName$" IS DISTINCT FROM OLD."$attribute.positorColumnName$" THEN NEW."$attribute.positorColumnName$"
+        ELSE NEW."$schema.metadata.positorSuffix$"
+    END, 0);
+    _positing := CASE
+        WHEN NEW."$attribute.positingColumnName$" IS DISTINCT FROM OLD."$attribute.positingColumnName$" THEN NEW."$attribute.positingColumnName$"
+$/ if attribute.isHistorized
+        WHEN NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" AND NEW."$attribute.valueColumnName$" IS NULL THEN NEW."$attribute.changingColumnName$"
+$/ endif
+        ELSE _now
+    END;
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ := NEW."$attribute.valueColumnName$";
+    IF _$attribute.mnemonic$ IS NOT DISTINCT FROM OLD."$attribute.valueColumnName$" AND NEW."$attribute.knotValueColumnName$" IS DISTINCT FROM OLD."$attribute.knotValueColumnName$" THEN
+        _$attribute.mnemonic$ := NULL;
+        IF NEW."$attribute.knotValueColumnName$" IS NOT NULL THEN
+            SELECT
+                k."$attribute.knot.identityColumnName$"
+            INTO
+                _$attribute.mnemonic$
+            FROM
+                $attribute.knot.capsule$."$attribute.knot.name$" k
+            WHERE
+$/ if attribute.knot.hasChecksum
+                k."$attribute.knot.checksumColumnName$" = decode(md5(NEW."$attribute.knotValueColumnName$"::text), 'hex')
+$/ else
+                k."$attribute.knot.valueColumnName$" = NEW."$attribute.knotValueColumnName$"
+$/ endif
+            LIMIT 1;
+        END IF;
+    END IF;
+    IF NEW."$attribute.valueColumnName$" IS DISTINCT FROM OLD."$attribute.valueColumnName$"
+    OR NEW."$attribute.knotValueColumnName$" IS DISTINCT FROM OLD."$attribute.knotValueColumnName$"
+$/ else
+    IF NEW."$attribute.valueColumnName$" IS DISTINCT FROM OLD."$attribute.valueColumnName$"
+$/ endif
+$/ if attribute.isHistorized
+    OR NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$"
+$/ endif
+    OR NEW."$attribute.positingColumnName$" IS DISTINCT FROM OLD."$attribute.positingColumnName$"
+    OR NEW."$attribute.reliabilityColumnName$" IS DISTINCT FROM OLD."$attribute.reliabilityColumnName$"
+    OR NEW."$schema.metadata.reliabilitySuffix$" IS DISTINCT FROM OLD."$schema.metadata.reliabilitySuffix$"
+    THEN
+$/ if attribute.isKnotted
+        IF _$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+        IF NEW."$attribute.valueColumnName$" IS NOT NULL THEN
+$/ endif
+            -- a statement that leaves everything as it is states nothing
+            IF OLD."$attribute.valueColumnName$" IS NULL
+$/ if attribute.isHistorized
+            OR NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$"
+$/ endif
+            OR NEW."$attribute.positingColumnName$" IS DISTINCT FROM OLD."$attribute.positingColumnName$"
+            OR OLD."$attribute.reliabilityColumnName$" IS DISTINCT FROM coalesce(_reliability, 1)
+            OR OLD."$attribute.positorColumnName$" IS DISTINCT FROM _positor
+$/ if attribute.isKnotted
+            OR OLD."$attribute.valueColumnName$" <> _$attribute.mnemonic$
+$/ else
+$/ if attribute.hasChecksum
+            OR md5(OLD."$attribute.valueColumnName$"::text) <> md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+            OR OLD."$attribute.valueColumnName$" <> NEW."$attribute.valueColumnName$"
+$/ else
+            OR OLD."$attribute.valueColumnName$"::text <> NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+$/ endif
+            THEN
+$/ if not schema.DECISIVENESS
+$/ if not attribute.isHistorized
+                -- an indecisive positor holds alternatives, so another value in an update is a correction of the shown one: it is retracted
+                IF OLD."$attribute.valueColumnName$" IS NOT NULL AND (
+$/ if attribute.isKnotted
+                    OLD."$attribute.valueColumnName$" <> _$attribute.mnemonic$
+$/ else
+$/ if attribute.hasChecksum
+                    md5(OLD."$attribute.valueColumnName$"::text) <> md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+                    OLD."$attribute.valueColumnName$" <> NEW."$attribute.valueColumnName$"
+$/ else
+                    OLD."$attribute.valueColumnName$"::text <> NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+$/ endif
+                ) THEN
+                    INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+                        "$attribute.metadataColumnName$",
+$/ endif
+                        "$attribute.entityReferenceName$",
+                        "$attribute.valueColumnName$",
+                        "$attribute.positorColumnName$",
+                        "$attribute.positingColumnName$",
+                        "$attribute.reliabilityColumnName$"
+                    )
+                    SELECT
+$/ if schema.METADATA
+                        coalesce(NEW."$attribute.metadataColumnName$", NEW."$anchor.metadataColumnName$"),
+$/ endif
+                        p."$attribute.entityReferenceName$",
+                        p."$attribute.valueColumnName$",
+                        _positor,
+                        _positing,
+                        $schema.metadata.deleteReliability$
+                    FROM
+                        $attribute.capsule$."$attribute.positName$" p
+                    WHERE
+                        p."$attribute.identityColumnName$" = OLD."$attribute.identityColumnName$";
+                END IF;
+$/ endif
+$/ endif
+                INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+                    "$attribute.metadataColumnName$",
+$/ endif
+                    "$attribute.entityReferenceName$",
+                    "$attribute.valueColumnName$",
+$/ if attribute.isHistorized
+                    "$attribute.changingColumnName$",
+$/ endif
+                    "$attribute.positorColumnName$",
+                    "$attribute.positingColumnName$",
+                    "$attribute.reliabilityColumnName$"
+                )
+                VALUES (
+$/ if schema.METADATA
+                    coalesce(
+                        CASE
+                            WHEN NEW."$anchor.metadataColumnName$" IS DISTINCT FROM OLD."$anchor.metadataColumnName$"
+                             AND NEW."$attribute.metadataColumnName$" IS NOT DISTINCT FROM OLD."$attribute.metadataColumnName$"
+                            THEN NEW."$anchor.metadataColumnName$"
+                            ELSE NEW."$attribute.metadataColumnName$"
+                        END, NEW."$anchor.metadataColumnName$"),
+$/ endif
+$/ if schema.IMPROVED
+                    coalesce(NEW."$attribute.entityReferenceName$", NEW."$anchor.identityColumnName$"),
+$/ else
+                    NEW."$anchor.identityColumnName$",
+$/ endif
+$/ if attribute.isKnotted
+                    _$attribute.mnemonic$,
+$/ else
+                    NEW."$attribute.valueColumnName$",
+$/ endif
+$/ if attribute.isHistorized
+                    -- the shown version asserted again keeps its changing time, as does one that is given
+                    CASE
+                        WHEN NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" THEN NEW."$attribute.changingColumnName$"
+$/ if attribute.isKnotted
+                        WHEN OLD."$attribute.valueColumnName$" = _$attribute.mnemonic$ THEN NEW."$attribute.changingColumnName$"
+$/ else
+$/ if attribute.hasChecksum
+                        WHEN md5(OLD."$attribute.valueColumnName$"::text) = md5(NEW."$attribute.valueColumnName$"::text) THEN NEW."$attribute.changingColumnName$"
+$/ else
+$/ if attribute.isComparable
+                        WHEN OLD."$attribute.valueColumnName$" = NEW."$attribute.valueColumnName$" THEN NEW."$attribute.changingColumnName$"
+$/ else
+                        WHEN OLD."$attribute.valueColumnName$"::text = NEW."$attribute.valueColumnName$"::text THEN NEW."$attribute.changingColumnName$"
+$/ endif
+$/ endif
+$/ endif
+                        ELSE _now
+                    END,
+$/ endif
+                    _positor,
+                    _positing,
+                    coalesce(_reliability, 1)
+                );
+            END IF;
+        END IF;
+$/ if attribute.isKnotted
+        -- logical delete by setting the value to null
+        IF OLD."$attribute.valueColumnName$" IS NOT NULL AND (
+            NEW."$attribute.valueColumnName$" IS NULL OR (
+                NEW."$attribute.valueColumnName$" = OLD."$attribute.valueColumnName$"
+                AND NEW."$attribute.knotValueColumnName$" IS NULL AND OLD."$attribute.knotValueColumnName$" IS NOT NULL
+            )
+        ) THEN
+$/ else
+        -- logical delete by setting the value to null
+        IF NEW."$attribute.valueColumnName$" IS NULL AND OLD."$attribute.valueColumnName$" IS NOT NULL THEN
+$/ endif
+            INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+                "$attribute.metadataColumnName$",
+$/ endif
+                "$attribute.entityReferenceName$",
+                "$attribute.valueColumnName$",
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$",
+$/ endif
+                "$attribute.positorColumnName$",
+                "$attribute.positingColumnName$",
+                "$attribute.reliabilityColumnName$"
+            )
+            SELECT
+$/ if schema.METADATA
+                coalesce(
+                    CASE
+                        WHEN NEW."$anchor.metadataColumnName$" IS DISTINCT FROM OLD."$anchor.metadataColumnName$"
+                         AND NEW."$attribute.metadataColumnName$" IS NOT DISTINCT FROM OLD."$attribute.metadataColumnName$"
+                        THEN NEW."$anchor.metadataColumnName$"
+                        ELSE NEW."$attribute.metadataColumnName$"
+                    END, NEW."$anchor.metadataColumnName$"),
+$/ endif
+                p."$attribute.entityReferenceName$",
+                p."$attribute.valueColumnName$",
+$/ if attribute.isHistorized
+                p."$attribute.changingColumnName$",
+$/ endif
+                _positor,
+                _positing,
+                0
+            FROM
+                $attribute.capsule$."$attribute.positName$" p
+            WHERE
+                p."$attribute.identityColumnName$" = OLD."$attribute.identityColumnName$";
+        END IF;
+    END IF;
+$/ endfor
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "ut_l$anchor.name$" ON $anchor.capsule$."l$anchor.name$";
+CREATE TRIGGER "ut_l$anchor.name$"
+INSTEAD OF UPDATE ON $anchor.capsule$."l$anchor.name$"
+FOR EACH ROW EXECUTE FUNCTION $anchor.capsule$."ut_l$anchor.name$"();
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$anchor.name$ instead of DELETE trigger on l$anchor.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $anchor.capsule$."dt_l$anchor.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+BEGIN
+$/ foreach attribute in anchor.attributes
+    -- what is shown of $attribute.name$ is retracted
+    INSERT INTO $attribute.capsule$."$attribute.annexName$" (
+$/ if schema.METADATA
+        "$attribute.metadataColumnName$",
+$/ endif
+        "$attribute.identityColumnName$",
+        "$attribute.positorColumnName$",
+        "$attribute.positingColumnName$",
+        "$attribute.reliabilityColumnName$"
+    )
+    SELECT
+$/ if schema.METADATA
+        OLD."$attribute.metadataColumnName$",
+$/ endif
+        OLD."$attribute.identityColumnName$",
+        coalesce(OLD."$attribute.positorColumnName$", OLD."$schema.metadata.positorSuffix$", 0),
+        _now,
+        0
+    WHERE
+        OLD."$attribute.identityColumnName$" IS NOT NULL
+    ON CONFLICT DO NOTHING;
+$/ endfor
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "dt_l$anchor.name$" ON $anchor.capsule$."l$anchor.name$";
+CREATE TRIGGER "dt_l$anchor.name$"
+INSTEAD OF DELETE ON $anchor.capsule$."l$anchor.name$"
+FOR EACH ROW EXECUTE FUNCTION $anchor.capsule$."dt_l$anchor.name$"();
+$/ endif
+$/ endfor
+$/ endif

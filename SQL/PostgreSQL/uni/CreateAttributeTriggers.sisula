@@ -1,0 +1,206 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE TRIGGERS ------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the attribute tables make them behave as the model says: a row that is already there is
+-- not stored again, another value at a time that has a value is a contradiction, and a value that is the same as the
+-- one before it (a restatement) is skipped by an idempotent attribute and refused by one that may not be restated.
+--
+-- For idempotent attributes, only changes that represent a value different from the previous or following value are
+-- stored. Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+$/ foreach attribute in schema.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$attribute.name$ before INSERT trigger on $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.capsule$."it_$attribute.name$"()
+RETURNS trigger
+AS
+$$
+BEGIN
+    -- the identical is not stored again
+    IF EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.name$" x
+        WHERE
+$/ if attribute.isEquivalent
+            x."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+        AND
+$/ endif
+$/ if attribute.isHistorized
+            x."$attribute.changingColumnName$" = NEW."$attribute.changingColumnName$"
+        AND
+$/ endif
+            x."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+        AND
+$/ if attribute.hasChecksum
+            md5(x."$attribute.valueColumnName$"::text) = md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+            x."$attribute.valueColumnName$" = NEW."$attribute.valueColumnName$"
+$/ else
+            x."$attribute.valueColumnName$"::text = NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+    ) THEN
+        RETURN NULL;
+    END IF;
+$/ if attribute.isHistorized
+    -- another value at a time that already has a value is a contradiction
+    IF EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.name$" x
+        WHERE
+$/ if attribute.isEquivalent
+            x."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+        AND
+$/ endif
+            x."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+        AND
+            x."$attribute.changingColumnName$" = NEW."$attribute.changingColumnName$"
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$", NEW."$attribute.changingColumnName$");
+    END IF;
+$/ if attribute.isIdempotent or not attribute.isRestatable
+    -- what is the same as the value before it, or as the value after it, is a restatement
+$/ if attribute.isIdempotent
+    -- (an idempotent attribute does not store it, and removes the one after it that the new value makes a restatement of)
+$/ else
+    -- (an attribute that may not be restated refuses it)
+$/ endif
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+                p."$attribute.valueColumnName$"
+            FROM
+                $attribute.capsule$."$attribute.name$" p
+            WHERE
+$/ if attribute.isEquivalent
+                p."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+            AND
+$/ endif
+                p."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+            AND
+                p."$attribute.changingColumnName$" < NEW."$attribute.changingColumnName$"
+            ORDER BY
+                p."$attribute.changingColumnName$" DESC
+            LIMIT 1
+        ) pre
+        WHERE
+$/ if attribute.hasChecksum
+            md5(pre."$attribute.valueColumnName$"::text) = md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+            pre."$attribute.valueColumnName$" = NEW."$attribute.valueColumnName$"
+$/ else
+            pre."$attribute.valueColumnName$"::text = NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+    ) THEN
+$/ if attribute.isIdempotent
+        RETURN NULL;
+$/ else
+        RAISE EXCEPTION 'Restatement in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$", NEW."$attribute.changingColumnName$");
+$/ endif
+    END IF;
+$/ if attribute.isIdempotent
+    DELETE FROM
+        $attribute.capsule$."$attribute.name$" x
+    WHERE
+$/ if attribute.isEquivalent
+        x."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+    AND
+$/ endif
+        x."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+    AND
+        x."$attribute.changingColumnName$" = (
+            SELECT
+                min(f."$attribute.changingColumnName$")
+            FROM
+                $attribute.capsule$."$attribute.name$" f
+            WHERE
+$/ if attribute.isEquivalent
+                f."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+            AND
+$/ endif
+                f."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+            AND
+                f."$attribute.changingColumnName$" > NEW."$attribute.changingColumnName$"
+        )
+    AND
+$/ if attribute.hasChecksum
+        md5(x."$attribute.valueColumnName$"::text) = md5(NEW."$attribute.valueColumnName$"::text);
+$/ else
+$/ if attribute.isComparable
+        x."$attribute.valueColumnName$" = NEW."$attribute.valueColumnName$";
+$/ else
+        x."$attribute.valueColumnName$"::text = NEW."$attribute.valueColumnName$"::text;
+$/ endif
+$/ endif
+$/ else
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+                f."$attribute.valueColumnName$"
+            FROM
+                $attribute.capsule$."$attribute.name$" f
+            WHERE
+$/ if attribute.isEquivalent
+                f."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+            AND
+$/ endif
+                f."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+            AND
+                f."$attribute.changingColumnName$" > NEW."$attribute.changingColumnName$"
+            ORDER BY
+                f."$attribute.changingColumnName$" ASC
+            LIMIT 1
+        ) fol
+        WHERE
+$/ if attribute.hasChecksum
+            md5(fol."$attribute.valueColumnName$"::text) = md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+            fol."$attribute.valueColumnName$" = NEW."$attribute.valueColumnName$"
+$/ else
+            fol."$attribute.valueColumnName$"::text = NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+    ) THEN
+        RAISE EXCEPTION 'Restatement in $attribute.name$ for: %', concat_ws(', ', NEW."$attribute.entityReferenceName$", NEW."$attribute.changingColumnName$");
+    END IF;
+$/ endif
+$/ endif
+$/ else
+    -- another value for an entity that already has a value is a contradiction
+    IF EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.name$" x
+        WHERE
+$/ if attribute.isEquivalent
+            x."$attribute.equivalentColumnName$" = NEW."$attribute.equivalentColumnName$"
+        AND
+$/ endif
+            x."$attribute.entityReferenceName$" = NEW."$attribute.entityReferenceName$"
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $attribute.name$ for: %', NEW."$attribute.entityReferenceName$";
+    END IF;
+$/ endif
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_$attribute.name$" ON $attribute.capsule$."$attribute.name$";
+CREATE TRIGGER "it_$attribute.name$"
+BEFORE INSERT ON $attribute.capsule$."$attribute.name$"
+FOR EACH ROW EXECUTE FUNCTION $attribute.capsule$."it_$attribute.name$"();
+$/ endfor
+$/ endif

@@ -21,4 +21,8 @@ SQL/PostgreSQL/crt/CreateTies.sisula
 SQL/PostgreSQL/crt/CreateTieAssembledViews.sisula
 SQL/PostgreSQL/crt/CreateTieRewinders.sisula
 SQL/PostgreSQL/crt/CreateTiePerspectives.sisula
+SQL/PostgreSQL/crt/CreateAttributeTriggers.sisula
+SQL/PostgreSQL/crt/CreateAnchorTriggers.sisula
+SQL/PostgreSQL/crt/CreateNexusTriggers.sisula
+SQL/PostgreSQL/crt/CreateTieTriggers.sisula
 SQL/PostgreSQL/AddDescriptions.sisula

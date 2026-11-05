@@ -557,7 +557,7 @@ anchor on the same knot (`AVG` and `MIN` in the `plain` and `equivalence-origina
 column twice, which SQL Server rejects. That is a limit of the original naming, left as it is.
 
 **Not done or kept:**
-- PostgreSQL has its own copies of these triggers (`SQL/PostgreSQL/*/Create*Triggers.js`); they were not changed.
+- PostgreSQL's triggers were rewritten as Sisula templates (2026-11-05, see *PostgreSQL triggers* below); the old `SQL/PostgreSQL/*/Create*Triggers.js` are gone.
 - An encrypted historized attribute in uni compares encrypted values in its insert trigger, so neither identical
   rows nor restatements are recognised (as before); a static one now compares the decrypted values.
 - crt, idempotent: the following version is retracted only when it is visible at the positing time of the new one;
@@ -804,8 +804,7 @@ PostgreSQL and Vertica bi and crt were SQL Server's templates copied (`IF Object
 over the JSON bindings, made from Snowflake's with what each database does differently (see *PostgreSQL and Vertica, bi and crt* in
 ANCHOR.md): `SQL/PostgreSQL/derive.js` and `SQL/Vertica/derive.js` hold the facts, the naming conventions the sequence names, `CreateSchemas`
 makes the schemas first, and `FEATURES` says there is no equivalence or encryption. The models are `postgresql-<name>-bi|crt` and
-`vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files; PostgreSQL has no uni models
-because its uni generator is still the original one.
+`vertica-<name>-bi|crt` (`make-target-models.ps1`, then saved through the modeler), with golden files, and so are the uni models (2026-11-05: PostgreSQL uni is on the Sisula engine too, from Snowflake's uni templates; it has the nexus and tie perspectives and equivalence; 22 perspective checks and 13 equivalence checks pass on PostgreSQL 16).
 
 **PostgreSQL was run on a PostgreSQL 16.4 server** (a portable build in a scratch directory, no PostGIS; `tools/postgres-tests.ps1` in the sisula
 repository, which takes any server through psql). All 12 models deploy, except the two with the original naming (`postgresql-plain-*`), which
@@ -814,9 +813,35 @@ fail like every database does on two attributes of one anchor on the same knot; 
 The windows that Snowflake needed (`QUALIFY`, no correlated `LIMIT`) became `DISTINCT ON` or a window column and a filter in PostgreSQL; the first conversion
 put a `DISTINCT ON` into the wrong select, found by reading the output before the server was there to find it.
 **Vertica was not run**, and Snowflake's showed what that finds: it has `LIMIT 1 OVER` or the same window and filter, and is only linted.
-PostgreSQL has no triggers, integrity checks or natural keys yet; Vertica has no functions, so no time traveling,
-point-in-time or difference perspective and no rewinder that takes a time. A PostgreSQL uni generator on the Sisula engine would also give it
-the nexus and tie perspectives that it lacks. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
+PostgreSQL has no integrity checks or natural keys yet (its triggers are described below); Vertica has no functions, so no time traveling,
+point-in-time or difference perspective and no rewinder that takes a time. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
+
+### PostgreSQL triggers (2026-11-05)
+
+Triggers, in all three temporalizations, as Sisula templates (`SQL/PostgreSQL/{uni,bi,crt}/Create{Attribute,Anchor,Nexus,Tie}Triggers.sisula`, listed
+last in the directives, after the perspectives that they are on). No integrity-check views: keys and foreign keys are enforced by PostgreSQL, and
+what the keys cannot see (restatements, contradictions, corrections, entity integrity) is what the triggers do.
+
+- **uni**: a `BEFORE INSERT` row trigger on every attribute and tie table (identical skipped, contradiction and restatement errors, idempotent
+  quench) and `INSTEAD OF` insert, update and delete on the latest views of anchors, nexuses and ties.
+- **bi, crt**: an `INSTEAD OF INSERT` row trigger on every assembled view (attribute and tie) that keeps the posit and annex tables. The rules are the
+  ones of SQL Server's triggers: posit found or made, a contradiction (another reliability, or in decisive models another value, at a positing time
+  the positor has taken), the identical, a retraction only of what the positor holds (`he_<name>` is what the positor holds at a positing time,
+  `ie_<tie>` whether that is in effect), assertive and idempotent, restatement errors, decisive corrections that retract at the new positing time, and for
+  crt without decisiveness the non-contradiction sum. The latest views have insert, update and delete triggers that insert through the assembled
+  views. In crt the latest view of a tie has no identity column, so a tie's update and delete write their retractions through the assembled view.
+- **What PostgreSQL cannot do**: a row-level trigger sees `OLD` and `NEW`, not the SET list. A column counts as set when it has another value than before,
+  so SQL Server's tests that set a changing or positing time to what it already is were turned into inserts through the assembled view (see the header
+  of `postgres-tests/triggers-bi.sql`). A historized update in crt without decisiveness is therefore always a new version from now; only static
+  attributes and ties are corrected by an update (`indecisive-crt.sql`, i03). Rows of an insert run in the order they have, which is what SQL Server's
+  version ranks by positing time; the tests give them in that order. A retraction at the same positing time as the assertion it retracts is skipped
+  (the annex key), so a delete in the transaction that inserted the row needs a later positing time (the tests give times explicitly).
+- **Tests** (`tools/postgres-tests.ps1`, PostgreSQL 16.4): `triggers-uni.sql` 35 checks, `triggers-bi.sql` 52 (SQL Server's b01-b21 except b19, which is about
+  indexes of the assembled views there, plus a tie delete), `triggers-crt.sql` 70 (c01-c21 are the bi ones with the positor, c22-c29 are the positor,
+  decisive, difference-perspective and negative-assertion groups of SQL Server's c13, c18, c19, c24-c28), `indecisive-crt.sql` 18 (the suite `indecisive`, model
+  `postgresql-indecisive-crt`, made from `sqlserver-indecisive-crt` with `make-target-models.ps1 -From SQLServer`). Every PostgreSQL model deploys with its triggers,
+  and `run-all`, `csharp-check`, `browser-check` and `lint-sql` agree on the golden files.
+- **Not done**: deletable attributes (a null moves the history to a deletion table); optional integrity views for loads that bypass the triggers; natural keys.
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

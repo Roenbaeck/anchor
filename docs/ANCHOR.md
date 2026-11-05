@@ -459,14 +459,17 @@ browser's console how many items have it, since the generated SQL ignores it.
 
 The bi and crt generators of PostgreSQL and Vertica are Sisula templates over the JSON bindings, like Snowflake's, in each database's
 own SQL. They make the tables of knots, anchors, nexuses, attributes and ties (the posit and annex tables of attributes and ties),
-the assembled views, the rewinders and the perspectives, the schemas that the model names, and the descriptions as comments. None of
-them makes triggers, so data is loaded into the tables, as it is in Snowflake.
+the assembled views, the rewinders and the perspectives, the schemas that the model names, and the descriptions as comments. Vertica makes no triggers, so data is loaded into the tables, as it
+is in Snowflake; PostgreSQL makes them (see below).
 
 - **PostgreSQL** makes every perspective: time traveling (`t`), latest (`l`), point-in-time (`p`), now (`n`) and difference (`d`), with
   functions in SQL that return a table. Keys are enforced by the database. An identifier is at most 63 bytes in PostgreSQL, and the
   longest of the generated ones, such as the name of a sequence or a constraint, has to stay within it. A geography
-  needs PostGIS. The uni-temporal generator is the original one, which makes the tables, the keys, the equivalence views and the
-  attribute and anchor perspectives only.
+  needs PostGIS. The uni-temporal generator is a set of Sisula templates as well (from Snowflake's, with equivalence, and the
+  latest, point-in-time, now and difference perspectives of anchors, nexuses and ties). It has the triggers of the latest views (see
+  "Loading through the latest views"), in all three temporalizations, written for PostgreSQL's row-level triggers: the rows of an
+  insert are taken in the order they have, and an update states what has another value than the row had. The deletable attributes are
+  not made yet.
 - **Vertica** has no function that returns a table, so the rewinders are views that show what is known now (`r` before the name of an
   attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
   only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.
@@ -502,6 +505,13 @@ temporalizations:
 
 The latest views of nexuses take the same statements as those of anchors, in all three
 temporalizations; the roles of a nexus are part of its identity and cannot be updated.
+
+PostgreSQL has the same rules (SQL Server's tests, translated, run on PostgreSQL 16 for uni, bi, crt and crt without decisiveness).
+Its triggers run for each row, and it cannot tell that a column is in the SET list of an update, only that the column has another value
+than before: a value set to what it was, with a changing time or a positing time set to what it was too, is not a statement. Such a
+statement is made by an insert instead, through the latest view with the identity or into the assembled view of the attribute or tie. In crt
+without decisiveness this means that an update of a historized attribute is always a new version from now, and only a static attribute or
+tie is corrected by an update.
 
 The settings then decide what happens to what is stated, the same way for inserts and updates:
 

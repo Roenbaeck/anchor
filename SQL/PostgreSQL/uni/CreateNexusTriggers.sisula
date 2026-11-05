@@ -1,0 +1,327 @@
+$/ if schema.TRIGGERS
+-- NEXUS TRIGGERS ---------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates (the triggers of the attribute tables see to that).
+--
+-- PostgreSQL runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$nexus.name$ instead of INSERT trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $nexus.capsule$."it_l$nexus.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _id $nexus.identity$;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    _id := NEW."$nexus.identityColumnName$";
+    IF _id IS NULL THEN
+        INSERT INTO $nexus.capsule$."$nexus.name$" (
+$/ foreach role in nexus.roles
+            "$role.columnName$",
+$/ endfor
+$/ if schema.METADATA
+            "$nexus.metadataColumnName$"
+$/ else
+            "$nexus.dummyColumnName$"
+$/ endif
+        )
+        VALUES (
+$/ foreach role in nexus.roles
+            NEW."$role.columnName$",
+$/ endfor
+$/ if schema.METADATA
+            NEW."$nexus.metadataColumnName$"
+$/ else
+            null
+$/ endif
+        )
+        RETURNING "$nexus.identityColumnName$" INTO _id;
+    END IF;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ := NEW."$attribute.valueColumnName$";
+    IF _$attribute.mnemonic$ IS NULL AND NEW."$attribute.knotValueColumnName$" IS NOT NULL THEN
+        SELECT
+            k."$attribute.knot.identityColumnName$"
+        INTO
+            _$attribute.mnemonic$
+        FROM
+$/ if attribute.knot.isEquivalent
+            $attribute.knot.capsule$."$attribute.knot.equivalentName$" k
+$/ else
+            $attribute.knot.capsule$."$attribute.knot.name$" k
+$/ endif
+        WHERE
+$/ if attribute.knot.hasChecksum
+            k."$attribute.knot.checksumColumnName$" = decode(md5(NEW."$attribute.knotValueColumnName$"::text), 'hex')
+$/ else
+            k."$attribute.knot.valueColumnName$" = NEW."$attribute.knotValueColumnName$"
+$/ endif
+$/ if attribute.knot.isEquivalent
+        AND
+            k."$attribute.knot.equivalentColumnName$" = coalesce(NEW."$attribute.knotEquivalentColumnName$", 0)
+$/ endif
+        LIMIT 1;
+    END IF;
+    IF _$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+    IF NEW."$attribute.valueColumnName$" IS NOT NULL THEN
+$/ endif
+        INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+            "$attribute.metadataColumnName$",
+$/ endif
+            "$attribute.entityReferenceName$",
+$/ if attribute.isEquivalent
+            "$attribute.equivalentColumnName$",
+$/ endif
+$/ if attribute.isHistorized
+            "$attribute.changingColumnName$",
+$/ endif
+            "$attribute.valueColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$attribute.metadataColumnName$", NEW."$nexus.metadataColumnName$"),
+$/ endif
+            coalesce(NEW."$attribute.entityReferenceName$", _id),
+$/ if attribute.isEquivalent
+            coalesce(NEW."$attribute.equivalentColumnName$", 0),
+$/ endif
+$/ if attribute.isHistorized
+            coalesce(NEW."$attribute.changingColumnName$", _now),
+$/ endif
+$/ if attribute.isKnotted
+            _$attribute.mnemonic$
+$/ else
+            NEW."$attribute.valueColumnName$"
+$/ endif
+        );
+    END IF;
+$/ endfor
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_l$nexus.name$" ON $nexus.capsule$."l$nexus.name$";
+CREATE TRIGGER "it_l$nexus.name$"
+INSTEAD OF INSERT ON $nexus.capsule$."l$nexus.name$"
+FOR EACH ROW EXECUTE FUNCTION $nexus.capsule$."it_l$nexus.name$"();
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$nexus.name$ instead of UPDATE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $nexus.capsule$."ut_l$nexus.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    _$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    IF NEW."$nexus.identityColumnName$" IS DISTINCT FROM OLD."$nexus.identityColumnName$" THEN
+        RAISE EXCEPTION 'The identity column $nexus.identityColumnName$ is not updatable.';
+    END IF;
+$/ foreach role in nexus.roles
+    IF NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$" THEN
+        RAISE EXCEPTION 'The role column $role.columnName$ is not updatable.';
+    END IF;
+$/ if role.knot
+    IF NEW."$role.knotValueColumnName$" IS DISTINCT FROM OLD."$role.knotValueColumnName$" THEN
+        RAISE EXCEPTION 'The role column $role.knotValueColumnName$ is not updatable.';
+    END IF;
+$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    IF NEW."$attribute.entityReferenceName$" IS DISTINCT FROM OLD."$attribute.entityReferenceName$" THEN
+        RAISE EXCEPTION 'The foreign key column $attribute.entityReferenceName$ is not updatable.';
+    END IF;
+$/ endif
+$/ if attribute.isKnotted
+    IF NEW."$attribute.valueColumnName$" IS DISTINCT FROM OLD."$attribute.valueColumnName$"
+    OR NEW."$attribute.knotValueColumnName$" IS DISTINCT FROM OLD."$attribute.knotValueColumnName$"
+$/ if attribute.isHistorized
+    OR NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$"
+$/ endif
+    THEN
+        _$attribute.mnemonic$ := NEW."$attribute.valueColumnName$";
+        IF _$attribute.mnemonic$ IS NOT DISTINCT FROM OLD."$attribute.valueColumnName$" AND NEW."$attribute.knotValueColumnName$" IS NOT NULL THEN
+            SELECT
+                k."$attribute.knot.identityColumnName$"
+            INTO
+                _$attribute.mnemonic$
+            FROM
+$/ if attribute.knot.isEquivalent
+                $attribute.knot.capsule$."$attribute.knot.equivalentName$" k
+$/ else
+                $attribute.knot.capsule$."$attribute.knot.name$" k
+$/ endif
+            WHERE
+$/ if attribute.knot.hasChecksum
+                k."$attribute.knot.checksumColumnName$" = decode(md5(NEW."$attribute.knotValueColumnName$"::text), 'hex')
+$/ else
+                k."$attribute.knot.valueColumnName$" = NEW."$attribute.knotValueColumnName$"
+$/ endif
+$/ if attribute.knot.isEquivalent
+            AND
+                k."$attribute.knot.equivalentColumnName$" = coalesce(NEW."$attribute.knotEquivalentColumnName$", 0)
+$/ endif
+            LIMIT 1;
+        END IF;
+        -- a value that is left as it is states nothing
+        IF _$attribute.mnemonic$ IS NOT NULL AND (
+$/ if attribute.isHistorized
+            NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" OR
+$/ endif
+            OLD."$attribute.valueColumnName$" IS NULL OR
+            OLD."$attribute.valueColumnName$" <> _$attribute.mnemonic$
+        ) THEN
+$/ else
+    IF NEW."$attribute.valueColumnName$" IS DISTINCT FROM OLD."$attribute.valueColumnName$"
+$/ if attribute.isHistorized
+    OR NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$"
+$/ endif
+$/ if attribute.isEquivalent
+    OR NEW."$attribute.equivalentColumnName$" IS DISTINCT FROM OLD."$attribute.equivalentColumnName$"
+$/ endif
+    THEN
+        -- a value that is left as it is states nothing
+        IF NEW."$attribute.valueColumnName$" IS NOT NULL AND (
+$/ if attribute.isHistorized
+            NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" OR
+$/ endif
+$/ if attribute.isEquivalent
+            NEW."$attribute.equivalentColumnName$" IS DISTINCT FROM OLD."$attribute.equivalentColumnName$" OR
+$/ endif
+            OLD."$attribute.valueColumnName$" IS NULL OR
+$/ if attribute.hasChecksum
+            md5(OLD."$attribute.valueColumnName$"::text) <> md5(NEW."$attribute.valueColumnName$"::text)
+$/ else
+$/ if attribute.isComparable
+            OLD."$attribute.valueColumnName$" <> NEW."$attribute.valueColumnName$"
+$/ else
+            OLD."$attribute.valueColumnName$"::text <> NEW."$attribute.valueColumnName$"::text
+$/ endif
+$/ endif
+        ) THEN
+$/ endif
+            INSERT INTO $attribute.capsule$."$attribute.name$" (
+$/ if schema.METADATA
+                "$attribute.metadataColumnName$",
+$/ endif
+                "$attribute.entityReferenceName$",
+$/ if attribute.isEquivalent
+                "$attribute.equivalentColumnName$",
+$/ endif
+$/ if attribute.isHistorized
+                "$attribute.changingColumnName$",
+$/ endif
+                "$attribute.valueColumnName$"
+            )
+            VALUES (
+$/ if schema.METADATA
+                coalesce(
+                    CASE
+                        WHEN NEW."$nexus.metadataColumnName$" IS DISTINCT FROM OLD."$nexus.metadataColumnName$"
+                         AND NEW."$attribute.metadataColumnName$" IS NOT DISTINCT FROM OLD."$attribute.metadataColumnName$"
+                        THEN NEW."$nexus.metadataColumnName$"
+                        ELSE NEW."$attribute.metadataColumnName$"
+                    END, NEW."$nexus.metadataColumnName$"),
+$/ endif
+                coalesce(NEW."$attribute.entityReferenceName$", NEW."$nexus.identityColumnName$"),
+$/ if attribute.isEquivalent
+                coalesce(NEW."$attribute.equivalentColumnName$", 0),
+$/ endif
+$/ if attribute.isHistorized
+                CASE
+                    WHEN NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" THEN NEW."$attribute.changingColumnName$"
+                    ELSE _now
+                END,
+$/ endif
+$/ if attribute.isKnotted
+                _$attribute.mnemonic$
+$/ else
+                NEW."$attribute.valueColumnName$"
+$/ endif
+            );
+        END IF;
+    END IF;
+$/ endfor
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "ut_l$nexus.name$" ON $nexus.capsule$."l$nexus.name$";
+CREATE TRIGGER "ut_l$nexus.name$"
+INSTEAD OF UPDATE ON $nexus.capsule$."l$nexus.name$"
+FOR EACH ROW EXECUTE FUNCTION $nexus.capsule$."ut_l$nexus.name$"();
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$nexus.name$ instead of DELETE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $nexus.capsule$."dt_l$nexus.name$"()
+RETURNS trigger
+AS
+$$
+BEGIN
+$/ foreach attribute in nexus.attributes
+    DELETE FROM
+        $attribute.capsule$."$attribute.name$" x
+    WHERE
+        x."$attribute.entityReferenceName$" = OLD."$nexus.identityColumnName$"
+$/ if attribute.isEquivalent
+    AND
+        x."$attribute.equivalentColumnName$" = OLD."$attribute.equivalentColumnName$"
+$/ endif
+$/ if attribute.isHistorized
+    AND
+        x."$attribute.changingColumnName$" = OLD."$attribute.changingColumnName$"
+$/ endif
+    ;
+$/ endfor
+    -- a nexus that has no attribute rows left is removed
+    DELETE FROM
+        $nexus.capsule$."$nexus.name$" a
+    WHERE
+        a."$nexus.identityColumnName$" = OLD."$nexus.identityColumnName$"
+$/ foreach attribute in nexus.attributes
+    AND NOT EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.capsule$."$attribute.name$" x
+        WHERE
+            x."$attribute.entityReferenceName$" = a."$nexus.identityColumnName$"
+    )
+$/ endfor
+    ;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "dt_l$nexus.name$" ON $nexus.capsule$."l$nexus.name$";
+CREATE TRIGGER "dt_l$nexus.name$"
+INSTEAD OF DELETE ON $nexus.capsule$."l$nexus.name$"
+FOR EACH ROW EXECUTE FUNCTION $nexus.capsule$."dt_l$nexus.name$"();
+$/ endif
+$/ endfor
+$/ endif
