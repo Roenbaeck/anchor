@@ -1,0 +1,805 @@
+$/ if schema.TRIGGERS
+-- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the assembled and latest views make them behave like tables.
+-- The assembled view has an 'instead of' trigger for insert, which keeps the posit and annex tables. The latest view has
+-- three: insert, update, and delete. They propagate such operations to the assembled view in a consistent way. Default
+-- values are used for some columns if not provided by the corresponding SQL statements: the positor is 0, the changing and
+-- positing times are now, the reliability is 1.
+--
+-- The rules are the ones of the attributes (see the attribute triggers). A tie that has identifiers and other roles, which
+-- are its values, is about the values of the identifiers (at a changing time):
+$/ if schema.DECISIVENESS
+-- a decisive positor holds one assertion at a time for them, so an assertion of other values retracts, at its own positing
+-- time, the posit that the positor holds, which is a correction.
+$/ else
+-- an indecisive positor may hold alternatives for them, with reliabilities that may not sum up to more than one.
+$/ endif
+--
+-- For idempotent ties, only changes that represent values different from the previous or following value are stored.
+-- Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+-- PostgreSQL runs a trigger of this kind for each row, so the rows of an insert are taken in the order they have. Whether a
+-- column is set in an UPDATE is told from whether it has another value than the row had.
+--
+$/ foreach tie in schema.ties
+-- Held -----------------------------------------------------------------------------------------------------------------
+-- he_$tie.name$ is the reliability that a positor holds for a posit at a positing time (null if it holds nothing): that of its
+-- latest annex row up to then
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."he_$tie.name$"(
+    _id $tie.identity$,
+    _positor $schema.metadata.positorRange$,
+    _positing $schema.metadata.positingRange$
+)
+RETURNS $schema.metadata.reliabilityRange$
+AS
+$$
+    SELECT
+        a."$tie.reliabilityColumnName$"
+    FROM
+        $tie.capsule$."$tie.annexName$" a
+    WHERE
+        a."$tie.identityColumnName$" = _id
+    AND
+        a."$tie.positorColumnName$" = _positor
+    AND
+        a."$tie.positingColumnName$" <= _positing
+    ORDER BY
+        a."$tie.positingColumnName$" DESC
+    LIMIT 1
+$$ LANGUAGE sql STABLE;
+-- In effect ------------------------------------------------------------------------------------------------------------
+-- ie_$tie.name$ tells whether a posit is in effect for a positor at a positing time: it holds an assertion of it, positive or negative
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."ie_$tie.name$"(
+    _id $tie.identity$,
+    _positor $schema.metadata.positorRange$,
+    _positing $schema.metadata.positingRange$
+)
+RETURNS boolean
+AS
+$$
+    SELECT coalesce($tie.capsule$."he_$tie.name$"(_id, _positor, _positing), $schema.metadata.deleteReliability$) <> $schema.metadata.deleteReliability$
+$$ LANGUAGE sql STABLE;
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_$tie.name$ instead of INSERT trigger on $tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."it_$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _positor $schema.metadata.positorRange$;
+    _positing $schema.metadata.positingRange$;
+    _reliability $schema.metadata.reliabilityRange$;
+    _held $schema.metadata.reliabilityRange$;
+$/ if tie.isHistorized
+    _changing $tie.timeRange$;
+$/ endif
+    _posit $tie.identity$;
+    _other $tie.identity$;
+    _following $tie.identity$;
+    _total $schema.metadata.reliabilityRange$;
+BEGIN
+    _positor := coalesce(NEW."$tie.positorColumnName$", 0);
+    _positing := coalesce(NEW."$tie.positingColumnName$", _now);
+    _reliability := coalesce(NEW."$tie.reliabilityColumnName$", 1);
+$/ if tie.isHistorized
+    _changing := coalesce(NEW."$tie.changingColumnName$", _now);
+$/ endif
+    -- the posit, if there is one
+    SELECT
+        p."$tie.identityColumnName$"
+    INTO
+        _posit
+    FROM
+        $tie.capsule$."$tie.positName$" p
+    WHERE
+$/ foreach role in tie.roles
+        p."$role.columnName$" = NEW."$role.columnName$"
+    AND
+$/ endfor
+$/ if tie.isHistorized
+        p."$tie.changingColumnName$" = _changing
+$/ else
+        true
+$/ endif
+    LIMIT 1;
+    -- another reliability at a positing time that already has an assertion of the posit by the positor is a contradiction
+    IF _posit IS NOT NULL AND EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.annexName$" a
+        WHERE
+            a."$tie.identityColumnName$" = _posit
+        AND
+            a."$tie.positorColumnName$" = _positor
+        AND
+            a."$tie.positingColumnName$" = _positing
+        AND
+            a."$tie.reliabilityColumnName$" <> _reliability
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            _changing,
+$/ endif
+            _positor, _positing);
+    END IF;
+$/ if schema.DECISIVENESS
+$/ if tie.identifiers and tie.values
+    -- and so, since a decisive positor holds one assertion at a time, are other values for identifiers that already have
+    -- values (at that time), asserted by the positor at the positing time
+    IF _reliability <> $schema.metadata.deleteReliability$ AND EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.positName$" p
+        JOIN
+            $tie.capsule$."$tie.annexName$" a
+        ON
+            a."$tie.identityColumnName$" = p."$tie.identityColumnName$"
+        WHERE
+$/ foreach role in tie.identifiers
+            p."$role.columnName$" = NEW."$role.columnName$"
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            p."$tie.changingColumnName$" = _changing
+        AND
+$/ endif
+            NOT (
+$/ foreach role in tie.values
+                p."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+                AND
+$/ endif
+$/ endfor
+            )
+        AND
+            a."$tie.positorColumnName$" = _positor
+        AND
+            a."$tie.positingColumnName$" = _positing
+        AND
+            a."$tie.reliabilityColumnName$" <> $schema.metadata.deleteReliability$
+    ) THEN
+        RAISE EXCEPTION 'Contradiction in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            _changing,
+$/ endif
+            _positor, _positing);
+    END IF;
+$/ endif
+$/ endif
+    -- the identical (the posit and the assertion are there already) states nothing
+    IF _posit IS NOT NULL AND EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.annexName$" a
+        WHERE
+            a."$tie.identityColumnName$" = _posit
+        AND
+            a."$tie.positorColumnName$" = _positor
+        AND
+            a."$tie.positingColumnName$" = _positing
+    ) THEN
+        RETURN NULL;
+    END IF;
+    -- what the positor holds of the posit
+    IF _posit IS NOT NULL THEN
+        _held := $tie.capsule$."he_$tie.name$"(_posit, _positor, _positing);
+    END IF;
+    IF _reliability = $schema.metadata.deleteReliability$ THEN
+        -- a retraction of what the positor does not hold states nothing
+        IF coalesce(_held, $schema.metadata.deleteReliability$) = $schema.metadata.deleteReliability$ THEN
+            RETURN NULL;
+        END IF;
+        INSERT INTO $tie.capsule$."$tie.annexName$" (
+$/ if schema.METADATA
+            "$tie.metadataColumnName$",
+$/ endif
+            "$tie.identityColumnName$",
+            "$tie.positorColumnName$",
+            "$tie.positingColumnName$",
+            "$tie.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$tie.metadataColumnName$", 0),
+$/ endif
+            _posit,
+            _positor,
+            _positing,
+            _reliability
+        );
+        RETURN NEW;
+    END IF;
+$/ if not tie.isAssertive
+    -- the same assertion that the positor holds is not stated again unless the tie is assertive
+    IF _held IS NOT NULL AND _held = _reliability THEN
+        RETURN NULL;
+    END IF;
+$/ endif
+$/ if schema.DECISIVENESS
+$/ if tie.identifiers and tie.values
+    -- an assertion corrects what the positor holds for the same identifiers (and changing time), when that has other values: it
+    -- is retracted at the positing time of the assertion, so that the positor holds one posit at a time
+    FOR _other IN
+        SELECT
+            p."$tie.identityColumnName$"
+        FROM
+            $tie.capsule$."$tie.positName$" p
+        WHERE
+$/ foreach role in tie.identifiers
+            p."$role.columnName$" = NEW."$role.columnName$"
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            p."$tie.changingColumnName$" = _changing
+        AND
+$/ endif
+            NOT (
+$/ foreach role in tie.values
+                p."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+                AND
+$/ endif
+$/ endfor
+            )
+        AND
+            $tie.capsule$."ie_$tie.name$"(p."$tie.identityColumnName$", _positor, _positing)
+    LOOP
+        INSERT INTO $tie.capsule$."$tie.annexName$" (
+$/ if schema.METADATA
+            "$tie.metadataColumnName$",
+$/ endif
+            "$tie.identityColumnName$",
+            "$tie.positorColumnName$",
+            "$tie.positingColumnName$",
+            "$tie.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$tie.metadataColumnName$", 0),
+$/ endif
+            _other,
+            _positor,
+            _positing,
+            $schema.metadata.deleteReliability$
+        )
+        ON CONFLICT DO NOTHING;
+    END LOOP;
+$/ endif
+$/ endif
+$/ if tie.isHistorized
+$/ if tie.isIdempotent or not tie.isRestatable
+    -- the same values as the version before it, which the positor holds with the same sign at the positing time, is a restatement
+    IF EXISTS (
+        SELECT
+            1
+        FROM (
+            SELECT
+$/ foreach role in tie.roles
+                p."$role.columnName$"$/ if not role.last() ,$/ endif
+$/ endfor
+            FROM
+                $tie.capsule$."$tie.positName$" p
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                p."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                p."$role.columnName$" = NEW."$role.columnName$"
+            AND
+$/ endfor
+$/ endif
+                p."$tie.changingColumnName$" < _changing
+            AND
+                $tie.capsule$."ie_$tie.name$"(p."$tie.identityColumnName$", _positor, _positing)
+            AND
+                ($tie.capsule$."he_$tie.name$"(p."$tie.identityColumnName$", _positor, _positing) > $schema.metadata.deleteReliability$) = (_reliability > $schema.metadata.deleteReliability$)
+            ORDER BY
+                p."$tie.changingColumnName$" DESC
+            LIMIT 1
+        ) pre
+        WHERE
+$/ foreach role in tie.roles
+            pre."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+    ) THEN
+$/ if tie.isIdempotent
+        -- (an idempotent tie does not store it)
+        RETURN NULL;
+$/ else
+        RAISE EXCEPTION 'Restatement in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+            _changing, _positor, _positing);
+$/ endif
+    END IF;
+    -- the same values as the version after it make that version a restatement
+    SELECT
+        f."$tie.identityColumnName$"
+    INTO
+        _following
+    FROM
+        $tie.capsule$."$tie.positName$" f
+    WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        f."$role.columnName$" = NEW."$role.columnName$"
+    AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        f."$role.columnName$" = NEW."$role.columnName$"
+    AND
+$/ endfor
+$/ endif
+        f."$tie.changingColumnName$" > _changing
+    AND
+        $tie.capsule$."ie_$tie.name$"(f."$tie.identityColumnName$", _positor, _positing)
+    AND
+        ($tie.capsule$."he_$tie.name$"(f."$tie.identityColumnName$", _positor, _positing) > $schema.metadata.deleteReliability$) = (_reliability > $schema.metadata.deleteReliability$)
+    ORDER BY
+        f."$tie.changingColumnName$" ASC
+    LIMIT 1;
+    IF _following IS NOT NULL AND EXISTS (
+        SELECT
+            1
+        FROM
+            $tie.capsule$."$tie.positName$" x
+        WHERE
+            x."$tie.identityColumnName$" = _following
+$/ foreach role in tie.roles
+        AND
+            x."$role.columnName$" = NEW."$role.columnName$"
+$/ endfor
+    ) THEN
+$/ if tie.isIdempotent
+        -- (an idempotent tie retracts it)
+        INSERT INTO $tie.capsule$."$tie.annexName$" (
+$/ if schema.METADATA
+            "$tie.metadataColumnName$",
+$/ endif
+            "$tie.identityColumnName$",
+            "$tie.positorColumnName$",
+            "$tie.positingColumnName$",
+            "$tie.reliabilityColumnName$"
+        )
+        VALUES (
+$/ if schema.METADATA
+            coalesce(NEW."$tie.metadataColumnName$", 0),
+$/ endif
+            _following,
+            _positor,
+            _positing,
+            $schema.metadata.deleteReliability$
+        )
+        ON CONFLICT DO NOTHING;
+$/ else
+        RAISE EXCEPTION 'Restatement in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+            _changing, _positor, _positing);
+$/ endif
+    END IF;
+$/ endif
+$/ endif
+    -- the posit, which is new when it was not found
+    IF _posit IS NULL THEN
+        INSERT INTO $tie.capsule$."$tie.positName$" (
+$/ foreach role in tie.roles
+            "$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            "$tie.changingColumnName$"
+$/ else
+            "$tie.identityColumnName$"
+$/ endif
+        )
+        VALUES (
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            _changing
+$/ else
+            DEFAULT
+$/ endif
+        )
+        RETURNING "$tie.identityColumnName$" INTO _posit;
+    END IF;
+    INSERT INTO $tie.capsule$."$tie.annexName$" (
+$/ if schema.METADATA
+        "$tie.metadataColumnName$",
+$/ endif
+        "$tie.identityColumnName$",
+        "$tie.positorColumnName$",
+        "$tie.positingColumnName$",
+        "$tie.reliabilityColumnName$"
+    )
+    VALUES (
+$/ if schema.METADATA
+        coalesce(NEW."$tie.metadataColumnName$", 0),
+$/ endif
+        _posit,
+        _positor,
+        _positing,
+        _reliability
+    );
+$/ if not schema.DECISIVENESS
+$/ if tie.identifiers and tie.values
+    -- what the positor holds for the same identifiers (and changing time) may not contradict itself: the reliabilities may not
+    -- sum up to more than one (non-contradiction)
+    SELECT
+        sum(CASE
+            WHEN h > $schema.metadata.deleteReliability$ THEN h
+            ELSE 1 + h
+        END)
+    INTO
+        _total
+    FROM (
+        SELECT
+            $tie.capsule$."he_$tie.name$"(p."$tie.identityColumnName$", _positor, _positing) AS h
+        FROM
+            $tie.capsule$."$tie.positName$" p
+        WHERE
+$/ foreach role in tie.identifiers
+            p."$role.columnName$" = NEW."$role.columnName$"
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        AND
+            p."$tie.changingColumnName$" = _changing
+$/ endif
+    ) held
+    WHERE
+        h <> $schema.metadata.deleteReliability$;
+    IF _total > 1 THEN
+        RAISE EXCEPTION 'Contradiction in $tie.name$ for: %', concat_ws(', ',
+$/ foreach role in tie.roles
+            NEW."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+            _changing,
+$/ endif
+            _positor, _positing);
+    END IF;
+$/ endif
+$/ endif
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_$tie.name$" ON $tie.capsule$."$tie.name$";
+CREATE TRIGGER "it_$tie.name$"
+INSTEAD OF INSERT ON $tie.capsule$."$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."it_$tie.name$"();
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$tie.name$ instead of INSERT trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."it_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+BEGIN
+    INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+        "$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+        "$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+        "$tie.changingColumnName$",
+$/ endif
+        "$tie.positorColumnName$",
+        "$tie.positingColumnName$",
+        "$tie.reliabilityColumnName$"
+    )
+    VALUES (
+$/ if schema.METADATA
+        NEW."$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+        coalesce(NEW."$role.columnName$", (
+            SELECT
+                k."$role.knot.identityColumnName$"
+            FROM
+                $role.knot.capsule$."$role.knot.name$" k
+            WHERE
+                k."$role.knot.valueColumnName$" = NEW."$role.knotValueColumnName$"
+            LIMIT 1
+        )),
+$/ else
+        NEW."$role.columnName$",
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        coalesce(NEW."$tie.changingColumnName$", _now),
+$/ endif
+        coalesce(NEW."$tie.positorColumnName$", NEW."$schema.metadata.positorSuffix$", 0),
+        coalesce(NEW."$tie.positingColumnName$", _now),
+        coalesce(NEW."$tie.reliabilityColumnName$", 1)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "it_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "it_l$tie.name$"
+INSTEAD OF INSERT ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."it_l$tie.name$"();
+$/ if tie.values
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$tie.name$ instead of UPDATE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."ut_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+    _positing $schema.metadata.positingRange$;
+    _positor $schema.metadata.positorRange$;
+$/ foreach role in tie.knotRoles
+    _$role.name$ $role.knot.identity$;
+$/ endfor
+BEGIN
+$/ foreach role in tie.identifiers
+    IF NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$" THEN
+        RAISE EXCEPTION 'The identity column $role.columnName$ is not updatable.';
+    END IF;
+$/ endfor
+$/ foreach role in tie.roles
+$/ if role.knot
+    _$role.name$ := NEW."$role.columnName$";
+    IF NEW."$role.knotValueColumnName$" IS DISTINCT FROM OLD."$role.knotValueColumnName$" AND NEW."$role.columnName$" IS NOT DISTINCT FROM OLD."$role.columnName$" THEN
+        _$role.name$ := NULL;
+        IF NEW."$role.knotValueColumnName$" IS NOT NULL THEN
+            SELECT
+                k."$role.knot.identityColumnName$"
+            INTO
+                _$role.name$
+            FROM
+                $role.knot.capsule$."$role.knot.name$" k
+            WHERE
+                k."$role.knot.valueColumnName$" = NEW."$role.knotValueColumnName$"
+            LIMIT 1;
+        END IF;
+    END IF;
+$/ endif
+$/ endfor
+    _positor := coalesce(CASE
+        WHEN NEW."$tie.positorColumnName$" IS DISTINCT FROM OLD."$tie.positorColumnName$" THEN NEW."$tie.positorColumnName$"
+        ELSE NEW."$schema.metadata.positorSuffix$"
+    END, 0);
+    _positing := CASE
+        WHEN NEW."$tie.positingColumnName$" IS DISTINCT FROM OLD."$tie.positingColumnName$" THEN NEW."$tie.positingColumnName$"
+        ELSE _now
+    END;
+$/ if tie.values
+    IF
+$/ foreach role in tie.roles
+$/ if role.knot
+        _$role.name$ IS DISTINCT FROM OLD."$role.columnName$" OR
+$/ else
+        NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$" OR
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        NEW."$tie.changingColumnName$" IS DISTINCT FROM OLD."$tie.changingColumnName$" OR
+$/ endif
+        NEW."$tie.positingColumnName$" IS DISTINCT FROM OLD."$tie.positingColumnName$" OR
+        NEW."$tie.reliabilityColumnName$" IS DISTINCT FROM OLD."$tie.reliabilityColumnName$"
+    THEN
+        IF
+$/ foreach role in tie.roles
+$/ if role.knot
+            _$role.name$ IS NOT NULL
+$/ else
+            NEW."$role.columnName$" IS NOT NULL
+$/ endif
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        THEN
+$/ if not schema.DECISIVENESS
+$/ if not tie.isHistorized
+            -- an indecisive positor holds alternatives, so other values in an update are a correction of the shown ones: they are retracted
+            IF (
+$/ foreach role in tie.roles
+$/ if role.knot
+                _$role.name$ IS DISTINCT FROM OLD."$role.columnName$"
+$/ else
+                NEW."$role.columnName$" IS DISTINCT FROM OLD."$role.columnName$"
+$/ endif
+$/ if not role.last()
+                OR
+$/ endif
+$/ endfor
+            ) THEN
+                INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+                    "$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+                    "$role.columnName$",
+$/ endfor
+                    "$tie.positorColumnName$",
+                    "$tie.positingColumnName$",
+                    "$tie.reliabilityColumnName$"
+                )
+                VALUES (
+$/ if schema.METADATA
+                    NEW."$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+                    OLD."$role.columnName$",
+$/ endfor
+                    _positor,
+                    _positing,
+                    $schema.metadata.deleteReliability$
+                );
+            END IF;
+$/ endif
+$/ endif
+            INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+                "$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+                "$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+                "$tie.changingColumnName$",
+$/ endif
+                "$tie.positorColumnName$",
+                "$tie.positingColumnName$",
+                "$tie.reliabilityColumnName$"
+            )
+            VALUES (
+$/ if schema.METADATA
+                NEW."$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+                _$role.name$,
+$/ else
+                NEW."$role.columnName$",
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+                -- the shown version asserted again keeps its changing time, as does one that is given
+                CASE
+                    WHEN NEW."$tie.changingColumnName$" IS DISTINCT FROM OLD."$tie.changingColumnName$" THEN NEW."$tie.changingColumnName$"
+                    WHEN
+$/ foreach role in tie.roles
+$/ if role.knot
+                        _$role.name$ = OLD."$role.columnName$"
+$/ else
+                        NEW."$role.columnName$" = OLD."$role.columnName$"
+$/ endif
+$/ if not role.last()
+                    AND
+$/ endif
+$/ endfor
+                    THEN NEW."$tie.changingColumnName$"
+                    ELSE _now
+                END,
+$/ endif
+                _positor,
+                _positing,
+                coalesce(NEW."$tie.reliabilityColumnName$", 1)
+            );
+        ELSE
+            -- logical delete by setting a value to null: the shown version is retracted
+            INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+                "$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+                "$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+                "$tie.changingColumnName$",
+$/ endif
+                "$tie.positorColumnName$",
+                "$tie.positingColumnName$",
+                "$tie.reliabilityColumnName$"
+            )
+            VALUES (
+$/ if schema.METADATA
+                NEW."$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+                OLD."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+                OLD."$tie.changingColumnName$",
+$/ endif
+                _positor,
+                _positing,
+                0
+            );
+        END IF;
+    END IF;
+$/ endif
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "ut_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "ut_l$tie.name$"
+INSTEAD OF UPDATE ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."ut_l$tie.name$"();
+$/ endif
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$tie.name$ instead of DELETE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.capsule$."dt_l$tie.name$"()
+RETURNS trigger
+AS
+$$
+DECLARE
+    _now $schema.metadata.chronon$ := $schema.metadata.now$::$schema.metadata.chronon$;
+BEGIN
+    -- what is shown is retracted
+    INSERT INTO $tie.capsule$."$tie.name$" (
+$/ if schema.METADATA
+        "$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+        "$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+        "$tie.changingColumnName$",
+$/ endif
+        "$tie.positorColumnName$",
+        "$tie.positingColumnName$",
+        "$tie.reliabilityColumnName$"
+    )
+    VALUES (
+$/ if schema.METADATA
+        OLD."$tie.metadataColumnName$",
+$/ endif
+$/ foreach role in tie.roles
+        OLD."$role.columnName$",
+$/ endfor
+$/ if tie.isHistorized
+        OLD."$tie.changingColumnName$",
+$/ endif
+        coalesce(OLD."$tie.positorColumnName$", OLD."$schema.metadata.positorSuffix$", 0),
+        _now,
+        0
+    );
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS "dt_l$tie.name$" ON $tie.capsule$."l$tie.name$";
+CREATE TRIGGER "dt_l$tie.name$"
+INSTEAD OF DELETE ON $tie.capsule$."l$tie.name$"
+FOR EACH ROW EXECUTE FUNCTION $tie.capsule$."dt_l$tie.name$"();
+$/ endfor
+$/ endif
