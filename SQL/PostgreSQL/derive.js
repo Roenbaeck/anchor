@@ -104,3 +104,32 @@ while (schemaOwner = schema.nextNexus()) addCapsule(schemaOwner.capsule);
 while (schemaOwner = schema.nextAttribute()) addCapsule(schemaOwner.capsule);
 while (schemaOwner = schema.nextTie()) addCapsule(schemaOwner.capsule);
 schema.capsules = capsules.map(function(name) { return { name: name }; });
+// Natural keys: the routes of every anchor and nexus, from naturalKeys() in Helpers.js, after the schema names above
+// have been quoted, since a key reads them. A checksum is a bytea, like the column it is read from. A value is compared
+// with = when a key is looked up and when the integrity check looks for a key that two identities have; json, xml and
+// the geographic types of PostGIS cannot be, so a route with such a value and no checksum on it is not usable.
+//
+//   schema.naturalKeys   one item for each route, as naturalKeys() describes it
+schema.naturalKeys = naturalKeys();
+var naturalKey, naturalKeyColumn;
+for (var nk = 0; nk < schema.naturalKeys.length; nk++) {
+    naturalKey = schema.naturalKeys[nk];
+    for (var nc = 0; nc < naturalKey.columns.length; nc++) {
+        naturalKeyColumn = naturalKey.columns[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'bytea';
+    }
+    for (nc = 0; nc < naturalKey.matches.length; nc++) {
+        naturalKeyColumn = naturalKey.matches[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'bytea';
+        else if (naturalKey.usable && /^\s*(json|xml|geography|geometry)\b/i.test(naturalKeyColumn.type || '')) {
+            naturalKey.usable = false;
+            naturalKey.problem = naturalKeyColumn.name + ' is a ' + naturalKeyColumn.type + ', which cannot be compared, and it has no checksum';
+        }
+    }
+    if (!naturalKey.usable) {
+        naturalKey.notes = [];
+        naturalKey.joins = [];
+        naturalKey.columns = [];
+        naturalKey.matches = [];
+    }
+}

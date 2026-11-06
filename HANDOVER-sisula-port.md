@@ -813,7 +813,8 @@ fail like every database does on two attributes of one anchor on the same knot; 
 The windows that Snowflake needed (`QUALIFY`, no correlated `LIMIT`) became `DISTINCT ON` or a window column and a filter in PostgreSQL; the first conversion
 put a `DISTINCT ON` into the wrong select, found by reading the output before the server was there to find it.
 **Vertica was not run**, and Snowflake's showed what that finds: it has `LIMIT 1 OVER` or the same window and filter, and is only linted.
-PostgreSQL has no integrity checks or natural keys yet (its triggers are described below); Vertica has no functions, so no time traveling,
+PostgreSQL has no integrity checks (keys and foreign keys are enforced, and its triggers are described below), and its natural keys are
+the views of Snowflake's (see *PostgreSQL deletable attributes and natural keys* below); Vertica has no functions, so no time traveling,
 point-in-time or difference perspective and no rewinder that takes a time. `lint-sql.ps1` knows PostgreSQL and Vertica (no COPY GRANTS, T-SQL is a finding).
 
 ### PostgreSQL triggers (2026-11-05)
@@ -841,7 +842,25 @@ what the keys cannot see (restatements, contradictions, corrections, entity inte
   decisive, difference-perspective and negative-assertion groups of SQL Server's c13, c18, c19, c24-c28), `indecisive-crt.sql` 18 (the suite `indecisive`, model
   `postgresql-indecisive-crt`, made from `sqlserver-indecisive-crt` with `make-target-models.ps1 -From SQLServer`). Every PostgreSQL model deploys with its triggers,
   and `run-all`, `csharp-check`, `browser-check` and `lint-sql` agree on the golden files.
-- **Not done**: deletable attributes (a null moves the history to a deletion table); optional integrity views for loads that bypass the triggers; natural keys.
+- **Not done**: optional integrity views for loads that bypass the triggers (deletable attributes and natural keys: see the next section).
+
+### PostgreSQL deletable attributes and natural keys (2026-11-06)
+
+- **Deletable (uni only; in bi and crt a null is a retraction already)**: the latest views of anchors, nexuses and ties have the deletable column
+  (`NULL::boolean`) of every deletable attribute, nexus attribute and tie, where SQL Server's have it, and the update triggers move what the
+  entity (or the identifiers of the tie) has to `<name>_Deleted`, with the deletion time, when the value is null and the column set (a knotted attribute: the
+  value or the knot value null; a tie: every value null). The deletion table is made by the trigger the first time with
+  `CREATE TABLE ... (LIKE <table>, <deletion time> <type>)` after a `to_regclass` test, so the script does not make it; `lint-sql.ps1` knows that a
+  `CREATE TABLE` that is indented is made at run time. The deletion time is the changing time when it is set (another than before), else now.
+  Tested by `postgres-tests/triggers-uni.sql` (u08, 53 checks in all): `models/postgresql-triggers.xml` now has six more deletable
+  constructs (a static and a knotted attribute, both nexus attributes, a historized and a static tie), which only the uni golden files show.
+- **Natural keys (uni, bi, crt)**: `SQL/PostgreSQL/uni/CreateKeys.sisula` is Snowflake's, with `jsonb_build_object` for the key of a violation,
+  `LANGUAGE sql STABLE` functions and no `COPY GRANTS`; `SQL/PostgreSQL/derive.js` calls `naturalKeys()` (checksums are `bytea`; json, xml and
+  the geographic types without a checksum make a route unusable). All three directives list it after the triggers. No key tables
+  (`naturalKeyAttributes` is not read; SQL Server's `refresh_` procedures are its own) and no `IntegrityViolations`: `ic_key_` is a view with columns
+  `"Construct"`, `"Violation"`, `"ViolationKey"` and `"Occurrences"`. Models `postgresql-keys`, `-bi` and `-crt` (`make-target-models.ps1 -Models keys
+  -Types @{geography='text'}`, then `browser-check.ps1 -Canonicalize`); the tests are Snowflake's, translated (`postgres-tests/keys-<t>.sql`, suite `keys`,
+  16 + 16 + 18 checks).
 
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 

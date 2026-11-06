@@ -46,7 +46,7 @@ tables a query against a perspective does not use.
 | <img src="images/tie.svg" height="24" alt="Tie: filled grey diamond"> <img src="images/tie_historized.svg" height="24" alt="Historized tie: double diamond"> | [Tie](#tie) | `<tie>` | A relationship between anchors, such as who is cast in what | A table with one column per role |
 | <img src="images/nexus.svg" height="24" alt="Nexus: red square with a white diamond inside"> | [Nexus](#nexus) | `<nexus>` | An event with its own identity and properties, such as a performance | A table holding the identity and its role references |
 | <img src="images/role.svg" height="24" alt="Role: line with a single bar"> <img src="images/role_identifier.svg" height="24" alt="Identifier role: line with three bars"> | [Role](#role) | `<role>` | How an anchor, nexus or knot takes part in a tie or nexus | A column in the tie or nexus table |
-| <img src="images/identifier.svg" height="24" alt="Identifier: grey circle with a keyhole"> <img src="images/identifier_historized.svg" height="24" alt="Historized identifier: double grey circle with a keyhole"> | [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (Snowflake, SQL Server) |
+| <img src="images/identifier.svg" height="24" alt="Identifier: grey circle with a keyhole"> <img src="images/identifier_historized.svg" height="24" alt="Historized identifier: double grey circle with a keyhole"> | [Key and identifier](#keys-and-identifiers) | `<key>`, `<identifier>` | A natural key, such as a stage being identified by its name | Key views (Snowflake, SQL Server, PostgreSQL) |
 
 Where a construct has two symbols, the second, doubled outline marks the historized variant. On a
 role, a single bar marks a role that is not an identifier and three bars mark an identifier role.
@@ -328,16 +328,16 @@ and pick *Create key from selected*; *Add selected to key* continues the selecte
 branch when the anchor or nexus is in the selection too. When a model is opened, the modeler checks
 its routes with the same rules as the generators and writes what is wrong to the browser's console.
 
-Snowflake and SQL Server (uni, bi and crt) turn every route into three objects:
+Snowflake, SQL Server and PostgreSQL (uni, bi and crt) turn every route into three objects:
 
 - `key_<anchor>_<route>`, a view with the key of every identity, from the latest perspectives. A
   value that has a checksum, such as a geography, is followed by the checksum, which is what it is
-  matched on (`hash(value)` in Snowflake, the MD5 of the value in SQL Server).
+  matched on (`hash(value)` in Snowflake, the MD5 of the value in SQL Server and PostgreSQL).
 - `pkey_<anchor>_<route>(changingTimepoint)`, the key of every identity at a changing time, for a
   route that passes something historized.
 - `ic_key_<anchor>_<route>`, the keys that more than one identity has and the identities that have
-  more than one key, since neither database enforces that on a view. In Snowflake
-  `IntegrityViolations` includes it.
+  more than one key, since no database enforces that on a view. In Snowflake
+  `IntegrityViolations` includes it; in PostgreSQL it is a view of its own, with the key as jsonb.
 
 Snowflake enforces no keys, so its generated SQL has the integrity checks instead, as views (`ic_<table>`
 for every table, `ic_<attribute>` and `ic_<tie>` for what a posit and its annex say together in bi
@@ -468,8 +468,11 @@ is in Snowflake; PostgreSQL makes them (see below).
   needs PostGIS. The uni-temporal generator is a set of Sisula templates as well (from Snowflake's, with equivalence, and the
   latest, point-in-time, now and difference perspectives of anchors, nexuses and ties). It has the triggers of the latest views (see
   "Loading through the latest views"), in all three temporalizations, written for PostgreSQL's row-level triggers: the rows of an
-  insert are taken in the order they have, and an update states what has another value than the row had. The deletable attributes are
-  not made yet.
+  insert are taken in the order they have, and an update states what has another value than the row had. In uni, a deletable
+  attribute, nexus attribute or tie has its deletable column in the latest view, and a null with that column set moves the history
+  to the deletion table, which the trigger makes the first time it is needed (in bi and crt a null is a retraction). The natural
+  keys (`key_`, `pkey_` and `ic_key_`, see "Keys and identifiers") are made in all three temporalizations; they have no key
+  tables, and uniqueness is checked by `ic_key_`, since a key is not a primary key.
 - **Vertica** has no function that returns a table, so the rewinders are views that show what is known now (`r` before the name of an
   attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
   only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.
