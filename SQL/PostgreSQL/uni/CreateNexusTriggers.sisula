@@ -268,6 +268,39 @@ $/ endif
             );
         END IF;
     END IF;
+$/ if attribute.isDeletable
+    -- a null on a deletable attribute moves what the entity has of it to the deletion table
+    IF NEW."$attribute.deletableColumnName$" IS TRUE
+    AND OLD."$attribute.valueColumnName$" IS NOT NULL
+$/ if attribute.isKnotted
+    AND (NEW."$attribute.valueColumnName$" IS NULL OR NEW."$attribute.knotValueColumnName$" IS NULL)
+$/ else
+    AND NEW."$attribute.valueColumnName$" IS NULL
+$/ endif
+    THEN
+        IF to_regclass('$attribute.capsule$."$attribute.deletionName$"') IS NULL THEN
+            CREATE TABLE $attribute.capsule$."$attribute.deletionName$" (
+                LIKE $attribute.capsule$."$attribute.name$",
+                "$attribute.deletionTimeColumnName$" $/ if attribute.isHistorized $attribute.timeRange$$/ else $schema.metadata.chronon$$/ endif
+            );
+        END IF;
+        WITH d AS (
+            DELETE FROM $attribute.capsule$."$attribute.name$"
+            WHERE "$attribute.entityReferenceName$" = OLD."$nexus.identityColumnName$"
+            RETURNING *
+        )
+        INSERT INTO $attribute.capsule$."$attribute.deletionName$"
+        SELECT
+            d.*,
+$/ if attribute.isHistorized
+            (CASE WHEN NEW."$attribute.changingColumnName$" IS DISTINCT FROM OLD."$attribute.changingColumnName$" THEN NEW."$attribute.changingColumnName$" ELSE _now END)::$attribute.timeRange$
+$/ else
+            _now
+$/ endif
+        FROM
+            d;
+    END IF;
+$/ endif
 $/ endfor
     RETURN NEW;
 END;

@@ -25,4 +25,5 @@ SQL/PostgreSQL/crt/CreateAttributeTriggers.sisula
 SQL/PostgreSQL/crt/CreateAnchorTriggers.sisula
 SQL/PostgreSQL/crt/CreateNexusTriggers.sisula
 SQL/PostgreSQL/crt/CreateTieTriggers.sisula
+SQL/PostgreSQL/uni/CreateKeys.sisula
 SQL/PostgreSQL/AddDescriptions.sisula

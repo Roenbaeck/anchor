@@ -384,6 +384,46 @@ $/ endif
 $/ endfor
         );
     END IF;
+$/ if tie.isDeletable and tie.identifiers
+    -- a null in every value of a deletable tie moves what the identifiers have to the deletion table
+    IF NEW."$tie.deletableColumnName$" IS TRUE
+$/ foreach role in tie.values
+$/ if role.knot
+    AND (NEW."$role.columnName$" IS NULL OR NEW."$role.knotValueColumnName$" IS NULL)
+$/ else
+    AND NEW."$role.columnName$" IS NULL
+$/ endif
+$/ endfor
+    THEN
+        IF to_regclass('$tie.capsule$."$tie.deletionName$"') IS NULL THEN
+            CREATE TABLE $tie.capsule$."$tie.deletionName$" (
+                LIKE $tie.capsule$."$tie.name$",
+                "$tie.deletionTimeColumnName$" $/ if tie.isHistorized $tie.timeRange$$/ else $schema.metadata.chronon$$/ endif
+            );
+        END IF;
+        WITH d AS (
+            DELETE FROM $tie.capsule$."$tie.name$"
+            WHERE
+$/ foreach role in tie.identifiers
+                "$role.columnName$" = OLD."$role.columnName$"
+$/ if not role.last()
+            AND
+$/ endif
+$/ endfor
+            RETURNING *
+        )
+        INSERT INTO $tie.capsule$."$tie.deletionName$"
+        SELECT
+            d.*,
+$/ if tie.isHistorized
+            (CASE WHEN NEW."$tie.changingColumnName$" IS DISTINCT FROM OLD."$tie.changingColumnName$" THEN NEW."$tie.changingColumnName$" ELSE _now END)::$tie.timeRange$
+$/ else
+            _now
+$/ endif
+        FROM
+            d;
+    END IF;
+$/ endif
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

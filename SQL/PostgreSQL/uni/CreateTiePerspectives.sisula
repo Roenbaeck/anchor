@@ -10,6 +10,9 @@ CREATE OR REPLACE VIEW $tie.capsule$."l$tie.name$" (
 $/ if schema.METADATA
     "$tie.metadataColumnName$",
 $/ endif
+$/ if tie.isDeletable
+    "$tie.deletableColumnName$",
+$/ endif
 $/ if tie.isHistorized
     "$tie.changingColumnName$",
 $/ endif
@@ -33,6 +36,9 @@ AS
 SELECT
 $/ if schema.METADATA
     tie."$tie.metadataColumnName$",
+$/ endif
+$/ if tie.isDeletable
+    NULL::boolean,
 $/ endif
 $/ if tie.isHistorized
     tie."$tie.changingColumnName$",

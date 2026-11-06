@@ -34,6 +34,9 @@ $/ endif
 $/ if schema.METADATA
     "$attribute.metadataColumnName$",
 $/ endif
+$/ if attribute.isDeletable
+    "$attribute.deletableColumnName$",
+$/ endif
 $/ if attribute.isHistorized
     "$attribute.changingColumnName$",
 $/ endif
@@ -85,6 +88,9 @@ $/ if schema.IMPROVED
 $/ endif
 $/ if schema.METADATA
     "$attribute.mnemonic$"."$attribute.metadataColumnName$",
+$/ endif
+$/ if attribute.isDeletable
+    NULL::boolean,
 $/ endif
 $/ if attribute.isHistorized
     "$attribute.mnemonic$"."$attribute.changingColumnName$",
