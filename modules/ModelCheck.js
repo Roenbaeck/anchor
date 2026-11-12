@@ -9,7 +9,8 @@
 // (tools/build-snowflake-generator.ps1) and under Jint as well. ES5, no dependencies.
 //
 //   ModelCheck.problems(schemaElement)  an array of messages, empty if the model is right
-//   ModelCheck.assert(schemaElement)    throws an Error that lists the problems, if there are any
+//   ModelCheck.assert(schemaElement [, defaults, target])    throws an Error that lists the problems, if there are any;
+//                                       the settings and their values (default: Snowflake's) and the database can be given
 //   ModelCheck.metadata                 the settings that a model needs, with the value that the modeler would give them
 var ModelCheck = (function () {
     // What the generators read from the <metadata> of the model, with the modeler's default for a Snowflake model. The
@@ -47,7 +48,10 @@ var ModelCheck = (function () {
         return value === null || /^\s*$/.test(value);
     }
 
-    function problems(root) {
+    // defaults (the settings of the database that the model is for, with their values) and the name of the database are
+    // optional: a generator for one database gives them, and the message says what the modeler would give a model for it
+    function problems(root, defaults, target) {
+        var settings = defaults || METADATA;
         var found = [];
         function problem(where, message) { found.push((where ? where + ': ' : '') + message); }
 
@@ -63,19 +67,19 @@ var ModelCheck = (function () {
         } else {
             var metadata = metadataElements[0];
             var missing = [];
-            for (var name in METADATA) {
-                if (Object.prototype.hasOwnProperty.call(METADATA, name) && attribute(metadata, name) === null) {
-                    missing.push(name + '="' + METADATA[name] + '"');
+            for (var name in settings) {
+                if (Object.prototype.hasOwnProperty.call(settings, name) && attribute(metadata, name) === null) {
+                    missing.push(name + '="' + settings[name] + '"');
                 }
             }
             if (missing.length > 0) {
                 problem('the metadata', 'these settings are missing (the generator does not fill in a setting; the values are what the modeler would give a ' +
-                    'Snowflake model): ' + missing.join(', '));
+                    (target || 'Snowflake') + ' model): ' + missing.join(', '));
             }
-            for (var setting in METADATA) {
-                if (!Object.prototype.hasOwnProperty.call(METADATA, setting)) continue;
+            for (var setting in settings) {
+                if (!Object.prototype.hasOwnProperty.call(settings, setting)) continue;
                 var given = attribute(metadata, setting);
-                if (given !== null && (METADATA[setting] === 'true' || METADATA[setting] === 'false') && given !== 'true' && given !== 'false') {
+                if (given !== null && (settings[setting] === 'true' || settings[setting] === 'false') && given !== 'true' && given !== 'false') {
                     problem('the metadata', setting + ' has to be "true" or "false", not "' + given + '"');
                 }
             }
@@ -231,8 +235,8 @@ var ModelCheck = (function () {
         return found;
     }
 
-    function assertValid(root) {
-        var found = problems(root);
+    function assertValid(root, defaults, target) {
+        var found = problems(root, defaults, target);
         if (found.length === 0) return;
         throw new Error('The model has ' + found.length + (found.length === 1 ? ' problem' : ' problems') + ', so nothing was generated:\n  - ' +
             found.join('\n  - ') + '\nCorrect the model XML and generate again.');
