@@ -862,6 +862,30 @@ what the keys cannot see (restatements, contradictions, corrections, entity inte
   -Types @{geography='text'}`, then `browser-check.ps1 -Canonicalize`); the tests are Snowflake's, translated (`postgres-tests/keys-<t>.sql`, suite `keys`,
   16 + 16 + 18 checks).
 
+## Portable generators (2026-11-12)
+
+For a skill that works with any agent and any database (`anchor-modeling-skill`), the generator that was hosted in Snowflake is built as one
+self-contained ES5 file for each database: `tools/build-portable-generator.ps1 -Output <directory> [-Target SQLServer,Snowflake,PostgreSQL,Vertica]`
+writes `anchor-generator-<database>.js`, which defines `AnchorGenerator` (`generate(xml, t)`, `check(xml)`, `bindings(xml, t)`,
+`metadataElement()`, `defaults()`, `target`, `temporalizations`, `version`) and, where there is a module system, exports it. The engine,
+`XmlTree`, `DomFacade`, `ModelCheck`, `Map`, `Sisulator.objectify` and `Resolver` are the ones of the Snowflake build; nothing in them is
+Snowflake's but two comments and the default values in the message of `ModelCheck` (it now takes the settings and the database as optional
+arguments, so each file lists what the modeler would give a model for its own database). What is written for each database is its scripts that
+prepare the schema and its templates, as its directives list them.
+
+- **Only the databases whose templates are all Sisula templates have a file**: SQL Server, Snowflake, PostgreSQL, and Vertica for bi and crt.
+  BigQuery, Oracle and Vertica uni are still sisulets in JavaScript (`.js` in the directive), which only the original Sisulator in a browser runs;
+  the build leaves such a temporalization out (Vertica's default `temporalization` is therefore `bi`).
+- **`schema.serialization`**: the modeler adds the model's own XML as text to what it generates from, and SQL Server's schema tracking reads it.
+  The file does the same: `XmlTree.serialize` writes the model as it has read it (attributes in order, `<x />` for an element without children),
+  which is also what `check.ps1` puts in the golden files, so the whole output is identical, SQL Server's included.
+- **Settings of a new model** (`metadataElement()`, `defaults()`): ModelCheck's list, which is the modeler's own, with the values that differ
+  between databases (data types, schema, now) in a table in the build script. `portable-check.ps1` compares them with the metadata of the
+  `base` models that the modeler saved for each database, so a change of the modeler's defaults shows.
+- **`portable-check.ps1`** (sisula repository, `examples/anchor/tools`) runs each file under Jint, over every model of its database, and the script
+  has to be identical to the golden file; it also checks `defaults()`, that asking for a temporalization gives the bindings of a model that says it,
+  `check()` and the errors, and that a model made from `metadataElement()` alone is generated.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives

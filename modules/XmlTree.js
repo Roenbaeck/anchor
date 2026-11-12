@@ -122,5 +122,20 @@ var XmlTree = (function () {
         return root;
     }
 
-    return { parse: parse };
+    // An element as XML text: attributes in their order, in double quotes, an element without children as <name />, the whitespace
+    // between elements as it was read. This is the text that a generator records for the model it generated from (the schema tracking of
+    // SQL Server reads it as schema.serialization), so the same model gives the same text however it was formatted.
+    function escapeText(value) { return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function escapeAttribute(value) { return escapeText(value).replace(/"/g, '&quot;'); }
+    function serialize(node) {
+        if (node.t === 3) return escapeText(node.v);
+        var out = '<' + node.n;
+        for (var i = 0; i < node.a.length; i++) out += ' ' + node.a[i][0] + '="' + escapeAttribute(node.a[i][1]) + '"';
+        if (node.c.length === 0) return out + ' />';
+        out += '>';
+        for (var j = 0; j < node.c.length; j++) out += serialize(node.c[j]);
+        return out + '</' + node.n + '>';
+    }
+
+    return { parse: parse, serialize: serialize };
 })();
