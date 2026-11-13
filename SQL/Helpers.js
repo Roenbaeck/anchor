@@ -42,6 +42,11 @@ var FEATURES = /*features*/{
         "bi": { "equivalence": false, "encryption": false },
         "crt": { "equivalence": false, "encryption": false }
     },
+    "Oracle": {
+        "uni": { "equivalence": false, "encryption": false },
+        "bi": { "equivalence": false, "encryption": false },
+        "crt": { "equivalence": false, "encryption": false }
+    },
     "PostgreSQL": {
         "uni": { "equivalence": true, "encryption": false },
         "bi": { "equivalence": false, "encryption": false },
