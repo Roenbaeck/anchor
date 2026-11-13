@@ -1,0 +1,66 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- Ties are used to represent relationships between entities.
+-- They come in four flavors: static, historized, knotted static, and knotted historized.
+-- Ties have cardinality, constraining how members may participate in the relationship.
+-- Every entity that is a member in a tie has a specified role in the relationship.
+-- Ties must have at least two anchor roles and zero or more knot roles.
+--
+-- BigQuery has no unique constraints: a tie without identifiers is one to one because the load keeps it so.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized and tie.isKnotted
+-- Knotted historized tie table ---------------------------------------------------------------------------------------
+$/ endif
+$/ if tie.isHistorized and not tie.isKnotted
+-- Historized tie table -----------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and tie.isKnotted
+-- Knotted static tie table -------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and not tie.isKnotted
+-- Static tie table ---------------------------------------------------------------------------------------------------
+$/ endif
+-- $tie.name$ table (having $tie.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $tie.capsule$.`$tie.name$` (
+$/ foreach role in tie.roles
+    `$role.columnName$` $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    `$tie.changingColumnName$` $tie.timeRange$ not null,
+$/ endif
+$/ if schema.METADATA
+    `$tie.metadataColumnName$` $schema.metadata.metadataType$ not null,
+$/ endif
+    PRIMARY KEY (
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        `$role.columnName$`$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+        `$role.columnName$`$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+        `$tie.changingColumnName$`
+$/ endif
+    ) NOT ENFORCED
+$/ foreach role in tie.roles
+    ,CONSTRAINT `$tie.name$_fk$role.name$` FOREIGN KEY (`$role.columnName$`) REFERENCES
+$/ if role.entity
+        $role.entity.capsule$.`$role.entity.name$`(`$role.entity.identityColumnName$`) NOT ENFORCED
+$/ else
+        $role.knot.capsule$.`$role.knot.name$`(`$role.knot.identityColumnName$`) NOT ENFORCED
+$/ endif
+$/ endfor
+)
+CLUSTER BY
+$/ foreach role in tie.roles where role.entity
+$/ if role.first()
+    `$role.columnName$`
+$/ endif
+$/ endfor
+;
+$/ endfor

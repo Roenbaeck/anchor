@@ -1,0 +1,189 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE INSERT PROCEDURES ----------------------------------------------------------------------------------------
+--
+-- The procedures here state one value of an attribute, in the way that the model says: a row that is already there is
+-- not stored again, another value at a time that has a value is a contradiction, and a value that is the same as the
+-- one before it (a restatement) is skipped by an idempotent attribute and refused by one that may not be restated.
+--
+-- For idempotent attributes, only changes that represent a value different from the previous or following value are
+-- stored. Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+-- These are procedures and not triggers on the attribute tables, since Oracle does not let a row trigger read the table
+-- it is on (ORA-04091), which these rules do. The triggers on the latest views call them, and so can a load:
+--
+--     BEGIN ip_AC_NAM_Actor_Name(p_owner => 1, p_changing => SYSTIMESTAMP, p_value => 'Ann', p_metadata => 1); END;
+--
+-- A row put straight into an attribute table by an INSERT is not looked at.
+--
+$/ foreach attribute in schema.attributes
+-- Insert procedure ---------------------------------------------------------------------------------------------------
+-- ip_$attribute.name$ states a value of $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE $attribute.qualifier$ip_$attribute.name$ (
+    p_owner IN $attribute.qualifier$$attribute.name$.$attribute.entityReferenceName$%TYPE,
+$/ if attribute.isHistorized
+    p_changing IN $attribute.qualifier$$attribute.name$.$attribute.changingColumnName$%TYPE,
+$/ endif
+$/ if schema.METADATA
+    p_value IN $attribute.qualifier$$attribute.name$.$attribute.valueColumnName$%TYPE,
+    p_metadata IN $attribute.qualifier$$attribute.name$.$attribute.metadataColumnName$%TYPE
+$/ else
+    p_value IN $attribute.qualifier$$attribute.name$.$attribute.valueColumnName$%TYPE
+$/ endif
+)
+IS
+    -- whether two values of the attribute are the same
+    FUNCTION same (
+        a IN $attribute.qualifier$$attribute.name$.$attribute.valueColumnName$%TYPE,
+        b IN $attribute.qualifier$$attribute.name$.$attribute.valueColumnName$%TYPE
+    ) RETURN BOOLEAN
+    IS
+$/ if attribute.compareByChecksum
+        v_same NUMBER;
+    BEGIN
+        SELECT CASE WHEN STANDARD_HASH(a, 'MD5') = STANDARD_HASH(b, 'MD5') THEN 1 ELSE 0 END INTO v_same FROM dual;
+        RETURN v_same = 1;
+$/ endif
+$/ if attribute.compareAsLob
+    BEGIN
+        RETURN DBMS_LOB.COMPARE(a, b) = 0;
+$/ endif
+$/ if attribute.compareAsXml
+    BEGIN
+        RETURN DBMS_LOB.COMPARE(a.getClobVal(), b.getClobVal()) = 0;
+$/ endif
+$/ if attribute.compareAsIs
+    BEGIN
+        RETURN a = b;
+$/ endif
+    END same;
+BEGIN
+$/ if attribute.isHistorized
+    -- the identical is not stored again, another value at the same time is a contradiction
+    FOR r IN (
+        SELECT
+            x.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$ x
+        WHERE
+            x.$attribute.entityReferenceName$ = p_owner
+        AND
+            x.$attribute.changingColumnName$ = p_changing
+    ) LOOP
+        IF same(r.$attribute.valueColumnName$, p_value) THEN
+            RETURN;
+        END IF;
+        RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $attribute.name$ for: ' || p_owner || ', ' || p_changing);
+    END LOOP;
+$/ if attribute.isIdempotent or not attribute.isRestatable
+    -- what is the same as the value before it, or as the value after it, is a restatement
+$/ if attribute.isIdempotent
+    -- (an idempotent attribute does not store it, and removes the one after it that the new value makes a restatement of)
+$/ else
+    -- (an attribute that may not be restated refuses it)
+$/ endif
+    FOR r IN (
+        SELECT
+            p.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$ p
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+        AND
+            p.$attribute.changingColumnName$ < p_changing
+        ORDER BY
+            p.$attribute.changingColumnName$ DESC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF same(r.$attribute.valueColumnName$, p_value) THEN
+$/ if attribute.isIdempotent
+            RETURN;
+$/ else
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $attribute.name$ for: ' || p_owner || ', ' || p_changing);
+$/ endif
+        END IF;
+    END LOOP;
+$/ if attribute.isIdempotent
+    FOR r IN (
+        SELECT
+            f.$attribute.changingColumnName$,
+            f.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$ f
+        WHERE
+            f.$attribute.entityReferenceName$ = p_owner
+        AND
+            f.$attribute.changingColumnName$ > p_changing
+        ORDER BY
+            f.$attribute.changingColumnName$ ASC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF same(r.$attribute.valueColumnName$, p_value) THEN
+            DELETE FROM
+                $attribute.qualifier$$attribute.name$
+            WHERE
+                $attribute.entityReferenceName$ = p_owner
+            AND
+                $attribute.changingColumnName$ = r.$attribute.changingColumnName$;
+        END IF;
+    END LOOP;
+$/ else
+    FOR r IN (
+        SELECT
+            f.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$ f
+        WHERE
+            f.$attribute.entityReferenceName$ = p_owner
+        AND
+            f.$attribute.changingColumnName$ > p_changing
+        ORDER BY
+            f.$attribute.changingColumnName$ ASC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF same(r.$attribute.valueColumnName$, p_value) THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $attribute.name$ for: ' || p_owner || ', ' || p_changing);
+        END IF;
+    END LOOP;
+$/ endif
+$/ endif
+$/ else
+    -- the identical is not stored again, another value for an entity that already has a value is a contradiction
+    FOR r IN (
+        SELECT
+            x.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$ x
+        WHERE
+            x.$attribute.entityReferenceName$ = p_owner
+    ) LOOP
+        IF same(r.$attribute.valueColumnName$, p_value) THEN
+            RETURN;
+        END IF;
+        RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $attribute.name$ for: ' || p_owner);
+    END LOOP;
+$/ endif
+    INSERT INTO $attribute.qualifier$$attribute.name$ (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+        $attribute.changingColumnName$,
+$/ endif
+        $attribute.valueColumnName$
+    )
+    VALUES (
+$/ if schema.METADATA
+        p_metadata,
+$/ endif
+        p_owner,
+$/ if attribute.isHistorized
+        p_changing,
+$/ endif
+        p_value
+    );
+END ip_$attribute.name$;
+/
+$/ endfor
+$/ endif

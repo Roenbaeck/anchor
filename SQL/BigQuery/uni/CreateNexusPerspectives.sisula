@@ -1,0 +1,439 @@
+-- NEXUS TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------------
+--
+-- BigQuery nexus perspectives: latest (l), point-in-time (p), now (n) and difference (d).
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+-- Latest perspective -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $nexus.capsule$.`l$nexus.name$` (
+    `$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.metadataColumnName$`,
+$/ endif
+$- the column list mirrors the select list below, since view column descriptions are given here, with the view
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `$role.knotChecksumColumnName$`,
+$/ endif
+    $/ if role.hasComment `$role.knotValueColumnName$` OPTIONS(description='$role.comment$')$/ else `$role.knotValueColumnName$`$/ endif,
+$/ if role.knot.isEquivalent
+    `$role.knotEquivalentColumnName$`,
+$/ endif
+$/ if schema.METADATA
+    `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    $/ if role.hasComment `$role.columnName$` OPTIONS(description='$role.comment$')$/ else `$role.columnName$`$/ endif$/ if not role.last() or nexus.attributes ,$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.metadataColumnName$`,
+$/ endif
+$/ if attribute.isHistorized
+    `$attribute.changingColumnName$`,
+$/ endif
+$/ if attribute.isEquivalent
+    `$attribute.equivalentColumnName$`,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `$attribute.knotChecksumColumnName$`,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    `$attribute.knotEquivalentColumnName$`,
+$/ endif
+    $/ if attribute.hasComment `$attribute.knotValueColumnName$` OPTIONS(description='$attribute.comment$')$/ else `$attribute.knotValueColumnName$`$/ endif,
+$/ if schema.METADATA
+    `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.checksumColumnName$`,
+$/ endif
+    $/ if attribute.hasComment `$attribute.valueColumnName$` OPTIONS(description='$attribute.comment$')$/ else `$attribute.valueColumnName$`$/ endif$/ if not attribute.last() ,$/ endif
+$/ endfor
+)
+$/ if nexus.hasComment
+OPTIONS(description='$nexus.comment$')
+$/ endif
+AS
+SELECT
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if role.knot.isEquivalent
+    `$role.name$`.`$role.knot.equivalentColumnName$` AS `$role.knotEquivalentColumnName$`,
+$/ endif
+$/ if schema.METADATA
+    `$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`$/ if not role.last() or nexus.attributes ,$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+$/ if attribute.isHistorized
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+$/ if attribute.isEquivalent
+    `$attribute.mnemonic$`.`$attribute.equivalentColumnName$`,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    `k$attribute.mnemonic$`.`$attribute.knot.equivalentColumnName$` AS `$attribute.knotEquivalentColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$.`$nexus.name$` `$nexus.mnemonic$`
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+$/ if role.knot.isEquivalent
+    $role.knot.capsule$.`e$role.knot.name$`(0) `$role.name$`
+$/ else
+    $role.knot.capsule$.`$role.knot.name$` `$role.name$`
+$/ endif
+ON
+    `$role.name$`.`$role.knot.identityColumnName$` = `$nexus.mnemonic$`.`$role.columnName$`
+$/ endfor
+$- the statement ends with a semicolon on the last line of the last attribute's joins
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isHistorized
+LEFT JOIN (
+    -- the latest row of each owner
+    SELECT
+        t.*
+    FROM
+$/ if attribute.isEquivalent and not attribute.isKnotted
+        $attribute.capsule$.`e$attribute.name$`(0) t
+$/ else
+        $attribute.capsule$.`$attribute.name$` t
+$/ endif
+    WHERE
+        TRUE
+    QUALIFY
+        ROW_NUMBER() OVER (
+            PARTITION BY t.`$attribute.entityReferenceName$`
+            ORDER BY t.`$attribute.changingColumnName$` DESC
+        ) = 1
+) `$attribute.mnemonic$`
+$/ else
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    $attribute.capsule$.`e$attribute.name$`(0) `$attribute.mnemonic$`
+$/ else
+    $attribute.capsule$.`$attribute.name$` `$attribute.mnemonic$`
+$/ endif
+$/ endif
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`$/ if attribute.last() and not attribute.isKnotted ;$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    $attribute.knot.capsule$.`e$attribute.knot.name$`(0) `k$attribute.mnemonic$`
+$/ else
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+$/ endif
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`$/ if attribute.last() ;$/ endif
+$/ endif
+$/ endfor
+-- Point-in-time perspective ------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TABLE FUNCTION $nexus.capsule$.`p$nexus.name$` (
+    changingTimepoint $schema.metadata.chronon$
+)
+AS (
+SELECT
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if role.knot.isEquivalent
+    `$role.name$`.`$role.knot.equivalentColumnName$` AS `$role.knotEquivalentColumnName$`,
+$/ endif
+$/ if schema.METADATA
+    `$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`$/ if not role.last() or nexus.attributes ,$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+$/ if attribute.isHistorized
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+$/ if attribute.isEquivalent
+    `$attribute.mnemonic$`.`$attribute.equivalentColumnName$`,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    `k$attribute.mnemonic$`.`$attribute.knot.equivalentColumnName$` AS `$attribute.knotEquivalentColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$.`$nexus.name$` `$nexus.mnemonic$`
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+$/ if role.knot.isEquivalent
+    $role.knot.capsule$.`e$role.knot.name$`(0) `$role.name$`
+$/ else
+    $role.knot.capsule$.`$role.knot.name$` `$role.name$`
+$/ endif
+ON
+    `$role.name$`.`$role.knot.identityColumnName$` = `$nexus.mnemonic$`.`$role.columnName$`
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isHistorized
+LEFT JOIN (
+    -- the latest row of each owner
+    SELECT
+        r.*
+    FROM
+$/ if attribute.isEquivalent and not attribute.isKnotted
+        $attribute.capsule$.`r$attribute.name$`(0, CAST(changingTimepoint AS $attribute.timeRange$)) r
+$/ else
+        $attribute.capsule$.`r$attribute.name$`(CAST(changingTimepoint AS $attribute.timeRange$)) r
+$/ endif
+    WHERE
+        TRUE
+    QUALIFY
+        ROW_NUMBER() OVER (
+            PARTITION BY r.`$attribute.entityReferenceName$`
+            ORDER BY r.`$attribute.changingColumnName$` DESC
+        ) = 1
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+$/ else
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    $attribute.capsule$.`e$attribute.name$`(0) `$attribute.mnemonic$`
+$/ else
+    $attribute.capsule$.`$attribute.name$` `$attribute.mnemonic$`
+$/ endif
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    $attribute.knot.capsule$.`e$attribute.knot.name$`(0) `k$attribute.mnemonic$`
+$/ else
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+$/ endif
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ endfor
+)
+;
+-- Now perspective ----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $nexus.capsule$.`n$nexus.name$` AS
+SELECT
+    *
+FROM
+    $nexus.capsule$.`p$nexus.name$`(CAST($schema.metadata.now$ AS $schema.metadata.chronon$))
+;
+$/ if nexus.historizedAttributes
+-- Difference perspective ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TABLE FUNCTION $nexus.capsule$.`d$nexus.name$` (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection string
+)
+AS (
+-- each change in the interval, with the values in effect then: every value is joined with the time until which it
+-- holds, when the next one does. BigQuery cannot call a table function for each row of another table, so each change is
+-- joined with the version in effect then.
+SELECT
+    timepoints.inspectedTimepoint,
+    timepoints.mnemonic,
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if role.knot.isEquivalent
+    `$role.name$`.`$role.knot.equivalentColumnName$` AS `$role.knotEquivalentColumnName$`,
+$/ endif
+$/ if schema.METADATA
+    `$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`$/ if not role.last() or nexus.attributes ,$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+$/ if attribute.isHistorized
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+$/ if attribute.isEquivalent
+    `$attribute.mnemonic$`.`$attribute.equivalentColumnName$`,
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+$/ if attribute.knot.isEquivalent
+    `k$attribute.mnemonic$`.`$attribute.knot.equivalentColumnName$` AS `$attribute.knotEquivalentColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM (
+$/ foreach historized in nexus.historizedAttributes
+    SELECT DISTINCT
+        h.`$historized.entityReferenceName$` AS `$nexus.identityColumnName$`,
+        CAST(h.`$historized.changingColumnName$` AS $schema.metadata.chronon$) AS inspectedTimepoint,
+        '$historized.mnemonic$' AS mnemonic
+    FROM
+$/ if historized.isEquivalent and not historized.isKnotted
+        $historized.capsule$.`e$historized.name$`(0) h
+$/ else
+        $historized.capsule$.`$historized.name$` h
+$/ endif
+    WHERE
+        (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
+    AND
+        h.`$historized.changingColumnName$` BETWEEN intervalStart AND intervalEnd
+$/ if not historized.last()
+    UNION DISTINCT
+$/ endif
+$/ endfor
+) timepoints
+JOIN
+    $nexus.capsule$.`$nexus.name$` `$nexus.mnemonic$`
+ON
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$` = timepoints.`$nexus.identityColumnName$`
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+$/ if role.knot.isEquivalent
+    $role.knot.capsule$.`e$role.knot.name$`(0) `$role.name$`
+$/ else
+    $role.knot.capsule$.`$role.knot.name$` `$role.name$`
+$/ endif
+ON
+    `$role.name$`.`$role.knot.identityColumnName$` = `$nexus.mnemonic$`.`$role.columnName$`
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isHistorized
+LEFT JOIN (
+    SELECT
+        h.*,
+        lead(h.`$attribute.changingColumnName$`) OVER (
+            PARTITION BY h.`$attribute.entityReferenceName$`
+            ORDER BY h.`$attribute.changingColumnName$`
+        ) AS `until`
+    FROM
+$/ if attribute.isEquivalent and not attribute.isKnotted
+        $attribute.capsule$.`e$attribute.name$`(0) h
+$/ else
+        $attribute.capsule$.`$attribute.name$` h
+$/ endif
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+AND
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$` <= CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+AND (
+    `$attribute.mnemonic$`.`until` IS NULL
+OR
+    `$attribute.mnemonic$`.`until` > CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+)
+$/ else
+LEFT JOIN
+$/ if attribute.isEquivalent and not attribute.isKnotted
+    $attribute.capsule$.`e$attribute.name$`(0) `$attribute.mnemonic$`
+$/ else
+    $attribute.capsule$.`$attribute.name$` `$attribute.mnemonic$`
+$/ endif
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+$/ if attribute.knot.isEquivalent
+    $attribute.knot.capsule$.`e$attribute.knot.name$`(0) `k$attribute.mnemonic$`
+$/ else
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+$/ endif
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ endfor
+)
+;
+$/ endif
+$/ endif
+$/ endfor

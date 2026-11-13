@@ -1,0 +1,232 @@
+-- TIE TEMPORAL PERSPECTIVES ------------------------------------------------------------------------------------------
+--
+-- tie perspectives: latest (l), point-in-time (p), now (n) and difference (d).
+--
+-- The point-in-time and difference perspectives are SQL table macros (SQL_MACRO, Oracle Database 19.7 or later): a function
+-- that returns the text of a query, in which its parameters stand for the values given. They are called in the FROM clause
+-- of a query, like a table: SELECT * FROM pAC_part_EV_in(TIMESTAMP '2020-01-01 00:00:00').
+--
+-- A historized tie shows, for each identifier (for each anchor, in a tie without identifiers), the rows that have the latest
+-- changing time: that is worked out with an analytic MAX in an inline view, whose column holds the latest time.
+--
+-- A table alias is written inside double quotes where it can be a word that Oracle reserves.
+--
+$/ foreach tie in schema.ties
+-- Latest perspective -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.qualifier$l$tie.name$ (
+$/ if schema.METADATA
+    $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isDeletable
+    $tie.deletableColumnName$,
+$/ endif
+$/ if tie.isHistorized
+    $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    $role.knotChecksumColumnName$,
+$/ endif
+    $role.knotValueColumnName$,
+$/ if schema.METADATA
+    $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+)
+AS
+SELECT
+$/ if schema.METADATA
+    tie.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isDeletable
+    CAST(NULL AS number(1)),
+$/ endif
+$/ if tie.isHistorized
+    tie.$tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    "$role.name$".$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+$/ endif
+    "$role.name$".$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ if schema.METADATA
+    "$role.name$".$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    tie.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+FROM
+$/ if tie.isHistorized
+    (
+        SELECT
+            t.*,
+$/ if tie.identifiers
+            MAX(t.$tie.changingColumnName$) OVER (
+                PARTITION BY
+$/ foreach role in tie.identifiers
+                    t.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+            ) AS latestTime
+$/ else
+$/ foreach role in tie.anchorRoles
+            MAX(t.$tie.changingColumnName$) OVER (PARTITION BY t.$role.columnName$) AS latest$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+        FROM
+            $tie.qualifier$$tie.name$ t
+    ) tie
+$/ else
+    $tie.qualifier$$tie.name$ tie
+$/ endif
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.qualifier$$role.knot.name$ "$role.name$"
+ON
+    "$role.name$".$role.knot.identityColumnName$ = tie.$role.columnName$
+$/ endfor
+$/ if tie.isHistorized
+WHERE
+$/ if tie.identifiers
+    tie.$tie.changingColumnName$ = tie.latestTime
+$/ else
+$/ foreach role in tie.anchorRoles
+    tie.$tie.changingColumnName$ = tie.latest$role.columnName$
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
+$/ endif
+;
+-- Point-in-time perspective ------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$p$tie.name$ (
+    changingTimepoint IN $schema.metadata.chrononType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            tie.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+            tie.$tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+            "$role.name$".$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+$/ endif
+            "$role.name$".$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ if schema.METADATA
+            "$role.name$".$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+            tie.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+$/ if tie.isHistorized
+            (
+                SELECT
+                    t.*,
+$/ if tie.identifiers
+                    MAX(t.$tie.changingColumnName$) OVER (
+                        PARTITION BY
+$/ foreach role in tie.identifiers
+                            t.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+                    ) AS latestTime
+$/ else
+$/ foreach role in tie.anchorRoles
+                    MAX(t.$tie.changingColumnName$) OVER (PARTITION BY t.$role.columnName$) AS latest$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+                FROM
+                    $tie.qualifier$$tie.name$ t
+                WHERE
+                    t.$tie.changingColumnName$ <= changingTimepoint
+            ) tie
+$/ else
+            $tie.qualifier$$tie.name$ tie
+$/ endif
+$/ foreach role in tie.knotRoles
+        LEFT JOIN
+            $role.knot.qualifier$$role.knot.name$ "$role.name$"
+        ON
+            "$role.name$".$role.knot.identityColumnName$ = tie.$role.columnName$
+$/ endfor
+$/ if tie.isHistorized
+        WHERE
+$/ if tie.identifiers
+            tie.$tie.changingColumnName$ = tie.latestTime
+$/ else
+$/ foreach role in tie.anchorRoles
+            tie.$tie.changingColumnName$ = tie.latest$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+$/ endif
+$/ endif
+    ]';
+END p$tie.name$;
+/
+-- Now perspective ----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.qualifier$n$tie.name$
+AS
+SELECT
+    *
+FROM
+    $tie.qualifier$p$tie.name$(CAST($schema.metadata.now$ AS $schema.metadata.chronon$))
+;
+$/ if tie.isHistorized
+-- Difference perspective ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$d$tie.name$ (
+    intervalStart IN $schema.metadata.chrononType$,
+    intervalEnd IN $schema.metadata.chrononType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            tie.$tie.metadataColumnName$,
+$/ endif
+            tie.$tie.changingColumnName$,
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+            "$role.name$".$role.knot.checksumColumnName$ AS $role.knotChecksumColumnName$,
+$/ endif
+            "$role.name$".$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ if schema.METADATA
+            "$role.name$".$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+            tie.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            $tie.qualifier$$tie.name$ tie
+$/ foreach role in tie.knotRoles
+        LEFT JOIN
+            $role.knot.qualifier$$role.knot.name$ "$role.name$"
+        ON
+            "$role.name$".$role.knot.identityColumnName$ = tie.$role.columnName$
+$/ endfor
+        WHERE
+            tie.$tie.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+    ]';
+END d$tie.name$;
+/
+$/ endif
+$/ endfor

@@ -1,0 +1,523 @@
+$/ if schema.TRIGGERS
+-- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
+--
+-- A tie and its latest view behave like a table that is loaded with plain statements. The rules for a row of a tie (it is
+-- stored only when it is not there already, a contradiction is refused and, for an idempotent tie, what only states again
+-- what the row before it says is left out) are in an insert procedure for each tie, ip_<tie>. The latest view has
+-- three 'instead of' triggers: insert, update, and delete. They propagate such operations to the tie table in a consistent
+-- way, the insert and update triggers by calling the insert procedure. Default values are used for some columns if not
+-- provided by the corresponding SQL statements.
+--
+-- For idempotent ties, only changes that represent values different from the previous or following value are stored.
+-- Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+-- The rules are in procedures and not in a trigger on the tie table, since Oracle does not let a row trigger read the table
+-- it is on (ORA-04091), which these rules do. A load can call the procedure itself:
+--
+--     BEGIN ip_AC_parent_AC_child(p_AC_parent => 1, p_AC_child => 2); END;
+--
+-- A row put straight into a tie table by an INSERT is not looked at.
+--
+-- Oracle runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+-- Two values are different when one is not null and the other is, or when they are not equal; PL/SQL has no IS DISTINCT FROM.
+--
+$/ foreach tie in schema.ties
+-- Insert procedure ---------------------------------------------------------------------------------------------------
+-- ip_$tie.name$ states a row of $tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE $tie.qualifier$ip_$tie.name$ (
+$/ foreach role in tie.roles
+    p_$role.name$ IN $tie.qualifier$$tie.name$.$role.columnName$%TYPE$/ if not role.last() or tie.isHistorized or schema.METADATA ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    p_changing IN $tie.qualifier$$tie.name$.$tie.changingColumnName$%TYPE$/ if schema.METADATA ,$/ endif
+$/ endif
+$/ if schema.METADATA
+    p_metadata IN $tie.qualifier$$tie.name$.$tie.metadataColumnName$%TYPE
+$/ endif
+)
+IS
+$/ if tie.isHistorized
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+    v_changing $tie.qualifier$$tie.name$.$tie.changingColumnName$%TYPE;
+$/ endif
+$/ if schema.METADATA
+    v_metadata $tie.qualifier$$tie.name$.$tie.metadataColumnName$%TYPE;
+$/ endif
+BEGIN
+$/ if schema.METADATA
+    v_metadata := COALESCE(p_metadata, 0);
+$/ endif
+$/ if tie.isHistorized
+    v_changing := COALESCE(p_changing, v_now);
+$/ endif
+    -- the identical is not stored again
+    FOR r IN (
+        SELECT
+            1 AS found
+        FROM
+            $tie.qualifier$$tie.name$ x
+        WHERE
+$/ foreach role in tie.roles
+            x.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            x.$tie.changingColumnName$ = v_changing
+$/ else
+            1 = 1
+$/ endif
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        RETURN;
+    END LOOP;
+$/ if tie.identifiers and tie.values
+    -- other values for identifiers that already have values (at that time) are a contradiction
+    FOR r IN (
+        SELECT
+            1 AS found
+        FROM
+            $tie.qualifier$$tie.name$ x
+        WHERE
+$/ foreach role in tie.identifiers
+            x.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ if tie.isHistorized
+            x.$tie.changingColumnName$ = v_changing
+$/ else
+            1 = 1
+$/ endif
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $tie.name$ for: '
+$/ foreach role in tie.identifiers
+            || p_$role.name$
+$/ if not role.last() or tie.isHistorized
+            || ', '
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+            || v_changing
+$/ endif
+        );
+    END LOOP;
+$/ endif
+$/ if tie.isHistorized
+$/ if tie.isIdempotent or not tie.isRestatable
+    -- what has the same values as the row before it, or as the row after it, is a restatement
+$/ if tie.isIdempotent
+    -- (an idempotent tie does not store it, and removes the row after it that the new row makes a restatement of)
+$/ else
+    -- (a tie that may not be restated refuses it)
+$/ endif
+    FOR r IN (
+        SELECT
+$/ foreach role in tie.roles
+            p.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            $tie.qualifier$$tie.name$ p
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            p.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            p.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ endif
+            p.$tie.changingColumnName$ < v_changing
+        ORDER BY
+            p.$tie.changingColumnName$ DESC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF
+$/ foreach role in tie.roles
+            r.$role.columnName$ = p_$role.name$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        THEN
+$/ if tie.isIdempotent
+            RETURN;
+$/ else
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $tie.name$ for: '
+$/ foreach role in tie.roles
+                || p_$role.name$ || ', '
+$/ endfor
+                || v_changing
+            );
+$/ endif
+        END IF;
+    END LOOP;
+$/ if tie.isIdempotent
+    DELETE FROM
+        $tie.qualifier$$tie.name$ x
+    WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        x.$role.columnName$ = p_$role.name$
+    AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        x.$role.columnName$ = p_$role.name$
+    AND
+$/ endfor
+$/ endif
+        x.$tie.changingColumnName$ = (
+            SELECT
+                MIN(f.$tie.changingColumnName$)
+            FROM
+                $tie.qualifier$$tie.name$ f
+            WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                f.$role.columnName$ = p_$role.name$
+            AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+                f.$role.columnName$ = p_$role.name$
+            AND
+$/ endfor
+$/ endif
+                f.$tie.changingColumnName$ > v_changing
+        )
+$/ foreach role in tie.roles
+    AND
+        x.$role.columnName$ = p_$role.name$
+$/ endfor
+    ;
+$/ else
+    FOR r IN (
+        SELECT
+$/ foreach role in tie.roles
+            f.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+        FROM
+            $tie.qualifier$$tie.name$ f
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            f.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+            f.$role.columnName$ = p_$role.name$
+        AND
+$/ endfor
+$/ endif
+            f.$tie.changingColumnName$ > v_changing
+        ORDER BY
+            f.$tie.changingColumnName$ ASC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF
+$/ foreach role in tie.roles
+            r.$role.columnName$ = p_$role.name$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        THEN
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $tie.name$ for: '
+$/ foreach role in tie.roles
+                || p_$role.name$ || ', '
+$/ endfor
+                || v_changing
+            );
+        END IF;
+    END LOOP;
+$/ endif
+$/ endif
+$/ endif
+    INSERT INTO $tie.qualifier$$tie.name$ (
+$/ if schema.METADATA
+        $tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+        $tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+        $role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+    )
+    VALUES (
+$/ if schema.METADATA
+        v_metadata,
+$/ endif
+$/ if tie.isHistorized
+        v_changing,
+$/ endif
+$/ foreach role in tie.roles
+        p_$role.name$$/ if not role.last() ,$/ endif
+$/ endfor
+    );
+END ip_$tie.name$;
+/
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$tie.name$ instead of INSERT trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $tie.qualifier$it_l$tie.name$
+INSTEAD OF INSERT ON $tie.qualifier$l$tie.name$
+FOR EACH ROW
+$/ if tie.isKnotted
+DECLARE
+$/ foreach role in tie.roles
+$/ if role.knot
+    v_$role.name$ $role.knot.identity$;
+$/ endif
+$/ endfor
+$/ endif
+BEGIN
+$/ foreach role in tie.roles
+$/ if role.knot
+    -- the identity of the knot value of the role, given as it is or looked up from the value
+    v_$role.name$ := :NEW.$role.columnName$;
+    IF v_$role.name$ IS NULL AND :NEW.$role.knotValueColumnName$ IS NOT NULL THEN
+        FOR kv IN (
+            SELECT
+                k.$role.knot.identityColumnName$
+            FROM
+                $role.knot.qualifier$$role.knot.name$ k
+            WHERE
+$/ if role.knot.hasChecksum
+                k.$role.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$role.knotValueColumnName$, 'MD5')
+$/ else
+                k.$role.knot.valueColumnName$ = :NEW.$role.knotValueColumnName$
+$/ endif
+            FETCH FIRST 1 ROW ONLY
+        ) LOOP
+            v_$role.name$ := kv.$role.knot.identityColumnName$;
+        END LOOP;
+    END IF;
+$/ endif
+$/ endfor
+    $tie.qualifier$ip_$tie.name$(
+$/ foreach role in tie.roles
+$/ if role.knot
+        p_$role.name$ => v_$role.name$$/ if not role.last() or tie.isHistorized or schema.METADATA ,$/ endif
+$/ else
+        p_$role.name$ => :NEW.$role.columnName$$/ if not role.last() or tie.isHistorized or schema.METADATA ,$/ endif
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+        p_changing => :NEW.$tie.changingColumnName$$/ if schema.METADATA ,$/ endif
+$/ endif
+$/ if schema.METADATA
+        p_metadata => :NEW.$tie.metadataColumnName$
+$/ endif
+    );
+END it_l$tie.name$;
+/
+$/ if tie.values
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$tie.name$ instead of UPDATE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $tie.qualifier$ut_l$tie.name$
+INSTEAD OF UPDATE ON $tie.qualifier$l$tie.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+$/ if tie.isHistorized
+    v_changed NUMBER(1);
+    v_changing $tie.qualifier$$tie.name$.$tie.changingColumnName$%TYPE;
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+    v_$role.name$ $role.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+$/ foreach role in tie.identifiers
+    IF (:NEW.$role.columnName$ <> :OLD.$role.columnName$
+        OR (:NEW.$role.columnName$ IS NULL AND :OLD.$role.columnName$ IS NOT NULL)
+        OR (:NEW.$role.columnName$ IS NOT NULL AND :OLD.$role.columnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The identity column $role.columnName$ is not updatable.');
+    END IF;
+$/ endfor
+$/ if tie.isHistorized
+    -- whether the changing time is given another value (or else it is now)
+    v_changed := CASE WHEN (:NEW.$tie.changingColumnName$ <> :OLD.$tie.changingColumnName$
+        OR (:NEW.$tie.changingColumnName$ IS NULL AND :OLD.$tie.changingColumnName$ IS NOT NULL)
+        OR (:NEW.$tie.changingColumnName$ IS NOT NULL AND :OLD.$tie.changingColumnName$ IS NULL)) THEN 1 ELSE 0 END;
+    v_changing := CASE WHEN v_changed = 1 THEN :NEW.$tie.changingColumnName$ ELSE v_now END;
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+    -- the identity of the knot value of the role, given as it is or looked up from the value
+    v_$role.name$ := :NEW.$role.columnName$;
+    IF (:NEW.$role.knotValueColumnName$ <> :OLD.$role.knotValueColumnName$
+        OR (:NEW.$role.knotValueColumnName$ IS NULL AND :OLD.$role.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$role.knotValueColumnName$ IS NOT NULL AND :OLD.$role.knotValueColumnName$ IS NULL)) THEN
+        v_$role.name$ := NULL;
+        FOR kv IN (
+            SELECT
+                k.$role.knot.identityColumnName$
+            FROM
+                $role.knot.qualifier$$role.knot.name$ k
+            WHERE
+$/ if role.knot.hasChecksum
+                k.$role.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$role.knotValueColumnName$, 'MD5')
+$/ else
+                k.$role.knot.valueColumnName$ = :NEW.$role.knotValueColumnName$
+$/ endif
+            FETCH FIRST 1 ROW ONLY
+        ) LOOP
+            v_$role.name$ := kv.$role.knot.identityColumnName$;
+        END LOOP;
+    END IF;
+$/ endif
+$/ endfor
+    -- values that are left as they are state nothing
+    IF
+$/ foreach role in tie.values
+$/ if role.knot
+        v_$role.name$ IS NOT NULL
+$/ else
+        :NEW.$role.columnName$ IS NOT NULL
+$/ endif
+    AND
+$/ endfor
+        (
+$/ if tie.isHistorized
+            v_changed = 1 OR
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+            (v_$role.name$ <> :OLD.$role.columnName$
+                OR (v_$role.name$ IS NULL AND :OLD.$role.columnName$ IS NOT NULL)
+                OR (v_$role.name$ IS NOT NULL AND :OLD.$role.columnName$ IS NULL))
+$/ else
+            (:NEW.$role.columnName$ <> :OLD.$role.columnName$
+                OR (:NEW.$role.columnName$ IS NULL AND :OLD.$role.columnName$ IS NOT NULL)
+                OR (:NEW.$role.columnName$ IS NOT NULL AND :OLD.$role.columnName$ IS NULL))
+$/ endif
+$/ if not role.last()
+        OR
+$/ endif
+$/ endfor
+        )
+    THEN
+        $tie.qualifier$ip_$tie.name$(
+$/ foreach role in tie.roles
+$/ if role.knot
+            p_$role.name$ => v_$role.name$$/ if not role.last() or tie.isHistorized or schema.METADATA ,$/ endif
+$/ else
+            p_$role.name$ => :NEW.$role.columnName$$/ if not role.last() or tie.isHistorized or schema.METADATA ,$/ endif
+$/ endif
+$/ endfor
+$/ if tie.isHistorized
+            p_changing => v_changing$/ if schema.METADATA ,$/ endif
+$/ endif
+$/ if schema.METADATA
+            p_metadata => :NEW.$tie.metadataColumnName$
+$/ endif
+        );
+    END IF;
+$/ if tie.isDeletable and tie.identifiers
+    -- a null in every value of a deletable tie moves what the identifiers have to the deletion table
+    IF :NEW.$tie.deletableColumnName$ = 1
+$/ foreach role in tie.values
+$/ if role.knot
+    AND (:NEW.$role.columnName$ IS NULL OR :NEW.$role.knotValueColumnName$ IS NULL)
+$/ else
+    AND :NEW.$role.columnName$ IS NULL
+$/ endif
+$/ endfor
+    THEN
+        INSERT INTO $tie.qualifier$$tie.deletionName$ (
+$/ foreach role in tie.roles
+            $role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+            $tie.changingColumnName$,
+$/ endif
+$/ if schema.METADATA
+            $tie.metadataColumnName$,
+$/ endif
+            $tie.deletionTimeColumnName$
+        )
+        SELECT
+$/ foreach role in tie.roles
+            x.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+            x.$tie.changingColumnName$,
+$/ endif
+$/ if schema.METADATA
+            x.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+            CAST(v_changing AS $tie.timeRange$)
+$/ else
+            v_now
+$/ endif
+        FROM
+            $tie.qualifier$$tie.name$ x
+        WHERE
+$/ foreach role in tie.identifiers
+            x.$role.columnName$ = :OLD.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        ;
+        DELETE FROM
+            $tie.qualifier$$tie.name$
+        WHERE
+$/ foreach role in tie.identifiers
+            $role.columnName$ = :OLD.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+        ;
+    END IF;
+$/ endif
+END ut_l$tie.name$;
+/
+$/ endif
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$tie.name$ instead of DELETE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $tie.qualifier$dt_l$tie.name$
+INSTEAD OF DELETE ON $tie.qualifier$l$tie.name$
+FOR EACH ROW
+BEGIN
+    DELETE FROM
+        $tie.qualifier$$tie.name$ x
+    WHERE
+$/ if tie.isHistorized
+        x.$tie.changingColumnName$ = :OLD.$tie.changingColumnName$
+    AND
+$/ endif
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+        x.$role.columnName$ = :OLD.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.values
+        x.$role.columnName$ = :OLD.$role.columnName$
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+    ;
+END dt_l$tie.name$;
+/
+$/ endfor
+$/ endif

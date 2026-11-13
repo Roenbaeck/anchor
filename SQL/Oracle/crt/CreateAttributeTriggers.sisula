@@ -1,0 +1,488 @@
+$/ if schema.TRIGGERS
+-- ATTRIBUTE INSERT PROCEDURES ----------------------------------------------------------------------------------------
+--
+-- The procedures here state one posit of an attribute and what a positor asserts of it, in the way that the model says,
+-- like the triggers on the assembled views do in PostgreSQL: the positor is 0, the positing time is now and the
+-- reliability is 1 where they are not given. They are procedures and not triggers on the assembled views (which are views
+-- that Oracle would need an INSTEAD OF trigger on) or on the posit and annex tables, since Oracle does not let a row
+-- trigger read the table it is on (ORA-04091), which these rules do. The INSTEAD OF triggers on the latest views of the
+-- anchors, and those of the nexuses, call them, and so can a load:
+--
+--     BEGIN ip_AC_NAM_Actor_Name(p_owner => 1, p_value => 'Ann', p_changing => SYSTIMESTAMP, p_positor => 0, p_reliability => 1, p_metadata => 1); END;
+--
+-- ip_<attribute.name> (one for every attribute of an anchor or a nexus, named as the attribute is in the model, written in
+-- front of its schema if it has one). Its parameters are named, and all except the owner and the value may be left out (or
+-- be null), when the default of the one left out is used:
+--
+--     p_owner        the entity that has the attribute, a column of the posit table: the entity reference of the attribute
+--     p_value        the value that is posited, as it is in the posit table: for a knotted attribute the identity of the value in the
+--                    knot, for an attribute with a checksum the value (the checksum is made by the table)
+--     p_changing     only for a historized attribute: from when the value is valid. Default: now ($schema.metadata.now$)
+--     p_positor      the positor that asserts the posit. Default: 0
+--     p_positing     when the positor asserts it. Default: now
+--     p_reliability  how reliable the positor says that it is: positive asserts the posit, negative asserts that it is not so, and
+--                    $schema.metadata.deleteReliability$ retracts the assertion of it. Default: 1
+--     p_metadata     only when the model has metadata: the metadata of the annex row. Default: 0
+--
+-- A posit that is not there is created. A retraction of what the positor does not hold states nothing. An error is raised
+-- (RAISE_APPLICATION_ERROR) for a contradiction (-20001: the positor asserts another reliability of the same posit at the
+-- same positing time, or in the model where positors are decisive another value for the same entity and changing time, or
+-- in the model where positors are indecisive, alternatives with reliabilities that sum up to more than one) and for a
+-- restatement (-20002: the value is the same as that of the version before or after it, where the attribute may not be
+-- restated). A call that raises an error is undone, as is the statement that made it.
+--
+-- Two functions help the procedures and may be used in a query as well:
+--
+--     eq_<attribute.name>(p_left, p_right)         1 if two values of the attribute are the same, else 0
+--     he_<attribute.name>(p_id, p_positor, p_positing)   the reliability that the positor holds for the posit with the identity
+--                                                  at the positing time (that of its latest annex row up to then), null if it holds nothing
+--
+$/ if schema.DECISIVENESS
+-- Positors are decisive: a positor holds one assertion at a time for an entity (and a changing time), so an assertion that
+-- is not a retraction, positive or negative, of another value retracts, at its own positing time, the posit that the
+-- positor holds, which is a correction.
+$/ else
+-- Positors are indecisive: a positor may hold alternatives for an entity (and a changing time), with reliabilities that
+-- may not sum up to more than one (a positive reliability counts as it is and a negative one as one plus it).
+$/ endif
+--
+-- For idempotent attributes, only changes that represent a value different from the previous or following value are stored.
+-- Others are silently ignored in order to avoid unnecessary temporal duplicates.
+--
+$/ foreach attribute in schema.attributes
+-- Equality of two values -----------------------------------------------------------------------------------------------
+-- eq_$attribute.name$ tells whether two values of $attribute.name$ are the same (1 or 0, as a query cannot use a boolean)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.qualifier$eq_$attribute.name$ (
+    p_left IN $attribute.qualifier$$attribute.positName$.$attribute.valueColumnName$%TYPE,
+    p_right IN $attribute.qualifier$$attribute.positName$.$attribute.valueColumnName$%TYPE
+) RETURN NUMBER
+IS
+$/ if attribute.compareByChecksum
+    v_same NUMBER;
+BEGIN
+    SELECT CASE WHEN STANDARD_HASH(p_left, 'MD5') = STANDARD_HASH(p_right, 'MD5') THEN 1 ELSE 0 END INTO v_same FROM dual;
+    RETURN v_same;
+$/ endif
+$/ if attribute.compareAsLob
+BEGIN
+    IF p_left IS NULL OR p_right IS NULL THEN
+        RETURN 0;
+    END IF;
+    RETURN CASE WHEN DBMS_LOB.COMPARE(p_left, p_right) = 0 THEN 1 ELSE 0 END;
+$/ endif
+$/ if attribute.compareAsXml
+BEGIN
+    IF p_left IS NULL OR p_right IS NULL THEN
+        RETURN 0;
+    END IF;
+    RETURN CASE WHEN DBMS_LOB.COMPARE(p_left.getClobVal(), p_right.getClobVal()) = 0 THEN 1 ELSE 0 END;
+$/ endif
+$/ if attribute.compareAsIs
+BEGIN
+    RETURN CASE WHEN p_left = p_right THEN 1 ELSE 0 END;
+$/ endif
+END eq_$attribute.name$;
+/
+-- Held -----------------------------------------------------------------------------------------------------------------
+-- he_$attribute.name$ is the reliability that a positor holds for a posit at a positing time (null if it holds nothing):
+-- that of its latest annex row up to then
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.qualifier$he_$attribute.name$ (
+    p_id IN $attribute.qualifier$$attribute.annexName$.$attribute.identityColumnName$%TYPE,
+    p_positor IN $attribute.qualifier$$attribute.annexName$.$attribute.positorColumnName$%TYPE,
+    p_positing IN $attribute.qualifier$$attribute.annexName$.$attribute.positingColumnName$%TYPE
+) RETURN $attribute.qualifier$$attribute.annexName$.$attribute.reliabilityColumnName$%TYPE
+IS
+BEGIN
+    FOR r IN (
+        SELECT
+            a.$attribute.reliabilityColumnName$
+        FROM
+            $attribute.qualifier$$attribute.annexName$ a
+        WHERE
+            a.$attribute.identityColumnName$ = p_id
+        AND
+            a.$attribute.positorColumnName$ = p_positor
+        AND
+            a.$attribute.positingColumnName$ <= p_positing
+        ORDER BY
+            a.$attribute.positingColumnName$ DESC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        RETURN r.$attribute.reliabilityColumnName$;
+    END LOOP;
+    RETURN NULL;
+END he_$attribute.name$;
+/
+-- Insert procedure ---------------------------------------------------------------------------------------------------
+-- ip_$attribute.name$ states a value of $attribute.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE $attribute.qualifier$ip_$attribute.name$ (
+    p_owner IN $attribute.qualifier$$attribute.positName$.$attribute.entityReferenceName$%TYPE,
+    p_value IN $attribute.qualifier$$attribute.positName$.$attribute.valueColumnName$%TYPE,
+$/ if attribute.isHistorized
+    p_changing IN $attribute.qualifier$$attribute.positName$.$attribute.changingColumnName$%TYPE DEFAULT NULL,
+$/ endif
+    p_positor IN $attribute.qualifier$$attribute.annexName$.$attribute.positorColumnName$%TYPE DEFAULT NULL,
+    p_positing IN $attribute.qualifier$$attribute.annexName$.$attribute.positingColumnName$%TYPE DEFAULT NULL,
+$/ if schema.METADATA
+    p_reliability IN $attribute.qualifier$$attribute.annexName$.$attribute.reliabilityColumnName$%TYPE DEFAULT NULL,
+    p_metadata IN $attribute.qualifier$$attribute.annexName$.$attribute.metadataColumnName$%TYPE DEFAULT NULL
+$/ else
+    p_reliability IN $attribute.qualifier$$attribute.annexName$.$attribute.reliabilityColumnName$%TYPE DEFAULT NULL
+$/ endif
+)
+IS
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+    v_positor $schema.metadata.positorRange$;
+    v_positing $schema.metadata.positingRange$;
+    v_reliability $schema.metadata.reliabilityRange$;
+    v_positive NUMBER(1);
+    v_held $schema.metadata.reliabilityRange$;
+$/ if attribute.isHistorized
+    v_changing $attribute.timeRange$;
+$/ endif
+    v_posit $attribute.qualifier$$attribute.positName$.$attribute.identityColumnName$%TYPE;
+    v_count NUMBER;
+$/ if not schema.DECISIVENESS
+    v_total $schema.metadata.reliabilityRange$;
+$/ endif
+    -- a retraction of a posit by the positor at the positing time, which is not stated again if it is there already
+    PROCEDURE retract (
+        p_id IN $attribute.qualifier$$attribute.positName$.$attribute.identityColumnName$%TYPE
+    )
+    IS
+    BEGIN
+        INSERT INTO $attribute.qualifier$$attribute.annexName$ (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.identityColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.positingColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        SELECT
+$/ if schema.METADATA
+            COALESCE(p_metadata, 0),
+$/ endif
+            p_id,
+            v_positor,
+            v_positing,
+            $schema.metadata.deleteReliability$
+        FROM
+            dual
+        WHERE
+            NOT EXISTS (
+                SELECT
+                    1
+                FROM
+                    $attribute.qualifier$$attribute.annexName$ x
+                WHERE
+                    x.$attribute.identityColumnName$ = p_id
+                AND
+                    x.$attribute.positorColumnName$ = v_positor
+                AND
+                    x.$attribute.positingColumnName$ = v_positing
+            );
+    END retract;
+BEGIN
+    v_positor := COALESCE(p_positor, 0);
+    v_positing := p_positing;
+    IF v_positing IS NULL THEN
+        v_positing := v_now;
+    END IF;
+    v_reliability := COALESCE(p_reliability, 1);
+    v_positive := CASE WHEN v_reliability > $schema.metadata.deleteReliability$ THEN 1 ELSE 0 END;
+$/ if attribute.isHistorized
+    v_changing := p_changing;
+    IF v_changing IS NULL THEN
+        v_changing := v_now;
+    END IF;
+$/ endif
+    -- the posit, if there is one
+    v_posit := NULL;
+    FOR r IN (
+        SELECT
+            p.$attribute.identityColumnName$
+        FROM
+            $attribute.qualifier$$attribute.positName$ p
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v_changing
+$/ endif
+        AND
+            $attribute.qualifier$eq_$attribute.name$(p.$attribute.valueColumnName$, p_value) = 1
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        v_posit := r.$attribute.identityColumnName$;
+    END LOOP;
+    -- another reliability at a positing time that already has an assertion of the posit by the positor is a contradiction
+    IF v_posit IS NOT NULL THEN
+        SELECT
+            COUNT(*)
+        INTO
+            v_count
+        FROM
+            $attribute.qualifier$$attribute.annexName$ a
+        WHERE
+            a.$attribute.identityColumnName$ = v_posit
+        AND
+            a.$attribute.positorColumnName$ = v_positor
+        AND
+            a.$attribute.positingColumnName$ = v_positing
+        AND
+            a.$attribute.reliabilityColumnName$ <> v_reliability;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $attribute.name$ for: ' || p_owner || ', ' ||
+$/ if attribute.isHistorized
+                v_changing || ', ' ||
+$/ endif
+                v_positor || ', ' || v_positing);
+        END IF;
+    END IF;
+$/ if schema.DECISIVENESS
+    -- and so, since a decisive positor holds one assertion at a time, is an assertion of another value at that time
+    IF v_reliability <> $schema.metadata.deleteReliability$ THEN
+        SELECT
+            COUNT(*)
+        INTO
+            v_count
+        FROM
+            $attribute.qualifier$$attribute.positName$ p
+        JOIN
+            $attribute.qualifier$$attribute.annexName$ a
+        ON
+            a.$attribute.identityColumnName$ = p.$attribute.identityColumnName$
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v_changing
+$/ endif
+        AND
+            $attribute.qualifier$eq_$attribute.name$(p.$attribute.valueColumnName$, p_value) = 0
+        AND
+            a.$attribute.positorColumnName$ = v_positor
+        AND
+            a.$attribute.positingColumnName$ = v_positing
+        AND
+            a.$attribute.reliabilityColumnName$ <> $schema.metadata.deleteReliability$;
+        IF v_count > 0 THEN
+            RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $attribute.name$ for: ' || p_owner || ', ' ||
+$/ if attribute.isHistorized
+                v_changing || ', ' ||
+$/ endif
+                v_positor || ', ' || v_positing);
+        END IF;
+    END IF;
+$/ endif
+    -- the identical (the posit and the assertion are there already) states nothing
+    IF v_posit IS NOT NULL THEN
+        SELECT
+            COUNT(*)
+        INTO
+            v_count
+        FROM
+            $attribute.qualifier$$attribute.annexName$ a
+        WHERE
+            a.$attribute.identityColumnName$ = v_posit
+        AND
+            a.$attribute.positorColumnName$ = v_positor
+        AND
+            a.$attribute.positingColumnName$ = v_positing;
+        IF v_count > 0 THEN
+            RETURN;
+        END IF;
+    END IF;
+    -- what the positor holds of the posit
+    IF v_posit IS NOT NULL THEN
+        v_held := $attribute.qualifier$he_$attribute.name$(v_posit, v_positor, v_positing);
+    END IF;
+    IF v_reliability = $schema.metadata.deleteReliability$ THEN
+        -- a retraction of what the positor does not hold states nothing
+        IF COALESCE(v_held, $schema.metadata.deleteReliability$) = $schema.metadata.deleteReliability$ THEN
+            RETURN;
+        END IF;
+        INSERT INTO $attribute.qualifier$$attribute.annexName$ (
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.identityColumnName$,
+            $attribute.positorColumnName$,
+            $attribute.positingColumnName$,
+            $attribute.reliabilityColumnName$
+        )
+        VALUES (
+$/ if schema.METADATA
+            COALESCE(p_metadata, 0),
+$/ endif
+            v_posit,
+            v_positor,
+            v_positing,
+            v_reliability
+        );
+        RETURN;
+    END IF;
+$/ if not attribute.isAssertive
+    -- the same assertion that the positor holds is not stated again unless the attribute is assertive
+    IF v_held IS NOT NULL AND v_held = v_reliability THEN
+        RETURN;
+    END IF;
+$/ endif
+$/ if schema.DECISIVENESS
+    -- an assertion corrects what the positor holds for the same entity (and changing time), when that has another value: it
+    -- is retracted at the positing time of the assertion, so that the positor holds one posit at a time
+    FOR r IN (
+        SELECT
+            p.$attribute.identityColumnName$
+        FROM
+            $attribute.qualifier$$attribute.positName$ p
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v_changing
+$/ endif
+        AND
+            $attribute.qualifier$eq_$attribute.name$(p.$attribute.valueColumnName$, p_value) = 0
+        AND
+            COALESCE($attribute.qualifier$he_$attribute.name$(p.$attribute.identityColumnName$, v_positor, v_positing), $schema.metadata.deleteReliability$) <> $schema.metadata.deleteReliability$
+    ) LOOP
+        retract(r.$attribute.identityColumnName$);
+    END LOOP;
+$/ endif
+$/ if attribute.isHistorized
+$/ if attribute.isIdempotent or not attribute.isRestatable
+    -- the same value as the version before it, which the positor holds with the same sign at the positing time, is a restatement
+    FOR r IN (
+        SELECT
+            p.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.positName$ p
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+        AND
+            p.$attribute.changingColumnName$ < v_changing
+        AND
+            COALESCE($attribute.qualifier$he_$attribute.name$(p.$attribute.identityColumnName$, v_positor, v_positing), $schema.metadata.deleteReliability$) <> $schema.metadata.deleteReliability$
+        AND
+            CASE WHEN $attribute.qualifier$he_$attribute.name$(p.$attribute.identityColumnName$, v_positor, v_positing) > $schema.metadata.deleteReliability$ THEN 1 ELSE 0 END = v_positive
+        ORDER BY
+            p.$attribute.changingColumnName$ DESC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF $attribute.qualifier$eq_$attribute.name$(r.$attribute.valueColumnName$, p_value) = 1 THEN
+$/ if attribute.isIdempotent
+            -- (an idempotent attribute does not store it)
+            RETURN;
+$/ else
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $attribute.name$ for: ' || p_owner || ', ' || v_changing || ', ' || v_positor || ', ' || v_positing);
+$/ endif
+        END IF;
+    END LOOP;
+    -- the same value as the version after it makes that version a restatement
+    FOR r IN (
+        SELECT
+            f.$attribute.identityColumnName$,
+            f.$attribute.valueColumnName$
+        FROM
+            $attribute.qualifier$$attribute.positName$ f
+        WHERE
+            f.$attribute.entityReferenceName$ = p_owner
+        AND
+            f.$attribute.changingColumnName$ > v_changing
+        AND
+            COALESCE($attribute.qualifier$he_$attribute.name$(f.$attribute.identityColumnName$, v_positor, v_positing), $schema.metadata.deleteReliability$) <> $schema.metadata.deleteReliability$
+        AND
+            CASE WHEN $attribute.qualifier$he_$attribute.name$(f.$attribute.identityColumnName$, v_positor, v_positing) > $schema.metadata.deleteReliability$ THEN 1 ELSE 0 END = v_positive
+        ORDER BY
+            f.$attribute.changingColumnName$ ASC
+        FETCH FIRST 1 ROW ONLY
+    ) LOOP
+        IF $attribute.qualifier$eq_$attribute.name$(r.$attribute.valueColumnName$, p_value) = 1 THEN
+$/ if attribute.isIdempotent
+            -- (an idempotent attribute retracts it)
+            retract(r.$attribute.identityColumnName$);
+$/ else
+            RAISE_APPLICATION_ERROR(-20002, 'Restatement in $attribute.name$ for: ' || p_owner || ', ' || v_changing || ', ' || v_positor || ', ' || v_positing);
+$/ endif
+        END IF;
+    END LOOP;
+$/ endif
+$/ endif
+    -- the posit, which is new when it was not found
+    IF v_posit IS NULL THEN
+        INSERT INTO $attribute.qualifier$$attribute.positName$ (
+            $attribute.entityReferenceName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+            $attribute.valueColumnName$
+        )
+        VALUES (
+            p_owner,
+$/ if attribute.isHistorized
+            v_changing,
+$/ endif
+            p_value
+        )
+        RETURNING $attribute.identityColumnName$ INTO v_posit;
+    END IF;
+    INSERT INTO $attribute.qualifier$$attribute.annexName$ (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.identityColumnName$,
+        $attribute.positorColumnName$,
+        $attribute.positingColumnName$,
+        $attribute.reliabilityColumnName$
+    )
+    VALUES (
+$/ if schema.METADATA
+        COALESCE(p_metadata, 0),
+$/ endif
+        v_posit,
+        v_positor,
+        v_positing,
+        v_reliability
+    );
+$/ if not schema.DECISIVENESS
+    -- what the positor holds for the same entity (and changing time) may not contradict itself: the reliabilities may not sum
+    -- up to more than one (non-contradiction)
+    SELECT
+        SUM(CASE
+            WHEN h.held > $schema.metadata.deleteReliability$ THEN h.held
+            ELSE 1 + h.held
+        END)
+    INTO
+        v_total
+    FROM (
+        SELECT
+            $attribute.qualifier$he_$attribute.name$(p.$attribute.identityColumnName$, v_positor, v_positing) AS held
+        FROM
+            $attribute.qualifier$$attribute.positName$ p
+        WHERE
+            p.$attribute.entityReferenceName$ = p_owner
+$/ if attribute.isHistorized
+        AND
+            p.$attribute.changingColumnName$ = v_changing
+$/ endif
+    ) h
+    WHERE
+        h.held <> $schema.metadata.deleteReliability$;
+    IF v_total > 1 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Contradiction in $attribute.name$ for: ' || p_owner || ', ' ||
+$/ if attribute.isHistorized
+            v_changing || ', ' ||
+$/ endif
+            v_positor || ', ' || v_positing);
+    END IF;
+$/ endif
+END ip_$attribute.name$;
+/
+$/ endfor
+$/ endif

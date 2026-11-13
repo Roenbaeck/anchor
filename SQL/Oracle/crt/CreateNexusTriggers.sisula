@@ -1,0 +1,469 @@
+$/ if schema.TRIGGERS
+-- NEXUS TRIGGERS ---------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the posit and annex tables of the attributes in a consistent way,
+-- through the insert procedures of the attributes (ip_<attribute>, see the attribute triggers, which keep the posit and
+-- annex tables). Default values are used for some columns if not provided by the corresponding SQL statements: the positor
+-- is 0, the changing and positing times are now, the reliability is 1.
+--
+-- For idempotent attributes, only changes that represent a value different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates (the insert procedures of the attributes see to that).
+--
+-- Oracle runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+-- Two values are different when one is not null and the other is, or when they are not equal; PL/SQL has no IS DISTINCT FROM.
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$nexus.name$ instead of INSERT trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$it_l$nexus.name$
+INSTEAD OF INSERT ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+    v_id $nexus.identity$;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    v_id := :NEW.$nexus.identityColumnName$;
+    IF v_id IS NULL THEN
+        INSERT INTO $nexus.qualifier$$nexus.name$ (
+$/ foreach role in nexus.roles
+            $role.columnName$,
+$/ endfor
+$/ if schema.METADATA
+            $nexus.metadataColumnName$
+$/ else
+            $nexus.dummyColumnName$
+$/ endif
+        )
+        VALUES (
+$/ foreach role in nexus.roles
+            :NEW.$role.columnName$,
+$/ endfor
+$/ if schema.METADATA
+            :NEW.$nexus.metadataColumnName$
+$/ else
+            NULL
+$/ endif
+        )
+        RETURNING $nexus.identityColumnName$ INTO v_id;
+    END IF;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ := :NEW.$attribute.valueColumnName$;
+    IF v_$attribute.mnemonic$ IS NULL AND :NEW.$attribute.knotValueColumnName$ IS NOT NULL THEN
+        FOR kv IN (
+            SELECT
+                k.$attribute.knot.identityColumnName$
+            FROM
+                $attribute.knot.qualifier$$attribute.knot.name$ k
+            WHERE
+$/ if attribute.knot.compareByChecksum
+                k.$attribute.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$attribute.knotValueColumnName$, 'MD5')
+$/ endif
+$/ if attribute.knot.compareAsLob
+                DBMS_LOB.COMPARE(k.$attribute.knot.valueColumnName$, :NEW.$attribute.knotValueColumnName$) = 0
+$/ endif
+$/ if attribute.knot.compareAsIs
+                k.$attribute.knot.valueColumnName$ = :NEW.$attribute.knotValueColumnName$
+$/ endif
+            FETCH FIRST 1 ROW ONLY
+        ) LOOP
+            v_$attribute.mnemonic$ := kv.$attribute.knot.identityColumnName$;
+        END LOOP;
+    END IF;
+    IF v_$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+    IF :NEW.$attribute.valueColumnName$ IS NOT NULL THEN
+$/ endif
+        $attribute.qualifier$ip_$attribute.name$(
+$/ if schema.IMPROVED
+            p_owner => COALESCE(:NEW.$attribute.entityReferenceName$, v_id),
+$/ else
+            p_owner => v_id,
+$/ endif
+$/ if attribute.isKnotted
+            p_value => v_$attribute.mnemonic$,
+$/ else
+            p_value => :NEW.$attribute.valueColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+            p_changing => COALESCE(:NEW.$attribute.changingColumnName$, v_now),
+$/ endif
+            p_positor => COALESCE(:NEW.$attribute.positorColumnName$, :NEW.$schema.metadata.positorSuffix$, 0),
+            p_positing => COALESCE(:NEW.$attribute.positingColumnName$, v_now),
+$/ if schema.METADATA
+            p_reliability => COALESCE(:NEW.$attribute.reliabilityColumnName$, :NEW.$schema.metadata.reliabilitySuffix$, 1),
+            p_metadata => COALESCE(:NEW.$attribute.metadataColumnName$, :NEW.$nexus.metadataColumnName$)
+$/ else
+            p_reliability => COALESCE(:NEW.$attribute.reliabilityColumnName$, :NEW.$schema.metadata.reliabilitySuffix$, 1)
+$/ endif
+        );
+    END IF;
+$/ endfor
+END it_l$nexus.name$;
+/
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$nexus.name$ instead of UPDATE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$ut_l$nexus.name$
+INSTEAD OF UPDATE ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+    v_positor $schema.metadata.positorRange$;
+    v_positing $schema.metadata.positingRange$;
+    v_reliability $schema.metadata.reliabilityRange$;
+    v_suffix_diff BOOLEAN;
+    v_positing_diff BOOLEAN;
+    v_reliability_diff BOOLEAN;
+    v_changing_diff BOOLEAN;
+    v_value_diff BOOLEAN;
+    v_knot_diff BOOLEAN;
+$/ if schema.METADATA
+    v_metadata $schema.metadata.metadataType$;
+    v_nexus_meta_diff BOOLEAN;
+    v_meta_diff BOOLEAN;
+$/ endif
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ if attribute.isHistorized
+    v_$attribute.mnemonic$_changing $attribute.timeRange$;
+$/ endif
+$/ endfor
+BEGIN
+    IF (:NEW.$nexus.identityColumnName$ <> :OLD.$nexus.identityColumnName$
+        OR (:NEW.$nexus.identityColumnName$ IS NULL AND :OLD.$nexus.identityColumnName$ IS NOT NULL)
+        OR (:NEW.$nexus.identityColumnName$ IS NOT NULL AND :OLD.$nexus.identityColumnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The identity column $nexus.identityColumnName$ is not updatable.');
+    END IF;
+$/ foreach role in nexus.roles
+    IF (:NEW.$role.columnName$ <> :OLD.$role.columnName$
+        OR (:NEW.$role.columnName$ IS NULL AND :OLD.$role.columnName$ IS NOT NULL)
+        OR (:NEW.$role.columnName$ IS NOT NULL AND :OLD.$role.columnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The role column $role.columnName$ is not updatable.');
+    END IF;
+$/ if role.knot
+$/ if role.knot.compareAsLob
+    IF (DBMS_LOB.COMPARE(:NEW.$role.knotValueColumnName$, :OLD.$role.knotValueColumnName$) <> 0
+        OR (:NEW.$role.knotValueColumnName$ IS NULL AND :OLD.$role.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$role.knotValueColumnName$ IS NOT NULL AND :OLD.$role.knotValueColumnName$ IS NULL)) THEN
+$/ else
+    IF (:NEW.$role.knotValueColumnName$ <> :OLD.$role.knotValueColumnName$
+        OR (:NEW.$role.knotValueColumnName$ IS NULL AND :OLD.$role.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$role.knotValueColumnName$ IS NOT NULL AND :OLD.$role.knotValueColumnName$ IS NULL)) THEN
+$/ endif
+        RAISE_APPLICATION_ERROR(-20003, 'The role column $role.knotValueColumnName$ is not updatable.');
+    END IF;
+$/ endif
+$/ endfor
+    -- whether the reliability that is common to the attributes is set
+    v_suffix_diff := CASE WHEN (:NEW.$schema.metadata.reliabilitySuffix$ <> :OLD.$schema.metadata.reliabilitySuffix$
+        OR (:NEW.$schema.metadata.reliabilitySuffix$ IS NULL AND :OLD.$schema.metadata.reliabilitySuffix$ IS NOT NULL)
+        OR (:NEW.$schema.metadata.reliabilitySuffix$ IS NOT NULL AND :OLD.$schema.metadata.reliabilitySuffix$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ if schema.METADATA
+    v_nexus_meta_diff := CASE WHEN (:NEW.$nexus.metadataColumnName$ <> :OLD.$nexus.metadataColumnName$
+        OR (:NEW.$nexus.metadataColumnName$ IS NULL AND :OLD.$nexus.metadataColumnName$ IS NOT NULL)
+        OR (:NEW.$nexus.metadataColumnName$ IS NOT NULL AND :OLD.$nexus.metadataColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ endif
+$/ foreach attribute in nexus.attributes
+    -- $attribute.name$
+    IF (:NEW.$attribute.identityColumnName$ <> :OLD.$attribute.identityColumnName$
+        OR (:NEW.$attribute.identityColumnName$ IS NULL AND :OLD.$attribute.identityColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.identityColumnName$ IS NOT NULL AND :OLD.$attribute.identityColumnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The identity column $attribute.identityColumnName$ is not updatable.');
+    END IF;
+$/ if schema.IMPROVED
+    IF (:NEW.$attribute.entityReferenceName$ <> :OLD.$attribute.entityReferenceName$
+        OR (:NEW.$attribute.entityReferenceName$ IS NULL AND :OLD.$attribute.entityReferenceName$ IS NOT NULL)
+        OR (:NEW.$attribute.entityReferenceName$ IS NOT NULL AND :OLD.$attribute.entityReferenceName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The foreign key column $attribute.entityReferenceName$ is not updatable.');
+    END IF;
+$/ endif
+    -- what the update says about the reliability of $attribute.name$, and when it posits
+    v_reliability_diff := CASE WHEN (:NEW.$attribute.reliabilityColumnName$ <> :OLD.$attribute.reliabilityColumnName$
+        OR (:NEW.$attribute.reliabilityColumnName$ IS NULL AND :OLD.$attribute.reliabilityColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.reliabilityColumnName$ IS NOT NULL AND :OLD.$attribute.reliabilityColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+    IF v_reliability_diff THEN
+        v_reliability := :NEW.$attribute.reliabilityColumnName$;
+    ELSIF v_suffix_diff THEN
+        v_reliability := :NEW.$schema.metadata.reliabilitySuffix$;
+    ELSE
+        v_reliability := :NEW.$attribute.reliabilityColumnName$;
+    END IF;
+    IF (:NEW.$attribute.positorColumnName$ <> :OLD.$attribute.positorColumnName$
+        OR (:NEW.$attribute.positorColumnName$ IS NULL AND :OLD.$attribute.positorColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.positorColumnName$ IS NOT NULL AND :OLD.$attribute.positorColumnName$ IS NULL)) THEN
+        v_positor := COALESCE(:NEW.$attribute.positorColumnName$, 0);
+    ELSE
+        v_positor := COALESCE(:NEW.$schema.metadata.positorSuffix$, 0);
+    END IF;
+    v_positing_diff := CASE WHEN (:NEW.$attribute.positingColumnName$ <> :OLD.$attribute.positingColumnName$
+        OR (:NEW.$attribute.positingColumnName$ IS NULL AND :OLD.$attribute.positingColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.positingColumnName$ IS NOT NULL AND :OLD.$attribute.positingColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ if attribute.isHistorized
+    v_changing_diff := CASE WHEN (:NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+        OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ endif
+    IF v_positing_diff THEN
+        v_positing := :NEW.$attribute.positingColumnName$;
+$/ if attribute.isHistorized
+    ELSIF v_changing_diff AND :NEW.$attribute.valueColumnName$ IS NULL THEN
+        v_positing := :NEW.$attribute.changingColumnName$;
+$/ endif
+    ELSE
+        v_positing := v_now;
+    END IF;
+$/ if attribute.compareAsLob
+    v_value_diff := CASE WHEN ((:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL
+            AND DBMS_LOB.COMPARE(:NEW.$attribute.valueColumnName$, :OLD.$attribute.valueColumnName$) <> 0)) THEN TRUE ELSE FALSE END;
+$/ endif
+$/ if attribute.compareAsXml
+    v_value_diff := CASE WHEN ((:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL
+            AND DBMS_LOB.COMPARE(:NEW.$attribute.valueColumnName$.getClobVal(), :OLD.$attribute.valueColumnName$.getClobVal()) <> 0)) THEN TRUE ELSE FALSE END;
+$/ endif
+$/ if attribute.compareByChecksum or attribute.compareAsIs
+    v_value_diff := CASE WHEN (:NEW.$attribute.valueColumnName$ <> :OLD.$attribute.valueColumnName$
+        OR (:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ endif
+$/ if schema.METADATA
+    v_meta_diff := CASE WHEN (:NEW.$attribute.metadataColumnName$ <> :OLD.$attribute.metadataColumnName$
+        OR (:NEW.$attribute.metadataColumnName$ IS NULL AND :OLD.$attribute.metadataColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.metadataColumnName$ IS NOT NULL AND :OLD.$attribute.metadataColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+    v_metadata := COALESCE(
+        CASE
+            WHEN v_nexus_meta_diff AND NOT v_meta_diff THEN :NEW.$nexus.metadataColumnName$
+            ELSE :NEW.$attribute.metadataColumnName$
+        END, :NEW.$nexus.metadataColumnName$);
+$/ endif
+$/ if attribute.isKnotted
+$/ if attribute.knot.compareAsLob
+    v_knot_diff := CASE WHEN (DBMS_LOB.COMPARE(:NEW.$attribute.knotValueColumnName$, :OLD.$attribute.knotValueColumnName$) <> 0
+        OR (:NEW.$attribute.knotValueColumnName$ IS NULL AND :OLD.$attribute.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.knotValueColumnName$ IS NOT NULL AND :OLD.$attribute.knotValueColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ else
+    v_knot_diff := CASE WHEN (:NEW.$attribute.knotValueColumnName$ <> :OLD.$attribute.knotValueColumnName$
+        OR (:NEW.$attribute.knotValueColumnName$ IS NULL AND :OLD.$attribute.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.knotValueColumnName$ IS NOT NULL AND :OLD.$attribute.knotValueColumnName$ IS NULL)) THEN TRUE ELSE FALSE END;
+$/ endif
+    -- the identity of the knot value, given as it is or looked up from the value
+    v_$attribute.mnemonic$ := :NEW.$attribute.valueColumnName$;
+    IF NOT v_value_diff AND v_knot_diff THEN
+        v_$attribute.mnemonic$ := NULL;
+        IF :NEW.$attribute.knotValueColumnName$ IS NOT NULL THEN
+            FOR kv IN (
+                SELECT
+                    k.$attribute.knot.identityColumnName$
+                FROM
+                    $attribute.knot.qualifier$$attribute.knot.name$ k
+                WHERE
+$/ if attribute.knot.compareByChecksum
+                    k.$attribute.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$attribute.knotValueColumnName$, 'MD5')
+$/ endif
+$/ if attribute.knot.compareAsLob
+                    DBMS_LOB.COMPARE(k.$attribute.knot.valueColumnName$, :NEW.$attribute.knotValueColumnName$) = 0
+$/ endif
+$/ if attribute.knot.compareAsIs
+                    k.$attribute.knot.valueColumnName$ = :NEW.$attribute.knotValueColumnName$
+$/ endif
+                FETCH FIRST 1 ROW ONLY
+            ) LOOP
+                v_$attribute.mnemonic$ := kv.$attribute.knot.identityColumnName$;
+            END LOOP;
+        END IF;
+    END IF;
+    IF v_value_diff OR v_knot_diff
+$/ else
+    IF v_value_diff
+$/ endif
+$/ if attribute.isHistorized
+    OR v_changing_diff
+$/ endif
+    OR v_positing_diff
+    OR v_reliability_diff
+    OR v_suffix_diff
+    THEN
+$/ if attribute.isHistorized
+        -- the changing time of the value that is stated: the shown version asserted again keeps its changing time, as does one that is given
+        IF v_changing_diff THEN
+            v_$attribute.mnemonic$_changing := :NEW.$attribute.changingColumnName$;
+$/ if attribute.isKnotted
+        ELSIF :OLD.$attribute.valueColumnName$ = v_$attribute.mnemonic$ THEN
+$/ else
+        ELSIF NOT v_value_diff THEN
+$/ endif
+            v_$attribute.mnemonic$_changing := :NEW.$attribute.changingColumnName$;
+        ELSE
+            v_$attribute.mnemonic$_changing := v_now;
+        END IF;
+$/ endif
+$/ if attribute.isKnotted
+        IF v_$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+        IF :NEW.$attribute.valueColumnName$ IS NOT NULL THEN
+$/ endif
+            -- a statement that leaves everything as it is states nothing
+            IF :OLD.$attribute.valueColumnName$ IS NULL
+$/ if attribute.isHistorized
+            OR v_changing_diff
+$/ endif
+            OR v_positing_diff
+            OR :OLD.$attribute.reliabilityColumnName$ IS NULL
+            OR :OLD.$attribute.reliabilityColumnName$ <> COALESCE(v_reliability, 1)
+            OR :OLD.$attribute.positorColumnName$ IS NULL
+            OR :OLD.$attribute.positorColumnName$ <> v_positor
+$/ if attribute.isKnotted
+            OR :OLD.$attribute.valueColumnName$ <> v_$attribute.mnemonic$
+$/ else
+            OR v_value_diff
+$/ endif
+            THEN
+$/ if not schema.DECISIVENESS
+$/ if not attribute.isHistorized
+                -- an indecisive positor holds alternatives, so another value in an update is a correction of the shown one: it is retracted
+$/ if attribute.isKnotted
+                IF :OLD.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ <> v_$attribute.mnemonic$ THEN
+$/ else
+                IF :OLD.$attribute.valueColumnName$ IS NOT NULL AND v_value_diff THEN
+$/ endif
+                    $attribute.qualifier$ip_$attribute.name$(
+                        p_owner => :OLD.$nexus.identityColumnName$,
+                        p_value => :OLD.$attribute.valueColumnName$,
+                        p_positor => v_positor,
+                        p_positing => v_positing,
+$/ if schema.METADATA
+                        p_reliability => $schema.metadata.deleteReliability$,
+                        p_metadata => COALESCE(:NEW.$attribute.metadataColumnName$, :NEW.$nexus.metadataColumnName$)
+$/ else
+                        p_reliability => $schema.metadata.deleteReliability$
+$/ endif
+                    );
+                END IF;
+$/ endif
+$/ endif
+                $attribute.qualifier$ip_$attribute.name$(
+$/ if schema.IMPROVED
+                    p_owner => COALESCE(:NEW.$attribute.entityReferenceName$, :NEW.$nexus.identityColumnName$),
+$/ else
+                    p_owner => :NEW.$nexus.identityColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+                    p_value => v_$attribute.mnemonic$,
+$/ else
+                    p_value => :NEW.$attribute.valueColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+                    p_changing => v_$attribute.mnemonic$_changing,
+$/ endif
+                    p_positor => v_positor,
+                    p_positing => v_positing,
+$/ if schema.METADATA
+                    p_reliability => COALESCE(v_reliability, 1),
+                    p_metadata => v_metadata
+$/ else
+                    p_reliability => COALESCE(v_reliability, 1)
+$/ endif
+                );
+            END IF;
+        END IF;
+$/ if attribute.isKnotted
+        -- logical delete by setting the value to null
+        IF :OLD.$attribute.valueColumnName$ IS NOT NULL AND (
+            :NEW.$attribute.valueColumnName$ IS NULL OR (
+                NOT v_value_diff
+                AND :NEW.$attribute.knotValueColumnName$ IS NULL AND :OLD.$attribute.knotValueColumnName$ IS NOT NULL
+            )
+        ) THEN
+$/ else
+        -- logical delete by setting the value to null
+        IF :NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL THEN
+$/ endif
+            $attribute.qualifier$ip_$attribute.name$(
+                p_owner => :OLD.$nexus.identityColumnName$,
+                p_value => :OLD.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+                p_changing => :OLD.$attribute.changingColumnName$,
+$/ endif
+                p_positor => v_positor,
+                p_positing => v_positing,
+$/ if schema.METADATA
+                p_reliability => $schema.metadata.deleteReliability$,
+                p_metadata => v_metadata
+$/ else
+                p_reliability => $schema.metadata.deleteReliability$
+$/ endif
+            );
+        END IF;
+    END IF;
+$/ endfor
+END ut_l$nexus.name$;
+/
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$nexus.name$ instead of DELETE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$dt_l$nexus.name$
+INSTEAD OF DELETE ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+BEGIN
+$/ foreach attribute in nexus.attributes
+    -- what is shown of $attribute.name$ is retracted
+    INSERT INTO $attribute.qualifier$$attribute.annexName$ (
+$/ if schema.METADATA
+        $attribute.metadataColumnName$,
+$/ endif
+        $attribute.identityColumnName$,
+        $attribute.positorColumnName$,
+        $attribute.positingColumnName$,
+        $attribute.reliabilityColumnName$
+    )
+    SELECT
+$/ if schema.METADATA
+        :OLD.$attribute.metadataColumnName$,
+$/ endif
+        :OLD.$attribute.identityColumnName$,
+        COALESCE(:OLD.$attribute.positorColumnName$, :OLD.$schema.metadata.positorSuffix$, 0),
+        v_now,
+        $schema.metadata.deleteReliability$
+    FROM
+        dual
+    WHERE
+        :OLD.$attribute.identityColumnName$ IS NOT NULL
+    AND
+        NOT EXISTS (
+            SELECT
+                1
+            FROM
+                $attribute.qualifier$$attribute.annexName$ x
+            WHERE
+                x.$attribute.identityColumnName$ = :OLD.$attribute.identityColumnName$
+            AND
+                x.$attribute.positorColumnName$ = COALESCE(:OLD.$attribute.positorColumnName$, :OLD.$schema.metadata.positorSuffix$, 0)
+            AND
+                x.$attribute.positingColumnName$ = v_now
+        );
+$/ endfor
+END dt_l$nexus.name$;
+/
+$/ endif
+$/ endfor
+$/ endif

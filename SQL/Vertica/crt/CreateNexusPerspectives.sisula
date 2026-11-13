@@ -5,7 +5,7 @@
 -- perspectives take none, and are views over the rewinders of the attributes (views that show the latest annex row of every posit
 -- for each positor). The assertion that they show is the positive one.
 --
-$/ foreach nexus in schema.nexuss
+$/ foreach nexus in schema.nexuses
 $/ if nexus.attributes
 $/ foreach perspective in nexus.perspectives
 CREATE OR REPLACE VIEW $nexus.capsule$."$perspective.name$" AS

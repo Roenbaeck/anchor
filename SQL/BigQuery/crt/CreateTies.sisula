@@ -1,0 +1,59 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- CRT ties use posit and annex split with changing/positing time, positor, reliability and assertion (the assertion, +, ? or -, is not stored: it is computed from the reliability where an annex is read).
+--
+-- BigQuery has no sequences: the load gives an identity to every posit. Its keys are not enforced, and it has no unique
+-- constraints: what a posit table holds once is kept so by the load (the integrity checks tell if it has not).
+--
+$/ foreach tie in schema.ties
+-- Tie posit table ----------------------------------------------------------------------------------------------------
+-- $tie.positName$ table (having $tie.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $tie.capsule$.`$tie.positName$` (
+    `$tie.identityColumnName$` $/ if tie.identity $tie.identity$ $/ endif not null,
+$/ foreach role in tie.roles
+    `$role.columnName$` $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.timeRange
+    `$tie.changingColumnName$` $tie.timeRange$ not null,
+$/ endif
+    PRIMARY KEY (
+        `$tie.identityColumnName$`
+    ) NOT ENFORCED
+$/ foreach role in tie.roles
+    ,CONSTRAINT `$tie.positName$_fk$role.name$` FOREIGN KEY (`$role.columnName$`) REFERENCES
+$/ if role.entity
+        $role.entity.capsule$.`$role.entity.name$`(`$role.entity.identityColumnName$`) NOT ENFORCED
+$/ else
+        $role.knot.capsule$.`$role.knot.name$`(`$role.knot.identityColumnName$`) NOT ENFORCED
+$/ endif
+$/ endfor
+)
+CLUSTER BY
+$/ foreach role in tie.roles where role.entity
+$/ if role.first()
+    `$role.columnName$`
+$/ endif
+$/ endfor
+;
+-- Tie annex table ----------------------------------------------------------------------------------------------------
+-- $tie.annexName$ table (of $tie.positName$)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $tie.capsule$.`$tie.annexName$` (
+    `$tie.identityColumnName$` $/ if tie.identity $tie.identity$ $/ endif not null,
+    `$tie.positingColumnName$` $schema.metadata.positingRange$ not null,
+    `$tie.positorColumnName$` $schema.metadata.positorRange$ not null,
+    `$tie.reliabilityColumnName$` $schema.metadata.reliabilityRange$ not null,
+$/ if schema.METADATA
+    `$tie.metadataColumnName$` $schema.metadata.metadataType$ not null,
+$/ endif
+    PRIMARY KEY (
+        `$tie.identityColumnName$`,
+        `$tie.positorColumnName$`,
+        `$tie.positingColumnName$`
+    ) NOT ENFORCED,
+    CONSTRAINT `fk$tie.annexName$` FOREIGN KEY (`$tie.identityColumnName$`) REFERENCES
+        $tie.capsule$.`$tie.positName$`(`$tie.identityColumnName$`) NOT ENFORCED
+)
+CLUSTER BY `$tie.identityColumnName$`, `$tie.positorColumnName$`, `$tie.positingColumnName$`;
+$/ endfor

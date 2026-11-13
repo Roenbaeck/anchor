@@ -1,0 +1,111 @@
+-- TIES ---------------------------------------------------------------------------------------------------------------
+--
+-- Ties are used to represent relationships between entities.
+-- They come in four flavors: static, historized, knotted static, and knotted historized.
+-- Ties have cardinality, constraining how members may participate in the relationship.
+-- Every entity that is a member in a tie has a specified role in the relationship.
+-- Ties must have at least two anchor roles and zero or more knot roles.
+--
+-- A tie that may be deleted (deletability) also has a deletion table, which holds what was deleted and when.
+-- Oracle cannot make a table in a trigger without ending the transaction, so these are made here, not when needed.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized and tie.isKnotted
+-- Knotted historized tie table ---------------------------------------------------------------------------------------
+$/ endif
+$/ if tie.isHistorized and not tie.isKnotted
+-- Historized tie table -----------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and tie.isKnotted
+-- Knotted static tie table -------------------------------------------------------------------------------------------
+$/ endif
+$/ if not tie.isHistorized and not tie.isKnotted
+-- Static tie table ---------------------------------------------------------------------------------------------------
+$/ endif
+-- $tie.name$ table (having $tie.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $tie.qualifier$$tie.name$ (
+$/ foreach role in tie.roles
+            $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+            $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ endif
+$/ if schema.METADATA
+            $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ foreach role in tie.roles
+            constraint $tie.name$_fk$role.name$ foreign key (
+                $role.columnName$
+$/ if role.entity
+            ) references $role.entity.qualifier$$role.entity.name$($role.entity.identityColumnName$),
+$/ else
+            ) references $role.knot.qualifier$$role.knot.name$($role.knot.identityColumnName$),
+$/ endif
+$/ endfor
+$/ if not tie.identifiers
+$/ foreach role in tie.roles where role.isAnchorRole
+$/ if tie.isHistorized
+            constraint $tie.name$_uq$role.name$ unique (
+                $role.columnName$,
+                $tie.changingColumnName$
+            ),
+$/ else
+            constraint $tie.name$_uq$role.name$ unique (
+                $role.columnName$
+            ),
+$/ endif
+$/ endfor
+$/ endif
+            constraint pk$tie.name$ primary key (
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                $role.columnName$$/ if not role.last() or tie.isHistorized ,$/ endif
+$/ endfor
+$/ endif
+$/ if tie.isHistorized
+                $tie.changingColumnName$
+$/ endif
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ if tie.isDeletable
+-- Deletion table -----------------------------------------------------------------------------------------------------
+-- $tie.deletionName$ table (what was deleted from $tie.name$, and when)
+-- It has the columns of the tie table, without keys, and the time of the deletion.
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $tie.qualifier$$tie.deletionName$ (
+$/ foreach role in tie.roles
+            $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+            $tie.changingColumnName$ $tie.timeRange$ not null,
+$/ endif
+$/ if schema.METADATA
+            $tie.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if tie.isHistorized
+            $tie.deletionTimeColumnName$ $tie.timeRange$ not null
+$/ else
+            $tie.deletionTimeColumnName$ $schema.metadata.chronon$ not null
+$/ endif
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ endfor

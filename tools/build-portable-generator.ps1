@@ -14,7 +14,7 @@
 
     What a file holds:
 
-      AnchorGenerator.target                  the database, as the modeler names it (SQLServer, Snowflake, PostgreSQL, Vertica)
+      AnchorGenerator.target                  the database, as the modeler names it (SQLServer, Snowflake, PostgreSQL, Vertica, BigQuery, Oracle)
       AnchorGenerator.temporalizations        the ones that are generated for this database
       AnchorGenerator.generate(xml, t)        the SQL script, one string; throws an Error that says what is wrong with the model
       AnchorGenerator.bindings(xml, t)        the JSON bindings that the templates render (Generate > JSON bindings)
@@ -23,16 +23,16 @@
       AnchorGenerator.metadataElement()       the same, as the <metadata .../> element that a model starts with
       AnchorGenerator.version                 where it was built from
 
-    Only the databases whose templates are Sisula templates are built. BigQuery, Oracle and Vertica uni-temporal are still
-    sisulets in JavaScript (.js in the directive), which the modeler runs with the original Sisulator in a browser; they have no file.
+    Only the databases whose templates are Sisula templates can be built: SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery
+    and Oracle (a temporalization that still lists a .js sisulet in its directive is left out: Oracle has no bi-temporal one).
 
     Usage:
-      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica] [-Anchor <checkout>]
+      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery,Oracle] [-Anchor <checkout>]
 #>
 [CmdletBinding()]
 param(
     [string] $Output = '.',
-    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica'),
+    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica', 'BigQuery', 'Oracle'),
     [string] $Anchor
 )
 Set-StrictMode -Version 2.0
@@ -83,11 +83,15 @@ function ConvertTo-JsString([string] $text) {
 # the metadata of the models that the modeler has saved for each database).
 $settingsOf = @{
     Snowflake = [ordered]@{}
+    BigQuery = [ordered]@{ chronon = 'datetime'; equivalentRange = 'int64'; identity = 'int64'; metadataType = 'int64'; now = 'current_datetime()'
+        positIdentity = 'int64'; positorRange = 'int64'; reliabilityRange = 'numeric(5,2)' }
     SQLServer = [ordered]@{ changingRange = 'datetime2'; chronon = 'datetime2'; encapsulation = 'dbo'; now = 'sysdatetime()'; positingRange = 'datetime2' }
     PostgreSQL = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp'; equivalentRange = 'smallint'; identity = 'integer'; metadataType = 'integer'
         now = 'current_timestamp'; positIdentity = 'integer'; positingRange = 'timestamp'; positorRange = 'smallint' }
     Vertica = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp(9)'; identity = 'integer'; metadataType = 'integer'
         now = 'current_timestamp'; positIdentity = 'integer'; positingRange = 'timestamp' }
+    Oracle = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp(9)'; equivalentRange = 'number(3)'; identity = 'number(10)'; metadataType = 'number(10)'
+        now = 'current_timestamp'; positIdentity = 'number(10)'; positingRange = 'timestamp'; positorRange = 'number(3)'; reliabilityRange = 'number(5,2)' }
 }
 
 function Read-Directive([string] $database, [string] $temporalization) {

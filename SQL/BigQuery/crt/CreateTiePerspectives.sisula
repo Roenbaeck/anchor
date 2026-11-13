@@ -1,0 +1,344 @@
+-- TIE TEMPORAL PERSPECTIVES ------------------------------------------------------------------------------------------
+--
+-- BigQuery CRT tie perspectives: time traveling (t), latest (l), point-in-time (p),
+-- now (n), and difference (d).
+--
+$/ foreach tie in schema.ties
+$- only do perspectives if there are roles
+$/ if tie.roles
+-- Time traveling perspective -----------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`t$tie.name$` (
+    positor $schema.metadata.positorRange$,
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$,
+    assertion string
+)
+AS (
+SELECT
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `k$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `k$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`,
+$/ endfor
+$/ if tie.isHistorized
+    t.`$tie.changingColumnName$`,
+$/ endif
+    t.`$tie.positingColumnName$`,
+    t.`$tie.positorColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+    t.`$tie.assertionColumnName$`
+FROM (
+    -- the views of all positors are worked out, and the one asked for is picked last: the latest, point-in-time and now
+    -- perspectives call this one for each positor, and BigQuery cannot do that when the positor is used before a
+    -- window
+    SELECT
+        s.*
+    FROM (
+        SELECT
+            r.*$/ if tie.isHistorized ,$/ endif
+$/ if tie.isHistorized
+            -- the latest changing time with an assertion that is not a retraction, which supersedes those before it
+            -- whatever its sign
+            max(IF(r.`$tie.assertionColumnName$` <> '?', r.`$tie.changingColumnName$`, null)) OVER (
+                PARTITION BY
+                    r.`$tie.positorColumnName$`,
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                    r.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                    r.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+            ) AS `inEffect`
+$/ endif
+        FROM
+            $tie.capsule$.`r$tie.name$`(
+                CAST(null AS $schema.metadata.positorRange$),
+$/ if tie.isHistorized
+                CAST(changingTimepoint AS $tie.timeRange$),
+$/ endif
+                CAST(positingTimepoint AS $schema.metadata.positingRange$)
+            ) r
+    ) s
+    WHERE
+        s.`$tie.assertionColumnName$` = coalesce(assertion, s.`$tie.assertionColumnName$`)
+$/ if tie.isHistorized
+    AND ( -- asked for positive or negative assertions, only those at that changing time
+        coalesce(assertion, '?') = '?'
+    OR
+        s.`$tie.changingColumnName$` = s.`inEffect`
+    )
+$/ endif
+    QUALIFY -- picked by a window: BigQuery cannot evaluate a subquery that refers to the outer row and takes the first
+            -- row of an ordering
+$/ if tie.identifiers
+        -- the latest posit for the identifiers
+        row_number() OVER (
+            PARTITION BY
+                s.`$tie.positorColumnName$`,
+$/ foreach role in tie.identifiers
+                s.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+            ORDER BY
+$/ if tie.isHistorized
+                s.`$tie.changingColumnName$` DESC,
+$/ endif
+                s.`$tie.positingColumnName$` DESC,
+                s.`$tie.reliabilityColumnName$` DESC,
+                s.`$tie.identityColumnName$` DESC
+        ) = 1
+$/ else
+        -- a tie without identifiers is one to one: the latest posit for each of its anchors
+$/ foreach role in tie.anchorRoles
+        row_number() OVER (
+            PARTITION BY s.`$tie.positorColumnName$`, s.`$role.columnName$`
+            ORDER BY
+$/ if tie.isHistorized
+                s.`$tie.changingColumnName$` DESC,
+$/ endif
+                s.`$tie.positingColumnName$` DESC,
+                s.`$tie.reliabilityColumnName$` DESC,
+                s.`$tie.identityColumnName$` DESC
+        ) = 1
+$/ if not role.last()
+    AND
+$/ endif
+$/ endfor
+$/ endif
+) t
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.`$role.knot.name$` `k$role.name$`
+ON
+    `k$role.name$`.`$role.knot.identityColumnName$` = t.`$role.columnName$`
+$/ endfor
+WHERE
+    t.`$tie.positorColumnName$` = positor
+)
+;
+-- Latest perspective -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.`l$tie.name$` AS
+SELECT
+    p.`$schema.metadata.positorSuffix$`,
+    cast(null as $schema.metadata.reliabilityRange$) AS `$schema.metadata.reliabilitySuffix$`,
+    t.*
+FROM
+    $schema.metadata.encapsulation$.`_$schema.metadata.positorSuffix$` p,
+    $tie.capsule$.`t$tie.name$`(
+        p.`$schema.metadata.positorSuffix$`,
+        CAST($schema.EOT$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$),
+        '+'
+    ) t
+;
+-- Point-in-time perspective ------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`p$tie.name$` (
+    changingTimepoint $schema.metadata.chronon$
+)
+AS (
+SELECT
+    p.`$schema.metadata.positorSuffix$`,
+    cast(null as $schema.metadata.reliabilityRange$) AS `$schema.metadata.reliabilitySuffix$`,
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    t.`$role.knotChecksumColumnName$`,
+$/ endif
+    t.`$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    t.`$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`,
+$/ endfor
+$/ if tie.isHistorized
+    t.`$tie.changingColumnName$`,
+$/ endif
+    t.`$tie.positingColumnName$`,
+    t.`$tie.positorColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+    t.`$tie.assertionColumnName$`
+FROM
+    $schema.metadata.encapsulation$.`_$schema.metadata.positorSuffix$` p,
+    $tie.capsule$.`t$tie.name$`(
+        p.`$schema.metadata.positorSuffix$`,
+        CAST(changingTimepoint AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$),
+        '+'
+    ) t
+)
+;
+-- Now perspective ----------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW $tie.capsule$.`n$tie.name$` AS
+SELECT
+    p.`$schema.metadata.positorSuffix$`,
+    cast(null as $schema.metadata.reliabilityRange$) AS `$schema.metadata.reliabilitySuffix$`,
+    t.*
+FROM
+    $schema.metadata.encapsulation$.`_$schema.metadata.positorSuffix$` p,
+    $tie.capsule$.`t$tie.name$`(
+        p.`$schema.metadata.positorSuffix$`,
+        CAST($schema.metadata.now$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$),
+        '+'
+    ) t
+;
+$/ if tie.isHistorized
+-- Difference perspective ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`d$tie.name$` (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$
+)
+AS (
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now, for each
+-- positor: the posit shown at each changing time is joined with the changing time until which it holds, when the next
+-- changing time with an assertion that is not a retraction is. BigQuery cannot call the time-traveling perspective
+-- for each change, since it cannot evaluate a function with a window over its argument for each row of another table.
+SELECT
+    p.`$schema.metadata.positorSuffix$`,
+    tp.inspectedTimepoint,
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `k$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `k$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`,
+$/ endfor
+    t.`$tie.changingColumnName$`,
+    t.`$tie.positingColumnName$`,
+    t.`$tie.positorColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+    t.`$tie.assertionColumnName$`
+FROM
+    $schema.metadata.encapsulation$.`_$schema.metadata.positorSuffix$` p
+JOIN (
+    SELECT DISTINCT
+        `$tie.positorColumnName$` AS positor,
+        CAST(`$tie.changingColumnName$` AS $schema.metadata.chronon$) AS inspectedTimepoint
+    FROM
+        $tie.capsule$.`$tie.name$`
+    WHERE
+        `$tie.changingColumnName$` BETWEEN intervalStart AND intervalEnd
+) tp
+ON
+    tp.positor = p.`$schema.metadata.positorSuffix$`
+JOIN (
+    SELECT
+        y.*,
+        lead(y.`$tie.changingColumnName$`) OVER (
+            PARTITION BY
+                y.`$tie.positorColumnName$`,
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                y.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                y.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+$/ endif
+            ORDER BY y.`$tie.changingColumnName$`
+        ) AS `until`
+    FROM (
+        -- one posit for each changing time with an assertion that is not a retraction: the positive one that is shown
+        -- if there is one, and otherwise a negative one, which means that nothing is shown from that time on
+        SELECT
+            r.*
+        FROM
+            $tie.capsule$.`r$tie.name$`(
+                CAST(null AS $schema.metadata.positorRange$),
+                CAST($schema.EOT$ AS $tie.timeRange$),
+                CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+            ) r
+        WHERE
+            r.`$tie.assertionColumnName$` <> '?'
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY
+                    r.`$tie.positorColumnName$`,
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+                    r.`$role.columnName$`,
+$/ endfor
+$/ else
+$/ foreach role in tie.roles
+                    r.`$role.columnName$`,
+$/ endfor
+$/ endif
+                    r.`$tie.changingColumnName$`
+                ORDER BY
+                    IF(r.`$tie.assertionColumnName$` = '+', 0, 1),
+                    r.`$tie.positingColumnName$` DESC,
+                    r.`$tie.reliabilityColumnName$` DESC,
+                    r.`$tie.identityColumnName$` DESC
+            ) = 1
+    ) y
+) t
+ON
+    t.`$tie.positorColumnName$` = tp.positor
+AND
+    t.`$tie.assertionColumnName$` = '+'
+AND
+    t.`$tie.changingColumnName$` <= CAST(tp.inspectedTimepoint AS $tie.timeRange$)
+AND (
+    t.`until` IS NULL
+OR
+    t.`until` > CAST(tp.inspectedTimepoint AS $tie.timeRange$)
+)
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.`$role.knot.name$` `k$role.name$`
+ON
+    `k$role.name$`.`$role.knot.identityColumnName$` = t.`$role.columnName$`
+$/ endfor
+$/ if not tie.identifiers
+WHERE
+    TRUE
+QUALIFY -- a tie without identifiers is one to one: of the posits shown at the time, the latest for each of its anchors
+$/ foreach role in tie.anchorRoles
+    row_number() OVER (
+        PARTITION BY tp.positor, tp.inspectedTimepoint, t.`$role.columnName$`
+        ORDER BY
+            t.`$tie.changingColumnName$` DESC,
+            t.`$tie.positingColumnName$` DESC,
+            t.`$tie.reliabilityColumnName$` DESC,
+            t.`$tie.identityColumnName$` DESC
+    ) = 1
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
+)
+;
+$/ endif
+$/ endif
+$/ endfor

@@ -1,30 +1,22 @@
-# This is the processing directive for uni-temporal Anchor Modeling in SQL Server
+# This is the processing directive for uni-temporal Anchor Modeling in Vertica
+#
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+#
+# Vertica has no function that returns a table, so only the latest and the now perspectives are made. It has no
+# triggers either, and no equivalence (the table says so in SQL/Helpers.js).
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Vertica/NamingConvention.js
-SQL/Vertica/uni/CreateEquivalentAndDefault.js
-SQL/Vertica/uni/CreateKnots.js
-SQL/Vertica/uni/CreateAnchors.js
-SQL/Vertica/uni/CreateNexuses.js
-SQL/Vertica/uni/CreateAttributes.js
-SQL/Vertica/uni/CreateTies.js
-# The rewinders and the perspectives below were SQL Server's T-SQL; they are not run until they are written for Vertica (bi and crt have views, see Vertica_bi.directive)
-# to be done later
-#SQL/Vertica/uni/CreateKnotEquivalenceViews.js
-#SQL/Vertica/uni/CreateAttributeEquivalenceViews.js
-#SQL/Vertica/uni/AddAttributeRestatementConstraints.js
-#SQL/Vertica/uni/CreateKeyGenerators.js
-#SQL/Vertica/uni/CreateAttributeRewinders.js
-#SQL/Vertica/biz/DropAnchorBusinessPerspectives.js
-#SQL/Vertica/uni/CreateAnchorPerspectives.js
-#SQL/Vertica/uni/CreateNexusPerspectives.js
-#SQL/Vertica/biz/CreateAnchorBusinessPerspectives.js
-#SQL/Vertica/uni/CreateAttributeTriggers.js
-#SQL/Vertica/uni/CreateAnchorTriggers.js
-#SQL/Vertica/uni/AddTieRestatementConstraints.js
-#SQL/Vertica/biz/DropTieBusinessPerspectives.js
-#SQL/Vertica/uni/CreateTiePerspectives.js
-#SQL/Vertica/biz/CreateTieBusinessPerspectives.js
-#SQL/Vertica/uni/CreateTieTriggers.js
-#SQL/Vertica/CreateSchemaTracking.js
-#SQL/Vertica/uni/AddDescriptions.js
+SQL/Vertica/derive.js
+SQL/Vertica/CreateSchemas.sisula
+SQL/Vertica/uni/CreateKnots.sisula
+SQL/Vertica/uni/CreateAnchors.sisula
+SQL/Vertica/uni/CreateNexuses.sisula
+SQL/Vertica/uni/CreateAttributes.sisula
+SQL/Vertica/uni/CreateTies.sisula
+SQL/Vertica/uni/CreateAnchorPerspectives.sisula
+SQL/Vertica/uni/CreateNexusPerspectives.sisula
+SQL/Vertica/uni/CreateTiePerspectives.sisula
+SQL/Vertica/AddDescriptions.sisula

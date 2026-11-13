@@ -1,0 +1,44 @@
+-- ATTRIBUTE REWINDERS ------------------------------------------------------------------------------------------------
+--
+-- These SQL table macros rewind an attribute table to the given
+-- point in changing time. It does not pick a temporal perspective and
+-- instead shows all rows that have been in effect before that point
+-- in time.
+--
+-- A SQL table macro (SQL_MACRO, Oracle Database 19.7 or later) is a function that returns the text of a query, in which
+-- its parameters stand for the values given. It is called in the FROM clause of a query, like a table:
+-- SELECT * FROM rAC_NAM_Actor_Name(TIMESTAMP '2020-01-01 00:00:00').
+--
+-- @changingTimepoint the point in changing time to rewind to
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.isHistorized
+-- Attribute rewinder -------------------------------------------------------------------------------------------------
+-- r$attribute.name$ rewinding over changing time function
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $attribute.qualifier$r$attribute.name$ (
+    changingTimepoint IN $attribute.timeRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.entityReferenceName$,
+$/ if not attribute.isKnotted and attribute.hasChecksum
+            $attribute.checksumColumnName$,
+$/ endif
+            $attribute.valueColumnName$,
+            $attribute.changingColumnName$
+        FROM
+            $attribute.qualifier$$attribute.name$
+        WHERE
+            $attribute.changingColumnName$ <= changingTimepoint
+    ]';
+END r$attribute.name$;
+/
+$/ endif
+$/ endfor

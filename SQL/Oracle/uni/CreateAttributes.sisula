@@ -1,0 +1,162 @@
+-- ATTRIBUTES ---------------------------------------------------------------------------------------------------------
+--
+-- Attributes are mutable properties on anchors or nexuses.
+-- Attributes have four flavors: static, historized, knotted static, and knotted historized.
+--
+-- An attribute that may be deleted (deletability) also has a deletion table, which holds what was deleted and when.
+-- Oracle cannot make a table in a trigger without ending the transaction, so these are made here, not when needed.
+--
+$/ foreach attribute in schema.attributes
+$/ if attribute.ignoredEncryptionGroup
+-- $attribute.name$ is in the encryption group $attribute.ignoredEncryptionGroup$, which is not used: this database does not encrypt
+-- in this temporalization, so the values are stored as they are
+$/ endif
+$/ if attribute.isHistorized and not attribute.isKnotted
+-- Historized attribute table -----------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $attribute.qualifier$$attribute.name$ (
+            $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+            $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+            $attribute.checksumColumnName$ raw(16) generated always as (standard_hash($attribute.valueColumnName$, 'MD5')) virtual,
+$/ endif
+            $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+            $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+            constraint fk$attribute.name$ foreign key (
+                $attribute.entityReferenceName$
+            ) references $attribute.parent.qualifier$$attribute.parent.name$($attribute.parent.identityColumnName$),
+            constraint pk$attribute.name$ primary key (
+                $attribute.entityReferenceName$,
+                $attribute.changingColumnName$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ if attribute.isHistorized and attribute.isKnotted
+-- Knotted historized attribute table ---------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $attribute.qualifier$$attribute.name$ (
+            $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+            $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+            $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ if schema.METADATA
+            $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+            constraint fk_A_$attribute.name$ foreign key (
+                $attribute.entityReferenceName$
+            ) references $attribute.parent.qualifier$$attribute.parent.name$($attribute.parent.identityColumnName$),
+            constraint fk_K_$attribute.name$ foreign key (
+                $attribute.knotReferenceName$
+            ) references $attribute.knot.qualifier$$attribute.knot.name$($attribute.knot.identityColumnName$),
+            constraint pk$attribute.name$ primary key (
+                $attribute.entityReferenceName$,
+                $attribute.changingColumnName$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ if not attribute.isHistorized and attribute.isKnotted
+-- Knotted static attribute table -------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $attribute.qualifier$$attribute.name$ (
+            $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+            $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+$/ if schema.METADATA
+            $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+            constraint fk_A_$attribute.name$ foreign key (
+                $attribute.entityReferenceName$
+            ) references $attribute.parent.qualifier$$attribute.parent.name$($attribute.parent.identityColumnName$),
+            constraint fk_K_$attribute.name$ foreign key (
+                $attribute.knotReferenceName$
+            ) references $attribute.knot.qualifier$$attribute.knot.name$($attribute.knot.identityColumnName$),
+            constraint pk$attribute.name$ primary key (
+                $attribute.entityReferenceName$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ if not attribute.isHistorized and not attribute.isKnotted
+-- Static attribute table ---------------------------------------------------------------------------------------------
+-- $attribute.name$ table (on $attribute.parent.name$)
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $attribute.qualifier$$attribute.name$ (
+            $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+            $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ if attribute.hasChecksum
+            $attribute.checksumColumnName$ raw(16) generated always as (standard_hash($attribute.valueColumnName$, 'MD5')) virtual,
+$/ endif
+$/ if schema.METADATA
+            $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+            constraint fk$attribute.name$ foreign key (
+                $attribute.entityReferenceName$
+            ) references $attribute.parent.qualifier$$attribute.parent.name$($attribute.parent.identityColumnName$),
+            constraint pk$attribute.name$ primary key (
+                $attribute.entityReferenceName$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ if attribute.isDeletable
+-- Deletion table -----------------------------------------------------------------------------------------------------
+-- $attribute.deletionName$ table (what was deleted from $attribute.name$, and when)
+-- It has the columns of the attribute table, without keys and without the checksum, and the time of the deletion.
+-----------------------------------------------------------------------------------------------------------------------
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $attribute.qualifier$$attribute.deletionName$ (
+            $attribute.entityReferenceName$ $attribute.parent.identity$ not null,
+$/ if attribute.isKnotted
+            $attribute.knotReferenceName$ $attribute.knot.identity$ not null,
+$/ else
+            $attribute.valueColumnName$ $attribute.dataRange$ not null,
+$/ endif
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$ $attribute.timeRange$ not null,
+$/ endif
+$/ if schema.METADATA
+            $attribute.metadataColumnName$ $schema.metadata.metadataType$ not null,
+$/ endif
+$/ if attribute.isHistorized
+            $attribute.deletionTimeColumnName$ $attribute.timeRange$ not null
+$/ else
+            $attribute.deletionTimeColumnName$ $schema.metadata.chronon$ not null
+$/ endif
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+$/ endfor

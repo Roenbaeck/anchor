@@ -1,0 +1,375 @@
+$/ if schema.TRIGGERS
+-- NEXUS TRIGGERS ---------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent attributes, only changes that represent a value different from the previous or following value are
+-- stored. Others are silently ignored in order to avoid unnecessary temporal duplicates (the insert procedures of the
+-- attributes, ip_<attribute>, see to that).
+--
+-- Oracle runs a trigger of this kind for each row, so a statement is a row at a time. Whether a column is set in an UPDATE
+-- is told from whether it has another value than the row had.
+--
+-- Two values are different when one is not null and the other is, or when they are not equal; PL/SQL has no IS DISTINCT FROM.
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it_l$nexus.name$ instead of INSERT trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$it_l$nexus.name$
+INSTEAD OF INSERT ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+    v_id $nexus.identity$;
+$/ foreach role in nexus.roles
+$/ if role.knot
+    v_$role.name$ $role.knot.identity$;
+$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    v_id := :NEW.$nexus.identityColumnName$;
+    IF v_id IS NULL THEN
+$/ foreach role in nexus.roles
+$/ if role.knot
+        -- the identity of the knot value of the role, given as it is or looked up from the value
+        v_$role.name$ := :NEW.$role.columnName$;
+        IF v_$role.name$ IS NULL AND :NEW.$role.knotValueColumnName$ IS NOT NULL THEN
+            FOR kv IN (
+                SELECT
+                    k.$role.knot.identityColumnName$
+                FROM
+                    $role.knot.qualifier$$role.knot.name$ k
+                WHERE
+$/ if role.knot.hasChecksum
+                    k.$role.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$role.knotValueColumnName$, 'MD5')
+$/ else
+                    k.$role.knot.valueColumnName$ = :NEW.$role.knotValueColumnName$
+$/ endif
+                FETCH FIRST 1 ROW ONLY
+            ) LOOP
+                v_$role.name$ := kv.$role.knot.identityColumnName$;
+            END LOOP;
+        END IF;
+$/ endif
+$/ endfor
+        INSERT INTO $nexus.qualifier$$nexus.name$ (
+$/ foreach role in nexus.roles
+            $role.columnName$,
+$/ endfor
+$/ if schema.METADATA
+            $nexus.metadataColumnName$
+$/ else
+            $nexus.dummyColumnName$
+$/ endif
+        )
+        VALUES (
+$/ foreach role in nexus.roles
+$/ if role.knot
+            v_$role.name$,
+$/ else
+            :NEW.$role.columnName$,
+$/ endif
+$/ endfor
+$/ if schema.METADATA
+            :NEW.$nexus.metadataColumnName$
+$/ else
+            NULL
+$/ endif
+        )
+        RETURNING $nexus.identityColumnName$ INTO v_id;
+    END IF;
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ := :NEW.$attribute.valueColumnName$;
+    IF v_$attribute.mnemonic$ IS NULL AND :NEW.$attribute.knotValueColumnName$ IS NOT NULL THEN
+        FOR kv IN (
+            SELECT
+                k.$attribute.knot.identityColumnName$
+            FROM
+                $attribute.knot.qualifier$$attribute.knot.name$ k
+            WHERE
+$/ if attribute.knot.hasChecksum
+                k.$attribute.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$attribute.knotValueColumnName$, 'MD5')
+$/ else
+                k.$attribute.knot.valueColumnName$ = :NEW.$attribute.knotValueColumnName$
+$/ endif
+            FETCH FIRST 1 ROW ONLY
+        ) LOOP
+            v_$attribute.mnemonic$ := kv.$attribute.knot.identityColumnName$;
+        END LOOP;
+    END IF;
+    IF v_$attribute.mnemonic$ IS NOT NULL THEN
+$/ else
+    IF :NEW.$attribute.valueColumnName$ IS NOT NULL THEN
+$/ endif
+        $attribute.qualifier$ip_$attribute.name$(
+            p_owner => COALESCE(:NEW.$attribute.entityReferenceName$, v_id),
+$/ if attribute.isHistorized
+            p_changing => COALESCE(:NEW.$attribute.changingColumnName$, v_now),
+$/ endif
+$/ if schema.METADATA
+$/ if attribute.isKnotted
+            p_value => v_$attribute.mnemonic$,
+$/ else
+            p_value => :NEW.$attribute.valueColumnName$,
+$/ endif
+            p_metadata => COALESCE(:NEW.$attribute.metadataColumnName$, :NEW.$nexus.metadataColumnName$)
+$/ else
+$/ if attribute.isKnotted
+            p_value => v_$attribute.mnemonic$
+$/ else
+            p_value => :NEW.$attribute.valueColumnName$
+$/ endif
+$/ endif
+        );
+    END IF;
+$/ endfor
+END it_l$nexus.name$;
+/
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut_l$nexus.name$ instead of UPDATE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$ut_l$nexus.name$
+INSTEAD OF UPDATE ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+DECLARE
+    v_now $schema.metadata.chronon$ := CAST($schema.metadata.now$ AS $schema.metadata.chronon$);
+$/ foreach attribute in nexus.attributes
+$/ if attribute.isKnotted
+    v_$attribute.mnemonic$ $attribute.knot.identity$;
+$/ endif
+$/ endfor
+BEGIN
+    IF (:NEW.$nexus.identityColumnName$ <> :OLD.$nexus.identityColumnName$
+        OR (:NEW.$nexus.identityColumnName$ IS NULL AND :OLD.$nexus.identityColumnName$ IS NOT NULL)
+        OR (:NEW.$nexus.identityColumnName$ IS NOT NULL AND :OLD.$nexus.identityColumnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The identity column $nexus.identityColumnName$ is not updatable.');
+    END IF;
+$/ foreach role in nexus.roles
+    IF (:NEW.$role.columnName$ <> :OLD.$role.columnName$
+        OR (:NEW.$role.columnName$ IS NULL AND :OLD.$role.columnName$ IS NOT NULL)
+        OR (:NEW.$role.columnName$ IS NOT NULL AND :OLD.$role.columnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The role column $role.columnName$ is not updatable.');
+    END IF;
+$/ if role.knot
+    IF (:NEW.$role.knotValueColumnName$ <> :OLD.$role.knotValueColumnName$
+        OR (:NEW.$role.knotValueColumnName$ IS NULL AND :OLD.$role.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$role.knotValueColumnName$ IS NOT NULL AND :OLD.$role.knotValueColumnName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The role column $role.knotValueColumnName$ is not updatable.');
+    END IF;
+$/ endif
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    IF (:NEW.$attribute.entityReferenceName$ <> :OLD.$attribute.entityReferenceName$
+        OR (:NEW.$attribute.entityReferenceName$ IS NULL AND :OLD.$attribute.entityReferenceName$ IS NOT NULL)
+        OR (:NEW.$attribute.entityReferenceName$ IS NOT NULL AND :OLD.$attribute.entityReferenceName$ IS NULL)) THEN
+        RAISE_APPLICATION_ERROR(-20003, 'The foreign key column $attribute.entityReferenceName$ is not updatable.');
+    END IF;
+$/ endif
+$/ if attribute.isKnotted
+    IF (:NEW.$attribute.valueColumnName$ <> :OLD.$attribute.valueColumnName$
+        OR (:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL))
+    OR (:NEW.$attribute.knotValueColumnName$ <> :OLD.$attribute.knotValueColumnName$
+        OR (:NEW.$attribute.knotValueColumnName$ IS NULL AND :OLD.$attribute.knotValueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.knotValueColumnName$ IS NOT NULL AND :OLD.$attribute.knotValueColumnName$ IS NULL))
+$/ if attribute.isHistorized
+    OR (:NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+        OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL))
+$/ endif
+    THEN
+        -- the identity of the knot value, given as it is or looked up from the value
+        v_$attribute.mnemonic$ := :NEW.$attribute.valueColumnName$;
+        IF (v_$attribute.mnemonic$ = :OLD.$attribute.valueColumnName$ OR (v_$attribute.mnemonic$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NULL))
+        AND :NEW.$attribute.knotValueColumnName$ IS NOT NULL THEN
+            FOR kv IN (
+                SELECT
+                    k.$attribute.knot.identityColumnName$
+                FROM
+                    $attribute.knot.qualifier$$attribute.knot.name$ k
+                WHERE
+$/ if attribute.knot.hasChecksum
+                    k.$attribute.knot.checksumColumnName$ = STANDARD_HASH(:NEW.$attribute.knotValueColumnName$, 'MD5')
+$/ else
+                    k.$attribute.knot.valueColumnName$ = :NEW.$attribute.knotValueColumnName$
+$/ endif
+                FETCH FIRST 1 ROW ONLY
+            ) LOOP
+                v_$attribute.mnemonic$ := kv.$attribute.knot.identityColumnName$;
+            END LOOP;
+        END IF;
+        -- a value that is left as it is states nothing
+        IF v_$attribute.mnemonic$ IS NOT NULL AND (
+$/ if attribute.isHistorized
+            (:NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+                OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+                OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL)) OR
+$/ endif
+            :OLD.$attribute.valueColumnName$ IS NULL OR
+            :OLD.$attribute.valueColumnName$ <> v_$attribute.mnemonic$
+        ) THEN
+$/ else
+$/ if attribute.compareAsLob
+    IF (DBMS_LOB.COMPARE(:NEW.$attribute.valueColumnName$, :OLD.$attribute.valueColumnName$) <> 0
+        OR (:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL))
+$/ endif
+$/ if attribute.compareAsXml
+    IF (DBMS_LOB.COMPARE(:NEW.$attribute.valueColumnName$.getClobVal(), :OLD.$attribute.valueColumnName$.getClobVal()) <> 0
+        OR (:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL))
+$/ endif
+$/ if attribute.compareByChecksum or attribute.compareAsIs
+    IF (:NEW.$attribute.valueColumnName$ <> :OLD.$attribute.valueColumnName$
+        OR (:NEW.$attribute.valueColumnName$ IS NULL AND :OLD.$attribute.valueColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.valueColumnName$ IS NOT NULL AND :OLD.$attribute.valueColumnName$ IS NULL))
+$/ endif
+$/ if attribute.isHistorized
+    OR (:NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+        OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+        OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL))
+$/ endif
+    THEN
+        -- a value that is left as it is states nothing; what is stated is a value that is not null
+        IF :NEW.$attribute.valueColumnName$ IS NOT NULL THEN
+$/ endif
+            $attribute.qualifier$ip_$attribute.name$(
+                p_owner => COALESCE(:NEW.$attribute.entityReferenceName$, :NEW.$nexus.identityColumnName$),
+$/ if attribute.isHistorized
+                p_changing => CASE
+                    WHEN (:NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+                        OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+                        OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL))
+                    THEN :NEW.$attribute.changingColumnName$
+                    ELSE v_now
+                END,
+$/ endif
+$/ if schema.METADATA
+$/ if attribute.isKnotted
+                p_value => v_$attribute.mnemonic$,
+$/ else
+                p_value => :NEW.$attribute.valueColumnName$,
+$/ endif
+                p_metadata => COALESCE(
+                    CASE
+                        WHEN (:NEW.$nexus.metadataColumnName$ <> :OLD.$nexus.metadataColumnName$
+                            OR (:NEW.$nexus.metadataColumnName$ IS NULL AND :OLD.$nexus.metadataColumnName$ IS NOT NULL)
+                            OR (:NEW.$nexus.metadataColumnName$ IS NOT NULL AND :OLD.$nexus.metadataColumnName$ IS NULL))
+                        AND (:NEW.$attribute.metadataColumnName$ = :OLD.$attribute.metadataColumnName$
+                            OR (:NEW.$attribute.metadataColumnName$ IS NULL AND :OLD.$attribute.metadataColumnName$ IS NULL))
+                        THEN :NEW.$nexus.metadataColumnName$
+                        ELSE :NEW.$attribute.metadataColumnName$
+                    END, :NEW.$nexus.metadataColumnName$)
+$/ else
+$/ if attribute.isKnotted
+                p_value => v_$attribute.mnemonic$
+$/ else
+                p_value => :NEW.$attribute.valueColumnName$
+$/ endif
+$/ endif
+            );
+        END IF;
+    END IF;
+$/ if attribute.isDeletable
+    -- a null on a deletable attribute moves what the entity has of it to the deletion table
+    IF :NEW.$attribute.deletableColumnName$ = 1
+    AND :OLD.$attribute.valueColumnName$ IS NOT NULL
+$/ if attribute.isKnotted
+    AND (:NEW.$attribute.valueColumnName$ IS NULL OR :NEW.$attribute.knotValueColumnName$ IS NULL)
+$/ else
+    AND :NEW.$attribute.valueColumnName$ IS NULL
+$/ endif
+    THEN
+        INSERT INTO $attribute.qualifier$$attribute.deletionName$ (
+            $attribute.entityReferenceName$,
+            $attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            $attribute.changingColumnName$,
+$/ endif
+$/ if schema.METADATA
+            $attribute.metadataColumnName$,
+$/ endif
+            $attribute.deletionTimeColumnName$
+        )
+        SELECT
+            x.$attribute.entityReferenceName$,
+            x.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+            x.$attribute.changingColumnName$,
+$/ endif
+$/ if schema.METADATA
+            x.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.isHistorized
+            CAST(CASE WHEN :NEW.$attribute.changingColumnName$ <> :OLD.$attribute.changingColumnName$
+                    OR (:NEW.$attribute.changingColumnName$ IS NULL AND :OLD.$attribute.changingColumnName$ IS NOT NULL)
+                    OR (:NEW.$attribute.changingColumnName$ IS NOT NULL AND :OLD.$attribute.changingColumnName$ IS NULL)
+                THEN :NEW.$attribute.changingColumnName$ ELSE v_now END AS $attribute.timeRange$)
+$/ else
+            v_now
+$/ endif
+        FROM
+            $attribute.qualifier$$attribute.name$ x
+        WHERE
+            x.$attribute.entityReferenceName$ = :OLD.$nexus.identityColumnName$;
+        DELETE FROM
+            $attribute.qualifier$$attribute.name$
+        WHERE
+            $attribute.entityReferenceName$ = :OLD.$nexus.identityColumnName$;
+    END IF;
+$/ endif
+$/ endfor
+END ut_l$nexus.name$;
+/
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt_l$nexus.name$ instead of DELETE trigger on l$nexus.name$
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE TRIGGER $nexus.qualifier$dt_l$nexus.name$
+INSTEAD OF DELETE ON $nexus.qualifier$l$nexus.name$
+FOR EACH ROW
+BEGIN
+$/ foreach attribute in nexus.attributes
+    DELETE FROM
+        $attribute.qualifier$$attribute.name$ x
+    WHERE
+        x.$attribute.entityReferenceName$ = :OLD.$nexus.identityColumnName$
+$/ if attribute.isHistorized
+    AND
+        x.$attribute.changingColumnName$ = :OLD.$attribute.changingColumnName$
+$/ endif
+    ;
+$/ endfor
+    -- a nexus that has no attribute rows left is removed
+    DELETE FROM
+        $nexus.qualifier$$nexus.name$ a
+    WHERE
+        a.$nexus.identityColumnName$ = :OLD.$nexus.identityColumnName$
+$/ foreach attribute in nexus.attributes
+    AND NOT EXISTS (
+        SELECT
+            1
+        FROM
+            $attribute.qualifier$$attribute.name$ x
+        WHERE
+            x.$attribute.entityReferenceName$ = a.$nexus.identityColumnName$
+    )
+$/ endfor
+    ;
+END dt_l$nexus.name$;
+/
+$/ endif
+$/ endfor
+$/ endif

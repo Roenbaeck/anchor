@@ -439,10 +439,10 @@ perspectives differ.
 
 Some features are implemented only for some databases and temporalizations:
 
-| Feature | SQL Server uni | SQL Server bi, crt | Snowflake uni | Snowflake bi, crt | PostgreSQL uni | PostgreSQL bi, crt | Vertica bi, crt |
-|---|---|---|---|---|---|---|---|
-| Equivalence | yes | no | yes | no | yes | no | no |
-| Encryption groups | yes | no | no | no | no | no | no |
+| Feature | SQL Server uni | SQL Server bi, crt | Snowflake uni | Snowflake bi, crt | PostgreSQL uni | PostgreSQL bi, crt | Vertica | BigQuery | Oracle |
+|---|---|---|---|---|---|---|---|---|---|
+| Equivalence | yes | no | yes | no | yes | no | no | no | no |
+| Encryption groups | yes | no | no | no | no | no | no | no | no |
 
 Where a feature is not implemented, the generator ignores it, as if the model did not have it:
 - No knot or attribute is equivalent.
@@ -455,9 +455,9 @@ type, the default encryption group, and the Equivalent and Encryption group fiel
 identifiers. What a model already says about them stays in it (saving writes it out), and the modeler logs in the
 browser's console how many items have it, since the generated SQL ignores it.
 
-### PostgreSQL and Vertica, bi and crt
+### PostgreSQL and Vertica
 
-The bi and crt generators of PostgreSQL and Vertica are Sisula templates over the JSON bindings, like Snowflake's, in each database's
+The generators of PostgreSQL and Vertica (bi and crt, and Vertica uni) are Sisula templates over the JSON bindings, like Snowflake's, in each database's
 own SQL. They make the tables of knots, anchors, nexuses, attributes and ties (the posit and annex tables of attributes and ties),
 the assembled views, the rewinders and the perspectives, the schemas that the model names, and the descriptions as comments. Vertica makes no triggers, so data is loaded into the tables, as it
 is in Snowflake; PostgreSQL makes them (see below).
@@ -474,8 +474,61 @@ is in Snowflake; PostgreSQL makes them (see below).
   keys (`key_`, `pkey_` and `ic_key_`, see "Keys and identifiers") are made in all three temporalizations; they have no key
   tables, and uniqueness is checked by `ic_key_`, since a key is not a primary key.
 - **Vertica** has no function that returns a table, so the rewinders are views that show what is known now (`r` before the name of an
-  attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made. The uni-temporal generator makes the tables
-  only; the original rewinders and perspectives were SQL Server's T-SQL and are not run.
+  attribute or tie) and only the latest (`l`) and the now (`n`) perspectives are made, in all three temporalizations (uni has
+  the tables and the two views of anchors, nexuses and ties, over the tables themselves).
+
+### BigQuery
+
+The generators of BigQuery (GoogleSQL) are Sisula templates for uni, bi and crt, made from Snowflake's and then by hand where BigQuery
+differs. A dataset is the schema. What BigQuery does not have shapes the SQL:
+
+- **No sequences and no identity column** that is generally available, so the load gives an identity to every anchor, nexus, knot and
+  posit (`generator` in the model has no effect).
+- **No unique constraints**, and primary and foreign keys are `NOT ENFORCED` (a primary key is written first in the table, the foreign
+  keys after it). What is unique is kept so by the load, and the integrity checks (`ic_<table>`, `IntegrityViolations`) say when it
+  is not, as they do in Snowflake.
+- **No computed column**: a checksum is a plain `int64` column that the load fills in (`FARM_FINGERPRINT` of the value), and the
+  assertion of a crt annex row (+, ? or -) is computed from its reliability where an annex is read.
+- **Table functions** (`CREATE TABLE FUNCTION ... AS (query)`) for the rewinders and the perspectives that take a time, with no
+  `RETURNS` clause, so the columns are the query's. A table function cannot be called for each row of another table, and a join
+  condition cannot have a correlated subquery: a historized attribute is joined through a derived table that keeps the latest row of
+  each owner (`QUALIFY`, which has a `WHERE TRUE` before it where there is no other `WHERE`).
+- Descriptions are `OPTIONS(description='...')`, and `ALTER ... SET OPTIONS` for the tables and columns; a backslash and a single
+  quote in a description are escaped with a backslash.
+- The natural keys (`key_`, `pkey_`, `ic_key_`) are made as in Snowflake, with the key of a violation as text (`TO_JSON_STRING`). There
+  is no equivalence.
+
+None of it has been run on BigQuery. It is linted (`tools/lint-sql.ps1` knows BigQuery) and generates in the modeler and in the portable
+generator, but BigQuery's own parser has not seen it: expect to find what it rejects by running it, as Snowflake's and PostgreSQL's
+SQL taught.
+
+### Oracle
+
+The Oracle generators (uni and crt; bi says it is not supported) are Sisula templates over the JSON bindings, written for **Oracle
+Database 19.7 or later** from PostgreSQL's (the same tables, views, functions, triggers and keys), in Oracle's own SQL and PL/SQL. They
+have been parsed (`tools/oracle-syntax.ps1` in the sisula repository runs the PL/SQL grammar of ANTLR on every model's script, and
+`tools/oracle-tests/` has the checks to run on a server), but **they have not been run on an Oracle server**: expect to find what Oracle
+rejects by running them, as Snowflake's and PostgreSQL's SQL taught. What was decided, and why:
+
+- **Names** are not quoted: Oracle folds them to upper case, so the objects can be written in any case in queries. A name is at most 128
+  bytes (12.2 or later) and cannot start with an underscore, so the table of positors in crt is `Positor_` where PostgreSQL has `_Positor`;
+  a mnemonic can be a word that Oracle reserves, so table aliases are written inside double quotes.
+- **Schemas** are users, which a script cannot sensibly create: `CreateSchemas` only lists the ones the model uses. A model whose schema
+  is `public` (what a model from another database has), or none, makes everything in the schema that the script is run in.
+- **A script can be run again**: tables and sequences are made in a block that lets `ORA-00955` (the name is used) pass; views,
+  functions, procedures and triggers are `CREATE OR REPLACE`.
+- **Perspectives**: the latest and now perspectives are views, and the point-in-time, difference and time-traveling ones are SQL table
+  macros (`SQL_MACRO`, 19.7 or later), which are called in a `FROM` clause. Oracle does not take a subquery in the `ON` of a
+  `LEFT JOIN`, so the latest version of an attribute is joined as an inline view.
+- **Triggers**: the latest views have `INSTEAD OF` triggers, as in PostgreSQL. Oracle does not let a row trigger read the table it is
+  on (`ORA-04091`), which the rules of the attribute and tie tables (a contradiction, a restatement, an idempotent attribute, a
+  retraction) do, so they are in procedures, `ip_<attribute>` and `ip_<tie>`, that the triggers call and a load can call too. A row
+  put straight into an attribute table with an `INSERT` is not looked at, as in Snowflake and Vertica. There is no DDL in a trigger
+  (it would end the transaction), so the deletion tables of deletable attributes and ties are made with the other tables.
+- **Types and values**: a checksum is `raw(16)` and a virtual column over `STANDARD_HASH(value, 'MD5')`, which cannot hash a LOB or an
+  `xmltype`, so the checksum of such an attribute is left out. A value of a LOB or an `xmltype` is compared with `DBMS_LOB.COMPARE`.
+  A boolean is `number(1)`. Oracle has no empty string (it is null). Parameters of a function have no length or precision.
+- **Not implemented**: bi-temporal; equivalence; encryption groups; the scalar functions `pre` and `fol` of crt (nothing uses them).
 
 The SQL of PostgreSQL's generators has been run on PostgreSQL 16 (`tools/postgres-tests.ps1` in the sisula repository: every model is
 deployed, and the latest, time-traveling, point-in-time and difference perspectives are tested over rows, as Snowflake's are). The SQL of

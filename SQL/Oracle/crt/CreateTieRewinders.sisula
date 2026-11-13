@@ -1,0 +1,226 @@
+-- TIE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------------
+--
+-- CRT rewinders over changing and positing time with positor-aware annex selection: the view of the positor given,
+-- or of all of them for null. They are SQL table macros (SQL_MACRO, Oracle Database 19.7 or later): functions that return
+-- the text of a query, in which the parameters stand for the values given, called in the FROM clause like a table.
+-- The macros do not call each other, they do what the others do in their own query.
+--
+-- @positor the view of which positor to adopt, or null for the views of all of them
+-- @changingTimepoint the point in changing time to rewind to
+-- @positingTimepoint the point in positing time to rewind to
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized
+-- Tie posit rewinder -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$r$tie.positName$ (
+    changingTimepoint IN $tie.timeRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            $tie.identityColumnName$,
+$/ foreach role in tie.roles
+            $role.columnName$,
+$/ endfor
+            $tie.changingColumnName$
+        FROM
+            $tie.qualifier$$tie.positName$
+        WHERE
+            $tie.changingColumnName$ <= changingTimepoint
+    ]';
+END r$tie.positName$;
+/
+-- Tie posit forwarder ------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$f$tie.positName$ (
+    changingTimepoint IN $tie.timeRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            $tie.identityColumnName$,
+$/ foreach role in tie.roles
+            $role.columnName$,
+$/ endfor
+            $tie.changingColumnName$
+        FROM
+            $tie.qualifier$$tie.positName$
+        WHERE
+            $tie.changingColumnName$ > changingTimepoint
+    ]';
+END f$tie.positName$;
+/
+$/ endif
+-- Tie annex rewinder -------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$r$tie.annexName$ (
+    positingTimepoint IN $schema.metadata.positingRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            $tie.metadataColumnName$,
+$/ endif
+            $tie.identityColumnName$,
+            $tie.positingColumnName$,
+            $tie.positorColumnName$,
+            $tie.reliabilityColumnName$,
+            $tie.assertionColumnName$
+        FROM
+            $tie.qualifier$$tie.annexName$
+        WHERE
+            $tie.positingColumnName$ <= positingTimepoint
+    ]';
+END r$tie.annexName$;
+/
+-- Tie assembled rewinder ---------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$r$tie.name$ (
+    positor IN $schema.metadata.positorRangeType$,
+$/ if tie.isHistorized
+    changingTimepoint IN $tie.timeRangeType$,
+$/ endif
+    positingTimepoint IN $schema.metadata.positingRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            $tie.metadataColumnName$,
+$/ endif
+            $tie.identityColumnName$,
+$/ foreach role in tie.roles
+            $role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+            $tie.changingColumnName$,
+$/ endif
+            $tie.positingColumnName$,
+            $tie.positorColumnName$,
+            $tie.reliabilityColumnName$,
+            $tie.assertionColumnName$
+        FROM (
+            SELECT
+$/ if schema.METADATA
+                a.$tie.metadataColumnName$,
+$/ endif
+                p.$tie.identityColumnName$,
+$/ foreach role in tie.roles
+                p.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+                p.$tie.changingColumnName$,
+$/ endif
+                a.$tie.positingColumnName$,
+                a.$tie.positorColumnName$,
+                a.$tie.reliabilityColumnName$,
+                a.$tie.assertionColumnName$,
+                ROW_NUMBER() OVER (
+                    PARTITION BY
+                        p.$tie.identityColumnName$,
+                        a.$tie.positorColumnName$
+                    ORDER BY
+                        a.$tie.positingColumnName$ DESC
+                ) AS rowNumber
+            FROM
+                $tie.qualifier$$tie.positName$ p
+            JOIN
+                $tie.qualifier$$tie.annexName$ a
+            ON
+                a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+            AND
+                a.$tie.positorColumnName$ = COALESCE(positor, a.$tie.positorColumnName$)
+            WHERE
+$/ if tie.isHistorized
+                p.$tie.changingColumnName$ <= changingTimepoint
+            AND
+$/ endif
+                a.$tie.positingColumnName$ <= positingTimepoint
+        )
+        WHERE
+            rowNumber = 1
+    ]';
+END r$tie.name$;
+/
+-- Tie assembled forwarder --------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION $tie.qualifier$f$tie.name$ (
+    positor IN $schema.metadata.positorRangeType$,
+$/ if tie.isHistorized
+    changingTimepoint IN $tie.timeRangeType$,
+$/ endif
+    positingTimepoint IN $schema.metadata.positingRangeType$
+)
+RETURN VARCHAR2 SQL_MACRO
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+$/ if schema.METADATA
+            $tie.metadataColumnName$,
+$/ endif
+            $tie.identityColumnName$,
+$/ foreach role in tie.roles
+            $role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+            $tie.changingColumnName$,
+$/ endif
+            $tie.positingColumnName$,
+            $tie.positorColumnName$,
+            $tie.reliabilityColumnName$,
+            $tie.assertionColumnName$
+        FROM (
+            SELECT
+$/ if schema.METADATA
+                a.$tie.metadataColumnName$,
+$/ endif
+                p.$tie.identityColumnName$,
+$/ foreach role in tie.roles
+                p.$role.columnName$,
+$/ endfor
+$/ if tie.isHistorized
+                p.$tie.changingColumnName$,
+$/ endif
+                a.$tie.positingColumnName$,
+                a.$tie.positorColumnName$,
+                a.$tie.reliabilityColumnName$,
+                a.$tie.assertionColumnName$,
+                ROW_NUMBER() OVER (
+                    PARTITION BY
+                        p.$tie.identityColumnName$,
+                        a.$tie.positorColumnName$
+                    ORDER BY
+                        a.$tie.positingColumnName$ DESC
+                ) AS rowNumber
+            FROM
+                $tie.qualifier$$tie.positName$ p
+            JOIN
+                $tie.qualifier$$tie.annexName$ a
+            ON
+                a.$tie.identityColumnName$ = p.$tie.identityColumnName$
+            AND
+                a.$tie.positorColumnName$ = COALESCE(positor, a.$tie.positorColumnName$)
+            WHERE
+$/ if tie.isHistorized
+                p.$tie.changingColumnName$ > changingTimepoint
+            AND
+$/ endif
+                a.$tie.positingColumnName$ <= positingTimepoint
+        )
+        WHERE
+            rowNumber = 1
+    ]';
+END f$tie.name$;
+/
+$/ endfor
