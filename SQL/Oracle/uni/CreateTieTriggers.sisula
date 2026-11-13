@@ -1,0 +1,136 @@
+-- TIE TRIGGERS -------------------------------------------------------------------------------------------------------
+--
+-- The following triggers on the latest view make it behave like a table.
+-- There are three different 'instead of' triggers: insert, update, and delete.
+-- They will ensure that such operations are propagated to the underlying tables
+-- in a consistent way. Default values are used for some columns if not provided
+-- by the corresponding SQL statements.
+--
+-- For idempotent ties, only changes that represent values different from
+-- the previous or following value are stored. Others are silently ignored in
+-- order to avoid unnecessary temporal duplicates.
+--
+$/ foreach tie in schema.ties
+CREATE OR REPLACE TRIGGER it$tie.name$
+-- Insert trigger -----------------------------------------------------------------------------------------------------
+-- it$tie.name$ instead of INSERT trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+INSTEAD OF INSERT
+ON l$tie.name$
+FOR EACH ROW
+DECLARE
+    x INTEGER;
+    l_now   date := sysdate;
+BEGIN
+ -- $/ if tie.isHistorized HISTORIZED $/ else NOT HISTORIZED $/ endif$/ if tie.isKnotted KNOTTED $/ else NOT KNOTTED $/ endif
+    INSERT INTO $tie.name$ (
+$/ foreach role in tie.roles
+        $role.columnName$,
+$/ endfor
+        $/ if tie.isHistorized $tie.changingColumn30$,$/ endif
+        $/ if schema.METADATA $tie.metadataColumn30$$/ endif
+    ) VALUES (
+$/ foreach role in tie.roles
+$/ if role.knot
+        (select a.$role.knot.identityColumnName$ from $role.knot.name$ a where a.$role.knot.valueColumnName$ = :NEW.$role.knotValueColumnName$), -- Denna kolumn har också ett konstraint till en KNOT och måste därför särbehandlas
+$/ else
+        :NEW.$role.columnName$,
+$/ endif
+$/ endfor
+        $/ if tie.isHistorized NVL(:NEW.$tie.changingColumn30$,l_now),$/ endif
+        $/ if schema.METADATA :NEW.$tie.metadataColumn30$$/ endif
+    );
+END it$tie.name$;
+/
+
+$/ if tie.isHistorized and tie.values
+CREATE OR REPLACE TRIGGER ut$tie.name$
+-- UPDATE trigger -----------------------------------------------------------------------------------------------------
+-- ut$tie.name$ instead of UPDATE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+INSTEAD OF UPDATE
+ON l$tie.name$
+FOR EACH ROW
+DECLARE
+    x INTEGER;
+    l_now   date := sysdate;
+    -- är kolumnen förändrad, OBS tar hänsyn till NULL
+    function is_changed ( in_new varchar2, in_old varchar2) return boolean is
+    begin
+        -- Denna if är något bakvänt skriven för att ta hand om fallen där NEW eller OLD är NULL.
+        -- Svaret på detta är varken true eller false vilket gör att även dessa hamnar i else
+        if (in_old = in_new) OR (in_old is null and in_new is null) then
+            -- FALSE
+            return false;
+        else
+            -- TRUE
+            return true;
+        end if;
+    end is_changed;
+BEGIN
+
+ -- $/ if tie.isHistorized HISTORIZED $/ else NOT HISTORIZED $/ endif$/ if tie.isKnotted KNOTTED $/ else NOT KNOTTED $/ endif
+$/ foreach role in tie.roles
+$/ if not role.knot
+    -- Relationskolumner får ej uppdateras
+    if is_changed(:NEW.$role.columnName$, :OLD.$role.columnName$) then
+        raise_application_error(-20001, 'Relationskolumnen $tie.name$.$role.columnName$ får ej uppdateras');
+    end if;
+$/ endif
+$/ endfor
+    INSERT INTO $tie.name$ (
+$/ foreach role in tie.roles
+        $role.columnName$,
+$/ endfor
+        $/ if tie.isHistorized $tie.changingColumn30$,$/ endif
+        $/ if schema.METADATA $tie.metadataColumn30$$/ endif
+    ) VALUES (
+$/ foreach role in tie.roles
+$/ if role.knot
+        (select a.$role.knot.identityColumnName$ from $role.knot.name$ a where a.$role.knot.valueColumnName$ = :NEW.$role.knotValueColumnName$), -- Denna kolumn har också ett konstraint till en KNOT och måste därför särbehandlas
+$/ else
+        :NEW.$role.columnName$,
+$/ endif
+$/ endfor
+        $/ if tie.isHistorized NVL(:NEW.$tie.changingColumn30$,l_now),$/ endif
+        $/ if schema.METADATA :NEW.$tie.metadataColumn30$$/ endif
+    );
+END ut$tie.name$;
+/
+
+$/ endif
+CREATE OR REPLACE TRIGGER dt$tie.name$
+-- DELETE trigger -----------------------------------------------------------------------------------------------------
+-- dt$tie.name$ instead of DELETE trigger on l$tie.name$
+-----------------------------------------------------------------------------------------------------------------------
+INSTEAD OF DELETE
+ON l$tie.name$
+FOR EACH ROW
+DECLARE
+    x INTEGER;
+    l_now   date := sysdate;
+BEGIN
+    DELETE $tie.name$ WHERE 1=1
+$/ if tie.timeRange
+    AND $tie.changingColumn30$ = :NEW.$tie.changingColumn30$
+$/ endif
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+    AND $role.columnName30$ = :NEW.$role.columnName30$
+$/ if role.last()
+    ;
+$/ endif
+$/ endfor
+$/ else
+    AND (
+$/ foreach role in tie.values
+            $role.columnName$ = :NEW.$role.columnName$
+$/ if not role.last()
+        OR
+$/ endif
+$/ endfor
+    );
+$/ endif
+END dt$tie.name$;
+/
+$/ endfor

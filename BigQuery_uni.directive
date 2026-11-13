@@ -20,4 +20,6 @@ SQL/BigQuery/uni/CreateAttributeRewinders.sisula
 SQL/BigQuery/uni/CreateAnchorPerspectives.sisula
 SQL/BigQuery/uni/CreateNexusPerspectives.sisula
 SQL/BigQuery/uni/CreateTiePerspectives.sisula
+SQL/BigQuery/uni/CreateKeys.sisula
+SQL/BigQuery/uni/CreateIntegrityChecks.sisula
 SQL/BigQuery/AddDescriptions.sisula

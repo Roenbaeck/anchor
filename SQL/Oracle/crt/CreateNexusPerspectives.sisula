@@ -1,0 +1,161 @@
+-- NEXUS CRT PERSPECTIVES ---------------------------------------------------------------------------------------------
+--
+-- Oracle-compatible latest and now perspectives for CRT nexuses.
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+CREATE OR REPLACE VIEW $nexus.capsule$.l$nexus.name$ AS
+SELECT
+    n.$nexus.identityColumnName$,
+$/ if schema.METADATA
+    n.$nexus.metadataColumnName$,
+$/ endif
+$/ foreach role in nexus.roles
+    n.$role.columnName$,
+$/ endfor
+$/ foreach attribute in nexus.attributes
+    r$attribute.mnemonic$.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+    r$attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+    r$attribute.mnemonic$.$attribute.positingColumnName$,
+    r$attribute.mnemonic$.$attribute.positorColumnName$,
+    r$attribute.mnemonic$.$attribute.reliabilityColumnName$,
+    r$attribute.mnemonic$.$attribute.assertionColumnName$,
+    r$attribute.mnemonic$.$attribute.reliableColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$.$nexus.name$ n
+$/ foreach attribute in nexus.attributes
+LEFT JOIN
+    $attribute.capsule$.r$attribute.name$ r$attribute.mnemonic$
+ON
+    r$attribute.mnemonic$.$attribute.entityReferenceName$ = n.$nexus.identityColumnName$
+$/ endfor
+;
+
+CREATE OR REPLACE VIEW $nexus.capsule$.n$nexus.name$ AS
+SELECT
+    *
+FROM
+    $nexus.capsule$.l$nexus.name$
+;
+
+CREATE OR REPLACE FUNCTION $nexus.capsule$.t$nexus.name$ (
+    positor $schema.metadata.positorRange$,
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$,
+    assertion varchar2(4000)
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $nexus.capsule$.l$nexus.name$ t
+        WHERE
+            (
+                positor IS NULL
+                OR (
+$/ foreach attribute in nexus.attributes
+                    t.$attribute.positorColumnName$ = positor $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+        AND
+            (
+                assertion IS NULL
+                OR (
+$/ foreach attribute in nexus.attributes
+                    t.$attribute.assertionColumnName$ = assertion $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+        AND
+            (
+                changingTimepoint IS NULL
+$/ if nexus.historizedAttributeCount
+                OR (
+$/ foreach attribute in nexus.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ <= changingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+        AND
+            (
+                positingTimepoint IS NULL
+                OR (
+$/ foreach attribute in nexus.attributes
+                    t.$attribute.positingColumnName$ <= positingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $nexus.capsule$.p$nexus.name$ (
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $nexus.capsule$.l$nexus.name$ t
+        WHERE
+            (
+                changingTimepoint IS NULL
+$/ if nexus.historizedAttributeCount
+                OR (
+$/ foreach attribute in nexus.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ <= changingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+            )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $nexus.capsule$.d$nexus.name$ (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection varchar2(4000)
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $nexus.capsule$.l$nexus.name$ t
+        WHERE
+            (
+                intervalStart IS NULL
+                OR intervalEnd IS NULL
+$/ if nexus.historizedAttributeCount
+                OR (
+$/ foreach attribute in nexus.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ BETWEEN intervalStart AND intervalEnd $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+    ]';
+END;
+/
+$/ endif
+$/ endfor

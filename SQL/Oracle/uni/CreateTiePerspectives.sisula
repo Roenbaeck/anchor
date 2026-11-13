@@ -1,0 +1,68 @@
+-- TIE PERSPECTIVES ---------------------------------------------------------------------------------------------------
+--
+-- Oracle latest (l) and now (n) perspectives.
+--
+$/ foreach tie in schema.ties
+CREATE OR REPLACE VIEW $tie.capsule$.l$tie.name$ AS
+SELECT
+$/ if schema.METADATA
+    tie.$tie.metadataColumnName$,
+$/ endif
+$/ if tie.isHistorized
+    tie.$tie.changingColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+    $role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ if schema.METADATA
+    $role.name$.$role.knot.metadataColumnName$ AS $role.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    tie.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+FROM
+    $tie.capsule$.$tie.name$ tie
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.$role.knot.name$ $role.name$
+ON
+    $role.name$.$role.knot.identityColumnName$ = tie.$role.columnName$
+$/ endfor
+$/ if tie.isHistorized
+WHERE (
+    tie.$tie.changingColumnName$ = (
+        SELECT
+            MAX(sub.$tie.changingColumnName$)
+        FROM
+            $tie.capsule$.$tie.name$ sub
+        WHERE
+$/ if tie.identifiers
+$/ foreach role in tie.identifiers
+            sub.$role.columnName$ = tie.$role.columnName$
+$/ if not role.last()
+        AND
+$/ endif
+$/ endfor
+$/ else
+            (
+$/ foreach role in tie.values
+                sub.$role.columnName$ = tie.$role.columnName$
+$/ if not role.last()
+            OR
+$/ endif
+$/ endfor
+            )
+$/ endif
+    )
+    OR tie.$tie.changingColumnName$ IS NULL
+)
+$/ endif
+;
+
+CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ AS
+SELECT
+    *
+FROM
+    $tie.capsule$.l$tie.name$
+;
+$/ endfor

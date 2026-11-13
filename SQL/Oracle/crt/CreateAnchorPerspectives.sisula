@@ -1,0 +1,164 @@
+-- ANCHOR CRT PERSPECTIVES --------------------------------------------------------------------------------------------
+--
+-- Oracle-compatible latest and now perspectives for CRT anchors.
+--
+$/ foreach anchor in schema.anchors
+$/ if anchor.attributes
+CREATE OR REPLACE VIEW $anchor.capsule$.l$anchor.name$ AS
+SELECT
+    a.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    a.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+    r$attribute.mnemonic$.$attribute.valueColumnName$,
+$/ if attribute.isHistorized
+    r$attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+    r$attribute.mnemonic$.$attribute.positingColumnName$,
+    r$attribute.mnemonic$.$attribute.positorColumnName$,
+    r$attribute.mnemonic$.$attribute.reliabilityColumnName$,
+    r$attribute.mnemonic$.$attribute.assertionColumnName$,
+    r$attribute.mnemonic$.$attribute.reliableColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.$anchor.name$ a
+$/ foreach attribute in anchor.attributes
+LEFT JOIN
+    $attribute.capsule$.r$attribute.name$ r$attribute.mnemonic$
+ON
+    r$attribute.mnemonic$.$attribute.entityReferenceName$ = a.$anchor.identityColumnName$
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+ON
+    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = r$attribute.mnemonic$.$attribute.knotReferenceName$
+$/ endif
+$/ endfor
+;
+
+CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$ AS
+SELECT
+    *
+FROM
+    $anchor.capsule$.l$anchor.name$
+;
+
+CREATE OR REPLACE FUNCTION $anchor.capsule$.t$anchor.name$ (
+    positor $schema.metadata.positorRange$,
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$,
+    assertion varchar2(4000)
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $anchor.capsule$.l$anchor.name$ t
+        WHERE
+            (
+                positor IS NULL
+                OR (
+$/ foreach attribute in anchor.attributes
+                    t.$attribute.positorColumnName$ = positor $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+        AND
+            (
+                assertion IS NULL
+                OR (
+$/ foreach attribute in anchor.attributes
+                    t.$attribute.assertionColumnName$ = assertion $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+        AND
+            (
+                changingTimepoint IS NULL
+$/ if anchor.historizedAttributeCount
+                OR (
+$/ foreach attribute in anchor.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ <= changingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+        AND
+            (
+                positingTimepoint IS NULL
+                OR (
+$/ foreach attribute in anchor.attributes
+                    t.$attribute.positingColumnName$ <= positingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+            )
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $anchor.capsule$.p$anchor.name$ (
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $anchor.capsule$.l$anchor.name$ t
+        WHERE
+            (
+                changingTimepoint IS NULL
+$/ if anchor.historizedAttributeCount
+                OR (
+$/ foreach attribute in anchor.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ <= changingTimepoint $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+            )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $anchor.capsule$.d$anchor.name$ (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection varchar2(4000)
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $anchor.capsule$.l$anchor.name$ t
+        WHERE
+            (
+                intervalStart IS NULL
+                OR intervalEnd IS NULL
+$/ if anchor.historizedAttributeCount
+                OR (
+$/ foreach attribute in anchor.attributes where attribute.isHistorized
+                    t.$attribute.changingColumnName$ BETWEEN intervalStart AND intervalEnd $/ if attribute.last() $/ else OR$/ endif
+$/ endfor
+                )
+$/ else
+                OR 1 = 1
+$/ endif
+            )
+    ]';
+END;
+/
+$/ endif
+$/ endfor

@@ -24,4 +24,6 @@ SQL/BigQuery/crt/CreateTieRewinders.sisula
 SQL/BigQuery/crt/CreateAnchorPerspectives.sisula
 SQL/BigQuery/crt/CreateNexusPerspectives.sisula
 SQL/BigQuery/crt/CreateTiePerspectives.sisula
+SQL/BigQuery/uni/CreateKeys.sisula
+SQL/BigQuery/crt/CreateIntegrityChecks.sisula
 SQL/BigQuery/AddDescriptions.sisula

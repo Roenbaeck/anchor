@@ -1,0 +1,85 @@
+-- ANCHOR PERSPECTIVES ------------------------------------------------------------------------------------------------
+--
+-- Oracle latest (l) and now (n) perspectives.
+--
+$/ foreach anchor in schema.anchors
+$/ if anchor.attributes
+CREATE OR REPLACE VIEW $anchor.capsule$.l$anchor.name$ AS
+SELECT
+    $anchor.mnemonic$.$anchor.identityColumnName$,
+$/ if schema.METADATA
+    $anchor.mnemonic$.$anchor.metadataColumnName$,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    $attribute.mnemonic$.$attribute.entityReferenceName$,
+$/ endif
+$/ if schema.METADATA
+    $attribute.mnemonic$.$attribute.metadataColumnName$,
+$/ endif
+$/ if attribute.timeRange
+    $attribute.mnemonic$.$attribute.changingColumnName$,
+$/ endif
+$/ if attribute.isKnotted
+    k$attribute.mnemonic$.$attribute.knot.valueColumnName$ AS $attribute.knotValueColumnName$,
+$/ if schema.METADATA
+    k$attribute.mnemonic$.$attribute.knot.metadataColumnName$ AS $attribute.knotMetadataColumnName$,
+$/ endif
+$/ endif
+    $attribute.mnemonic$.$attribute.valueColumnName$$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+$/ foreach attribute in anchor.attributes
+LEFT JOIN
+    $attribute.capsule$.$attribute.name$ $attribute.mnemonic$
+ON
+    $attribute.mnemonic$.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.$attribute.knot.name$ k$attribute.mnemonic$
+ON
+    k$attribute.mnemonic$.$attribute.knot.identityColumnName$ = $attribute.mnemonic$.$attribute.knotReferenceName$
+$/ endif
+$/ endfor
+WHERE
+    1 = 1
+$/ foreach attribute in anchor.attributes
+$/ if attribute.isHistorized
+AND (
+    $attribute.mnemonic$.$attribute.changingColumnName$ = (
+        SELECT
+            MAX(sub.$attribute.changingColumnName$)
+        FROM
+            $attribute.capsule$.$attribute.name$ sub
+        WHERE
+            sub.$attribute.entityReferenceName$ = $anchor.mnemonic$.$anchor.identityColumnName$
+    )
+    OR $attribute.mnemonic$.$attribute.changingColumnName$ IS NULL
+)
+$/ endif
+$/ endfor
+;
+
+CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$ AS
+SELECT
+    *
+FROM
+    $anchor.capsule$.l$anchor.name$
+;
+$/ else
+CREATE OR REPLACE VIEW $anchor.capsule$.l$anchor.name$ AS
+SELECT
+    *
+FROM
+    $anchor.capsule$.$anchor.name$ $anchor.mnemonic$
+;
+
+CREATE OR REPLACE VIEW $anchor.capsule$.n$anchor.name$ AS
+SELECT
+    *
+FROM
+    $anchor.capsule$.l$anchor.name$
+;
+$/ endif
+$/ endfor

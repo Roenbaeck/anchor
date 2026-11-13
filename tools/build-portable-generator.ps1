@@ -27,12 +27,12 @@
     sisulets in JavaScript (.js in the directive), which the modeler runs with the original Sisulator in a browser; they have no file.
 
     Usage:
-      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica] [-Anchor <checkout>]
+      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery] [-Anchor <checkout>]
 #>
 [CmdletBinding()]
 param(
     [string] $Output = '.',
-    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica'),
+    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica', 'BigQuery'),
     [string] $Anchor
 )
 Set-StrictMode -Version 2.0
@@ -83,6 +83,8 @@ function ConvertTo-JsString([string] $text) {
 # the metadata of the models that the modeler has saved for each database).
 $settingsOf = @{
     Snowflake = [ordered]@{}
+    BigQuery = [ordered]@{ chronon = 'datetime'; equivalentRange = 'int64'; identity = 'int64'; metadataType = 'int64'; now = 'current_datetime()'
+        positIdentity = 'int64'; positorRange = 'int64'; reliabilityRange = 'numeric(5,2)' }
     SQLServer = [ordered]@{ changingRange = 'datetime2'; chronon = 'datetime2'; encapsulation = 'dbo'; now = 'sysdatetime()'; positingRange = 'datetime2' }
     PostgreSQL = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp'; equivalentRange = 'smallint'; identity = 'integer'; metadataType = 'integer'
         now = 'current_timestamp'; positIdentity = 'integer'; positingRange = 'timestamp'; positorRange = 'smallint' }

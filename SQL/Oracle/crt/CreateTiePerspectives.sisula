@@ -1,0 +1,115 @@
+-- TIE CRT PERSPECTIVES -----------------------------------------------------------------------------------------------
+--
+-- Oracle-compatible latest and now perspectives for CRT ties.
+--
+$/ foreach tie in schema.ties
+CREATE OR REPLACE VIEW $tie.capsule$.l$tie.name$ AS
+SELECT
+    r.$tie.identityColumnName$,
+$/ if schema.METADATA
+    r.$tie.metadataColumnName$,
+$/ endif
+$/ foreach role in tie.roles
+$/ if role.knot
+    k$role.name$.$role.knot.valueColumnName$ AS $role.knotValueColumnName$,
+$/ endif
+    r.$role.columnName$$/ if not role.last() ,$/ endif
+$/ endfor
+$/ if tie.isHistorized
+    r.$tie.changingColumnName$,
+$/ endif
+    r.$tie.positingColumnName$,
+    r.$tie.positorColumnName$,
+    r.$tie.reliabilityColumnName$,
+    r.$tie.assertionColumnName$,
+    r.$tie.reliableColumnName$
+FROM
+    $tie.capsule$.r$tie.name$ r
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.$role.knot.name$ k$role.name$
+ON
+    k$role.name$.$role.knot.identityColumnName$ = r.$role.columnName$
+$/ endfor
+;
+
+CREATE OR REPLACE VIEW $tie.capsule$.n$tie.name$ AS
+SELECT
+    *
+FROM
+    $tie.capsule$.l$tie.name$
+;
+
+CREATE OR REPLACE FUNCTION $tie.capsule$.t$tie.name$ (
+    positor $schema.metadata.positorRange$,
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$,
+    assertion varchar2(4000)
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $tie.capsule$.l$tie.name$ t
+        WHERE
+            (positor IS NULL OR t.$tie.positorColumnName$ = positor)
+        AND
+            (assertion IS NULL OR t.$tie.assertionColumnName$ = assertion)
+        AND
+$/ if tie.isHistorized
+            (changingTimepoint IS NULL OR t.$tie.changingColumnName$ <= changingTimepoint
+$/ else
+            (changingTimepoint IS NULL OR 1 = 1)
+$/ endif
+        AND
+            (positingTimepoint IS NULL OR t.$tie.positingColumnName$ <= positingTimepoint)
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $tie.capsule$.p$tie.name$ (
+    changingTimepoint $schema.metadata.chronon$
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $tie.capsule$.l$tie.name$ t
+        WHERE
+$/ if tie.isHistorized
+            (changingTimepoint IS NULL OR t.$tie.changingColumnName$ <= changingTimepoint
+$/ else
+            (changingTimepoint IS NULL OR 1 = 1)
+$/ endif
+    ]';
+END;
+/
+
+CREATE OR REPLACE FUNCTION $tie.capsule$.d$tie.name$ (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$
+)
+RETURN varchar2 SQL_MACRO(TABLE)
+IS
+BEGIN
+    RETURN q'[
+        SELECT
+            t.*
+        FROM
+            $tie.capsule$.l$tie.name$ t
+        WHERE
+$/ if tie.isHistorized
+            (intervalStart IS NULL OR intervalEnd IS NULL OR t.$tie.changingColumnName$ BETWEEN intervalStart AND intervalEnd
+$/ else
+            (intervalStart IS NULL OR intervalEnd IS NULL OR 1 = 1)
+$/ endif
+    ]';
+END;
+/
+$/ endfor

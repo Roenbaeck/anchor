@@ -23,4 +23,6 @@ SQL/BigQuery/bi/CreateTies.sisula
 SQL/BigQuery/bi/CreateTieAssembledViews.sisula
 SQL/BigQuery/bi/CreateTieRewinders.sisula
 SQL/BigQuery/bi/CreateTiePerspectives.sisula
+SQL/BigQuery/uni/CreateKeys.sisula
+SQL/BigQuery/bi/CreateIntegrityChecks.sisula
 SQL/BigQuery/AddDescriptions.sisula
