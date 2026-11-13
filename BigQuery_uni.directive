@@ -1,29 +1,23 @@
 # This is the processing directive for uni-temporal Anchor Modeling in BigQuery
+#
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+#
+# BigQuery has no sequences, no unique constraints and no triggers, and its primary and foreign keys are not enforced;
+# a dataset is its schema. It has no equivalence here (the table says so in SQL/Helpers.js).
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/BigQuery/NamingConvention.js
-SQL/BigQuery/uni/CreateEquivalentAndDefault.js
-SQL/BigQuery/uni/CreateKnots.js
-SQL/BigQuery/uni/CreateAnchors.js
-SQL/BigQuery/uni/CreateNexuses.js
-SQL/BigQuery/uni/CreateAttributes.js
-SQL/BigQuery/uni/CreateTies.js
-# to be done later
-SQL/BigQuery/uni/CreateKnotEquivalenceViews.js
-SQL/BigQuery/uni/CreateAttributeEquivalenceViews.js
-#SQL/BigQuery/uni/AddAttributeRestatementConstraints.js
-#SQL/BigQuery/uni/CreateKeyGenerators.js
-SQL/BigQuery/uni/CreateAttributeRewinders.js
-#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
-SQL/BigQuery/uni/CreateAnchorPerspectives.js
-SQL/BigQuery/uni/CreateNexusPerspectives.js
-#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
-#SQL/BigQuery/uni/CreateAttributeTriggers.js
-#SQL/BigQuery/uni/CreateAnchorTriggers.js
-#SQL/BigQuery/uni/AddTieRestatementConstraints.js
-#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
-SQL/BigQuery/uni/CreateTiePerspectives.js
-#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
-#SQL/BigQuery/uni/CreateTieTriggers.js
-#SQL/BigQuery/CreateSchemaTracking.js
-SQL/BigQuery/uni/AddDescriptions.js
+SQL/BigQuery/derive.js
+SQL/BigQuery/CreateSchemas.sisula
+SQL/BigQuery/uni/CreateKnots.sisula
+SQL/BigQuery/uni/CreateAnchors.sisula
+SQL/BigQuery/uni/CreateNexuses.sisula
+SQL/BigQuery/uni/CreateAttributes.sisula
+SQL/BigQuery/uni/CreateTies.sisula
+SQL/BigQuery/uni/CreateAttributeRewinders.sisula
+SQL/BigQuery/uni/CreateAnchorPerspectives.sisula
+SQL/BigQuery/uni/CreateNexusPerspectives.sisula
+SQL/BigQuery/uni/CreateTiePerspectives.sisula
+SQL/BigQuery/AddDescriptions.sisula

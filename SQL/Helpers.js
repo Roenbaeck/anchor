@@ -47,6 +47,11 @@ var FEATURES = /*features*/{
         "bi": { "equivalence": false, "encryption": false },
         "crt": { "equivalence": false, "encryption": false }
     },
+    "BigQuery": {
+        "uni": { "equivalence": false, "encryption": false },
+        "bi": { "equivalence": false, "encryption": false },
+        "crt": { "equivalence": false, "encryption": false }
+    },
     "Vertica": {
         "uni": { "equivalence": false, "encryption": false },
         "bi": { "equivalence": false, "encryption": false },

@@ -1,30 +1,27 @@
 # This is the processing directive for concurrent-reliance-temporal Anchor Modeling in BigQuery
 #
-# Initial native BigQuery CRT generation (core + rewinders + perspectives)
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+#
+# BigQuery has no sequences, no unique constraints and no triggers, and its primary and foreign keys are not enforced;
+# a dataset is its schema.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/BigQuery/NamingConvention.js
-SQL/BigQuery/crt/CreatePositorAndDefault.js
-SQL/BigQuery/crt/CreateKnots.js
-SQL/BigQuery/crt/CreateAnchors.js
-SQL/BigQuery/crt/CreateNexuses.js
-SQL/BigQuery/crt/CreateAttributes.js
-SQL/BigQuery/crt/CreateAttributeRewinders.js
-SQL/BigQuery/crt/CreateTies.js
-SQL/BigQuery/crt/CreateTieRewinders.js
-# to be ported next in native CRT form
-#SQL/BigQuery/crt/AddAttributeRestatementConstraints.js
-#SQL/BigQuery/crt/CreateKeyGenerators.js
-#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
-SQL/BigQuery/crt/CreateAnchorPerspectives.js
-SQL/BigQuery/crt/CreateNexusPerspectives.js
-#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
-#SQL/BigQuery/crt/CreateAttributeTriggers.js
-#SQL/BigQuery/crt/CreateAnchorTriggers.js
-#SQL/BigQuery/crt/AddTieRestatementConstraints.js
-#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
-SQL/BigQuery/crt/CreateTiePerspectives.js
-#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
-#SQL/BigQuery/crt/CreateTieTriggers.js
-#SQL/BigQuery/CreateSchemaTracking.js
-SQL/BigQuery/uni/AddDescriptions.js
+SQL/BigQuery/derive.js
+SQL/BigQuery/CreateSchemas.sisula
+SQL/BigQuery/crt/CreatePositorAndDefault.sisula
+SQL/BigQuery/crt/CreateKnots.sisula
+SQL/BigQuery/crt/CreateAnchors.sisula
+SQL/BigQuery/crt/CreateNexuses.sisula
+SQL/BigQuery/crt/CreateAttributes.sisula
+SQL/BigQuery/crt/CreateAttributeAssembledViews.sisula
+SQL/BigQuery/crt/CreateAttributeRewinders.sisula
+SQL/BigQuery/crt/CreateTies.sisula
+SQL/BigQuery/crt/CreateTieAssembledViews.sisula
+SQL/BigQuery/crt/CreateTieRewinders.sisula
+SQL/BigQuery/crt/CreateAnchorPerspectives.sisula
+SQL/BigQuery/crt/CreateNexusPerspectives.sisula
+SQL/BigQuery/crt/CreateTiePerspectives.sisula
+SQL/BigQuery/AddDescriptions.sisula

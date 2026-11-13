@@ -1,0 +1,31 @@
+-- NEXUSES ------------------------------------------------------------------------------------------------------------
+--
+-- Nexuses are used to store identities for event-like entities.
+-- Nexuses are immutable.
+--
+-- BigQuery has no sequences: the load gives an identity to every new event.
+--
+$/ foreach nexus in schema.nexuses
+-- Nexus table --------------------------------------------------------------------------------------------------------
+-- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $nexus.capsule$.`$nexus.name$` (
+    `$nexus.identityColumnName$` $nexus.identity$ not null,
+$/ foreach role in nexus.roles
+    `$role.columnName$` $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+$/ endfor
+    $/ if schema.METADATA `$nexus.metadataColumnName$` $schema.metadata.metadataType$ not null, $/ else `$nexus.dummyColumnName$` bool,$/ endif
+    PRIMARY KEY (
+        `$nexus.identityColumnName$`
+    ) NOT ENFORCED
+$/ foreach role in nexus.roles
+    ,CONSTRAINT `$nexus.name$_fk$role.name$` FOREIGN KEY (`$role.columnName$`) REFERENCES
+$/ if role.entity
+        $role.entity.capsule$.`$role.entity.name$`(`$role.entity.identityColumnName$`) NOT ENFORCED
+$/ else
+        $role.knot.capsule$.`$role.knot.name$`(`$role.knot.identityColumnName$`) NOT ENFORCED
+$/ endif
+$/ endfor
+)
+CLUSTER BY `$nexus.identityColumnName$`;
+$/ endfor

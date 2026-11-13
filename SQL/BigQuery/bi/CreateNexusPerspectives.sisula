@@ -1,0 +1,324 @@
+-- NEXUS TEMPORAL PERSPECTIVES ----------------------------------------------------------------------------------------
+--
+-- BigQuery BI nexus perspectives: time traveling (t), latest (l), point-in-time (p),
+-- now (n), and difference (d).
+--
+$/ foreach nexus in schema.nexuses
+$/ if nexus.attributes
+CREATE OR REPLACE TABLE FUNCTION $nexus.capsule$.`t$nexus.name$` (
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `k$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `k$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`,
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.positingColumnName$`,
+    `$attribute.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$.`$nexus.name$` `$nexus.mnemonic$`
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.`$role.knot.name$` `k$role.name$`
+ON
+    `k$role.name$`.`$role.knot.identityColumnName$` = `$nexus.mnemonic$`.`$role.columnName$`
+$/ endfor
+$/ foreach attribute in nexus.attributes
+LEFT JOIN (
+    -- the latest asserted posit for each nexus, picked by a window: BigQuery cannot evaluate a subquery that refers to
+    -- the outer row and takes the first row of an ordering
+    SELECT
+        r.*
+    FROM
+        $attribute.capsule$.`r$attribute.name$`(
+$/ if attribute.isHistorized
+            CAST(changingTimepoint AS $attribute.timeRange$),
+$/ endif
+            CAST(positingTimepoint AS $schema.metadata.positingRange$)
+        ) r
+    WHERE
+        r.`$attribute.reliabilityColumnName$` = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r.`$attribute.entityReferenceName$`
+            ORDER BY
+$/ if attribute.isHistorized
+                r.`$attribute.changingColumnName$` DESC,
+$/ endif
+                r.`$attribute.positingColumnName$` DESC
+        ) = 1
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ endfor
+)
+;
+CREATE OR REPLACE VIEW $nexus.capsule$.`l$nexus.name$` AS
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$nexus.mnemonic$`.*
+FROM
+    $nexus.capsule$.`t$nexus.name$`(
+        CAST($schema.EOT$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$nexus.mnemonic$`
+;
+CREATE OR REPLACE TABLE FUNCTION $nexus.capsule$.`p$nexus.name$` (
+    changingTimepoint $schema.metadata.chronon$
+)
+AS (
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `$nexus.mnemonic$`.`$role.knotChecksumColumnName$`,
+$/ endif
+    `$nexus.mnemonic$`.`$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`,
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$nexus.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$nexus.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$nexus.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$nexus.mnemonic$`.`$attribute.positingColumnName$`,
+    `$nexus.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `$nexus.mnemonic$`.`$attribute.knotChecksumColumnName$`,
+$/ endif
+    `$nexus.mnemonic$`.`$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$nexus.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$nexus.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $nexus.capsule$.`t$nexus.name$`(
+        CAST(changingTimepoint AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$nexus.mnemonic$`
+)
+;
+CREATE OR REPLACE VIEW $nexus.capsule$.`n$nexus.name$` AS
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$nexus.mnemonic$`.*
+FROM
+    $nexus.capsule$.`t$nexus.name$`(
+        CAST($schema.metadata.now$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$nexus.mnemonic$`
+;
+$/ if nexus.historizedAttributes
+CREATE OR REPLACE TABLE FUNCTION $nexus.capsule$.`d$nexus.name$` (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection string
+)
+AS (
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now: every latest
+-- asserted posit is joined with the changing time until which it holds, when the next one does. BigQuery cannot call
+-- the time-traveling perspective for each change, since it cannot evaluate a function with an outer join on its
+-- argument for each row of another table.
+SELECT
+    timepoints.inspectedTimepoint,
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$`,
+$/ if schema.METADATA
+    `$nexus.mnemonic$`.`$nexus.metadataColumnName$`,
+$/ endif
+$/ foreach role in nexus.roles
+$/ if role.knot
+$/ if role.knot.hasChecksum
+    `k$role.name$`.`$role.knot.checksumColumnName$` AS `$role.knotChecksumColumnName$`,
+$/ endif
+    `k$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    `$nexus.mnemonic$`.`$role.columnName$`,
+$/ endfor
+$/ foreach attribute in nexus.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.positingColumnName$`,
+    `$attribute.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM (
+$/ foreach historized in nexus.historizedAttributes
+    SELECT DISTINCT
+        `$historized.entityReferenceName$` AS `$nexus.identityColumnName$`,
+        CAST(`$historized.changingColumnName$` AS $schema.metadata.chronon$) AS inspectedTimepoint,
+        '$historized.mnemonic$' AS mnemonic
+    FROM
+        $historized.capsule$.`$historized.name$`
+    WHERE
+        (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
+    AND
+        `$historized.changingColumnName$` BETWEEN intervalStart AND intervalEnd
+$/ if not historized.last()
+    UNION DISTINCT
+$/ endif
+$/ endfor
+) timepoints
+JOIN
+    $nexus.capsule$.`$nexus.name$` `$nexus.mnemonic$`
+ON
+    `$nexus.mnemonic$`.`$nexus.identityColumnName$` = timepoints.`$nexus.identityColumnName$`
+$/ foreach role in nexus.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.`$role.knot.name$` `k$role.name$`
+ON
+    `k$role.name$`.`$role.knot.identityColumnName$` = `$nexus.mnemonic$`.`$role.columnName$`
+$/ endfor
+$/ foreach attribute in nexus.attributes
+LEFT JOIN (
+$/ if attribute.isHistorized
+    SELECT
+        x.*,
+        lead(x.`$attribute.changingColumnName$`) OVER (
+            PARTITION BY x.`$attribute.entityReferenceName$`
+            ORDER BY x.`$attribute.changingColumnName$`
+        ) AS `until`
+    FROM (
+        -- the latest asserted posit at each changing time
+        SELECT
+            r.*
+        FROM
+            $attribute.capsule$.`r$attribute.name$`(
+                CAST($schema.EOT$ AS $attribute.timeRange$),
+                CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+            ) r
+        WHERE
+            r.`$attribute.reliabilityColumnName$` = 1
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY r.`$attribute.entityReferenceName$`, r.`$attribute.changingColumnName$`
+                ORDER BY r.`$attribute.positingColumnName$` DESC
+            ) = 1
+    ) x
+$/ else
+    SELECT
+        r.*
+    FROM
+        $attribute.capsule$.`r$attribute.name$`(
+            CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+        ) r
+    WHERE
+        r.`$attribute.reliabilityColumnName$` = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r.`$attribute.entityReferenceName$`
+            ORDER BY r.`$attribute.positingColumnName$` DESC
+        ) = 1
+$/ endif
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$nexus.mnemonic$`.`$nexus.identityColumnName$`
+$/ if attribute.isHistorized
+AND
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$` <= CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+AND (
+    `$attribute.mnemonic$`.`until` IS NULL
+OR
+    `$attribute.mnemonic$`.`until` > CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+)
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ endfor
+)
+;
+$/ endif
+$/ endif
+$/ endfor

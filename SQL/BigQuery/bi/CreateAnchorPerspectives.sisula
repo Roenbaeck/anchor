@@ -1,0 +1,278 @@
+-- ANCHOR TEMPORAL PERSPECTIVES ---------------------------------------------------------------------------------------
+--
+-- BigQuery BI anchor perspectives: time traveling (t), latest (l), point-in-time (p),
+-- now (n), and difference (d).
+--
+$/ foreach anchor in schema.anchors
+$/ if anchor.attributes
+CREATE OR REPLACE TABLE FUNCTION $anchor.capsule$.`t$anchor.name$` (
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+    `$anchor.mnemonic$`.`$anchor.identityColumnName$`,
+$/ if schema.METADATA
+    `$anchor.mnemonic$`.`$anchor.metadataColumnName$`,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.positingColumnName$`,
+    `$attribute.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.`$anchor.name$` `$anchor.mnemonic$`
+$/ foreach attribute in anchor.attributes
+LEFT JOIN (
+    -- the latest asserted posit for each anchor, picked by a window: BigQuery cannot evaluate a subquery that refers to
+    -- the outer row and takes the first row of an ordering
+    SELECT
+        r.*
+    FROM
+        $attribute.capsule$.`r$attribute.name$`(
+$/ if attribute.isHistorized
+            CAST(changingTimepoint AS $attribute.timeRange$),
+$/ endif
+            CAST(positingTimepoint AS $schema.metadata.positingRange$)
+        ) r
+    WHERE
+        r.`$attribute.reliabilityColumnName$` = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r.`$attribute.entityReferenceName$`
+            ORDER BY
+$/ if attribute.isHistorized
+                r.`$attribute.changingColumnName$` DESC,
+$/ endif
+                r.`$attribute.positingColumnName$` DESC
+        ) = 1
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$anchor.mnemonic$`.`$anchor.identityColumnName$`
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ if attribute.last()
+)
+;
+$/ endif
+$/ endfor
+CREATE OR REPLACE VIEW $anchor.capsule$.`l$anchor.name$` AS
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$anchor.mnemonic$`.*
+FROM
+    $anchor.capsule$.`t$anchor.name$`(
+        CAST($schema.EOT$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$anchor.mnemonic$`
+;
+CREATE OR REPLACE TABLE FUNCTION $anchor.capsule$.`p$anchor.name$` (
+    changingTimepoint $schema.metadata.chronon$
+)
+AS (
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$anchor.mnemonic$`.`$anchor.identityColumnName$`,
+$/ if schema.METADATA
+    `$anchor.mnemonic$`.`$anchor.metadataColumnName$`,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    `$anchor.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$anchor.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$anchor.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$anchor.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$anchor.mnemonic$`.`$attribute.positingColumnName$`,
+    `$anchor.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `$anchor.mnemonic$`.`$attribute.knotChecksumColumnName$`,
+$/ endif
+    `$anchor.mnemonic$`.`$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `$anchor.mnemonic$`.`$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$anchor.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$anchor.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM
+    $anchor.capsule$.`t$anchor.name$`(
+        CAST(changingTimepoint AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$anchor.mnemonic$`
+)
+;
+CREATE OR REPLACE VIEW $anchor.capsule$.`n$anchor.name$` AS
+SELECT
+    cast(null as $schema.metadata.reliabilityRange$) as `$schema.metadata.reliabilitySuffix$`,
+    `$anchor.mnemonic$`.*
+FROM
+    $anchor.capsule$.`t$anchor.name$`(
+        CAST($schema.metadata.now$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) `$anchor.mnemonic$`
+;
+$/ if anchor.historizedAttributes
+CREATE OR REPLACE TABLE FUNCTION $anchor.capsule$.`d$anchor.name$` (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$,
+    selection string
+)
+AS (
+-- each change in the interval, with what the time-traveling perspective shows then as it is known now: every latest
+-- asserted posit is joined with the changing time until which it holds, when the next one does. BigQuery cannot call
+-- the time-traveling perspective for each change, since it cannot evaluate a function with an outer join on its
+-- argument for each row of another table.
+SELECT
+    timepoints.inspectedTimepoint,
+    `$anchor.mnemonic$`.`$anchor.identityColumnName$`,
+$/ if schema.METADATA
+    `$anchor.mnemonic$`.`$anchor.metadataColumnName$`,
+$/ endif
+$/ foreach attribute in anchor.attributes
+$/ if schema.IMPROVED
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$`,
+$/ endif
+$/ if schema.METADATA
+    `$attribute.mnemonic$`.`$attribute.metadataColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.identityColumnName$`,
+$/ if attribute.timeRange
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.positingColumnName$`,
+    `$attribute.mnemonic$`.`$attribute.reliabilityColumnName$`,
+$/ if attribute.isKnotted
+$/ if attribute.knot.hasChecksum
+    `k$attribute.mnemonic$`.`$attribute.knot.checksumColumnName$` AS `$attribute.knotChecksumColumnName$`,
+$/ endif
+    `k$attribute.mnemonic$`.`$attribute.knot.valueColumnName$` AS `$attribute.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$attribute.mnemonic$`.`$attribute.knot.metadataColumnName$` AS `$attribute.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+$/ if attribute.hasChecksum
+    `$attribute.mnemonic$`.`$attribute.checksumColumnName$`,
+$/ endif
+    `$attribute.mnemonic$`.`$attribute.valueColumnName$`$/ if not attribute.last() ,$/ endif
+$/ endfor
+FROM (
+$/ foreach historized in anchor.historizedAttributes
+    SELECT DISTINCT
+        `$historized.entityReferenceName$` AS `$anchor.identityColumnName$`,
+        CAST(`$historized.changingColumnName$` AS $schema.metadata.chronon$) AS inspectedTimepoint,
+        '$historized.mnemonic$' AS mnemonic
+    FROM
+        $historized.capsule$.`$historized.name$`
+    WHERE
+        (selection IS NULL OR selection LIKE '%$historized.mnemonic$%')
+    AND
+        `$historized.changingColumnName$` BETWEEN intervalStart AND intervalEnd
+$/ if not historized.last()
+    UNION DISTINCT
+$/ endif
+$/ endfor
+) timepoints
+JOIN
+    $anchor.capsule$.`$anchor.name$` `$anchor.mnemonic$`
+ON
+    `$anchor.mnemonic$`.`$anchor.identityColumnName$` = timepoints.`$anchor.identityColumnName$`
+$/ foreach attribute in anchor.attributes
+LEFT JOIN (
+$/ if attribute.isHistorized
+    SELECT
+        x.*,
+        lead(x.`$attribute.changingColumnName$`) OVER (
+            PARTITION BY x.`$attribute.entityReferenceName$`
+            ORDER BY x.`$attribute.changingColumnName$`
+        ) AS `until`
+    FROM (
+        -- the latest asserted posit at each changing time
+        SELECT
+            r.*
+        FROM
+            $attribute.capsule$.`r$attribute.name$`(
+                CAST($schema.EOT$ AS $attribute.timeRange$),
+                CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+            ) r
+        WHERE
+            r.`$attribute.reliabilityColumnName$` = 1
+        QUALIFY
+            row_number() OVER (
+                PARTITION BY r.`$attribute.entityReferenceName$`, r.`$attribute.changingColumnName$`
+                ORDER BY r.`$attribute.positingColumnName$` DESC
+            ) = 1
+    ) x
+$/ else
+    SELECT
+        r.*
+    FROM
+        $attribute.capsule$.`r$attribute.name$`(
+            CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+        ) r
+    WHERE
+        r.`$attribute.reliabilityColumnName$` = 1
+    QUALIFY
+        row_number() OVER (
+            PARTITION BY r.`$attribute.entityReferenceName$`
+            ORDER BY r.`$attribute.positingColumnName$` DESC
+        ) = 1
+$/ endif
+) `$attribute.mnemonic$`
+ON
+    `$attribute.mnemonic$`.`$attribute.entityReferenceName$` = `$anchor.mnemonic$`.`$anchor.identityColumnName$`
+$/ if attribute.isHistorized
+AND
+    `$attribute.mnemonic$`.`$attribute.changingColumnName$` <= CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+AND (
+    `$attribute.mnemonic$`.`until` IS NULL
+OR
+    `$attribute.mnemonic$`.`until` > CAST(timepoints.inspectedTimepoint AS $attribute.timeRange$)
+)
+$/ endif
+$/ if attribute.isKnotted
+LEFT JOIN
+    $attribute.knot.capsule$.`$attribute.knot.name$` `k$attribute.mnemonic$`
+ON
+    `k$attribute.mnemonic$`.`$attribute.knot.identityColumnName$` = `$attribute.mnemonic$`.`$attribute.knotReferenceName$`
+$/ endif
+$/ endfor
+)
+;
+$/ endif
+$/ endif
+$/ endfor

@@ -1,33 +1,26 @@
 # This is the processing directive for bi-temporal Anchor Modeling in BigQuery
 #
-# Initial native BigQuery BI generation (core + rewinders + perspectives)
+# The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
+# modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
+# bindings are made from; they run once, before the templates. A line starting with # is not run.
+#
+# BigQuery has no sequences, no unique constraints and no triggers, and its primary and foreign keys are not enforced;
+# a dataset is its schema.
 SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/BigQuery/NamingConvention.js
-SQL/BigQuery/bi/CreateKnots.js
-SQL/BigQuery/bi/CreateAnchors.js
-SQL/BigQuery/bi/CreateNexuses.js
-SQL/BigQuery/bi/CreateAttributes.js
-#SQL/BigQuery/bi/CreateAttributeAssembledViews.js
-SQL/BigQuery/bi/CreateAttributeRewinders.js
-#SQL/BigQuery/bi/AddAttributeRestatementConstraints.js
-#SQL/BigQuery/biz/DropAnchorBusinessPerspectives.js
-SQL/BigQuery/bi/CreateAnchorPerspectives.js
-#SQL/BigQuery/biz/CreateAnchorBusinessPerspectives.js
-#SQL/BigQuery/biz/DropNexusBusinessPerspectives.js
-SQL/BigQuery/bi/CreateNexusPerspectives.js
-#SQL/BigQuery/biz/CreateNexusBusinessPerspectives.js
-#SQL/BigQuery/bi/CreateKeyGenerators.js
-#SQL/BigQuery/bi/CreateAttributeTriggers.js
-#SQL/BigQuery/bi/CreateAnchorTriggers.js
-#SQL/BigQuery/bi/CreateNexusTriggers.js
-SQL/BigQuery/bi/CreateTies.js
-#SQL/BigQuery/bi/CreateTieAssembledViews.js
-#SQL/BigQuery/bi/AddTieRestatementConstraints.js
-SQL/BigQuery/bi/CreateTieRewinders.js
-#SQL/BigQuery/biz/DropTieBusinessPerspectives.js
-SQL/BigQuery/bi/CreateTiePerspectives.js
-#SQL/BigQuery/biz/CreateTieBusinessPerspectives.js
-#SQL/BigQuery/bi/CreateTieTriggers.js
-#SQL/BigQuery/CreateSchemaTracking.js
-SQL/BigQuery/uni/AddDescriptions.js
+SQL/BigQuery/derive.js
+SQL/BigQuery/CreateSchemas.sisula
+SQL/BigQuery/bi/CreateKnots.sisula
+SQL/BigQuery/bi/CreateAnchors.sisula
+SQL/BigQuery/bi/CreateNexuses.sisula
+SQL/BigQuery/bi/CreateAttributes.sisula
+SQL/BigQuery/bi/CreateAttributeAssembledViews.sisula
+SQL/BigQuery/bi/CreateAttributeRewinders.sisula
+SQL/BigQuery/bi/CreateAnchorPerspectives.sisula
+SQL/BigQuery/bi/CreateNexusPerspectives.sisula
+SQL/BigQuery/bi/CreateTies.sisula
+SQL/BigQuery/bi/CreateTieAssembledViews.sisula
+SQL/BigQuery/bi/CreateTieRewinders.sisula
+SQL/BigQuery/bi/CreateTiePerspectives.sisula
+SQL/BigQuery/AddDescriptions.sisula

@@ -1,0 +1,135 @@
+-- TIE REWINDERS AND FORWARDERS ---------------------------------------------------------------------------------------
+--
+-- BI rewinders over changing and positing time.
+--
+$/ foreach tie in schema.ties
+$/ if tie.isHistorized
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`r$tie.positName$` (
+    changingTimepoint $tie.timeRange$
+)
+AS (
+SELECT
+    `$tie.identityColumnName$`,
+$/ foreach role in tie.roles
+    `$role.columnName$`,
+$/ endfor
+    `$tie.changingColumnName$`
+FROM
+    $tie.capsule$.`$tie.positName$`
+WHERE
+    `$tie.changingColumnName$` <= changingTimepoint
+)
+;
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`f$tie.positName$` (
+    changingTimepoint $tie.timeRange$
+)
+AS (
+SELECT
+    `$tie.identityColumnName$`,
+$/ foreach role in tie.roles
+    `$role.columnName$`,
+$/ endfor
+    `$tie.changingColumnName$`
+FROM
+    $tie.capsule$.`$tie.positName$`
+WHERE
+    `$tie.changingColumnName$` > changingTimepoint
+)
+;
+$/ endif
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`r$tie.annexName$` (
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+$/ if schema.METADATA
+    `$tie.metadataColumnName$`,
+$/ endif
+    `$tie.identityColumnName$`,
+    `$tie.positingColumnName$`,
+    `$tie.reliabilityColumnName$`
+FROM
+    $tie.capsule$.`$tie.annexName$`
+WHERE
+    `$tie.positingColumnName$` <= positingTimepoint
+)
+;
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`r$tie.name$` (
+$/ if tie.isHistorized
+    changingTimepoint $tie.timeRange$,
+$/ endif
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+$/ if schema.METADATA
+    a.`$tie.metadataColumnName$`,
+$/ endif
+    p.`$tie.identityColumnName$`,
+$/ foreach role in tie.roles
+    p.`$role.columnName$`,
+$/ endfor
+$/ if tie.isHistorized
+    p.`$tie.changingColumnName$`,
+$/ endif
+    a.`$tie.positingColumnName$`,
+    a.`$tie.reliabilityColumnName$`
+FROM
+$/ if tie.isHistorized
+    $tie.capsule$.`r$tie.positName$`(changingTimepoint) p $--$
+$/ else
+    $tie.capsule$.`$tie.positName$` p
+$/ endif
+JOIN
+    $tie.capsule$.`r$tie.annexName$`(positingTimepoint) a
+ON
+    a.`$tie.identityColumnName$` = p.`$tie.identityColumnName$`
+WHERE
+    TRUE
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.`$tie.identityColumnName$`
+        ORDER BY a.`$tie.positingColumnName$` DESC
+    ) = 1
+)
+;
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`f$tie.name$` (
+$/ if tie.isHistorized
+    changingTimepoint $tie.timeRange$,
+$/ endif
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+$/ if schema.METADATA
+    a.`$tie.metadataColumnName$`,
+$/ endif
+    p.`$tie.identityColumnName$`,
+$/ foreach role in tie.roles
+    p.`$role.columnName$`,
+$/ endfor
+$/ if tie.isHistorized
+    p.`$tie.changingColumnName$`,
+$/ endif
+    a.`$tie.positingColumnName$`,
+    a.`$tie.reliabilityColumnName$`
+FROM
+$/ if tie.isHistorized
+    $tie.capsule$.`f$tie.positName$`(changingTimepoint) p $--$
+$/ else
+    $tie.capsule$.`$tie.positName$` p
+$/ endif
+JOIN
+    $tie.capsule$.`r$tie.annexName$`(positingTimepoint) a
+ON
+    a.`$tie.identityColumnName$` = p.`$tie.identityColumnName$`
+WHERE
+    TRUE
+QUALIFY
+    row_number() OVER (
+        PARTITION BY p.`$tie.identityColumnName$`
+        ORDER BY a.`$tie.positingColumnName$` DESC
+    ) = 1
+)
+;
+$/ endfor

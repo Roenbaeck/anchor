@@ -1,0 +1,162 @@
+-- TIE TEMPORAL PERSPECTIVES ------------------------------------------------------------------------------------------
+--
+-- BigQuery BI tie perspectives: time traveling (t), latest (l), point-in-time (p),
+-- now (n), and difference (d).
+--
+$/ foreach tie in schema.ties
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`t$tie.name$` (
+    changingTimepoint $schema.metadata.chronon$,
+    positingTimepoint $schema.metadata.positingRange$
+)
+AS (
+SELECT
+    t.`$tie.identityColumnName$`,
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+$/ if tie.isHistorized
+    t.`$tie.changingColumnName$`,
+$/ endif
+    t.`$tie.positingColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+$/ foreach role in tie.roles
+$/ if role.knot
+    `k$role.name$`.`$role.knot.valueColumnName$` AS `$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    `k$role.name$`.`$role.knot.metadataColumnName$` AS `$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+FROM
+    $tie.capsule$.`r$tie.name$`(
+$/ if tie.isHistorized
+        CAST(changingTimepoint AS $tie.timeRange$),
+$/ endif
+        CAST(positingTimepoint AS $schema.metadata.positingRange$)
+    ) t
+$/ foreach role in tie.knotRoles
+LEFT JOIN
+    $role.knot.capsule$.`$role.knot.name$` `k$role.name$`
+ON
+    `k$role.name$`.`$role.knot.identityColumnName$` = t.`$role.columnName$`
+$/ endfor
+WHERE
+    t.`$tie.reliabilityColumnName$` = 1
+QUALIFY -- picked by a window: a database may not evaluate a subquery that refers to the outer row and takes the first row
+        -- of an ordering
+$/ if tie.identifiers
+    -- the latest posit for the identifiers
+    row_number() OVER (
+        PARTITION BY
+$/ foreach role in tie.identifiers
+            t.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+        ORDER BY
+$/ if tie.isHistorized
+            t.`$tie.changingColumnName$` DESC,
+$/ endif
+            t.`$tie.positingColumnName$` DESC,
+            t.`$tie.identityColumnName$` DESC
+    ) = 1
+$/ else
+    -- a tie without identifiers is one to one: the latest posit for each of its anchors
+$/ foreach role in tie.anchorRoles
+    row_number() OVER (
+        PARTITION BY t.`$role.columnName$`
+        ORDER BY
+$/ if tie.isHistorized
+            t.`$tie.changingColumnName$` DESC,
+$/ endif
+            t.`$tie.positingColumnName$` DESC,
+            t.`$tie.identityColumnName$` DESC
+    ) = 1
+$/ if not role.last()
+AND
+$/ endif
+$/ endfor
+$/ endif
+)
+;
+CREATE OR REPLACE VIEW $tie.capsule$.`l$tie.name$` AS
+SELECT
+    *
+FROM
+    $tie.capsule$.`t$tie.name$`(
+        CAST($schema.EOT$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    )
+;
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`p$tie.name$` (
+    changingTimepoint $schema.metadata.chronon$
+)
+AS (
+SELECT
+    t.`$tie.identityColumnName$`,
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+$/ if tie.isHistorized
+    t.`$tie.changingColumnName$`,
+$/ endif
+    t.`$tie.positingColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+$/ foreach role in tie.roles
+$/ if role.knot
+    t.`$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    t.`$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+FROM
+    $tie.capsule$.`t$tie.name$`(
+        CAST(changingTimepoint AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) t
+)
+;
+CREATE OR REPLACE VIEW $tie.capsule$.`n$tie.name$` AS
+SELECT
+    *
+FROM
+    $tie.capsule$.`t$tie.name$`(
+        CAST($schema.metadata.now$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    )
+;
+$/ if tie.isHistorized
+CREATE OR REPLACE TABLE FUNCTION $tie.capsule$.`d$tie.name$` (
+    intervalStart $schema.metadata.chronon$,
+    intervalEnd $schema.metadata.chronon$
+)
+AS (
+SELECT
+    t.`$tie.identityColumnName$`,
+$/ if schema.METADATA
+    t.`$tie.metadataColumnName$`,
+$/ endif
+    t.`$tie.changingColumnName$`,
+    t.`$tie.positingColumnName$`,
+    t.`$tie.reliabilityColumnName$`,
+$/ foreach role in tie.roles
+$/ if role.knot
+    t.`$role.knotValueColumnName$`,
+$/ if schema.METADATA
+    t.`$role.knotMetadataColumnName$`,
+$/ endif
+$/ endif
+    t.`$role.columnName$`$/ if not role.last() ,$/ endif
+$/ endfor
+FROM
+    $tie.capsule$.`t$tie.name$`(
+        CAST($schema.EOT$ AS $schema.metadata.chronon$),
+        CAST($schema.EOT$ AS $schema.metadata.positingRange$)
+    ) t
+WHERE
+    t.`$tie.changingColumnName$` BETWEEN intervalStart AND intervalEnd
+)
+;
+$/ endif
+$/ endfor

@@ -1,0 +1,22 @@
+-- ANCHORS ------------------------------------------------------------------------------------------------------------
+--
+-- Anchors are used to store the identities of entities.
+-- Anchors are immutable.
+--
+-- BigQuery has no sequences: the load gives an identity to every new entity.
+--
+$/ foreach anchor in schema.anchors
+-- Anchor table -------------------------------------------------------------------------------------------------------
+-- $anchor.name$ table (with $anchor.attributeCount$ attributes)
+-----------------------------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS $anchor.capsule$.`$anchor.name$` (
+    `$anchor.identityColumnName$` $anchor.identity$ not null,
+$/ if schema.METADATA
+    `$anchor.metadataColumnName$` $schema.metadata.metadataType$ not null,
+$/ endif
+    PRIMARY KEY (
+        `$anchor.identityColumnName$`
+    ) NOT ENFORCED
+)
+CLUSTER BY `$anchor.identityColumnName$`;
+$/ endfor

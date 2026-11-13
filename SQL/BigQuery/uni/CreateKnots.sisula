@@ -1,0 +1,33 @@
+-- KNOTS --------------------------------------------------------------------------------------------------------------
+--
+-- Knots are used to store finite sets of values, normally used to describe states
+-- of entities (through knotted attributes) or relationships (through knotted ties).
+-- Knots have their own surrogate identities and are therefore immutable.
+-- Values can be added to the set over time though.
+-- Knots should have values that are mutually exclusive and exhaustive.
+--
+-- BigQuery has no sequences, and no unique constraints: an identity is given by the load, and a value is unique because the
+-- load adds only values that are not there. Its primary and foreign keys are not enforced (they are for the optimizer).
+--
+$/ foreach knot in schema.knots
+-- Knot table ---------------------------------------------------------------------------------------------------------
+-- $knot.name$ table
+-----------------------------------------------------------------------------------------------------------------------
+$/ if knot.hasChecksum
+-- the checksum is FARM_FINGERPRINT of the value, which the load fills in: a column cannot be computed from another
+$/ endif
+CREATE TABLE IF NOT EXISTS $knot.capsule$.`$knot.name$` (
+    `$knot.identityColumnName$` $knot.identity$ not null,
+    `$knot.valueColumnName$` $knot.dataRange$ not null,
+$/ if knot.hasChecksum
+    `$knot.checksumColumnName$` int64,
+$/ endif
+$/ if schema.METADATA
+    `$knot.metadataColumnName$` $schema.metadata.metadataType$ not null,
+$/ endif
+    PRIMARY KEY (
+        `$knot.identityColumnName$`
+    ) NOT ENFORCED
+)
+CLUSTER BY `$knot.identityColumnName$`;
+$/ endfor

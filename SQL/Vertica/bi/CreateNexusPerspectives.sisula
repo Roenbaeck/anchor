@@ -4,7 +4,7 @@
 -- take a time (time traveling, point-in-time and difference) are not made; the latest and the now perspectives take none,
 -- and are views over the rewinders of the attributes (views that show the latest annex row of every posit).
 --
-$/ foreach nexus in schema.nexuss
+$/ foreach nexus in schema.nexuses
 $/ if nexus.attributes
 $/ foreach perspective in nexus.perspectives
 CREATE OR REPLACE VIEW $nexus.capsule$."$perspective.name$" AS
