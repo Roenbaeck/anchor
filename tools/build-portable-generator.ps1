@@ -23,8 +23,10 @@
       AnchorGenerator.metadataElement()       the same, as the <metadata .../> element that a model starts with
       AnchorGenerator.version                 where it was built from
 
-    Only the databases whose templates are Sisula templates are built. BigQuery, Oracle and Vertica uni-temporal are still
-    sisulets in JavaScript (.js in the directive), which the modeler runs with the original Sisulator in a browser; they have no file.
+    Only the databases whose templates are Sisula templates can be built: SQL Server, Snowflake, PostgreSQL, Vertica and BigQuery
+    (a temporalization that still lists a .js sisulet in its directive is left out; none does now). Oracle's templates are Sisula
+    templates too, but it is not built: they are the original ones, ported as they were, and what they make is not SQL that Oracle
+    takes (see the handover), so a file for it would be a generator of SQL that its database rejects.
 
     Usage:
       build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery] [-Anchor <checkout>]
