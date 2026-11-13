@@ -504,13 +504,31 @@ SQL taught.
 
 ### Oracle
 
-The Oracle generators (uni and crt; bi says it is not supported) are the original sisulets, ported to Sisula templates with the same SQL
-(checked against the modeler's output for the example model, white space apart). They were never run on Oracle, and they have the
-defects that the originals had, which the port keeps and the handover lists: the uni templates make no nexus and no key views, so a tie
-with a nexus role refers to a table that is not there; the crt templates were copied from another database, so most of the SQL is not
-Oracle's (`CREATE TABLE IF NOT EXISTS`, `IDENTITY(1,1)`, `CLUSTER BY`, `boolean`), and several columns and conditions are empty.
-Only the perspectives of crt are Oracle's own (`SQL_MACRO`). A script from the Oracle generator is therefore a starting point and
-not a script to run; the portable generator has no file for Oracle for that reason.
+The Oracle generators (uni and crt; bi says it is not supported) are Sisula templates over the JSON bindings, written for **Oracle
+Database 19.7 or later** from PostgreSQL's (the same tables, views, functions, triggers and keys), in Oracle's own SQL and PL/SQL. They
+have been parsed (`tools/oracle-syntax.ps1` in the sisula repository runs the PL/SQL grammar of ANTLR on every model's script, and
+`tools/oracle-tests/` has the checks to run on a server), but **they have not been run on an Oracle server**: expect to find what Oracle
+rejects by running them, as Snowflake's and PostgreSQL's SQL taught. What was decided, and why:
+
+- **Names** are not quoted: Oracle folds them to upper case, so the objects can be written in any case in queries. A name is at most 128
+  bytes (12.2 or later) and cannot start with an underscore, so the table of positors in crt is `Positor_` where PostgreSQL has `_Positor`;
+  a mnemonic can be a word that Oracle reserves, so table aliases are written inside double quotes.
+- **Schemas** are users, which a script cannot sensibly create: `CreateSchemas` only lists the ones the model uses. A model whose schema
+  is `public` (what a model from another database has), or none, makes everything in the schema that the script is run in.
+- **A script can be run again**: tables and sequences are made in a block that lets `ORA-00955` (the name is used) pass; views,
+  functions, procedures and triggers are `CREATE OR REPLACE`.
+- **Perspectives**: the latest and now perspectives are views, and the point-in-time, difference and time-traveling ones are SQL table
+  macros (`SQL_MACRO`, 19.7 or later), which are called in a `FROM` clause. Oracle does not take a subquery in the `ON` of a
+  `LEFT JOIN`, so the latest version of an attribute is joined as an inline view.
+- **Triggers**: the latest views have `INSTEAD OF` triggers, as in PostgreSQL. Oracle does not let a row trigger read the table it is
+  on (`ORA-04091`), which the rules of the attribute and tie tables (a contradiction, a restatement, an idempotent attribute, a
+  retraction) do, so they are in procedures, `ip_<attribute>` and `ip_<tie>`, that the triggers call and a load can call too. A row
+  put straight into an attribute table with an `INSERT` is not looked at, as in Snowflake and Vertica. There is no DDL in a trigger
+  (it would end the transaction), so the deletion tables of deletable attributes and ties are made with the other tables.
+- **Types and values**: a checksum is `raw(16)` and a virtual column over `STANDARD_HASH(value, 'MD5')`, which cannot hash a LOB or an
+  `xmltype`, so the checksum of such an attribute is left out. A value of a LOB or an `xmltype` is compared with `DBMS_LOB.COMPARE`.
+  A boolean is `number(1)`. Oracle has no empty string (it is null). Parameters of a function have no length or precision.
+- **Not implemented**: bi-temporal; equivalence; encryption groups; the scalar functions `pre` and `fol` of crt (nothing uses them).
 
 The SQL of PostgreSQL's generators has been run on PostgreSQL 16 (`tools/postgres-tests.ps1` in the sisula repository: every model is
 deployed, and the latest, time-traveling, point-in-time and difference perspectives are tested over rows, as Snowflake's are). The SQL of

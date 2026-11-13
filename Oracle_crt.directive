@@ -1,4 +1,4 @@
-# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Oracle
+# This is the processing directive for concurrent-reliance-temporal Anchor Modeling in Oracle (Oracle Database 19.7 or later)
 #
 # The templates are in the Sisula language (docs/SISULA.md) and render the JSON bindings that the
 # modeler builds (Generate > JSON bindings). The scripts first in the list prepare the schema that the
@@ -7,14 +7,23 @@ SQL/Helpers.js
 SQL/NamingConvention.js
 SQL/Oracle/NamingConvention.js
 SQL/Oracle/derive.js
+SQL/Oracle/CreateSchemas.sisula
 SQL/Oracle/crt/CreatePositorAndDefault.sisula
 SQL/Oracle/crt/CreateKnots.sisula
 SQL/Oracle/crt/CreateAnchors.sisula
 SQL/Oracle/crt/CreateNexuses.sisula
 SQL/Oracle/crt/CreateAttributes.sisula
+SQL/Oracle/crt/CreateAttributeAssembledViews.sisula
 SQL/Oracle/crt/CreateAttributeRewinders.sisula
-SQL/Oracle/crt/CreateTies.sisula
-SQL/Oracle/crt/CreateTieRewinders.sisula
 SQL/Oracle/crt/CreateAnchorPerspectives.sisula
 SQL/Oracle/crt/CreateNexusPerspectives.sisula
+SQL/Oracle/crt/CreateTies.sisula
+SQL/Oracle/crt/CreateTieAssembledViews.sisula
+SQL/Oracle/crt/CreateTieRewinders.sisula
 SQL/Oracle/crt/CreateTiePerspectives.sisula
+SQL/Oracle/crt/CreateAttributeTriggers.sisula
+SQL/Oracle/crt/CreateAnchorTriggers.sisula
+SQL/Oracle/crt/CreateNexusTriggers.sisula
+SQL/Oracle/crt/CreateTieTriggers.sisula
+SQL/Oracle/uni/CreateKeys.sisula
+SQL/Oracle/AddDescriptions.sisula

@@ -1,6 +1,5 @@
-// derive.js: the values the Oracle templates need that Anchor's sisulets computed with helper functions or small expressions at
-// generation time. The resolver runs it after Helpers.js and the naming conventions, in the same scope, so it can use their
-// helpers and iterators.
+// derive.js: the values the Oracle templates need that cannot be read from the model as it is. The resolver runs it after
+// Helpers.js and the naming conventions, in the same scope, so it can use their helpers and iterators.
 //
 // Only facts are derived here, never SQL.
 //
@@ -9,12 +8,27 @@
 //                   description that is literally "0", "false" or "null".
 //   attributeCount  the number of attributes of an anchor or nexus
 //   roleCount       the number of roles of a nexus or tie
+//   historizedAttributeCount   the number of historized attributes of an anchor or nexus (a template cannot filter and count)
+//   uniqueColumnName       the column that a knot is unique on: its checksum if it has one, else its value
+//   comparedColumnName     the column that tells whether an attribute has changed: its checksum if it has one,
+//                          else its value (a knotted attribute's value column is the reference to the knot)
+//   isComparable           whether two values of the attribute can be compared with =: a LOB (clob, nclob, blob, bfile), a long,
+//                          xmltype or json cannot, unless there is a checksum to compare
+//   isLob                  the value is a clob, nclob or blob, which DBMS_LOB.COMPARE compares
+//   isXml                  the value is an xmltype, which XMLSERIALIZE(CONTENT value AS CLOB) turns into a clob to compare
+//   schema.metadata.positorTableName   the name of the table of positors in crt, Positor_ (PostgreSQL has _Positor); written
+//                          $schema.metadata.qualifier$$schema.metadata.positorTableName$
+//   qualifier              what a name of the construct is written after, in a script: the schema and a dot, or nothing. A schema
+//   compareByChecksum, compareAsLob, compareAsXml, compareAsIs   how two values of the attribute are compared: exactly one is true.
+//                          By the checksum (STANDARD_HASH of the value, MD5); with DBMS_LOB.COMPARE; as XMLSERIALIZE(CONTENT value AS CLOB) with
+//                          DBMS_LOB.COMPARE; or with = and <>. A LOB or xmltype with a checksum is compared by the checksum, which
+//                          STANDARD_HASH cannot make of a LOB, so such a model does not work.
+//                          is a user in Oracle and has to exist; a schema called public, or none, stands for the schema that the
+//                          script is run in, since Oracle has no schema of that name that holds tables. The same on the
+//                          anchors, nexuses, knots, attributes and ties, and schema.metadata.qualifier for the schema of the model.
 //
 // The counts are data because a path in a template reaches only what the JSON holds. A template cannot ask an array for its
 // length: JSON has no such member, and the JSON functions of SQL Server, which run the same templates, do not either.
-//
-// The rest are names that the original sisulets cut to 30 characters, the longest that Oracle took before 12.2, and the
-// pieces of text that they built with String.fromCharCode(58) because the original engine read a colon in a template.
 
 // returns the description of a construct as an escaped string literal body, or null if it has none
 var describe = function(construct) {
@@ -32,120 +46,174 @@ function deriveComment(construct) {
     construct.hasComment = comment !== null;
 }
 
+// the schema of a name in a script: written in front of it, with its dot, or left out
+function qualify(capsule) {
+    if (capsule === undefined || capsule === null || /^\s*$/.test(capsule) || /^public$/i.test(capsule)) return '';
+    return capsule + '.';
+}
+schema.metadata.qualifier = qualify(schema.metadata.encapsulation);
+// the table of positors (crt): PostgreSQL calls it _Positor, but an Oracle name cannot start with an underscore, so the underscore goes last
+schema.metadata.positorTableName = schema.metadata.positorSuffix + '_';
+
+// a data type as a parameter of a function can have no length, precision or scale in Oracle: timestamp(9) is timestamp, number(10) is number
+function unconstrained(type) {
+    if (type === undefined || type === null) return type;
+    return String(type).replace(/\(\s*\d+\s*(,\s*\d+\s*)?\)/g, '').replace(/\s+/g, ' ').trim();
+}
+schema.metadata.chrononType = unconstrained(schema.metadata.chronon);
+schema.metadata.metadataTypeType = unconstrained(schema.metadata.metadataType);
+schema.metadata.positingRangeType = unconstrained(schema.metadata.positingRange);
+schema.metadata.positorRangeType = unconstrained(schema.metadata.positorRange);
+schema.metadata.reliabilityRangeType = unconstrained(schema.metadata.reliabilityRange);
+
 deriveComment(schema);
 
 var knot;
 while (knot = schema.nextKnot()) {
     deriveComment(knot);
+    knot.qualifier = qualify(knot.capsule);
+    knot.uniqueColumnName = knot.hasChecksum() ? knot.checksumColumnName : knot.valueColumnName;
 }
 
 var anchor;
 while (anchor = schema.nextAnchor()) {
     deriveComment(anchor);
+    anchor.qualifier = qualify(anchor.capsule);
     anchor.attributeCount = anchor.attributes ? anchor.attributes.length : 0;
+    anchor.historizedAttributeCount = 0;
 }
 
 var attribute;
 while (attribute = schema.nextAttribute()) {
     deriveComment(attribute);
+    attribute.qualifier = qualify(attribute.capsule);
+    attribute.timeRangeType = unconstrained(attribute.timeRange);
+    var dataType = String(attribute.dataRange || '');
+    // STANDARD_HASH cannot hash a LOB, a long, an xmltype or a json: the checksum of such an attribute is left out, as if it had none
+    if (!attribute.isKnotted() && attribute.hasChecksum() && /^\s*(clob|nclob|blob|bfile|long|xmltype|json)\b/i.test(dataType)) {
+        attribute.checksumIgnored = true;
+        attribute.hasChecksum = function() { return false; };
+    }
+    var checksummed = !attribute.isKnotted() && attribute.hasChecksum();
+    attribute.comparedColumnName = checksummed ? attribute.checksumColumnName : attribute.valueColumnName;
+    attribute.isLob = !attribute.isKnotted() && /^\s*(clob|nclob|blob)\b/i.test(dataType);
+    attribute.isXml = !attribute.isKnotted() && /^\s*xmltype\b/i.test(dataType);
+    attribute.isComparable = checksummed || attribute.isKnotted() || !/^\s*(clob|nclob|blob|bfile|long|xmltype|json)\b/i.test(dataType);
+    attribute.compareByChecksum = checksummed;
+    attribute.compareAsLob = !checksummed && attribute.isLob;
+    attribute.compareAsXml = !checksummed && attribute.isXml;
+    attribute.compareAsIs = !checksummed && !attribute.isLob && !attribute.isXml;
 }
 
 var nexus, role;
 while (nexus = schema.nextNexus()) {
     deriveComment(nexus);
+    nexus.qualifier = qualify(nexus.capsule);
     nexus.attributeCount = nexus.attributes ? nexus.attributes.length : 0;
     nexus.roleCount = nexus.roles ? nexus.roles.length : 0;
+    nexus.historizedAttributeCount = 0;
     while (role = nexus.nextRole()) deriveComment(role);
 }
 
 var tie;
 while (tie = schema.nextTie()) {
     deriveComment(tie);
+    tie.qualifier = qualify(tie.capsule);
+    tie.timeRangeType = unconstrained(tie.timeRange);
     tie.roleCount = tie.roles ? tie.roles.length : 0;
     while (role = tie.nextRole()) deriveComment(role);
 }
 
-// ---- uni-temporal (Oracle/uni) --------------------------------------------------------------------------------------------
+var historizedOwner, historizedAttribute;
+while (historizedOwner = schema.nextAnchor())
+    while (historizedAttribute = historizedOwner.nextAttribute())
+        if (historizedAttribute.isHistorized()) historizedOwner.historizedAttributeCount++;
+while (historizedOwner = schema.nextNexus())
+    while (historizedAttribute = historizedOwner.nextAttribute())
+        if (historizedAttribute.isHistorized()) historizedOwner.historizedAttributeCount++;
+
+// Natural keys: the routes of every anchor and nexus, from naturalKeys() in Helpers.js. A checksum is a raw(16), like the column
+// it is read from (STANDARD_HASH with MD5). A value is compared with = when a key is looked up and when the integrity check looks
+// for a key that two identities have; a LOB, a long, xmltype and json cannot be, so a route with such a value and no checksum
+// on it is not usable.
 //
-// Names cut to 30 characters, as the original sisulets cut them:
-//   knot.pkName, knot.ukName, anchor.pkName, attribute.pkName, attribute.fkName (a knotted attribute has fk1Name and fk2Name),
-//   tie.pkName, role.fkName and role.uqName (numbered by the position of the role in the tie, from 1)
-//   tie.changingColumn30, tie.metadataColumn30 and role.columnName30, the column names of a tie cut the same way
-//
-// What the original test data sisulet (CreateTestData) worked out, in the order it went through the model (its values carry over
-// from one attribute to the next, and from one anchor to the next, since it declared them with var):
-//   knot.testValue        the value that a knot is given: its name if its data type starts with V, else 0
-//   anchor.testFrom       the first and the last identity that an anchor is given, 10000000 more for each anchor (100 identities each)
-//   anchor.testTo
-//   attribute.testVarchar, testDate, testInteger, testOther, testNone   which kind of value an attribute is given: its data type starts
-//                         with V, d or i, with another letter, or there is none (a knotted attribute has no data type)
-//   attribute.testPrecision   the text of the data type after its first parenthesis, or all of it if there is none; a knotted
-//                         attribute has the one of the attribute before it
-//   role.testIdentity     the column of a role as the test data joins it: column name, a dot, and the identity column of what it refers to
-//   role.testPrevious     that of the role before it in the tie
-function cutTo30(text) { return String(text).substr(0, 30); }
-var uniKnot, uniAnchor, uniAttribute, uniTie, uniRole, uniIndex, uniPrevious, uniKind, uniFirst;
-var uniPrefix = 0, uniPrecision = '';
-while (uniKnot = schema.nextKnot()) {
-    uniKnot.pkName = cutTo30('PK_' + uniKnot.name);
-    uniKnot.ukName = cutTo30('UK_' + uniKnot.name);
-    uniKnot.testValue = String(uniKnot.dataRange).substr(0, 1) == 'V' ? uniKnot.name : '0';
-}
-while (uniAnchor = schema.nextAnchor()) {
-    uniAnchor.pkName = cutTo30('PK_' + uniAnchor.name);
-    uniPrefix += 10000000;
-    uniAnchor.testFrom = uniPrefix;
-    uniAnchor.testTo = uniPrefix + 100;
-    while (uniAttribute = uniAnchor.nextAttribute()) {
-        uniKind = 'none';
-        if (uniAttribute.dataRange) {
-            uniPrecision = uniAttribute.dataRange.substr(uniAttribute.dataRange.indexOf('(') + 1);
-            uniFirst = uniAttribute.dataRange.substr(0, 1);
-            uniKind = uniFirst == 'V' ? 'varchar' : uniFirst == 'd' ? 'date' : uniFirst == 'i' ? 'integer' : 'other';
-        }
-        uniAttribute.testVarchar = uniKind == 'varchar';
-        uniAttribute.testDate = uniKind == 'date';
-        uniAttribute.testInteger = uniKind == 'integer';
-        uniAttribute.testOther = uniKind == 'other';
-        uniAttribute.testNone = uniKind == 'none';
-        uniAttribute.testPrecision = uniPrecision;
+//   schema.naturalKeys   one item for each route, as naturalKeys() describes it, with qualifier on it and on each of its joins
+schema.naturalKeys = naturalKeys();
+var naturalKey, naturalKeyColumn;
+for (var nk = 0; nk < schema.naturalKeys.length; nk++) {
+    naturalKey = schema.naturalKeys[nk];
+    naturalKey.qualifier = qualify(naturalKey.capsule);
+    for (var nj = 0; nj < naturalKey.joins.length; nj++) naturalKey.joins[nj].qualifier = qualify(naturalKey.joins[nj].capsule);
+    for (var nc = 0; nc < naturalKey.columns.length; nc++) {
+        naturalKeyColumn = naturalKey.columns[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'raw(16)';
     }
-}
-while (uniAttribute = schema.nextAttribute()) {
-    uniAttribute.pkName = cutTo30('PK_' + uniAttribute.name);
-    uniAttribute.fkName = cutTo30('FK_' + uniAttribute.name);
-    uniAttribute.fk1Name = cutTo30('FK1_' + uniAttribute.name);
-    uniAttribute.fk2Name = cutTo30('FK2_' + uniAttribute.name);
-}
-while (uniTie = schema.nextTie()) {
-    uniTie.pkName = cutTo30('PK_' + uniTie.name);
-    if (uniTie.changingColumnName) uniTie.changingColumn30 = cutTo30(uniTie.changingColumnName);
-    if (uniTie.metadataColumnName) uniTie.metadataColumn30 = cutTo30(uniTie.metadataColumnName);
-    uniIndex = 0;
-    uniPrevious = '';
-    while (uniRole = uniTie.nextRole()) {
-        uniIndex++;
-        uniRole.fkName = cutTo30('FK' + uniIndex + '_' + uniTie.name + uniRole.name);
-        uniRole.uqName = cutTo30('UQ' + uniIndex + '_' + uniTie.name + uniRole.name);
-        uniRole.columnName30 = cutTo30(uniRole.columnName);
-        uniRole.testIdentity = uniRole.columnName + '.' + (uniRole.entity ? uniRole.entity.identityColumnName : uniRole.knot.identityColumnName);
-        uniRole.testPrevious = uniPrevious;
-        uniPrevious = uniRole.testIdentity;
+    for (nc = 0; nc < naturalKey.matches.length; nc++) {
+        naturalKeyColumn = naturalKey.matches[nc];
+        if (naturalKeyColumn.isChecksum) naturalKeyColumn.type = 'raw(16)';
+        else if (naturalKey.usable && /^\s*(clob|nclob|blob|bfile|long|xmltype|json)\b/i.test(naturalKeyColumn.type || '')) {
+            naturalKey.usable = false;
+            naturalKey.problem = naturalKeyColumn.name + ' is a ' + naturalKeyColumn.type + ', which cannot be compared, and it has no checksum';
+        }
+    }
+    if (!naturalKey.usable) {
+        naturalKey.notes = [];
+        naturalKey.joins = [];
+        naturalKey.columns = [];
+        naturalKey.matches = [];
     }
 }
 
-// ---- concurrent-reliance-temporal (Oracle/crt) ----------------------------------------------------------------------------
+// ---- schemas, from the keys templates ------------------------------------------------------------------------------------
 //
-//   historizedAttributeCount   the number of historized attributes of an anchor or nexus, which the time perspectives test
-//                              (a template cannot filter and count; it reads 0 as false)
-var historizedOwner, historizedAttribute;
-while (historizedOwner = schema.nextAnchor()) {
-    historizedOwner.historizedAttributeCount = 0;
-    while (historizedAttribute = historizedOwner.nextAttribute())
-        if (historizedAttribute.isHistorized()) historizedOwner.historizedAttributeCount++;
+//   schema.capsules   one item {name} for each schema (an Oracle user) that the model puts objects in, once each, in the order they
+//                     are first met: the encapsulation of the model and the capsule of every knot, anchor, nexus, attribute and tie.
+//                     A schema called public, or none, stands for the schema the script is run in and is left out; two names that
+//                     differ only in case are one schema, since Oracle folds unquoted names to upper case.
+var unikeysCapsules = [];
+var unikeysSeen = {};
+var unikeysAddCapsule = function(name) {
+    if (name === undefined || name === null) return;
+    var text = String(name);
+    if (/^\s*$/.test(text) || /^\s*public\s*$/i.test(text)) return;
+    var key = text.toUpperCase();
+    if (unikeysSeen[key]) return;
+    unikeysSeen[key] = true;
+    unikeysCapsules.push({ name: text });
+};
+var unikeysOwner;
+unikeysAddCapsule(schema.metadata.encapsulation);
+while (unikeysOwner = schema.nextKnot()) unikeysAddCapsule(unikeysOwner.capsule);
+while (unikeysOwner = schema.nextAnchor()) unikeysAddCapsule(unikeysOwner.capsule);
+while (unikeysOwner = schema.nextNexus()) unikeysAddCapsule(unikeysOwner.capsule);
+while (unikeysOwner = schema.nextAttribute()) unikeysAddCapsule(unikeysOwner.capsule);
+while (unikeysOwner = schema.nextTie()) unikeysAddCapsule(unikeysOwner.capsule);
+schema.capsules = unikeysCapsules;
+//   schema.hasCapsules   whether there is any (tested instead of the list, which a template cannot ask for its length)
+schema.hasCapsules = unikeysCapsules.length > 0;
+
+// ---- how a value of a knot is compared, from the crt trigger templates ------------------------------------------------------
+//
+//   knot.compareByChecksum   a value of the knot is looked up by its checksum (the knot has one)
+//   knot.compareAsLob        a value of the knot is a clob, nclob or blob without a checksum: it cannot be compared with =, and is
+//                            looked up and compared with DBMS_LOB.COMPARE
+//   knot.compareAsIs         a value of the knot is compared with = and <>
+//                            (exactly one of the three is true; the tie and nexus triggers look up the knot of a role in a latest view
+//                            by the value that is given, and tell whether a given knot value is another than the one the row has)
+var compareKnot;
+while (compareKnot = schema.nextKnot()) {
+    var compareKnotType = String(compareKnot.dataRange || '');
+    var compareKnotLob = /^\s*(clob|nclob|blob)\b/i.test(compareKnotType);
+    compareKnot.compareByChecksum = compareKnot.hasChecksum() ? true : false;
+    compareKnot.compareAsLob = !compareKnot.compareByChecksum && compareKnotLob;
+    compareKnot.compareAsIs = !compareKnot.compareByChecksum && !compareKnotLob;
 }
-while (historizedOwner = schema.nextNexus()) {
-    historizedOwner.historizedAttributeCount = 0;
-    while (historizedAttribute = historizedOwner.nextAttribute())
-        if (historizedAttribute.isHistorized()) historizedOwner.historizedAttributeCount++;
-}
+
+// ---- End of Time, from the crt perspective templates ----------------------------------------------------------------------
+//
+//   schema.EOTValue   End of Time (schema.EOT in Helpers.js is the quoted string '9999-12-31', which Oracle reads as a timestamp
+//                     only if NLS_TIMESTAMP_FORMAT says so) as an ISO date and time that follows TIMESTAMP in a literal that
+//                     does not depend on the session: 9999-12-31 00:00:00
+var endOfTime = String(schema.EOT).replace(/'/g, '').trim();
+if (/^\d{4}-\d{2}-\d{2}$/.test(endOfTime)) endOfTime += ' 00:00:00';
+schema.EOTValue = endOfTime;

@@ -7,19 +7,38 @@ $/ foreach nexus in schema.nexuses
 -- Nexus table --------------------------------------------------------------------------------------------------------
 -- $nexus.name$ table (with $nexus.attributeCount$ attributes and $nexus.roleCount$ roles)
 -----------------------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $nexus.capsule$.$nexus.name$ (
-    $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ IDENTITY(1,1) not null, $/ else $nexus.identity$ not null,$/ endif
+$/ if nexus.isGenerator
+BEGIN
+    EXECUTE IMMEDIATE q'[CREATE SEQUENCE $nexus.qualifier$$nexus.identitySequenceName$ START WITH 1 INCREMENT BY 1]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+$/ endif
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $nexus.qualifier$$nexus.name$ (
+            $nexus.identityColumnName$ $/ if nexus.isGenerator $nexus.identity$ default $nexus.qualifier$$nexus.identitySequenceName$.nextval not null, $/ else $nexus.identity$ not null,$/ endif
 $/ foreach role in nexus.roles
-    $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
+            $role.columnName$ $/ if role.entity $role.entity.identity$ not null, $/ else $role.knot.identity$ not null,$/ endif
 $/ endfor
+            $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ number(1) null,$/ endif
 $/ foreach role in nexus.roles
-    constraint $nexus.name$_fk$role.name$ foreign key (
-        $role.columnName$
-    ) references $/ if role.entity $role.entity.capsule$.$role.entity.name$($role.entity.identityColumnName$), $/ else $role.knot.capsule$.$role.knot.name$($role.knot.identityColumnName$),$/ endif
+            constraint $nexus.name$_fk$role.name$ foreign key (
+                $role.columnName$
+$/ if role.entity
+            ) references $role.entity.qualifier$$role.entity.name$($role.entity.identityColumnName$),
+$/ else
+            ) references $role.knot.qualifier$$role.knot.name$($role.knot.identityColumnName$),
+$/ endif
 $/ endfor
-    $/ if schema.METADATA $nexus.metadataColumnName$ $schema.metadata.metadataType$ not null, $/ else $nexus.dummyColumnName$ boolean null,$/ endif
-    constraint pk$nexus.name$ primary key (
-        $nexus.identityColumnName$
-    )
-) CLUSTER BY ($nexus.identityColumnName$);
+            constraint pk$nexus.name$ primary key (
+                $nexus.identityColumnName$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
 $/ endfor

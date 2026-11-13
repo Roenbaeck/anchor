@@ -3,22 +3,34 @@
 -- Sets up a table containing the list of available positors. Since at least one positor
 -- must be available the table is set up with a default positor with identity 0.
 --
+-- The table is called $schema.metadata.positorTableName$ (PostgreSQL has an underscore first, which an unquoted Oracle name cannot start with).
+--
 -- Positor table ------------------------------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ (
-    $schema.metadata.positorSuffix$ $schema.metadata.positorRange$ not null,
-    constraint pk_$schema.metadata.positorSuffix$ primary key (
-        $schema.metadata.positorSuffix$
-    )
-);
-MERGE INTO $schema.metadata.encapsulation$._$schema.metadata.positorSuffix$ p
-USING ( SELECT 0 AS _defaultPositor ) d
-ON (
-    d._defaultPositor = p.$schema.metadata.positorSuffix$
-)
-WHEN NOT MATCHED THEN
-INSERT (
+BEGIN
+    EXECUTE IMMEDIATE q'[
+        CREATE TABLE $schema.metadata.qualifier$$schema.metadata.positorTableName$ (
+            $schema.metadata.positorSuffix$ $schema.metadata.positorRange$ not null,
+            constraint pk_$schema.metadata.positorSuffix$ primary key (
+                $schema.metadata.positorSuffix$
+            )
+        )
+    ]';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE <> -955 THEN RAISE; END IF;
+END;
+/
+INSERT INTO $schema.metadata.qualifier$$schema.metadata.positorTableName$ (
     $schema.metadata.positorSuffix$
 )
-VALUES (
-    d._defaultPositor
+SELECT
+    0
+FROM
+    dual
+WHERE NOT EXISTS (
+    SELECT
+        1
+    FROM
+        $schema.metadata.qualifier$$schema.metadata.positorTableName$ p
+    WHERE
+        p.$schema.metadata.positorSuffix$ = 0
 );

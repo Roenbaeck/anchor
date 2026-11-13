@@ -14,7 +14,7 @@
 
     What a file holds:
 
-      AnchorGenerator.target                  the database, as the modeler names it (SQLServer, Snowflake, PostgreSQL, Vertica)
+      AnchorGenerator.target                  the database, as the modeler names it (SQLServer, Snowflake, PostgreSQL, Vertica, BigQuery, Oracle)
       AnchorGenerator.temporalizations        the ones that are generated for this database
       AnchorGenerator.generate(xml, t)        the SQL script, one string; throws an Error that says what is wrong with the model
       AnchorGenerator.bindings(xml, t)        the JSON bindings that the templates render (Generate > JSON bindings)
@@ -23,18 +23,16 @@
       AnchorGenerator.metadataElement()       the same, as the <metadata .../> element that a model starts with
       AnchorGenerator.version                 where it was built from
 
-    Only the databases whose templates are Sisula templates can be built: SQL Server, Snowflake, PostgreSQL, Vertica and BigQuery
-    (a temporalization that still lists a .js sisulet in its directive is left out; none does now). Oracle's templates are Sisula
-    templates too, but it is not built: they are the original ones, ported as they were, and what they make is not SQL that Oracle
-    takes (see the handover), so a file for it would be a generator of SQL that its database rejects.
+    Only the databases whose templates are Sisula templates can be built: SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery
+    and Oracle (a temporalization that still lists a .js sisulet in its directive is left out: Oracle has no bi-temporal one).
 
     Usage:
-      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery] [-Anchor <checkout>]
+      build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery,Oracle] [-Anchor <checkout>]
 #>
 [CmdletBinding()]
 param(
     [string] $Output = '.',
-    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica', 'BigQuery'),
+    [string[]] $Target = @('SQLServer', 'Snowflake', 'PostgreSQL', 'Vertica', 'BigQuery', 'Oracle'),
     [string] $Anchor
 )
 Set-StrictMode -Version 2.0
@@ -92,6 +90,8 @@ $settingsOf = @{
         now = 'current_timestamp'; positIdentity = 'integer'; positingRange = 'timestamp'; positorRange = 'smallint' }
     Vertica = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp(9)'; identity = 'integer'; metadataType = 'integer'
         now = 'current_timestamp'; positIdentity = 'integer'; positingRange = 'timestamp' }
+    Oracle = [ordered]@{ changingRange = 'timestamp'; chronon = 'timestamp(9)'; equivalentRange = 'number(3)'; identity = 'number(10)'; metadataType = 'number(10)'
+        now = 'current_timestamp'; positIdentity = 'number(10)'; positingRange = 'timestamp'; positorRange = 'number(3)'; reliabilityRange = 'number(5,2)' }
 }
 
 function Read-Directive([string] $database, [string] $temporalization) {
