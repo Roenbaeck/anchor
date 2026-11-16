@@ -18,21 +18,10 @@ SQL/Snowflake/crt/CreateTies.sisula
 SQL/Snowflake/crt/CreateTieAssembledViews.sisula
 SQL/Snowflake/crt/CreateTieRewinders.sisula
 # to be ported next in native CRT form
-#SQL/Snowflake/crt/AddAttributeRestatementConstraints.js
-#SQL/Snowflake/crt/CreateKeyGenerators.js
-#SQL/Snowflake/biz/DropAnchorBusinessPerspectives.js
 # Native CRT perspectives
 SQL/Snowflake/crt/CreateAnchorPerspectives.sisula
 SQL/Snowflake/crt/CreateNexusPerspectives.sisula
-#SQL/Snowflake/biz/CreateAnchorBusinessPerspectives.js
-#SQL/Snowflake/crt/CreateAttributeTriggers.js
-#SQL/Snowflake/crt/CreateAnchorTriggers.js
-#SQL/Snowflake/crt/AddTieRestatementConstraints.js
-#SQL/Snowflake/biz/DropTieBusinessPerspectives.js
 SQL/Snowflake/crt/CreateTiePerspectives.sisula
-#SQL/Snowflake/biz/CreateTieBusinessPerspectives.js
-#SQL/Snowflake/crt/CreateTieTriggers.js
-#SQL/Snowflake/CreateSchemaTracking.js
 SQL/Snowflake/uni/CreateKeys.sisula
 SQL/Snowflake/crt/CreateIntegrityChecks.sisula
 SQL/Snowflake/uni/AddDescriptions.sisula
