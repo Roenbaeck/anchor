@@ -935,6 +935,21 @@ Every database that is generated now has Sisula templates; the only directive th
   `$$`, bare `UNION`) and Oracle.
 - **Portable generators**: BigQuery is built, and Vertica now has uni too, and Oracle (uni and crt) since the rewrite (`portable-check.ps1` runs six databases, 63 + 39 + 27 + 18 + 18 + 16 models).
 
+## The original sisulets are gone (2026-11-16)
+
+The original Sisulator (the evaluator of JavaScript sisulets) was retired the same day: `modules/Objectifier.js` is what the modeler, the portable generators and
+the Snowflake build used of it, and the modeler and the portable build refuse a directive that lists a `.js` sisulet. The 24 `.js` sisulets that no directive
+ran any more were deleted; the last commit that has them is `cec2a7b`. They were drafts or leftovers, not features that worked:
+
+- **Business perspectives for PostgreSQL** (`SQL/PostgreSQL/biz/{Create,Drop}{Anchor,Nexus,Tie}BusinessPerspectives.js`, six files, copies of SQL Server's
+  untranslated). Only SQL Server has them (`SQL/SQLServer/biz/*.sisula`); no other database ever did, whatever `businessViews` says in the model.
+- **PostgreSQL schema tracking** (`SQL/PostgreSQL/CreateSchemaTracking.js`, with `Actions.jsonify` in `index.html`, deleted with it) and
+  `SQL/PostgreSQL/DatabaseInitialization.js`: PostgreSQL has no schema tracking in the generators; SQL Server's is `SQL/SQLServer/CreateSchemaTracking.sisula`.
+- **Snowflake's originals** (`SQL/Snowflake/{uni,crt}/`: triggers, key generators, restatement constraints, assembled projections, sheet stacks, descriptions):
+  Snowflake has none of these as written; its templates make the integrity checks (`IntegrityViolations`), keys as metadata and the assembled views instead.
+
+Features that only SQL Server has, then: business perspectives, schema tracking, and the SQL Server CLR objects.
+
 ## Snowflake compared with SQL Server (checked 2026-10-01)
 
 What the SQL Server generators produce that the Snowflake ones do not, from comparing the directives
