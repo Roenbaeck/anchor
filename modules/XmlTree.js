@@ -1,6 +1,6 @@
 // XmlTree: a small XML reader for Anchor models. It exists for hosts that have no DOMParser, such as a
 // JavaScript function in Snowflake, and produces the neutral tree that buildDom (modules/DomFacade.js) turns
-// into the DOM that Sisulator.objectify reads:
+// into the DOM that Objectifier.objectify reads:
 //
 //   an element is { t: 1, n: name, a: [[name, value], ...], c: [children] }
 //   a text node is { t: 3, v: text }, and whitespace between elements is kept, as a browser keeps it

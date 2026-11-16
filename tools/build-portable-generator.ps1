@@ -23,8 +23,8 @@
       AnchorGenerator.metadataElement()       the same, as the <metadata .../> element that a model starts with
       AnchorGenerator.version                 where it was built from
 
-    Only the databases whose templates are Sisula templates can be built: SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery
-    and Oracle (a temporalization that still lists a .js sisulet in its directive is left out: Oracle has no bi-temporal one).
+    SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery and Oracle can be built. Unsupported
+    temporalizations are left out: Oracle has no bi-temporal generator.
 
     Usage:
       build-portable-generator.ps1 [-Output <directory>] [-Target SQLServer,Snowflake,PostgreSQL,Vertica,BigQuery,Oracle] [-Anchor <checkout>]
@@ -46,18 +46,6 @@ function Read-Source([string] $relative) {
     $path = Join-Path $Anchor $relative
     if (-not (Test-Path $path)) { throw "Not found in the Anchor checkout: $relative" }
     ([IO.File]::ReadAllText($path, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)) -replace "`r`n", "`n"
-}
-
-# The text of a function that is written as `name: function(...) { ... }` in an object, up to its closing brace.
-function Get-MethodText([string] $source, [string] $header) {
-    $at = $source.IndexOf($header)
-    if ($at -lt 0) { throw "Cannot find '$header'" }
-    $open = $source.IndexOf('{', $at)
-    $depth = 0
-    for ($i = $open; $i -lt $source.Length; $i++) {
-        if ($source[$i] -eq '{') { $depth++ } elseif ($source[$i] -eq '}') { $depth--; if ($depth -eq 0) { return $source.Substring($at, $i - $at + 1) } }
-    }
-    throw "'$header' is not closed"
 }
 
 # A string as a JavaScript literal that holds nothing but ASCII, so that no engine has to read the file as anything else.
@@ -96,10 +84,15 @@ $settingsOf = @{
 
 function Read-Directive([string] $database, [string] $temporalization) {
     $path = "${database}_$temporalization.directive"
-    $entries = (Read-Source $path) -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
+    $entries = @((Read-Source $path) -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
     $templates = @($entries | Where-Object { $_ -like '*.sisula' })
     $legacy = @($entries | Where-Object { $_ -like '*.js' -and $_ -notmatch '(^|/)(Helpers|NamingConvention|derive)\.js$' })
-    if ($legacy.Count -gt 0) { return $null }   # sisulets in JavaScript: the original Sisulator runs those, in a browser
+    if ($legacy.Count -gt 0) { throw "$path lists unsupported legacy JavaScript sisulets: $($legacy -join ', ')" }
+    if ($templates -contains 'SQL/Unsupported.sisula') {
+        if ($entries.Count -ne 1) { throw "$path combines the unsupported template with other entries." }
+        return $null
+    }
+    if ($templates.Count -eq 0) { throw "$path has no Sisula templates." }
     [pscustomobject]@{
         Prelude = @($entries | Where-Object { $_ -match '(^|/)(Helpers|NamingConvention|derive)\.js$' })
         Templates = $templates
@@ -123,7 +116,7 @@ $shared.Add("// ---- modules/XmlTree.js`n" + (Read-Source 'modules/XmlTree.js').
 $shared.Add("// ---- modules/DomFacade.js`n" + (Read-Source 'modules/DomFacade.js').TrimEnd())
 $shared.Add("// ---- modules/ModelCheck.js`n" + (Read-Source 'modules/ModelCheck.js').TrimEnd())
 $shared.Add("// ---- modules/Map.js`n" + (Read-Source 'modules/Map.js').TrimEnd())
-$shared.Add("// ---- Sisulator.objectify, from modules/Sisulator.js`nvar Sisulator = {`n    " + (Get-MethodText (Read-Source 'modules/Sisulator.js') 'objectify: function(xml, map)') + "`n};")
+$shared.Add("// ---- modules/Objectifier.js`n" + (Read-Source 'modules/Objectifier.js').TrimEnd())
 $shared.Add("// ---- modules/Resolver.js`n" + (Read-Source 'modules/Resolver.js').TrimEnd())
 $sharedText = $shared -join "`n`n"
 
@@ -234,7 +227,7 @@ function readModel(modelXml, wanted) {
 
 function bindings(modelXml, wanted) {
     var model = readModel(modelXml, wanted);
-    var schema = Sisulator.objectify(model.dom, MAP)[MAP.root];
+    var schema = Objectifier.objectify(model.dom, MAP)[MAP.root];
     prepareSchema(schema, false, function () {}, { log: function () {}, error: function () {} });
     return { bindingsVersion: 1, database: TARGET, temporalization: model.temporalization, schema: Resolver.serialize(schema) };
 }

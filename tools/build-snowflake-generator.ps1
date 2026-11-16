@@ -37,18 +37,6 @@ function Read-Source([string] $relative) {
     ([IO.File]::ReadAllText($path, [Text.Encoding]::UTF8).TrimStart([char]0xFEFF)) -replace "`r`n", "`n"
 }
 
-# The text of a function that is written as `name: function(...) { ... }` in an object, up to its closing brace.
-function Get-MethodText([string] $source, [string] $header) {
-    $at = $source.IndexOf($header)
-    if ($at -lt 0) { throw "Cannot find '$header'" }
-    $open = $source.IndexOf('{', $at)
-    $depth = 0
-    for ($i = $open; $i -lt $source.Length; $i++) {
-        if ($source[$i] -eq '{') { $depth++ } elseif ($source[$i] -eq '}') { $depth--; if ($depth -eq 0) { return $source.Substring($at, $i - $at + 1) } }
-    }
-    throw "'$header' is not closed"
-}
-
 function Read-Directive([string] $temporalization) {
     $entries = (Read-Source "Snowflake_$temporalization.directive") -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
     [pscustomobject]@{
@@ -72,7 +60,7 @@ $sections.Add("// ---- modules/XmlTree.js`n" + (Read-Source 'modules/XmlTree.js'
 $sections.Add("// ---- modules/DomFacade.js`n" + (Read-Source 'modules/DomFacade.js').TrimEnd())
 $sections.Add("// ---- modules/ModelCheck.js`n" + (Read-Source 'modules/ModelCheck.js').TrimEnd())
 $sections.Add("// ---- modules/Map.js`n" + (Read-Source 'modules/Map.js').TrimEnd())
-$sections.Add("// ---- Sisulator.objectify, from modules/Sisulator.js`nvar Sisulator = {`n    " + (Get-MethodText (Read-Source 'modules/Sisulator.js') 'objectify: function(xml, map)') + "`n};")
+$sections.Add("// ---- modules/Objectifier.js`n" + (Read-Source 'modules/Objectifier.js').TrimEnd())
 $sections.Add("// ---- modules/Resolver.js`n" + (Read-Source 'modules/Resolver.js').TrimEnd())
 # The scripts that prepare the schema run in one scope, in the order of the directive, as in the modeler.
 $body = New-Object System.Collections.Generic.List[string]
@@ -97,7 +85,7 @@ var temporalization = 'uni';
 for (var m = 0; m < metadata.a.length; m++) if (metadata.a[m][0] === 'temporalization') temporalization = metadata.a[m][1];
 var dom = buildDom(tree);
 ModelCheck.assert(dom.documentElement);   // a mistake in the model is an error that says what and where, not names such as GEN_undefined
-var schema = Sisulator.objectify(dom, MAP)[MAP.root];
+var schema = Objectifier.objectify(dom, MAP)[MAP.root];
 prepareSchema(schema, false, function () {}, { log: function () {}, error: function () {} });
 return { bindingsVersion: 1, database: 'Snowflake', temporalization: temporalization, schema: Resolver.serialize(schema) };
 '@)

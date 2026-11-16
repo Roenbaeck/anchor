@@ -1,9 +1,9 @@
 # Handover: porting the generators to the Sisula engine
 
-**Status:** the Snowflake and SQL Server generators for all three temporalizations (uni, bi and crt) are ported
-and are what the modeler runs. The other databases (PostgreSQL, Oracle, Vertica, BigQuery) still run on the
-original engine.
-**Written on:** 2026-10-01, last updated on 2026-10-14 (natural keys for Snowflake).
+**Status:** all supported database/temporalization combinations use declarative Sisula templates. Oracle bi
+remains unsupported. The original evaluator has been removed; `modules/Objectifier.js` retains XML
+objectification. Later sections record the history of the port and may describe earlier states.
+**Written on:** 2026-10-01; status updated on 2026-11-14.
 **Read first:** `docs/SISULA.md` (the language), then this file.
 
 ## The goal
@@ -27,7 +27,7 @@ deliberately. No submodules.
 | The sync tool | `tools/sync-sisula.ps1` | `-Check` verifies the copies. `-Ref <tag>` updates them, from committed and pushed sisula commits only. |
 | The resolver | `modules/Resolver.js` | ES5, no DOM. Runs the directive's prelude scripts on the modeler's `schema` object and flattens it to plain JSON. |
 | The export | `Actions.bindings()` in `index.html` | The model as JSON for the selected target: `{bindingsVersion, database, temporalization, schema}`. Menu: Generate > JSON bindings. |
-| Generate SQL | `Actions.sql()` in `index.html` | A directive that lists `.sisula` templates is rendered by the new engine, one template after the other, output concatenated. A directive that lists `.js` sisulets runs on the original `Sisulator`. |
+| Generate SQL | `Actions.sql()` in `index.html` | Renders the directive's `.sisula` templates in order. Legacy JavaScript sisulets are rejected. |
 | Snowflake templates | `SQL/Snowflake/{uni,bi,crt}/*.sisula` | The directives list 15, 15 and 16 templates. bi and crt reuse `uni/AddDescriptions.sisula`, as their original directives reuse the sisulet, and `uni/CreateKeys.sisula`. |
 | Snowflake derive | `SQL/Snowflake/derive.js` | Facts the templates need that the sisulets computed with helper calls (see below). |
 | The directives | `Snowflake_{uni,bi,crt}.directive` | Prelude scripts first, then the templates, in render order. |
