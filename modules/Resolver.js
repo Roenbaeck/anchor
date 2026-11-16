@@ -1,7 +1,7 @@
 // Resolver: turns the modeler's `schema` object into the plain JSON that Sisula templates render.
 //
 // It does not reimplement any model logic. The `schema` object is the one the modeler builds
-// (Sisulator.objectify, then Helpers.js and the naming conventions run on it) and this module
+// (Objectifier.objectify, then Helpers.js and the naming conventions run on it) and this module
 // flattens it into plain acyclic data:
 //
 //   - keyed maps plus their id lists (knot/knots, anchor/anchors, role/roles, ...) become one

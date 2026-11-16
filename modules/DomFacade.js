@@ -1,5 +1,5 @@
 // A minimal DOM, built from a neutral tree, that is just big enough for the Anchor Modeler's
-// Sisulator.objectify and MAP key functions. It is for hosts that have no DOM of their own: the
+// Objectifier.objectify and MAP key functions. It is for hosts that have no DOM of their own: the
 // generator that runs in Snowflake (tools/build-snowflake-generator.ps1) and the tests under Jint in the
 // sisula repository. modules/XmlTree.js makes the tree from XML text. ES5, so it runs under Jint as well
 // as in Node.

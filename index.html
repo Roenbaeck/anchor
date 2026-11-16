@@ -63,7 +63,7 @@
     <script type="text/javascript" src="modules/Defaults.js"></script>    
     <script type="text/javascript" src="modules/LayoutEngine.js"></script>    
     <script type="text/javascript" src="modules/Map.js"></script>    
-    <script type="text/javascript" src="modules/Sisulator.js"></script>    
+    <script type="text/javascript" src="modules/Objectifier.js"></script>
     <script type="text/javascript" src="modules/Resolver.js"></script>
     <script type="text/javascript" src="modules/sisula.js"></script>
     <!-- run some checks first -->
@@ -6499,15 +6499,16 @@
                     alert('The SQL could not be generated: ' + (error && error.message || error));
                 });
             },
-            // The SQL for the selected target database and temporalization. A directive that lists
-            // .sisula templates is rendered by the Sisula engine (modules/sisula.js) from the JSON
-            // bindings; a directive that lists .js sisulets is run by the original Sisulator.
+            // The SQL for the selected target database and temporalization, rendered from JSON bindings.
             sql: async function() {
                 var directive = await Actions.getDirectives();
                 var entries = Actions.directiveEntries(directive);
                 var templates = entries.filter(entry => /\.sisula$/.test(entry));
+                var legacy = entries.filter(entry => /\.js$/.test(entry) && !/(^|\/)(Helpers|NamingConvention|derive)\.js$/.test(entry));
+                if(legacy.length)
+                    throw new Error('Legacy JavaScript sisulets are no longer supported: ' + legacy.join(', '));
                 if(templates.length === 0)
-                    return Sisulator.sisulate(Model.toXML(true), MAP, Actions.getDirectives);
+                    throw new Error('The directive does not list any Sisula templates.');
                 var bindings = await Actions.bindings();
                 var sql = '';
                 for(var i = 0; i < templates.length; i++) {
@@ -6553,7 +6554,7 @@
             // in the schema table (jsonb) and its views read it, so it has to stay although Generate > JSON bindings
             // replaced the menu item that showed it.
             jsonify: function(xml) {
-                var object = Sisulator.objectify(xml, MAP);
+                var object = Objectifier.objectify(xml, MAP);
                 return JSON.stringify(object, null, 3);
             },
             // The input of the Sisula templates for the selected target database and temporalization:
@@ -6562,7 +6563,7 @@
             bindings: async function() {
                 var database = Defaults.databaseTarget;
                 var temporalization = Defaults.temporalization;
-                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                var schema = Objectifier.objectify(Model.toXML(true), MAP)[MAP.root];
                 // the directive starts with the scripts that prepare the schema (Helpers.js, the naming
                 // conventions, and derive.js if the target has one); they are run in its order
                 var entries = Actions.directiveEntries(await Actions.getDirectives());
@@ -6582,7 +6583,7 @@
             // SQL/Helpers.js), after the naming conventions that name what it reads, and logs a route that the
             // generators leave out, with the reason, and a step that is not functional, as the integrity check logs.
             checkKeys: async function() {
-                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                var schema = Objectifier.objectify(Model.toXML(true), MAP)[MAP.root];
                 var scripts = [
                     await Actions.getDirectives('SQL/Helpers.js'),
                     await Actions.getDirectives('SQL/NamingConvention.js'),
@@ -6602,7 +6603,7 @@
             // perspectives, so two attributes of an anchor or a nexus on the same knot give a view two columns of one
             // name, which no database takes (docs/ANCHOR.md, "Generated objects and naming"). Logs where that happens.
             checkNaming: function() {
-                var schema = Sisulator.objectify(Model.toXML(true), MAP)[MAP.root];
+                var schema = Objectifier.objectify(Model.toXML(true), MAP)[MAP.root];
                 if(!schema.metadata || schema.metadata.naming !== 'original') return;
                 var owners = [];
                 (schema.anchors || []).forEach(function(mnemonic) { owners.push(schema.anchor[mnemonic]); });
