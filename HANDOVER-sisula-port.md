@@ -47,7 +47,7 @@ SQL/Snowflake/uni/CreateKnots.sisula    <- templates, in order
 
 The prelude scripts run once, in one scope, in this order, on the `schema` object. A later one can use
 what an earlier one defined (`derive.js` calls `describe()` from the naming convention). A directive
-is either all `.sisula` (new engine) or all `.js` (original engine); they are not mixed.
+lists `.sisula` templates after the prelude scripts. A `.js` sisulet in a directive is an error: the original engine is gone.
 
 ### The bindings JSON
 
@@ -175,11 +175,13 @@ match (they never did before).
   left out of the key of historized attribute tables; every key declared `RELY` (join elimination;
   Snowflake does not enforce keys, so ship integrity checks); the default `now` is `sysdate()` (UTC, to
   match a `timestamp_ntz` `ChangedAt`); every replaced view and function is `COPY GRANTS`, so that object grants survive a regeneration (after the argument list and before `RETURNS` in a function, after the column list and before `COMMENT` and `AS` in a view; tables are `CREATE TABLE IF NOT EXISTS` and need none; `tools/lint-sql.ps1` checks it).
-- **Unported means commented out** in the directive, with the `.js` path, as before.
+- **Unported means not listed.** A temporalization that a database does not support says so with one template, `SQL/Unsupported.sisula` (Oracle bi).
+  The commented `.js` entries that used to stand for unported sisulets were deleted on 2026-11-16.
 
 ## Open items
 
-- **Port the rest:** the other databases (PostgreSQL, Oracle, Vertica, BigQuery), only when someone needs one.
+- **Ported:** every database that is generated has Sisula templates now (SQL Server, Snowflake, PostgreSQL, Vertica, BigQuery and Oracle; Oracle has no bi).
+  The output of SQL Server, Snowflake and PostgreSQL has been run on a server; Vertica, BigQuery and Oracle not yet.
   SQL Server uni, bi and crt are ported, and their output has been run on a SQL Server (the DDL, and every suite of
   `tools/sqlserver-tests.ps1`: the triggers of all three temporalizations with the bi upgrade, the natural keys, and crt
   without decisiveness, all passing on 2026-10-15); so have the tests of `sisula-mssql` (`sql/test_fixtures.sql`,
@@ -1008,7 +1010,7 @@ over the same perspectives); schema tracking (`CreateSchemaTracking`; the model'
 the database, useful for governance, and the bindings already carry `schema.serialization`); the crt
 sheet stacks (`CreateAttributeSheetStacks`, a procedure returning one temporal sheet per positor).
 
-Unported Snowflake sisulets stay as commented lines in the directives, so nothing is hidden.
+The unported Snowflake sisulets were deleted with the other sisulets that no directive ran (2026-11-16: *The original sisulets are gone*).
 
 ## Natural keys as routes (2026-10-14)
 
