@@ -332,8 +332,14 @@ S = a day or two, M = about a week, L = several weeks.
   SVG and editing rules together) into one presenter for each, so that the model has no import of `DrawingEngine`, `EventHandler`
   or `Actions`. The tests above are the safety net for it.
 - **Step 5, commands for undo: not done.** It needs step 3, since a command should change the model and let the views follow.
-- **Step 6, one registry for menus and settings: not done.** 84 inline handlers remain in the markup. The tests count what each
-  menu offers but do not click the items; click tests come before the change.
+- **Step 6, menus and settings in the markup: done for the wiring.** The 84 inline handlers (`onclick`, `onblur`, `onchange`,
+  and so on) are gone from `index.html`. A control now says what it does with `data-action="Actions.newModel"`,
+  `data-setting="setDefaultIdentity"` and `data-args`, and `app/Wiring.js` acts on them (one listener for the page; Enter and
+  Space work on focusable items; text and number fields report when they are left, lists and check boxes when they change).
+  A test records, for every menu item and every settings field, which functions it calls with which arguments, with those
+  functions replaced by recorders; the 135 recorded values are identical before and after, so nothing changed. Ten
+  one-line wrappers in `Actions` replace the expressions that stood in the markup. Not done: one registry that also builds
+  the menus and the Defaults form (the markup is still written by hand), which is what a command palette needs.
 
 Also on its own branch, not part of `modernize`: a fix in the generators' helpers, so that a model with equivalence off ignores
 the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flags`).

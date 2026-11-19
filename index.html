@@ -113,6 +113,7 @@
     <script type="text/javascript" src="app/Settings.js"></script>
     <script type="text/javascript" src="app/ControlButtons.js"></script>
     <script type="text/javascript" src="app/Layer.js"></script>
+    <script type="text/javascript" src="app/Wiring.js"></script>
     <script type="text/javascript" src="app/init.js"></script>
 </head>
 <body data-server-no-reload>
@@ -158,37 +159,37 @@
     <div id="header" class="unselectable">
         <div id="file" class="menu">File
             <ul class="submenu">
-                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." onclick="Actions.newModel()">New model...</li>
+                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." data-action="Actions.newModel">New model...</li>
                 <script>/* updated below */</script>
-                <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" onclick="document.getElementById('modelFileInput').click()" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('modelFileInput').click();event.preventDefault();}">Load model from local file...</li>
-                <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." onclick="save(window, true)">Save settings in browser cache...</li>
-                <li title="Save model XML definition to disk." onclick="Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml')">Save model to local file...</li>
-                <li title="Save model Scalable Vector Graphics file to disk." onclick="Actions.saveToDisk(Actions.toSVGString(SVG), 'svg')">Save SVG to local file...</li>
-                <li title="Sends an email with the XML description of the model to a specified recipient." onclick="Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)))">Send model by email...</li>
-                <li title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." onclick="Actions.shareModel()">Share model link...</li>
-                <li title="Loads an example model based on a business managing actors that perform programs on different stages." onclick="Actions.loadFromURL('example.xml', true)">Load example model</li>
+                <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" data-action="Actions.chooseModelFile">Load model from local file...</li>
+                <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." data-action="Actions.saveSettingsInBrowser">Save settings in browser cache...</li>
+                <li title="Save model XML definition to disk." data-action="Actions.saveModelToDisk">Save model to local file...</li>
+                <li title="Save model Scalable Vector Graphics file to disk." data-action="Actions.saveSVGToDisk">Save SVG to local file...</li>
+                <li title="Sends an email with the XML description of the model to a specified recipient." data-action="Actions.mailModel">Send model by email...</li>
+                <li title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." data-action="Actions.shareModel">Share model link...</li>
+                <li title="Loads an example model based on a business managing actors that perform programs on different stages." data-action="Actions.loadFromURL" data-args='["example.xml", true]'>Load example model</li>
             </ul>
         </div>
 
         <div id="actions" class="menu">Layout
             <ul class="submenu">
-                <li title="Toggle whether names should be visible in the modeler or not." onclick="Actions.toggleNames()">Toggle names</li>
-                <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." onclick="Actions.toggleMnemonics()">Toggle mnemonics</li>
-                <li title="Toggle whether coloring of edges should be visible or not." onclick="Actions.toggleColoring()">Toggle coloring</li>
-                <li title="Toggle whether key routes should be visible or not." onclick="Actions.toggleKeys()">Toggle keys</li>
-                <li title="Release all fixed nodes and fixate all released nodes." onclick="Actions.toggleFixation()">Toggle fixation</li>
-                <li title="Release all fixed nodes." onclick="Actions.releaseAll()">Release all fixed</li>
-                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." onclick="Actions.implodeAll()">Implode all</li>
-                <li title="Unhide all hidden attributes and knots." onclick="Actions.explodeAll()">Explode all</li>
-                <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." onclick="Actions.resetZoom();Actions.centerModel()">Reset view</li>
-                <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." onclick="Actions.randomizeLayout()">Randomize layout</li>
+                <li title="Toggle whether names should be visible in the modeler or not." data-action="Actions.toggleNames">Toggle names</li>
+                <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." data-action="Actions.toggleMnemonics">Toggle mnemonics</li>
+                <li title="Toggle whether coloring of edges should be visible or not." data-action="Actions.toggleColoring">Toggle coloring</li>
+                <li title="Toggle whether key routes should be visible or not." data-action="Actions.toggleKeys">Toggle keys</li>
+                <li title="Release all fixed nodes and fixate all released nodes." data-action="Actions.toggleFixation">Toggle fixation</li>
+                <li title="Release all fixed nodes." data-action="Actions.releaseAll">Release all fixed</li>
+                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." data-action="Actions.implodeAll">Implode all</li>
+                <li title="Unhide all hidden attributes and knots." data-action="Actions.explodeAll">Explode all</li>
+                <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." data-action="Actions.resetView">Reset view</li>
+                <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." data-action="Actions.randomizeLayout">Randomize layout</li>
             </ul>
         </div>
 
         <div id="generate" class="menu">Generate
             <ul class="submenu">
                 <li title="Selects the target database for the generated SQL code.">
-                    <select id="database" onchange="Settings.setDatabase(this.value, true)">
+                    <select id="database" data-setting="setDatabase" data-args='[true]'>
                         <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
                         <option value="Oracle">Oracle</option>
                         <option value="PostgreSQL">PostgreSQL</option>
@@ -198,35 +199,35 @@
                     </select> Target database
                 </li>
                 <li title="Selects the version of the naming convention to use for the generated code.">
-                    <select id="naming" onchange="Settings.setNaming(this.value)">
+                    <select id="naming" data-setting="setNaming">
                         <option value="original">Original</option>
                         <option value="improved" selected="selected">Improved</option>
                     </select> Naming convention
                 </li>
                 <li title="Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).">
-                    <select id="temporalization" onchange="Settings.setTemporalization(this.value)">
+                    <select id="temporalization" data-setting="setTemporalization">
                         <option value="uni" selected="selected">Unitemporal</option>
                         <option value="bi">Bitemporal</option>
                         <option value="crt">Concurrent-reliance-temporal</option>
                     </select> Temporalization
                 </li>
-                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" onchange="Settings.setMetadataUsage(this.checked ? 'true' : 'false')"/> Use metadata</li>
-                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" onchange="Settings.setBusinessViews(this.checked ? 'true' : 'false', true)"/> Use business views</li>
-                <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" onchange="Settings.setKnotAliases(this.checked ? 'true' : 'false', true)"/> Use knot aliases</li>
-                <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" onchange="Settings.setTriggers(this.checked ? 'true' : 'false', true)"/> Use triggers</li>
-                <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" onchange="Settings.setNaturalKeyAttributes(this.checked ? 'true' : 'false', true)"/> Create natural key attributes</li>
-                <li class="feature-equivalence" title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" onchange="Settings.setEquivalence(this.checked ? 'true' : 'false', true)"/> Use equivalence</li>
-                <li class="crt" title="With decisiveness a positor holds a single assertion at a time, positive or negative, for an attribute of an anchor or nexus, or for the other roles of a tie, so an assertion of another value corrects the one held, which is retracted. Without it a positor may hold several at once, as long as they do not contradict each other: positive reliabilities count as they are, negative ones as one plus them, and together they may not exceed one."><input id="decisiveness" class="inputDefaults" type="checkbox" onchange="Settings.setDecisiveness(this.checked ? 'true' : 'false')"/> Use decisiveness</li>
-                <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" onchange="Settings.setEntityIntegrity(this.checked ? 'true' : 'false')"/> Use entity integrity</li>
-                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" onchange="Settings.setPartitioning(this.checked ? 'true' : 'false')"/> Use partitioning</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." onclick="Actions.generateSQL()"> SQL code</li>
-                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." onclick="Actions.generateXML()"> XML code</li>
-                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." onclick="Actions.generateBindings()"> JSON bindings</li>
-                <li title="Generate an HTML legend that describes the items in your model." onclick="Actions.generateHTML()"> HTML documentation</li>
+                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" data-setting="setMetadataUsage"/> Use metadata</li>
+                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" data-setting="setBusinessViews" data-args='[true]'/> Use business views</li>
+                <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" data-setting="setKnotAliases" data-args='[true]'/> Use knot aliases</li>
+                <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" data-setting="setTriggers" data-args='[true]'/> Use triggers</li>
+                <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" data-setting="setNaturalKeyAttributes" data-args='[true]'/> Create natural key attributes</li>
+                <li class="feature-equivalence" title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" data-setting="setEquivalence" data-args='[true]'/> Use equivalence</li>
+                <li class="crt" title="With decisiveness a positor holds a single assertion at a time, positive or negative, for an attribute of an anchor or nexus, or for the other roles of a tie, so an assertion of another value corrects the one held, which is retracted. Without it a positor may hold several at once, as long as they do not contradict each other: positive reliabilities count as they are, negative ones as one plus them, and together they may not exceed one."><input id="decisiveness" class="inputDefaults" type="checkbox" data-setting="setDecisiveness"/> Use decisiveness</li>
+                <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" data-setting="setEntityIntegrity"/> Use entity integrity</li>
+                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" data-setting="setPartitioning"/> Use partitioning</li>
+                <li title="Generate SQL code for implementation of a model in a relational database." data-action="Actions.generateSQL"> SQL code</li>
+                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." data-action="Actions.generateXML"> XML code</li>
+                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." data-action="Actions.generateBindings"> JSON bindings</li>
+                <li title="Generate an HTML legend that describes the items in your model." data-action="Actions.generateHTML"> HTML documentation</li>
                 <!--
-                <li title="Generate a bitmap image of the view currently shown on screen." onclick="Actions.screenshot(Actions.toPNGDataURL(SVG))">PNG screenshot</li>
+                <li title="Generate a bitmap image of the view currently shown on screen." data-action="Actions.screenshotPNG">PNG screenshot</li>
                 -->
-                <li title="Generate a vector image of the entire model." onclick="Actions.screenshot(Actions.toSVGDataURL(SVG))">SVG screenshot</li>
+                <li title="Generate a vector image of the entire model." data-action="Actions.screenshotSVG">SVG screenshot</li>
             </ul>
         </div>
 
@@ -239,77 +240,77 @@
         </div>
 
         <div id="search">
-            <input id="searchFilter" type="text" placeholder=" search filter " title="Search the model for the given (sub)string." onfocus="Actions.stopKeyboardEvents()" onblur="Actions.populateSelector(document.getElementById('nodeSelector'), this.value)"/>
-            <select id="nodeSelector" title="Focus model on the selected node." onmouseover="Actions.populateSelector(this, document.getElementById('searchFilter').value)" onchange="Actions.selectNode(this.value)">
+            <input id="searchFilter" type="text" placeholder=" search filter " title="Search the model for the given (sub)string."/>
+            <select id="nodeSelector" title="Focus model on the selected node.">
                 <option value="none" selected="selected">None selected</option>
             </select>
         </div>
 
         <div id="about" class="menu">Help
             <ul class="submenu">
-                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." onclick="new URLPopover('http://www.anchormodeling.com/?page_id=186')">Tutorials</li>
-                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." onclick="new URLPopover('about.html')">About</li>
+                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." data-action="Actions.openTutorials">Tutorials</li>
+                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." data-action="Actions.openAbout">About</li>
             </ul>
         </div>
 
         <div id="defaults" class="menu">Defaults
             <ul class="submenu">
-                <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" onblur="Settings.setDefaultChangingRange(this.value)"/> Changing time range</li>
-                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" onblur="Settings.setChangingSuffix(this.value)"/> Changing time suffix</li>
-                <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" onblur="Settings.setChecksumSuffix(this.value)"/> Checksum suffix</li>
-                <li title="The default 'schema' to use for new items."><input id="encapsulation" class="inputDefaults" type="text" onblur="Settings.setEncapsulation(this.value)"/> Capsule</li>
-                <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" onblur="Settings.setDefaultIdentity(this.value)"/> Identity</li>
-                <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" onblur="Settings.setIdentitySuffix(this.value)"/> Identity suffix</li>
-                <li title="The prefix used for the columns that enable deletion."><input id="deletablePrefix" class="inputDefaults" type="text" onblur="Settings.setDeletablePrefix(this.value)"/> Deletable prefix</li>
-                <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" onblur="Settings.setDeletionSuffix(this.value)"/> Deletion suffix</li>
-                <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" onblur="Settings.setDefaultChronon(this.value)"/> Chronon</li>
-                <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" onblur="Settings.setDefaultNow(this.value)"/> Now</li>
-                <li class="equivalence" title="The suffix used for the columns that store equivalents."><input id="equivalentSuffix" class="inputDefaults" type="text" onblur="Settings.setEquivalentSuffix(this.value)"/> Equivalents suffix</li>
-                <li class="equivalence" title="The 'data type' of the equivalents column."><input id="equivalentRange" class="inputDefaults" type="text" onblur="Settings.setEquivalentRange(this.value)"/> Equivalents range</li>
-                <li class="metadata" title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" onblur="Settings.setMetadataPrefix(this.value)"/> Metadata prefix</li>
-                <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" onblur="Settings.setMetadataType(this.value)"/> Metadata type</li>
-                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" onchange="Settings.setRestatability(this.checked ? 'true' : 'false')"/> Restatability</li>
-                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" onchange="Settings.setIdempotency(this.checked ? 'true' : 'false')"/> Idempotency</li>
-                <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" onchange="Settings.setDeletability(this.checked ? 'true' : 'false')"/> Deletability</li>
-                <li class="feature-encryption" title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" onblur="Settings.setEncryptionGroup(this.value)"/> Encryption group</li>
+                <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" data-setting="setDefaultChangingRange"/> Changing time range</li>
+                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" data-setting="setChangingSuffix"/> Changing time suffix</li>
+                <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" data-setting="setChecksumSuffix"/> Checksum suffix</li>
+                <li title="The default 'schema' to use for new items."><input id="encapsulation" class="inputDefaults" type="text" data-setting="setEncapsulation"/> Capsule</li>
+                <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" data-setting="setDefaultIdentity"/> Identity</li>
+                <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" data-setting="setIdentitySuffix"/> Identity suffix</li>
+                <li title="The prefix used for the columns that enable deletion."><input id="deletablePrefix" class="inputDefaults" type="text" data-setting="setDeletablePrefix"/> Deletable prefix</li>
+                <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" data-setting="setDeletionSuffix"/> Deletion suffix</li>
+                <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" data-setting="setDefaultChronon"/> Chronon</li>
+                <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" data-setting="setDefaultNow"/> Now</li>
+                <li class="equivalence" title="The suffix used for the columns that store equivalents."><input id="equivalentSuffix" class="inputDefaults" type="text" data-setting="setEquivalentSuffix"/> Equivalents suffix</li>
+                <li class="equivalence" title="The 'data type' of the equivalents column."><input id="equivalentRange" class="inputDefaults" type="text" data-setting="setEquivalentRange"/> Equivalents range</li>
+                <li class="metadata" title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" data-setting="setMetadataPrefix"/> Metadata prefix</li>
+                <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" data-setting="setMetadataType"/> Metadata type</li>
+                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" data-setting="setRestatability"/> Restatability</li>
+                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" data-setting="setIdempotency"/> Idempotency</li>
+                <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" data-setting="setDeletability"/> Deletability</li>
+                <li class="feature-encryption" title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" data-setting="setEncryptionGroup"/> Encryption group</li>
                 <!-- Temporalization dependent items (static, visibility controlled by body class) -->
-                <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" onblur="Settings.setPositIdentityRange(this.value)"/> Posit identity</li>
-                <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" onblur="Settings.setPositingRange(this.value)"/> Positing time range</li>
-                <li class="bi crt" title="The suffix used for the column storing the point in time a posit was made."><input id="positingSuffix" class="inputDefaults" type="text" onblur="Settings.setPositingSuffix(this.value)"/> Positing time suffix</li>
-                <li class="crt" title="The positor (one able to correct) 'data type' used throughout the implementation."><input id="positorRange" class="inputDefaults" type="text" onblur="Settings.setPositorRange(this.value)"/> Positor range</li>
-                <li class="crt" title="The suffix used for the column storing the who made a posit."><input id="positorSuffix" class="inputDefaults" type="text" onblur="Settings.setPositorSuffix(this.value)"/> Positor suffix</li>
-                <li class="bi crt" title="A 'data type' that can hold the desired degrees of reliability: in crt from -1 (certainly not) through 0 (complete uncertainty) to 1 (certainly), in bi 0 or 1."><input id="reliabilityRange" class="inputDefaults" type="text" onblur="Settings.setReliabilityRange(this.value)"/> Reliability range</li>
-                <li class="bi crt" title="The suffix used for the column storing reliability."><input id="reliabilitySuffix" class="inputDefaults" type="text" onblur="Settings.setReliabilitySuffix(this.value)"/> Reliability suffix</li>
-                <li class="crt" title="The default value of reliability to use when it is not specified in an insert."><input id="defaultReliability" class="inputDefaults" type="text" onblur="Settings.setDefaultReliability(this.value)"/> Default reliability</li>
-                <li class="crt" title="The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit."><input id="deleteReliability" class="inputDefaults" type="text" onblur="Settings.setDeleteReliability(this.value)"/> Complete uncertainty</li>
-                <li class="bi crt" title="The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain."><input id="assertionSuffix" class="inputDefaults" type="text" onblur="Settings.setAssertionSuffix(this.value)"/> Assertion suffix</li>
-                <li class="bi crt" title="Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" onchange="Settings.setAssertiveness(this.checked ? 'true' : 'false')"/> Assertiveness</li>
-                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." onclick="Settings.resetDefaults(true)">Reset defaults to their default values</li>
+                <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" data-setting="setPositIdentityRange"/> Posit identity</li>
+                <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" data-setting="setPositingRange"/> Positing time range</li>
+                <li class="bi crt" title="The suffix used for the column storing the point in time a posit was made."><input id="positingSuffix" class="inputDefaults" type="text" data-setting="setPositingSuffix"/> Positing time suffix</li>
+                <li class="crt" title="The positor (one able to correct) 'data type' used throughout the implementation."><input id="positorRange" class="inputDefaults" type="text" data-setting="setPositorRange"/> Positor range</li>
+                <li class="crt" title="The suffix used for the column storing the who made a posit."><input id="positorSuffix" class="inputDefaults" type="text" data-setting="setPositorSuffix"/> Positor suffix</li>
+                <li class="bi crt" title="A 'data type' that can hold the desired degrees of reliability: in crt from -1 (certainly not) through 0 (complete uncertainty) to 1 (certainly), in bi 0 or 1."><input id="reliabilityRange" class="inputDefaults" type="text" data-setting="setReliabilityRange"/> Reliability range</li>
+                <li class="bi crt" title="The suffix used for the column storing reliability."><input id="reliabilitySuffix" class="inputDefaults" type="text" data-setting="setReliabilitySuffix"/> Reliability suffix</li>
+                <li class="crt" title="The default value of reliability to use when it is not specified in an insert."><input id="defaultReliability" class="inputDefaults" type="text" data-setting="setDefaultReliability"/> Default reliability</li>
+                <li class="crt" title="The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit."><input id="deleteReliability" class="inputDefaults" type="text" data-setting="setDeleteReliability"/> Complete uncertainty</li>
+                <li class="bi crt" title="The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain."><input id="assertionSuffix" class="inputDefaults" type="text" data-setting="setAssertionSuffix"/> Assertion suffix</li>
+                <li class="bi crt" title="Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" data-setting="setAssertiveness"/> Assertiveness</li>
+                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." data-action="Settings.resetDefaults" data-args='[true]'>Reset defaults to their default values</li>
             </ul>
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
         <div id="settings" title="Expert settings" class="menu">Settings
             <ul id="listOfSettings" class="submenu">
-                <li title="Damping can be likened to friction and is needed in order to slow down the movement of the nodes."><input id="damping" type="number" min="0" max="99" step="1" onblur="Settings.setDamping(this.value)"/> % Damping</li>
-                <li title="The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph."><input id="normalDistance" type="number" min="10" max="90" step="5" onblur="Settings.setNormalDistance(this.value)"/> px Normal distance</li>
-                <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setStoppingVelocity(this.value)"/> px/s Stopping velocity</li>
-                <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMinimumStartingVelocity(this.value)"/> px/s Minimum starting velocity</li>
-                <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" onblur="Settings.setMaximumStartingVelocity(this.value)"/> px/s Maximum starting velocity</li>
-                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="100" step="1" onblur="Settings.setPartitionFactor(this.value)"/> Partition size</li>
-                <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" onblur="Settings.setFuzziness(this.value)"/> % Fuzziness</li>
-                <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" onblur="Settings.setLongRangeEffect(this.value)"/> % Long range effect</li>
-                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" onblur="Settings.setStiffness(this.value)"/> Edge stiffness factor</li>
-                <li title="The number of frame redraws needed in the large SVG to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" onblur="Settings.setMiniRate(this.value)"/> Miniature refresh interval</li>
+                <li title="Damping can be likened to friction and is needed in order to slow down the movement of the nodes."><input id="damping" type="number" min="0" max="99" step="1" data-setting="setDamping"/> % Damping</li>
+                <li title="The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph."><input id="normalDistance" type="number" min="10" max="90" step="5" data-setting="setNormalDistance"/> px Normal distance</li>
+                <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setStoppingVelocity"/> px/s Stopping velocity</li>
+                <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMinimumStartingVelocity"/> px/s Minimum starting velocity</li>
+                <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMaximumStartingVelocity"/> px/s Maximum starting velocity</li>
+                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="100" step="1" data-setting="setPartitionFactor"/> Partition size</li>
+                <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" data-setting="setFuzziness"/> % Fuzziness</li>
+                <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" data-setting="setLongRangeEffect"/> % Long range effect</li>
+                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" data-setting="setStiffness"/> Edge stiffness factor</li>
+                <li title="The number of frame redraws needed in the large SVG to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" data-setting="setMiniRate"/> Miniature refresh interval</li>
                 <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
-                    <select id="calculations" onchange="Settings.setCalculations(this.value)">
+                    <select id="calculations" data-setting="setCalculations">
                         <option value="simple" selected="selected">Simplified</option>
                         <option value="complex">Adjustable</option>
                     </select> &nbsp;Calculations
                 </li>
-                <li title="Resets all settings in this menu to their default values." onclick="Settings.resetSettings(true)">Reset settings to their default values</li>
-                <li title="In debug mode force vectors will be drawn in the graph." onclick="Settings.toggleDebug()">Toggle debug</li>
-                <li id="themeToggleItem" title="Switch interface to dark theme" onclick="Actions.toggleTheme()">Switch to dark mode</li>
+                <li title="Resets all settings in this menu to their default values." data-action="Settings.resetSettings" data-args='[true]'>Reset settings to their default values</li>
+                <li title="In debug mode force vectors will be drawn in the graph." data-action="Settings.toggleDebug">Toggle debug</li>
+                <li id="themeToggleItem" title="Switch interface to dark theme" data-action="Actions.toggleTheme">Switch to dark mode</li>
             </ul>
         </div>
     </div>

@@ -520,6 +520,38 @@ var Actions = {
         }
         Model.explode(allComponents);
     },
+    // What menu items do that takes more than one call. The markup only names a function (see Wiring.js).
+    chooseModelFile: function() {
+        document.getElementById('modelFileInput').click();
+    },
+    saveSettingsInBrowser: function() {
+        save(window, true);
+    },
+    saveModelToDisk: function() {
+        Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml');
+    },
+    saveSVGToDisk: function() {
+        Actions.saveToDisk(Actions.toSVGString(SVG), 'svg');
+    },
+    mailModel: function() {
+        Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)));
+    },
+    resetView: function() {
+        Actions.resetZoom();
+        Actions.centerModel();
+    },
+    screenshotSVG: function() {
+        Actions.screenshot(Actions.toSVGDataURL(SVG));
+    },
+    screenshotPNG: function() {
+        Actions.screenshot(Actions.toPNGDataURL(SVG));
+    },
+    openTutorials: function() {
+        new URLPopover('http://www.anchormodeling.com/?page_id=186');
+    },
+    openAbout: function() {
+        new URLPopover('about.html');
+    },
     generateSQL: function() {
         Actions.sql().then(sql => {
             new CodePopover(Actions.preformat(sql), true)

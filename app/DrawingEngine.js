@@ -12,7 +12,9 @@ var DrawingEngine = {
     showKeys: true,
     coloring: true,
     newState: true,
-    // set by undo and redo, until the layout has settled
+    // Set by undo and redo: the layout that settles after them is a restoration, not a change, and is not recorded. It stays
+    // set until something starts a layout on purpose (start(true): a drag, Play) or records a state, however long the
+    // layout takes to settle or how many times it restarts on its own in between.
     restoring: false,
     miniatureFramesBetweenRefresh: 50,
     layout: false,
@@ -74,6 +76,8 @@ var DrawingEngine = {
         document.body.style.cursor = cursor;
     },
     start: function(layoutModel) {
+        if(layoutModel)
+            this.restoring = false;
         if(this.initialized) {
             this.layout = layoutModel;
             if(!this.running) {
@@ -109,7 +113,6 @@ var DrawingEngine = {
                 if(!DrawingEngine.restoring)
                     Model.recordState();
             }
-            DrawingEngine.restoring = false;
             DrawingEngine.layout = false;
             ControlButtons.setPlayState();
         }

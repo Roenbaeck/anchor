@@ -38,6 +38,7 @@ function init(window) {
 
     // assign event handlers to buttons
     ControlButtons.init();
+    Wiring.init();
     LayoutEngine.init();
 
     // set the global svg and graph variable

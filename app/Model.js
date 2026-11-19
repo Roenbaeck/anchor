@@ -156,6 +156,7 @@ var Model = {
     // how many changes can be undone; every state is a copy of the whole model, so the history is limited
     maxUndoLevels: 100,
     recordState: function() {
+        DrawingEngine.restoring = false;
         this.refresh();
         // only record if there is something to record
         if(this.components.length) {
@@ -173,6 +174,7 @@ var Model = {
         }
     },
     clearStates: function() {
+        DrawingEngine.restoring = false;
         this.version = -1;
         this.versions = [];
         this.historyChanged();
