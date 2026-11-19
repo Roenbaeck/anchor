@@ -288,6 +288,7 @@
             undoState: function() {
                 this.version -= (this.version === 0 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                DrawingEngine.restoring = true;
                 DrawingEngine.stop();
                 EventHandler.clearSelection();
                 ControlButtons.setUndoLevels(this.version);
@@ -296,6 +297,7 @@
             redoState: function() {
                 this.version += (this.version === this.versions.length - 1 ? 0 : 1);
                 this.fromXML(this.versions[this.version]);
+                DrawingEngine.restoring = true;
                 DrawingEngine.stop();
                 ControlButtons.setUndoLevels(this.version);
                 ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
@@ -1214,6 +1216,8 @@
             showKeys: true,
             coloring: true,
             newState: true,
+            // set by undo and redo, until the layout has settled
+            restoring: false,
             miniatureFramesBetweenRefresh: 50,
             layout: false,
             viewport: null,
@@ -1304,8 +1308,12 @@
                     DrawingEngine.invalidateMiniature();
                     if(DrawingEngine.newState) {
                         DrawingEngine.newState = false;
-                        Model.recordState();
+                        // the layout that settles after an undo or a redo is not a change: recording it would replace the
+                        // newest state and end what could be redone
+                        if(!DrawingEngine.restoring)
+                            Model.recordState();
                     }
+                    DrawingEngine.restoring = false;
                     DrawingEngine.layout = false;
                     ControlButtons.setPlayState();
                 }
