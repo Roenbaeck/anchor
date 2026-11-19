@@ -262,7 +262,14 @@ S = a day or two, M = about a week, L = several weeks.
   and every rule uses them; the inline loading overlay inherits. The page makes no font request.
 - **Watermark:** the 48 pt "TEST VERSION" block is now a small badge (`TEST VERSION 0.101.19`) in the top-left corner,
   shown while `RELEASE` is false, with the version filled in by script instead of `document.write`. The start-up alert
-  that says the same thing is **still there**; it is the next thing to remove if you agree.
+  that said the same thing is removed.
+- **Known, not caused by this branch:** `browser-check.ps1 -Variant sqlserver-handwritten` differs from its golden file
+  (the modeler writes `[knots].[ETY_EventType]` where the golden has `[knots].[ETY_EventType_ID]`) on `master` too. That model
+  is deliberately one the modeler would not save: knots flagged equivalent while equivalence is off. The modeler resets
+  such flags when it loads the file; the generator reading the file directly does not, and the templates that write a foreign
+  key to a knot test `knot.isEquivalent` without also testing `schema.EQUIVALENCE`, as `CreateKnots` does. It affects only
+  hand- or agent-written XML with inconsistent flags, and is not related to the naming convention (the model uses `improved`).
+  Worth a separate fix in the templates.
 - **Undo:** the history is capped at 100 changes (`Model.maxUndoLevels`), and the button's tooltip says so. This also
   fixes a bug: after an undo, a new change left the abandoned redo states in the list, so a later redo could jump to a
   state from the discarded branch.

@@ -7030,17 +7030,8 @@
 
         // implementation of our init function
         function init(window) {
-            // another disclaimer for the testing versions
+            // a test version says so in a small badge in the corner (the Help/About page links to the issue tracker)
             if(!RELEASE) {
-                alert(
-                    '----------- DISCLAIMER -----------\n' +
-                    'Please note that this is a test version.\n' +
-                    'It should not be used for production \n' +
-                    'work. Report bugs found in our issue \n' +
-                    'tracking system, to which a link can \n' +
-                    'be found under the Help/About menu.\n' +
-                    '----------- DISCLAIMER -----------'
-                );
                 document.getElementById("disclaimerVersion").textContent = VERSION;
                 document.getElementById("disclaimer").style.display = "block";
             }
