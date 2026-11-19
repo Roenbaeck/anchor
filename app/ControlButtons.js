@@ -17,6 +17,11 @@ var ControlButtons = {
         this.zoomOutButton = document.getElementById('zoomout');
         this.undoButton.setAttribute('title', 'Undo the last change. The last ' + Model.maxUndoLevels + ' changes are kept.');
         this.redoButton.setAttribute('title', 'Redo the change that was undone.');
+        // the model says how many changes can be undone and redone; it does not call the buttons
+        Model.on('history', function(history) {
+            ControlButtons.setUndoLevels(history.undo);
+            ControlButtons.setRedoLevels(history.redo);
+        });
 
         // rebinding
         this.togglePlayPause = this.togglePlayPause.bind(this);

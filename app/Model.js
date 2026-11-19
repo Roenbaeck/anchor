@@ -132,6 +132,27 @@ var Model = {
                 this.visibleNodes.push(component.node);
         }
     },
+    // Who wants to hear about the model (the history buttons, and later an outline, a problems list and so on) listens with
+    // on(type, listener) instead of being called by it. The types:
+    //   changed   a change was recorded (the detail holds the version of the history)
+    //   history   how many changes can be undone and redone (the detail holds undo and redo)
+    //   replaced  the whole model was read again (a file, undo, redo)
+    listeners: {},
+    on: function(type, listener) {
+        (this.listeners[type] = this.listeners[type] || []).push(listener);
+    },
+    off: function(type, listener) {
+        var all = this.listeners[type] || [], at = all.indexOf(listener);
+        if(at >= 0) all.splice(at, 1);
+    },
+    emit: function(type, detail) {
+        (this.listeners[type] || []).slice().forEach(function(listener) {
+            try { listener(detail); } catch(e) { if(console) console.error('A listener of ' + type + ' failed:', e); }
+        });
+    },
+    historyChanged: function() {
+        this.emit('history', { undo: Math.max(0, this.version), redo: Math.max(0, this.versions.length - this.version - 1) });
+    },
     // how many changes can be undone; every state is a copy of the whole model, so the history is limited
     maxUndoLevels: 100,
     recordState: function() {
@@ -147,15 +168,14 @@ var Model = {
                 this.versions.shift();
                 this.version--;
             }
-            ControlButtons.setUndoLevels(this.version);
-            ControlButtons.setRedoLevels(0);
+            this.historyChanged();
+            this.emit('changed', { version: this.version });
         }
     },
     clearStates: function() {
         this.version = -1;
         this.versions = [];
-        ControlButtons.setUndoLevels(0);
-        ControlButtons.setRedoLevels(0);
+        this.historyChanged();
     },
     undoState: function() {
         this.version -= (this.version === 0 ? 0 : 1);
@@ -163,16 +183,14 @@ var Model = {
         DrawingEngine.restoring = true;
         DrawingEngine.stop();
         EventHandler.clearSelection();
-        ControlButtons.setUndoLevels(this.version);
-        ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
+        this.historyChanged();
     },
     redoState: function() {
         this.version += (this.version === this.versions.length - 1 ? 0 : 1);
         this.fromXML(this.versions[this.version]);
         DrawingEngine.restoring = true;
         DrawingEngine.stop();
-        ControlButtons.setUndoLevels(this.version);
-        ControlButtons.setRedoLevels(this.versions.length - this.version - 1);
+        this.historyChanged();
     },
     setupMinimal: function(ask) {
         var go = ask ? confirm("Are you sure you want to clear the current model?\n" +
@@ -384,6 +402,7 @@ var Model = {
             try { Actions.checkNaming(); } catch(e) { if(console) console.warn('Naming check failed:', e); }
             try { Features.apply(); Features.report(); } catch(e) { if(console) console.warn('Features check failed:', e); }
             if(DEBUG) console.log(this);
+            this.emit('replaced');
         }
     },
     validateIntegrity: function() {
