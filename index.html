@@ -98,7 +98,7 @@
         // <!--
         "use strict"; // be safe!
 
-        var VERSION = '0.101.18';
+        var VERSION = '0.101.19';
 
         // change to false in beta
         var RELEASE = false;
@@ -4893,6 +4893,22 @@
             toString: function() {
                 return this.role;
             },
+            // The point of the edge that lies ON the drawn curve. The curve is a quadratic Bezier, M start Q control end,
+            // and it only passes through its control point when it is straight; at t = 1/2 it passes through
+            // (start + 2 * control + end) / 4. The bubble and the role name are placed here, not at the control point,
+            // since the control point (the edge's node in the layout) is off the curve whenever the edge is bent,
+            // by half its distance from the middle of the chord, and most of all while the layout is moving.
+            curvePoint: function() {
+                var edge = this.node;
+                return {
+                    x: (edge.node.xPosition + 2 * edge.xPosition + edge.otherNode.xPosition) / 4,
+                    y: (edge.node.yPosition + 2 * edge.yPosition + edge.otherNode.yPosition) / 4
+                };
+            },
+            drawName: function(x, y) {
+                var point = this.curvePoint();
+                Component.prototype.drawName.call(this, point.x, point.y);
+            },
             draw: function(image) {
                 // Sync controlPoint with the laid out Edge position
                 this.node.controlPoint.xPosition = this.node.xPosition;
@@ -4919,7 +4935,8 @@
                     image.textElement.textContent = this.component.chronicle || '';
                 }
                 if((this.tied || this.chronicable) && image.control) {
-                    image.control.setTranslate(role.xPosition, role.yPosition);
+                    var point = this.curvePoint();
+                    image.control.setTranslate(point.x, point.y);
                 }
             }
         };
