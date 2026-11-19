@@ -1,9 +1,15 @@
+/* System fonts only: nothing is fetched from a font service, so the page looks the same offline. */
+:root {
+    --font-ui:          system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono:        ui-monospace, "Cascadia Mono", "Source Code Pro", Consolas, Menlo, "Liberation Mono", monospace;
+}
+
 html {
     touch-action: manipulation;
 }
 
 body {
-    font:               12px "Open Sans", "Helvetica Neue", sans-serif;
+    font:               12px var(--font-ui);
     line-height:        1.88889;
     color:              #000000;
     background:         #f9f8f7;
@@ -31,7 +37,6 @@ body.dark #contextMenu,
 body.dark #tabularEditor,
 body.dark #miniature,
 body.dark #model,
-body.dark #cloud,
 body.dark #search input,
 body.dark #search select,
 body.dark #loadingOverlay { background-color:rgba(50,51,56,0.92); color:#f2f2f3; }
@@ -80,10 +85,9 @@ body.dark .expanded { background-color:#c33; }
 
 /* Status elements */
 body.dark #model { background-color:#1e1f22; color:#f2f2f3; }
-body.dark #cloud { color:#f2f2f3; }
 
 /* Graph specific colors (edge strokes etc.) adapt subtly */
-/* Dark theme: let SVG be transparent so underlying watermark (#disclaimer) can show through */
+/* Dark theme: let SVG be transparent */
 body.dark svg#graph { background:transparent; }
 /* SVG graph specific styling moved to svg.css */
 
@@ -239,19 +243,23 @@ a:hover {
     background-color:   rgba(255, 255, 255, 0.9);
 }
 
-/* shows a beta disclaimer */
+/* marks a test version: a small badge in the corner (the page shows it while RELEASE is false) */
 #disclaimer {
     display:            none;
     position:           absolute;
-    font:               bold 48pt sans-serif;
-    color:              white;
     top:                42px;
-    left:               16px;
-    z-index:            0; 
+    left:               12px;
+    z-index:            0;
+    padding:            3px 8px;
+    border:             1px solid currentColor;
+    border-radius:      4px;
+    font:               600 11px/1.4 var(--font-ui);
+    letter-spacing:     0.04em;
+    color:              #b55;
+    background:         rgba(255, 255, 255, 0.6);
     pointer-events:     none; /* ensure it never blocks graph interaction */
 }
-/* Dark theme: slightly dimmed but clearly visible */
-body.dark #disclaimer { color:rgba(255,255,255,0.03); }
+body.dark #disclaimer { color:#e99; background:rgba(0, 0, 0, 0.25); }
 
 /* the logotype 'ANCHOR' */
 #logotype {
@@ -261,19 +269,6 @@ body.dark #disclaimer { color:rgba(255,255,255,0.03); }
     left:               12px;
     bottom:             6px;
     width:              142px;
-}
-
-/* shows login status to the cloud (google app engine) */
-#cloud {
-    font:               8pt sans-serif;
-    position:           absolute;
-    color:              black;
-    text-align:         left;
-    bottom:             40px;
-    left:               12px;
-    cursor:             pointer;
-    display:            block;
-    z-index:            10;
 }
 
 /* shows model name or local editing status
@@ -471,126 +466,6 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
 }
 
 
-#cloudBrowserPopover {
-    position:           relative;
-    border:             2px solid white;
-    top:                5%;
-    margin:             auto;
-    display:            table;
-    background-color:   rgba(249, 248, 247, 0.95);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-    z-index:            11;
-}
-#cloudBrowserPopover .closebutton {
-    display:            inherit;
-    position:           relative;
-}
-#cloudBrowserPopover #content {
-    margin:             -10px 10px 20px 10px;
-    padding:            0;
-}
-.modelContainer {
-    text-align:         left;
-    color:              black;
-    border-width:       medium;
-    border-style:       inset;
-    margin:             0px 5px 10px 5px;
-    padding:            8px;
-    cursor:             pointer;
-    height:             140px;
-}
-.modelIcon {
-    background:         #fff;
-    border:             1px solid black;
-    width:              140px;
-    max-height:         140px;
-    clip:               rect(0px,140px,140px,0px);
-    float:              left;
-    clear:              both;
-    margin-right:       10px;
-    box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-}
-.externalLink {
-    margin-left:        0.5em;
-}
-.modelName {
-    font:               100% georgia, sans-serif;
-}
-.modelKeywords {
-    font:               italic 75% georgia, sans-serif;
-}
-.modelDescription {
-    margin-top:         8pt;
-    font:               90% georgia, sans-serif;
-}
-.twitter {
-    margin-top:         8pt;
-    font:               italic 90% georgia, sans-serif;
-}
-#keywordFilter {
-    position:           relative;
-    text-align:         center;
-    top:                -20px;
-    font:               10pt georgia, sans-serif;
-}
-.modelDeleteButton  {
-    border-style: hidden;
-    display: block;
-    margin: -8px -2px -20px;
-    padding: 0;
-    background-image:   url(deleteButton.png);
-    position:           relative;
-    left:               -15px;
-    top:                -15px;
-    height:             30px;
-    width:              30px;
-    z-index:            14;
-}
-
-#cloudSaverPopover {
-    position:           relative;
-    border:             2px solid white;
-    top:                5%;
-    margin:             auto;
-    display:            table;
-    background-color:   rgba(249, 248, 247, 0.95);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-    z-index:            11;
-}
-#cloudSaverPopover .closebutton {
-    display:            inherit;
-    position:           relative;
-}
-#cloudSaverPopover #content {
-    margin:             -10px 10px 10px 10px;
-    padding:            0;
-    text-align:         center;
-}
-#cloudSaverPopover #content table {
-    margin-top:         20px;
-    margin-bottom:      20px;
-}
-#cloudSaverPopover #content td {
-    font:               84% georgia, sans-serif;
-    color:              black;
-    padding-top:        5px;
-    text-align:         left;
-}
-#cloudSaverPopover #content img {
-    background:         #fff;
-    border:             1px solid black;
-    box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-}
-
-
 /* these classes style the xml representation */
 #codePopover {
     position:           relative;
@@ -613,7 +488,7 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     position:           relative;
     margin-top:         -30px;
     text-align:         left;
-    font:               125% "Source Code Pro", "Consolas", "Andale Mono", monospace;
+    font:               125% var(--font-mono);
     color:              white;
     padding:            15px 20px;
     overflow:           auto;
@@ -642,7 +517,7 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     font-style:         italic;
 }
 .preformatted, pre {
-    font:               100% "Source Code Pro", "Consolas", "Andale Mono", monospace;
+    font:               100% var(--font-mono);
     color:              white;
     white-space:        pre;
 }
@@ -669,7 +544,7 @@ legend {
 }
 
 #header {
-    font:               10pt "Open Sans", "Helvetica Neue", sans-serif;
+    font:               10pt var(--font-ui);
     position:           relative;
     margin:             0;
     padding:            0;

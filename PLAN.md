@@ -250,6 +250,30 @@ S = a day or two, M = about a week, L = several weeks.
 - Cap undo (for example 100 states) and mark the limit in the button label.
 - Swap `keypress`/`keyCode` for `keydown` and `event.key`.
 
+**Status: done on the `modernize` branch (not merged; the version is not bumped until the branch is merged).**
+
+- **Deleted:** `pathseg.js` and its licence text; the cloud browser and saver popovers, the `Actions.*Cloud*` methods,
+  `generateURL`, the tweet link, the `#cloud` element and about 150 lines of CSS; three images that only the cloud
+  popovers used; the globals and helpers that only the cloud used (`LOGGED_IN`, `USER_ID`, the UTF-8 base64 helpers);
+  `Model.scope` and `Model.keywords`; the commented-out cloud and URL menu items; `X-UA-Compatible` and `HandheldFriendly`.
+  **Kept:** loading a model from a gist (`?gist=<id>`), with the status line now reading *Editing <name> (gist <id>)*.
+  Net: 71 lines added, 1,655 removed (`index.html` 8,067 to 7,515 lines).
+- **Fonts:** the two Google Fonts links are gone. `application.css` defines `--font-ui` and `--font-mono` as system stacks
+  and every rule uses them; the inline loading overlay inherits. The page makes no font request.
+- **Watermark:** the 48 pt "TEST VERSION" block is now a small badge (`TEST VERSION 0.101.19`) in the top-left corner,
+  shown while `RELEASE` is false, with the version filled in by script instead of `document.write`. The start-up alert
+  that says the same thing is **still there**; it is the next thing to remove if you agree.
+- **Undo:** the history is capped at 100 changes (`Model.maxUndoLevels`), and the button's tooltip says so. This also
+  fixes a bug: after an undo, a new change left the abandoned redo states in the list, so a later redo could jump to a
+  state from the discarded branch.
+- **Keyboard:** `keypress`/`keyCode` are replaced by `keydown`/`event.key`. The handler only reacts to a single
+  character key without Ctrl, Alt or Meta, so F5, Tab, arrows and the browser's own shortcuts are no longer swallowed
+  while the pointer is over a node. **Escape now works**: it never produced a `keypress` event in Chromium, so the
+  "Escape clears the selection and closes the context menu" code had never run. It is listed in the Help page.
+- **README:** no longer promises a cloud connection.
+- **Tools:** in the sisula repo, on a branch of the same name, `browser-check.ps1` accepts a page with or without the
+  Google Fonts links.
+
 ### 4.2 Phase 1: structure (M to L, the enabling step)
 
 1. **Move the inline script into files** under `app/` (one per block in the table in 3.6). First as classic scripts,

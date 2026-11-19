@@ -13,7 +13,7 @@
 #graph { background: transparent; }
 #graph .label, #graph .chronicleLabel {
     font-size:          8pt;
-    font-family:        "Open Sans", "Verdana", "Helvetica Neue", sans-serif;
+    font-family:        var(--font-ui);
     font-weight:        normal;
     text-anchor:        left;
     dominant-baseline:  middle;
