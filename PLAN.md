@@ -302,6 +302,42 @@ S = a day or two, M = about a week, L = several weeks.
 7. **Tests.** Extend `browser-check.ps1` with a UI mode: open, add an attribute, rename, undo, redo, export at three
    window sizes, and take the screenshots again. No dependency: it is the same Edge-headless approach.
 
+**Status of Phase 1 on the `modernize` branch (not merged).**
+
+- **Step 7, tests: done, and done first.** `examples/anchor/tools/ui-check.ps1` in the sisula repository runs `ui-tests.js`
+  inside the modeler's own page in headless Edge: loading and saving, the operations of the context menu, the keyboard, undo and
+  redo, the dialogs, search, view, theme, settings, SQL, XML and documentation, shared links, storage, and that bubbles sit on
+  their edges. 31 checks, and 23 recorded values (fingerprints of the saved model after each step, counts of fields and
+  operations) that are compared with `ui-golden.json`; the fingerprint ignores positions, the root element's date, time and
+  version, and the order of elements. It was run several times on unchanged code before it was trusted, and it is the reason the
+  steps below could be taken without guessing. It found a bug (next point).
+- **A bug the tests found, fixed:** the layout that settles after an undo or a redo was recorded as a new state, which replaced
+  the newest state and ended what could be redone, so undo could not be pressed several times in a row to walk back. Undo and
+  redo now mark the layout that follows them as a restoration.
+- **Step 1, files: done.** `index.html` is 394 lines of markup (it was 7,514). The script is 26 files in `app/`, loaded as ordinary
+  scripts in the order the code stood in, with the same global names. A script made them and checked that together they hold
+  exactly the code of the original script, apart from the indent; the user-interface tests, the SQL golden files, the feature table
+  and all 17 targets give the same results. **The version is now in `app/config.js`**, not in `index.html`.
+- **Step 4, events: done.** `Model.on`, `off` and `emit` with `changed`, `history` and `replaced`. The model no longer calls the
+  undo and redo buttons; they listen. A listener that throws does not stop the others.
+- **Step 2, ES modules: not done, and it cannot come next.** Measured on the 26 files: 134 file-to-file dependencies, and **21 of
+  the 26 files are in one cycle** (Model, Component, EventHandler, Actions, Settings, every kind of construct, and so on). Six
+  variables are assigned from other files (`SVG`, `SVGLayer`, `NAV`, `NAVLayer`, `ASKBEFOREUNLOAD`, `DEBUG`), which an import
+  cannot do. And `extend(Attribute, Component)` copies `Component.prototype` when the file runs: in a module cycle that can run
+  before `Component.prototype` is assigned, and the subclasses would silently lose their methods. Moving this to modules now
+  would mean either that, or one registry object that holds every singleton, which is a global namespace under another name.
+  It becomes possible after the cycle is broken, that is, after step 3.
+- **Step 3, model and view: not done.** The first slice is the one just taken (the model talks through events). The next is to
+  take the drawing out of `Anchor`, `Knot`, `Attribute`, `Tie`, `Nexus`, `Role` and `Identifier` (2,000 lines that now hold data,
+  SVG and editing rules together) into one presenter for each, so that the model has no import of `DrawingEngine`, `EventHandler`
+  or `Actions`. The tests above are the safety net for it.
+- **Step 5, commands for undo: not done.** It needs step 3, since a command should change the model and let the views follow.
+- **Step 6, one registry for menus and settings: not done.** 84 inline handlers remain in the markup. The tests count what each
+  menu offers but do not click the items; click tests come before the change.
+
+Also on its own branch, not part of `modernize`: a fix in the generators' helpers, so that a model with equivalence off ignores
+the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flags`).
+
 ### 4.3 Phase 2: look and feel (M)
 
 - **Design tokens as CSS custom properties** (colour, spacing, radius, type scale), light and dark, following
