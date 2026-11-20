@@ -1,5 +1,5 @@
 // config: the settings of the page: version, release flag, theme, namespaces, and the parameters in the address.
-export var VERSION = '0.101.19';
+export var VERSION = '1.0.0';
 
 // change to false in beta
 export var RELEASE = false;
