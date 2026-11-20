@@ -106,5 +106,17 @@ export var Operations = {
             if(components[i].operations.indexOf(operation) < 0)
                 return false;
         return true;
+    },
+    // the operations of the list that all of the components support, and that their rule (if there is one) allows
+    supportedFor: function(components) {
+        var supported = [], i, validator;
+        for(i = 0; i < Operations.list.length; i++) {
+            if(Operations.isSupported(Operations.list[i][0], components)) {
+                validator = Operations.list[i][3];
+                if(!validator || validator(components))
+                    supported.push(Operations.list[i]);
+            }
+        }
+        return supported;
     }
 };

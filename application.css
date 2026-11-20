@@ -995,3 +995,113 @@ body.dark #themeToggle .moon { display: none; }
     outline:            2px solid var(--accent);
     outline-offset:     -3px;
 }
+/* ==========================================================================
+   The outline and properties panel
+   ========================================================================== */
+body { --panel-width: 330px; }
+#panel {
+    position:           absolute;
+    top:                var(--bar-height);
+    right:              0;
+    bottom:             0;
+    width:              var(--panel-width);
+    box-sizing:         border-box;
+    z-index:            6;
+    display:            flex;
+    flex-direction:     column;
+    background:         var(--surface);
+    color:              var(--text);
+    border-left:        1px solid var(--border);
+    box-shadow:         var(--shadow-m);
+}
+#panel[hidden] { display: none; }
+/* the miniature and the name of the model keep clear of the panel */
+body.panel-open #miniature { right: calc(var(--panel-width) + 16px); }
+body.panel-open #model { right: calc(var(--panel-width) + 16px); }
+#panel .panelhead {
+    flex:               none;
+    display:            flex;
+    align-items:        center;
+    gap:                var(--space-2);
+    padding:            var(--space-2) var(--space-3);
+    border-bottom:      1px solid var(--border);
+}
+#panel .panelhead h2 {
+    flex:               none;
+    margin:             0;
+    font:               600 var(--text-m)/1.3 var(--font-ui);
+}
+#panel .panelhead input { flex: 1 1 auto; min-width: 0; height: 26px; }
+#panel .close {
+    flex:               none;
+    width:              26px;
+    height:             26px;
+    padding:            0;
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#panel .close:hover { background: var(--hover); }
+#panel .close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#outlineTree {
+    flex:               1 1 50%;
+    min-height:         0;
+    overflow:           auto;
+    margin:             0;
+    padding:            var(--space-1) 0;
+}
+#outlineTree li {
+    cursor:             pointer;
+}
+#outlineTree li:focus { outline: none; }
+#outlineTree li:focus-visible > .line { outline: 2px solid var(--accent); outline-offset: -2px; }
+#outlineTree .line {
+    display:            flex;
+    align-items:        center;
+    gap:                6px;
+    min-height:         24px;
+    padding:            1px var(--space-3) 1px calc(var(--space-2) + (var(--level) - 1) * 16px);
+    border-radius:      var(--radius-s);
+    margin:             0 var(--space-1);
+}
+#outlineTree .line:hover { background: var(--hover); }
+#outlineTree li[aria-selected=true] > .line { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+#outlineTree .twisty { flex: none; width: 12px; height: 12px; }
+#outlineTree [aria-expanded] > .line .twisty {
+    background:         currentColor;
+    opacity:            0.55;
+    clip-path:          polygon(25% 15%, 85% 50%, 25% 85%);
+}
+#outlineTree [aria-expanded=true] > .line .twisty { clip-path: polygon(15% 25%, 85% 25%, 50% 85%); }
+#outlineTree li.group > .line { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: var(--text-s); letter-spacing: 0.04em; }
+#outlineTree .icon { flex: none; width: 16px; height: 16px; }
+#outlineTree .name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#outlineTree .note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--text-s); }
+#outlineTree .note::before { content: "\2192\00a0"; }
+#panelProperties {
+    flex:               1 1 50%;
+    min-height:         0;
+    overflow:           auto;
+    padding:            var(--space-2) var(--space-3) var(--space-4);
+    border-top:         1px solid var(--border);
+    background:         var(--surface-sunken);
+}
+#panelProperties h3 { margin: var(--space-1) 0 var(--space-2); font: 600 var(--text-m)/1.3 var(--font-ui); }
+#panelProperties .hint { margin: 0; color: var(--text-muted); }
+#panelProperties table.items { width: 100%; }
+#panelProperties table.items td { padding: 2px 6px 4px 0; vertical-align: middle; }
+#panelProperties table.items td:first-child { width: 36%; color: var(--text-muted); white-space: nowrap; }
+#panelProperties table.items input:not([type=checkbox]), #panelProperties table.items select { width: 100%; height: 26px; }
+#panelProperties .operations { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
+#panelProperties .operations button {
+    font:               inherit;
+    padding:            2px var(--space-2);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#panelProperties .operations button:hover { background: var(--hover); }

@@ -448,6 +448,22 @@ the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flag
 
 ### 4.4 Phase 3: editing (M to L, needs 4.2)
 
+**Order chosen by the owner:** 1 the outline and properties panel, 2 the live XML view, 3 the problems panel, 4 the agent
+hand-off. The rest (rename on the canvas, a free-standing anchor, first placement, copy/paste, export) waits until those are
+tested.
+
+**Status of Phase 3**
+
+- **Item 1, done: the outline and properties panel** (`app/Outline.js`, `app/EditForm.js`). A panel at the right, opened with
+  the button in the bar (it remembers if it was open): a tree with Anchors, Nexuses, Ties and Knots, the attributes under their
+  anchor or nexus (a knotted attribute shows its knot), ties named by what they tie, a filter, and under it the properties of
+  what is selected: the same fields as the context menu (made by one function, `EditForm.fill`, which the context menu now
+  uses too) and the operations that make sense for the selection as buttons (`Operations.supportedFor`). Selecting in the tree
+  selects in the graph and moves the view there (it explodes what is imploded), and what is selected in the graph (Shift+click)
+  is selected in the tree, with its anchor opened. Changing a field is one step in the history. The tree has the keys of a tree
+  view (arrows, Home, End, Enter, Space; Shift or Ctrl adds to the selection). The hover and key way of working, and the
+  floating context menu, are unchanged; the panel is the second way in.
+
 1. **Outline and properties side panel** (collapsible): a tree of anchors, nexuses, ties and knots with attributes under
    them; selecting in either place selects in both; the property form lives here, so the floating popup goes away.
 2. **Rename on the canvas** (double-click, F2), and **new constructs open with the name focused and a suggested

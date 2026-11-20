@@ -5,6 +5,7 @@ import { EventHandler } from './EventHandler.js';
 import { ModalBackground } from './Popovers.js';
 import { Operations } from './Operations.js';
 import { Features } from './Features.js';
+import { EditForm } from './EditForm.js';
 export function ContextMenu(hoveredComponent, selectedComponents, selectedRoute) {
     var self = this;
 
@@ -37,70 +38,22 @@ export function ContextMenu(hoveredComponent, selectedComponents, selectedRoute)
     // if we are operating a single node, show its editable fields
     else if(selectedComponents.length === 0 || (selectedComponents.length === 1 && selectedComponents[0] === hoveredComponent)) {
         this.topper.appendChild(document.createTextNode("Edit " + NodeType[hoveredComponent.node.type]));
-        for(i = 0; editable = hoveredComponent.editables[i]; i++) {
-            if(editable.editable && Features.has(editable.feature)) {
-                this.showEditables = true;
-                var element = document.createElement(editable.type);
-                element.className = 'editable';
-                if(editable.prepare) {
-                    editable.prepare(hoveredComponent);
-                }
-                if(editable.pattern) {
-                    element.setAttribute('pattern', editable.pattern);
-                }
-                if(editable.attributes) {
-                    for(j = 0; j < editable.attributes.length;) {
-                        var attribute = editable.attributes[j++];
-                        var value = editable.attributes[j++];
-                        element.setAttribute(attribute, value);
-                    }
-                }
-                if(editable.elements) {
-                    for(j = 0; j < editable.elements.length;) {
-                        var subElement = editable.elements[j++];
-                        element.appendChild(subElement);
-                    }
-                }
-                editable.setElement(element, hoveredComponent);
-                element.editable = editable;
-                element.addEventListener(editable.event, function() { self.edit(this, hoveredComponent); }, false);
-                element.addEventListener('change', function() { self.editsHaveBeenMade = true; }, false);
-                this.keydown = this.keydown.bind(this);
-                element.addEventListener('keydown', this.keydown, false);
-                tr = document.createElement('tr');
-                tr.setAttribute('valign', 'top');
-                tr.setAttribute('title', editable.description);
-                var td1 = document.createElement('td');
-                td1.appendChild(document.createTextNode(editable.name + ":"));
-                tr.appendChild(td1);
-                var td2 = document.createElement('td');
-                td2.appendChild(element);
-                tr.appendChild(td2);
-                this.editables.appendChild(tr);
-            }
-        }
+        this.keydown = this.keydown.bind(this);
+        this.showEditables = EditForm.fill(this.editables, hoveredComponent, {
+            edit: function(element) { self.edit(element, hoveredComponent); },
+            changed: function() { self.editsHaveBeenMade = true; },
+            keydown: this.keydown
+        });
     }
     else {
         this.topper.appendChild(document.createTextNode("Edit selection"));
     }
 
-    var supportedOperations = [];
-
     var allComponents = selectedComponents.slice(0);
     if(allComponents.indexOf(hoveredComponent) < 0)
         allComponents.push(hoveredComponent);
 
-    var validator;
-    for(i = 0; i < Operations.list.length; i++) {
-        if(Operations.isSupported(Operations.list[i][0], allComponents)) {
-            if(validator = Operations.list[i][3]) {
-                if(validator(allComponents))
-                    supportedOperations.push(Operations.list[i]);
-            }
-            else
-                supportedOperations.push(Operations.list[i]);
-        }
-    }
+    var supportedOperations = Operations.supportedFor(allComponents);
 
     this.operators = document.createElement('fieldset');
     this.operators.setAttribute('class', 'operators');

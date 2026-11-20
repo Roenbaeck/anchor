@@ -26,15 +26,21 @@ export var EventHandler = {
     routeSelected: function() {
         return this.selectedRoute;
     },
+    // what changes the selection says so on the document, for what shows it (the outline panel)
+    selectionChanged: function() {
+        document.dispatchEvent(new CustomEvent('anchor-selection'));
+    },
     addComponentToSelection: function(component) {
         if(this.selectedComponents.indexOf(component) < 0)
             this.selectedComponents.push(component);
         component.setSelection(true);
+        this.selectionChanged();
     },
     removeComponentFromSelection: function(component) {
         if(this.selectedComponents.indexOf(component) >= 0)
             this.selectedComponents.splice(this.selectedComponents.indexOf(component), 1);
         component.setSelection(false);
+        this.selectionChanged();
     },
     clearSelection: function() {
         var component;

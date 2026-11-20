@@ -10,6 +10,7 @@ import { ControlButtons } from './ControlButtons.js';
 import { Layer } from './Layer.js';
 import { Wiring } from './Wiring.js';
 import { Menus } from './Menus.js';
+import { Outline } from './Outline.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
@@ -51,6 +52,7 @@ export function init(window) {
     ControlButtons.init();
     Wiring.init();
     Menus.init();
+    Outline.init();
     LayoutEngine.init();
 
     // set the global svg and graph variable

@@ -6,6 +6,7 @@ import { DrawingEngine } from './DrawingEngine.js';
 import { EventHandler } from './EventHandler.js';
 import { CodePopover, URLPopover } from './Popovers.js';
 import { save } from './init.js';
+import { Outline } from './Outline.js';
 export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
@@ -562,6 +563,10 @@ export var Actions = {
     },
     openAbout: function() {
         new URLPopover('about.html');
+    },
+    // the panel with the outline and the properties, at the right
+    togglePanel: function() {
+        Outline.toggle();
     },
     // MODEL SETTINGS -------------------------------------------------
     // The dialog holds the settings of the generated code (target, features, names, types, defaults for new items) and of the
