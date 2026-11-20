@@ -78,6 +78,7 @@ export function ContextMenu(hoveredComponent, selectedComponents, selectedRoute)
 
     this.updatePosition();
     document.body.appendChild(this.contextMenu);
+    this.keepInWindow();
     return this;
 }
 ContextMenu.prototype = {
@@ -150,6 +151,8 @@ ContextMenu.prototype = {
             this.toggler.setAttribute('title', 'Click to close the context menu.');
             this.collapsed = false;
             this.modalBackground = new ModalBackground();
+            // a touch (or a click) beside the menu closes it, as there is no pointer to leave it with
+            this.modalBackground.modalBackground.addEventListener('click', function() { if(!self.collapsed) self.toggle(); }, false);
             this.contextMenu.appendChild(this.topper);
             if(this.showEditables) {
                 this.contextMenu.appendChild(this.editables);
@@ -162,6 +165,7 @@ ContextMenu.prototype = {
             }
             window.removeEventListener('keydown', EventHandler.keydown, false);
             this.contextMenu.appendChild(this.operators);
+            this.keepInWindow();
         }
         else {
             if(this.editsHaveBeenMade && !Model.isConforming())
@@ -178,6 +182,14 @@ ContextMenu.prototype = {
             window.addEventListener('keydown', EventHandler.keydown, false);
             DrawingEngine.start(false);
         }
+    },
+    // the menu is where it can be seen: not past the edges of the window (it opens beside the construct, which may be at the edge)
+    keepInWindow: function() {
+        var box = this.contextMenu.getBoundingClientRect(), margin = 8, top = document.getElementById('header') ? document.getElementById('header').getBoundingClientRect().bottom : 0;
+        var x = Math.max(margin, Math.min(box.left, window.innerWidth - box.width - margin));
+        var y = Math.max(top + margin, Math.min(box.top, window.innerHeight - box.height - margin));
+        this.contextMenu.style.left = x + 'px';
+        this.contextMenu.style.top = y + 'px';
     },
     unmodal: function() {
         if(this.modalBackground) {

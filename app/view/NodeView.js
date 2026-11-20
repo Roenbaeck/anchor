@@ -18,6 +18,10 @@ export function NodeView(component) {
     svg.graphicsElement = document.createElementNS(SVGNS, 'g');
     // expando property as a reference back to the underlying component for use in event handlers
     svg.graphicsElement.component = component;
+    // what a finger can hit: a larger circle than the shape, that is there for a finger only (see application.css)
+    var hit = document.createElementNS(SVGNS, 'circle');
+    hit.setAttribute('class', 'hit');
+    svg.graphicsElement.appendChild(hit);
     svg.useElement = document.createElementNS(SVGNS, 'use');
     svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', look.ref);
     svg.graphicsElement.appendChild(svg.useElement);

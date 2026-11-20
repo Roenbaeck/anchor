@@ -1359,3 +1359,16 @@ body.panel-wide { --panel-width: 560px; }
     input:not([type=checkbox]):not([type=radio]), select { min-height: 40px; }
     input[type=checkbox] { width: 22px; height: 22px; }
 }
+
+/* fingers: the graph and the miniature are for the fingers, not for the scrolling and the zooming of the page (see app/Gestures.js);
+   the shapes have a larger circle around them to hit, that is not there for a mouse */
+#graph, #minigraph, #miniature { touch-action: none; }
+#graph .hit { fill: transparent; stroke: none; r: 0; pointer-events: all; }
+@media (pointer: coarse) {
+    #graph .hit { r: 24px; }
+}
+/* the context menu of a long press is a sheet on a phone */
+@media (max-width: 700px) {
+    #contextMenu { max-width: calc(100vw - 16px); }
+    #contextMenu .items input:not([type=checkbox]), #contextMenu .items select { max-width: 52vw; }
+}

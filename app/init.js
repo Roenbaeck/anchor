@@ -14,6 +14,7 @@ import { Outline } from './Outline.js';
 import { Problems } from './Problems.js';
 import { AgentHandoff } from './AgentHandoff.js';
 import { ModelStore } from './ModelStore.js';
+import { Gestures } from './Gestures.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
@@ -88,6 +89,7 @@ export function init(window) {
     // set up the miniature navigation
     setNAV(document.getElementById("minigraph"));
     NAV.addEventListener('mousedown', EventHandler.prepareNavigation, false);
+    Gestures.init(); // what a finger does (a mouse does what is above)
 
     // add layers to the NAV
     setNAVLayer(new Layer(NAV));
