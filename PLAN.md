@@ -463,7 +463,16 @@ tested.
   is selected in the tree, with its anchor opened. Changing a field is one step in the history. The tree has the keys of a tree
   view (arrows, Home, End, Enter, Space; Shift or Ctrl adds to the selection). The hover and key way of working, and the
   floating context menu, are unchanged; the panel is the second way in.
-
+- **Item 2, done: the live XML view** (`app/XmlView.js`, `app/XmlText.js`). A second tab in the panel, with the XML of the model as
+  text (two-space indentation, one element to a line). The model changes, the text follows (unless it is being typed in); the
+  text changes, and after 0.8 s without typing it is read: it has to be XML, a `schema`, and pass `ModelCheck` (loaded in the page
+  now, 0 problems on every model that the modeler writes); if it is right it becomes the model, as a step that can be undone,
+  and if not, the model is left as it was and the problems are listed under the text. A failure while building the model puts
+  the old model back. Copy button; the tab key writes a tab; the tabs have the keys of tabs; the panel widens for the XML.
+  Found on the way and fixed: a nexus changed its shape when imploded only when the layout happened to move it (and its
+  miniature symbol was given the big shape), so it could stay drawn as imploded after it was exploded.
+- **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the
+  graph as a PNG (yes, if it can be done reliably), several named models kept in the browser (yes).
 1. **Outline and properties side panel** (collapsible): a tree of anchors, nexuses, ties and knots with attributes under
    them; selecting in either place selects in both; the property form lives here, so the floating popup goes away.
 2. **Rename on the canvas** (double-click, F2), and **new constructs open with the name focused and a suggested
@@ -480,8 +489,8 @@ tested.
    the other.
 8. **Agent hand-off**: *Copy model for an agent* (XML plus a one-paragraph instruction pointing at the skills) and *Paste
    model from agent*. Models from agents arrive without positions, so this relies on item 5.
-9. **Export**: copy and download for SQL, per-object split, PNG (draw the SVG to a canvas), and several named models in
-   `localStorage` with a recent list.
+9. **Export** (decided: no per-object split): copy and download for SQL, PNG (draw the SVG to a canvas, if it can be done reliably), and
+   several named models in `localStorage` with a recent list.
 
 ### 4.5 Phase 4: touch and small screens (M to L, needs 4.2 and 4.3)
 
