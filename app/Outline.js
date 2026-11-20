@@ -21,7 +21,7 @@ export var Outline = {
     filter: '',
     timer: null,
     scrollToSelection: false, // after a selection in the graph, the selected row is brought into view
-    shownSelection: '',     // which constructs the properties were made for
+    shownSelection: null,     // which constructs the properties were made for
     groups: [
         { id: 'anchors', title: 'Anchors', type: NodeType.ANCHOR },
         { id: 'nexuses', title: 'Nexuses', type: NodeType.NEXUS },
@@ -60,7 +60,7 @@ export var Outline = {
         // the keys of the modeler (a, t, d ...) must not act on what is typed in the panel
         panel.addEventListener('focusin', function() { Actions.stopKeyboardEvents(); }, false);
         Model.on('changed', Outline.schedule);
-        Model.on('replaced', function() { Outline.shownSelection = ''; Outline.schedule(); });
+        Model.on('replaced', function() { Outline.shownSelection = null; Outline.schedule(); });
         document.addEventListener('anchor-selection', function() { Outline.revealSelection(); Outline.schedule(); }, false);
         var remembered = null;
         try { remembered = window.localStorage.getItem('outline'); } catch(e) { }
@@ -108,7 +108,7 @@ export var Outline = {
         XmlView.show(Outline.isOpen && name === 'xml');
         Problems.show(Outline.isOpen && name === 'problems');
         // the properties are in two views (the outline and the problems), and are made again for the one that comes in
-        Outline.shownSelection = '';
+        Outline.shownSelection = null;
         Outline.render();
     },
     render: function() {
@@ -401,7 +401,7 @@ export var Outline = {
                 button.innerHTML = operation[1];
                 button.addEventListener('click', function() {
                     Model[operation[0]](selection);
-                    Outline.shownSelection = '';
+                    Outline.shownSelection = null;
                     Outline.schedule();
                 }, false);
                 list.appendChild(button);

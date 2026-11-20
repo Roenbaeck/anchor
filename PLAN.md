@@ -532,6 +532,20 @@ tested.
 
 ### 4.5 Phase 4: touch and small screens (M to L, needs 4.2 and 4.3)
 
+**Status of Phase 4** (branch `touch`, not merged until the owner has tested it; `master` is 1.0.0)
+
+- **Step 1, done: the shell follows the size of the window.** At 900 px and below the panel is a sheet at the bottom (about half
+  the height, the properties take at most 42 % of it), the search field goes (the outline has a filter) and the miniature and
+  the logotype make way for the panel; at 700 px and below the bar is two rows (menus and Help, then the controls and tools)
+  and the miniature and the logotype are gone. What is selected is brought to the middle of the part of the window that can be
+  seen (not under the bar, not under the panel), also on a desktop with the panel at the side (`Actions.visibleArea`). A pointer
+  that is a finger (`pointer: coarse`) gets 44 px targets for the controls, menu items, tree rows, tabs, buttons and fields.
+  The old rule that stacked all menus open is gone (since 1.0.0). Tests start the page in frames of 390, 820 and 1440 px (a browser
+  window is never narrower than 500 px, and a page's media queries follow its frame) and check that the bar, the menus, the panel,
+  the dialogs and the selected anchor are in view at each size.
+- **To do:** pointer events for mouse, touch and pen on one code path (drag, pan, tap to select, long press for the context menu,
+  pinch zoom and two-finger pan), a larger hit area for the nodes on a finger, and the touch check of the rest.
+
 Aim first for **view and light edit on tablets**, and for a phone that can *view and rename*. Full structural editing on
 a phone is a stretch goal.
 
