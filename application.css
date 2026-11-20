@@ -304,7 +304,7 @@ text.routeText > textPath { dominant-baseline: middle; }
     text-align:         left;
     border:             1px solid var(--border);
     border-radius:      var(--radius);
-    overflow:           hidden;
+    /* no overflow: hidden here, the square that opens the menu sits across its corner and would be cut off */
     z-index:            11;
     box-shadow:         var(--shadow-m);
 }
@@ -320,6 +320,7 @@ text.routeText > textPath { dominant-baseline: middle; }
     color:              var(--text-muted);
     height:             17px;
     padding-left:       24px;
+    border-radius:      var(--radius) var(--radius) 0 0;
     border-bottom:      1px solid var(--border);
     background-color:   var(--surface-sunken);
 }
