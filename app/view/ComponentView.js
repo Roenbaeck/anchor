@@ -5,7 +5,6 @@ import { DEBUG, NAVLayer, SVGLayer, SVGNS } from '../config.js';
 import { EventHandler } from '../EventHandler.js';
 import { Symbol } from '../Symbol.js';
 import { ContextMenu } from '../ContextMenu.js';
-import { Features } from '../Features.js';
 
 export function ComponentView(component) {
     this.component = component;
@@ -79,56 +78,6 @@ Object.assign(ComponentView.prototype, {
                 this.svg.nameText.nodeValue = name;
             }
         }
-    },
-    // the fields of the construct as a table, for the editor of many constructs at once
-    tabular: function(container) {
-        var self = this.component;
-        var j, i = 0, editable;
-        var table = document.createElement('table');
-        while(editable = self.editables[i++]) {
-            if(!Features.has(editable.feature)) continue;
-            var element = document.createElement(editable.type);
-            element.className = 'tabularEditable';
-            if(editable.pattern) {
-                element.setAttribute('pattern', editable.pattern);
-            }
-            if(editable.attributes) {
-                for(j = 0; j < editable.attributes.length;) {
-                    var attribute = editable.attributes[j++];
-                    var value = editable.attributes[j++];
-                    element.setAttribute(attribute, value);
-                }
-            }
-            if(editable.elements) {
-                for(j = 0; j < editable.elements.length;) {
-                    var subElement = editable.elements[j++];
-                    element.appendChild(subElement.cloneNode(true));
-                }
-            }
-            editable.setElement(element, self);
-            element.setAttribute('valign', 'top');
-            element.setAttribute('title', editable.description);
-            element.editable = editable;
-            // edit function should move into the component?
-            element.addEventListener(editable.event, function() {
-                self.tabularEdit(this, self);
-                container.label.nodeValue = self.toString();
-            }, false);
-            element.addEventListener('change', function() {
-                self.editsHaveBeenMade = true;
-            }, false);
-            var row = document.createElement('tr');
-            var label = document.createTextNode(editable.name + ":");
-            var labelCell = document.createElement('td');
-            labelCell.appendChild(label);
-            row.appendChild(labelCell);
-            var elementCell = document.createElement('td');
-            elementCell.appendChild(element);
-            row.appendChild(elementCell);
-            table.appendChild(row);
-        }
-        container.appendChild(table);
-        return true;
     },
     drawName: function(x, y) {
         var svg = this.svg;

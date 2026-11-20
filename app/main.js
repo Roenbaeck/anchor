@@ -4,7 +4,6 @@ import { DrawingEngine } from './DrawingEngine.js';
 import { Editables } from './Editables.js';
 import { EventHandler } from './EventHandler.js';
 import { Operations } from './Operations.js';
-import { TabularEditor } from './TabularEditor.js';
 import { Actions } from './Actions.js';
 import { Features } from './Features.js';
 import { Settings } from './Settings.js';
@@ -74,7 +73,7 @@ Model.surroundings = {
 };
 
 var exposed = { Model: Model, DrawingEngine: DrawingEngine, Editables: Editables, EventHandler: EventHandler, Operations: Operations,
-    TabularEditor: TabularEditor, Actions: Actions, Features: Features, Settings: Settings, ControlButtons: ControlButtons,
+    Actions: Actions, Features: Features, Settings: Settings, ControlButtons: ControlButtons,
     Wiring: Wiring, Menus: Menus, Outline: Outline, XmlView: XmlView, XmlText: XmlText, Problems: Problems, AgentHandoff: AgentHandoff, Placement: Placement, ModelStore: ModelStore, Documentation: Documentation, Gestures: Gestures, save: save, VERSION: VERSION, Component: Component };
 Object.keys(exposed).forEach(function(name) { window[name] = exposed[name]; });
 // these are set when the page has loaded, so they are read when they are asked for

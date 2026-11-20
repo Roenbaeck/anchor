@@ -151,7 +151,7 @@ input:not([type=checkbox]):not([type=radio]):focus, select:focus, textarea:focus
 input[type=checkbox], input[type=radio] {
     accent-color:       var(--accent);
 }
-input:invalid, .editable:invalid, #tabularEditor .tabularEditable:invalid {
+input:invalid, .editable:invalid {
     background-color:   var(--invalid);
 }
 
@@ -291,7 +291,7 @@ text.routeText > textPath { dominant-baseline: middle; }
 }
 
 /* ==========================================================================
-   Panels: the context menu, the mass editor, the popovers
+   Panels: the context menu, the popovers
    ========================================================================== */
 #contextMenu {
     position:           absolute;
@@ -324,51 +324,6 @@ text.routeText > textPath { dominant-baseline: middle; }
     border-radius:      var(--radius) var(--radius) 0 0;
     border-bottom:      1px solid var(--border);
     background-color:   var(--surface-sunken);
-}
-
-#tabularEditor {
-    position:           absolute;
-    overflow:           auto;
-    scroll-behavior:    smooth;
-    top:                calc(var(--bar-height) + 8px);
-    left:               3%;
-    width:              94%;
-    height:             90%;
-    display:            flex;
-    flex-wrap:          wrap;
-    flex-direction:     column;
-    align-content:      flex-start;
-    background-color:   var(--surface-raised);
-    color:              var(--text);
-    padding:            5px;
-    margin:             0;
-    text-align:         left;
-    border:             1px solid var(--border);
-    border-radius:      var(--radius);
-    z-index:            11;
-    box-shadow:         var(--shadow-m);
-}
-#tabularEditor .closebutton {
-    display:            inherit;
-    position:           fixed;
-    top:                calc(var(--bar-height) - 4px);
-    left:               calc(3% - 15px);
-    z-index:            12;
-}
-#tabularEditor .tabularComponent {
-    flex-grow:          1;
-    flex-shrink:        1;
-    flex-basis:         0px;
-    margin-top:         0px;
-    margin-left:        8px;
-    margin-right:       8px;
-    margin-bottom:      4px;
-}
-#tabularEditor .tabularEditable {
-    margin-top:         0px;
-    margin-left:        0px;
-    margin-right:       2px;
-    margin-bottom:      0px;
 }
 
 .toggler {

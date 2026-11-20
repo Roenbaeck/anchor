@@ -767,7 +767,7 @@ feature. Snowflake implements no encryption, so its encrypted attributes keep th
 `binary` of the day before. The modeler hides it too (2026-10-22, the user wanted hidden, not disabled): `Features` in `index.html` reads the
 table from `SQL/Helpers.js` (the JSON between `/*features*/` and `/*end features*/`, so that there is one table),
 sets the body classes `no-equivalence` and `no-encryption` that `application.css` hides the settings with, and the
-editables carry a `feature` that the hover panel and the tabular editor check. It does it when the database or the
+editables carry a `feature` that the hover panel and the properties panel check. It does it when the database or the
 temporalization changes and when a model is loaded; before the table is read, and for a database it does not list,
 nothing is hidden. Nothing in the model is changed, only reported in the console. `browser-check.ps1 -Features` in the
 sisula repository checks it in headless Edge for seven combinations against the table.

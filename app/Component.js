@@ -71,16 +71,7 @@ Object.assign(Component.prototype, {
         if(this.view)
             this.view.updateName();
     },
-    tabularEdit: function(element, component) {
-        if(element && component) {
-            element.editable.setMember(element, component);
-            element.checkValidity();
-        }
-    },
-    // the fields as a table, for the editor of many constructs at once
-    tabular: function (container) {
-        return this.view ? this.view.tabular(container) : false;
-    },
+
     // override to change behavior
     isInteractive: function() {
         return false;
