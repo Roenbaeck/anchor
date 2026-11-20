@@ -498,6 +498,10 @@ tested.
   image had loaded and could never have worked; tested by decoding the PNG and counting pixels, in both themes);
   *File > Models in this browser...* keeps the model under a name (a list, the newest first, with Open and a two-press Remove; a full
   browser is told, nothing is lost). No per-object split of the SQL. Files are now named after the model, or the file it was loaded from.
+- **Found by the owner while testing, and done:** *Generate > SVG screenshot* ignored the theme (a picture without a background, so
+  the names of the dark theme were white on nothing). It is removed; *File > Save SVG to local file...* now makes the same picture as
+  the PNG (`Actions.modelSVG`: the whole model, the colours of the theme, a background), and the PNG is made of it. To do, noted by
+  the owner: the HTML documentation (*Generate > HTML documentation*) is poor: see the proposal that follows when it is agreed.
 - Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
   panel then never updated; seen once in a test run).
 - **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the

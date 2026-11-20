@@ -186,42 +186,47 @@ export var Actions = {
         }
         return (new XMLSerializer()).serializeToString(graph);
     },
-    toSVGDataURL: function(image) {
-        return "data:image/svg+xml;base64," + btoa(this.toSVGString(image));
+    // The whole model as one SVG document (a string) with its colours (the theme's) and a background of the colour of the canvas, so
+    // that it looks as it does on the screen wherever it is opened, with room around the model. The size of the picture is the size
+    // of the model times the scale (1 if none is given; never more than 8000 pixels wide or high): { source, width, height } in pixels.
+    // Both the SVG file and the PNG are made of it.
+    modelSVG: function(scale) {
+        var box = null;
+        [SVGLayer.edges, SVGLayer.nodes, SVGLayer.names].forEach(function(layer) {
+            var b = layer.getBBox();
+            if(!b.width && !b.height) return;
+            box = box ? { x0: Math.min(box.x0, b.x), y0: Math.min(box.y0, b.y), x1: Math.max(box.x1, b.x + b.width), y1: Math.max(box.y1, b.y + b.height) } :
+                { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height };
+        });
+        if(!box) throw new Error('there is nothing in the model to draw');
+        var pad = 60, x = box.x0 - pad, y = box.y0 - pad, width = box.x1 - box.x0 + 2 * pad, height = box.y1 - box.y0 + 2 * pad;
+        var doc = new DOMParser().parseFromString(Actions.toSVGString(SVG), 'image/svg+xml'), root = doc.documentElement;
+        root.setAttribute('viewBox', [x, y, width, height].join(' '));
+        scale = Math.min(scale || 1, 8000 / width, 8000 / height);
+        root.setAttribute('width', Math.round(width * scale));
+        root.setAttribute('height', Math.round(height * scale));
+        root.removeAttribute('style');
+        var background = doc.createElementNS(SVGNS, 'rect');
+        background.setAttribute('x', x); background.setAttribute('y', y);
+        background.setAttribute('width', width); background.setAttribute('height', height);
+        background.setAttribute('fill', getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#ffffff');
+        var defs = root.getElementsByTagName('defs')[0];
+        root.insertBefore(background, defs ? defs.nextSibling : root.firstChild);
+        return { source: new XMLSerializer().serializeToString(root), width: Math.round(width * scale), height: Math.round(height * scale) };
     },
-    // The whole model as a PNG picture (a Promise of a Blob): the SVG is made as for the SVG file, with the view set to all of the
-    // model and a background of the colour of the canvas, and drawn on a canvas at the given scale (the picture is never
-    // more than 8000 pixels wide or high). The SVG has no references to anything outside it, so the canvas is not tainted.
+    // The whole model as a PNG picture (a Promise of a Blob), drawn on a canvas at the given scale (never more than 8000 pixels
+    // wide or high). The SVG has no references to anything outside it, so the canvas is not tainted.
     pngBlob: function(scale) {
         return new Promise(function(resolve, reject) {
-            var box = null;
-            [SVGLayer.edges, SVGLayer.nodes, SVGLayer.names].forEach(function(layer) {
-                var b = layer.getBBox();
-                if(!b.width && !b.height) return;
-                box = box ? { x0: Math.min(box.x0, b.x), y0: Math.min(box.y0, b.y), x1: Math.max(box.x1, b.x + b.width), y1: Math.max(box.y1, b.y + b.height) } :
-                    { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height };
-            });
-            if(!box) { reject(new Error('there is nothing in the model to draw')); return; }
-            var pad = 60, x = box.x0 - pad, y = box.y0 - pad, width = box.x1 - box.x0 + 2 * pad, height = box.y1 - box.y0 + 2 * pad;
-            scale = Math.min(scale || 2, 8000 / width, 8000 / height);
-            var doc = new DOMParser().parseFromString(Actions.toSVGString(SVG), 'image/svg+xml'), root = doc.documentElement;
-            root.setAttribute('viewBox', [x, y, width, height].join(' '));
-            root.setAttribute('width', Math.round(width * scale));
-            root.setAttribute('height', Math.round(height * scale));
-            root.removeAttribute('style');
-            var background = doc.createElementNS(SVGNS, 'rect');
-            background.setAttribute('x', x); background.setAttribute('y', y);
-            background.setAttribute('width', width); background.setAttribute('height', height);
-            background.setAttribute('fill', getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#ffffff');
-            var defs = root.getElementsByTagName('defs')[0];
-            root.insertBefore(background, defs ? defs.nextSibling : root.firstChild);
-            var source = new XMLSerializer().serializeToString(root);
+            var drawing;
+            try { drawing = Actions.modelSVG(scale || 2); } catch(e) { reject(e); return; }
+            var width = drawing.width, height = drawing.height, source = drawing.source;
             var img = new Image();
             img.onload = function() {
                 var canvas = document.createElement('canvas');
-                canvas.width = Math.round(width * scale);
-                canvas.height = Math.round(height * scale);
-                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                 try {
                     canvas.toBlob(function(blob) { if(blob) resolve(blob); else reject(new Error('the browser could not make a picture')); }, 'image/png');
                 } catch(e) { reject(e); }
@@ -230,21 +235,12 @@ export var Actions = {
             // the names may have letters that btoa does not take as they are
             img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(source)));
         });
-    },
-    savePNG: function() {
+    },    savePNG: function() {
         Actions.pngBlob(2).then(function(blob) {
             Actions.downloadBlob(blob, Actions.modelFileName() + '.png');
         }, function(error) {
             Actions.notify('The picture could not be made: ' + (error && error.message || error));
         });
-    },
-    screenshot: function(dataURL) {
-        var newtab = window.open('about:blank'); 
-        var img = newtab.document.createElement('img');
-        img.src = dataURL;
-        setTimeout(function(){
-            newtab.document.write(img.outerHTML);
-        }, 0);
     },
     findNodeToExplode: function(node) {
         var edge, otherNode;
@@ -649,7 +645,8 @@ export var Actions = {
         Actions.saveToDisk(new XMLSerializer().serializeToString(Model.toXML(false)), 'xml');
     },
     saveSVGToDisk: function() {
-        Actions.saveToDisk(Actions.toSVGString(SVG), 'svg');
+        try { Actions.saveToDisk(Actions.modelSVG().source, 'svg'); }
+        catch(e) { Actions.notify('The picture could not be made: ' + (e && e.message || e)); }
     },
     mailModel: function() {
         Actions.createEmail(new XMLSerializer().serializeToString(Model.toXML(false)));
@@ -657,9 +654,6 @@ export var Actions = {
     resetView: function() {
         Actions.resetZoom();
         Actions.centerModel();
-    },
-    screenshotSVG: function() {
-        Actions.screenshot(Actions.toSVGDataURL(SVG));
     },
     openTutorials: function() {
         new URLPopover('http://www.anchormodeling.com/?page_id=186');
