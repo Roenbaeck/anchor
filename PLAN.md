@@ -501,8 +501,13 @@ tested.
 - **Found by the owner while testing, and done:** *Generate > SVG screenshot* ignored the theme (a picture without a background, so
   the names of the dark theme were white on nothing). It is removed; *File > Save SVG to local file...* now makes the same picture as
   the PNG (`Actions.modelSVG`: the whole model, the colours of the theme, a background), and the PNG is made of it. To do, noted by
-  the owner: the HTML documentation (*Generate > HTML documentation*) is poor: see the proposal that follows when it is agreed.
-- Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
+  the owner: the HTML documentation (*Generate > HTML documentation*) was poor (a table dump that ignored the descriptions, left
+  the ties as empty rows and had no nexuses), and is rebuilt for readers of the domain (`app/Documentation.js`): one self-contained
+  HTML file (style and picture inside) with the model's description, a picture of the model in the light colours, a contents line, and a
+  section for each anchor and nexus (description, attributes with values or knot, history, flags, what identifies it, what it takes
+  part in), tie (its roles with what they are, one or many, and descriptions) and knot (where it is used), all linked to each other. It
+  is shown in a dialog with *Open in a new tab*, *Download .html* and *Print*. The old `xml2documentation.xsl` and `documentation.css`
+  are gone.- Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
   panel then never updated; seen once in a test run).
 - **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the
   graph as a PNG (yes, if it can be done reliably), several named models kept in the browser (yes).

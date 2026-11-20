@@ -1295,3 +1295,16 @@ body.panel-wide { --panel-width: 560px; }
 #codePopover .codebar { position: absolute; top: 8px; right: 28px; z-index: 13; display: flex; gap: var(--space-2); }
 #codePopover .codebar button { font: 12px var(--font-ui); padding: 2px var(--space-3); border: 1px solid rgba(255,255,255,0.35); border-radius: var(--radius-s); background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; }
 #codePopover .codebar button:hover { background: rgba(255,255,255,0.25); }
+
+/* the documentation of the model, shown in a page of its own inside a dialog */
+#docView { padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-raised); color: var(--text); box-shadow: var(--shadow-m); width: min(1100px, calc(100vw - 32px)); height: calc(100vh - 48px); max-width: none; max-height: none; overflow: hidden; }
+#docView[open] { display: flex; flex-direction: column; }
+#docView::backdrop { background: var(--scrim); }
+#docView .head { flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); }
+#docView .head h2 { flex: 1 1 auto; margin: 0; font: 600 var(--text-l)/1.3 var(--font-ui); }
+#docView .head button:not(.close) { font: inherit; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); color: var(--text); cursor: pointer; }
+#docView .head button:not(.close):hover { background: var(--hover); }
+#docView .close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text); cursor: pointer; }
+#docView .close:hover { background: var(--hover); }
+#docView .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#docView iframe { flex: 1 1 auto; min-height: 0; border: 0; background: #fff; }

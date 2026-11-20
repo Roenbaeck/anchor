@@ -10,6 +10,7 @@ import { Outline } from './Outline.js';
 import { AgentHandoff } from './AgentHandoff.js';
 import { Placement } from './Placement.js';
 import { ModelStore } from './ModelStore.js';
+import { Documentation } from './Documentation.js';
 export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
@@ -68,6 +69,9 @@ export var Actions = {
     },
     closeModelStore: function() {
         ModelStore.close();
+    },
+    closeDocumentation: function() {
+        Documentation.close();
     },
     stopKeyboardEvents: function() {
         window.removeEventListener('keydown', EventHandler.keydown, false);
@@ -758,22 +762,9 @@ export var Actions = {
             new CodePopover(fragment, false, { file: Actions.modelFileName() + '.xml', type: 'application/xml' });
         });
     },
+    // the model as a document for those who know the business (see app/Documentation.js)
     generateHTML: function() {
-        var html = window.open('', '_newtab').document;
-        html.open();
-        html.write(
-            '<!DOCTYPE HTML>'+
-            '<html><head>'+
-            '  <title>Anchor Model</title>' +
-            '  <link rel="stylesheet" type="text/css" href="documentation.css">'+
-            '</head><body>'+
-            '</body></html>'
-        );
-        html.close();
-        this.transform(Model.toXML(false), 'xml2documentation.xsl', html)
-        .then(fragment => {
-            html.body.appendChild(fragment);
-        });
+        Documentation.show();
     },
     // The input of the Sisula templates for the selected target database and temporalization:
     // the model as the generators see it (Helpers.js and the naming conventions applied, plus

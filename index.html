@@ -320,6 +320,17 @@
             </div>
         </div>
     </dialog>
+    <!-- the documentation of the model, as a page to read, keep and print (see app/Documentation.js) -->
+    <dialog id="docView" aria-labelledby="docViewTitle">
+        <div class="head">
+            <h2 id="docViewTitle">Documentation</h2>
+            <button type="button" data-action="Documentation.openTab" title="Open the documentation in a tab of its own">Open in a new tab</button>
+            <button type="button" data-action="Documentation.download" title="Save the documentation as one HTML file, with everything in it">Download .html</button>
+            <button type="button" data-action="Documentation.print" title="Print the documentation, or save it as a PDF">Print</button>
+            <button type="button" class="close" data-action="Actions.closeDocumentation" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <iframe id="docFrame" title="The documentation of the model"></iframe>
+    </dialog>
     <!-- models kept in this browser, each under a name (see app/ModelStore.js) -->
     <dialog id="modelStore" aria-labelledby="modelStoreTitle">
         <div class="head">
