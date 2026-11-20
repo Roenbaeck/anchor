@@ -1,7 +1,10 @@
 // DrawingEngine: the animation loop that lays out and draws the model.
-"use strict";
-
-var DrawingEngine = {
+import { DEBUG, NAV, NAVLayer, SVG, SVGLayer, SVGNS } from './config.js';
+import { Model } from './Model.js';
+import { EventHandler } from './EventHandler.js';
+import { ControlButtons } from './ControlButtons.js';
+import { init } from './init.js';
+export var DrawingEngine = {
     // holds the "thread" id when the drawing engine is running
     drawId: null,
     initialized: false,

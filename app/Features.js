@@ -1,11 +1,11 @@
 // Features: what the target database and temporalization implement.
-"use strict";
-
+import { Model } from './Model.js';
+import { Actions } from './Actions.js';
 // What the templates of the selected database implement for the selected temporalization. The table is in
 // SQL/Helpers.js (FEATURES), which the generators read, and is read from there. A feature that is not implemented
 // is hidden, in the settings and in what can be edited, and ignored by the generated SQL; what a model says about
 // it stays in the model. Until the table has been read, and for a database that it does not list, nothing is hidden.
-var Features = {
+export var Features = {
     table: null,
     names: ["equivalence", "encryption"],
     load: async function() {

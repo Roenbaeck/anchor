@@ -1,7 +1,6 @@
 // Layer: the SVG layers of the graph and of the miniature.
-"use strict";
-
-function Layer(graph) {
+import { SVGNS } from './config.js';
+export function Layer(graph) {
     this.graph = graph;
     this.layers = [];
 }

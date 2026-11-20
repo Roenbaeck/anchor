@@ -1,7 +1,6 @@
 // Symbol: the SVG elements that draw a component.
-"use strict";
-
-function Symbol(component) {
+import { SVGNS, XLINKNS } from './config.js';
+export function Symbol(component) {
     this.component = component;
 }
 Symbol.prototype = {

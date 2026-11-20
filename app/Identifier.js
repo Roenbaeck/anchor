@@ -1,7 +1,14 @@
 // Identifier: the identifier of an anchor or a nexus (a key route).
-"use strict";
-
-function Identifier(x, y, entity, route) { // entity may be Anchor or Nexus
+import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables, createOption } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Component } from './Component.js';
+import { Role } from './Role.js';
+import { Settings } from './Settings.js';
+export function Identifier(x, y, entity, route) { // entity may be Anchor or Nexus
     if(!entity) {
         console.warn('[Identifier] Aborting creation: no entity supplied for route "' + route + '"');
         return; // abort
@@ -274,4 +281,4 @@ Identifier.prototype = {
 };
 
 // inheritance
-extend(Identifier, Component);
+Object.setPrototypeOf(Identifier.prototype, Component.prototype);

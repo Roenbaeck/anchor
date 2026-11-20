@@ -320,13 +320,23 @@ S = a day or two, M = about a week, L = several weeks.
   and all 17 targets give the same results. **The version is now in `app/config.js`**, not in `index.html`.
 - **Step 4, events: done.** `Model.on`, `off` and `emit` with `changed`, `history` and `replaced`. The model no longer calls the
   undo and redo buttons; they listen. A listener that throws does not stop the others.
-- **Step 2, ES modules: not done, and it cannot come next.** Measured on the 26 files: 134 file-to-file dependencies, and **21 of
-  the 26 files are in one cycle** (Model, Component, EventHandler, Actions, Settings, every kind of construct, and so on). Six
-  variables are assigned from other files (`SVG`, `SVGLayer`, `NAV`, `NAVLayer`, `ASKBEFOREUNLOAD`, `DEBUG`), which an import
-  cannot do. And `extend(Attribute, Component)` copies `Component.prototype` when the file runs: in a module cycle that can run
-  before `Component.prototype` is assigned, and the subclasses would silently lose their methods. Moving this to modules now
-  would mean either that, or one registry object that holds every singleton, which is a global namespace under another name.
-  It becomes possible after the cycle is broken, that is, after step 3.
+- **Step 2, ES modules: done.** `index.html` loads one module, `app/main.js`; the 26 files in `app/` are modules with explicit
+  `export` and `import` lines (the imports were computed from what each file really uses: 134 dependencies). **This corrects
+  what I wrote earlier, that the step had to wait for the model/view split.** The cycle (21 of the 26 files depend on each
+  other) is allowed in ES modules as long as no file uses an imported value while the files are loading, and only three
+  things did: (1) `extend(X, Component)` copied `Component.prototype` when each file ran; it is now a live prototype chain
+  (`Object.setPrototypeOf(X.prototype, Component.prototype)`, with `Component.prototype` filled in place), which gives the
+  same lookups because the only non-falsy member that Component defines, `incomplete`, is not redefined by any subclass;
+  (2) six variables are assigned from other files (`SVG`, `SVGLayer`, `NAV`, `NAVLayer`, `ASKBEFOREUNLOAD`, `DEBUG`): reads stay
+  as they were (an import is a live view), and the seven assignments go through setters in `app/config.js`; (3) an object in
+  `EventHandler` had `clickSelection: this.clickHighlight` at its top level, where `this` was `window` in a classic script, so
+  it was always `undefined` and nothing ever listened for a click on the selection mark; it threw in a module, and the dead
+  property and its two listener calls are removed (behaviour unchanged). What the markup, the tests and the tools reach by name
+  (`Model`, `Actions`, `Settings` and so on) is put on `window` by `main.js`. The cycle itself is still there; step 3 is what
+  removes it.
+  **A consequence for users:** a browser does not load modules from a page opened directly from a file, so double-clicking
+  `index.html` shows a notice ("put the folder on a web server") instead of the modeler; before, editing worked from a file
+  (only Generate did not). The tests run from a file because Edge is started with `--allow-file-access-from-files`.
 - **Step 3, model and view: not done.** The first slice is the one just taken (the model talks through events). The next is to
   take the drawing out of `Anchor`, `Knot`, `Attribute`, `Tie`, `Nexus`, `Role` and `Identifier` (2,000 lines that now hold data,
   SVG and editing rules together) into one presenter for each, so that the model has no import of `DrawingEngine`, `EventHandler`

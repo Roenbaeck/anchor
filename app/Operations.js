@@ -1,7 +1,6 @@
 // Operations: the operations that the context menu and the keyboard offer.
-"use strict";
-
-var Operations = {
+import { EventHandler } from './EventHandler.js';
+export var Operations = {
     // operations are defined as 'method', 'display name', 'description', 'optional rule'
     list: [
         // WIP: keys operations

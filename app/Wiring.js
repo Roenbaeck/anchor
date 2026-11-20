@@ -1,6 +1,7 @@
 // Wiring: what the controls in the markup do, said with data attributes instead of code in the markup.
-"use strict";
-
+import { Actions } from './Actions.js';
+import { Settings } from './Settings.js';
+import { init } from './init.js';
 //   data-action="Actions.newModel"         clicking the element (or pressing Enter or Space on it, if it can be reached with
 //                                          Tab) calls that function, with the object it belongs to as this
 //   data-args='["example.xml", true]'      the arguments, as JSON (for a setting they come after the value)
@@ -8,7 +9,7 @@
 //                                          a list or a check box is changed (a check box gives 'true' or 'false')
 //
 // The functions are looked up when they are called, so what is named here can be replaced afterwards, as the tests do.
-var Wiring = {
+export var Wiring = {
     // 'Actions.newModel' gives the function and the object that it is called on
     resolve: function(path) {
         var parts = path.split('.'), owner = window, i;

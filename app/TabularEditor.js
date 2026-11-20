@@ -1,7 +1,8 @@
 // TabularEditor: the table for editing many constructs at once.
-"use strict";
-
-function TabularEditor(filter) {
+import { Model } from './Model.js';
+import { ModalBackground } from './Popovers.js';
+import { Actions } from './Actions.js';
+export function TabularEditor(filter) {
     var self = this;
     Actions.stopKeyboardEvents();
     var i = 0, component;

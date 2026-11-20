@@ -1,7 +1,6 @@
 // Popovers: the modal background, the page popover and the code popover.
-"use strict";
-
-function ModalBackground(message) {
+import { DrawingEngine } from './DrawingEngine.js';
+export function ModalBackground(message) {
     var modalBackground = document.createElement('div');
     modalBackground.setAttribute("id", "modalBackground");
     modalBackground.style.width = window.innerWidth + 'px';
@@ -21,7 +20,7 @@ ModalBackground.prototype = {
     }
 };
 
-function URLPopover(url) {
+export function URLPopover(url) {
     DrawingEngine.stop();
     var self = this;
 
@@ -58,7 +57,7 @@ URLPopover.prototype = {
     }
 };
 
-function CodePopover(documentFragment, preformatted) {
+export function CodePopover(documentFragment, preformatted) {
     DrawingEngine.stop();
     var self = this;
 

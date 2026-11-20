@@ -1,7 +1,15 @@
 // Settings: the settings and defaults, and the fields that show them.
-"use strict";
-
-var Settings = {
+import { DEBUG, SVGLayer, VERSION, setDebug } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { Editables } from './Editables.js';
+import { Attribute } from './Attribute.js';
+import { Anchor } from './Anchor.js';
+import { Knot } from './Knot.js';
+import { Tie } from './Tie.js';
+import { Features } from './Features.js';
+import { init } from './init.js';
+export var Settings = {
     // default values for some 'global' settings
     calculations: 'simple',
     showMnemonics: false,
@@ -567,7 +575,7 @@ var Settings = {
         DrawingEngine.miniatureFramesBetweenRefresh = 1 * value;
     },
     toggleDebug: function () {
-        DEBUG = !DEBUG;
+        setDebug(!DEBUG);
         var component;
         var i = Model.components.length;
         if(DEBUG) {

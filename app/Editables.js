@@ -1,7 +1,7 @@
 // Editables: the fields that a construct can be edited with.
-"use strict";
-
-function createOption(value, text) {
+import { LOWER, UPPER } from './config.js';
+import { Role } from './Role.js';
+export function createOption(value, text) {
     var o = document.createElement('option');
     o.value = value;
     if(!text) text = value;
@@ -9,7 +9,7 @@ function createOption(value, text) {
     return o;
 };
 
-var Editables = {
+export var Editables = {
     setEditability: function(edit, isEditable) { edit.editable = isEditable; },
     descriptorEdit: {
         name: 'Descriptor',

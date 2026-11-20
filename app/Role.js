@@ -1,7 +1,10 @@
 // Role: a role: the edge between a tie or a nexus and what takes part in it.
-"use strict";
-
-function Role(component, otherComponent, identifier) {
+import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Component } from './Component.js';
+export function Role(component, otherComponent, identifier) {
     this.id = UniqueIdentity.nextId();
     var node = component.node;
     var otherNode = otherComponent.node;
@@ -202,4 +205,4 @@ Role.prototype = {
 };
 
 // inheritance
-extend(Role, Component);
+Object.setPrototypeOf(Role.prototype, Component.prototype);

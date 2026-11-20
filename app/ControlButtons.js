@@ -1,7 +1,9 @@
 // ControlButtons: the buttons for pause, zoom, undo and redo.
-"use strict";
-
-var ControlButtons = {
+import { SVG } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { init } from './init.js';
+export var ControlButtons = {
     playPauseButton: null,
     nudgeButton: null,
     undoButton: null,

@@ -804,3 +804,20 @@ legend {
 #controls div + div {
     margin-left:        -50px;
 }
+
+/* shown if the page was opened from a file, where a browser does not load the modules that the modeler is made of */
+#serverNotice {
+    position:           fixed;
+    z-index:            10000;
+    top:                20%;
+    left:               50%;
+    transform:          translateX(-50%);
+    max-width:          32em;
+    padding:            1em 1.5em;
+    border:             2px solid #b55;
+    border-radius:      6px;
+    background:         #fff;
+    color:              #000;
+    box-shadow:         0 10px 30px rgba(0, 0, 0, 0.3);
+}
+body.dark #serverNotice { background:#323338; color:#f2f2f3; }

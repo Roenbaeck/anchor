@@ -1,7 +1,14 @@
 // Tie: a tie.
-"use strict";
-
-function Tie(x, y, historized) {
+import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Component } from './Component.js';
+import { Role } from './Role.js';
+import { Settings } from './Settings.js';
+export function Tie(x, y, historized) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
     Component.call(this, new Node(this.id, x, y, NodeType.TIE));
@@ -425,4 +432,4 @@ Tie.prototype = {
 };
 
 // inheritance
-extend(Tie, Component);
+Object.setPrototypeOf(Tie.prototype, Component.prototype);

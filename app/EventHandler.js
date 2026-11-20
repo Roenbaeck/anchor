@@ -1,7 +1,11 @@
 // EventHandler: mouse and keyboard, selection and interaction state.
-"use strict";
-
-var EventHandler = {
+import { NAV, SVG } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { Operations } from './Operations.js';
+import { TabularEditor } from './TabularEditor.js';
+import { Actions } from './Actions.js';
+export var EventHandler = {
     selectedComponents: [], // may be larger than interacted with SHIFT clicks
     interactedComponents: [], // currently "touched" components
     interaction: null,
@@ -200,7 +204,8 @@ var EventHandler = {
     clickHighlight: function(event) {
         // nothing assigned to this action right now
     },
-    clickSelection: this.clickHighlight,
+    // (there was a clickSelection here that was never set: it was written as this.clickHighlight where this is not the object,
+    // so nothing ever listened for a click on the selection mark, and nothing does now)
     endInteraction: function(event) {
         if(event) event.preventDefault();
         var component = EventHandler.interactedComponents[EventHandler.interactedComponents.length - 1];

@@ -89,32 +89,7 @@
         // -->
     </script>
 
-    <script type="text/javascript" src="app/config.js"></script>
-    <script type="text/javascript" src="app/Model.js"></script>
-    <script type="text/javascript" src="app/DrawingEngine.js"></script>
-    <script type="text/javascript" src="app/UniqueIdentity.js"></script>
-    <script type="text/javascript" src="app/Editables.js"></script>
-    <script type="text/javascript" src="app/EventHandler.js"></script>
-    <script type="text/javascript" src="app/Symbol.js"></script>
-    <script type="text/javascript" src="app/Component.js"></script>
-    <script type="text/javascript" src="app/Attribute.js"></script>
-    <script type="text/javascript" src="app/Identifier.js"></script>
-    <script type="text/javascript" src="app/Anchor.js"></script>
-    <script type="text/javascript" src="app/Knot.js"></script>
-    <script type="text/javascript" src="app/Tie.js"></script>
-    <script type="text/javascript" src="app/Nexus.js"></script>
-    <script type="text/javascript" src="app/Role.js"></script>
-    <script type="text/javascript" src="app/Popovers.js"></script>
-    <script type="text/javascript" src="app/Operations.js"></script>
-    <script type="text/javascript" src="app/TabularEditor.js"></script>
-    <script type="text/javascript" src="app/ContextMenu.js"></script>
-    <script type="text/javascript" src="app/Actions.js"></script>
-    <script type="text/javascript" src="app/Features.js"></script>
-    <script type="text/javascript" src="app/Settings.js"></script>
-    <script type="text/javascript" src="app/ControlButtons.js"></script>
-    <script type="text/javascript" src="app/Layer.js"></script>
-    <script type="text/javascript" src="app/Wiring.js"></script>
-    <script type="text/javascript" src="app/init.js"></script>
+    <script type="module" src="app/main.js"></script>
 </head>
 <body data-server-no-reload>
     <svg id="graph"
@@ -390,6 +365,15 @@
     <input id="modelFileInput" type="file" accept=".xml,text/xml,application/xml" style="display:none" aria-hidden="true" />
     <!-- Live region for announcing loaded filename (improves accessibility) -->
     <div id="fileLoadStatus" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" aria-live="polite" aria-atomic="true"></div>
-    <script type="text/javascript" src="app/files.js"></script>
+    <div id="serverNotice" style="display:none">
+        <strong>The Anchor Modeler cannot start.</strong> It is made of several files, which a browser does not load when the page is
+        opened directly from a file. Put the folder on a web server (any will do, for example the one in your editor, or
+        <code>python -m http.server</code> run in the folder) and open the page from there.
+    </div>
+    <script>
+        window.addEventListener('load', function () {
+            if (!window.AnchorStarted) document.getElementById('serverNotice').style.display = 'block';
+        });
+    </script>
 </body>
 </html>

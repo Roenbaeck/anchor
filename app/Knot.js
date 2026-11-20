@@ -1,7 +1,12 @@
 // Knot: a knot.
-"use strict";
-
-function Knot(x, y) {
+import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
+import { Model } from './Model.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Component } from './Component.js';
+import { Settings } from './Settings.js';
+export function Knot(x, y) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
     Component.call(this, new Node(this.id, x, y, NodeType.KNOT));
@@ -208,4 +213,4 @@ Knot.prototype = {
 };
 
 // inheritance
-extend(Knot, Component);
+Object.setPrototypeOf(Knot.prototype, Component.prototype);

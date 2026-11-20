@@ -1,7 +1,13 @@
 // Actions: what the menus do: files, layout, generation, sharing, theme.
-"use strict";
-
-var Actions = {
+import { DEBUG, NAVLayer, SVG, SVGLayer, THEME, XLINKNS, setAskBeforeUnload } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { EventHandler } from './EventHandler.js';
+import { Anchor } from './Anchor.js';
+import { CodePopover, URLPopover } from './Popovers.js';
+import { Settings } from './Settings.js';
+import { save } from './init.js';
+export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
     },
@@ -210,7 +216,7 @@ var Actions = {
         return result;
     },
     createEmail: function(str) {
-        ASKBEFOREUNLOAD = false; // prevent onbeforeunload behavior
+        setAskBeforeUnload(false); // prevent onbeforeunload behavior
         var save = document.createElement('a');
         var modelName = Model.name || 'Model';
         save.href = "mailto:?subject=" + modelName + "&body=" + str;

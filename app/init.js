@@ -1,13 +1,21 @@
 // init: starting the page, and keeping the model when it is left.
-"use strict";
-
+import { ASKBEFOREUNLOAD, NAV, NAVLayer, PARAMETERS, RELEASE, SVG, SVGLayer, VERSION, setAskBeforeUnload, setNAV, setNAVLayer, setSVG, setSVGLayer } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { EventHandler } from './EventHandler.js';
+import { Actions } from './Actions.js';
+import { Features } from './Features.js';
+import { Settings } from './Settings.js';
+import { ControlButtons } from './ControlButtons.js';
+import { Layer } from './Layer.js';
+import { Wiring } from './Wiring.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
 };
 
 // implementation of our init function
-function init(window) {
+export function init(window) {
     // a test version says so in a small badge in the corner (the Help/About page links to the issue tracker)
     if(!RELEASE) {
         document.getElementById("disclaimerVersion").textContent = VERSION;
@@ -42,14 +50,14 @@ function init(window) {
     LayoutEngine.init();
 
     // set the global svg and graph variable
-    SVG = document.getElementById("graph");
+    setSVG(document.getElementById("graph"));
     SVG.viewBox.baseVal.x = 0;
     SVG.viewBox.baseVal.y = 0;
     SVG.viewBox.baseVal.width = window.innerWidth;
     SVG.viewBox.baseVal.height = window.innerHeight;
 
     // add layers to the SVG
-    SVGLayer = new Layer(SVG);
+    setSVGLayer(new Layer(SVG));
     SVGLayer.addLayer('debugPartitions');
     SVGLayer.addLayer('debug');
     SVGLayer.addLayer('keys');
@@ -65,11 +73,11 @@ function init(window) {
     SVG.addEventListener('mousedown', EventHandler.preparePanning, false);
 
     // set up the miniature navigation
-    NAV = document.getElementById("minigraph");
+    setNAV(document.getElementById("minigraph"));
     NAV.addEventListener('mousedown', EventHandler.prepareNavigation, false);
 
     // add layers to the NAV
-    NAVLayer = new Layer(NAV);
+    setNAVLayer(new Layer(NAV));
     NAVLayer.addLayer('edges');
     NAVLayer.edges.setAttributeNS(null, 'class', 'edges');
     NAVLayer.addLayer('nodes');
@@ -124,10 +132,10 @@ window.onbeforeunload = function() {
     if(ASKBEFOREUNLOAD)
         return "Are you absolutely sure you want to leave?\nAny unsaved changes will be lost!";
     else
-        ASKBEFOREUNLOAD = true;
+        setAskBeforeUnload(true);
 };
 // Use pagehide (fires for bfcache) instead of deprecated unload; also visibilitychange fallback
-function persistOnPageHide(evt) {
+export function persistOnPageHide(evt) {
     try { save(window, false); } catch(e) { /* swallow to not block navigation */ }
 }
 window.addEventListener('pagehide', persistOnPageHide, {capture:false});
@@ -135,7 +143,7 @@ document.addEventListener('visibilitychange', function(){
     if(document.visibilityState === 'hidden') persistOnPageHide();
 });
 
-function save(window, popup) {
+export function save(window, popup) {
     window.localStorage.clear();
     var xml = new XMLSerializer().serializeToString(Model.toXML(false));
     if(xml)

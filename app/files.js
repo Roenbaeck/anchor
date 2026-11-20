@@ -1,6 +1,5 @@
 // files: opening a model from a file, also dropped on the page.
-"use strict";
-
+import { Actions } from './Actions.js';
 (function(){
     const input = document.getElementById('modelFileInput');
     const statusRegion = document.getElementById('fileLoadStatus');

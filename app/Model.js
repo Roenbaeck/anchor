@@ -1,7 +1,19 @@
 // Model: the model: its constructs, the XML in and out, the history for undo and redo.
-"use strict";
-
-var Model = {
+import { DEBUG, NAVLayer, SVGLayer, VERSION } from './config.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { EventHandler } from './EventHandler.js';
+import { Attribute } from './Attribute.js';
+import { Identifier } from './Identifier.js';
+import { Anchor } from './Anchor.js';
+import { Knot } from './Knot.js';
+import { Tie } from './Tie.js';
+import { Nexus } from './Nexus.js';
+import { Role } from './Role.js';
+import { Actions } from './Actions.js';
+import { Features } from './Features.js';
+import { Settings } from './Settings.js';
+export var Model = {
     // where the model came from (a gist, for example): shown in the status line and used as the file name
     name: null,
     id: null,

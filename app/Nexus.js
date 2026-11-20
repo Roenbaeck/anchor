@@ -1,7 +1,14 @@
 // Nexus: a nexus.
-"use strict";
-
-function Nexus(x, y) {
+import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
+import { Model } from './Model.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Component } from './Component.js';
+import { Attribute } from './Attribute.js';
+import { Role } from './Role.js';
+import { Settings } from './Settings.js';
+export function Nexus(x, y) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
     Component.call(this, new Node(this.id, x, y, NodeType.NEXUS));
@@ -307,4 +314,4 @@ Nexus.prototype = {
 };
 
 // inheritance
-extend(Nexus, Component);
+Object.setPrototypeOf(Nexus.prototype, Component.prototype);

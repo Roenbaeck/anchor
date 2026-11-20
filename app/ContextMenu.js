@@ -1,7 +1,11 @@
 // ContextMenu: the context menu of a construct: its fields and operations.
-"use strict";
-
-function ContextMenu(hoveredComponent, selectedComponents, selectedRoute) {
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { EventHandler } from './EventHandler.js';
+import { ModalBackground } from './Popovers.js';
+import { Operations } from './Operations.js';
+import { Features } from './Features.js';
+export function ContextMenu(hoveredComponent, selectedComponents, selectedRoute) {
     var self = this;
 
     this.hoveredComponent = hoveredComponent;

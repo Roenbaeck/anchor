@@ -1,8 +1,13 @@
 // Component: what every construct on the canvas has in common.
-"use strict";
-
+import { DEBUG, NAVLayer, SVGLayer, SVGNS } from './config.js';
+import { UniqueIdentity } from './UniqueIdentity.js';
+import { Editables } from './Editables.js';
+import { EventHandler } from './EventHandler.js';
+import { Symbol } from './Symbol.js';
+import { ContextMenu } from './ContextMenu.js';
+import { Features } from './Features.js';
 // "Abstract" type that other components subclass
-function Component(node) {
+export function Component(node) {
     this.node = node;
     this.editables = [];
     this.operations = ['erase', 'connect'];
@@ -11,7 +16,7 @@ function Component(node) {
     this.nav = new Symbol(this);
     this.postfixes = [];
 }
-Component.prototype = {
+Object.assign(Component.prototype, {
     node: null,
     description: '',
     editables: null,
@@ -292,7 +297,6 @@ Component.prototype = {
     setSelection: function(select) {
         this.selected = select;
         if(select && this.visible && !this.svg.graphicsElement.contains(this.svg.selectionElement)) {
-            this.svg.selectionElement.addEventListener('click', EventHandler.clickSelection, false);
             this.svg.graphicsElement.insertBefore(
                     this.svg.selectionElement,
                     this.svg.graphicsElement.firstChild
@@ -300,7 +304,6 @@ Component.prototype = {
         }
         else if (!select && this.visible && this.svg.graphicsElement.contains(this.svg.selectionElement)) {
             this.svg.graphicsElement.removeChild(this.svg.selectionElement);
-            this.svg.selectionElement.removeEventListener('click', EventHandler.clickSelection, false);
         }
     },
     setHighlight: function(highlight) {
@@ -336,4 +339,4 @@ Component.prototype = {
             this.contextMenu = null;
         }
     }
-};
+});

@@ -1,7 +1,5 @@
 // UniqueIdentity: identities for the constructs of a model.
-"use strict";
-
-var UniqueIdentity = {
+export var UniqueIdentity = {
     lastId: 0,
     usedIds: [],
     nextId: function() {
