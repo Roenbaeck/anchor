@@ -334,7 +334,6 @@ S = a day or two, M = about a week, L = several weeks.
   it was always `undefined` and nothing ever listened for a click on the selection mark; it threw in a module, and the dead
   property and its two listener calls are removed (behaviour unchanged). What the markup, the tests and the tools reach by name
   (`Model`, `Actions`, `Settings` and so on) is put on `window` by `main.js`. The cycle itself was still there after this step; step 3 below reduced it from 22 files to 11.
-  
   **A consequence for users:** a browser does not load modules from a page opened directly from a file, so double-clicking
   `index.html` shows a notice ("put the folder on a web server") instead of the modeler; before, editing worked from a file
   (only Generate did not). The tests run from a file because Edge is started with `--allow-file-access-from-files`.
