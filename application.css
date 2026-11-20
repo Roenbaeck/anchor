@@ -271,7 +271,6 @@ text.routeText > textPath { dominant-baseline: middle; }
     bottom:             6px;
     width:              142px;
 }
-body.dark #logotype { filter: invert(1) hue-rotate(180deg) brightness(1.15); }
 
 /* shows model name or local editing status, under the miniature */
 #model {
