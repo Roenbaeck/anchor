@@ -6,6 +6,9 @@ import { Model } from './Model.js';
 import { EventHandler } from './EventHandler.js';
 import { DrawingEngine } from './DrawingEngine.js';
 import { XmlText } from './XmlText.js';
+import { Placement } from './Placement.js';
+import { Actions } from './Actions.js';
+import { SVG } from './config.js';
 export var XmlView = {
     isShown: false,
     dirty: false,       // the text has been typed in since it was made from the model
@@ -69,9 +72,20 @@ export var XmlView = {
         }
         return XmlView.apply(checked.doc);
     },
-    // Replaces the model with the document, as a step in its history. If that fails the model is put back as it was.
-    apply: function(doc) {
+    lastError: '',
+    // Replaces the model with the document, as a step in its history. What the model had before keeps its place and what is new is
+    // put by what it is tied to (Placement). If that fails the model is put back as it was. With centre, the view is moved to the
+    // model (for a model that is a different one).
+    apply: function(doc, options) {
+        // the model as it is must be in the history for undo to bring it back (it is not while the layout of a model that was
+        // just loaded or changed has not yet come to rest)
+        if(Model.version < 0 || DrawingEngine.newState) {
+            Model.recordState();
+            DrawingEngine.newState = false;
+        }
         var before = Model.toXML(false), confirmed = window.confirm;
+        var box = SVG.viewBox.baseVal;
+        Placement.seed(doc, Placement.positions(before), { x: box.x + box.width / 2, y: box.y + box.height / 2 });
         XmlView.applying = true;
         // the text may change the settings of the model, which the person has just done on purpose
         window.confirm = function() { return true; };
@@ -79,13 +93,15 @@ export var XmlView = {
             EventHandler.clearSelection();
             Model.fromXML(doc);
             Model.recordState();
+            if(options && options.centre) { Actions.resetZoom(); Actions.fitModel(); }
             DrawingEngine.start(true);
             XmlView.dirty = false;
             XmlView.say('Applied to the model.', []);
             return true;
         } catch(e) {
             try { Model.fromXML(before); DrawingEngine.start(false); } catch(again) { }
-            XmlView.say('The model could not be built from the text, and has not been changed.', [String(e && e.message || e)]);
+            XmlView.lastError = String(e && e.message || e);
+            XmlView.say('The model could not be built from the text, and has not been changed.', [XmlView.lastError]);
             return false;
         } finally {
             window.confirm = confirmed;
@@ -95,16 +111,10 @@ export var XmlView = {
     // the text is put on the clipboard; if the browser will not let a page write to it, the text is selected for Ctrl+C
     copy: function() {
         var text = XmlView.text();
-        var done = function() { XmlView.say('Copied.', []); };
-        var selected = function() {
+        Actions.copyText(text.value).then(function(copied) {
+            if(copied) { XmlView.say('Copied.', []); return; }
             text.select();
-            var copied = false;
-            try { copied = document.execCommand('copy'); } catch(e) { }
-            XmlView.say(copied ? 'Copied.' : 'The browser would not copy. The text is selected: press Ctrl+C.', []);
-        };
-        if(navigator.clipboard && navigator.clipboard.writeText)
-            navigator.clipboard.writeText(text.value).then(done, selected);
-        else
-            selected();
+            XmlView.say('The browser would not copy. The text is selected: press Ctrl+C.', []);
+        });
     }
 };

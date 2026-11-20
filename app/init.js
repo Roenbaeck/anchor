@@ -12,6 +12,7 @@ import { Wiring } from './Wiring.js';
 import { Menus } from './Menus.js';
 import { Outline } from './Outline.js';
 import { Problems } from './Problems.js';
+import { AgentHandoff } from './AgentHandoff.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
@@ -55,6 +56,7 @@ export function init(window) {
     Menus.init();
     Outline.init();
     Problems.init();
+    AgentHandoff.init();
     LayoutEngine.init();
 
     // set the global svg and graph variable

@@ -7,6 +7,8 @@ import { EventHandler } from './EventHandler.js';
 import { CodePopover, URLPopover } from './Popovers.js';
 import { save } from './init.js';
 import { Outline } from './Outline.js';
+import { AgentHandoff } from './AgentHandoff.js';
+import { Placement } from './Placement.js';
 export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
@@ -18,6 +20,46 @@ export var Actions = {
         if(!region) return;
         region.textContent = '';
         setTimeout(function() { region.textContent = text; }, 50);
+    },
+    // Puts text on the clipboard: true if it got there. The browser's clipboard is tried first; where a page may not use it, a
+    // field is made, selected and copied from, as it was done before there was a clipboard to ask.
+    copyText: function(text) {
+        var fallback = function() {
+            var field = document.createElement('textarea');
+            field.value = text;
+            field.setAttribute('readonly', '');
+            field.style.cssText = 'position:fixed;left:-9999px;top:0';
+            document.body.appendChild(field);
+            field.select();
+            var copied = false;
+            try { copied = document.execCommand('copy'); } catch(e) { }
+            document.body.removeChild(field);
+            return copied;
+        };
+        if(navigator.clipboard && navigator.clipboard.writeText)
+            return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return fallback(); });
+        return Promise.resolve(fallback());
+    },
+    // a short message that goes away by itself, and is read out
+    notify: function(text) {
+        var toast = document.getElementById('toast');
+        if(!toast) return;
+        toast.textContent = text;
+        toast.classList.add('show');
+        clearTimeout(Actions.toastTimer);
+        Actions.toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 4500);
+        Actions.announce(text);
+    },
+    toastTimer: null,
+    // the model, for an agent that is asked to change it, and what the agent gives back
+    copyForAgent: function() {
+        AgentHandoff.copy();
+    },
+    openAgentPaste: function() {
+        AgentHandoff.open();
+    },
+    closeAgentPaste: function() {
+        AgentHandoff.close();
     },
     stopKeyboardEvents: function() {
         window.removeEventListener('keydown', EventHandler.keydown, false);
@@ -349,12 +391,16 @@ export var Actions = {
         // forget where the previous model came from, so that its name does not linger
         Model.forgetOrigin();
         Model.clearStates();
+        // a model without places (one that was written by hand or by an agent) is placed by what is tied to what, not at random
+        var placed = Placement.seed(xml, {}, { x: window.innerWidth / 2, y: window.innerHeight / 2 });
         Model.fromXML(xml);
         Actions.setModelStatus();
         Actions.resetZoom();
-        Actions.centerModel();
+        if(placed > 0) Actions.fitModel(); // placed by Placement, which can make it larger than the window
+        else Actions.centerModel();
         DrawingEngine.taint();
-        DrawingEngine.start(layout);
+        // what was placed (not by the modeler) is polished by the layout
+        DrawingEngine.start(layout || placed > 0);
         this.hideLoading();
     },
     loadFromURL: function (url, layout) {
@@ -459,6 +505,13 @@ export var Actions = {
         var xCenter = boundingBox.x + boundingBox.width/2;
         var yCenter = boundingBox.y + boundingBox.height/2;
         this.centerModelAt(xCenter, yCenter);
+    },
+    // the view is made as large as it has to be for all of the model to be in it (never smaller than the window), and centred on it
+    fitModel: function() {
+        var box = SVGLayer.nodes.getBBox(), scale = Math.max(1, box.width * 1.15 / window.innerWidth, box.height * 1.15 / window.innerHeight);
+        SVG.viewBox.baseVal.width = window.innerWidth * scale;
+        SVG.viewBox.baseVal.height = window.innerHeight * scale;
+        this.centerModelAt(box.x + box.width / 2, box.y + box.height / 2);
     },
     centerModelOn: function(node) {
         this.centerModelAt(node.xPosition, node.yPosition);

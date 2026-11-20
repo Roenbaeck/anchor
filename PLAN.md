@@ -479,6 +479,18 @@ tested.
   at once; a problem with the settings of the model opens the settings dialog. Tests: none on a model that the modeler writes,
   a duplicate mnemonic is found, counted, selected and gone when put right, a hint does not count, a missing setting opens the
   settings.
+- **Item 4, done: the agent hand-off** (`app/AgentHandoff.js`, `app/Placement.js`). *File > Copy model for an agent* puts on the
+  clipboard what an agent needs: what the XML is, a pointer to the anchor-modeling skill, what has to stay right (unique mnemonics,
+  dataRange xor knotRange, a tie with two anchors or nexuses), a line for what is wanted, and the model without its positions.
+  *File > Paste model from an agent...* opens a dialog: paste what the agent gave (the XML, with or without words around it, in a
+  code block or not), it is checked as the XML view checks text, and when it is right *Replace the model* does it, as a step that
+  can be undone. A short message (a toast, also read out) says what was done. `Placement` is the first placement that item 5 asks
+  for, done inside the force layout: what was in the model keeps its place (found by what it is, with its fixation), a new anchor
+  or nexus is put beside what it is tied to, or, for a model with no places at all, on a circle in the order of the connections;
+  a new tie between its anchors, attributes on a ring around their anchor, a knot beside what uses it; the layout then polishes it.
+  It is used when a model is loaded that has no `<layout>`, when text in the XML view adds things, and for the paste; a loaded
+  model that was placed is made to fit the window (*fitModel*) and the layout is run. Positions are no longer random for the
+  example and for models written by hand or by an agent.
 - Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
   panel then never updated; seen once in a test run).
 - **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the

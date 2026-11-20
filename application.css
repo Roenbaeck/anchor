@@ -1202,3 +1202,74 @@ body.panel-wide { --panel-width: 560px; }
 #problemList li.hint button.problem { color: var(--text-muted); }
 #problemList button.problem:hover:not(:disabled) { background: var(--hover); }
 #problemList button.problem:disabled { cursor: default; }
+
+/* the dialog where a model that an agent gave is pasted */
+#agentPaste {
+    padding:            0;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    background:         var(--surface-raised);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
+    width:              min(760px, calc(100vw - 32px));
+    height:             min(560px, calc(100vh - 48px));
+    max-width:          none;
+    max-height:         none;
+    overflow:           hidden;
+}
+#agentPaste[open] { display: flex; flex-direction: column; }
+#agentPaste::backdrop { background: var(--scrim); }
+#agentPaste .head { flex: none; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+#agentPaste .head h2 { flex: 1 1 auto; margin: 0; font: 600 var(--text-l)/1.3 var(--font-ui); }
+#agentPaste .close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text); cursor: pointer; }
+#agentPaste .close:hover { background: var(--hover); }
+#agentPaste .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#agentPaste .body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+#agentPaste .body p { margin: 0; }
+#agentPaste textarea {
+    flex:               1 1 auto;
+    min-height:         0;
+    resize:             none;
+    font:               12px/1.5 var(--font-mono);
+    white-space:        pre;
+    tab-size:           2;
+}
+#agentPaste #agentStatus { color: var(--text-muted); }
+#agentPaste.bad #agentStatus { color: var(--accent); font-weight: 600; }
+#agentPaste #agentProblems { flex: none; max-height: 110px; overflow: auto; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-s); }
+#agentPaste #agentProblems:empty { display: none; }
+#agentPaste #agentProblems li { padding: 3px var(--space-3); background: var(--invalid); border-bottom: 1px solid var(--border); font-size: var(--text-s); }
+#agentPaste .foot { flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); }
+#agentPaste .foot .spacer { flex: 1 1 auto; }
+#agentPaste .foot button {
+    font:               inherit;
+    padding:            var(--space-1) var(--space-3);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#agentPaste .foot button:hover:not(:disabled) { background: var(--hover); }
+#agentPaste .foot button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+#agentPaste .foot button.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
+#agentPaste .foot button:disabled { opacity: 0.45; cursor: default; }
+
+/* a short message at the bottom that goes away by itself */
+#toast {
+    position:           fixed;
+    left:               50%;
+    bottom:             24px;
+    transform:          translate(-50%, 16px);
+    max-width:          min(520px, calc(100vw - 32px));
+    padding:            var(--space-2) var(--space-4);
+    border-radius:      var(--radius);
+    background:         var(--text);
+    color:              var(--bg);
+    box-shadow:         var(--shadow-m);
+    opacity:            0;
+    pointer-events:     none;
+    transition:         opacity .2s ease, transform .2s ease;
+    z-index:            20;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }

@@ -143,6 +143,8 @@
                 <li role="menuitem" tabindex="-1" title="Save model Scalable Vector Graphics file to disk." data-action="Actions.saveSVGToDisk">Save SVG to local file...</li>
                 <li role="menuitem" tabindex="-1" title="Sends an email with the XML description of the model to a specified recipient." data-action="Actions.mailModel">Send model by email...</li>
                 <li role="menuitem" tabindex="-1" title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." data-action="Actions.shareModel">Share model link...</li>
+                <li role="menuitem" tabindex="-1" title="Copies the model, with what an AI assistant needs to know to change it, so that you can paste it into a conversation and say what you want changed." data-action="Actions.copyForAgent">Copy model for an agent</li>
+                <li role="menuitem" tabindex="-1" title="Takes the model that an AI assistant gave back (with or without the words around it), checks it, and replaces the model with it. Undo brings the old one back." data-action="Actions.openAgentPaste">Paste model from an agent...</li>
                 <li role="menuitem" tabindex="-1" title="Loads an example model based on a business managing actors that perform programs on different stages." data-action="Actions.loadFromURL" data-args='["example.xml", true]'>Load example model</li>
             </ul>
         </div>
@@ -317,6 +319,27 @@
             </div>
         </div>
     </dialog>
+    <!-- the model that an agent gave back is pasted here (see app/AgentHandoff.js) -->
+    <dialog id="agentPaste" aria-labelledby="agentPasteTitle">
+        <div class="head">
+            <h2 id="agentPasteTitle">Paste a model from an agent</h2>
+            <button type="button" class="close" data-action="Actions.closeAgentPaste" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="body">
+            <p>Paste what the agent gave you: the XML of the whole model, with or without text around it. It replaces the model that is here, and Undo brings that one back.</p>
+            <textarea id="agentText" spellcheck="false" autocomplete="off" aria-label="The model that the agent gave"></textarea>
+            <p id="agentStatus" role="status" aria-live="polite"></p>
+            <ul id="agentProblems" aria-label="Problems with the text"></ul>
+        </div>
+        <div class="foot">
+            <button type="button" data-action="AgentHandoff.readClipboard">Paste from the clipboard</button>
+            <span class="spacer"></span>
+            <button type="button" data-action="Actions.closeAgentPaste">Cancel</button>
+            <button type="button" id="agentReplace" class="primary" data-action="AgentHandoff.replace" disabled>Replace the model</button>
+        </div>
+    </dialog>
+
+    <div id="toast" role="status" aria-live="off"></div>
     <!-- the outline of the model, and the properties of what is selected (see app/Outline.js) -->
     <aside id="panel" aria-label="Outline, XML and problems" hidden>
         <div class="panelhead">
