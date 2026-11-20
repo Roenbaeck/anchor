@@ -552,7 +552,7 @@ tested.
   the view there and follows. A touch on the graph closes an open menu. The graph has `touch-action: none`; the shapes have a
   larger invisible circle to hit (24 px) on a finger only. The context menu stays inside the window, and a touch beside it closes
   it (also a click, for a mouse). Tests send Pointer Events of the type touch, and show that a mouse is not taken for a finger.
-- **Decided earlier, so as built:** phones view and rename (the panel's fields), tablets light editing (the panel's operations,
+- **The mass editor is gone** (the owner noticed that About still listed it: Shift+E, a table of all anchors, knots and attributes whose name\n  matched the hovered one, reached by that key only). The outline panel (one construct, with a filter) and the XML view (everything,\n  as text) do what it did. Removed: `TabularEditor.js`, the key, `Component.tabular`, the styles, the About row and the tests.\n- **Decided earlier, so as built:** phones view and rename (the panel's fields), tablets light editing (the panel's operations,
   drag, hold to select several).
 - **Not done, on purpose:** the old mouse code is not rewritten onto Pointer Events. A mouse and a finger are two paths, because the
   hover and key way of working has no counterpart on a finger, and a rewrite would risk what was tested.

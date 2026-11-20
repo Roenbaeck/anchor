@@ -3,7 +3,6 @@ import { NAV, SVG } from './config.js';
 import { Model } from './Model.js';
 import { DrawingEngine } from './DrawingEngine.js';
 import { Operations } from './Operations.js';
-import { TabularEditor } from './TabularEditor.js';
 import { Actions } from './Actions.js';
 export var EventHandler = {
     selectedComponents: [], // may be larger than interacted with SHIFT clicks
@@ -84,8 +83,8 @@ export var EventHandler = {
     },
     escape: function (event) {
         if (event.key === 'Escape') {
-            // an open dialog (the SQL, a page, the mass editor) is closed first, as its close button does
-            var close = document.querySelector('#codePopover .closebutton, #urlPopover .closebutton, #tabularEditor .closebutton');
+            // an open dialog (the SQL, a page) is closed first, as its close button does
+            var close = document.querySelector('#codePopover .closebutton, #urlPopover .closebutton');
             if(close) {
                 close.click();
                 return;
@@ -443,9 +442,6 @@ export var EventHandler = {
             case "e":
                 component.showContextMenu(component, allComponents, selectedRoute);
                 component.contextMenu.toggle();
-                break;
-            case "E":
-                new TabularEditor(component.descriptor);
                 break;
             case "a":
                 if(Operations.isSupported("addAttribute", allComponents))
