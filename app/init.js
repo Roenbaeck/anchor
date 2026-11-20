@@ -28,7 +28,9 @@ export function init(window) {
     // initialize theme (light/dark)
     if(window.Actions && typeof Actions.initTheme === 'function') {
         var storedTheme = window.localStorage.getItem("theme");
-        Actions.initTheme(storedTheme ? storedTheme : 'light');
+        // what the viewer chose, or else what the system prefers
+        var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        Actions.initTheme(storedTheme ? storedTheme : (systemDark ? 'dark' : 'light'));
     }
     // Show initial status explicitly (before any model load) so user sees "Local editing mode"
     if(window.Actions && typeof Actions.setModelStatus === 'function') {

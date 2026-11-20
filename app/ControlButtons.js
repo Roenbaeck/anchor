@@ -19,6 +19,9 @@ export var ControlButtons = {
         this.zoomOutButton = document.getElementById('zoomout');
         this.undoButton.setAttribute('title', 'Undo the last change. The last ' + Model.maxUndoLevels + ' changes are kept.');
         this.redoButton.setAttribute('title', 'Redo the change that was undone.');
+        this.zoomInButton.setAttribute('title', 'Zoom in');
+        this.zoomOutButton.setAttribute('title', 'Zoom out');
+        this.setPauseState();
         // the model says how many changes can be undone and redone; it does not call the buttons
         Model.on('history', function(history) {
             ControlButtons.setUndoLevels(history.undo);
@@ -53,16 +56,13 @@ export var ControlButtons = {
         }
     },
     setUndoLevels: function(numberOfLevels) {
-        var undos = '';
-        if(numberOfLevels)
-            undos = ' (' + numberOfLevels + ')';
-        this.undoButton.firstChild.nodeValue = 'Undo' + undos;
+        // the badge on the button says how many; it is not there when there are none
+        this.undoButton.querySelector('.count').textContent = numberOfLevels || '';
+        this.undoButton.disabled = !numberOfLevels;
     },
     setRedoLevels: function(numberOfLevels) {
-        var redos = '';
-        if(numberOfLevels)
-            redos = ' (' + numberOfLevels + ')';
-        this.redoButton.firstChild.nodeValue = 'Redo' + redos;
+        this.redoButton.querySelector('.count').textContent = numberOfLevels || '';
+        this.redoButton.disabled = !numberOfLevels;
     },
     undo: function() {
         Model.undoState();
@@ -73,11 +73,15 @@ export var ControlButtons = {
         DrawingEngine.start(false);
     },
     setPlayState: function() {
-        this.playPauseButton.firstChild.nodeValue = 'Play';
+        // paused: the button offers to run the layout again
+        this.playPauseButton.setAttribute('title', 'Run the layout');
+        this.playPauseButton.setAttribute('aria-label', 'Run the layout');
         this.playPauseButton.className = 'pausing';
     },
     setPauseState: function() {
-        this.playPauseButton.firstChild.nodeValue = 'Pause';
+        // running: the button offers to pause it
+        this.playPauseButton.setAttribute('title', 'Pause the layout');
+        this.playPauseButton.setAttribute('aria-label', 'Pause the layout');
         this.playPauseButton.className = 'playing';
     },
     invalidateLayout: function () {

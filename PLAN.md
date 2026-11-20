@@ -400,6 +400,22 @@ the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flag
 
 ### 4.3 Phase 2: look and feel (M)
 
+**Status of Phase 2** (in steps, each tested and pushed on `modernize`):
+
+- **Step 1, done: tokens, neutral bar, icon controls.** `application.css` and `svg.css` are rewritten on tokens (colour, type
+  scale, space, radius, shadow) that the light and the dark theme give values; the 150 lines of dark-theme overrides and the
+  `!important`s in `svg.css` are gone, there is one rule for each thing. The bar is neutral with a hairline, the brand red is the
+  accent only (focus ring, the layout button while it runs, the badge with the number of undo steps, the model's anchors keep
+  the red of the notation). The controls are real `<button>`s with an inline SVG icon, a name for a screen reader and a tooltip;
+  undo and redo are off when there is nothing to undo or redo and show a count badge; redo now comes after undo. Search sits in
+  the bar, Help is at the right end, menus at the right end open to the left. The first theme is what the system prefers
+  (`prefers-color-scheme`) unless the viewer has chosen. Panels and the loading overlay use the tokens; the logotype is inverted
+  in the dark theme. Tests: every token has a value in both themes, the bar changes with the theme and is not filled with the
+  accent, the controls are buttons with names and icons.
+- **Next:** step 2 the *Model settings* dialog (the generation options out of *Generate*, the 30 defaults and the physics tuning
+  into one searchable, grouped dialog with a sentence of help for each); step 3 readable graph (hit areas, halos); step 4 the
+  menubar for the keyboard (`role`, arrow keys) and the focus order into the graph.
+
 - **Design tokens as CSS custom properties** (colour, spacing, radius, type scale), light and dark, following
   `prefers-color-scheme` with a manual override. Keep the brand red as the accent only, not as the toolbar fill.
 - **Toolbar** with real icons (inline SVG, no icon font), grouped: File, Edit (undo/redo), View (zoom, fit, theme),

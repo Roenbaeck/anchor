@@ -206,12 +206,13 @@
             </ul>
         </div>
 
-        <div id="controls">
-            <div id="playpause">Pause</div>
-            <div id="zoomin">Zoom+</div>
-            <div id="zoomout">Zoom-</div>
-            <div id="redo">Redo</div>
-            <div id="undo">Undo</div>
+        <div id="controls" role="toolbar" aria-label="Edit and view">
+            <button id="undo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span class="count"></span></button>
+            <button id="redo" type="button" aria-label="Redo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg><span class="count"></span></button>
+            <span class="divider"></span>
+            <button id="playpause" type="button" aria-label="Pause the layout"><svg viewBox="0 0 24 24" aria-hidden="true"><g class="pause filled"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></g><path class="play filled" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></button>
+            <button id="zoomout" type="button" aria-label="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/><path d="M8 11h6"/></svg></button>
+            <button id="zoomin" type="button" aria-label="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/><path d="M8 11h6"/><path d="M11 8v6"/></svg></button>
         </div>
 
         <div id="search">
@@ -221,14 +222,9 @@
             </select>
         </div>
 
-        <div id="about" class="menu">Help
-            <ul class="submenu">
-                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." data-action="Actions.openTutorials">Tutorials</li>
-                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." data-action="Actions.openAbout">About</li>
-            </ul>
-        </div>
+        <div class="spacer"></div>
 
-        <div id="defaults" class="menu">Defaults
+        <div id="defaults" class="menu end">Defaults
             <ul class="submenu">
                 <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" data-setting="setDefaultChangingRange"/> Changing time range</li>
                 <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" data-setting="setChangingSuffix"/> Changing time suffix</li>
@@ -265,7 +261,7 @@
         </div>
 
         <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
-        <div id="settings" title="Expert settings" class="menu">Settings
+        <div id="settings" title="Expert settings" class="menu end">Settings
             <ul id="listOfSettings" class="submenu">
                 <li title="Damping can be likened to friction and is needed in order to slow down the movement of the nodes."><input id="damping" type="number" min="0" max="99" step="1" data-setting="setDamping"/> % Damping</li>
                 <li title="The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph."><input id="normalDistance" type="number" min="10" max="90" step="5" data-setting="setNormalDistance"/> px Normal distance</li>
@@ -286,6 +282,13 @@
                 <li title="Resets all settings in this menu to their default values." data-action="Settings.resetSettings" data-args='[true]'>Reset settings to their default values</li>
                 <li title="In debug mode force vectors will be drawn in the graph." data-action="Settings.toggleDebug">Toggle debug</li>
                 <li id="themeToggleItem" title="Switch interface to dark theme" data-action="Actions.toggleTheme">Switch to dark mode</li>
+            </ul>
+        </div>
+
+        <div id="about" class="menu end">Help
+            <ul class="submenu">
+                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." data-action="Actions.openTutorials">Tutorials</li>
+                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." data-action="Actions.openAbout">About</li>
             </ul>
         </div>
     </div>
@@ -352,15 +355,12 @@
         <!-- filled dynamically -->
     </div>
     <!-- Loading overlay (hidden by default) -->
-    <div id="loadingOverlay" aria-hidden="true" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(255,255,255,0.75);backdrop-filter:blur(2px);">
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:inherit;text-align:center;">
-            <div id="loadingSpinner" style="width:48px;height:48px;margin:0 auto 12px;border:6px solid #e3d7d7;border-top-color:#c80514;border-radius:50%;animation:anchor-spin 0.9s linear infinite;"></div>
-            <div id="loadingIndicator" style="font-size:14px;color:#333;">Loading…</div>
+    <div id="loadingOverlay" aria-hidden="true" style="display:none">
+        <div class="box">
+            <div id="loadingSpinner"></div>
+            <div id="loadingIndicator">Loading…</div>
         </div>
     </div>
-    <style>
-        @keyframes anchor-spin { to { transform: rotate(360deg); } }
-    </style>
     <!-- Hidden file input for loading local model files (single file only) -->
     <input id="modelFileInput" type="file" accept=".xml,text/xml,application/xml" style="display:none" aria-hidden="true" />
     <!-- Live region for announcing loaded filename (improves accessibility) -->
