@@ -390,6 +390,10 @@ S = a day or two, M = about a week, L = several weeks.
   "Explode all" only handled anchors, and a nexus did not read its imploded state back from the saved layout, so it would have
   been lost on save, load and undo). A nexus now hides and shows its attributes (and their knots) like an anchor, takes part in
   "Implode all" / "Explode all", and keeps the state when saved and read again. A test covers all of it (it fails without the fix).
+- **Found while testing, and fixed: after an explode an edge could end short of its attribute symbol** (moving the symbol fixed it;
+  anchors too, and also on `master`). The drawing engine only draws what is moving; an exploded attribute is given a new place, and if
+  the layout stops it on its first frame it is never drawn there, while its edge (drawn every frame) goes to the new place. A construct
+  is now drawn when it is shown (`ComponentView.show`). A test checks it without the layout (it fails without the fix).
 
 Also on its own branch, not part of `modernize`: a fix in the generators' helpers, so that a model with equivalence off ignores
 the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flags`).

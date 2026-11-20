@@ -42,6 +42,10 @@ Object.assign(ComponentView.prototype, {
         this.svg.showName(SVGLayer.names);
         if(DEBUG)
             this.svg.showDebug(SVGLayer.debug);
+        // The drawing engine only draws what is moving. A construct that is shown again has been given a new place (when an anchor or
+        // a nexus explodes), and if the layout stops it at once it is never drawn there: its edge goes to the new place, it stays
+        // at the old.
+        this.draw(this.svg);
     },
     // the text element of the name, made when the construct can have a name
     setNameable: function(nameable) {
