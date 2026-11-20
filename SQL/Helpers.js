@@ -92,7 +92,9 @@ while(knot = schema.nextKnot()) {
         return this.metadata.generator == 'true';
     };
     knot.isEquivalent = function() {
-        return this.metadata.equivalent == 'true' && hasFeature('equivalence');
+        // a flag in a file counts only where the model has equivalence on and the target implements it (schema.EQUIVALENCE);
+        // the modeler resets the flags of a model with equivalence off when it loads it, a file that was not saved by it may not
+        return this.metadata.equivalent == 'true' && schema.EQUIVALENCE;
     };
     knot.hasChecksum = function() {
         return this.metadata.checksum == 'true';
@@ -234,7 +236,7 @@ while (nexus = schema.nextNexus()) {
         };
         nxAttribute.isEquivalent = function() {
             // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
-            return this.metadata.equivalent == 'true' && !this.isKnotted() && hasFeature('equivalence');
+            return this.metadata.equivalent == 'true' && !this.isKnotted() && schema.EQUIVALENCE;
         };
         nxAttribute.isDeletable = function() {
             return this.metadata.deletable == 'true';
@@ -408,7 +410,7 @@ while (anchor = schema.nextAnchor()) {
         };
         attribute.isEquivalent = function() {
             // the modeler's rule: a knotted attribute is never equivalent (its knot may be), whatever a file says
-            return this.metadata.equivalent == 'true' && !this.isKnotted() && hasFeature('equivalence');
+            return this.metadata.equivalent == 'true' && !this.isKnotted() && schema.EQUIVALENCE;
         };
         attribute.isDeletable = function() {
             return this.metadata.deletable == 'true';
