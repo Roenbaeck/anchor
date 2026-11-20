@@ -50,6 +50,12 @@ export var EventHandler = {
     },
     escape: function (event) {
         if (event.key === 'Escape') {
+            // an open dialog (the SQL, a page, the mass editor) is closed first, as its close button does
+            var close = document.querySelector('#codePopover .closebutton, #urlPopover .closebutton, #tabularEditor .closebutton');
+            if(close) {
+                close.click();
+                return;
+            }
             EventHandler.clearSelection();
             var component = EventHandler.interactedComponents[0];
             if(component) {

@@ -252,6 +252,7 @@ S = a day or two, M = about a week, L = several weeks.
 
 **Status: done on the `modernize` branch (not merged; the version is not bumped until the branch is merged).**
 
+- **A mistake in this list, found by use and fixed:** `deleteButton.png` and `deleteButtonPressed.png` were deleted as "images only the cloud popovers used". The shared `.closebutton` rule draws every dialog's close button from them, so the SQL, page and mass-editor dialogs could not be closed. They are back, a test now checks that each dialog's close button shows and that its image loads, and Escape closes an open dialog.
 - **Deleted:** `pathseg.js` and its licence text; the cloud browser and saver popovers, the `Actions.*Cloud*` methods,
   `generateURL`, the tweet link, the `#cloud` element and about 150 lines of CSS; three images that only the cloud
   popovers used; the globals and helpers that only the cloud used (`LOGGED_IN`, `USER_ID`, the UTF-8 base64 helpers);
