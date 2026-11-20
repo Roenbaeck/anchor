@@ -192,7 +192,7 @@
         <div class="spacer"></div>
 
         <div id="tools" class="toolbar" role="toolbar" aria-label="Settings and theme">
-            <button id="panelButton" type="button" data-action="Actions.togglePanel" aria-label="Outline and properties" aria-expanded="false" aria-controls="panel" title="Outline and properties: the model as a tree, and the fields and operations of what is selected"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M6 9h5M6 13h5"/></svg></button>
+            <button id="panelButton" type="button" data-action="Actions.togglePanel" aria-label="Outline and properties" aria-expanded="false" aria-controls="panel" title="Outline and properties: the model as a tree, and the fields and operations of what is selected"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M6 9h5M6 13h5"/></svg><span class="count"></span></button>
             <button id="themeToggle" type="button" data-action="Actions.toggleTheme" aria-label="Switch to the dark theme" title="Switch to the dark theme"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="moon" d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button>
             <button id="modelSettingsButton" type="button" data-action="Actions.openModelSettings" aria-label="Model settings" title="Model settings: the target database, the features, the names and types of the generated code, and the layout engine"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
         </div>
@@ -322,6 +322,7 @@
         <div class="panelhead">
             <div class="tabs" role="tablist" aria-label="Views of the model">
                 <button type="button" role="tab" id="tab-outline" aria-selected="true" aria-controls="view-outline" data-action="Actions.showPanelView" data-args='["outline"]'>Outline</button>
+                <button type="button" role="tab" id="tab-problems" aria-selected="false" aria-controls="view-problems" tabindex="-1" data-action="Actions.showPanelView" data-args='["problems"]'>Problems<span class="count"></span></button>
                 <button type="button" role="tab" id="tab-xml" aria-selected="false" aria-controls="view-xml" tabindex="-1" data-action="Actions.showPanelView" data-args='["xml"]'>XML</button>
             </div>
             <button type="button" class="close" data-action="Actions.togglePanel" aria-label="Close the panel" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -329,7 +330,14 @@
         <section id="view-outline" class="view" role="tabpanel" aria-labelledby="tab-outline">
             <div class="filter"><input id="outlineFilter" type="search" placeholder="Filter the outline" aria-label="Filter the outline" autocomplete="off"/></div>
             <ul id="outlineTree" role="tree" aria-label="Model outline"></ul>
-            <div id="panelProperties"></div>
+            <div id="panelProperties" class="properties"></div>
+        </section>
+        <section id="view-problems" class="view" role="tabpanel" aria-labelledby="tab-problems" hidden>
+            <div id="problemView">
+                <div class="problembar"><span id="problemStatus" role="status" aria-live="polite"></span></div>
+                <ul id="problemList" aria-label="Problems and hints"></ul>
+            </div>
+            <div id="problemProperties" class="properties"></div>
         </section>
         <section id="view-xml" class="view" role="tabpanel" aria-labelledby="tab-xml" hidden>
             <div id="xmlView">

@@ -471,6 +471,16 @@ tested.
   the old model back. Copy button; the tab key writes a tab; the tabs have the keys of tabs; the panel widens for the XML.
   Found on the way and fixed: a nexus changed its shape when imploded only when the layout happened to move it (and its
   miniature symbol was given the big shape), so it could stay drawn as imploded after it was exploded.
+- **Item 3, done: the problems panel** (`app/Problems.js`). A third tab, with the number of problems on it and on the panel's
+  button, so they show with the panel closed. The problems are what `ModelCheck` finds in the model as it is now (looked at
+  150 ms after the last change); the hints are what the generators do not mind: a placeholder name or mnemonic, no description,
+  an anchor without attributes (they are not counted). A line selects what it is about (found from where ModelCheck says it is:
+  `anchor AC`, `anchor AC, attribute NAM`, `tie ...`), and the properties of it are under the list, so it can be put right
+  at once; a problem with the settings of the model opens the settings dialog. Tests: none on a model that the modeler writes,
+  a duplicate mnemonic is found, counted, selected and gone when put right, a hint does not count, a missing setting opens the
+  settings.
+- Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
+  panel then never updated; seen once in a test run).
 - **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the
   graph as a PNG (yes, if it can be done reliably), several named models kept in the browser (yes).
 1. **Outline and properties side panel** (collapsible): a tree of anchors, nexuses, ties and knots with attributes under

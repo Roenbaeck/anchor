@@ -11,6 +11,7 @@ import { Layer } from './Layer.js';
 import { Wiring } from './Wiring.js';
 import { Menus } from './Menus.js';
 import { Outline } from './Outline.js';
+import { Problems } from './Problems.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
@@ -53,6 +54,7 @@ export function init(window) {
     Wiring.init();
     Menus.init();
     Outline.init();
+    Problems.init();
     LayoutEngine.init();
 
     // set the global svg and graph variable

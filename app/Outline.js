@@ -12,13 +12,14 @@ import { Operations } from './Operations.js';
 import { EditForm } from './EditForm.js';
 import { Actions } from './Actions.js';
 import { XmlView } from './XmlView.js';
+import { Problems } from './Problems.js';
 import { XLINKNS, SVGNS } from './config.js';
 export var Outline = {
     isOpen: false,
     view: 'outline',        // the view that the panel shows: the outline (with the properties) or the XML
     expanded: {},           // the rows that are open, by id of the construct (or of the group)
     filter: '',
-    scheduled: false,
+    timer: null,
     scrollToSelection: false, // after a selection in the graph, the selected row is brought into view
     shownSelection: '',     // which constructs the properties were made for
     groups: [
@@ -74,6 +75,7 @@ export var Outline = {
         if(button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
         try { window.localStorage.setItem('outline', open ? 'open' : 'closed'); } catch(e) { }
         XmlView.show(open && Outline.view === 'xml');
+        Problems.show(open && Outline.view === 'problems');
         if(open) {
             Outline.revealSelection();
             Outline.render();
@@ -89,9 +91,9 @@ export var Outline = {
     },
     // what is changed is shown a moment later, once, however many changes there were
     schedule: function() {
-        if(!Outline.isOpen || Outline.scheduled) return;
-        Outline.scheduled = true;
-        setTimeout(function() { Outline.scheduled = false; Outline.render(); }, 20);
+        if(!Outline.isOpen) return;
+        clearTimeout(Outline.timer);
+        Outline.timer = setTimeout(Outline.render, 20);
     },
     // which view the panel shows (the tabs, the sections, and the width: the XML needs more room)
     showView: function(name) {
@@ -104,11 +106,14 @@ export var Outline = {
         Array.prototype.forEach.call(document.querySelectorAll('#panel .view'), function(view) { view.hidden = view.id !== 'view-' + name; });
         document.body.classList.toggle('panel-wide', name === 'xml');
         XmlView.show(Outline.isOpen && name === 'xml');
-        if(name === 'outline') { Outline.shownSelection = ''; Outline.render(); }
+        Problems.show(Outline.isOpen && name === 'problems');
+        // the properties are in two views (the outline and the problems), and are made again for the one that comes in
+        Outline.shownSelection = '';
+        Outline.render();
     },
     render: function() {
-        if(!Outline.isOpen || Outline.view !== 'outline') return;
-        Outline.renderTree();
+        if(!Outline.isOpen || (Outline.view !== 'outline' && Outline.view !== 'problems')) return;
+        if(Outline.view === 'outline') Outline.renderTree();
         if(Outline.scrollToSelection) {
             Outline.scrollToSelection = false;
             var row = Outline.tree().querySelector('[aria-selected=true]');
@@ -121,8 +126,9 @@ export var Outline = {
         }
         else if(EventHandler.selectedComponents.length === 1) {
             // a name that was changed shows in the heading
-            var heading = document.querySelector('#panelProperties h3');
-            if(heading) heading.textContent = Outline.headingFor(EventHandler.selectedComponents[0]);
+            Array.prototype.forEach.call(document.querySelectorAll('#panel .properties h3'), function(heading) {
+                heading.textContent = Outline.headingFor(EventHandler.selectedComponents[0]);
+            });
         }
     },
 
@@ -338,7 +344,9 @@ export var Outline = {
         return kind.charAt(0) + kind.slice(1).toLowerCase() + ': ' + Outline.nameOf(component);
     },
     renderProperties: function() {
-        var box = document.getElementById('panelProperties');
+        Array.prototype.forEach.call(document.querySelectorAll('#panel .properties'), Outline.renderPropertiesIn);
+    },
+    renderPropertiesIn: function(box) {
         box.textContent = '';
         var selection = EventHandler.selectedComponents.slice(0);
         var heading = document.createElement('h3');

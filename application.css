@@ -1080,7 +1080,7 @@ body.panel-open #model { right: calc(var(--panel-width) + 16px); }
 #outlineTree .name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #outlineTree .note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--text-s); }
 #outlineTree .note::before { content: "\2192\00a0"; }
-#panelProperties {
+#panel .properties {
     flex:               1 1 50%;
     min-height:         0;
     overflow:           auto;
@@ -1088,14 +1088,14 @@ body.panel-open #model { right: calc(var(--panel-width) + 16px); }
     border-top:         1px solid var(--border);
     background:         var(--surface-sunken);
 }
-#panelProperties h3 { margin: var(--space-1) 0 var(--space-2); font: 600 var(--text-m)/1.3 var(--font-ui); }
-#panelProperties .hint { margin: 0; color: var(--text-muted); }
-#panelProperties table.items { width: 100%; }
-#panelProperties table.items td { padding: 2px 6px 4px 0; vertical-align: middle; }
-#panelProperties table.items td:first-child { width: 36%; color: var(--text-muted); white-space: nowrap; }
-#panelProperties table.items input:not([type=checkbox]), #panelProperties table.items select { width: 100%; height: 26px; }
-#panelProperties .operations { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
-#panelProperties .operations button {
+#panel .properties h3 { margin: var(--space-1) 0 var(--space-2); font: 600 var(--text-m)/1.3 var(--font-ui); }
+#panel .properties .hint { margin: 0; color: var(--text-muted); }
+#panel .properties table.items { width: 100%; }
+#panel .properties table.items td { padding: 2px 6px 4px 0; vertical-align: middle; }
+#panel .properties table.items td:first-child { width: 36%; color: var(--text-muted); white-space: nowrap; }
+#panel .properties table.items input:not([type=checkbox]), #panel .properties table.items select { width: 100%; height: 26px; }
+#panel .properties .operations { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
+#panel .properties .operations button {
     font:               inherit;
     padding:            2px var(--space-2);
     border:             1px solid var(--border);
@@ -1104,7 +1104,7 @@ body.panel-open #model { right: calc(var(--panel-width) + 16px); }
     color:              var(--text);
     cursor:             pointer;
 }
-#panelProperties .operations button:hover { background: var(--hover); }
+#panel .properties .operations button:hover { background: var(--hover); }
 
 /* the panel has views: the outline (with the properties) and the XML */
 body.panel-wide { --panel-width: 560px; }
@@ -1164,3 +1164,41 @@ body.panel-wide { --panel-width: 560px; }
 }
 #xmlProblems:empty { display: none; }
 #xmlProblems li { padding: 4px var(--space-3); background: var(--invalid); border-bottom: 1px solid var(--border); font-size: var(--text-s); line-height: 1.4; }
+
+/* the problems: a list, each line selects what it is about */
+#panel .tabs .count {
+    display:            inline-block;
+    min-width:          16px;
+    margin-left:        6px;
+    padding:            0 5px;
+    box-sizing:         border-box;
+    border-radius:      8px;
+    font:               600 10px/16px var(--font-ui);
+    text-align:         center;
+    color:              var(--accent-ink);
+    background:         var(--accent);
+}
+#panel .tabs .count:empty { display: none; }
+#problemView { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; }
+#problemView .problembar { flex: none; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: var(--text-s); }
+#problemView.bad .problembar { color: var(--accent); font-weight: 600; }
+#problemList { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: var(--space-1) 0; }
+#problemList li.heading { padding: var(--space-3) var(--space-3) var(--space-1); color: var(--text-muted); font: 600 var(--text-s)/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: 0.04em; }
+#problemList button.problem {
+    display:            block;
+    width:              100%;
+    box-sizing:         border-box;
+    padding:            4px var(--space-3) 4px calc(var(--space-3) + 14px);
+    border:             0;
+    border-left:        3px solid transparent;
+    background:         transparent;
+    color:              var(--text);
+    font:               inherit;
+    text-align:         left;
+    line-height:        1.4;
+    cursor:             pointer;
+}
+#problemList li.error button.problem { border-left-color: var(--accent); }
+#problemList li.hint button.problem { color: var(--text-muted); }
+#problemList button.problem:hover:not(:disabled) { background: var(--hover); }
+#problemList button.problem:disabled { cursor: default; }
