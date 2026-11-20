@@ -423,17 +423,12 @@ export var Actions = {
             }
             DrawingEngine.draw();
         }
-        // Update theme toggle menu item text/title if present
-        var item = document.getElementById('themeToggleItem');
+        // the button says what it will do (and shows the sun in the dark theme, the moon in the light, see application.css)
+        var item = document.getElementById('themeToggle');
         if(item) {
-            if(theme === 'dark') {
-                item.textContent = 'Switch to light mode';
-                item.setAttribute('title', 'Switch interface to light theme');
-            }
-            else {
-                item.textContent = 'Switch to dark mode';
-                item.setAttribute('title', 'Switch interface to dark theme');
-            }
+            var label = theme === 'dark' ? 'Switch to the light theme' : 'Switch to the dark theme';
+            item.setAttribute('title', label);
+            item.setAttribute('aria-label', label);
         }
     },
     toggleTheme: function() {
@@ -556,6 +551,53 @@ export var Actions = {
     },
     openAbout: function() {
         new URLPopover('about.html');
+    },
+    // MODEL SETTINGS -------------------------------------------------
+    // The dialog holds the settings of the generated code (target, features, names, types, defaults for new items) and of the
+    // layout engine. It is a modal <dialog>: the browser holds the focus in it and closes it on Escape.
+    openModelSettings: function(group) {
+        var dialog = document.getElementById('modelSettings');
+        if(!dialog.open)
+            dialog.showModal();
+        Actions.stopKeyboardEvents(); // the keys of the modeler must not act on what is typed in the fields
+        document.getElementById('settingsSearch').value = '';
+        Actions.filterSettings('');
+        Actions.showSettingsGroup(typeof group === 'string' ? group : 'target');
+    },
+    closeModelSettings: function() {
+        var dialog = document.getElementById('modelSettings');
+        if(dialog.open)
+            dialog.close();
+        // the keys of the modeler act again as soon as the pointer is over a construct (EventHandler.beginInteraction)
+    },
+    showSettingsGroup: function(group) {
+        var section = document.getElementById('settings-' + group);
+        if(!section)
+            return;
+        var groups = document.querySelector('#modelSettings .groups');
+        groups.scrollTop = section.offsetTop;
+        Array.prototype.forEach.call(document.querySelectorAll('#modelSettings nav button'), function(button) {
+            var current = button.getAttribute('data-args') === JSON.stringify([group]);
+            if(current) button.setAttribute('aria-current', 'true');
+            else button.removeAttribute('aria-current');
+        });
+    },
+    // only the settings that match what is typed are shown (what they are called, what they say, their value), and only the
+    // groups that have any
+    filterSettings: function(text) {
+        var words = text.toLowerCase().split(/\s+/).filter(Boolean), shown = 0;
+        Array.prototype.forEach.call(document.querySelectorAll('#modelSettings section.group'), function(section) {
+            var any = 0;
+            Array.prototype.forEach.call(section.querySelectorAll('li'), function(item) {
+                var haystack = (item.textContent + ' ' + item.id).toLowerCase();
+                var matches = words.every(function(word) { return haystack.indexOf(word) >= 0; });
+                item.classList.toggle('filtered', !matches);
+                if(matches) any++;
+            });
+            section.classList.toggle('filtered', any === 0);
+            shown += any;
+        });
+        document.getElementById('settingsNone').hidden = shown > 0;
     },
     generateSQL: function() {
         Actions.sql().then(sql => {

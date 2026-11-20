@@ -630,19 +630,19 @@ legend {
 }
 
 /* the controls: pause, zoom, undo and redo, with an icon each */
-#controls {
+.toolbar {
     display:            flex;
     align-items:        center;
     gap:                2px;
     margin:             0 var(--space-2);
 }
-#controls .divider {
+.toolbar .divider {
     width:              1px;
     height:             20px;
     margin:             0 var(--space-1);
     background:         var(--border);
 }
-#controls button {
+.toolbar button {
     position:           relative;
     display:            inline-flex;
     align-items:        center;
@@ -657,18 +657,18 @@ legend {
     color:              var(--text);
     cursor:             pointer;
 }
-#controls button:hover {
+.toolbar button:hover {
     background:         var(--hover);
 }
-#controls button:disabled {
+.toolbar button:disabled {
     opacity:            0.35;
     cursor:             default;
     background:         transparent;
 }
-#controls button:active {
+.toolbar button:active {
     background:         var(--pressed);
 }
-#controls button svg {
+.toolbar button svg {
     width:              18px;
     height:             18px;
     fill:               none;
@@ -678,12 +678,12 @@ legend {
     stroke-linejoin:    round;
     pointer-events:     none;
 }
-#controls button .filled {
+.toolbar button .filled {
     fill:               currentColor;
     stroke:             none;
 }
 /* the number of changes that can be undone or redone */
-#controls button .count {
+.toolbar button .count {
     position:           absolute;
     top:                0;
     right:              0;
@@ -697,7 +697,7 @@ legend {
     background:         var(--accent);
     pointer-events:     none;
 }
-#controls button .count:empty {
+.toolbar button .count:empty {
     display:            none;
 }
 /* the icon of play is shown when the layout is paused, the icon of pause when it runs */
@@ -785,4 +785,179 @@ body.dark ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
     .menu { height: 36px; line-height: 36px; }
     #controls button { width: 40px; height: 40px; }
     .submenu li { min-height: 36px; line-height: 36px; }
+}
+
+/* the theme button shows the sun in the dark theme, the moon in the light theme */
+#themeToggle .sun { display: none; }
+body.dark #themeToggle .sun { display: inline; }
+body.dark #themeToggle .moon { display: none; }
+
+/* ==========================================================================
+   The model settings dialog
+   ========================================================================== */
+.filtered { display: none !important; }
+#modelSettings {
+    padding:            0;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    background:         var(--surface-raised);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
+    width:              min(880px, calc(100vw - 32px));
+    height:             min(660px, calc(100vh - 48px));
+    max-width:          none;
+    max-height:         none;
+    overflow:           hidden;
+}
+#modelSettings[open] {
+    display:            flex;
+    flex-direction:     column;
+}
+#modelSettings::backdrop {
+    background:         var(--scrim);
+}
+#modelSettings .head {
+    display:            flex;
+    align-items:        center;
+    gap:                var(--space-3);
+    padding:            var(--space-3) var(--space-4);
+    border-bottom:      1px solid var(--border);
+}
+#modelSettings .head h2 {
+    flex:               none;
+    margin:             0;
+    font:               600 var(--text-l)/1.3 var(--font-ui);
+}
+#modelSettings .head input {
+    flex:               1 1 auto;
+    max-width:          320px;
+    margin-left:        auto;
+    height:             30px;
+}
+#modelSettings .close {
+    flex:               none;
+    width:              30px;
+    height:             30px;
+    padding:            0;
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings .close:hover { background: var(--hover); }
+#modelSettings .close svg {
+    width:              18px;
+    height:             18px;
+    fill:               none;
+    stroke:             currentColor;
+    stroke-width:       2;
+    stroke-linecap:     round;
+}
+#modelSettings .content {
+    flex:               1 1 auto;
+    display:            flex;
+    min-height:         0;
+}
+#modelSettings nav {
+    flex:               none;
+    width:              190px;
+    box-sizing:         border-box;
+    padding:            var(--space-3) var(--space-2);
+    border-right:       1px solid var(--border);
+    background:         var(--surface-sunken);
+    display:            flex;
+    flex-direction:     column;
+    gap:                2px;
+    overflow-y:         auto;
+}
+#modelSettings nav button {
+    font:               inherit;
+    text-align:         left;
+    padding:            var(--space-1) var(--space-3);
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings nav button:hover { background: var(--hover); }
+#modelSettings nav button[aria-current] {
+    background:         var(--accent-soft);
+    font-weight:        600;
+}
+#modelSettings .groups {
+    flex:               1 1 auto;
+    min-width:          0;
+    overflow-y:         auto;
+    padding:            var(--space-2) var(--space-4) var(--space-4) var(--space-4);
+    position:           relative;
+}
+#modelSettings .group h3 {
+    margin:             var(--space-4) 0 0;
+    font:               600 var(--text-l)/1.3 var(--font-ui);
+}
+#modelSettings .group .intro {
+    margin:             2px 0 var(--space-2);
+    color:              var(--text-muted);
+}
+#modelSettings .fields li {
+    display:            grid;
+    grid-template-columns: 190px 1fr;
+    column-gap:         var(--space-3);
+    align-items:        center;
+    padding:            var(--space-2) 0;
+    border-top:         1px solid var(--border);
+    line-height:        1.4;
+}
+#modelSettings .fields li:has(> input[type=checkbox]) {
+    grid-template-columns: 22px 1fr;
+}
+#modelSettings .fields input:not([type=checkbox]), #modelSettings .fields select {
+    width:              100%;
+    height:             28px;
+}
+#modelSettings .fields label {
+    cursor:             pointer;
+}
+#modelSettings .fields .unit {
+    color:              var(--text-muted);
+    font-size:          var(--text-s);
+}
+#modelSettings .fields .help {
+    grid-column:        2;
+    grid-row:           2;
+    margin-top:         2px;
+    color:              var(--text-muted);
+    font-size:          var(--text-s);
+    line-height:        1.4;
+}
+#modelSettings .actions {
+    margin:             var(--space-3) 0 0;
+    display:            flex;
+    gap:                var(--space-2);
+    flex-wrap:          wrap;
+}
+#modelSettings .actions button {
+    font:               inherit;
+    padding:            var(--space-1) var(--space-3);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings .actions button:hover { background: var(--hover); }
+#modelSettings .none {
+    margin:             var(--space-4) 0;
+    color:              var(--text-muted);
+}
+@media (max-width: 640px) {
+    #modelSettings .content { flex-direction: column; }
+    #modelSettings nav { width: auto; flex-direction: row; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; overflow-y: hidden; }
+    #modelSettings nav button { white-space: nowrap; }
+    #modelSettings .fields li { grid-template-columns: 1fr; }
+    #modelSettings .fields .help { grid-column: 1; }
+    #modelSettings .fields li:has(> input[type=checkbox]) { grid-template-columns: 22px 1fr; }
+    #modelSettings .fields li:has(> input[type=checkbox]) .help { grid-column: 2; }
 }

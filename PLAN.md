@@ -412,9 +412,16 @@ the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flag
   (`prefers-color-scheme`) unless the viewer has chosen. Panels and the loading overlay use the tokens; the logotype is inverted
   in the dark theme. Tests: every token has a value in both themes, the bar changes with the theme and is not filled with the
   accent, the controls are buttons with names and icons.
-- **Next:** step 2 the *Model settings* dialog (the generation options out of *Generate*, the 30 defaults and the physics tuning
-  into one searchable, grouped dialog with a sentence of help for each); step 3 readable graph (hit areas, halos); step 4 the
-  menubar for the keyboard (`role`, arrow keys) and the focus order into the graph.
+- **Step 2, done: the Model settings dialog.** The *Generate* menu now only generates (SQL, XML, JSON, HTML, SVG, and an item that
+  opens the settings of the code). The *Defaults* and *Settings* menus are gone; their 52 fields, with the generation options, are
+  in one modal `<dialog>` (the gear in the bar), in six groups (Target, Features, Names, Types and values, Defaults for new items,
+  Advanced), each with a sentence of help that shows and not only as a tooltip, a list of the groups at the left and a search
+  that filters on name, help and id and hides groups without matches. The theme switch is a button in the bar (moon or sun).
+  Every field keeps its id and its `data-setting`, so `Settings.js` is unchanged; the wiring test shows that all 52 fields call
+  what they called (the golden values moved from the menus to the dialog, equal). Esc, the close button and a click beside the
+  dialog close it. Tests: the bar holds only the search fields, the dialog opens on a group, finds, changes a setting, closes.
+- **Next:** step 3 readable graph (hit areas, halos); step 4 the menubar for the keyboard (`role`, arrow keys) and the focus
+  order into the graph.
 
 - **Design tokens as CSS custom properties** (colour, spacing, radius, type scale), light and dark, following
   `prefers-color-scheme` with a manual override. Keep the brand red as the accent only, not as the toolbar fill.

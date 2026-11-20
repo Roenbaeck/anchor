@@ -69,5 +69,9 @@ export var Wiring = {
         filter.addEventListener('blur', function() { Actions.populateSelector(selector, this.value); }, false);
         selector.addEventListener('mouseover', function() { Actions.populateSelector(this, filter.value); }, false);
         selector.addEventListener('change', function() { Actions.selectNode(this.value); }, false);
+        // the filter of the settings dialog, and a click beside the dialog (on the dimmed page) closes it
+        var settingsFilter = document.getElementById('settingsSearch'), dialog = document.getElementById('modelSettings');
+        settingsFilter.addEventListener('input', function() { Actions.filterSettings(this.value); }, false);
+        dialog.addEventListener('click', function(event) { if(event.target === dialog) Actions.closeModelSettings(); }, false);
     }
 };

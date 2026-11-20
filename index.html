@@ -163,50 +163,16 @@
 
         <div id="generate" class="menu">Generate
             <ul class="submenu">
-                <li title="Selects the target database for the generated SQL code.">
-                    <select id="database" data-setting="setDatabase" data-args='[true]'>
-                        <option value="SQLServer" selected="selected">Microsoft SQL Server</option>
-                        <option value="Oracle">Oracle</option>
-                        <option value="PostgreSQL">PostgreSQL</option>
-                        <option value="Vertica">Vertica</option>
-                        <option value="Snowflake">Snowflake</option>
-                        <option value="BigQuery">BigQuery</option>
-                    </select> Target database
-                </li>
-                <li title="Selects the version of the naming convention to use for the generated code.">
-                    <select id="naming" data-setting="setNaming">
-                        <option value="original">Original</option>
-                        <option value="improved" selected="selected">Improved</option>
-                    </select> Naming convention
-                </li>
-                <li title="Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).">
-                    <select id="temporalization" data-setting="setTemporalization">
-                        <option value="uni" selected="selected">Unitemporal</option>
-                        <option value="bi">Bitemporal</option>
-                        <option value="crt">Concurrent-reliance-temporal</option>
-                    </select> Temporalization
-                </li>
-                <li title="Selects if the generated code should contain a metadata reference or not."><input id="metadataUsage" class="inputDefaults" type="checkbox" data-setting="setMetadataUsage"/> Use metadata</li>
-                <li title="Selects if the generated code should contain business views or not."><input id="businessViews" class="inputDefaults" type="checkbox" data-setting="setBusinessViews" data-args='[true]'/> Use business views</li>
-                <li title="Selects if the views should contain aliases for knots that mimic the naming of regular attributes."><input id="knotAliases" class="inputDefaults" type="checkbox" data-setting="setKnotAliases" data-args='[true]'/> Use knot aliases</li>
-                <li title="Selects if the generated code should contain triggers or not."><input id="triggers" class="inputDefaults" type="checkbox" data-setting="setTriggers" data-args='[true]'/> Use triggers</li>
-                <li title="Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated."><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" data-setting="setNaturalKeyAttributes" data-args='[true]'/> Create natural key attributes</li>
-                <li class="feature-equivalence" title="Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy."><input id="equivalence" class="inputDefaults" type="checkbox" data-setting="setEquivalence" data-args='[true]'/> Use equivalence</li>
-                <li class="crt" title="With decisiveness a positor holds a single assertion at a time, positive or negative, for an attribute of an anchor or nexus, or for the other roles of a tie, so an assertion of another value corrects the one held, which is retracted. Without it a positor may hold several at once, as long as they do not contradict each other: positive reliabilities count as they are, negative ones as one plus them, and together they may not exceed one."><input id="decisiveness" class="inputDefaults" type="checkbox" data-setting="setDecisiveness"/> Use decisiveness</li>
-                <li title="Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended."><input id="entityIntegrity" class="inputDefaults" type="checkbox" data-setting="setEntityIntegrity"/> Use entity integrity</li>
-                <li title="Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling."><input id="partitioning" class="inputDefaults" type="checkbox" data-setting="setPartitioning"/> Use partitioning</li>
-                <li title="Generate SQL code for implementation of a model in a relational database." data-action="Actions.generateSQL"> SQL code</li>
-                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." data-action="Actions.generateXML"> XML code</li>
-                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." data-action="Actions.generateBindings"> JSON bindings</li>
-                <li title="Generate an HTML legend that describes the items in your model." data-action="Actions.generateHTML"> HTML documentation</li>
-                <!--
-                <li title="Generate a bitmap image of the view currently shown on screen." data-action="Actions.screenshotPNG">PNG screenshot</li>
-                -->
+                <li title="Generate SQL code for implementation of a model in a relational database." data-action="Actions.generateSQL">SQL code</li>
+                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." data-action="Actions.generateXML">XML code</li>
+                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." data-action="Actions.generateBindings">JSON bindings</li>
+                <li title="Generate an HTML legend that describes the items in your model." data-action="Actions.generateHTML">HTML documentation</li>
                 <li title="Generate a vector image of the entire model." data-action="Actions.screenshotSVG">SVG screenshot</li>
+                <li title="The target database, the temporalization, the names and the features that the generated code is made with." data-action="Actions.openModelSettings" data-args='["target"]'>Settings for the code...</li>
             </ul>
         </div>
 
-        <div id="controls" role="toolbar" aria-label="Edit and view">
+        <div id="controls" class="toolbar" role="toolbar" aria-label="Edit and view">
             <button id="undo" type="button" aria-label="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span class="count"></span></button>
             <button id="redo" type="button" aria-label="Redo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg><span class="count"></span></button>
             <span class="divider"></span>
@@ -224,66 +190,11 @@
 
         <div class="spacer"></div>
 
-        <div id="defaults" class="menu end">Defaults
-            <ul class="submenu">
-                <li title="The default changing time (versions) 'data type' for newly created and historized items."><input id="defaultChangingRange" class="inputDefaults" type="text" data-setting="setDefaultChangingRange"/> Changing time range</li>
-                <li title="The suffix used for the columns that store changing time (versions)."><input id="changingSuffix" class="inputDefaults" type="text" data-setting="setChangingSuffix"/> Changing time suffix</li>
-                <li title="The suffix used for the columns that store checksums."><input id="checksumSuffix" class="inputDefaults" type="text" data-setting="setChecksumSuffix"/> Checksum suffix</li>
-                <li title="The default 'schema' to use for new items."><input id="encapsulation" class="inputDefaults" type="text" data-setting="setEncapsulation"/> Capsule</li>
-                <li title="The default 'data type' to use for identity columns."><input id="defaultIdentity" class="inputDefaults" type="text" data-setting="setDefaultIdentity"/> Identity</li>
-                <li title="The suffix used for the columns that store identities."><input id="identitySuffix" class="inputDefaults" type="text" data-setting="setIdentitySuffix"/> Identity suffix</li>
-                <li title="The prefix used for the columns that enable deletion."><input id="deletablePrefix" class="inputDefaults" type="text" data-setting="setDeletablePrefix"/> Deletable prefix</li>
-                <li title="The suffix used for tables that contain deleted rows."><input id="deletionSuffix" class="inputDefaults" type="text" data-setting="setDeletionSuffix"/> Deletion suffix</li>
-                <li title="The smallest common time type of all those used in the model."><input id="defaultChronon" class="inputDefaults" type="text" data-setting="setDefaultChronon"/> Chronon</li>
-                <li title="How to get current, UTC or desired timestamping time from the database."><input id="defaultNow" class="inputDefaults" type="text" data-setting="setDefaultNow"/> Now</li>
-                <li class="equivalence" title="The suffix used for the columns that store equivalents."><input id="equivalentSuffix" class="inputDefaults" type="text" data-setting="setEquivalentSuffix"/> Equivalents suffix</li>
-                <li class="equivalence" title="The 'data type' of the equivalents column."><input id="equivalentRange" class="inputDefaults" type="text" data-setting="setEquivalentRange"/> Equivalents range</li>
-                <li class="metadata" title="The prefix used for the columns that store a metadata reference."><input id="metadataPrefix" class="inputDefaults" type="text" data-setting="setMetadataPrefix"/> Metadata prefix</li>
-                <li class="metadata" title="The 'data type' of the metadata column."><input id="metadataType" class="inputDefaults" type="text" data-setting="setMetadataType"/> Metadata type</li>
-                <li title="Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements."><input id="restatability" class="inputDefaults" type="checkbox" data-setting="setRestatability"/> Restatability</li>
-                <li title="Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time."><input id="idempotency" class="inputDefaults" type="checkbox" data-setting="setIdempotency"/> Idempotency</li>
-                <li class="uni" title="Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table."><input id="deletability" class="inputDefaults" type="checkbox" data-setting="setDeletability"/> Deletability</li>
-                <li class="feature-encryption" title="Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used."><input id="encryptionGroup" class="inputDefaults" type="text" data-setting="setEncryptionGroup"/> Encryption group</li>
-                <!-- Temporalization dependent items (static, visibility controlled by body class) -->
-                <li class="bi crt" title="The 'data type' for identities of posits used throughout the implementation."><input id="positIdentity" class="inputDefaults" type="text" data-setting="setPositIdentityRange"/> Posit identity</li>
-                <li class="bi crt" title="The positing time (corrections) 'data type' used throughout the implementation."><input id="positingRange" class="inputDefaults" type="text" data-setting="setPositingRange"/> Positing time range</li>
-                <li class="bi crt" title="The suffix used for the column storing the point in time a posit was made."><input id="positingSuffix" class="inputDefaults" type="text" data-setting="setPositingSuffix"/> Positing time suffix</li>
-                <li class="crt" title="The positor (one able to correct) 'data type' used throughout the implementation."><input id="positorRange" class="inputDefaults" type="text" data-setting="setPositorRange"/> Positor range</li>
-                <li class="crt" title="The suffix used for the column storing the who made a posit."><input id="positorSuffix" class="inputDefaults" type="text" data-setting="setPositorSuffix"/> Positor suffix</li>
-                <li class="bi crt" title="A 'data type' that can hold the desired degrees of reliability: in crt from -1 (certainly not) through 0 (complete uncertainty) to 1 (certainly), in bi 0 or 1."><input id="reliabilityRange" class="inputDefaults" type="text" data-setting="setReliabilityRange"/> Reliability range</li>
-                <li class="bi crt" title="The suffix used for the column storing reliability."><input id="reliabilitySuffix" class="inputDefaults" type="text" data-setting="setReliabilitySuffix"/> Reliability suffix</li>
-                <li class="crt" title="The default value of reliability to use when it is not specified in an insert."><input id="defaultReliability" class="inputDefaults" type="text" data-setting="setDefaultReliability"/> Default reliability</li>
-                <li class="crt" title="The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit."><input id="deleteReliability" class="inputDefaults" type="text" data-setting="setDeleteReliability"/> Complete uncertainty</li>
-                <li class="bi crt" title="The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain."><input id="assertionSuffix" class="inputDefaults" type="text" data-setting="setAssertionSuffix"/> Assertion suffix</li>
-                <li class="bi crt" title="Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability."><input id="assertiveness" class="inputDefaults" type="checkbox" data-setting="setAssertiveness"/> Assertiveness</li>
-                <li id="crtSettingsBeforeHere" title="Resets all settings in this menu to their default values." data-action="Settings.resetDefaults" data-args='[true]'>Reset defaults to their default values</li>
-            </ul>
+        <div id="tools" class="toolbar" role="toolbar" aria-label="Settings and theme">
+            <button id="themeToggle" type="button" data-action="Actions.toggleTheme" aria-label="Switch to the dark theme" title="Switch to the dark theme"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="moon" d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/><g class="sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button>
+            <button id="modelSettingsButton" type="button" data-action="Actions.openModelSettings" aria-label="Model settings" title="Model settings: the target database, the features, the names and types of the generated code, and the layout engine"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
         </div>
 
-        <!-- TODO: focus gets "stuck" on the input fields below sometimes, annoying! -->
-        <div id="settings" title="Expert settings" class="menu end">Settings
-            <ul id="listOfSettings" class="submenu">
-                <li title="Damping can be likened to friction and is needed in order to slow down the movement of the nodes."><input id="damping" type="number" min="0" max="99" step="1" data-setting="setDamping"/> % Damping</li>
-                <li title="The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph."><input id="normalDistance" type="number" min="10" max="90" step="5" data-setting="setNormalDistance"/> px Normal distance</li>
-                <li title="Any node whose velocity is smaller than this number is assumed to have stopped."><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setStoppingVelocity"/> px/s Stopping velocity</li>
-                <li title="The velocity needed for a stopped node to start moving again in a small graph."><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMinimumStartingVelocity"/> px/s Minimum starting velocity</li>
-                <li title="The velocity needed for a stopped node to start moving again in a large graph."><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMaximumStartingVelocity"/> px/s Maximum starting velocity</li>
-                <li title="The size of space partitions in number of normal distances."><input id="partitionFactor" type="number" min="0" max="100" step="1" data-setting="setPartitionFactor"/> Partition size</li>
-                <li title="The 'fuzziness' within which the size of the partitions are altered."><input id="fuzziness" type="number" min="0" max="100" step="1" data-setting="setFuzziness"/> % Fuzziness</li>
-                <li title="The effect of the force from other partitions on nodes in the current partition."><input id="longRangeEffect" type="number" min="0" max="100" step="1" data-setting="setLongRangeEffect"/> % Long range effect</li>
-                <li title="The stiffness of the edges control whether they behave like rubber bands or steel wires."><input id="stiffness" type="number" min="0" max="10" step="0.1" data-setting="setStiffness"/> Edge stiffness factor</li>
-                <li title="The number of frame redraws needed in the large SVG to trigger a redraw of the miniature."><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" data-setting="setMiniRate"/> Miniature refresh interval</li>
-                <li title="Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance." id="calcsItem">
-                    <select id="calculations" data-setting="setCalculations">
-                        <option value="simple" selected="selected">Simplified</option>
-                        <option value="complex">Adjustable</option>
-                    </select> &nbsp;Calculations
-                </li>
-                <li title="Resets all settings in this menu to their default values." data-action="Settings.resetSettings" data-args='[true]'>Reset settings to their default values</li>
-                <li title="In debug mode force vectors will be drawn in the graph." data-action="Settings.toggleDebug">Toggle debug</li>
-                <li id="themeToggleItem" title="Switch interface to dark theme" data-action="Actions.toggleTheme">Switch to dark mode</li>
-            </ul>
-        </div>
 
         <div id="about" class="menu end">Help
             <ul class="submenu">
@@ -293,6 +204,117 @@
         </div>
     </div>
 
+    <!-- Model settings: what the generated code is for and contains, how it is named, and how the graph is laid out -->
+    <dialog id="modelSettings" aria-labelledby="modelSettingsTitle">
+        <div class="head">
+            <h2 id="modelSettingsTitle">Model settings</h2>
+            <input id="settingsSearch" type="search" placeholder="Find a setting" aria-label="Find a setting" autocomplete="off"/>
+            <button type="button" class="close" data-action="Actions.closeModelSettings" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="content">
+            <nav aria-label="Groups of settings">
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["target"]'>Target</button>
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["features"]'>Features</button>
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["names"]'>Names</button>
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["types"]'>Types and values</button>
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["new"]'>Defaults for new items</button>
+            <button type="button" data-action="Actions.showSettingsGroup" data-args='["advanced"]'>Advanced</button>
+            </nav>
+            <div class="groups">
+            <section id="settings-target" class="group">
+                <h3>Target</h3>
+                <p class="intro">What the generated code is for.</p>
+                <ul class="fields">
+                    <li class="setting"><select id="database" data-setting="setDatabase" data-args='[true]'> <option value="SQLServer" selected="selected">Microsoft SQL Server</option> <option value="Oracle">Oracle</option> <option value="PostgreSQL">PostgreSQL</option> <option value="Vertica">Vertica</option> <option value="Snowflake">Snowflake</option> <option value="BigQuery">BigQuery</option> </select> <label for="database">Target database</label><small class="help">Selects the target database for the generated SQL code.</small></li>
+                    <li class="setting"><select id="naming" data-setting="setNaming"> <option value="original">Original</option> <option value="improved" selected="selected">Improved</option> </select> <label for="naming">Naming convention</label><small class="help">Selects the version of the naming convention to use for the generated code.</small></li>
+                    <li class="setting"><select id="temporalization" data-setting="setTemporalization"> <option value="uni" selected="selected">Unitemporal</option> <option value="bi">Bitemporal</option> <option value="crt">Concurrent-reliance-temporal</option> </select> <label for="temporalization">Temporalization</label><small class="help">Selects if the generated code should be unitemporal (only changing time), bitemporal (both changing and positing time), or concurrent-reliance-temporal (one changing with several subjective positing times with uncertainty).</small></li>
+                </ul>
+            </section>
+            <section id="settings-features" class="group">
+                <h3>Features</h3>
+                <p class="intro">What the generated code contains. Which of these apply depends on the target and the temporalization.</p>
+                <ul class="fields">
+                    <li class="setting"><input id="metadataUsage" class="inputDefaults" type="checkbox" data-setting="setMetadataUsage"/> <label for="metadataUsage">Use metadata</label><small class="help">Selects if the generated code should contain a metadata reference or not.</small></li>
+                    <li class="setting"><input id="businessViews" class="inputDefaults" type="checkbox" data-setting="setBusinessViews" data-args='[true]'/> <label for="businessViews">Use business views</label><small class="help">Selects if the generated code should contain business views or not.</small></li>
+                    <li class="setting"><input id="knotAliases" class="inputDefaults" type="checkbox" data-setting="setKnotAliases" data-args='[true]'/> <label for="knotAliases">Use knot aliases</label><small class="help">Selects if the views should contain aliases for knots that mimic the naming of regular attributes.</small></li>
+                    <li class="setting"><input id="triggers" class="inputDefaults" type="checkbox" data-setting="setTriggers" data-args='[true]'/> <label for="triggers">Use triggers</label><small class="help">Selects if the generated code should contain triggers or not.</small></li>
+                    <li class="setting"><input id="naturalKeyAttributes" class="inputDefaults" type="checkbox" data-setting="setNaturalKeyAttributes" data-args='[true]'/> <label for="naturalKeyAttributes">Create natural key attributes</label><small class="help">Selects if natural key attribute tables (materialized lookup tables for natural keys) should be generated.</small></li>
+                    <li class="setting feature-equivalence"><input id="equivalence" class="inputDefaults" type="checkbox" data-setting="setEquivalence" data-args='[true]'/> <label for="equivalence">Use equivalence</label><small class="help">Selects if equivalence should be allowed. Multiple values can be marked as having the same meaning, which for example is useful for multilingualism or multitenancy.</small></li>
+                    <li class="setting crt"><input id="decisiveness" class="inputDefaults" type="checkbox" data-setting="setDecisiveness"/> <label for="decisiveness">Use decisiveness</label><small class="help">With decisiveness a positor holds a single assertion at a time, positive or negative, for an attribute of an anchor or nexus, or for the other roles of a tie, so an assertion of another value corrects the one held, which is retracted. Without it a positor may hold several at once, as long as they do not contradict each other: positive reliabilities count as they are, negative ones as one plus them, and together they may not exceed one.</small></li>
+                    <li class="setting"><input id="entityIntegrity" class="inputDefaults" type="checkbox" data-setting="setEntityIntegrity"/> <label for="entityIntegrity">Use entity integrity</label><small class="help">Entity integrity adds constraints ensuring that no temporal duplicates can co-exist for the same entity and version, that no negative recording time intervals can be stored, and that there are no overlapping intervals with respect to recording time. This is highly recommended.</small></li>
+                    <li class="setting"><input id="partitioning" class="inputDefaults" type="checkbox" data-setting="setPartitioning"/> <label for="partitioning">Use partitioning</label><small class="help">Selects whether to use partitioning of data. Applies to equivalents in uni-temporal and positors in concurrent-reliance-temporal modeling.</small></li>
+                </ul>
+            </section>
+            <section id="settings-names" class="group">
+                <h3>Names</h3>
+                <p class="intro">How the generated tables and columns are named.</p>
+                <ul class="fields">
+                    <li class="setting"><input id="encapsulation" class="inputDefaults" type="text" data-setting="setEncapsulation"/> <label for="encapsulation">Capsule</label><small class="help">The default 'schema' to use for new items.</small></li>
+                    <li class="setting"><input id="changingSuffix" class="inputDefaults" type="text" data-setting="setChangingSuffix"/> <label for="changingSuffix">Changing time suffix</label><small class="help">The suffix used for the columns that store changing time (versions).</small></li>
+                    <li class="setting"><input id="checksumSuffix" class="inputDefaults" type="text" data-setting="setChecksumSuffix"/> <label for="checksumSuffix">Checksum suffix</label><small class="help">The suffix used for the columns that store checksums.</small></li>
+                    <li class="setting"><input id="identitySuffix" class="inputDefaults" type="text" data-setting="setIdentitySuffix"/> <label for="identitySuffix">Identity suffix</label><small class="help">The suffix used for the columns that store identities.</small></li>
+                    <li class="setting"><input id="deletablePrefix" class="inputDefaults" type="text" data-setting="setDeletablePrefix"/> <label for="deletablePrefix">Deletable prefix</label><small class="help">The prefix used for the columns that enable deletion.</small></li>
+                    <li class="setting"><input id="deletionSuffix" class="inputDefaults" type="text" data-setting="setDeletionSuffix"/> <label for="deletionSuffix">Deletion suffix</label><small class="help">The suffix used for tables that contain deleted rows.</small></li>
+                    <li class="setting equivalence"><input id="equivalentSuffix" class="inputDefaults" type="text" data-setting="setEquivalentSuffix"/> <label for="equivalentSuffix">Equivalents suffix</label><small class="help">The suffix used for the columns that store equivalents.</small></li>
+                    <li class="setting metadata"><input id="metadataPrefix" class="inputDefaults" type="text" data-setting="setMetadataPrefix"/> <label for="metadataPrefix">Metadata prefix</label><small class="help">The prefix used for the columns that store a metadata reference.</small></li>
+                    <li class="setting bi crt"><input id="positingSuffix" class="inputDefaults" type="text" data-setting="setPositingSuffix"/> <label for="positingSuffix">Positing time suffix</label><small class="help">The suffix used for the column storing the point in time a posit was made.</small></li>
+                    <li class="setting crt"><input id="positorSuffix" class="inputDefaults" type="text" data-setting="setPositorSuffix"/> <label for="positorSuffix">Positor suffix</label><small class="help">The suffix used for the column storing the who made a posit.</small></li>
+                    <li class="setting bi crt"><input id="reliabilitySuffix" class="inputDefaults" type="text" data-setting="setReliabilitySuffix"/> <label for="reliabilitySuffix">Reliability suffix</label><small class="help">The suffix used for the column storing reliability.</small></li>
+                    <li class="setting bi crt"><input id="assertionSuffix" class="inputDefaults" type="text" data-setting="setAssertionSuffix"/> <label for="assertionSuffix">Assertion suffix</label><small class="help">The suffix used for the computed column storing a single character '+', '-', or '?', indicating whether an assertion is positive, negative, or completely uncertain.</small></li>
+                </ul>
+            </section>
+            <section id="settings-types" class="group">
+                <h3>Types and values</h3>
+                <p class="intro">The data types and the values used in the generated code.</p>
+                <ul class="fields">
+                    <li class="setting"><input id="defaultIdentity" class="inputDefaults" type="text" data-setting="setDefaultIdentity"/> <label for="defaultIdentity">Identity</label><small class="help">The default 'data type' to use for identity columns.</small></li>
+                    <li class="setting"><input id="defaultChangingRange" class="inputDefaults" type="text" data-setting="setDefaultChangingRange"/> <label for="defaultChangingRange">Changing time range</label><small class="help">The default changing time (versions) 'data type' for newly created and historized items.</small></li>
+                    <li class="setting"><input id="defaultChronon" class="inputDefaults" type="text" data-setting="setDefaultChronon"/> <label for="defaultChronon">Chronon</label><small class="help">The smallest common time type of all those used in the model.</small></li>
+                    <li class="setting"><input id="defaultNow" class="inputDefaults" type="text" data-setting="setDefaultNow"/> <label for="defaultNow">Now</label><small class="help">How to get current, UTC or desired timestamping time from the database.</small></li>
+                    <li class="setting equivalence"><input id="equivalentRange" class="inputDefaults" type="text" data-setting="setEquivalentRange"/> <label for="equivalentRange">Equivalents range</label><small class="help">The 'data type' of the equivalents column.</small></li>
+                    <li class="setting metadata"><input id="metadataType" class="inputDefaults" type="text" data-setting="setMetadataType"/> <label for="metadataType">Metadata type</label><small class="help">The 'data type' of the metadata column.</small></li>
+                    <li class="setting bi crt"><input id="positIdentity" class="inputDefaults" type="text" data-setting="setPositIdentityRange"/> <label for="positIdentity">Posit identity</label><small class="help">The 'data type' for identities of posits used throughout the implementation.</small></li>
+                    <li class="setting bi crt"><input id="positingRange" class="inputDefaults" type="text" data-setting="setPositingRange"/> <label for="positingRange">Positing time range</label><small class="help">The positing time (corrections) 'data type' used throughout the implementation.</small></li>
+                    <li class="setting crt"><input id="positorRange" class="inputDefaults" type="text" data-setting="setPositorRange"/> <label for="positorRange">Positor range</label><small class="help">The positor (one able to correct) 'data type' used throughout the implementation.</small></li>
+                    <li class="setting bi crt"><input id="reliabilityRange" class="inputDefaults" type="text" data-setting="setReliabilityRange"/> <label for="reliabilityRange">Reliability range</label><small class="help">A 'data type' that can hold the desired degrees of reliability: in crt from -1 (certainly not) through 0 (complete uncertainty) to 1 (certainly), in bi 0 or 1.</small></li>
+                    <li class="setting crt"><input id="defaultReliability" class="inputDefaults" type="text" data-setting="setDefaultReliability"/> <label for="defaultReliability">Default reliability</label><small class="help">The default value of reliability to use when it is not specified in an insert.</small></li>
+                    <li class="setting crt"><input id="deleteReliability" class="inputDefaults" type="text" data-setting="setDeleteReliability"/> <label for="deleteReliability">Complete uncertainty</label><small class="help">The default value of reliability to use when deleting information, which corresponds to being completely uncertain about a posit.</small></li>
+                </ul>
+            </section>
+            <section id="settings-new" class="group">
+                <h3>Defaults for new items</h3>
+                <p class="intro">What a construct gets when it is added to the model.</p>
+                <ul class="fields">
+                    <li class="setting"><input id="restatability" class="inputDefaults" type="checkbox" data-setting="setRestatability"/> <label for="restatability">Restatability</label><small class="help">Default for new items. Restatable items can store the exact same value for consecutive changing times. Unchecking this will introduce a constraint preventing restatements.</small></li>
+                    <li class="setting"><input id="idempotency" class="inputDefaults" type="checkbox" data-setting="setIdempotency"/> <label for="idempotency">Idempotency</label><small class="help">Default for new items. Idempotent items discard any attempt to insert or update a value that is identical to the latest one stored with respect to changing time.</small></li>
+                    <li class="setting uni"><input id="deletability" class="inputDefaults" type="checkbox" data-setting="setDeletability"/> <label for="deletability">Deletability</label><small class="help">Default for new items. Deletable items get additional update trigger logic, such that an update to null with a later changing time then the existing latest value will move rows into a corresponding deletion table.</small></li>
+                    <li class="setting feature-encryption"><input id="encryptionGroup" class="inputDefaults" type="text" data-setting="setEncryptionGroup"/> <label for="encryptionGroup">Encryption group</label><small class="help">Default for new items. Data may be encrypted at rest and this sets the default encryption group name for new items. A blank value indicates that no encryption should be used.</small></li>
+                    <li class="setting bi crt"><input id="assertiveness" class="inputDefaults" type="checkbox" data-setting="setAssertiveness"/> <label for="assertiveness">Assertiveness</label><small class="help">Default for new items. Assertive items get new annex rows every time a posit is made with a different positing time. Non-assertive items must also have a different reliability.</small></li>
+                </ul>
+                <div class="actions"><button type="button" data-action="Settings.resetDefaults" data-args='[true]' title="Resets the names, types and defaults to their default values.">Reset names, types and defaults</button></div>
+            </section>
+            <section id="settings-advanced" class="group">
+                <h3>Advanced</h3>
+                <p class="intro">The layout engine, for when the graph needs tuning, and a debug view of it.</p>
+                <ul class="fields" id="listOfSettings">
+                    <li class="setting"><input id="damping" type="number" min="0" max="99" step="1" data-setting="setDamping"/> <label for="damping">Damping <span class="unit">%</span></label><small class="help">Damping can be likened to friction and is needed in order to slow down the movement of the nodes.</small></li>
+                    <li class="setting"><input id="normalDistance" type="number" min="10" max="90" step="5" data-setting="setNormalDistance"/> <label for="normalDistance">Normal distance <span class="unit">px</span></label><small class="help">The normal distance is the distance in pixels two nodes would be separated by if they were the only nodes in the graph.</small></li>
+                    <li class="setting"><input id="stoppingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setStoppingVelocity"/> <label for="stoppingVelocity">Stopping velocity <span class="unit">px/s</span></label><small class="help">Any node whose velocity is smaller than this number is assumed to have stopped.</small></li>
+                    <li class="setting"><input id="minimumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMinimumStartingVelocity"/> <label for="minimumStartingVelocity">Minimum starting velocity <span class="unit">px/s</span></label><small class="help">The velocity needed for a stopped node to start moving again in a small graph.</small></li>
+                    <li class="setting"><input id="maximumStartingVelocity" type="number" min="0" max="9" step="0.1" data-setting="setMaximumStartingVelocity"/> <label for="maximumStartingVelocity">Maximum starting velocity <span class="unit">px/s</span></label><small class="help">The velocity needed for a stopped node to start moving again in a large graph.</small></li>
+                    <li class="setting"><input id="partitionFactor" type="number" min="0" max="100" step="1" data-setting="setPartitionFactor"/> <label for="partitionFactor">Partition size</label><small class="help">The size of space partitions in number of normal distances.</small></li>
+                    <li class="setting"><input id="fuzziness" type="number" min="0" max="100" step="1" data-setting="setFuzziness"/> <label for="fuzziness">Fuzziness <span class="unit">%</span></label><small class="help">The 'fuzziness' within which the size of the partitions are altered.</small></li>
+                    <li class="setting"><input id="longRangeEffect" type="number" min="0" max="100" step="1" data-setting="setLongRangeEffect"/> <label for="longRangeEffect">Long range effect <span class="unit">%</span></label><small class="help">The effect of the force from other partitions on nodes in the current partition.</small></li>
+                    <li class="setting"><input id="stiffness" type="number" min="0" max="10" step="0.1" data-setting="setStiffness"/> <label for="stiffness">Edge stiffness factor</label><small class="help">The stiffness of the edges control whether they behave like rubber bands or steel wires.</small></li>
+                    <li class="setting"><input id="miniatureFramesBetweenRefresh" type="number" min="1" max="99" step="1" data-setting="setMiniRate"/> <label for="miniatureFramesBetweenRefresh">Miniature refresh interval</label><small class="help">The number of frame redraws needed in the large SVG to trigger a redraw of the miniature.</small></li>
+                    <li class="setting" id="calcsItem"><select id="calculations" data-setting="setCalculations"> <option value="simple" selected="selected">Simplified</option> <option value="complex">Adjustable</option> </select> <label for="calculations">Calculations</label><small class="help">Switching on advanced calculations lets you set more properties of nodes and edges, but at the cost of some performance.</small></li>
+                </ul>
+                <div class="actions"><button type="button" data-action="Settings.resetSettings" data-args='[true]' title="Resets the layout settings to their default values.">Reset layout settings</button> <button type="button" data-action="Settings.toggleDebug" title="In debug mode the force vectors are drawn in the graph.">Toggle debug</button></div>
+            </section>
+                <p id="settingsNone" class="none" hidden>No setting matches.</p>
+            </div>
+        </div>
+    </dialog>
     <!-- shows a navigatable miniature of the model -->
     <div id="miniature">
         <svg id="minigraph"
