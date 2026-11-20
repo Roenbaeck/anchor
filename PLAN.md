@@ -420,8 +420,20 @@ the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flag
   Every field keeps its id and its `data-setting`, so `Settings.js` is unchanged; the wiring test shows that all 52 fields call
   what they called (the golden values moved from the menus to the dialog, equal). Esc, the close button and a click beside the
   dialog close it. Tests: the bar holds only the search fields, the dialog opens on a group, finds, changes a setting, closes.
-- **Next:** step 3 readable graph (hit areas, halos); step 4 the menubar for the keyboard (`role`, arrow keys) and the focus
-  order into the graph.
+- **Step 3, skipped on purpose.** After testing, the owner finds the graph readable and has no trouble hitting what they aim
+  for with the pointer, so larger hit areas and more label work are not needed. (The halos, the consistent edge colour and the
+  tokens for the graph came with step 1.)
+- **Step 4, done: the keyboard and the screen reader.** The names in the bar are buttons (`aria-haspopup`, `aria-expanded`),
+  the lists are `role="menu"` with `role="menuitem"` items, and there is a roving tabindex: Tab reaches the bar once, ← → move
+  between the menus (and open the next one if a menu is open), ↓ ↑ Enter Space open a menu, Home End and ↓ ↑ move through the
+  items (letters go to the next item that starts with them), Enter or Space does what the item says and the menu closes with
+  the focus back on its name, Esc closes (the focus returns), Tab leaves. A click opens and closes a menu, as it must where
+  there is nothing to hover with. The graph is reached with Tab (a frame shows when the keyboard put the focus there) and moves
+  with ← → ↓ ↑ (shift: larger steps), `+` `-` zoom and `0` shows the whole model again. A polite live region says what is not
+  otherwise said: undo and redo (with how many more), the layout paused or running, implode and explode all, the theme. Focus
+  rings are the accent, everywhere. The shortcuts page lists the keys. Choosing a node with the keyboard (to edit it, without
+  the hover) is the focus-based way in of Phase 3, not here. Tests: roles and tabindex, every key above, the graph keys and the
+  announcements.
 
 - **Design tokens as CSS custom properties** (colour, spacing, radius, type scale), light and dark, following
   `prefers-color-scheme` with a manual override. Keep the brand red as the accent only, not as the toolbar fill.

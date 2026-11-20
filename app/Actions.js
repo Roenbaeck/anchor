@@ -10,6 +10,14 @@ export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
     },
+    // what the page does that does not say itself (undo, redo, the layout, the theme), for those who do not see it happen;
+    // the region is emptied first so that the same words are read again when they are the same
+    announce: function(text) {
+        var region = document.getElementById('announcer');
+        if(!region) return;
+        region.textContent = '';
+        setTimeout(function() { region.textContent = text; }, 50);
+    },
     stopKeyboardEvents: function() {
         window.removeEventListener('keydown', EventHandler.keydown, false);
     },
@@ -433,6 +441,7 @@ export var Actions = {
     },
     toggleTheme: function() {
         this.applyTheme(Actions.currentTheme === 'dark' ? 'light' : 'dark');
+        Actions.announce(Actions.currentTheme === 'dark' ? 'Dark theme' : 'Light theme');
     },
     initTheme: function(theme) {
         if(theme === 'dark') this.applyTheme('dark');
@@ -511,6 +520,7 @@ export var Actions = {
         }
         EventHandler.clearSelection();
         Model.explode(allComponents);
+        Actions.announce('All anchors and nexuses are imploded');
     },
     explodeAll: function() {
         var i, component, allComponents = [];
@@ -519,6 +529,7 @@ export var Actions = {
                 allComponents.push(component);
         }
         Model.explode(allComponents);
+        Actions.announce('All anchors and nexuses are exploded');
     },
     // What menu items do that takes more than one call. The markup only names a function (see Wiring.js).
     chooseModelFile: function() {

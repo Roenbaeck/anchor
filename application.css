@@ -555,7 +555,7 @@ legend {
 .menu {
     position:           relative;
     margin:             0;
-    padding:            0 var(--space-3);
+    padding:            0;
     height:             calc(var(--bar-height) - 12px);
     line-height:        calc(var(--bar-height) - 12px);
     border-radius:      var(--radius-s);
@@ -563,8 +563,20 @@ legend {
     display:            inline-block;
     white-space:        nowrap;
 }
-.menu:hover, .menu:focus-within {
+.menu:hover, .menu.open {
     background-color:   var(--hover);
+}
+/* the name of a menu is a button, so that the keyboard reaches it */
+.menulabel {
+    font:               inherit;
+    color:              inherit;
+    height:             100%;
+    margin:             0;
+    padding:            0 var(--space-3);
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    cursor:             pointer;
 }
 .submenu {
     display:            none;
@@ -592,7 +604,7 @@ legend {
     left:               auto;
     right:              0;
 }
-.menu:hover > .submenu, .menu:focus-within > .submenu {
+.menu:hover > .submenu, .menu.open > .submenu {
     display:            block;
 }
 .submenu li {
@@ -604,8 +616,11 @@ legend {
     cursor:             pointer;
     text-align:         left;
 }
-.submenu li:hover {
+.submenu li:hover, .submenu li:focus {
     background-color:   var(--hover);
+}
+.submenu li:focus-visible {
+    outline-offset:     -2px;
 }
 .submenu li:active {
     background-color:   var(--pressed);
@@ -960,4 +975,23 @@ body.dark #themeToggle .moon { display: none; }
     #modelSettings .fields .help { grid-column: 1; }
     #modelSettings .fields li:has(> input[type=checkbox]) { grid-template-columns: 22px 1fr; }
     #modelSettings .fields li:has(> input[type=checkbox]) .help { grid-column: 2; }
+}
+
+/* what a screen reader is told and the eye does not need */
+.visually-hidden {
+    position:           absolute;
+    width:              1px;
+    height:             1px;
+    margin:             -1px;
+    padding:            0;
+    overflow:           hidden;
+    clip:               rect(0 0 0 0);
+    white-space:        nowrap;
+    border:             0;
+}
+/* the graph has the focus: a frame inside the window, only when the keyboard put it there */
+#graph:focus { outline: none; }
+#graph:focus-visible {
+    outline:            2px solid var(--accent);
+    outline-offset:     -3px;
 }

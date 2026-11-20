@@ -3,6 +3,7 @@ import { SVG } from './config.js';
 import { Model } from './Model.js';
 import { DrawingEngine } from './DrawingEngine.js';
 import { init } from './init.js';
+import { Actions } from './Actions.js';
 export var ControlButtons = {
     playPauseButton: null,
     nudgeButton: null,
@@ -46,6 +47,7 @@ export var ControlButtons = {
         if(DrawingEngine.running) {
             DrawingEngine.stop();
             this.setPlayState();
+            Actions.announce('The layout is paused');
         }
         else {
             if (LayoutEngine.equilibrium) {
@@ -53,6 +55,7 @@ export var ControlButtons = {
             }
             DrawingEngine.start(true);
             this.setPauseState();
+            Actions.announce('The layout is running');
         }
     },
     setUndoLevels: function(numberOfLevels) {
@@ -67,10 +70,12 @@ export var ControlButtons = {
     undo: function() {
         Model.undoState();
         DrawingEngine.start(false);
+        Actions.announce('Undone, ' + Math.max(0, Model.version) + ' more can be undone');
     },
     redo: function() {
         Model.redoState();
         DrawingEngine.start(false);
+        Actions.announce('Redone, ' + Math.max(0, Model.versions.length - Model.version - 1) + ' more can be redone');
     },
     setPlayState: function() {
         // paused: the button offers to run the layout again

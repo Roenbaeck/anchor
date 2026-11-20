@@ -9,6 +9,7 @@ import { Settings } from './Settings.js';
 import { ControlButtons } from './ControlButtons.js';
 import { Layer } from './Layer.js';
 import { Wiring } from './Wiring.js';
+import { Menus } from './Menus.js';
 // make sure our init function is called when the page is loaded
 window.onload = function() {
     init(this);
@@ -49,6 +50,7 @@ export function init(window) {
     // assign event handlers to buttons
     ControlButtons.init();
     Wiring.init();
+    Menus.init();
     LayoutEngine.init();
 
     // set the global svg and graph variable
@@ -73,6 +75,7 @@ export function init(window) {
     // set up "global" event handlers
     SVG.addEventListener('wheel', EventHandler.zoom, false);
     SVG.addEventListener('mousedown', EventHandler.preparePanning, false);
+    SVG.addEventListener('keydown', EventHandler.keyboardView, false);
 
     // set up the miniature navigation
     setNAV(document.getElementById("minigraph"));

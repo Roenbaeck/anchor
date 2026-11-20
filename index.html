@@ -94,6 +94,7 @@
 <body data-server-no-reload>
     <svg id="graph"
          class="unselectable"
+         tabindex="0" role="application" aria-label="Model graph. The arrow keys move the view, plus and minus zoom, 0 shows the whole model again."
          xmlns="http://www.w3.org/2000/svg"
          version="1.1"
          viewBox="0 0 1 1"
@@ -131,44 +132,43 @@
 
     <div id="disclaimer" class="unselectable">TEST VERSION <span id="disclaimerVersion"></span></div>
 
-    <div id="header" class="unselectable">
-        <div id="file" class="menu">File
-            <ul class="submenu">
-                <li title="Discards the current model and starts a new model with a minimal setup, a single anchor." data-action="Actions.newModel">New model...</li>
-                <script>/* updated below */</script>
-                <li title="Load a model from an XML file accessible from your local computer." role="menuitem" tabindex="0" aria-haspopup="dialog" data-action="Actions.chooseModelFile">Load model from local file...</li>
-                <li title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." data-action="Actions.saveSettingsInBrowser">Save settings in browser cache...</li>
-                <li title="Save model XML definition to disk." data-action="Actions.saveModelToDisk">Save model to local file...</li>
-                <li title="Save model Scalable Vector Graphics file to disk." data-action="Actions.saveSVGToDisk">Save SVG to local file...</li>
-                <li title="Sends an email with the XML description of the model to a specified recipient." data-action="Actions.mailModel">Send model by email...</li>
-                <li title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." data-action="Actions.shareModel">Share model link...</li>
-                <li title="Loads an example model based on a business managing actors that perform programs on different stages." data-action="Actions.loadFromURL" data-args='["example.xml", true]'>Load example model</li>
+    <div id="header" class="unselectable" role="banner">
+        <div id="file" class="menu"><button type="button" class="menulabel" aria-haspopup="menu" aria-expanded="false">File</button>
+            <ul class="submenu" role="menu" aria-label="File">
+                <li role="menuitem" tabindex="-1" title="Discards the current model and starts a new model with a minimal setup, a single anchor." data-action="Actions.newModel">New model...</li>
+                <li role="menuitem" tabindex="-1" title="Load a model from an XML file accessible from your local computer." aria-haspopup="dialog" data-action="Actions.chooseModelFile">Load model from local file...</li>
+                <li role="menuitem" tabindex="-1" title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." data-action="Actions.saveSettingsInBrowser">Save settings in browser cache...</li>
+                <li role="menuitem" tabindex="-1" title="Save model XML definition to disk." data-action="Actions.saveModelToDisk">Save model to local file...</li>
+                <li role="menuitem" tabindex="-1" title="Save model Scalable Vector Graphics file to disk." data-action="Actions.saveSVGToDisk">Save SVG to local file...</li>
+                <li role="menuitem" tabindex="-1" title="Sends an email with the XML description of the model to a specified recipient." data-action="Actions.mailModel">Send model by email...</li>
+                <li role="menuitem" tabindex="-1" title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." data-action="Actions.shareModel">Share model link...</li>
+                <li role="menuitem" tabindex="-1" title="Loads an example model based on a business managing actors that perform programs on different stages." data-action="Actions.loadFromURL" data-args='["example.xml", true]'>Load example model</li>
             </ul>
         </div>
 
-        <div id="actions" class="menu">Layout
-            <ul class="submenu">
-                <li title="Toggle whether names should be visible in the modeler or not." data-action="Actions.toggleNames">Toggle names</li>
-                <li title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." data-action="Actions.toggleMnemonics">Toggle mnemonics</li>
-                <li title="Toggle whether coloring of edges should be visible or not." data-action="Actions.toggleColoring">Toggle coloring</li>
-                <li title="Toggle whether key routes should be visible or not." data-action="Actions.toggleKeys">Toggle keys</li>
-                <li title="Release all fixed nodes and fixate all released nodes." data-action="Actions.toggleFixation">Toggle fixation</li>
-                <li title="Release all fixed nodes." data-action="Actions.releaseAll">Release all fixed</li>
-                <li title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." data-action="Actions.implodeAll">Implode all</li>
-                <li title="Unhide all hidden attributes and knots." data-action="Actions.explodeAll">Explode all</li>
-                <li title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." data-action="Actions.resetView">Reset view</li>
-                <li title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." data-action="Actions.randomizeLayout">Randomize layout</li>
+        <div id="actions" class="menu"><button type="button" class="menulabel" aria-haspopup="menu" aria-expanded="false">Layout</button>
+            <ul class="submenu" role="menu" aria-label="Layout">
+                <li role="menuitem" tabindex="-1" title="Toggle whether names should be visible in the modeler or not." data-action="Actions.toggleNames">Toggle names</li>
+                <li role="menuitem" tabindex="-1" title="Toggle whether full names including mnemonics or short names excluding mnemonics should be used." data-action="Actions.toggleMnemonics">Toggle mnemonics</li>
+                <li role="menuitem" tabindex="-1" title="Toggle whether coloring of edges should be visible or not." data-action="Actions.toggleColoring">Toggle coloring</li>
+                <li role="menuitem" tabindex="-1" title="Toggle whether key routes should be visible or not." data-action="Actions.toggleKeys">Toggle keys</li>
+                <li role="menuitem" tabindex="-1" title="Release all fixed nodes and fixate all released nodes." data-action="Actions.toggleFixation">Toggle fixation</li>
+                <li role="menuitem" tabindex="-1" title="Release all fixed nodes." data-action="Actions.releaseAll">Release all fixed</li>
+                <li role="menuitem" tabindex="-1" title="Hide attributes from anchors, and knots from both anchors and ties, in order to get a better overview of larger models." data-action="Actions.implodeAll">Implode all</li>
+                <li role="menuitem" tabindex="-1" title="Unhide all hidden attributes and knots." data-action="Actions.explodeAll">Explode all</li>
+                <li role="menuitem" tabindex="-1" title="Lost in your model? Resetting the view will center your model on screen and set the zoom back to its default value." data-action="Actions.resetView">Reset view</li>
+                <li role="menuitem" tabindex="-1" title="Having trouble finding a good layout? This will randomize the locations of all items and let the algorithms do the work." data-action="Actions.randomizeLayout">Randomize layout</li>
             </ul>
         </div>
 
-        <div id="generate" class="menu">Generate
-            <ul class="submenu">
-                <li title="Generate SQL code for implementation of a model in a relational database." data-action="Actions.generateSQL">SQL code</li>
-                <li title="Generate a portable and compact XML representation of your model, including information about the graphical layout." data-action="Actions.generateXML">XML code</li>
-                <li title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." data-action="Actions.generateBindings">JSON bindings</li>
-                <li title="Generate an HTML legend that describes the items in your model." data-action="Actions.generateHTML">HTML documentation</li>
-                <li title="Generate a vector image of the entire model." data-action="Actions.screenshotSVG">SVG screenshot</li>
-                <li title="The target database, the temporalization, the names and the features that the generated code is made with." data-action="Actions.openModelSettings" data-args='["target"]'>Settings for the code...</li>
+        <div id="generate" class="menu"><button type="button" class="menulabel" aria-haspopup="menu" aria-expanded="false">Generate</button>
+            <ul class="submenu" role="menu" aria-label="Generate">
+                <li role="menuitem" tabindex="-1" title="Generate SQL code for implementation of a model in a relational database." data-action="Actions.generateSQL">SQL code</li>
+                <li role="menuitem" tabindex="-1" title="Generate a portable and compact XML representation of your model, including information about the graphical layout." data-action="Actions.generateXML">XML code</li>
+                <li role="menuitem" tabindex="-1" title="Generate the JSON that the Sisula templates of the selected target database and temporalization take as input: the model with names, flags and counts resolved, for use in a program or with the Sisula engine." data-action="Actions.generateBindings">JSON bindings</li>
+                <li role="menuitem" tabindex="-1" title="Generate an HTML legend that describes the items in your model." data-action="Actions.generateHTML">HTML documentation</li>
+                <li role="menuitem" tabindex="-1" title="Generate a vector image of the entire model." data-action="Actions.screenshotSVG">SVG screenshot</li>
+                <li role="menuitem" tabindex="-1" title="The target database, the temporalization, the names and the features that the generated code is made with." data-action="Actions.openModelSettings" data-args='["target"]'>Settings for the code...</li>
             </ul>
         </div>
 
@@ -196,10 +196,10 @@
         </div>
 
 
-        <div id="about" class="menu end">Help
-            <ul class="submenu">
-                <li title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." data-action="Actions.openTutorials">Tutorials</li>
-                <li title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." data-action="Actions.openAbout">About</li>
+        <div id="about" class="menu end"><button type="button" class="menulabel" aria-haspopup="menu" aria-expanded="false">Help</button>
+            <ul class="submenu" role="menu" aria-label="Help">
+                <li role="menuitem" tabindex="-1" title="Takes you to a page containing a number of video tutorials explaining how to use the modeling tool." data-action="Actions.openTutorials">Tutorials</li>
+                <li role="menuitem" tabindex="-1" title="Shows a page with information about who coded the modeling tool, where it can be found, and the available keyboard shortcuts." data-action="Actions.openAbout">About</li>
             </ul>
         </div>
     </div>
@@ -385,6 +385,8 @@
     </div>
     <!-- Hidden file input for loading local model files (single file only) -->
     <input id="modelFileInput" type="file" accept=".xml,text/xml,application/xml" style="display:none" aria-hidden="true" />
+    <!-- Live region for what the page does: undo, redo, layout, theme (see Actions.announce) -->
+    <div id="announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
     <!-- Live region for announcing loaded filename (improves accessibility) -->
     <div id="fileLoadStatus" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" aria-live="polite" aria-atomic="true"></div>
     <div id="serverNotice" style="display:none">

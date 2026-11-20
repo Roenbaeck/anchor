@@ -10,6 +10,7 @@ import { Features } from './Features.js';
 import { Settings } from './Settings.js';
 import { ControlButtons } from './ControlButtons.js';
 import { Wiring } from './Wiring.js';
+import { Menus } from './Menus.js';
 import { save } from './init.js';
 import { VERSION, SVG, SVGLayer, NAV, NAVLayer } from './config.js';
 import { Component } from './Component.js';
@@ -65,7 +66,7 @@ Model.surroundings = {
 
 var exposed = { Model: Model, DrawingEngine: DrawingEngine, Editables: Editables, EventHandler: EventHandler, Operations: Operations,
     TabularEditor: TabularEditor, Actions: Actions, Features: Features, Settings: Settings, ControlButtons: ControlButtons,
-    Wiring: Wiring, save: save, VERSION: VERSION, Component: Component };
+    Wiring: Wiring, Menus: Menus, save: save, VERSION: VERSION, Component: Component };
 Object.keys(exposed).forEach(function(name) { window[name] = exposed[name]; });
 // these are set when the page has loaded, so they are read when they are asked for
 Object.defineProperty(window, 'SVG', { configurable: true, get: function() { return SVG; } });

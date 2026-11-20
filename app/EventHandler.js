@@ -48,6 +48,34 @@ export var EventHandler = {
         }
         this.setInteraction(null);
     },
+    // the graph can be reached with Tab; when it has the focus the arrow keys move the view, plus and minus zoom and 0 shows
+    // the whole model again (shift makes the steps larger)
+    keyboardView: function (event) {
+        if(event.ctrlKey || event.metaKey || event.altKey || event.isComposing)
+            return;
+        var box = SVG.viewBox.baseVal, step = event.shiftKey ? 0.3 : 0.1, zoom = 0;
+        switch(event.key) {
+            case 'ArrowLeft': box.x -= box.width * step; break;
+            case 'ArrowRight': box.x += box.width * step; break;
+            case 'ArrowUp': box.y -= box.height * step; break;
+            case 'ArrowDown': box.y += box.height * step; break;
+            case '+': case '=': zoom = 1 / 1.75; break;
+            case '-': case '_': zoom = 1.75; break;
+            case '0': Actions.resetView(); event.preventDefault(); return;
+            default: return;
+        }
+        if(zoom) {
+            var w = box.width, h = box.height;
+            box.x += w * (1 - zoom) / 2;
+            box.y += h * (1 - zoom) / 2;
+            box.width = w * zoom;
+            box.height = h * zoom;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        DrawingEngine.invalidateMiniature();
+        DrawingEngine.start(false);
+    },
     escape: function (event) {
         if (event.key === 'Escape') {
             // an open dialog (the SQL, a page, the mass editor) is closed first, as its close button does
