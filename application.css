@@ -19,6 +19,7 @@ body {
     --space-4:          16px;
     --radius:           6px;
     --radius-s:         4px;
+    --bar-row:          40px;       /* a row of the bar; the bar has two on a narrow screen */
     --bar-height:       40px;
 
     /* the interface: canvas, panels, lines, text, and the one accent color */
@@ -556,8 +557,8 @@ legend {
     position:           relative;
     margin:             0;
     padding:            0;
-    height:             calc(var(--bar-height) - 12px);
-    line-height:        calc(var(--bar-height) - 12px);
+    height:             calc(var(--bar-row) - 12px);
+    line-height:        calc(var(--bar-row) - 12px);
     border-radius:      var(--radius-s);
     cursor:             pointer;
     display:            inline-block;
@@ -793,14 +794,6 @@ body.dark ::-webkit-scrollbar { width:10px; }
 body.dark ::-webkit-scrollbar-track { background:var(--surface-sunken); }
 body.dark ::-webkit-scrollbar-thumb { background:var(--border); border-radius:5px; }
 body.dark ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
-
-/* On a screen without a mouse the bar is bigger to touch; the rest of the small screen work is Phase 4 of PLAN.md */
-@media (pointer: coarse) {
-    #header { flex-wrap: wrap; height: auto; min-height: var(--bar-height); }
-    .menu { height: 36px; line-height: 36px; }
-    #controls button { width: 40px; height: 40px; }
-    .submenu li { min-height: 36px; line-height: 36px; }
-}
 
 /* the theme button shows the sun in the dark theme, the moon in the light theme */
 #themeToggle .sun { display: none; }
@@ -1046,7 +1039,7 @@ body.panel-open #model { right: calc(var(--panel-width) + 16px); }
 #panel .close:hover { background: var(--hover); }
 #panel .close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 #outlineTree {
-    flex:               1 1 50%;
+    flex:               1 1 0;
     min-height:         0;
     overflow:           auto;
     margin:             0;
@@ -1081,7 +1074,8 @@ body.panel-open #model { right: calc(var(--panel-width) + 16px); }
 #outlineTree .note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--text-s); }
 #outlineTree .note::before { content: "\2192\00a0"; }
 #panel .properties {
-    flex:               1 1 50%;
+    flex:               0 1 auto;
+    max-height:         55%;
     min-height:         0;
     overflow:           auto;
     padding:            var(--space-2) var(--space-3) var(--space-4);
@@ -1179,7 +1173,7 @@ body.panel-wide { --panel-width: 560px; }
     background:         var(--accent);
 }
 #panel .tabs .count:empty { display: none; }
-#problemView { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; }
+#problemView { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 #problemView .problembar { flex: none; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: var(--text-s); }
 #problemView.bad .problembar { color: var(--accent); font-weight: 600; }
 #problemList { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: var(--space-1) 0; }
@@ -1308,3 +1302,73 @@ body.panel-wide { --panel-width: 560px; }
 #docView .close:hover { background: var(--hover); }
 #docView .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 #docView iframe { flex: 1 1 auto; min-height: 0; border: 0; background: #fff; }
+
+/* ==========================================================================
+   Screens of other sizes (Phase 4 of PLAN.md). The layout follows the width of the window, the size of what is touched follows
+   the pointer: a finger needs 44 px, a mouse does not.
+   ========================================================================== */
+#header .break { display: none; }
+
+/* a tablet, or a window that is not wide: the panel is a sheet at the bottom, the search is in the outline, the picture of the
+   whole model is kept where it is not in the way */
+@media (max-width: 900px) {
+    #search { display: none; }
+    #panel {
+        top:                auto;
+        left:               0;
+        right:              0;
+        bottom:             0;
+        width:              auto;
+        height:             min(52vh, 560px);
+        border-left:        0;
+        border-top:         1px solid var(--border);
+        border-radius:      var(--radius) var(--radius) 0 0;
+    }
+    body.panel-open #miniature, body.panel-open #model, body.panel-open #logotype { display: none; }
+    #panel .properties { max-height: 42%; }
+    #docView .head { flex-wrap: wrap; }
+}
+
+/* a phone: the bar is two rows (the menus, then the controls), and there is no room for the picture of the whole model */
+@media (max-width: 700px) {
+    body { --bar-height: 80px; }
+    #header { flex-wrap: wrap; align-content: stretch; }
+    #header .break { display: block; order: 4; flex: 0 0 100%; height: 0; }
+    #header .spacer { order: 2; }
+    #file, #actions, #generate { order: 1; }
+    #about { order: 3; }
+    #controls { order: 5; margin-left: 0; }
+    #tools { order: 6; margin-left: auto; }
+    #miniature, #logotype { display: none; }
+    #model { right: 6px; max-width: calc(100vw - 12px); }
+    #disclaimer { left: 6px; }
+}
+
+/* a pointer that is a finger: what is touched is large enough to be touched */
+@media (pointer: coarse) {
+    .toolbar button { width: 44px; height: 44px; }
+    .menulabel { padding: 0 var(--space-4); }
+    .submenu li { min-height: 44px; line-height: 44px; }
+    .operator { line-height: 40px; }
+    #outlineTree .line { min-height: 44px; }
+    #panel .tabs button { min-height: 44px; }
+    #panel .close, #modelSettings .close, #agentPaste .close, #modelStore .close, #docView .close { width: 44px; height: 44px; }
+    #panel .properties .operations button, #modelSettings .actions button, #modelSettings nav button,
+    #agentPaste .foot button, #modelStore #storeList button, #docView .head button, #xmlView .xmlbar button { min-height: 44px; }
+    #problemList button.problem { min-height: 44px; }
+    input:not([type=checkbox]):not([type=radio]), select { min-height: 40px; }
+    input[type=checkbox] { width: 22px; height: 22px; }
+}
+
+/* fingers: the graph and the miniature are for the fingers, not for the scrolling and the zooming of the page (see app/Gestures.js);
+   the shapes have a larger circle around them to hit, that is not there for a mouse */
+#graph, #minigraph, #miniature { touch-action: none; }
+#graph .hit { fill: transparent; stroke: none; r: 0; pointer-events: all; }
+@media (pointer: coarse) {
+    #graph .hit { r: 24px; }
+}
+/* the context menu of a long press is a sheet on a phone */
+@media (max-width: 700px) {
+    #contextMenu { max-width: calc(100vw - 16px); }
+    #contextMenu .items input:not([type=checkbox]), #contextMenu .items select { max-width: 52vw; }
+}

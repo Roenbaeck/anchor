@@ -532,6 +532,30 @@ tested.
 
 ### 4.5 Phase 4: touch and small screens (M to L, needs 4.2 and 4.3)
 
+**Status of Phase 4** (built on the branch `touch`; tested on a phone by the owner, not yet on a tablet; merged as 1.0.1)
+
+- **Step 1, done: the shell follows the size of the window.** At 900 px and below the panel is a sheet at the bottom (about half
+  the height, the properties take at most 42 % of it), the search field goes (the outline has a filter) and the miniature and
+  the logotype make way for the panel; at 700 px and below the bar is two rows (menus and Help, then the controls and tools)
+  and the miniature and the logotype are gone. What is selected is brought to the middle of the part of the window that can be
+  seen (not under the bar, not under the panel), also on a desktop with the panel at the side (`Actions.visibleArea`). A pointer
+  that is a finger (`pointer: coarse`) gets 44 px targets for the controls, menu items, tree rows, tabs, buttons and fields.
+  The old rule that stacked all menus open is gone (since 1.0.0). Tests start the page in frames of 390, 820 and 1440 px (a browser
+  window is never narrower than 500 px, and a page's media queries follow its frame) and check that the bar, the menus, the panel,
+  the dialogs and the selected anchor are in view at each size.
+- **Step 2, done: what a finger does** (`app/Gestures.js`, Pointer Events, for fingers and pens only; the mouse keeps the hover
+  and the keys, which are untouched, so nothing that worked with a mouse can have changed). One finger on the background moves the
+  view; a tap on a construct selects it and brings up its properties in the panel (a tap again, or on the background, lets go), and
+  the construct is kept in view above the sheet; a finger that moves a construct moves it and leaves it fixed where it was put; a
+  finger held on a construct adds it to the selection (or takes it out) and opens its context menu, which is how several are
+  selected; two fingers zoom (pinch about the point between them) and move the view; a finger on the miniature puts the middle of
+  the view there and follows. A touch on the graph closes an open menu. The graph has `touch-action: none`; the shapes have a
+  larger invisible circle to hit (24 px) on a finger only. The context menu stays inside the window, and a touch beside it closes
+  it (also a click, for a mouse). Tests send Pointer Events of the type touch, and show that a mouse is not taken for a finger.
+- **Decided earlier, so as built:** phones view and rename (the panel's fields), tablets light editing (the panel's operations,
+  drag, hold to select several).
+- **Not done, on purpose:** the old mouse code is not rewritten onto Pointer Events. A mouse and a finger are two paths, because the
+  hover and key way of working has no counterpart on a finger, and a rewrite would risk what was tested.
 Aim first for **view and light edit on tablets**, and for a phone that can *view and rename*. Full structural editing on
 a phone is a stretch goal.
 

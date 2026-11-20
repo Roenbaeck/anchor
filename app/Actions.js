@@ -569,9 +569,24 @@ export var Actions = {
     centerModelOn: function(node) {
         this.centerModelAt(node.xPosition, node.yPosition);
     },
+    // the part of the window where the graph can be seen: not under the bar, nor under the panel (at the side of the window, or a
+    // sheet at the bottom of it), in pixels of the window
+    visibleArea: function() {
+        var area = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
+        var header = document.getElementById('header'), panel = document.getElementById('panel');
+        if(header) { var h = header.getBoundingClientRect().bottom; area.y = h; area.height -= h; }
+        if(panel && !panel.hidden) {
+            var box = panel.getBoundingClientRect();
+            if(box.width < window.innerWidth * 0.9) area.width -= box.width;
+            else area.height -= box.height;
+        }
+        return area;
+    },
     centerModelAt: function(x, y) {
-        SVG.viewBox.baseVal.x = x - SVG.viewBox.baseVal.width/2;
-        SVG.viewBox.baseVal.y = y - SVG.viewBox.baseVal.height/2;
+        // what is put in the middle of the part that can be seen
+        var area = Actions.visibleArea();
+        SVG.viewBox.baseVal.x = x - (area.x + area.width / 2) * SVG.viewBox.baseVal.width / window.innerWidth;
+        SVG.viewBox.baseVal.y = y - (area.y + area.height / 2) * SVG.viewBox.baseVal.height / window.innerHeight;
         DrawingEngine.invalidateMiniature();
         DrawingEngine.start(false);
     },
