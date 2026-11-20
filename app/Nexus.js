@@ -21,7 +21,7 @@ export function Nexus(x, y) {
     this.editables.push(Editables.generatorEdit);
     this.operations.push('addAttribute','addKnot','addAnchor','explode', 'addToKey', 'createKey');
     // how it looks, for its view (a nexus is given its shape when it is drawn)
-    this.look = { ref: '#nexus', implodedRef: '#nexus_imploded', drawsShape: true, xOffset: 6, yOffset: 0, navComponent: true, nameClass: 'nexus' };
+    this.look = { ref: '#nexus', implodedRef: '#nexus_imploded', xOffset: 6, yOffset: 0, navComponent: true, nameClass: 'nexus' };
     this.attachView();
     this.setNameable(true);
     this.postCreationInitialization();
@@ -69,6 +69,8 @@ Nexus.prototype = {
         else {
             this.operations.push('addAttribute');
         }
+        if(this.view)
+            this.view.setImploded(imploded);
     },
     toXML: function(schema) {
         // create a nexus element

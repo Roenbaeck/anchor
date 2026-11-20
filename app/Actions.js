@@ -568,6 +568,10 @@ export var Actions = {
     togglePanel: function() {
         Outline.toggle();
     },
+    // the panel shows the outline of the model ('outline') or its XML ('xml')
+    showPanelView: function(name) {
+        Outline.showView(name);
+    },
     // MODEL SETTINGS -------------------------------------------------
     // The dialog holds the settings of the generated code (target, features, names, types, defaults for new items) and of the
     // layout engine. It is a modal <dialog>: the browser holds the focus in it and closes it on Escape.

@@ -61,6 +61,7 @@
     <script type="text/javascript" src="modules/Objectifier.js"></script>
     <script type="text/javascript" src="modules/Resolver.js"></script>
     <script type="text/javascript" src="modules/sisula.js"></script>
+    <script type="text/javascript" src="modules/ModelCheck.js"></script>
     <!-- run some checks first -->
     <script type="text/javascript">
         // <!--
@@ -317,14 +318,29 @@
         </div>
     </dialog>
     <!-- the outline of the model, and the properties of what is selected (see app/Outline.js) -->
-    <aside id="panel" aria-label="Outline and properties" hidden>
+    <aside id="panel" aria-label="Outline, XML and problems" hidden>
         <div class="panelhead">
-            <h2>Outline</h2>
-            <input id="outlineFilter" type="search" placeholder="Filter" aria-label="Filter the outline" autocomplete="off"/>
-            <button type="button" class="close" data-action="Actions.togglePanel" aria-label="Close the outline" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="tabs" role="tablist" aria-label="Views of the model">
+                <button type="button" role="tab" id="tab-outline" aria-selected="true" aria-controls="view-outline" data-action="Actions.showPanelView" data-args='["outline"]'>Outline</button>
+                <button type="button" role="tab" id="tab-xml" aria-selected="false" aria-controls="view-xml" tabindex="-1" data-action="Actions.showPanelView" data-args='["xml"]'>XML</button>
+            </div>
+            <button type="button" class="close" data-action="Actions.togglePanel" aria-label="Close the panel" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
-        <ul id="outlineTree" role="tree" aria-label="Model outline"></ul>
-        <div id="panelProperties"></div>
+        <section id="view-outline" class="view" role="tabpanel" aria-labelledby="tab-outline">
+            <div class="filter"><input id="outlineFilter" type="search" placeholder="Filter the outline" aria-label="Filter the outline" autocomplete="off"/></div>
+            <ul id="outlineTree" role="tree" aria-label="Model outline"></ul>
+            <div id="panelProperties"></div>
+        </section>
+        <section id="view-xml" class="view" role="tabpanel" aria-labelledby="tab-xml" hidden>
+            <div id="xmlView">
+                <div class="xmlbar">
+                    <span id="xmlStatus" role="status" aria-live="polite"></span>
+                    <button type="button" data-action="XmlView.copy" title="Copy the XML to the clipboard">Copy</button>
+                </div>
+                <textarea id="xmlText" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="The XML of the model; what is typed here becomes the model when it is right"></textarea>
+                <ul id="xmlProblems" aria-label="Problems with the text"></ul>
+            </div>
+        </section>
     </aside>
     <!-- shows a navigatable miniature of the model -->
     <div id="miniature">

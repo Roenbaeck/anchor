@@ -1,7 +1,7 @@
 // NodeView: how a construct that is a node of the graph is drawn: an anchor, an attribute, an identifier, a knot, a tie or a nexus.
 // The construct says how it looks in its look: ref (the shape in the graph; the miniature has the same with nav_ in front),
 // xOffset and yOffset (where its name goes), navComponent (the miniature's element knows its component), nameClass, and
-// implodedRef (the shape when it is imploded, with drawsShape if that is set when it is drawn and not when it is imploded).
+// implodedRef (the shape when it is imploded).
 import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from '../config.js';
 import { EventHandler } from '../EventHandler.js';
 import { DrawingEngine } from '../DrawingEngine.js';
@@ -48,13 +48,10 @@ Object.assign(NodeView.prototype, {
     draw: function(image) {
         var component = this.component;
         image.control.setTranslate(component.node.xPosition, component.node.yPosition);
-        if(this.look.drawsShape) {
-            image.useElement.setAttributeNS(XLINKNS, 'xlink:href', component.imploded ? this.look.implodedRef : this.look.ref);
-        }
     },
-    // an anchor changes its shape when it is imploded (a nexus does it when it is drawn)
+    // an anchor or a nexus changes its shape when it is imploded, at once (only what moves is drawn again, so the drawing cannot do it)
     setImploded: function(imploded) {
-        if(this.look.implodedRef && !this.look.drawsShape)
+        if(this.look.implodedRef)
             this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', imploded ? this.look.implodedRef : this.look.ref);
     },
     // the shape follows what the construct is (historized, for example); the miniature has to be drawn again

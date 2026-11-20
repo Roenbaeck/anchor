@@ -11,9 +11,11 @@ import { DrawingEngine } from './DrawingEngine.js';
 import { Operations } from './Operations.js';
 import { EditForm } from './EditForm.js';
 import { Actions } from './Actions.js';
+import { XmlView } from './XmlView.js';
 import { XLINKNS, SVGNS } from './config.js';
 export var Outline = {
     isOpen: false,
+    view: 'outline',        // the view that the panel shows: the outline (with the properties) or the XML
     expanded: {},           // the rows that are open, by id of the construct (or of the group)
     filter: '',
     scheduled: false,
@@ -34,6 +36,22 @@ export var Outline = {
         var tree = Outline.tree();
         tree.addEventListener('click', Outline.click, false);
         tree.addEventListener('keydown', Outline.keydown, false);
+        // the tabs of the views, with the keys of tabs: Left and Right move between them and show the view, Home and End go to the ends
+        var tabs = Array.prototype.slice.call(document.querySelectorAll('#panel [role=tab]'));
+        tabs.forEach(function(tab) {
+            tab.addEventListener('keydown', function(event) {
+                var at = tabs.indexOf(tab), next = null;
+                if(event.key === 'ArrowRight') next = tabs[(at + 1) % tabs.length];
+                else if(event.key === 'ArrowLeft') next = tabs[(at - 1 + tabs.length) % tabs.length];
+                else if(event.key === 'Home') next = tabs[0];
+                else if(event.key === 'End') next = tabs[tabs.length - 1];
+                if(!next) return;
+                event.preventDefault();
+                Outline.showView(next.id.replace('tab-', ''));
+                next.focus();
+            }, false);
+        });
+        XmlView.init();
         document.getElementById('outlineFilter').addEventListener('input', function() {
             Outline.filter = this.value.trim().toLowerCase();
             Outline.renderTree();
@@ -55,11 +73,12 @@ export var Outline = {
         var button = document.getElementById('panelButton');
         if(button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
         try { window.localStorage.setItem('outline', open ? 'open' : 'closed'); } catch(e) { }
+        XmlView.show(open && Outline.view === 'xml');
         if(open) {
             Outline.revealSelection();
             Outline.render();
             if(!quietly) {
-                var row = Outline.tree().querySelector('[tabindex="0"]');
+                var row = Outline.view === 'outline' ? Outline.tree().querySelector('[tabindex="0"]') : document.querySelector('#panel [role=tab][aria-selected=true]');
                 if(row) row.focus();
             }
         }
@@ -74,8 +93,21 @@ export var Outline = {
         Outline.scheduled = true;
         setTimeout(function() { Outline.scheduled = false; Outline.render(); }, 20);
     },
+    // which view the panel shows (the tabs, the sections, and the width: the XML needs more room)
+    showView: function(name) {
+        Outline.view = name;
+        Array.prototype.forEach.call(document.querySelectorAll('#panel [role=tab]'), function(tab) {
+            var selected = tab.id === 'tab-' + name;
+            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+            tab.setAttribute('tabindex', selected ? '0' : '-1');
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('#panel .view'), function(view) { view.hidden = view.id !== 'view-' + name; });
+        document.body.classList.toggle('panel-wide', name === 'xml');
+        XmlView.show(Outline.isOpen && name === 'xml');
+        if(name === 'outline') { Outline.shownSelection = ''; Outline.render(); }
+    },
     render: function() {
-        if(!Outline.isOpen) return;
+        if(!Outline.isOpen || Outline.view !== 'outline') return;
         Outline.renderTree();
         if(Outline.scrollToSelection) {
             Outline.scrollToSelection = false;
