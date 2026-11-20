@@ -584,14 +584,14 @@ export var Settings = {
             while(i--) {
                 component = Model.components[i];
                 if(component.visible)
-                    component.svg.showDebug(SVGLayer.debug);
+                    component.view.svg.showDebug(SVGLayer.debug);
             }
         }
         else {
             while(i--) {
                 component = Model.components[i];
                 if(component.visible)
-                    component.svg.hideDebug(SVGLayer.debug);
+                    component.view.svg.hideDebug(SVGLayer.debug);
             }
             SVGLayer.hide('debug');
             SVGLayer.hide('debugPartitions');

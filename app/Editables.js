@@ -364,8 +364,8 @@ export var Editables = {
                 'The ordinal number for this chronicle provider. 0 means not a provider, 1+ means provider with that order.',
         setMember: function (element, component) { 
             component.component.chronicle = parseInt(element.value) || 0;
-            if (component.svg.textElement) {
-                component.svg.textElement.textContent = component.component.chronicle || '';
+            if (component.view.svg.textElement) {
+                component.view.svg.textElement.textContent = component.component.chronicle || '';
             }
         },
         getMember: function (component) { return component.component.chronicle; },

@@ -12,7 +12,15 @@ import { ControlButtons } from './ControlButtons.js';
 import { Wiring } from './Wiring.js';
 import { save } from './init.js';
 import { VERSION, SVG, SVGLayer, NAV, NAVLayer } from './config.js';
+import { Component } from './Component.js';
+import { NodeView } from './view/NodeView.js';
+import { RoleView } from './view/RoleView.js';
 import './files.js';
+
+// The constructs have a view when there is a page to show them on: a role is drawn by a RoleView, anything else by a NodeView.
+Component.createView = function(component) {
+    return component.node.type === NodeType.EDGE ? new RoleView(component) : new NodeView(component);
+};
 
 // What the model asks of the page around it (see Model.surroundings), done with the real views.
 Model.surroundings = {

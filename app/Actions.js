@@ -418,8 +418,8 @@ export var Actions = {
             while(i--) {
                 var component = Model.components[i];
                 if(component.node.visible) {
-                    component.draw(component.svg);
-                    if(component.nav) component.draw(component.nav);
+                    component.view.draw(component.view.svg);
+                    if(component.view.nav) component.view.draw(component.view.nav);
                 }
             }
             DrawingEngine.draw();

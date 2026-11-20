@@ -1,10 +1,7 @@
 // Attribute: an attribute (static, historized, knotted).
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
-import { DrawingEngine } from './DrawingEngine.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Role } from './Role.js';
 import { Settings } from './Settings.js';
@@ -45,33 +42,10 @@ export function Attribute(x, y, historized) {
     this.chronicle = 0;
     this.operations.push('toggleKnotted','toggleHistorized', 'addToKey', 'removeFromKey', 'createKey');
     // Note: 'toggleHistorized' will be removed automatically if the attribute connects to a Nexus (see Role construction adjustments if added)
-    // set up SVG graphics
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    // expando property as a reference back to the underlying component for use in event handlers
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
     var ref = historized ? '#attribute_historized' : '#attribute';
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 5;
-    this.svg.yOffset = 2;
-    // set up NAV graphics
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view
+    this.look = { ref: ref, xOffset: 5, yOffset: 2, navComponent: false };
+    this.attachView();
     this.setNameable(true);
     this.postCreationInitialization();
 }
@@ -150,9 +124,7 @@ Attribute.prototype = {
         if(this.changingRange === '')
             this.changingRange = Defaults.changingRange;
         var ref = historized ? '#attribute_historized' : '#attribute';
-        this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-        this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-        DrawingEngine.invalidateMiniature();
+        this.setShape(ref);
         this.historized = historized;
     },
     getHistorized: function() {
@@ -410,9 +382,6 @@ Attribute.prototype = {
         if(!parent) return this.mnemonic + "_" + this.descriptor;
         return parent.mnemonic + "_" + this.mnemonic + "_" + parent.descriptor + "_" + this.descriptor;
     },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-    }
 };
 
 // inheritance

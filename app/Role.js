@@ -1,8 +1,6 @@
 // Role: a role: the edge between a tie or a nexus and what takes part in it.
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 export function Role(component, otherComponent, identifier) {
     this.id = UniqueIdentity.nextId();
@@ -53,64 +51,11 @@ export function Role(component, otherComponent, identifier) {
         var idx = this.operations.indexOf('toggleIdentifier');
         if(idx >= 0) this.operations.splice(idx, 1);
     }
-    // SVG
-    this.svg.pathElement = document.createElementNS(SVGNS, 'path');
-    this.svg.pathElement.setAttributeNS(null, 'class', 'edge');
-    this.setColoring(this.coloring);
-    this.svg.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
-            ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
-            ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-    SVGLayer.edges.appendChild(this.svg.pathElement);
-    if(this.tied) {
-        this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-        this.svg.graphicsElement.component = this;
-        var bubble = document.createElementNS(SVGNS, 'use');
-        bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubble');
-        this.svg.graphicsElement.appendChild(bubble);
-        this.svg.useElement = document.createElementNS(SVGNS, 'use');
-        this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
-        this.svg.graphicsElement.appendChild(this.svg.useElement);
-        this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-        SVGLayer.edges.appendChild(this.svg.graphicsElement);
-        this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-            this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-        );
-        this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
-        this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-        this.svg.xOffset = 2;
-        this.svg.yOffset = 2;
+    this.attachView();
+    if(this.tied)
         this.setNameable(true);
-        this.svg.nameElement.setAttributeNS(null, 'class', 'role');
-    }
-    else if (this.chronicable) {
-        this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-        this.svg.graphicsElement.component = this;
-        var bubble = document.createElementNS(SVGNS, 'use');
-        bubble.setAttributeNS(XLINKNS, 'xlink:href', '#bubbleOutline');
-        this.svg.graphicsElement.appendChild(bubble);
-        this.svg.textElement = document.createElementNS(SVGNS, 'text');
-        this.svg.textElement.setAttributeNS(null, 'class', 'chronicleLabel');
-        this.svg.textElement.setAttributeNS(null, 'text-anchor', 'middle');
-        this.svg.textElement.setAttributeNS(null, 'dominant-baseline', 'central');
-        this.svg.textElement.textContent = this.component.chronicle || '';
-        this.svg.graphicsElement.appendChild(this.svg.textElement);
-        this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-        SVGLayer.edges.appendChild(this.svg.graphicsElement);
-        this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-            this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-        );
-        this.svg.control.setTranslate(controlPoint.xPosition, controlPoint.yPosition);
-        this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-        this.svg.xOffset = 2;
-        this.svg.yOffset = 2;
+    else if(this.chronicable)
         this.setNameable(false);
-    }
-    // NAV
-    this.nav.pathElement = document.createElementNS(SVGNS, 'path');
-    this.nav.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
-            ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
-            ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-    NAVLayer.edges.appendChild(this.nav.pathElement);
     this.postCreationInitialization();
 }
 Role.prototype = {
@@ -124,18 +69,13 @@ Role.prototype = {
     keys: null,
     setIdentifier: function(identifier) {
         this.identifier = identifier;
-        this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', this.identifier ? '#many' : '#one');
+        if(this.view)
+            this.view.setIdentifier(identifier);
     },
     setColoring: function(coloring) {
         this.coloring = coloring;
-        if(coloring === '#000' || coloring === '#000000') {
-            this.svg.pathElement.style.stroke = null;
-            this.svg.pathElement.style.strokeWidth = null;
-        }
-        else {
-            this.svg.pathElement.style.stroke = this.coloring;
-            this.svg.pathElement.style.strokeWidth = '10px';
-        }
+        if(this.view)
+            this.view.setColoring(coloring);
     },
     isInteractive: function() {
         return this.tied || this.chronicable;
@@ -167,40 +107,6 @@ Role.prototype = {
             x: (edge.node.xPosition + 2 * edge.xPosition + edge.otherNode.xPosition) / 4,
             y: (edge.node.yPosition + 2 * edge.yPosition + edge.otherNode.yPosition) / 4
         };
-    },
-    drawName: function(x, y) {
-        var point = this.curvePoint();
-        Component.prototype.drawName.call(this, point.x, point.y);
-    },
-    draw: function(image) {
-        // Sync controlPoint with the laid out Edge position
-        this.node.controlPoint.xPosition = this.node.xPosition;
-        this.node.controlPoint.yPosition = this.node.yPosition;
-        var node = this.node.node;
-        var otherNode = this.node.otherNode;
-        var controlPoint = this.node.controlPoint;
-        var role = this.node;
-        if (image.pathElement.setPathData) {
-            var pathData = image.pathElement.getPathData();
-            pathData[0].values[0] = node.xPosition;
-            pathData[0].values[1] = node.yPosition;
-            pathData[1].values[0] = controlPoint.xPosition;
-            pathData[1].values[1] = controlPoint.yPosition;
-            pathData[1].values[2] = otherNode.xPosition;
-            pathData[1].values[3] = otherNode.yPosition;
-            image.pathElement.setPathData(pathData);
-        } else {
-            image.pathElement.setAttributeNS(null, 'd', 'M' + node.xPosition.toFixed(2) + ',' + node.yPosition.toFixed(2) +
-                ' Q' + controlPoint.xPosition.toFixed(2) + ',' + controlPoint.yPosition.toFixed(2) +
-                ' ' + otherNode.xPosition.toFixed(2) + ',' + otherNode.yPosition.toFixed(2));
-        }
-        if(this.chronicable && image.textElement) {
-            image.textElement.textContent = this.component.chronicle || '';
-        }
-        if((this.tied || this.chronicable) && image.control) {
-            var point = this.curvePoint();
-            image.control.setTranslate(point.x, point.y);
-        }
     }
 };
 

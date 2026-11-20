@@ -1,21 +1,16 @@
-// Component: what every construct on the canvas has in common.
-import { DEBUG, NAVLayer, SVGLayer, SVGNS } from './config.js';
+// Component: what every construct on the canvas has in common. It is the model: what the construct is, its rules and its XML.
+// How it is drawn is the business of its view (see attachView and app/view/), which it has when it is shown on a page.
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
-import { Symbol } from './Symbol.js';
-import { ContextMenu } from './ContextMenu.js';
-import { Features } from './Features.js';
 // "Abstract" type that other components subclass
 export function Component(node) {
     this.node = node;
     this.editables = [];
     this.operations = ['erase', 'connect'];
-    this.svg = new Symbol(this);
-    this.svg.makeInteractive();
-    this.nav = new Symbol(this);
     this.postfixes = [];
 }
+// Makes the view of a component, when there is a page to show it on (app/main.js sets it). A component without a view is data only.
+Component.createView = null;
 Object.assign(Component.prototype, {
     node: null,
     description: '',
@@ -23,36 +18,31 @@ Object.assign(Component.prototype, {
     operations: null,
     id: null,
     incomplete: true,
-    svg: null,
-    nav: null,
+    // how it is drawn (see attachView); null when it is not shown
+    view: null,
+    // how it looks, said by each kind of construct for its view (NodeView and RoleView explain what is in it)
+    look: null,
     nameable: false,
     highlighted: false,
     selected: false,
-    lastName: null,
     imploded: false,
     visible: false,
     postfixes: null,
+    contextMenu: null,
+    // called by a construct when it has said how it looks
+    attachView: function() {
+        if(Component.createView)
+            this.view = Component.createView(this);
+    },
     // can be overridden by subclasses
     hide: function() {
         this.visible = false;
-        // stop any ongoing interactions
-        EventHandler.endInteraction();
-        // do not display in layers
-        this.svg.hideGraphics(SVGLayer.nodes);
-        this.nav.hideGraphics(NAVLayer.nodes);
-        this.svg.hidePath(SVGLayer.edges);
-        this.nav.hidePath(NAVLayer.edges);
-        this.svg.hideName(SVGLayer.names);
-        this.svg.hideDebug(SVGLayer.debug);
+        if(this.view)
+            this.view.hide();
     },
     show: function() {
-        this.svg.showGraphics(SVGLayer.nodes);
-        this.nav.showGraphics(NAVLayer.nodes);
-        this.svg.showPath(SVGLayer.edges);
-        this.nav.showPath(NAVLayer.edges);
-        this.svg.showName(SVGLayer.names);
-        if(DEBUG)
-            this.svg.showDebug(SVGLayer.debug);
+        if(this.view)
+            this.view.show();
         this.visible = true;
     },
     postCreationInitialization: function() {
@@ -71,88 +61,23 @@ Object.assign(Component.prototype, {
         return this.id;
     },
     setNameable: function(nameable) {
-        if(nameable && !this.svg.nameElement) {
-            this.svg.nameElement = document.createElementNS(SVGNS, 'text');
-            this.svg.nameElement.setAttributeNS(null, 'x', '0');
-            this.svg.nameElement.setAttributeNS(null, 'y', '0');
-            this.svg.nameText = document.createTextNode('');
-            this.svg.nameElement.appendChild(this.svg.nameText);
-            SVGLayer.names.appendChild(this.svg.nameElement);
-            this.svg.nameControl = {
-                x: this.svg.nameElement.x.baseVal.getItem(0),
-                y: this.svg.nameElement.y.baseVal.getItem(0)
-            };
-        }
+        if(this.view)
+            this.view.setNameable(nameable);
         this.nameable = nameable;
     },
     updateName: function() {
-        if(this.nameable) {
-            var name = this.contextualName();
-            if(!name || this.isEmpty(name)) {
-                this.svg.hideName(SVGLayer.names);
-                this.lastName = null;
-            }
-            else if(name !== this.lastName) {
-                if(!this.lastName) this.svg.showName(SVGLayer.names);
-                this.lastName = name;
-                this.svg.nameText.nodeValue = name;
-            }
-        }
+        if(this.view)
+            this.view.updateName();
     },
     tabularEdit: function(element, component) {
         if(element && component) {
             element.editable.setMember(element, component);
             element.checkValidity();
         }
-    },            
+    },
+    // the fields as a table, for the editor of many constructs at once
     tabular: function (container) {
-        var self = this;
-        var j, i = 0, editable;
-        var table = document.createElement('table');
-        while(editable = this.editables[i++]) {
-            if(!Features.has(editable.feature)) continue;
-            var element = document.createElement(editable.type);
-            element.className = 'tabularEditable';
-            if(editable.pattern) {
-                element.setAttribute('pattern', editable.pattern);
-            }
-            if(editable.attributes) {
-                for(j = 0; j < editable.attributes.length;) {
-                    var attribute = editable.attributes[j++];
-                    var value = editable.attributes[j++];
-                    element.setAttribute(attribute, value);
-                }
-            }
-            if(editable.elements) {
-                for(j = 0; j < editable.elements.length;) {
-                    var subElement = editable.elements[j++];
-                    element.appendChild(subElement.cloneNode(true));
-                }
-            }
-            editable.setElement(element, self);
-            element.setAttribute('valign', 'top');
-            element.setAttribute('title', editable.description);                
-            element.editable = editable;
-            // edit function should move into the component?
-            element.addEventListener(editable.event, function() { 
-                self.tabularEdit(this, self); 
-                container.label.nodeValue = self.toString();
-            }, false);
-            element.addEventListener('change', function() { 
-                self.editsHaveBeenMade = true; 
-            }, false);
-            var row = document.createElement('tr');
-            var label = document.createTextNode(editable.name + ":");
-            var labelCell = document.createElement('td');
-            labelCell.appendChild(label);
-            row.appendChild(labelCell);
-            var elementCell = document.createElement('td');
-            elementCell.appendChild(element);
-            row.appendChild(elementCell);                    
-            table.appendChild(row);
-        }
-        container.appendChild(table);
-        return true;
+        return this.view ? this.view.tabular(container) : false;
     },
     // override to change behavior
     isInteractive: function() {
@@ -218,125 +143,40 @@ Object.assign(Component.prototype, {
             layout.setAttribute("imploded", this.imploded.toString());
         element.appendChild(layout);
     },
-    bad: false,
-    end: false,
+    // the name is placed from a position, by the view
     drawName: function(x, y) {
-        var svg = this.svg;
-        if(this.visible && svg.nameElement) {
-            var node = this.node;
-            this.updateName();
-            var i, xAverage = 0, closestEdge = node.edges[0] || node;
-            i = node.edges.length;
-            while(i--) {
-                xAverage += node.edges[i].xPosition;
-                if(LayoutEngine.manhattanDistance(node, node.edges[i]) <
-                        LayoutEngine.manhattanDistance(node, closestEdge)) {
-                    closestEdge = node.edges[i];
-                }
-            }
-            xAverage /= node.edges.length;
-            var quarter = svg.yOffset + svg.boundingBox.height / 4;
-            var nameYOffset = svg.yPosition < closestEdge.yPosition ? -quarter : quarter;
-            var nameXOffset = svg.xOffset + svg.boundingBox.width / 2;
-            if(node.xPosition < xAverage) {
-                if(!this.end) {
-                    svg.nameElement.classList.add('end');
-                }
-                nameXOffset = -nameXOffset;
-                this.end = true;
-            }
-            else {
-                if(this.end) {
-                    svg.nameElement.classList.remove('end');
-                }
-                this.end = false;
-            }
-            if(this.incomplete) {
-                if(!this.bad) {
-                    svg.nameElement.classList.add('bad');
-                }
-                this.bad = true;
-            }
-            else {
-                if(this.bad) {
-                    svg.nameElement.classList.remove('bad');
-                }
-                this.bad = false;
-            }
-            svg.nameControl.x.value = x + nameXOffset;
-            svg.nameControl.y.value = y + nameYOffset;
-        }
-    },
-    // this is how a node draws itself on the visible context, should be overridden by subclasses
-    draw: function(image) {
-        return;
-    },
-    drawForce: function(image) {
-        var node = this.node;
-        var element = image.forceElement;
-        // draw forces
-        element.x1.baseVal.value = node.xPosition;
-        element.y1.baseVal.value = node.yPosition;
-        // exaggerate the velocity so that forces become visible
-        var e = 10*Math.log(1 + 10/(1 + node.velocity));
-        element.x2.baseVal.value = node.xPosition + node.xVelocity *e;
-        element.y2.baseVal.value = node.yPosition + node.yVelocity *e;
+        if(this.view)
+            this.view.drawName(x, y);
     },
     setFixed: function(fixed) {
         this.node.fixed = fixed;
-        if(fixed && !this.svg.graphicsElement.contains(this.svg.fixationElement)) {
-            this.svg.graphicsElement.appendChild(this.svg.fixationElement);
-        }
-        else if (!fixed && this.svg.graphicsElement.contains(this.svg.fixationElement)) {
-            this.svg.graphicsElement.removeChild(this.svg.fixationElement);
-        }
+        if(this.view)
+            this.view.setFixed(fixed);
     },
     getFixed: function() {
         return this.node.fixed;
     },
     setSelection: function(select) {
         this.selected = select;
-        if(select && this.visible && !this.svg.graphicsElement.contains(this.svg.selectionElement)) {
-            this.svg.graphicsElement.insertBefore(
-                    this.svg.selectionElement,
-                    this.svg.graphicsElement.firstChild
-            );
-        }
-        else if (!select && this.visible && this.svg.graphicsElement.contains(this.svg.selectionElement)) {
-            this.svg.graphicsElement.removeChild(this.svg.selectionElement);
-        }
+        if(this.view)
+            this.view.setSelection(select);
     },
     setHighlight: function(highlight) {
         this.highlighted = highlight;
-        if(highlight && this.visible && !this.svg.graphicsElement.contains(this.svg.highlightElement)) {
-            this.svg.highlightElement.addEventListener('click', EventHandler.clickHighlight, false);
-            this.svg.graphicsElement.insertBefore(
-                    this.svg.highlightElement,
-                    this.svg.graphicsElement.firstChild
-            );
-            if(!SVGLayer.isShowing('names')) {
-                this.svg.hideName(SVGLayer.names);
-                this.drawName(0, 0);
-                this.svg.showName(this.svg.graphicsElement);
-            }
-        }
-        else if (!highlight && this.visible && this.svg.graphicsElement.contains(this.svg.highlightElement)) {
-            this.svg.graphicsElement.removeChild(this.svg.highlightElement);
-            this.svg.highlightElement.removeEventListener('click', EventHandler.clickHighlight, false);
-            this.svg.hideName(this.svg.graphicsElement);
-            this.drawName(this.node.xPosition, this.node.yPosition);
-            this.svg.showName(SVGLayer.names);
-        }
+        if(this.view)
+            this.view.setHighlight(highlight);
     },
-    contextMenu: null,
+    // the shape follows what the construct is (historized, for example)
+    setShape: function(ref) {
+        if(this.view)
+            this.view.setShape(ref);
+    },
     showContextMenu: function(hoveredComponent, selectedComponents, selectedRoute) {
-        if(!this.contextMenu)
-            this.contextMenu = new ContextMenu(hoveredComponent, selectedComponents, selectedRoute);
+        if(this.view)
+            this.view.showContextMenu(hoveredComponent, selectedComponents, selectedRoute);
     },
     hideContextMenu: function() {
-        if(this.contextMenu) {
-            this.contextMenu.close();
-            this.contextMenu = null;
-        }
+        if(this.view)
+            this.view.hideContextMenu();
     }
 });

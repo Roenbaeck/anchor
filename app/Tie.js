@@ -1,10 +1,7 @@
 // Tie: a tie.
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
-import { DrawingEngine } from './DrawingEngine.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Role } from './Role.js';
 import { Settings } from './Settings.js';
@@ -27,33 +24,10 @@ export function Tie(x, y, historized) {
     this.positGenerator = Defaults.positGenerator === 'true';
     this.operations.push('toggleHistorized','addKnot','addAnchor');
     this.encapsulation = Defaults.encapsulation;
-    // SVG
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
     var ref = historized ? '#tie_historized' : '#tie';
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 2;
-    this.svg.yOffset = 2;
-    // NAV
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.graphicsElement.component = this;
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view
+    this.look = { ref: ref, xOffset: 2, yOffset: 2, navComponent: true };
+    this.attachView();
     this.setNameable(true);
     this.postCreationInitialization();
 }
@@ -160,9 +134,7 @@ Tie.prototype = {
         if(this.changingRange === '')
             this.changingRange = Defaults.changingRange;
         var ref = historized ? '#tie_historized' : '#tie';
-        this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-        this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-        DrawingEngine.invalidateMiniature();
+        this.setShape(ref);
         this.historized = historized;
     },
     getHistorized: function() {
@@ -426,9 +398,6 @@ Tie.prototype = {
         }
         return name;
     },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-    }
 };
 
 // inheritance

@@ -1,9 +1,7 @@
 // Nexus: a nexus.
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Attribute } from './Attribute.js';
 import { Role } from './Role.js';
@@ -23,34 +21,10 @@ export function Nexus(x, y) {
     this.editables.push(Editables.identityEdit);
     this.editables.push(Editables.generatorEdit);
     this.operations.push('addAttribute','addKnot','addAnchor','explode', 'addToKey', 'createKey');
-    // SVG
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 6;
-    this.svg.yOffset = 0;
-    // NAV
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.graphicsElement.component = this;
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_nexus');
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view (a nexus is given its shape when it is drawn)
+    this.look = { ref: '#nexus', implodedRef: '#nexus_imploded', drawsShape: true, xOffset: 6, yOffset: 0, navComponent: true, nameClass: 'nexus' };
+    this.attachView();
     this.setNameable(true);
-    this.svg.nameElement.setAttributeNS(null, 'class', 'nexus');
     this.postCreationInitialization();
 }
 Nexus.prototype = {
@@ -95,15 +69,6 @@ Nexus.prototype = {
         }
         else {
             this.operations.push('addAttribute');
-        }
-    },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-        if(this.imploded) {
-            image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus_imploded');
-        }
-        else {
-            image.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nexus');
         }
     },
     toXML: function(schema) {

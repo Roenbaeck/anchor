@@ -1,9 +1,7 @@
 // Anchor: an anchor.
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Settings } from './Settings.js';
 export function Anchor(x, y) {
@@ -20,34 +18,10 @@ export function Anchor(x, y) {
     this.encapsulation = Defaults.encapsulation;
     this.identity = Defaults.identity;
     this.operations.push('addAttribute','addTie','addTieAndAnchor','addNexus','explode', 'addToKey', 'createKey');
-    // set up SVG graphics
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 6;
-    this.svg.yOffset = 0;
-    // set up NAV graphics
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.graphicsElement.component = this;
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_anchor');
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view
+    this.look = { ref: '#anchor', implodedRef: '#anchor_imploded', xOffset: 6, yOffset: 0, navComponent: true, nameClass: 'anchor' };
+    this.attachView();
     this.setNameable(true);
-    this.svg.nameElement.setAttributeNS(null, 'class', 'anchor');
     this.postCreationInitialization();
 }
 Anchor.prototype = {
@@ -61,12 +35,12 @@ Anchor.prototype = {
         if(imploded) {
             if(this.operations.indexOf('addAttribute') >= 0)
                 this.operations.splice(this.operations.indexOf('addAttribute'), 1);
-            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor_imploded');
         }
         else {
             this.operations.push('addAttribute');
-            this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#anchor');
         }
+        if(this.view)
+            this.view.setImploded(imploded);
     },
     isInteractive: function() {
         return true;
@@ -181,9 +155,6 @@ Anchor.prototype = {
         this.addDescriptionXML(anchor, schema, this.description);
         return anchor;
     },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-    }
 };
 
 // inheritance

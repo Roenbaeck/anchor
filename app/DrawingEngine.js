@@ -422,13 +422,13 @@ export var DrawingEngine = {
             node = component.node;
             if(node.visible) {
                 if(node.moving || node.type === NodeType.EDGE)
-                    component.draw(component.svg);
+                    component.view.draw(component.view.svg);
                 if(DEBUG)
-                    component.drawForce(component.svg);
+                    component.view.drawForce(component.view.svg);
                 if(this.miniCounter === 1)
-                    component.draw(component.nav);
+                    component.view.draw(component.view.nav);
                 if(this.showNames)
-                    component.drawName(node.xPosition, node.yPosition);
+                    component.view.drawName(node.xPosition, node.yPosition);
             }
         }
         if(this.miniCounter === 1)

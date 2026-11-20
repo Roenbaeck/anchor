@@ -1,9 +1,7 @@
 // Knot: a knot.
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Settings } from './Settings.js';
 export function Knot(x, y) {
@@ -27,32 +25,9 @@ export function Knot(x, y) {
     // a knot is not a stop of a key route (a route reaches its value through a knotted attribute or a knot role), but
     // a stop on a knot in a model written by hand can still be removed
     this.operations.push('removeFromKey');
-    // SVG
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#knot');
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 6;
-    this.svg.yOffset = 0;
-    // NAV
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.graphicsElement.component = this;
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', '#nav_knot');
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view
+    this.look = { ref: '#knot', xOffset: 6, yOffset: 0, navComponent: true };
+    this.attachView();
     this.setNameable(true);
     this.postCreationInitialization();
 }
@@ -207,9 +182,6 @@ Knot.prototype = {
         this.addDescriptionXML(knot, schema, this.description);
         return knot;
     },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-    }
 };
 
 // inheritance

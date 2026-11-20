@@ -1,10 +1,7 @@
 // Identifier: the identifier of an anchor or a nexus (a key route).
-import { NAVLayer, SVGLayer, SVGNS, XLINKNS } from './config.js';
 import { Model } from './Model.js';
-import { DrawingEngine } from './DrawingEngine.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables, createOption } from './Editables.js';
-import { EventHandler } from './EventHandler.js';
 import { Component } from './Component.js';
 import { Role } from './Role.js';
 import { Settings } from './Settings.js';
@@ -54,33 +51,10 @@ export function Identifier(x, y, entity, route) { // entity may be Anchor or Nex
     this.privacy = Defaults.privacy;
     this.positIdentity = Defaults.positIdentity;
     this.positGenerator = Defaults.positGenerator === 'true';
-    // set up SVG graphics
-    this.svg.graphicsElement = document.createElementNS(SVGNS, 'g');
-    // expando property as a reference back to the underlying component for use in event handlers
-    this.svg.graphicsElement.component = this;
-    this.svg.useElement = document.createElementNS(SVGNS, 'use');
     var ref = this.historized ? '#identifier_historized' : '#identifier';
-    this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-    this.svg.graphicsElement.appendChild(this.svg.useElement);
-    this.svg.graphicsElement.addEventListener('mouseover', EventHandler.beginInteraction, false);
-    SVGLayer.nodes.appendChild(this.svg.graphicsElement);
-    this.svg.control = this.svg.graphicsElement.transform.baseVal.appendItem(
-        this.svg.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.svg.control.setTranslate(x, y);
-    this.svg.boundingBox = this.svg.graphicsElement.getBBox();
-    this.svg.xOffset = 5;
-    this.svg.yOffset = 2;
-    // set up NAV graphics
-    this.nav.graphicsElement = document.createElementNS(SVGNS, 'g');
-    this.nav.useElement = document.createElementNS(SVGNS, 'use');
-    this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-    this.nav.graphicsElement.appendChild(this.nav.useElement);
-    NAVLayer.nodes.appendChild(this.nav.graphicsElement);
-    this.nav.control = this.nav.graphicsElement.transform.baseVal.appendItem(
-        this.nav.graphicsElement.ownerSVGElement.createSVGTransform()
-    );
-    this.nav.control.setTranslate(x, y);
+    // how it looks, for its view
+    this.look = { ref: ref, xOffset: 5, yOffset: 2, navComponent: false };
+    this.attachView();
     this.setHistorized(this.historized);
     this.setNameable(true);
     this.postCreationInitialization();
@@ -141,9 +115,7 @@ Identifier.prototype = {
         if(idx >= 0) this.editables.splice(idx,1);
         if(this.changingRange === '' && historized) this.changingRange = Defaults.changingRange; // internal use only
         var ref = historized ? '#identifier_historized' : '#identifier';
-        this.svg.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref);
-        this.nav.useElement.setAttributeNS(XLINKNS, 'xlink:href', ref.replace(/#/,'#nav_'));
-        DrawingEngine.invalidateMiniature();
+        this.setShape(ref);
         this.historized = historized;
     },
     getHistorized: function() {
@@ -275,9 +247,6 @@ Identifier.prototype = {
         var routeName = (this.route && this.route.name) ? this.route.name : '?';
         return anchor.mnemonic + '_' + anchor.descriptor + '_' + routeName;
     },
-    draw: function(image) {
-        image.control.setTranslate(this.node.xPosition, this.node.yPosition);
-    }
 };
 
 // inheritance

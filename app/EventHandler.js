@@ -108,8 +108,8 @@ export var EventHandler = {
                 EventHandler.addComponentToInteraction(component);
             window.addEventListener('keydown', EventHandler.keydown, false);
             SVG.addEventListener('mouseover', EventHandler.endInteraction, false);
-            component.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
-            component.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
+            component.view.svg.graphicsElement.addEventListener('mousedown', EventHandler.prepareDragging, false);
+            component.view.svg.graphicsElement.addEventListener('click', EventHandler.clickComponent, false);
             component.showContextMenu(component, EventHandler.selectedComponents, EventHandler.selectedRoute);
             DrawingEngine.setCursor('pointer');
         }
@@ -135,7 +135,7 @@ export var EventHandler = {
                     }
                 }
                 component.hideContextMenu();
-                component.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
+                component.view.svg.graphicsElement.removeEventListener('mousedown', EventHandler.prepareDragging, false);
             }
             SVG.addEventListener('mousemove', EventHandler.whileDragging, false);
             // Attach a one-time mouseup listener to conclude dragging or treat as click
@@ -215,12 +215,12 @@ export var EventHandler = {
     endInteraction: function(event) {
         if(event) event.preventDefault();
         var component = EventHandler.interactedComponents[EventHandler.interactedComponents.length - 1];
-        if(!event || (event.toElement !== component.svg.graphicsElement &&
+        if(!event || (event.toElement !== component.view.svg.graphicsElement &&
                 EventHandler.getInteraction() !== "whileDragging")) {
             for(var i = 0; component = EventHandler.interactedComponents[i]; i++) {
                 component.hideContextMenu();
                 component.node.setUnstoppable(false);
-                component.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
+                component.view.svg.graphicsElement.removeEventListener('click', EventHandler.clickComponent, false);
             }
             EventHandler.clearInteraction();
             SVG.removeEventListener('mousemove', EventHandler.whileDragging, false);
