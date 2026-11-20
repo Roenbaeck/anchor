@@ -1,0 +1,114 @@
+// ControlButtons: the buttons for pause, zoom, undo and redo.
+import { SVG } from './config.js';
+import { Model } from './Model.js';
+import { DrawingEngine } from './DrawingEngine.js';
+import { init } from './init.js';
+import { Actions } from './Actions.js';
+export var ControlButtons = {
+    playPauseButton: null,
+    nudgeButton: null,
+    undoButton: null,
+    redoButton: null,
+    zoomInButton: null,
+    zoomOutButton: null,
+    zoomFactor: 1.75,
+    init: function() {
+        this.playPauseButton = document.getElementById('playpause');
+        this.undoButton = document.getElementById('undo');
+        this.redoButton = document.getElementById('redo');
+        this.zoomInButton = document.getElementById('zoomin');
+        this.zoomOutButton = document.getElementById('zoomout');
+        this.undoButton.setAttribute('title', 'Undo the last change. The last ' + Model.maxUndoLevels + ' changes are kept.');
+        this.redoButton.setAttribute('title', 'Redo the change that was undone.');
+        this.zoomInButton.setAttribute('title', 'Zoom in');
+        this.zoomOutButton.setAttribute('title', 'Zoom out');
+        this.setPauseState();
+        // the model says how many changes can be undone and redone; it does not call the buttons
+        Model.on('history', function(history) {
+            ControlButtons.setUndoLevels(history.undo);
+            ControlButtons.setRedoLevels(history.redo);
+        });
+
+        // rebinding
+        this.togglePlayPause = this.togglePlayPause.bind(this);
+        this.undo = this.undo.bind(this);
+        this.redo = this.redo.bind(this);
+        this.zoomIn = this.zoomIn.bind(this);
+        this.zoomOut = this.zoomOut.bind(this);
+
+        this.playPauseButton.addEventListener('click', this.togglePlayPause, false);
+        this.undoButton.addEventListener('click', this.undo, false);
+        this.redoButton.addEventListener('click', this.redo, false);
+        this.zoomInButton.addEventListener('click', this.zoomIn, false);
+        this.zoomOutButton.addEventListener('click', this.zoomOut, false);
+        this.playing = false;
+    },
+    togglePlayPause: function (event) {
+        if(DrawingEngine.running) {
+            DrawingEngine.stop();
+            this.setPlayState();
+            Actions.announce('The layout is paused');
+        }
+        else {
+            if (LayoutEngine.equilibrium) {
+                this.invalidateLayout();
+            }
+            DrawingEngine.start(true);
+            this.setPauseState();
+            Actions.announce('The layout is running');
+        }
+    },
+    setUndoLevels: function(numberOfLevels) {
+        // the badge on the button says how many; it is not there when there are none
+        this.undoButton.querySelector('.count').textContent = numberOfLevels || '';
+        this.undoButton.disabled = !numberOfLevels;
+    },
+    setRedoLevels: function(numberOfLevels) {
+        this.redoButton.querySelector('.count').textContent = numberOfLevels || '';
+        this.redoButton.disabled = !numberOfLevels;
+    },
+    undo: function() {
+        Model.undoState();
+        DrawingEngine.start(false);
+        Actions.announce('Undone, ' + Math.max(0, Model.version) + ' more can be undone');
+    },
+    redo: function() {
+        Model.redoState();
+        DrawingEngine.start(false);
+        Actions.announce('Redone, ' + Math.max(0, Model.versions.length - Model.version - 1) + ' more can be redone');
+    },
+    setPlayState: function() {
+        // paused: the button offers to run the layout again
+        this.playPauseButton.setAttribute('title', 'Run the layout');
+        this.playPauseButton.setAttribute('aria-label', 'Run the layout');
+        this.playPauseButton.className = 'pausing';
+    },
+    setPauseState: function() {
+        // running: the button offers to pause it
+        this.playPauseButton.setAttribute('title', 'Pause the layout');
+        this.playPauseButton.setAttribute('aria-label', 'Pause the layout');
+        this.playPauseButton.className = 'playing';
+    },
+    invalidateLayout: function () {
+        for(var i = 0; i < Model.visibleNodes.length; i++) {
+            Model.visibleNodes[i].start();
+        }
+    },
+    doZoom: function (zoom) {
+        var w = SVG.viewBox.baseVal.width;
+        var h = SVG.viewBox.baseVal.height;
+        var dx = w * (1-zoom)/2;
+        var dy = h * (1-zoom)/2;
+        SVG.viewBox.baseVal.x += dx;
+        SVG.viewBox.baseVal.y += dy;
+        SVG.viewBox.baseVal.width = w * zoom;
+        SVG.viewBox.baseVal.height = h * zoom;
+        DrawingEngine.start(false);
+    },
+    zoomIn: function (event) {
+        this.doZoom(1/this.zoomFactor);
+    },
+    zoomOut: function (event) {
+        this.doZoom(this.zoomFactor);
+    }
+};

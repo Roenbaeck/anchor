@@ -1,140 +1,178 @@
+/* ==========================================================================
+   Tokens. Everything below uses these, nothing else says a color, a size or a shadow, so a theme is a set of values.
+   The theme is a class on <body>: none is the light theme, "dark" the dark one (the page sets it from what the viewer has chosen,
+   or else from what the system prefers; see Actions.initTheme). Only the system fonts are used, so nothing is fetched from a
+   font service and the page looks the same offline.
+   ========================================================================== */
+body {
+    --font-ui:          system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono:        ui-monospace, "Cascadia Mono", "Source Code Pro", Consolas, Menlo, "Liberation Mono", monospace;
+
+    /* type scale */
+    --text-s:           11px;
+    --text-m:           13px;
+    --text-l:           15px;
+    /* space scale */
+    --space-1:          4px;
+    --space-2:          8px;
+    --space-3:          12px;
+    --space-4:          16px;
+    --radius:           6px;
+    --radius-s:         4px;
+    --bar-height:       40px;
+
+    /* the interface: canvas, panels, lines, text, and the one accent color */
+    --bg:               #f6f6f7;
+    --surface:          #ffffff;
+    --surface-raised:   #ffffff;
+    --surface-sunken:   #eeeef0;
+    --border:           #d6d6dc;
+    --text:             #1c1c21;
+    --text-muted:       #62626c;
+    --accent:           #c80514;
+    --accent-ink:       #ffffff;
+    --accent-soft:      rgba(200, 5, 20, 0.10);
+    --hover:            rgba(20, 20, 30, 0.07);
+    --pressed:          rgba(20, 20, 30, 0.14);
+    --invalid:          #fbd9d9;
+    --link:             #b3101c;
+    --scrim:            rgba(20, 20, 30, 0.35);
+    --shadow-s:         0 1px 3px rgba(20, 20, 30, 0.18);
+    --shadow-m:         0 6px 20px rgba(20, 20, 30, 0.22);
+    --code-bg:          #17181c;
+    --code-ink:         #f2f2f3;
+
+    /* the graph (the shapes themselves keep the notation's colors: red anchors, pink attributes, grey ties) */
+    --g-ink:            #1c1c21;
+    --g-halo:           #f6f6f7;
+    --g-edge:           #55555e;
+    --g-card:           #ffffff;
+    --g-bubble:         #f6f6f7;
+    --g-anchor:         #bb5555;
+    --g-anchor-name:    #c80514;
+    --g-imploded:       #663333;
+    --g-attribute:      #ff8888;
+    --g-tie:            #a8a8a8;
+    --g-ring:           #ede5e5;
+    --g-bad:            #e00000;
+    --g-route:          rgba(42, 0, 0, 0.07);
+    --g-route-selected: rgba(242, 101, 101, 0.20);
+    --g-debug-fill:     #fffcfc;
+    --g-debug-line:     #f4ebeb;
+    --g-debug-stroke:   #ffcccc;
+
+    color:              var(--text);
+    background:         var(--bg);
+    color-scheme:       light;
+}
+body.dark {
+    --bg:               #1a1b1e;
+    --surface:          #25262a;
+    --surface-raised:   #2d2e33;
+    --surface-sunken:   #1f2023;
+    --border:           #3c3d44;
+    --text:             #ececee;
+    --text-muted:       #a0a0aa;
+    --accent:           #ff6b6b;
+    --accent-ink:       #1a1b1e;
+    --accent-soft:      rgba(255, 107, 107, 0.16);
+    --hover:            rgba(255, 255, 255, 0.08);
+    --pressed:          rgba(255, 255, 255, 0.15);
+    --invalid:          #5a1e1e;
+    --link:             #ff8888;
+    --scrim:            rgba(0, 0, 0, 0.55);
+    --shadow-s:         0 1px 3px rgba(0, 0, 0, 0.5);
+    --shadow-m:         0 8px 24px rgba(0, 0, 0, 0.6);
+
+    --g-ink:            #ececee;
+    --g-halo:           #1a1b1e;
+    --g-edge:           #b4b4b6;
+    --g-card:           #2a2a2e;
+    --g-bubble:         #303134;
+    --g-anchor:         #bb5555;
+    --g-anchor-name:    #d46a6a;
+    --g-imploded:       #a05555;
+    --g-tie:            #8a8a92;
+    --g-ring:           #4a4b55;
+    --g-route:          rgba(255, 255, 255, 0.08);
+    --g-route-selected: rgba(255, 160, 160, 0.30);
+    --g-debug-fill:     #170103;
+    --g-debug-line:     #280205;
+    --g-debug-stroke:   #662222;
+
+    color-scheme:       dark;
+}
+@media (prefers-reduced-motion: no-preference) {
+    body { transition: background-color .2s ease, color .2s ease; }
+}
+
 html {
-    touch-action: manipulation;
+    touch-action:       manipulation;
 }
 
 body {
-    font:               12px "Open Sans", "Helvetica Neue", sans-serif;
-    line-height:        1.88889;
-    color:              #000000;
-    background:         #f9f8f7;
+    font:               var(--text-m)/1.5 var(--font-ui);
     overflow:           hidden;
     margin:             0;
     padding:            0;
 }
 
-/* ==========================
-     Dark Theme (opt-in via body.dark)
-     ========================== */
-body.dark {
-        color:              #f2f2f3;
-        background:         #1e1f22;
+a:link, a:active, a:visited {
+    color:              var(--link);
+    text-decoration:    none;
 }
-body.dark a:link,
-body.dark a:active,
-body.dark a:visited { color:#ff8888; }
-body.dark a:hover { color:#ffb0b0; }
-
-/* Panels, menus, overlays */
-body.dark #header,
-body.dark .submenu,
-body.dark #contextMenu,
-body.dark #tabularEditor,
-body.dark #miniature,
-body.dark #model,
-body.dark #cloud,
-body.dark #search input,
-body.dark #search select,
-body.dark #loadingOverlay { background-color:rgba(50,51,56,0.92); color:#f2f2f3; }
-
-body.dark #loadingOverlay { backdrop-filter:blur(2px); }
-body.dark #loadingSpinner { border-color:#444; border-top-color:#ff6666; }
-
-/* Borders / outlines */
-body.dark #header,
-body.dark .submenu,
-body.dark #contextMenu,
-body.dark #tabularEditor,
-body.dark #tabularEditor .closebutton,
-body.dark #miniature { border-color:#3a3b40; }
-
-/* bubbleOutline styles moved to svg.css */
-
-/* Shadows softened */
-body.dark #header,
-body.dark .submenu,
-body.dark #contextMenu,
-body.dark #miniature,
-body.dark .collapsed { box-shadow:0 4px 14px rgba(0,0,0,0.6); }
-
-/* Menu text / hovers */
-body.dark .menu { color:#f2f2f3; }
-body.dark .menu:hover { color:#fff; }
-body.dark .submenu li { color:#f2f2f3; }
-body.dark .submenu li:hover { background-color:#b55; color:#fff; }
-body.dark .submenu a { color:#f2f2f3; }
-body.dark .submenu a:hover { color:#fff; text-shadow:0 0 6px #ff8888; }
-
-/* Inputs */
-body.dark input,
-body.dark select,
-body.dark textarea { background:#2a2b2f; color:#f2f2f3; border:1px solid #555; }
-body.dark input:focus,
-body.dark select:focus,
-body.dark textarea:focus { outline:1px solid #ff6666; }
-body.dark input:invalid { background-color:#5a1e1e; }
-
-/* Toggle / buttons inside menus */
-body.dark .toggler { border-color:#888; background:#333; color:#eee; }
-body.dark .collapsed { background-color:#333; }
-body.dark .expanded { background-color:#c33; }
-
-/* Status elements */
-body.dark #model { background-color:#1e1f22; color:#f2f2f3; }
-body.dark #cloud { color:#f2f2f3; }
-
-/* Graph specific colors (edge strokes etc.) adapt subtly */
-/* Dark theme: let SVG be transparent so underlying watermark (#disclaimer) can show through */
-body.dark svg#graph { background:transparent; }
-/* SVG graph specific styling moved to svg.css */
-
-/* Scrollbars (WebKit) */
-body.dark ::-webkit-scrollbar { width:10px; }
-body.dark ::-webkit-scrollbar-track { background:#2a2b2f; }
-body.dark ::-webkit-scrollbar-thumb { background:#555; border-radius:5px; }
-body.dark ::-webkit-scrollbar-thumb:hover { background:#666; }
-
-/* Loading overlay text color inherited; ensure indicator text */
-body.dark #loadingIndicator { color:#f2f2f3; }
-
-/* Prevent white flashes in transitions */
-@media (prefers-reduced-motion:no-preference) {
-    body.dark { transition:background-color .25s ease, color .25s ease; }
+a:hover {
+    text-decoration:    underline;
 }
 
-/* Temporalization visibility control */
+/* Where the keyboard is, shown the same everywhere */
+:focus-visible {
+    outline:            2px solid var(--accent);
+    outline-offset:     1px;
+}
+
+/* ==========================================================================
+   Form controls
+   ========================================================================== */
+input:not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea {
+    font:               inherit;
+    color:              var(--text);
+    background:         var(--surface);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    padding:            2px 6px;
+    box-sizing:         border-box;
+}
+input:not([type=checkbox]):not([type=radio]):focus, select:focus, textarea:focus {
+    outline:            2px solid var(--accent);
+    outline-offset:     -1px;
+}
+input[type=checkbox], input[type=radio] {
+    accent-color:       var(--accent);
+}
+input:invalid, .editable:invalid, #tabularEditor .tabularEditable:invalid {
+    background-color:   var(--invalid);
+}
+
+/* ==========================================================================
+   Temporalization, metadata and equivalence: which options are shown
+   ========================================================================== */
 body.temporal-uni li.bi,
 body.temporal-uni li.crt { display:none !important; }
 /* In bi mode hide only items that are exclusively crt (have crt but not bi) */
 body.temporal-bi  li.crt:not(.bi) { display:none !important; }
-/* All modes share unchanged base items; items with multiple classes remain visible if any matching mode is active */
-
-/* Uni-only items: give them class 'uni' so they hide in bi/crt modes */
+/* Uni-only items are hidden in bi and crt modes */
 body.temporal-bi  li.uni,
 body.temporal-crt li.uni { display:none !important; }
-
-/* Metadata / equivalence visibility control
-    Metadata specific options (li.metadata) are only shown when body has class 'metadata'.
-    Equivalence specific options (li.equivalence) are only shown when body has class 'equivalence'.
-    This mirrors how temporalization toggles classes on <body>. */
+/* Metadata specific options are shown when the body has the class 'metadata', equivalence specific ones when it has 'equivalence' */
 body:not(.metadata)    li.metadata { display:none !important; }
 body:not(.equivalence) li.equivalence { display:none !important; }
-
 /* Features that the selected database and temporalization do not implement (Features in index.html reads the table in
    SQL/Helpers.js and sets these classes on <body>) */
 body.no-equivalence li.feature-equivalence,
 body.no-encryption  li.feature-encryption { display:none !important; }
 
 /* Route key labels (text on key routes) */
-text.routeText {
-    font-family:        "Impact", "Haettenschweiler", "Franklin Gothic Bold", "Charcoal", "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
-    font-size:          20pt;
-    font-weight:        normal;
-    fill:               white;
-    dominant-baseline:  middle;
-    pointer-events:     none;
-}
-
-/* Fine-tune baseline if fonts render slightly off; adjust dy as needed */
 text.routeText > textPath { dominant-baseline: middle; }
 
 /* Chronon provider labels on nexus-attribute edges */
@@ -142,15 +180,6 @@ text.routeText > textPath { dominant-baseline: middle; }
     font-size:          10px;
     fill:               currentColor;
     pointer-events:     none;
-}
-
-a:link, a:active, a:visited {
-    color:              #b55;
-    text-decoration:    none;
-}
-a:hover {
-    color:              #633;
-    text-decoration:    underline;
 }
 
 .unselectable {
@@ -169,10 +198,6 @@ a:hover {
     left:               0;
 }
 
-.editable:invalid {
-    background-color:   #fbb;
-}
-
 .closebutton {
     display:            none;
     background-image:   url(deleteButton.png);
@@ -189,7 +214,7 @@ a:hover {
 
 #route {
     position:           absolute;
-    top:                42px;
+    top:                calc(var(--bar-height) + 10px);
     right:              7px;
     display:            block;
     z-index:            9;
@@ -205,53 +230,37 @@ a:hover {
     z-index:            1;
 }
 
-/* minature - positioned in the southeast corner */
+/* the miniature, in the southeast corner */
 #miniature {
     position:           absolute;
     bottom:             40px;
     right:              42px;
-    background-color:   #fff;
+    background-color:   var(--surface);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    overflow:           hidden;
     z-index:            2;
-    box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    box-shadow:         var(--shadow-m);
 }
 #minigraph {
     display:            block;
 }
 
-#search {
-    position:           absolute;
-    top:                42px;
-    left:               50%;
-    margin-left:        -150px; /* half of the actual width */
-    display:            block;
-    z-index:            9;
-}
-#search input {
-    width:              150px;
-    text-align:         left;
-    background-color:   rgba(255, 255, 255, 0.9);
-}
-#search select {
-    width:              150px;
-    text-align:         left;
-    background-color:   rgba(255, 255, 255, 0.9);
-}
-
-/* shows a beta disclaimer */
+/* marks a test version: a small badge in the corner (the page shows it while RELEASE is false) */
 #disclaimer {
     display:            none;
     position:           absolute;
-    font:               bold 48pt sans-serif;
-    color:              white;
-    top:                42px;
-    left:               16px;
-    z-index:            0; 
+    top:                calc(var(--bar-height) + 10px);
+    left:               12px;
+    z-index:            0;
+    padding:            2px 8px;
+    border:             1px solid currentColor;
+    border-radius:      var(--radius-s);
+    font:               600 var(--text-s)/1.4 var(--font-ui);
+    letter-spacing:     0.04em;
+    color:              var(--accent);
     pointer-events:     none; /* ensure it never blocks graph interaction */
 }
-/* Dark theme: slightly dimmed but clearly visible */
-body.dark #disclaimer { color:rgba(255,255,255,0.03); }
 
 /* the logotype 'ANCHOR' */
 #logotype {
@@ -263,53 +272,41 @@ body.dark #disclaimer { color:rgba(255,255,255,0.03); }
     width:              142px;
 }
 
-/* shows login status to the cloud (google app engine) */
-#cloud {
-    font:               8pt sans-serif;
-    position:           absolute;
-    color:              black;
-    text-align:         left;
-    bottom:             40px;
-    left:               12px;
-    cursor:             pointer;
-    display:            block;
-    z-index:            10;
-}
-
-/* shows model name or local editing status
-   Repositioned to bottom right under the miniature for visual balance */
+/* shows model name or local editing status, under the miniature */
 #model {
-    font:               8pt sans-serif;
+    font:               var(--text-s)/1.4 var(--font-ui);
     position:           absolute;
-    color:              black;
+    color:              var(--text-muted);
     text-align:         right;
-    bottom:             6px;      /* same vertical offset as logotype */
-    right:              42px;     /* align with miniature's right edge */
+    bottom:             6px;
+    right:              42px;
     left:               auto;
-    display:            inline-block; /* shrink wrap for background box */
-    background-color:   #f9f8f7; /* opaque box matching main background */
-    padding:            2px 6px; /* small breathing room around text */
-    border-radius:      3px;     /* subtle rounding */
-    pointer-events:     none;    /* don't block interactions with canvas beneath */
+    display:            inline-block;
+    background-color:   var(--bg);
+    padding:            2px 6px;
+    border-radius:      var(--radius-s);
+    pointer-events:     none;    /* don't block interactions with the canvas beneath */
     z-index:            10;
 }
 
-/* context menu that pops up when editing */
+/* ==========================================================================
+   Panels: the context menu, the mass editor, the popovers
+   ========================================================================== */
 #contextMenu {
     position:           absolute;
     top:                0;
     left:               0;
     display:            block;
-    background-color:   rgba(236, 234, 234, 0.9);
-    color:              black;
+    background-color:   var(--surface-raised);
+    color:              var(--text);
     padding:            0;
     margin:             0;
     text-align:         left;
-    border:             2px solid #fff;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    /* no overflow: hidden here, the square that opens the menu sits across its corner and would be cut off */
     z-index:            11;
-    box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    box-shadow:         var(--shadow-m);
 }
 #contextMenu .items {
     margin:             10px 10px 5px 10px;
@@ -317,25 +314,22 @@ body.dark #disclaimer { color:rgba(255,255,255,0.03); }
 #contextMenu .items tr, #contextMenu .items td {
     background:         transparent !important; /* remove banding */
 }
-body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
-    background:         transparent !important;
-}
 #contextMenu .topper {
-    font:               10px sans-serif;
+    font:               var(--text-s)/17px var(--font-ui);
     cursor:             move;
-    color:              #333;
-    height:             15px;
-    padding-top:        2px;
+    color:              var(--text-muted);
+    height:             17px;
     padding-left:       24px;
-    border-bottom:      1px solid #888;
-    background-color:   rgba(255, 255, 255, 0.8);
+    border-radius:      var(--radius) var(--radius) 0 0;
+    border-bottom:      1px solid var(--border);
+    background-color:   var(--surface-sunken);
 }
 
 #tabularEditor {
     position:           absolute;
     overflow:           auto;
     scroll-behavior:    smooth;
-    top:                40px;
+    top:                calc(var(--bar-height) + 8px);
     left:               3%;
     width:              94%;
     height:             90%;
@@ -343,18 +337,20 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     flex-wrap:          wrap;
     flex-direction:     column;
     align-content:      flex-start;
-    background-color:   rgba(236, 234, 234, 0.9);
-    color:              black;
+    background-color:   var(--surface-raised);
+    color:              var(--text);
     padding:            5px;
     margin:             0;
     text-align:         left;
-    border:             2px solid #fff;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
     z-index:            11;
+    box-shadow:         var(--shadow-m);
 }
 #tabularEditor .closebutton {
     display:            inherit;
     position:           fixed;
-    top:                28px;
+    top:                calc(var(--bar-height) - 4px);
     left:               calc(3% - 15px);
     z-index:            12;
 }
@@ -373,36 +369,31 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     margin-right:       2px;
     margin-bottom:      0px;
 }
-#tabularEditor .tabularEditable:invalid {
-    background-color:   #fbb;
-}
-
 
 .toggler {
     position:           absolute;
-    color:              #555;
+    color:              var(--text-muted);
     margin:             0;
     padding:            0;
-    border:             1px solid #555;
+    border:             1px solid var(--text-muted);
+    border-radius:      var(--radius-s);
     width:              16px;
     height:             16px;
     z-index:            12;
 }
 .expanded {
     cursor:             nw-resize;
-    background-color:   #f55;
+    background-color:   var(--accent);
 }
 .collapsed {
     cursor:             se-resize;
     left:               -3px;
     top:                -3px;
-    background-color:   #fff;
-    box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    background-color:   var(--surface);
+    box-shadow:         var(--shadow-s);
 }
 .collapsed:hover {
-    background-color:   #fa5;
+    background-color:   var(--accent-soft);
 }
 
 .operators {
@@ -411,7 +402,6 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     top:                0;
     left:               0;
 }
-
 .operator {
     margin:             0;
     line-height:        25px;
@@ -420,30 +410,27 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     white-space:        nowrap;
     padding-right:      10px;
     padding-left:       10px;
+    border-radius:      var(--radius-s);
     z-index:            8;
 }
-
 .operator:hover {
-    color:              white;
-    background-color:   rgba(128, 128, 128, 0.8);
+    background-color:   var(--hover);
     text-decoration:    none;
-    text-shadow:        0px 0px 6px #555;
 }
-
 
 /* is used in the code popover */
 #modalBackground {
     position:           absolute;
     top:                0;
     left:               0;
-    background-color:   rgba(128, 128, 128, 0.3);
+    background-color:   var(--scrim);
     margin:             0;
     padding-top:        25%;
     overflow:           hidden;
     z-index:            10;
     text-align:         center;
     color:              white;
-    font-family:        sans-serif;
+    font-family:        var(--font-ui);
     font-size:          25pt;
     font-weight:        bold;
     text-shadow:        0px 3px 5px rgba(0, 0, 0, 0.5);
@@ -451,14 +438,14 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
 
 #urlPopover {
     position:           relative;
-    border:             2px solid white;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
     top:                5%;
     margin:             auto;
     display:            table;
-    background-color:   rgba(249, 248, 247, 0.95);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
+    background-color:   var(--surface-raised);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
     z-index:            11;
 }
 #urlPopover .closebutton {
@@ -470,138 +457,16 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     padding:            0;
 }
 
-
-#cloudBrowserPopover {
-    position:           relative;
-    border:             2px solid white;
-    top:                5%;
-    margin:             auto;
-    display:            table;
-    background-color:   rgba(249, 248, 247, 0.95);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-    z-index:            11;
-}
-#cloudBrowserPopover .closebutton {
-    display:            inherit;
-    position:           relative;
-}
-#cloudBrowserPopover #content {
-    margin:             -10px 10px 20px 10px;
-    padding:            0;
-}
-.modelContainer {
-    text-align:         left;
-    color:              black;
-    border-width:       medium;
-    border-style:       inset;
-    margin:             0px 5px 10px 5px;
-    padding:            8px;
-    cursor:             pointer;
-    height:             140px;
-}
-.modelIcon {
-    background:         #fff;
-    border:             1px solid black;
-    width:              140px;
-    max-height:         140px;
-    clip:               rect(0px,140px,140px,0px);
-    float:              left;
-    clear:              both;
-    margin-right:       10px;
-    box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-}
-.externalLink {
-    margin-left:        0.5em;
-}
-.modelName {
-    font:               100% georgia, sans-serif;
-}
-.modelKeywords {
-    font:               italic 75% georgia, sans-serif;
-}
-.modelDescription {
-    margin-top:         8pt;
-    font:               90% georgia, sans-serif;
-}
-.twitter {
-    margin-top:         8pt;
-    font:               italic 90% georgia, sans-serif;
-}
-#keywordFilter {
-    position:           relative;
-    text-align:         center;
-    top:                -20px;
-    font:               10pt georgia, sans-serif;
-}
-.modelDeleteButton  {
-    border-style: hidden;
-    display: block;
-    margin: -8px -2px -20px;
-    padding: 0;
-    background-image:   url(deleteButton.png);
-    position:           relative;
-    left:               -15px;
-    top:                -15px;
-    height:             30px;
-    width:              30px;
-    z-index:            14;
-}
-
-#cloudSaverPopover {
-    position:           relative;
-    border:             2px solid white;
-    top:                5%;
-    margin:             auto;
-    display:            table;
-    background-color:   rgba(249, 248, 247, 0.95);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
-    z-index:            11;
-}
-#cloudSaverPopover .closebutton {
-    display:            inherit;
-    position:           relative;
-}
-#cloudSaverPopover #content {
-    margin:             -10px 10px 10px 10px;
-    padding:            0;
-    text-align:         center;
-}
-#cloudSaverPopover #content table {
-    margin-top:         20px;
-    margin-bottom:      20px;
-}
-#cloudSaverPopover #content td {
-    font:               84% georgia, sans-serif;
-    color:              black;
-    padding-top:        5px;
-    text-align:         left;
-}
-#cloudSaverPopover #content img {
-    background:         #fff;
-    border:             1px solid black;
-    box-shadow:         0px 3px 5px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 3px 5px rgba(0, 0, 0, 0.5);
-}
-
-
-/* these classes style the xml representation */
+/* the code popover, and the colors of the XML in it (these stay dark in both themes) */
 #codePopover {
     position:           relative;
-    border:             2px solid black;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
     top:                5%;
     margin:             auto;
     display:            table;
-    background-color:   rgba(8, 0, 0, 0.8);
-    box-shadow:         0px 10px 20px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 10px 20px rgba(0, 0, 0, 0.5);
+    background-color:   var(--code-bg);
+    box-shadow:         var(--shadow-m);
     z-index:            11;
 }
 #codePopover .closebutton {
@@ -613,8 +478,8 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     position:           relative;
     margin-top:         -30px;
     text-align:         left;
-    font:               125% "Source Code Pro", "Consolas", "Andale Mono", monospace;
-    color:              white;
+    font:               125% var(--font-mono);
+    color:              var(--code-ink);
     padding:            15px 20px;
     overflow:           auto;
     background-color:   transparent;
@@ -624,11 +489,11 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     visibility:         hidden;
 }
 #content .texts {
-    color:              #f55;
+    color:              #ff5555;
     font-weight:        bold;
 }
 #content .brackets {
-    color:              white;
+    color:              var(--code-ink);
 }
 #content .elements {
     color:              #ffffc0;
@@ -642,13 +507,11 @@ body.dark #contextMenu .items tr, body.dark #contextMenu .items td {
     font-style:         italic;
 }
 .preformatted, pre {
-    font:               100% "Source Code Pro", "Consolas", "Andale Mono", monospace;
-    color:              white;
+    font:               100% var(--font-mono);
+    color:              var(--code-ink);
     white-space:        pre;
 }
 
-
-/* Menus and control buttons */
 ul, li, table, tr, td {
     list-style-type:    none;
     margin:             0;
@@ -656,276 +519,792 @@ ul, li, table, tr, td {
     border:             0;
     border-collapse:    collapse;
 }
-
 td {
     padding:            0px 5px 2px 5px;
 }
-
 legend {
     padding:            0.2em 0.5em;
-    color:              #555;
+    color:              var(--text-muted);
     font-size:          90%;
     text-align:         left;
 }
 
+/* ==========================================================================
+   The bar: menus on the left, the controls in the middle, search and help on the right
+   ========================================================================== */
 #header {
-    font:               10pt "Open Sans", "Helvetica Neue", sans-serif;
+    font:               var(--text-m)/1 var(--font-ui);
+    position:           relative;
+    display:            flex;
+    align-items:        center;
+    gap:                var(--space-1);
+    box-sizing:         border-box;
+    height:             var(--bar-height);
+    margin:             0;
+    padding:            0 var(--space-2);
+    background-color:   var(--surface);
+    color:              var(--text);
+    border-bottom:      1px solid var(--border);
+    box-shadow:         var(--shadow-s);
+    z-index:            7;
+}
+#header .spacer {
+    flex:               1 1 0;
+}
+
+.menu {
     position:           relative;
     margin:             0;
     padding:            0;
-    top:                0;
-    left:               0;
-    height:             32px;
-    display:            block;
-    background-color:   rgba(236, 234, 234, 0.9);
-    color:              black;
-    border-bottom:      2px solid #fff;
-    box-shadow:         0px 0px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 0px 10px rgba(0, 0, 0, 0.5);
-    z-index:            7;
-}
-
-/* http://www.ie7nomore.com/fun/menu2/ */
-/* TODO: position using relative instead */
-#actions, #settings, #file, #generate, #about, #defaults, #generation {
-    position:           absolute;
-    display:            block;
-    top:                0px;
-    z-index:            42;
-}
-#file {
-    left:               8px;
-    text-align:         left;
-    z-index:            43;
-}
-#actions {
-    left:               50px;
-    text-align:         left;
-    z-index:            44;
-}
-#generate {
-    left:               110px;
-    text-align:         left;
-    z-index:            45;
-}
-#generation {
-    right:              200px;
-    text-align:         right;
-    z-index:            46;
-}
-#defaults {
-    right:              130px;
-    text-align:         right;
-    z-index:            45;
-}
-#settings {
-    right:              60px;
-    text-align:         right;
-    z-index:            44;
-}
-#about {
-    right:              8px;
-    text-align:         right;
-    z-index:            43;
-}
-#file .fileSelect {
-    width:              200px;
-}
-.menu {
-    margin:             0;
+    height:             calc(var(--bar-height) - 12px);
+    line-height:        calc(var(--bar-height) - 12px);
+    border-radius:      var(--radius-s);
     cursor:             pointer;
-    list-style:         none;
-    padding-left:       8px;
-    padding-right:      8px;
-    line-height:        32px;
     display:            inline-block;
+    white-space:        nowrap;
 }
-.menu:hover {
-    font-style:         italic;
+.menu:hover, .menu.open {
+    background-color:   var(--hover);
+}
+/* the name of a menu is a button, so that the keyboard reaches it */
+.menulabel {
+    font:               inherit;
+    color:              inherit;
+    height:             100%;
+    margin:             0;
+    padding:            0 var(--space-3);
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    cursor:             pointer;
 }
 .submenu {
     display:            none;
-    position:           relative;      /* anchor to parent .menu */
-    top:                0; 
-    background-color:   rgba(236, 234, 234, 0.9);
+    position:           absolute;
+    top:                100%;
+    left:               0;
+    min-width:          100%;
+    box-sizing:         border-box;
+    padding:            var(--space-1) 0;
+    background-color:   var(--surface-raised);
+    color:              var(--text);
     white-space:        nowrap;
-    border:             2px solid #fff;
-    box-shadow:         0px 5px 10px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.5);
-    -moz-box-shadow:    0px 5px 10px rgba(0, 0, 0, 0.5);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    box-shadow:         var(--shadow-m);
     z-index:            9;
-    /* Constrain height to viewport and enable internal scrolling */
-    max-height:         calc(100vh - 60px); /* header (32px) + breathing room */
+    max-height:         calc(100vh - var(--bar-height) - 20px);
     overflow-y:         auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+    cursor:             default;
 }
-.menu:hover > .submenu {
+/* the menus at the right end open to the left, so that they stay in the window */
+#header .menu.end > .submenu {
+    left:               auto;
+    right:              0;
+}
+.menu:hover > .submenu, .menu.open > .submenu {
     display:            block;
 }
 .submenu li {
-    height:             25px;
-    line-height:        25px;
-    list-style-type:    none;
+    min-height:         28px;
+    line-height:        28px;
     margin:             0;
-    padding-right:      8px;
-    padding-left:       8px;
-    color:              black;
-    font-style:         normal;
-    text-decoration:    none !important;
-    text-shadow:        none;
+    padding:            0 var(--space-3);
+    color:              var(--text);
+    cursor:             pointer;
     text-align:         left;
 }
+.submenu li:hover, .submenu li:focus {
+    background-color:   var(--hover);
+}
+.submenu li:focus-visible {
+    outline-offset:     -2px;
+}
+.submenu li:active {
+    background-color:   var(--pressed);
+}
 .submenu a {
-    color:              black;
-}
-.submenu a:hover {
-    color:              white;
-    text-decoration:    none;
-    text-shadow:        0px 0px 6px #555;
-}
-.submenu li:hover {
-    color:              white;
-    background-color:   #b55;
-    text-decoration:    none;
+    color:              var(--text);
 }
 .submenu select {
-    width:              108px;
+    width:              200px;
 }
-.submenu input {
+.submenu input:not([type=checkbox]) {
     width:              45px;
 }
-.submenu .inputDefaults {
+.submenu .inputDefaults:not([type=checkbox]) {
     width:              104px;
 }
 
-/* =============================================================
-   Touch & small-screen menu enhancements (CSS-only, no markup change)
-   These rules progressively enhance usability on coarse pointers /
-   devices without reliable hover. Desktop hover behavior remains.
-   ------------------------------------------------------------- */
-
-/* (Desktop keeps original 32px line-height; touch overrides inside media query below) */
-
-/* Moderated submenu item sizing (was 34px line-height, now reduced for density) */
-.submenu li {
-    min-height:         30px;         /* balance readability + compactness */
-    line-height:        30px;
-    padding-top:        1px;
-    padding-bottom:     1px;
-}
-
-/* Remove tap highlight flash on mobile WebKit */
+/* Remove the tap highlight flash on mobile WebKit */
 .menu, .submenu li, .submenu a, .submenu input, .submenu select {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
 }
 
-/* Accessibility: show focus outline if menu items become focusable later */
-.menu:focus {
-    outline:            3px solid #fa5;
-    outline-offset:     2px;
+/* the controls: pause, zoom, undo and redo, with an icon each */
+.toolbar {
+    display:            flex;
+    align-items:        center;
+    gap:                2px;
+    margin:             0 var(--space-2);
 }
-
-/* On devices that lack hover or have coarse pointer, present menus as
-   stacked, always-expanded panels to avoid hover dependency. */
-@media (hover: none), (any-hover: none), (pointer: coarse) {
-    /* Larger hit areas on touch devices */
-    .menu {
-        line-height:    40px;         /* bigger tap target */
-        padding-left:   12px;
-        padding-right:  12px;
-    }
-    /* Stack top-level menus vertically, full-width container feel */
-    #file, #actions, #generate, #defaults, #settings, #about {
-        display:        block;
-        position:       static;       /* ignore earlier absolute offsets */
-        left:           auto !important;
-        right:          auto !important;
-        top:            auto !important;
-        width:          100%;
-        max-width:      480px;
-        margin:         0 auto 6px auto;
-        background:     #b55;
-        color:          #fff;
-        border-radius:  4px;
-        box-sizing:     border-box;
-    }
-    .menu + .menu { margin-top: 0; }
-    .menu:hover { font-style: normal; } /* hover meaningless on touch */
-
-    /* Always show submenu; convert to block panel */
-    .menu > .submenu {
-        display:        block !important;
-        position:       static;       /* override absolute in desktop mode */
-        background:     rgba(255,255,255,0.92);
-        border:         1px solid #ddd;
-        box-shadow:     none;
-        margin:         0;
-        padding:        4px 0 8px 0;
-        /* Use a taller adaptive max-height on touch; desktop rule already sets viewport constraint */
-        max-height:     min(500px, calc(100vh - 80px));
-        overflow-y:     auto;
-        -webkit-overflow-scrolling: touch;
-    }
-    .submenu li {
-        background:     transparent;
-        color:          #222;
-    }
-    .submenu li:hover {
-        background:     #b55;
-        color:          #fff;
-    }
-    /* Larger form controls for touch */
-    .submenu select,
-    .submenu input {
-        font-size:      14px;
-        line-height:    20px;
-    }
-    #listOfDefaults,
-    #listOfSettings { padding-top: 2px; }
+.toolbar .divider {
+    width:              1px;
+    height:             20px;
+    margin:             0 var(--space-1);
+    background:         var(--border);
 }
-
-/* ============================================================= */
-
-#controls {
-    position:           absolute;
-    top:                0px;
-    left:               50%;
-    margin-left:        -200px; /* half of the actual width */
-    height:             32px;
-    display:            block;
-    z-index:            555;
-}
-#controls .playing {
-    background-color:   #fa5;
-}
-/* Removed empty #controls .pausing ruleset (no differing styles from base state) */
-#controls div {
-    cursor:             pointer;
+.toolbar button {
     position:           relative;
-    top:                0;
-    display:            inline-block;
-    width:              100px;
-    height:             16px;
-    padding:            8px 0 8px 20px;
+    display:            inline-flex;
+    align-items:        center;
+    justify-content:    center;
+    width:              32px;
+    height:             32px;
     margin:             0;
+    padding:            0;
     border:             0;
-    background:         #b55;
-    color:              #fff;
-    text-decoration:    none;
-    text-shadow:        0px 0px 6px #777;
-    -moz-border-radius: 10px 0 / 40px 0;
-    -webkit-border-radius: 10px 0 / 40px 0;
-    border-radius:      10px 0 / 40px 0;
-    -webkit-transition: .5s;
-    -moz-transition:    .5s;
-    transition:         .5s;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
 }
-#controls div:hover {
-    background:         #f77;
+.toolbar button:hover {
+    background:         var(--hover);
 }
-#controls div + div {
-    margin-left:        -50px;
+.toolbar button:disabled {
+    opacity:            0.35;
+    cursor:             default;
+    background:         transparent;
 }
+.toolbar button:active {
+    background:         var(--pressed);
+}
+.toolbar button svg {
+    width:              18px;
+    height:             18px;
+    fill:               none;
+    stroke:             currentColor;
+    stroke-width:       2;
+    stroke-linecap:     round;
+    stroke-linejoin:    round;
+    pointer-events:     none;
+}
+.toolbar button .filled {
+    fill:               currentColor;
+    stroke:             none;
+}
+/* the number of changes that can be undone or redone */
+.toolbar button .count {
+    position:           absolute;
+    top:                0;
+    right:              0;
+    min-width:          14px;
+    padding:            0 3px;
+    box-sizing:         border-box;
+    border-radius:      7px;
+    font:               600 10px/14px var(--font-ui);
+    text-align:         center;
+    color:              var(--accent-ink);
+    background:         var(--accent);
+    pointer-events:     none;
+}
+.toolbar button .count:empty {
+    display:            none;
+}
+/* the icon of play is shown when the layout is paused, the icon of pause when it runs */
+#controls #playpause .play { display: none; }
+#controls #playpause.pausing .play { display: block; }
+#controls #playpause.pausing .pause { display: none; }
+#controls #playpause.playing { color: var(--accent); }
+
+#search {
+    display:            flex;
+    gap:                var(--space-1);
+    margin:             0 var(--space-2);
+}
+#search input {
+    width:              150px;
+    height:             28px;
+}
+#search select {
+    width:              150px;
+    height:             28px;
+}
+
+/* shown if the page was opened from a file, where a browser does not load the modules that the modeler is made of */
+#serverNotice {
+    position:           fixed;
+    z-index:            10000;
+    top:                20%;
+    left:               50%;
+    transform:          translateX(-50%);
+    max-width:          32em;
+    padding:            1em 1.5em;
+    border:             2px solid var(--accent);
+    border-radius:      var(--radius);
+    background:         var(--surface);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
+}
+
+/* the overlay while a model is loaded */
+#loadingOverlay {
+    position:           fixed;
+    z-index:            9999;
+    left:               0;
+    top:                0;
+    width:              100%;
+    height:             100%;
+    background:         var(--scrim);
+    backdrop-filter:    blur(2px);
+}
+#loadingOverlay .box {
+    position:           absolute;
+    top:                50%;
+    left:               50%;
+    transform:          translate(-50%, -50%);
+    text-align:         center;
+    padding:            var(--space-4) var(--space-4) var(--space-3);
+    border-radius:      var(--radius);
+    background:         var(--surface);
+    box-shadow:         var(--shadow-m);
+}
+#loadingSpinner {
+    width:              36px;
+    height:             36px;
+    margin:             0 auto 12px;
+    border:             5px solid var(--border);
+    border-top-color:   var(--accent);
+    border-radius:      50%;
+    animation:          anchor-spin 0.9s linear infinite;
+}
+#loadingIndicator {
+    font-size:          var(--text-m);
+    color:              var(--text);
+}
+@keyframes anchor-spin { to { transform: rotate(360deg); } }
+
+/* ::-webkit-scrollbar in the dark theme */
+body.dark ::-webkit-scrollbar { width:10px; }
+body.dark ::-webkit-scrollbar-track { background:var(--surface-sunken); }
+body.dark ::-webkit-scrollbar-thumb { background:var(--border); border-radius:5px; }
+body.dark ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+
+/* On a screen without a mouse the bar is bigger to touch; the rest of the small screen work is Phase 4 of PLAN.md */
+@media (pointer: coarse) {
+    #header { flex-wrap: wrap; height: auto; min-height: var(--bar-height); }
+    .menu { height: 36px; line-height: 36px; }
+    #controls button { width: 40px; height: 40px; }
+    .submenu li { min-height: 36px; line-height: 36px; }
+}
+
+/* the theme button shows the sun in the dark theme, the moon in the light theme */
+#themeToggle .sun { display: none; }
+body.dark #themeToggle .sun { display: inline; }
+body.dark #themeToggle .moon { display: none; }
+
+/* ==========================================================================
+   The model settings dialog
+   ========================================================================== */
+.filtered { display: none !important; }
+#modelSettings {
+    padding:            0;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    background:         var(--surface-raised);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
+    width:              min(880px, calc(100vw - 32px));
+    height:             min(660px, calc(100vh - 48px));
+    max-width:          none;
+    max-height:         none;
+    overflow:           hidden;
+}
+#modelSettings[open] {
+    display:            flex;
+    flex-direction:     column;
+}
+#modelSettings::backdrop {
+    background:         var(--scrim);
+}
+#modelSettings .head {
+    display:            flex;
+    align-items:        center;
+    gap:                var(--space-3);
+    padding:            var(--space-3) var(--space-4);
+    border-bottom:      1px solid var(--border);
+}
+#modelSettings .head h2 {
+    flex:               none;
+    margin:             0;
+    font:               600 var(--text-l)/1.3 var(--font-ui);
+}
+#modelSettings .head input {
+    flex:               1 1 auto;
+    max-width:          320px;
+    margin-left:        auto;
+    height:             30px;
+}
+#modelSettings .close {
+    flex:               none;
+    width:              30px;
+    height:             30px;
+    padding:            0;
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings .close:hover { background: var(--hover); }
+#modelSettings .close svg {
+    width:              18px;
+    height:             18px;
+    fill:               none;
+    stroke:             currentColor;
+    stroke-width:       2;
+    stroke-linecap:     round;
+}
+#modelSettings .content {
+    flex:               1 1 auto;
+    display:            flex;
+    min-height:         0;
+}
+#modelSettings nav {
+    flex:               none;
+    width:              190px;
+    box-sizing:         border-box;
+    padding:            var(--space-3) var(--space-2);
+    border-right:       1px solid var(--border);
+    background:         var(--surface-sunken);
+    display:            flex;
+    flex-direction:     column;
+    gap:                2px;
+    overflow-y:         auto;
+}
+#modelSettings nav button {
+    font:               inherit;
+    text-align:         left;
+    padding:            var(--space-1) var(--space-3);
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings nav button:hover { background: var(--hover); }
+#modelSettings nav button[aria-current] {
+    background:         var(--accent-soft);
+    font-weight:        600;
+}
+#modelSettings .groups {
+    flex:               1 1 auto;
+    min-width:          0;
+    overflow-y:         auto;
+    padding:            var(--space-2) var(--space-4) var(--space-4) var(--space-4);
+    position:           relative;
+}
+#modelSettings .group h3 {
+    margin:             var(--space-4) 0 0;
+    font:               600 var(--text-l)/1.3 var(--font-ui);
+}
+#modelSettings .group .intro {
+    margin:             2px 0 var(--space-2);
+    color:              var(--text-muted);
+}
+#modelSettings .fields li {
+    display:            grid;
+    grid-template-columns: 190px 1fr;
+    column-gap:         var(--space-3);
+    align-items:        center;
+    padding:            var(--space-2) 0;
+    border-top:         1px solid var(--border);
+    line-height:        1.4;
+}
+#modelSettings .fields li:has(> input[type=checkbox]) {
+    grid-template-columns: 22px 1fr;
+}
+#modelSettings .fields input:not([type=checkbox]), #modelSettings .fields select {
+    width:              100%;
+    height:             28px;
+}
+#modelSettings .fields label {
+    cursor:             pointer;
+}
+#modelSettings .fields .unit {
+    color:              var(--text-muted);
+    font-size:          var(--text-s);
+}
+#modelSettings .fields .help {
+    grid-column:        2;
+    grid-row:           2;
+    margin-top:         2px;
+    color:              var(--text-muted);
+    font-size:          var(--text-s);
+    line-height:        1.4;
+}
+#modelSettings .actions {
+    margin:             var(--space-3) 0 0;
+    display:            flex;
+    gap:                var(--space-2);
+    flex-wrap:          wrap;
+}
+#modelSettings .actions button {
+    font:               inherit;
+    padding:            var(--space-1) var(--space-3);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#modelSettings .actions button:hover { background: var(--hover); }
+#modelSettings .none {
+    margin:             var(--space-4) 0;
+    color:              var(--text-muted);
+}
+@media (max-width: 640px) {
+    #modelSettings .content { flex-direction: column; }
+    #modelSettings nav { width: auto; flex-direction: row; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; overflow-y: hidden; }
+    #modelSettings nav button { white-space: nowrap; }
+    #modelSettings .fields li { grid-template-columns: 1fr; }
+    #modelSettings .fields .help { grid-column: 1; }
+    #modelSettings .fields li:has(> input[type=checkbox]) { grid-template-columns: 22px 1fr; }
+    #modelSettings .fields li:has(> input[type=checkbox]) .help { grid-column: 2; }
+}
+
+/* what a screen reader is told and the eye does not need */
+.visually-hidden {
+    position:           absolute;
+    width:              1px;
+    height:             1px;
+    margin:             -1px;
+    padding:            0;
+    overflow:           hidden;
+    clip:               rect(0 0 0 0);
+    white-space:        nowrap;
+    border:             0;
+}
+/* the graph has the focus: a frame inside the window, only when the keyboard put it there */
+#graph:focus { outline: none; }
+#graph:focus-visible {
+    outline:            2px solid var(--accent);
+    outline-offset:     -3px;
+}
+/* ==========================================================================
+   The outline and properties panel
+   ========================================================================== */
+body { --panel-width: 330px; }
+#panel {
+    position:           absolute;
+    top:                var(--bar-height);
+    right:              0;
+    bottom:             0;
+    width:              var(--panel-width);
+    box-sizing:         border-box;
+    z-index:            6;
+    display:            flex;
+    flex-direction:     column;
+    background:         var(--surface);
+    color:              var(--text);
+    border-left:        1px solid var(--border);
+    box-shadow:         var(--shadow-m);
+}
+#panel[hidden] { display: none; }
+/* the miniature and the name of the model keep clear of the panel */
+body.panel-open #miniature { right: calc(var(--panel-width) + 16px); }
+body.panel-open #model { right: calc(var(--panel-width) + 16px); }
+#panel .panelhead {
+    flex:               none;
+    display:            flex;
+    align-items:        center;
+    gap:                var(--space-2);
+    padding:            var(--space-2) var(--space-3);
+    border-bottom:      1px solid var(--border);
+}
+#panel .panelhead h2 {
+    flex:               none;
+    margin:             0;
+    font:               600 var(--text-m)/1.3 var(--font-ui);
+}
+#panel .panelhead input { flex: 1 1 auto; min-width: 0; height: 26px; }
+#panel .close {
+    flex:               none;
+    width:              26px;
+    height:             26px;
+    padding:            0;
+    border:             0;
+    border-radius:      var(--radius-s);
+    background:         transparent;
+    color:              var(--text);
+    cursor:             pointer;
+}
+#panel .close:hover { background: var(--hover); }
+#panel .close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#outlineTree {
+    flex:               1 1 50%;
+    min-height:         0;
+    overflow:           auto;
+    margin:             0;
+    padding:            var(--space-1) 0;
+}
+#outlineTree li {
+    cursor:             pointer;
+}
+#outlineTree li:focus { outline: none; }
+#outlineTree li:focus-visible > .line { outline: 2px solid var(--accent); outline-offset: -2px; }
+#outlineTree .line {
+    display:            flex;
+    align-items:        center;
+    gap:                6px;
+    min-height:         24px;
+    padding:            1px var(--space-3) 1px calc(var(--space-2) + (var(--level) - 1) * 16px);
+    border-radius:      var(--radius-s);
+    margin:             0 var(--space-1);
+}
+#outlineTree .line:hover { background: var(--hover); }
+#outlineTree li[aria-selected=true] > .line { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+#outlineTree .twisty { flex: none; width: 12px; height: 12px; }
+#outlineTree [aria-expanded] > .line .twisty {
+    background:         currentColor;
+    opacity:            0.55;
+    clip-path:          polygon(25% 15%, 85% 50%, 25% 85%);
+}
+#outlineTree [aria-expanded=true] > .line .twisty { clip-path: polygon(15% 25%, 85% 25%, 50% 85%); }
+#outlineTree li.group > .line { font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: var(--text-s); letter-spacing: 0.04em; }
+#outlineTree .icon { flex: none; width: 16px; height: 16px; }
+#outlineTree .name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#outlineTree .note { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); font-size: var(--text-s); }
+#outlineTree .note::before { content: "\2192\00a0"; }
+#panel .properties {
+    flex:               1 1 50%;
+    min-height:         0;
+    overflow:           auto;
+    padding:            var(--space-2) var(--space-3) var(--space-4);
+    border-top:         1px solid var(--border);
+    background:         var(--surface-sunken);
+}
+#panel .properties h3 { margin: var(--space-1) 0 var(--space-2); font: 600 var(--text-m)/1.3 var(--font-ui); }
+#panel .properties .hint { margin: 0; color: var(--text-muted); }
+#panel .properties table.items { width: 100%; }
+#panel .properties table.items td { padding: 2px 6px 4px 0; vertical-align: middle; }
+#panel .properties table.items td:first-child { width: 36%; color: var(--text-muted); white-space: nowrap; }
+#panel .properties table.items input:not([type=checkbox]), #panel .properties table.items select { width: 100%; height: 26px; }
+#panel .properties .operations { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
+#panel .properties .operations button {
+    font:               inherit;
+    padding:            2px var(--space-2);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#panel .properties .operations button:hover { background: var(--hover); }
+
+/* the panel has views: the outline (with the properties) and the XML */
+body.panel-wide { --panel-width: 560px; }
+#panel .tabs { flex: 1 1 auto; display: flex; gap: 2px; align-self: stretch; margin: calc(var(--space-2) * -1) 0; }
+#panel .tabs button {
+    font:               inherit;
+    padding:            0 var(--space-3);
+    border:             0;
+    border-bottom:      2px solid transparent;
+    background:         transparent;
+    color:              var(--text-muted);
+    cursor:             pointer;
+}
+#panel .tabs button:hover { color: var(--text); }
+#panel .tabs button[aria-selected=true] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+#panel .view { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#panel .view[hidden] { display: none; }
+#panel .filter { flex: none; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+#panel .filter input { width: 100%; height: 26px; }
+#xmlView { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+#xmlView .xmlbar { flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); }
+#xmlView #xmlStatus { flex: 1 1 auto; min-width: 0; color: var(--text-muted); font-size: var(--text-s); }
+#xmlView.bad #xmlStatus { color: var(--accent); font-weight: 600; }
+#xmlView .xmlbar button {
+    font:               inherit;
+    padding:            2px var(--space-3);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#xmlView .xmlbar button:hover { background: var(--hover); }
+#xmlText {
+    flex:               1 1 auto;
+    min-height:         0;
+    resize:             none;
+    box-sizing:         border-box;
+    margin:             0;
+    padding:            var(--space-2) var(--space-3);
+    border:             0;
+    border-radius:      0;
+    background:         var(--surface-sunken);
+    font:               12px/1.5 var(--font-mono);
+    white-space:        pre;
+    overflow:           auto;
+    tab-size:           2;
+}
+#xmlText:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+#xmlProblems {
+    flex:               none;
+    max-height:         32%;
+    overflow:           auto;
+    margin:             0;
+    padding:            0;
+    border-top:         1px solid var(--border);
+}
+#xmlProblems:empty { display: none; }
+#xmlProblems li { padding: 4px var(--space-3); background: var(--invalid); border-bottom: 1px solid var(--border); font-size: var(--text-s); line-height: 1.4; }
+
+/* the problems: a list, each line selects what it is about */
+#panel .tabs .count {
+    display:            inline-block;
+    min-width:          16px;
+    margin-left:        6px;
+    padding:            0 5px;
+    box-sizing:         border-box;
+    border-radius:      8px;
+    font:               600 10px/16px var(--font-ui);
+    text-align:         center;
+    color:              var(--accent-ink);
+    background:         var(--accent);
+}
+#panel .tabs .count:empty { display: none; }
+#problemView { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; }
+#problemView .problembar { flex: none; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: var(--text-s); }
+#problemView.bad .problembar { color: var(--accent); font-weight: 600; }
+#problemList { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: var(--space-1) 0; }
+#problemList li.heading { padding: var(--space-3) var(--space-3) var(--space-1); color: var(--text-muted); font: 600 var(--text-s)/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: 0.04em; }
+#problemList button.problem {
+    display:            block;
+    width:              100%;
+    box-sizing:         border-box;
+    padding:            4px var(--space-3) 4px calc(var(--space-3) + 14px);
+    border:             0;
+    border-left:        3px solid transparent;
+    background:         transparent;
+    color:              var(--text);
+    font:               inherit;
+    text-align:         left;
+    line-height:        1.4;
+    cursor:             pointer;
+}
+#problemList li.error button.problem { border-left-color: var(--accent); }
+#problemList li.hint button.problem { color: var(--text-muted); }
+#problemList button.problem:hover:not(:disabled) { background: var(--hover); }
+#problemList button.problem:disabled { cursor: default; }
+
+/* the dialog where a model that an agent gave is pasted */
+#agentPaste , #modelStore  {
+    padding:            0;
+    border:             1px solid var(--border);
+    border-radius:      var(--radius);
+    background:         var(--surface-raised);
+    color:              var(--text);
+    box-shadow:         var(--shadow-m);
+    width:              min(760px, calc(100vw - 32px));
+    height:             min(560px, calc(100vh - 48px));
+    max-width:          none;
+    max-height:         none;
+    overflow:           hidden;
+}
+#agentPaste[open], #modelStore[open] { display: flex; flex-direction: column; }
+#agentPaste::backdrop, #modelStore::backdrop { background: var(--scrim); }
+#agentPaste .head, #modelStore .head { flex: none; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); }
+#agentPaste .head h2, #modelStore .head h2 { flex: 1 1 auto; margin: 0; font: 600 var(--text-l)/1.3 var(--font-ui); }
+#agentPaste .close, #modelStore .close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text); cursor: pointer; }
+#agentPaste .close:hover, #modelStore .close:hover { background: var(--hover); }
+#agentPaste .close svg, #modelStore .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#agentPaste .body, #modelStore .body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+#agentPaste .body p, #modelStore .body p { margin: 0; }
+#agentPaste textarea {
+    flex:               1 1 auto;
+    min-height:         0;
+    resize:             none;
+    font:               12px/1.5 var(--font-mono);
+    white-space:        pre;
+    tab-size:           2;
+}
+#agentPaste #agentStatus { color: var(--text-muted); }
+#agentPaste.bad #agentStatus { color: var(--accent); font-weight: 600; }
+#agentPaste #agentProblems { flex: none; max-height: 110px; overflow: auto; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-s); }
+#agentPaste #agentProblems:empty { display: none; }
+#agentPaste #agentProblems li { padding: 3px var(--space-3); background: var(--invalid); border-bottom: 1px solid var(--border); font-size: var(--text-s); }
+#agentPaste .foot, #modelStore .foot { flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border); }
+#agentPaste .foot .spacer, #modelStore .foot .spacer { flex: 1 1 auto; }
+#agentPaste .foot button, #modelStore .foot button {
+    font:               inherit;
+    padding:            var(--space-1) var(--space-3);
+    border:             1px solid var(--border);
+    border-radius:      var(--radius-s);
+    background:         var(--surface);
+    color:              var(--text);
+    cursor:             pointer;
+}
+#agentPaste .foot button:hover:not(:disabled), #modelStore .foot button:hover:not(:disabled) { background: var(--hover); }
+#agentPaste .foot button.primary, #modelStore .foot button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+#agentPaste .foot button.primary:hover:not(:disabled), #modelStore .foot button.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
+#agentPaste .foot button:disabled, #modelStore .foot button:disabled { opacity: 0.45; cursor: default; }
+
+/* a short message at the bottom that goes away by itself */
+#toast {
+    position:           fixed;
+    left:               50%;
+    bottom:             24px;
+    transform:          translate(-50%, 16px);
+    max-width:          min(520px, calc(100vw - 32px));
+    padding:            var(--space-2) var(--space-4);
+    border-radius:      var(--radius);
+    background:         var(--text);
+    color:              var(--bg);
+    box-shadow:         var(--shadow-m);
+    opacity:            0;
+    pointer-events:     none;
+    transition:         opacity .2s ease, transform .2s ease;
+    z-index:            20;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* models kept in this browser */
+#modelStore .keep { flex: none; display: flex; gap: var(--space-2); }
+#modelStore .keep input { flex: 1 1 auto; height: 30px; }
+#modelStore .keep button { flex: none; font: inherit; padding: 0 var(--space-4); border: 1px solid var(--accent); border-radius: var(--radius-s); background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+#modelStore #storeStatus { min-height: 1.5em; color: var(--text-muted); }
+#modelStore.bad #storeStatus { color: var(--accent); font-weight: 600; }
+#modelStore .hint { color: var(--text-muted); }
+#modelStore #storeList { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+#modelStore #storeList li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+#modelStore #storeList li > div { flex: 1 1 auto; min-width: 0; }
+#modelStore #storeList strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#modelStore #storeList small { color: var(--text-muted); font-size: var(--text-s); }
+#modelStore #storeList button { flex: none; font: inherit; padding: 2px var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); color: var(--text); cursor: pointer; }
+#modelStore #storeList button:hover { background: var(--hover); }
+#modelStore #storeList button[data-sure] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+#modelStore { height: min(520px, calc(100vh - 48px)); width: min(560px, calc(100vw - 32px)); }
+
+/* copy and download on the code that is shown */
+#codePopover .codebar { position: absolute; top: 8px; right: 28px; z-index: 13; display: flex; gap: var(--space-2); }
+#codePopover .codebar button { font: 12px var(--font-ui); padding: 2px var(--space-3); border: 1px solid rgba(255,255,255,0.35); border-radius: var(--radius-s); background: rgba(255,255,255,0.12); color: #fff; cursor: pointer; }
+#codePopover .codebar button:hover { background: rgba(255,255,255,0.25); }
+
+/* the documentation of the model, shown in a page of its own inside a dialog */
+#docView { padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-raised); color: var(--text); box-shadow: var(--shadow-m); width: min(1100px, calc(100vw - 32px)); height: calc(100vh - 48px); max-width: none; max-height: none; overflow: hidden; }
+#docView[open] { display: flex; flex-direction: column; }
+#docView::backdrop { background: var(--scrim); }
+#docView .head { flex: none; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); }
+#docView .head h2 { flex: 1 1 auto; margin: 0; font: 600 var(--text-l)/1.3 var(--font-ui); }
+#docView .head button:not(.close) { font: inherit; padding: var(--space-1) var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface); color: var(--text); cursor: pointer; }
+#docView .head button:not(.close):hover { background: var(--hover); }
+#docView .close { flex: none; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text); cursor: pointer; }
+#docView .close:hover { background: var(--hover); }
+#docView .close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#docView iframe { flex: 1 1 auto; min-height: 0; border: 0; background: #fff; }

@@ -250,6 +250,38 @@ S = a day or two, M = about a week, L = several weeks.
 - Cap undo (for example 100 states) and mark the limit in the button label.
 - Swap `keypress`/`keyCode` for `keydown` and `event.key`.
 
+**Status: done on the `modernize` branch (not merged; the version is not bumped until the branch is merged).**
+
+- **A mistake in this list, found by use and fixed:** `deleteButton.png` and `deleteButtonPressed.png` were deleted as "images only the cloud popovers used". The shared `.closebutton` rule draws every dialog's close button from them, so the SQL, page and mass-editor dialogs could not be closed. They are back, a test now checks that each dialog's close button shows and that its image loads, and Escape closes an open dialog.
+- **Deleted:** `pathseg.js` and its licence text; the cloud browser and saver popovers, the `Actions.*Cloud*` methods,
+  `generateURL`, the tweet link, the `#cloud` element and about 150 lines of CSS; three images that only the cloud
+  popovers used; the globals and helpers that only the cloud used (`LOGGED_IN`, `USER_ID`, the UTF-8 base64 helpers);
+  `Model.scope` and `Model.keywords`; the commented-out cloud and URL menu items; `X-UA-Compatible` and `HandheldFriendly`.
+  **Kept:** loading a model from a gist (`?gist=<id>`), with the status line now reading *Editing <name> (gist <id>)*.
+  Net: 71 lines added, 1,655 removed (`index.html` 8,067 to 7,515 lines).
+- **Fonts:** the two Google Fonts links are gone. `application.css` defines `--font-ui` and `--font-mono` as system stacks
+  and every rule uses them; the inline loading overlay inherits. The page makes no font request.
+- **Watermark:** the 48 pt "TEST VERSION" block is now a small badge (`TEST VERSION 0.101.19`) in the top-left corner,
+  shown while `RELEASE` is false, with the version filled in by script instead of `document.write`. The start-up alert
+  that said the same thing is removed.
+- **Known, not caused by this branch:** `browser-check.ps1 -Variant sqlserver-handwritten` differs from its golden file
+  (the modeler writes `[knots].[ETY_EventType]` where the golden has `[knots].[ETY_EventType_ID]`) on `master` too. That model
+  is deliberately one the modeler would not save: knots flagged equivalent while equivalence is off. The modeler resets
+  such flags when it loads the file; the generator reading the file directly does not, and the templates that write a foreign
+  key to a knot test `knot.isEquivalent` without also testing `schema.EQUIVALENCE`, as `CreateKnots` does. It affects only
+  hand- or agent-written XML with inconsistent flags, and is not related to the naming convention (the model uses `improved`).
+  Worth a separate fix in the templates.
+- **Undo:** the history is capped at 100 changes (`Model.maxUndoLevels`), and the button's tooltip says so. This also
+  fixes a bug: after an undo, a new change left the abandoned redo states in the list, so a later redo could jump to a
+  state from the discarded branch.
+- **Keyboard:** `keypress`/`keyCode` are replaced by `keydown`/`event.key`. The handler only reacts to a single
+  character key without Ctrl, Alt or Meta, so F5, Tab, arrows and the browser's own shortcuts are no longer swallowed
+  while the pointer is over a node. **Escape now works**: it never produced a `keypress` event in Chromium, so the
+  "Escape clears the selection and closes the context menu" code had never run. It is listed in the Help page.
+- **README:** no longer promises a cloud connection.
+- **Tools:** in the sisula repo, on a branch of the same name, `browser-check.ps1` accepts a page with or without the
+  Google Fonts links.
+
 ### 4.2 Phase 1: structure (M to L, the enabling step)
 
 1. **Move the inline script into files** under `app/` (one per block in the table in 3.6). First as classic scripts,
@@ -271,7 +303,137 @@ S = a day or two, M = about a week, L = several weeks.
 7. **Tests.** Extend `browser-check.ps1` with a UI mode: open, add an attribute, rename, undo, redo, export at three
    window sizes, and take the screenshots again. No dependency: it is the same Edge-headless approach.
 
+**Status of Phase 1 on the `modernize` branch (not merged).**
+
+- **Step 7, tests: done, and done first.** `examples/anchor/tools/ui-check.ps1` in the sisula repository runs `ui-tests.js`
+  inside the modeler's own page in headless Edge: loading and saving, the operations of the context menu, the keyboard, undo and
+  redo, the dialogs, search, view, theme, settings, SQL, XML and documentation, shared links, storage, and that bubbles sit on
+  their edges. 31 checks, and 23 recorded values (fingerprints of the saved model after each step, counts of fields and
+  operations) that are compared with `ui-golden.json`; the fingerprint ignores positions, the root element's date, time and
+  version, and the order of elements. It was run several times on unchanged code before it was trusted, and it is the reason the
+  steps below could be taken without guessing. It found a bug (next point).
+- **A bug the tests found, fixed:** the layout that settles after an undo or a redo was recorded as a new state, which replaced
+  the newest state and ended what could be redone, so undo could not be pressed several times in a row to walk back. Undo and
+  redo now mark the layout that follows them as a restoration.
+- **Step 1, files: done.** `index.html` is 394 lines of markup (it was 7,514). The script is 26 files in `app/`, loaded as ordinary
+  scripts in the order the code stood in, with the same global names. A script made them and checked that together they hold
+  exactly the code of the original script, apart from the indent; the user-interface tests, the SQL golden files, the feature table
+  and all 17 targets give the same results. **The version is now in `app/config.js`**, not in `index.html`.
+- **Step 4, events: done.** `Model.on`, `off` and `emit` with `changed`, `history` and `replaced`. The model no longer calls the
+  undo and redo buttons; they listen. A listener that throws does not stop the others.
+- **Step 2, ES modules: done.** `index.html` loads one module, `app/main.js`; the 26 files in `app/` are modules with explicit
+  `export` and `import` lines (the imports were computed from what each file really uses: 134 dependencies). **This corrects
+  what I wrote earlier, that the step had to wait for the model/view split.** The cycle (21 of the 26 files depend on each
+  other) is allowed in ES modules as long as no file uses an imported value while the files are loading, and only three
+  things did: (1) `extend(X, Component)` copied `Component.prototype` when each file ran; it is now a live prototype chain
+  (`Object.setPrototypeOf(X.prototype, Component.prototype)`, with `Component.prototype` filled in place), which gives the
+  same lookups because the only non-falsy member that Component defines, `incomplete`, is not redefined by any subclass;
+  (2) six variables are assigned from other files (`SVG`, `SVGLayer`, `NAV`, `NAVLayer`, `ASKBEFOREUNLOAD`, `DEBUG`): reads stay
+  as they were (an import is a live view), and the seven assignments go through setters in `app/config.js`; (3) an object in
+  `EventHandler` had `clickSelection: this.clickHighlight` at its top level, where `this` was `window` in a classic script, so
+  it was always `undefined` and nothing ever listened for a click on the selection mark; it threw in a module, and the dead
+  property and its two listener calls are removed (behaviour unchanged). What the markup, the tests and the tools reach by name
+  (`Model`, `Actions`, `Settings` and so on) is put on `window` by `main.js`. The cycle itself was still there after this step; step 3 below reduced it from 22 files to 11.
+  **A consequence for users:** a browser does not load modules from a page opened directly from a file, so double-clicking
+  `index.html` shows a notice ("put the folder on a web server") instead of the modeler; before, editing worked from a file
+  (only Generate did not). The tests run from a file because Edge is started with `--allow-file-access-from-files`.
+- **Step 3, model and view: done, with one cycle left in the application layer.** Measured on the import lines of `app/`
+  (`app/view/` included from the second row):
+
+  | | Files | Imports between them | Largest cycle |
+  |---|---|---|---|
+  | Before step 3 (`676f326`) | 27 | 140 | **22 files** |
+  | After 3a (the model asks through an interface) | 27 | 135 | 22 files |
+  | After 3b (the drawing moves into views) | 30 | 115 | 18 files |
+  | After 3c (kinds registry, display flag, layers) | 30 | **95** | **11 files** |
+
+  What was done, in the order it was done and each stage tested before the next:
+  - **3a, `Model.surroundings`.** `Model` no longer imports `Actions`, `DrawingEngine`, `EventHandler`, `Features` or `Settings`.
+    It asks through an interface (`selectedRoute`, `clearSelection`, `layout`, `stopLayout`, `restoring`, `clearDrawing`,
+    `showKeys`, `viewReset`, `adoptSettings`, `checks`), documented in `Model.js`, with functions that do nothing by default;
+    `app/main.js` installs the real ones. The 33 calls and their order are as they were.
+  - **3b, views.** Tests for the drawing were written and recorded first (hover highlight, selection mark, fixation, hide and
+    show, imploding, the shapes that follow the flags, names, dragging, the layers and the miniature). Then each construct was
+    changed to say how it looks (`this.look`: its shape, where its name goes, its name class) and to ask for a view
+    (`attachView()`); the drawing code, moved and not rewritten, is in `app/view/` (`ComponentView`, `NodeView`, `RoleView`) and
+    is made by `Component.createView`, which `main.js` sets. `Component` and the construct classes no longer import the SVG
+    layers, the namespaces, `Symbol`, `EventHandler`, `ContextMenu`, `Features` or `DrawingEngine`; their users
+    (`EventHandler`, `DrawingEngine`, `Actions`, `Settings`, `Editables`) go through `component.view`.
+  - **3c, the last cheap edges.** `Model` no longer imports the construct classes: it makes them through `Model.kinds`, which
+    `main.js` fills in (the constructs import `Model`, not the other way round). The constructs no longer read `Settings`:
+    the display flag `showMnemonics` is `Component.showMnemonics`. Seven imports that were only a word inside a string were
+    removed.
+  - **Proof that it is a layer:** a test makes, changes, saves and reads a model with every view hook switched off, and
+    nothing is drawn.
+
+  **What is left, and why it is left.** The 11 files that still import each other are the application layer: `Actions`,
+  `ControlButtons`, `DrawingEngine`, `EventHandler`, `Features`, `Operations`, `Popovers`, `Settings`, `TabularEditor`,
+  `Wiring` and `init`. They are the controllers of the page (menus, mouse and keyboard, dialogs, settings), and they call
+  each other by nature: a click is handled in `EventHandler`, which asks `Actions` or `Operations`, which open a dialog,
+  which changes `Settings`, which redraws through `DrawingEngine`. Breaking that into layers would mean an event bus between
+  them, which would hide the calls and not remove them, so it is not done here. `ContextMenu` imports `Model` and the
+  application layer, and is not in a cycle only because nothing in the application layer imports it back. The model layer
+  (`Model`, `Component`, the six constructs and `Role`, `Editables`, `UniqueIdentity`) imports nothing from the
+  application or view layers; it still imports `config` (for `VERSION` and `DEBUG`) and, in the constructs, `Editables`
+  (the definitions of the fields), which is a description of forms and not a view.
+- **Step 5, commands for undo: not done.** It was waiting for step 3, which is done: a command can now change the model and let the views follow (they listen to the model's events).
+- **Step 6, menus and settings in the markup: done for the wiring.** The 84 inline handlers (`onclick`, `onblur`, `onchange`,
+  and so on) are gone from `index.html`. A control now says what it does with `data-action="Actions.newModel"`,
+  `data-setting="setDefaultIdentity"` and `data-args`, and `app/Wiring.js` acts on them (one listener for the page; Enter and
+  Space work on focusable items; text and number fields report when they are left, lists and check boxes when they change).
+  A test records, for every menu item and every settings field, which functions it calls with which arguments, with those
+  functions replaced by recorders; the 135 recorded values are identical before and after, so nothing changed. Ten
+  one-line wrappers in `Actions` replace the expressions that stood in the markup. Not done: one registry that also builds
+  the menus and the Defaults form (the markup is still written by hand), which is what a command palette needs.
+
+- **Found while testing, and fixed: nexuses did not implode or explode** (also on `master`: `Model.explode` and "Implode all" /
+  "Explode all" only handled anchors, and a nexus did not read its imploded state back from the saved layout, so it would have
+  been lost on save, load and undo). A nexus now hides and shows its attributes (and their knots) like an anchor, takes part in
+  "Implode all" / "Explode all", and keeps the state when saved and read again. A test covers all of it (it fails without the fix).
+- **Found while testing, and fixed: after an explode an edge could end short of its attribute symbol** (moving the symbol fixed it;
+  anchors too, and also on `master`). The drawing engine only draws what is moving; an exploded attribute is given a new place, and if
+  the layout stops it on its first frame it is never drawn there, while its edge (drawn every frame) goes to the new place. A construct
+  is now drawn when it is shown (`ComponentView.show`). A test checks it without the layout (it fails without the fix).
+
+Also on its own branch, not part of `modernize`: a fix in the generators' helpers, so that a model with equivalence off ignores
+the `equivalent` flags of its knots and attributes (branch `fix-equivalence-flags`).
+
 ### 4.3 Phase 2: look and feel (M)
+
+**Status of Phase 2** (in steps, each tested and pushed on `modernize`):
+
+- **Step 1, done: tokens, neutral bar, icon controls.** `application.css` and `svg.css` are rewritten on tokens (colour, type
+  scale, space, radius, shadow) that the light and the dark theme give values; the 150 lines of dark-theme overrides and the
+  `!important`s in `svg.css` are gone, there is one rule for each thing. The bar is neutral with a hairline, the brand red is the
+  accent only (focus ring, the layout button while it runs, the badge with the number of undo steps, the model's anchors keep
+  the red of the notation). The controls are real `<button>`s with an inline SVG icon, a name for a screen reader and a tooltip;
+  undo and redo are off when there is nothing to undo or redo and show a count badge; redo now comes after undo. Search sits in
+  the bar, Help is at the right end, menus at the right end open to the left. The first theme is what the system prefers
+  (`prefers-color-scheme`) unless the viewer has chosen. Panels and the loading overlay use the tokens; the logotype is inverted
+  in the dark theme. Tests: every token has a value in both themes, the bar changes with the theme and is not filled with the
+  accent, the controls are buttons with names and icons.
+- **Step 2, done: the Model settings dialog.** The *Generate* menu now only generates (SQL, XML, JSON, HTML, SVG, and an item that
+  opens the settings of the code). The *Defaults* and *Settings* menus are gone; their 52 fields, with the generation options, are
+  in one modal `<dialog>` (the gear in the bar), in six groups (Target, Features, Names, Types and values, Defaults for new items,
+  Advanced), each with a sentence of help that shows and not only as a tooltip, a list of the groups at the left and a search
+  that filters on name, help and id and hides groups without matches. The theme switch is a button in the bar (moon or sun).
+  Every field keeps its id and its `data-setting`, so `Settings.js` is unchanged; the wiring test shows that all 52 fields call
+  what they called (the golden values moved from the menus to the dialog, equal). Esc, the close button and a click beside the
+  dialog close it. Tests: the bar holds only the search fields, the dialog opens on a group, finds, changes a setting, closes.
+- **Step 3, skipped on purpose.** After testing, the owner finds the graph readable and has no trouble hitting what they aim
+  for with the pointer, so larger hit areas and more label work are not needed. (The halos, the consistent edge colour and the
+  tokens for the graph came with step 1.)
+- **Step 4, done: the keyboard and the screen reader.** The names in the bar are buttons (`aria-haspopup`, `aria-expanded`),
+  the lists are `role="menu"` with `role="menuitem"` items, and there is a roving tabindex: Tab reaches the bar once, ← → move
+  between the menus (and open the next one if a menu is open), ↓ ↑ Enter Space open a menu, Home End and ↓ ↑ move through the
+  items (letters go to the next item that starts with them), Enter or Space does what the item says and the menu closes with
+  the focus back on its name, Esc closes (the focus returns), Tab leaves. A click opens and closes a menu, as it must where
+  there is nothing to hover with. The graph is reached with Tab (a frame shows when the keyboard put the focus there) and moves
+  with ← → ↓ ↑ (shift: larger steps), `+` `-` zoom and `0` shows the whole model again. A polite live region says what is not
+  otherwise said: undo and redo (with how many more), the layout paused or running, implode and explode all, the theme. Focus
+  rings are the accent, everywhere. The shortcuts page lists the keys. Choosing a node with the keyboard (to edit it, without
+  the hover) is the focus-based way in of Phase 3, not here. Tests: roles and tabindex, every key above, the graph keys and the
+  announcements.
 
 - **Design tokens as CSS custom properties** (colour, spacing, radius, type scale), light and dark, following
   `prefers-color-scheme` with a manual override. Keep the brand red as the accent only, not as the toolbar fill.
@@ -286,6 +448,69 @@ S = a day or two, M = about a week, L = several weeks.
 
 ### 4.4 Phase 3: editing (M to L, needs 4.2)
 
+**Order chosen by the owner:** 1 the outline and properties panel, 2 the live XML view, 3 the problems panel, 4 the agent
+hand-off. The rest (rename on the canvas, a free-standing anchor, first placement, copy/paste, export) waits until those are
+tested.
+
+**Status of Phase 3**
+
+- **Item 1, done: the outline and properties panel** (`app/Outline.js`, `app/EditForm.js`). A panel at the right, opened with
+  the button in the bar (it remembers if it was open): a tree with Anchors, Nexuses, Ties and Knots, the attributes under their
+  anchor or nexus (a knotted attribute shows its knot), ties named by what they tie, a filter, and under it the properties of
+  what is selected: the same fields as the context menu (made by one function, `EditForm.fill`, which the context menu now
+  uses too) and the operations that make sense for the selection as buttons (`Operations.supportedFor`). Selecting in the tree
+  selects in the graph and moves the view there (it explodes what is imploded), and what is selected in the graph (Shift+click)
+  is selected in the tree, with its anchor opened. Changing a field is one step in the history. The tree has the keys of a tree
+  view (arrows, Home, End, Enter, Space; Shift or Ctrl adds to the selection). The hover and key way of working, and the
+  floating context menu, are unchanged; the panel is the second way in.
+- **Item 2, done: the live XML view** (`app/XmlView.js`, `app/XmlText.js`). A second tab in the panel, with the XML of the model as
+  text (two-space indentation, one element to a line). The model changes, the text follows (unless it is being typed in); the
+  text changes, and after 0.8 s without typing it is read: it has to be XML, a `schema`, and pass `ModelCheck` (loaded in the page
+  now, 0 problems on every model that the modeler writes); if it is right it becomes the model, as a step that can be undone,
+  and if not, the model is left as it was and the problems are listed under the text. A failure while building the model puts
+  the old model back. Copy button; the tab key writes a tab; the tabs have the keys of tabs; the panel widens for the XML.
+  Found on the way and fixed: a nexus changed its shape when imploded only when the layout happened to move it (and its
+  miniature symbol was given the big shape), so it could stay drawn as imploded after it was exploded.
+- **Item 3, done: the problems panel** (`app/Problems.js`). A third tab, with the number of problems on it and on the panel's
+  button, so they show with the panel closed. The problems are what `ModelCheck` finds in the model as it is now (looked at
+  150 ms after the last change); the hints are what the generators do not mind: a placeholder name or mnemonic, no description,
+  an anchor without attributes (they are not counted). A line selects what it is about (found from where ModelCheck says it is:
+  `anchor AC`, `anchor AC, attribute NAM`, `tie ...`), and the properties of it are under the list, so it can be put right
+  at once; a problem with the settings of the model opens the settings dialog. Tests: none on a model that the modeler writes,
+  a duplicate mnemonic is found, counted, selected and gone when put right, a hint does not count, a missing setting opens the
+  settings.
+- **Item 4, done: the agent hand-off** (`app/AgentHandoff.js`, `app/Placement.js`). *File > Copy model for an agent* puts on the
+  clipboard what an agent needs: what the XML is, a pointer to the anchor-modeling skill, what has to stay right (unique mnemonics,
+  dataRange xor knotRange, a tie with two anchors or nexuses), a line for what is wanted, and the model without its positions.
+  *File > Paste model from an agent...* opens a dialog: paste what the agent gave (the XML, with or without words around it, in a
+  code block or not), it is checked as the XML view checks text, and when it is right *Replace the model* does it, as a step that
+  can be undone. A short message (a toast, also read out) says what was done. `Placement` is the first placement that item 5 asks
+  for, done inside the force layout: what was in the model keeps its place (found by what it is, with its fixation), a new anchor
+  or nexus is put beside what it is tied to, or, for a model with no places at all, on a circle in the order of the connections;
+  a new tie between its anchors, attributes on a ring around their anchor, a knot beside what uses it; the layout then polishes it.
+  It is used when a model is loaded that has no `<layout>`, when text in the XML view adds things, and for the paste; a loaded
+  model that was placed is made to fit the window (*fitModel*) and the layout is run. Positions are no longer random for the
+  example and for models written by hand or by an agent.
+- **Item 9 (export), done, as decided:** the SQL, the XML and the JSON bindings that are shown have **Copy** and **Download .sql /
+  .xml / .json** buttons (they take what is in the box, also if it was edited there); *File > Save PNG to local file...* saves the
+  whole model as a PNG (`Actions.pngBlob`: the SVG as for the SVG file, the view set to all of the model with room around it, the
+  background of the theme, drawn on a canvas at twice the size, at most 8000 px; the old menu code made the picture before the
+  image had loaded and could never have worked; tested by decoding the PNG and counting pixels, in both themes);
+  *File > Models in this browser...* keeps the model under a name (a list, the newest first, with Open and a two-press Remove; a full
+  browser is told, nothing is lost). No per-object split of the SQL. Files are now named after the model, or the file it was loaded from.
+- **Found by the owner while testing, and done:** *Generate > SVG screenshot* ignored the theme (a picture without a background, so
+  the names of the dark theme were white on nothing). It is removed; *File > Save SVG to local file...* now makes the same picture as
+  the PNG (`Actions.modelSVG`: the whole model, the colours of the theme, a background), and the PNG is made of it. To do, noted by
+  the owner: the HTML documentation (*Generate > HTML documentation*) was poor (a table dump that ignored the descriptions, left
+  the ties as empty rows and had no nexuses), and is rebuilt for readers of the domain (`app/Documentation.js`): one self-contained
+  HTML file (style and picture inside) with the model's description, a picture of the model in the light colours, a contents line, and a
+  section for each anchor and nexus (description, attributes with values or knot, history, flags, what identifies it, what it takes
+  part in), tie (its roles with what they are, one or many, and descriptions) and knot (where it is used), all linked to each other. It
+  is shown in a dialog with *Open in a new tab*, *Download .html* and *Print*. The old `xml2documentation.xsl` and `documentation.css`
+  are gone.- Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
+  panel then never updated; seen once in a test run).
+- **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the
+  graph as a PNG (yes, if it can be done reliably), several named models kept in the browser (yes).
 1. **Outline and properties side panel** (collapsible): a tree of anchors, nexuses, ties and knots with attributes under
    them; selecting in either place selects in both; the property form lives here, so the floating popup goes away.
 2. **Rename on the canvas** (double-click, F2), and **new constructs open with the name focused and a suggested
@@ -302,8 +527,8 @@ S = a day or two, M = about a week, L = several weeks.
    the other.
 8. **Agent hand-off**: *Copy model for an agent* (XML plus a one-paragraph instruction pointing at the skills) and *Paste
    model from agent*. Models from agents arrive without positions, so this relies on item 5.
-9. **Export**: copy and download for SQL, per-object split, PNG (draw the SVG to a canvas), and several named models in
-   `localStorage` with a recent list.
+9. **Export** (decided: no per-object split): copy and download for SQL, PNG (draw the SVG to a canvas, if it can be done reliably), and
+   several named models in `localStorage` with a recent list.
 
 ### 4.5 Phase 4: touch and small screens (M to L, needs 4.2 and 4.3)
 
