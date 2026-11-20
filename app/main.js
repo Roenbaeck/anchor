@@ -14,6 +14,30 @@ import { save } from './init.js';
 import { VERSION, SVG, SVGLayer, NAV, NAVLayer } from './config.js';
 import './files.js';
 
+// What the model asks of the page around it (see Model.surroundings), done with the real views.
+Model.surroundings = {
+    selectedRoute: function() { return EventHandler.selectedRoute; },
+    clearSelection: function() { EventHandler.clearSelection(); },
+    layout: function(fresh) { DrawingEngine.start(fresh); },
+    stopLayout: function() { DrawingEngine.stop(); },
+    restoring: function(on) { DrawingEngine.restoring = on; },
+    viewReset: function() {
+        Actions.setModelStatus();
+        Actions.resetZoom();
+        Actions.centerModel();
+    },
+    adoptSettings: function() {
+        Settings.storeSettings(window.localStorage);
+        Settings.loadSettings(window.localStorage);
+    },
+    checks: function() {
+        // the key routes, with the rules of the generators (it reads their scripts, so it ends later)
+        Actions.checkKeys().catch(e => { if(console) console.warn('Key check failed:', e); });
+        try { Actions.checkNaming(); } catch(e) { if(console) console.warn('Naming check failed:', e); }
+        try { Features.apply(); Features.report(); } catch(e) { if(console) console.warn('Features check failed:', e); }
+    }
+};
+
 var exposed = { Model: Model, DrawingEngine: DrawingEngine, Editables: Editables, EventHandler: EventHandler, Operations: Operations,
     TabularEditor: TabularEditor, Actions: Actions, Features: Features, Settings: Settings, ControlButtons: ControlButtons,
     Wiring: Wiring, save: save, VERSION: VERSION };

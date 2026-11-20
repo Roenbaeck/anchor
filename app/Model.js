@@ -1,8 +1,6 @@
 // Model: the model: its constructs, the XML in and out, the history for undo and redo.
 import { DEBUG, NAVLayer, SVGLayer, VERSION } from './config.js';
-import { DrawingEngine } from './DrawingEngine.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
-import { EventHandler } from './EventHandler.js';
 import { Attribute } from './Attribute.js';
 import { Identifier } from './Identifier.js';
 import { Anchor } from './Anchor.js';
@@ -10,9 +8,6 @@ import { Knot } from './Knot.js';
 import { Tie } from './Tie.js';
 import { Nexus } from './Nexus.js';
 import { Role } from './Role.js';
-import { Actions } from './Actions.js';
-import { Features } from './Features.js';
-import { Settings } from './Settings.js';
 export var Model = {
     // where the model came from (a gist, for example): shown in the status line and used as the file name
     name: null,
@@ -144,6 +139,27 @@ export var Model = {
                 this.visibleNodes.push(component.node);
         }
     },
+    // What the model needs from what it is shown in, and the application (app/main.js) provides. Every function does nothing by
+    // default, so that a model works without a page around it. The model does not import the views and the application, and
+    // asks through these instead:
+    //   selectedRoute()   the key route that is selected, or null
+    //   clearSelection()  nothing is selected any more
+    //   layout(fresh)     lay the nodes out and draw them (fresh: start the layout over) or only draw them
+    //   stopLayout()      the layout stops
+    //   restoring(on)     the layout that follows is that of an undo or a redo, which is not a change to record
+    //   viewReset()       a model of its own has been put in place: the status line, the zoom and the centering
+    //   adoptSettings()   a file brought settings of its own: they become the settings of the page
+    //   checks()          the checks that follow a model that has been read (keys, naming, what the target implements)
+    surroundings: {
+        selectedRoute: function() { return null; },
+        clearSelection: function() {},
+        layout: function(fresh) {},
+        stopLayout: function() {},
+        restoring: function(on) {},
+        viewReset: function() {},
+        adoptSettings: function() {},
+        checks: function() {}
+    },
     // Who wants to hear about the model (the history buttons, and later an outline, a problems list and so on) listens with
     // on(type, listener) instead of being called by it. The types:
     //   changed   a change was recorded (the detail holds the version of the history)
@@ -168,7 +184,7 @@ export var Model = {
     // how many changes can be undone; every state is a copy of the whole model, so the history is limited
     maxUndoLevels: 100,
     recordState: function() {
-        DrawingEngine.restoring = false;
+        Model.surroundings.restoring(false);
         this.refresh();
         // only record if there is something to record
         if(this.components.length) {
@@ -186,7 +202,7 @@ export var Model = {
         }
     },
     clearStates: function() {
-        DrawingEngine.restoring = false;
+        Model.surroundings.restoring(false);
         this.version = -1;
         this.versions = [];
         this.historyChanged();
@@ -194,16 +210,16 @@ export var Model = {
     undoState: function() {
         this.version -= (this.version === 0 ? 0 : 1);
         this.fromXML(this.versions[this.version]);
-        DrawingEngine.restoring = true;
-        DrawingEngine.stop();
-        EventHandler.clearSelection();
+        Model.surroundings.restoring(true);
+        Model.surroundings.stopLayout();
+        Model.surroundings.clearSelection();
         this.historyChanged();
     },
     redoState: function() {
         this.version += (this.version === this.versions.length - 1 ? 0 : 1);
         this.fromXML(this.versions[this.version]);
-        DrawingEngine.restoring = true;
-        DrawingEngine.stop();
+        Model.surroundings.restoring(true);
+        Model.surroundings.stopLayout();
         this.historyChanged();
     },
     setupMinimal: function(ask) {
@@ -214,11 +230,9 @@ export var Model = {
             this.empty();
             this.addComponent(new Anchor(window.innerWidth/2, window.innerHeight/2));
             this.refresh();
-            EventHandler.clearSelection();
-            Actions.setModelStatus();
-            Actions.resetZoom();
-            Actions.centerModel();
-            DrawingEngine.start(false);
+            Model.surroundings.clearSelection();
+            Model.surroundings.viewReset();
+            Model.surroundings.layout(false);
         }
     },
     isConforming: function() {
@@ -364,8 +378,7 @@ export var Model = {
                                     break;
                                 */
                             }
-                            Settings.storeSettings(window.localStorage);
-                            Settings.loadSettings(window.localStorage);
+                            Model.surroundings.adoptSettings();
                         }
                     }
                 }
@@ -412,9 +425,7 @@ export var Model = {
             try { this.validateIntegrity(); } catch(e) { if(console) console.warn('Integrity check failed:', e); }
             if(console && console.groupEnd) console.groupEnd();
             // the key routes, with the rules of the generators (it reads their scripts, so it ends later)
-            Actions.checkKeys().catch(e => { if(console) console.warn('Key check failed:', e); });
-            try { Actions.checkNaming(); } catch(e) { if(console) console.warn('Naming check failed:', e); }
-            try { Features.apply(); Features.report(); } catch(e) { if(console) console.warn('Features check failed:', e); }
+            Model.surroundings.checks();
             if(DEBUG) console.log(this);
             this.emit('replaced');
         }
@@ -527,7 +538,7 @@ export var Model = {
         else console.info('[Integrity] Summary errors=' + summary.error + ' warnings=' + summary.warn + ' infos=' + summary.info);
     },
     erase: function(components) {
-        DrawingEngine.stop();
+        Model.surroundings.stopLayout();
         var i, j, component, role, node, otherNode, otherComponent, edge, affectedComponents = [];
         for(i = 0; component = components[i]; i++) {
             node = component.node;
@@ -610,10 +621,10 @@ export var Model = {
                 affectedComponents.length + " nodes and edges --------\n" + affectedComponents.join('\n'))) {
             for(i = 0; component = affectedComponents[i]; i++)
                 this.removeComponent(component);
-            EventHandler.clearSelection();
+            Model.surroundings.clearSelection();
             this.recordState();
             this.refresh();
-            DrawingEngine.start(true);
+            Model.surroundings.layout(true);
         }
         return true; // close menu
     },
@@ -642,7 +653,7 @@ export var Model = {
             this.addComponent(new Role(tie, knot, false));
         }
         this.recordState();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return true; // close menu
     },
     toggleKnotted: function(components) {
@@ -683,7 +694,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return true; // close menu
     },
     toggleHistorized: function(components) {
@@ -696,7 +707,7 @@ export var Model = {
                 component.checkIdentifiers();
         }
         this.recordState();
-        DrawingEngine.start(false);
+        Model.surroundings.layout(false);
         return true; // close menu
     },
     // keys operations: a route starts at the anchor or nexus in the selection, and the other selected items are
@@ -726,12 +737,12 @@ export var Model = {
             this.addKey(component, key);
         }
         this.recordState();
-        EventHandler.clearSelection();
-        DrawingEngine.start(false);
+        Model.surroundings.clearSelection();
+        Model.surroundings.layout(false);
         return true; // close menu
     },
     addToKey: function(components) {
-        var i, route = EventHandler.selectedRoute;
+        var i, route = Model.surroundings.selectedRoute();
         if(route) {
             var component, anchor, stopComponents = [];
             for(i = 0; component = components[i]; i++) {
@@ -775,13 +786,13 @@ export var Model = {
                 }
             }
             this.recordState();
-            EventHandler.clearSelection();
-            DrawingEngine.start(false);
+            Model.surroundings.clearSelection();
+            Model.surroundings.layout(false);
         }
         return true; // close menu
     },         
     removeFromKey: function(components) {
-        var route = EventHandler.selectedRoute;
+        var route = Model.surroundings.selectedRoute();
         if(route) {
             var component, deletesHaveBeenMade = false, maxStopNumber = 0;
             for(var i = 0; i < components.length; i++) {
@@ -829,8 +840,8 @@ export var Model = {
                         route.stops[shown].component.postfixes.push(shown);
             }
             this.recordState();
-            EventHandler.clearSelection();
-            DrawingEngine.start(false);                    
+            Model.surroundings.clearSelection();
+            Model.surroundings.layout(false);                    
         }                
         return true; // close menu
     },   
@@ -851,7 +862,7 @@ export var Model = {
         for(i = 0; i < ties.length; i++)
             ties[i].checkIdentifiers();
         this.recordState();
-        DrawingEngine.start(false);
+        Model.surroundings.layout(false);
         return false; // do not close menu
     },
     makeFirstRole: function(components) {
@@ -870,7 +881,7 @@ export var Model = {
             }
         }
         this.recordState();
-        DrawingEngine.start(false);
+        Model.surroundings.layout(false);
         return false; // do not close menu
     },
     lastAngle: 0,
@@ -888,7 +899,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     addTie: function(components) {
@@ -923,7 +934,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     addAnchor: function(components) {
@@ -940,7 +951,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     addTieAndAnchor: function(components) {
@@ -962,7 +973,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     addNexus: function(components) {
@@ -980,7 +991,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     addKnot: function(components) {
@@ -997,7 +1008,7 @@ export var Model = {
         }
         this.recordState();
         this.refresh();
-        DrawingEngine.start(true);
+        Model.surroundings.layout(true);
         return false; // do not close menu
     },
     explode: function(components, startEngine) {
@@ -1105,7 +1116,7 @@ export var Model = {
         }
         this.refresh();
         if(startEngine == null || startEngine)
-            DrawingEngine.start(true);
+            Model.surroundings.layout(true);
         return false; // do not close menu
     }
 };
