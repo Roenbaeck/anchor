@@ -1,5 +1,5 @@
 // Actions: what the menus do: files, layout, generation, sharing, theme.
-import { DEBUG, NAVLayer, SVG, SVGLayer, THEME, XLINKNS, setAskBeforeUnload } from './config.js';
+import { DEBUG, NAVLayer, SVG, SVGLayer, SVGNS, THEME, XLINKNS, setAskBeforeUnload } from './config.js';
 import { Component } from './Component.js';
 import { Model } from './Model.js';
 import { DrawingEngine } from './DrawingEngine.js';
@@ -9,6 +9,7 @@ import { save } from './init.js';
 import { Outline } from './Outline.js';
 import { AgentHandoff } from './AgentHandoff.js';
 import { Placement } from './Placement.js';
+import { ModelStore } from './ModelStore.js';
 export var Actions = {
     startKeyboardEvents: function() {
         window.addEventListener('keydown', EventHandler.keydown, false);
@@ -60,6 +61,13 @@ export var Actions = {
     },
     closeAgentPaste: function() {
         AgentHandoff.close();
+    },
+    // models kept in this browser, each under a name
+    openModelStore: function() {
+        ModelStore.show();
+    },
+    closeModelStore: function() {
+        ModelStore.close();
     },
     stopKeyboardEvents: function() {
         window.removeEventListener('keydown', EventHandler.keydown, false);
@@ -181,18 +189,54 @@ export var Actions = {
     toSVGDataURL: function(image) {
         return "data:image/svg+xml;base64," + btoa(this.toSVGString(image));
     },
-    toPNGDataURL: function(image) {
-        var can = document.createElement('canvas');
-        var ctx = can.getContext('2d');
-        var img = new Image();
-        img.width = can.width = image.width.baseVal.value;
-        img.height = can.height = image.height.baseVal.value;
-        img.onload = function() {
-            // draw the image onto the canvas
-            ctx.drawImage(img, 0, 0, img.width, img.height);
-        }
-        img.src = this.toSVGDataURL(image);
-        return can.toDataURL('image/png');
+    // The whole model as a PNG picture (a Promise of a Blob): the SVG is made as for the SVG file, with the view set to all of the
+    // model and a background of the colour of the canvas, and drawn on a canvas at the given scale (the picture is never
+    // more than 8000 pixels wide or high). The SVG has no references to anything outside it, so the canvas is not tainted.
+    pngBlob: function(scale) {
+        return new Promise(function(resolve, reject) {
+            var box = null;
+            [SVGLayer.edges, SVGLayer.nodes, SVGLayer.names].forEach(function(layer) {
+                var b = layer.getBBox();
+                if(!b.width && !b.height) return;
+                box = box ? { x0: Math.min(box.x0, b.x), y0: Math.min(box.y0, b.y), x1: Math.max(box.x1, b.x + b.width), y1: Math.max(box.y1, b.y + b.height) } :
+                    { x0: b.x, y0: b.y, x1: b.x + b.width, y1: b.y + b.height };
+            });
+            if(!box) { reject(new Error('there is nothing in the model to draw')); return; }
+            var pad = 60, x = box.x0 - pad, y = box.y0 - pad, width = box.x1 - box.x0 + 2 * pad, height = box.y1 - box.y0 + 2 * pad;
+            scale = Math.min(scale || 2, 8000 / width, 8000 / height);
+            var doc = new DOMParser().parseFromString(Actions.toSVGString(SVG), 'image/svg+xml'), root = doc.documentElement;
+            root.setAttribute('viewBox', [x, y, width, height].join(' '));
+            root.setAttribute('width', Math.round(width * scale));
+            root.setAttribute('height', Math.round(height * scale));
+            root.removeAttribute('style');
+            var background = doc.createElementNS(SVGNS, 'rect');
+            background.setAttribute('x', x); background.setAttribute('y', y);
+            background.setAttribute('width', width); background.setAttribute('height', height);
+            background.setAttribute('fill', getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#ffffff');
+            var defs = root.getElementsByTagName('defs')[0];
+            root.insertBefore(background, defs ? defs.nextSibling : root.firstChild);
+            var source = new XMLSerializer().serializeToString(root);
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.round(width * scale);
+                canvas.height = Math.round(height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                try {
+                    canvas.toBlob(function(blob) { if(blob) resolve(blob); else reject(new Error('the browser could not make a picture')); }, 'image/png');
+                } catch(e) { reject(e); }
+            };
+            img.onerror = function() { reject(new Error('the browser could not read the drawing')); };
+            // the names may have letters that btoa does not take as they are
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(source)));
+        });
+    },
+    savePNG: function() {
+        Actions.pngBlob(2).then(function(blob) {
+            Actions.downloadBlob(blob, Actions.modelFileName() + '.png');
+        }, function(error) {
+            Actions.notify('The picture could not be made: ' + (error && error.message || error));
+        });
     },
     screenshot: function(dataURL) {
         var newtab = window.open('about:blank'); 
@@ -276,12 +320,21 @@ export var Actions = {
         save.dispatchEvent(event);
         (window.URL || window.webkitURL).revokeObjectURL(save.href);
     },
+    // what the file of the model is called: the name of the model, or of the file it was loaded from, or Model
+    modelFileName: function() {
+        return Model.name || (Actions.lastLocalFilename ? Actions.lastLocalFilename.replace(/\.[^.\\/]*$/, '') : '') || 'Model';
+    },
     saveToDisk: function (str, type) {
+        Actions.downloadBlob(new Blob([str], { type: type === 'svg' ? 'image/svg+xml' : 'text/' + type }), Actions.modelFileName() + '.' + type);
+    },
+    downloadText: function (text, filename, type) {
+        Actions.downloadBlob(new Blob([text], { type: type + ';charset=utf-8' }), filename);
+    },
+    downloadBlob: function (blob, filename) {
         var save = document.createElement('a');
-        var blob = new Blob([str], { type: type === 'svg' ? 'image/svg+xml' : 'text/' + type });
         save.href = (window.URL || window.webkitURL).createObjectURL(blob);
         save.target = '_blank';
-        save.download = (Model.name || 'Model') + '.' + type;
+        save.download = filename;
         var event = new MouseEvent('click', {
                         'view': window,
                         'bubbles': true,
@@ -608,9 +661,6 @@ export var Actions = {
     screenshotSVG: function() {
         Actions.screenshot(Actions.toSVGDataURL(SVG));
     },
-    screenshotPNG: function() {
-        Actions.screenshot(Actions.toPNGDataURL(SVG));
-    },
     openTutorials: function() {
         new URLPopover('http://www.anchormodeling.com/?page_id=186');
     },
@@ -674,7 +724,7 @@ export var Actions = {
     },
     generateSQL: function() {
         Actions.sql().then(sql => {
-            new CodePopover(Actions.preformat(sql), true)
+            new CodePopover(Actions.preformat(sql), true, { file: Actions.modelFileName() + '.sql', type: 'text/plain' })
         }, error => {
             console.error(error);
             alert('The SQL could not be generated: ' + (error && error.message || error));
@@ -711,7 +761,7 @@ export var Actions = {
     generateXML: function() {
         Actions.transform(Model.toXML(false), 'xml2html.xsl', document)
         .then(fragment => {
-            new CodePopover(fragment, false);
+            new CodePopover(fragment, false, { file: Actions.modelFileName() + '.xml', type: 'application/xml' });
         });
     },
     generateHTML: function() {
@@ -798,7 +848,7 @@ export var Actions = {
     },
     generateBindings: function() {
         Actions.bindings().then(json => {
-            new CodePopover(Actions.preformat(json), true)
+            new CodePopover(Actions.preformat(json), true, { file: Actions.modelFileName() + '.json', type: 'application/json' })
         });
     },
     // creates a preformatted document fragment from the given text

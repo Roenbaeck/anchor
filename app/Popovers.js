@@ -1,5 +1,6 @@
 // Popovers: the modal background, the page popover and the code popover.
 import { DrawingEngine } from './DrawingEngine.js';
+import { Actions } from './Actions.js';
 export function ModalBackground(message) {
     var modalBackground = document.createElement('div');
     modalBackground.setAttribute("id", "modalBackground");
@@ -57,7 +58,9 @@ URLPopover.prototype = {
     }
 };
 
-export function CodePopover(documentFragment, preformatted) {
+// What is shown is code or a document; with options.file ('Model.sql') it has the buttons that copy it and download it as that file
+// (options.type is the media type). They take what is in the box as it is, also if it has been edited there.
+export function CodePopover(documentFragment, preformatted, options) {
     DrawingEngine.stop();
     var self = this;
 
@@ -82,6 +85,25 @@ export function CodePopover(documentFragment, preformatted) {
     content.style.height = (window.innerHeight - 2 * hPadding) + 'px';
     content.appendChild(documentFragment);
     popover.appendChild(content);
+    if(options && options.file) {
+        var bar = document.createElement('div');
+        bar.className = 'codebar';
+        var copy = document.createElement('button'), download = document.createElement('button');
+        copy.type = download.type = 'button';
+        copy.textContent = 'Copy';
+        copy.title = 'Copy what is shown to the clipboard';
+        download.textContent = 'Download ' + options.file.replace(/^.*\./, '.');
+        download.title = 'Save what is shown as the file ' + options.file;
+        copy.addEventListener('click', function() {
+            Actions.copyText(content.textContent).then(function(copied) {
+                Actions.notify(copied ? 'Copied.' : 'The browser would not copy. Select the text and press Ctrl+C.');
+            });
+        }, false);
+        download.addEventListener('click', function() { Actions.downloadText(content.textContent, options.file, options.type || 'text/plain'); }, false);
+        bar.appendChild(copy);
+        bar.appendChild(download);
+        popover.appendChild(bar);
+    }
 
     document.body.appendChild(popover);
 

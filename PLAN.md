@@ -491,6 +491,13 @@ tested.
   It is used when a model is loaded that has no `<layout>`, when text in the XML view adds things, and for the paste; a loaded
   model that was placed is made to fit the window (*fitModel*) and the layout is run. Positions are no longer random for the
   example and for models written by hand or by an agent.
+- **Item 9 (export), done, as decided:** the SQL, the XML and the JSON bindings that are shown have **Copy** and **Download .sql /
+  .xml / .json** buttons (they take what is in the box, also if it was edited there); *File > Save PNG to local file...* saves the
+  whole model as a PNG (`Actions.pngBlob`: the SVG as for the SVG file, the view set to all of the model with room around it, the
+  background of the theme, drawn on a canvas at twice the size, at most 8000 px; the old menu code made the picture before the
+  image had loaded and could never have worked; tested by decoding the PNG and counting pixels, in both themes);
+  *File > Models in this browser...* keeps the model under a name (a list, the newest first, with Open and a two-press Remove; a full
+  browser is told, nothing is lost). No per-object split of the SQL. Files are now named after the model, or the file it was loaded from.
 - Panel updates are now debounced with a timer that every change restarts, not with a flag (a flag could be left set, and the
   panel then never updated; seen once in a test run).
 - **Export (item 9), decided by the owner:** Copy and Download on the SQL (yes), splitting the SQL per object (no), saving the

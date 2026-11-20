@@ -139,8 +139,10 @@
                 <li role="menuitem" tabindex="-1" title="Discards the current model and starts a new model with a minimal setup, a single anchor." data-action="Actions.newModel">New model...</li>
                 <li role="menuitem" tabindex="-1" title="Load a model from an XML file accessible from your local computer." aria-haspopup="dialog" data-action="Actions.chooseModelFile">Load model from local file...</li>
                 <li role="menuitem" tabindex="-1" title="Save model XML definition and settings in browser cache. This is also done automatically when leaving this page." data-action="Actions.saveSettingsInBrowser">Save settings in browser cache...</li>
+                <li role="menuitem" tabindex="-1" title="Keep the model in this browser under a name, and open or remove the models that are kept here." data-action="Actions.openModelStore">Models in this browser...</li>
                 <li role="menuitem" tabindex="-1" title="Save model XML definition to disk." data-action="Actions.saveModelToDisk">Save model to local file...</li>
                 <li role="menuitem" tabindex="-1" title="Save model Scalable Vector Graphics file to disk." data-action="Actions.saveSVGToDisk">Save SVG to local file...</li>
+                <li role="menuitem" tabindex="-1" title="Save a picture of the whole model as a PNG file." data-action="Actions.savePNG">Save PNG to local file...</li>
                 <li role="menuitem" tabindex="-1" title="Sends an email with the XML description of the model to a specified recipient." data-action="Actions.mailModel">Send model by email...</li>
                 <li role="menuitem" tabindex="-1" title="Copies a link to the clipboard that opens a copy of this model, without the need to store it anywhere." data-action="Actions.shareModel">Share model link...</li>
                 <li role="menuitem" tabindex="-1" title="Copies the model, with what an AI assistant needs to know to change it, so that you can paste it into a conversation and say what you want changed." data-action="Actions.copyForAgent">Copy model for an agent</li>
@@ -317,6 +319,22 @@
             </section>
                 <p id="settingsNone" class="none" hidden>No setting matches.</p>
             </div>
+        </div>
+    </dialog>
+    <!-- models kept in this browser, each under a name (see app/ModelStore.js) -->
+    <dialog id="modelStore" aria-labelledby="modelStoreTitle">
+        <div class="head">
+            <h2 id="modelStoreTitle">Models in this browser</h2>
+            <button type="button" class="close" data-action="Actions.closeModelStore" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="body">
+            <div class="keep">
+                <input id="storeName" type="text" placeholder="Name for this model" aria-label="Name to keep the model under" autocomplete="off" spellcheck="false"/>
+                <button type="button" id="storeSave" class="primary" data-action="ModelStore.saveFromDialog">Keep</button>
+            </div>
+            <p id="storeStatus" role="status" aria-live="polite"></p>
+            <p id="storeEmpty" class="hint">Nothing is kept here yet. The models are kept in this browser only, not sent anywhere, and are gone if its data is cleared.</p>
+            <ul id="storeList" aria-label="Models that are kept"></ul>
         </div>
     </dialog>
     <!-- the model that an agent gave back is pasted here (see app/AgentHandoff.js) -->
