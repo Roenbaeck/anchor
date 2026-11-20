@@ -532,7 +532,7 @@ tested.
 
 ### 4.5 Phase 4: touch and small screens (M to L, needs 4.2 and 4.3)
 
-**Status of Phase 4** (branch `touch`, not merged until the owner has tested it; `master` is 1.0.0)
+**Status of Phase 4** (built on the branch `touch`; tested on a phone by the owner, not yet on a tablet; merged as 1.0.1)
 
 - **Step 1, done: the shell follows the size of the window.** At 900 px and below the panel is a sheet at the bottom (about half
   the height, the properties take at most 42 % of it), the search field goes (the outline has a filter) and the miniature and
