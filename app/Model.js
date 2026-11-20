@@ -1015,7 +1015,8 @@ export var Model = {
         var role, knot, knotComponent, knotEdge, knotEdgeComponent, visibleEdges;
         for(i = 0; component = components[i]; i++) {
             node = component.node;
-            if(node.type === NodeType.ANCHOR) {
+            // an anchor and a nexus hide their attributes (and the knots of them) when they are imploded
+            if(node.type === NodeType.ANCHOR || node.type === NodeType.NEXUS) {
                 if(component.imploded) {
                     for(j = 0; edge = node.edges[j]; j++) {
                         otherNode = edge.node === node ? edge.otherNode : edge.node;

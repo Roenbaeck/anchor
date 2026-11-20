@@ -124,7 +124,7 @@ Nexus.prototype = {
         return nexus;
     },
     fromXML: function(element) {
-        var x, y, fixed, i, layout;
+        var x, y, fixed, i, layout, imploded;
         for(i = 0; i < element.childNodes.length; i++)
             if(element.childNodes.item(i).nodeName === 'layout')
                 layout = element.childNodes.item(i);
@@ -132,10 +132,12 @@ Nexus.prototype = {
             x = layout.getAttribute("x");
             y = layout.getAttribute("y");
             fixed = layout.getAttribute("fixed");
+            imploded = layout.getAttribute("imploded");
         }
         x = x ? Number(x) : Math.random() * window.innerWidth;
         y = y ? Number(y) : Math.random() * window.innerHeight;
         fixed = fixed ? fixed === 'true' : false;
+        imploded = imploded ? imploded === 'true' : false;
         var metadata, capsule = Defaults.encapsulation, generator = true;
         for(i = 0; i < element.childNodes.length; i++)
             if(element.childNodes.item(i).nodeName === 'metadata')
@@ -150,6 +152,8 @@ Nexus.prototype = {
         var identity = element.getAttribute("identity") || '';
         var nexus = new Nexus(x, y);
         nexus.setFixed(fixed);
+        if(imploded)
+            nexus.setImploded(true);
         nexus.mnemonic = mnemonic;
         nexus.descriptor = descriptor;
         nexus.identity = identity;

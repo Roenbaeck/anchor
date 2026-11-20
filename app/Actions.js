@@ -155,7 +155,7 @@ export var Actions = {
         var edge, otherNode;
         for(var i = 0; edge = node.edges[i]; i++) {
             otherNode = edge.node === node ? edge.otherNode : edge.node;
-            if((otherNode.type === NodeType.ANCHOR) && otherNode.imploded) {
+            if((otherNode.type === NodeType.ANCHOR || otherNode.type === NodeType.NEXUS) && otherNode.imploded) {
                 Model.explode([Model.nodeToComponent(otherNode)]);
                 break;
             }
@@ -511,7 +511,7 @@ export var Actions = {
     implodeAll: function() {
         var i, component, allComponents = [];
         for(i = 0; component = Model.components[i]; i++) {
-            if((component.node.type === NodeType.ANCHOR) && !component.imploded)
+            if((component.node.type === NodeType.ANCHOR || component.node.type === NodeType.NEXUS) && !component.imploded)
                 allComponents.push(component);
         }
         EventHandler.clearSelection();
@@ -520,7 +520,7 @@ export var Actions = {
     explodeAll: function() {
         var i, component, allComponents = [];
         for(i = 0; component = Model.components[i]; i++) {
-            if((component.node.type === NodeType.ANCHOR) && component.imploded)
+            if((component.node.type === NodeType.ANCHOR || component.node.type === NodeType.NEXUS) && component.imploded)
                 allComponents.push(component);
         }
         Model.explode(allComponents);
