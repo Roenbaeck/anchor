@@ -333,16 +333,51 @@ S = a day or two, M = about a week, L = several weeks.
   `EventHandler` had `clickSelection: this.clickHighlight` at its top level, where `this` was `window` in a classic script, so
   it was always `undefined` and nothing ever listened for a click on the selection mark; it threw in a module, and the dead
   property and its two listener calls are removed (behaviour unchanged). What the markup, the tests and the tools reach by name
-  (`Model`, `Actions`, `Settings` and so on) is put on `window` by `main.js`. The cycle itself is still there; step 3 is what
-  removes it.
+  (`Model`, `Actions`, `Settings` and so on) is put on `window` by `main.js`. The cycle itself was still there after this step; step 3 below reduced it from 22 files to 11.
+  
   **A consequence for users:** a browser does not load modules from a page opened directly from a file, so double-clicking
   `index.html` shows a notice ("put the folder on a web server") instead of the modeler; before, editing worked from a file
   (only Generate did not). The tests run from a file because Edge is started with `--allow-file-access-from-files`.
-- **Step 3, model and view: not done.** The first slice is the one just taken (the model talks through events). The next is to
-  take the drawing out of `Anchor`, `Knot`, `Attribute`, `Tie`, `Nexus`, `Role` and `Identifier` (2,000 lines that now hold data,
-  SVG and editing rules together) into one presenter for each, so that the model has no import of `DrawingEngine`, `EventHandler`
-  or `Actions`. The tests above are the safety net for it.
-- **Step 5, commands for undo: not done.** It needs step 3, since a command should change the model and let the views follow.
+- **Step 3, model and view: done, with one cycle left in the application layer.** Measured on the import lines of `app/`
+  (`app/view/` included from the second row):
+
+  | | Files | Imports between them | Largest cycle |
+  |---|---|---|---|
+  | Before step 3 (`676f326`) | 27 | 140 | **22 files** |
+  | After 3a (the model asks through an interface) | 27 | 135 | 22 files |
+  | After 3b (the drawing moves into views) | 30 | 115 | 18 files |
+  | After 3c (kinds registry, display flag, layers) | 30 | **95** | **11 files** |
+
+  What was done, in the order it was done and each stage tested before the next:
+  - **3a, `Model.surroundings`.** `Model` no longer imports `Actions`, `DrawingEngine`, `EventHandler`, `Features` or `Settings`.
+    It asks through an interface (`selectedRoute`, `clearSelection`, `layout`, `stopLayout`, `restoring`, `clearDrawing`,
+    `showKeys`, `viewReset`, `adoptSettings`, `checks`), documented in `Model.js`, with functions that do nothing by default;
+    `app/main.js` installs the real ones. The 33 calls and their order are as they were.
+  - **3b, views.** Tests for the drawing were written and recorded first (hover highlight, selection mark, fixation, hide and
+    show, imploding, the shapes that follow the flags, names, dragging, the layers and the miniature). Then each construct was
+    changed to say how it looks (`this.look`: its shape, where its name goes, its name class) and to ask for a view
+    (`attachView()`); the drawing code, moved and not rewritten, is in `app/view/` (`ComponentView`, `NodeView`, `RoleView`) and
+    is made by `Component.createView`, which `main.js` sets. `Component` and the construct classes no longer import the SVG
+    layers, the namespaces, `Symbol`, `EventHandler`, `ContextMenu`, `Features` or `DrawingEngine`; their users
+    (`EventHandler`, `DrawingEngine`, `Actions`, `Settings`, `Editables`) go through `component.view`.
+  - **3c, the last cheap edges.** `Model` no longer imports the construct classes: it makes them through `Model.kinds`, which
+    `main.js` fills in (the constructs import `Model`, not the other way round). The constructs no longer read `Settings`:
+    the display flag `showMnemonics` is `Component.showMnemonics`. Seven imports that were only a word inside a string were
+    removed.
+  - **Proof that it is a layer:** a test makes, changes, saves and reads a model with every view hook switched off, and
+    nothing is drawn.
+
+  **What is left, and why it is left.** The 11 files that still import each other are the application layer: `Actions`,
+  `ControlButtons`, `DrawingEngine`, `EventHandler`, `Features`, `Operations`, `Popovers`, `Settings`, `TabularEditor`,
+  `Wiring` and `init`. They are the controllers of the page (menus, mouse and keyboard, dialogs, settings), and they call
+  each other by nature: a click is handled in `EventHandler`, which asks `Actions` or `Operations`, which open a dialog,
+  which changes `Settings`, which redraws through `DrawingEngine`. Breaking that into layers would mean an event bus between
+  them, which would hide the calls and not remove them, so it is not done here. `ContextMenu` imports `Model` and the
+  application layer, and is not in a cycle only because nothing in the application layer imports it back. The model layer
+  (`Model`, `Component`, the six constructs and `Role`, `Editables`, `UniqueIdentity`) imports nothing from the
+  application or view layers; it still imports `config` (for `VERSION` and `DEBUG`) and, in the constructs, `Editables`
+  (the definitions of the fields), which is a description of forms and not a view.
+- **Step 5, commands for undo: not done.** It was waiting for step 3, which is done: a command can now change the model and let the views follow (they listen to the model's events).
 - **Step 6, menus and settings in the markup: done for the wiring.** The 84 inline handlers (`onclick`, `onblur`, `onchange`,
   and so on) are gone from `index.html`. A control now says what it does with `data-action="Actions.newModel"`,
   `data-setting="setDefaultIdentity"` and `data-args`, and `app/Wiring.js` acts on them (one listener for the page; Enter and

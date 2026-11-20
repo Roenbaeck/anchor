@@ -3,7 +3,6 @@ import { Model } from './Model.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
 import { Component } from './Component.js';
-import { Settings } from './Settings.js';
 export function Anchor(x, y) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
@@ -50,7 +49,7 @@ Anchor.prototype = {
     },
     contextualName: function() {
         var name;
-        if(Settings.showMnemonics)
+        if(Component.showMnemonics)
             name = this.toString();
         else
             name = this.descriptor;

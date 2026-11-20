@@ -13,6 +13,13 @@ import { Wiring } from './Wiring.js';
 import { save } from './init.js';
 import { VERSION, SVG, SVGLayer, NAV, NAVLayer } from './config.js';
 import { Component } from './Component.js';
+import { Anchor } from './Anchor.js';
+import { Attribute } from './Attribute.js';
+import { Identifier } from './Identifier.js';
+import { Knot } from './Knot.js';
+import { Nexus } from './Nexus.js';
+import { Role } from './Role.js';
+import { Tie } from './Tie.js';
 import { NodeView } from './view/NodeView.js';
 import { RoleView } from './view/RoleView.js';
 import './files.js';
@@ -22,6 +29,9 @@ Component.createView = function(component) {
     return component.node.type === NodeType.EDGE ? new RoleView(component) : new NodeView(component);
 };
 
+// The kinds of construct that the model makes (see Model.kinds).
+Model.kinds = { Anchor: Anchor, Attribute: Attribute, Identifier: Identifier, Knot: Knot, Nexus: Nexus, Role: Role, Tie: Tie };
+
 // What the model asks of the page around it (see Model.surroundings), done with the real views.
 Model.surroundings = {
     selectedRoute: function() { return EventHandler.selectedRoute; },
@@ -29,6 +39,13 @@ Model.surroundings = {
     layout: function(fresh) { DrawingEngine.start(fresh); },
     stopLayout: function() { DrawingEngine.stop(); },
     restoring: function(on) { DrawingEngine.restoring = on; },
+    clearDrawing: function() {
+        SVGLayer.clearAll();
+        NAVLayer.clearAll();
+    },
+    showKeys: function(show) {
+        if(show) SVGLayer.show('keys'); else SVGLayer.hide('keys');
+    },
     viewReset: function() {
         Actions.setModelStatus();
         Actions.resetZoom();
@@ -48,7 +65,7 @@ Model.surroundings = {
 
 var exposed = { Model: Model, DrawingEngine: DrawingEngine, Editables: Editables, EventHandler: EventHandler, Operations: Operations,
     TabularEditor: TabularEditor, Actions: Actions, Features: Features, Settings: Settings, ControlButtons: ControlButtons,
-    Wiring: Wiring, save: save, VERSION: VERSION };
+    Wiring: Wiring, save: save, VERSION: VERSION, Component: Component };
 Object.keys(exposed).forEach(function(name) { window[name] = exposed[name]; });
 // these are set when the page has loaded, so they are read when they are asked for
 Object.defineProperty(window, 'SVG', { configurable: true, get: function() { return SVG; } });

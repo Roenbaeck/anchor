@@ -3,16 +3,11 @@ import { DEBUG, SVGLayer, VERSION, setDebug } from './config.js';
 import { Model } from './Model.js';
 import { DrawingEngine } from './DrawingEngine.js';
 import { Editables } from './Editables.js';
-import { Attribute } from './Attribute.js';
-import { Anchor } from './Anchor.js';
-import { Knot } from './Knot.js';
-import { Tie } from './Tie.js';
 import { Features } from './Features.js';
 import { init } from './init.js';
 export var Settings = {
     // default values for some 'global' settings
     calculations: 'simple',
-    showMnemonics: false,
     showCardinalities: true,
     init: function() {
         document.getElementById('damping').value = ((1 - LayoutEngine.damping) * 100).toFixed(0);

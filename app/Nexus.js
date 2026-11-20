@@ -5,7 +5,6 @@ import { Editables } from './Editables.js';
 import { Component } from './Component.js';
 import { Attribute } from './Attribute.js';
 import { Role } from './Role.js';
-import { Settings } from './Settings.js';
 export function Nexus(x, y) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
@@ -266,7 +265,7 @@ Nexus.prototype = {
     },
     contextualName: function() {
         var name;
-        if(Settings.showMnemonics)
+        if(Component.showMnemonics)
             name = this.toString();
         else
             name = this.descriptor;

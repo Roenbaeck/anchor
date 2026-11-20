@@ -1,11 +1,10 @@
 // Actions: what the menus do: files, layout, generation, sharing, theme.
 import { DEBUG, NAVLayer, SVG, SVGLayer, THEME, XLINKNS, setAskBeforeUnload } from './config.js';
+import { Component } from './Component.js';
 import { Model } from './Model.js';
 import { DrawingEngine } from './DrawingEngine.js';
 import { EventHandler } from './EventHandler.js';
-import { Anchor } from './Anchor.js';
 import { CodePopover, URLPopover } from './Popovers.js';
-import { Settings } from './Settings.js';
 import { save } from './init.js';
 export var Actions = {
     startKeyboardEvents: function() {
@@ -502,7 +501,7 @@ export var Actions = {
         DrawingEngine.start(false);                
     },
     toggleMnemonics: function () {
-        Settings.showMnemonics = !Settings.showMnemonics;
+        Component.showMnemonics = !Component.showMnemonics;
         DrawingEngine.start(false);
     },
     toggleColoring: function() {

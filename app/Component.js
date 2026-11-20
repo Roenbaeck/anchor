@@ -11,6 +11,8 @@ export function Component(node) {
 }
 // Makes the view of a component, when there is a page to show it on (app/main.js sets it). A component without a view is data only.
 Component.createView = null;
+// Whether the names show the mnemonics of the constructs (PN_Person) or only what they are called (Person); the menu Layout toggles it.
+Component.showMnemonics = false;
 Object.assign(Component.prototype, {
     node: null,
     description: '',

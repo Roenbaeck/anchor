@@ -4,7 +4,6 @@ import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables, createOption } from './Editables.js';
 import { Component } from './Component.js';
 import { Role } from './Role.js';
-import { Settings } from './Settings.js';
 export function Identifier(x, y, entity, route) { // entity may be Anchor or Nexus
     if(!entity) {
         console.warn('[Identifier] Aborting creation: no entity supplied for route "' + route + '"');
@@ -219,7 +218,7 @@ Identifier.prototype = {
     },
     contextualName: function() {
         var name = '';
-        if(Settings.showMnemonics)
+        if(Component.showMnemonics)
             name += this.toString();
         else
             name += this.route.name;

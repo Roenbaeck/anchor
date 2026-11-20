@@ -1,6 +1,5 @@
 // Editables: the fields that a construct can be edited with.
 import { LOWER, UPPER } from './config.js';
-import { Role } from './Role.js';
 export function createOption(value, text) {
     var o = document.createElement('option');
     o.value = value;

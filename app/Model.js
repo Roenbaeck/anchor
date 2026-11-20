@@ -1,13 +1,6 @@
 // Model: the model: its constructs, the XML in and out, the history for undo and redo.
-import { DEBUG, NAVLayer, SVGLayer, VERSION } from './config.js';
+import { DEBUG, VERSION } from './config.js';
 import { UniqueIdentity } from './UniqueIdentity.js';
-import { Attribute } from './Attribute.js';
-import { Identifier } from './Identifier.js';
-import { Anchor } from './Anchor.js';
-import { Knot } from './Knot.js';
-import { Tie } from './Tie.js';
-import { Nexus } from './Nexus.js';
-import { Role } from './Role.js';
 export var Model = {
     // where the model came from (a gist, for example): shown in the status line and used as the file name
     name: null,
@@ -78,22 +71,22 @@ export var Model = {
         };
         for(var i = 0; i < this.components.length; i++) {
             var c = this.components[i];
-            if(c instanceof Anchor) {
+            if(c instanceof Model.kinds.Anchor) {
                 lookups.anchor[c.mnemonic] = c;
                 lookups.entity[c.mnemonic] = c;
             }
-            else if(c instanceof Nexus) {
+            else if(c instanceof Model.kinds.Nexus) {
                 lookups.nexus[c.mnemonic] = c;
                 // treat nexus as entity
                 lookups.entity[c.mnemonic] = c;
             }
-            else if(c instanceof Knot) {
+            else if(c instanceof Model.kinds.Knot) {
                 lookups.knot[c.mnemonic] = c;
             }
-            else if(c instanceof Attribute) {
+            else if(c instanceof Model.kinds.Attribute) {
                 lookups.attribute[c.mnemonic] = c;
             }
-            else if(c instanceof Tie) {
+            else if(c instanceof Model.kinds.Tie) {
                 // Ties may not need mnemonic uniqueness like anchors, but keep reference
                 lookups.tie[c.id] = c;
             }
@@ -125,8 +118,7 @@ export var Model = {
         this.visibleNodes = [];
         this.routes = {};
         this.idToComponent = Object.create(null);
-        SVGLayer.clearAll();
-        NAVLayer.clearAll();
+        Model.surroundings.clearDrawing();
     },
     refresh: function() {
         // create a new visibleNodes
@@ -139,6 +131,9 @@ export var Model = {
                 this.visibleNodes.push(component.node);
         }
     },
+    // The kinds of construct (Anchor, Attribute, Identifier, Knot, Nexus, Role, Tie). The model makes them and asks what something is,
+    // but does not import them (they import the model): the application (app/main.js) says which they are.
+    kinds: {},
     // What the model needs from what it is shown in, and the application (app/main.js) provides. Every function does nothing by
     // default, so that a model works without a page around it. The model does not import the views and the application, and
     // asks through these instead:
@@ -147,6 +142,8 @@ export var Model = {
     //   layout(fresh)     lay the nodes out and draw them (fresh: start the layout over) or only draw them
     //   stopLayout()      the layout stops
     //   restoring(on)     the layout that follows is that of an undo or a redo, which is not a change to record
+    //   clearDrawing()    everything drawn is taken away (the model is emptied)
+    //   showKeys(show)    the key routes are drawn or not (they are not while an anchor is imploded)
     //   viewReset()       a model of its own has been put in place: the status line, the zoom and the centering
     //   adoptSettings()   a file brought settings of its own: they become the settings of the page
     //   checks()          the checks that follow a model that has been read (keys, naming, what the target implements)
@@ -156,6 +153,8 @@ export var Model = {
         layout: function(fresh) {},
         stopLayout: function() {},
         restoring: function(on) {},
+        clearDrawing: function() {},
+        showKeys: function(show) {},
         viewReset: function() {},
         adoptSettings: function() {},
         checks: function() {}
@@ -228,7 +227,7 @@ export var Model = {
         if(go) {
             this.forgetOrigin();
             this.empty();
-            this.addComponent(new Anchor(window.innerWidth/2, window.innerHeight/2));
+            this.addComponent(new Model.kinds.Anchor(window.innerWidth/2, window.innerHeight/2));
             this.refresh();
             Model.surroundings.clearSelection();
             Model.surroundings.viewReset();
@@ -386,29 +385,29 @@ export var Model = {
             // the order in which we add these are important (attributes create edges to anchors)
             var knots = xml.getElementsByTagName('knot');
             for (i = 0; i < knots.length; i++)
-                this.addComponent(Knot.prototype.fromXML(knots[i]));
+                this.addComponent(Model.kinds.Knot.prototype.fromXML(knots[i]));
             var anchors = xml.getElementsByTagName('anchor');
             for (i = 0; i < anchors.length; i++)
-                this.addComponent(Anchor.prototype.fromXML(anchors[i]));
+                this.addComponent(Model.kinds.Anchor.prototype.fromXML(anchors[i]));
             var nexus = xml.getElementsByTagName('nexus');
             for (i = 0; i < nexus.length; i++)
-                this.addComponent(Nexus.prototype.fromXML(nexus[i]));
+                this.addComponent(Model.kinds.Nexus.prototype.fromXML(nexus[i]));
             var attributes = xml.getElementsByTagName('attribute');
             for (i = 0; i < attributes.length; i++) {
                 // Skip attributes that are children of nexus elements (they're handled by nexus)
                 if (attributes[i].parentNode.nodeName !== 'nexus') {
-                    this.addComponent(Attribute.prototype.fromXML(attributes[i]));
+                    this.addComponent(Model.kinds.Attribute.prototype.fromXML(attributes[i]));
                 }
             }
             var ties = xml.getElementsByTagName('tie');
             for (i = 0; i < ties.length; i++)
-                this.addComponent(Tie.prototype.fromXML(ties[i]));
+                this.addComponent(Model.kinds.Tie.prototype.fromXML(ties[i]));
             // keys must be added last since they may provide a path through many of the above
             this.prepareKeys();
             // and after keys, identifiers
                 var identifiers = xml.getElementsByTagName('identifier');
                 for (i = 0; i < identifiers.length; i++)
-                    this.addComponent(Identifier.prototype.fromXML(identifiers[i]));
+                    this.addComponent(Model.kinds.Identifier.prototype.fromXML(identifiers[i]));
             // implode nodes
             var component, allComponents = [];
             for(i = 0; component = this.components[i]; i++) {
@@ -463,7 +462,7 @@ export var Model = {
             // Skip edges (Roles handled separately)
             if(c.node.type === NodeType.EDGE) continue;
             // Attribute: must have parent anchor or nexus edge + route keys sanity
-            if(c instanceof Attribute) {
+            if(c instanceof Model.kinds.Attribute) {
                 var parent = null;
                 if(c.node && c.node.edges) {
                     for(var ae=0; ae<c.node.edges.length; ae++) {
@@ -486,7 +485,7 @@ export var Model = {
                 }
             }
             // Identifier validation (existing rules extended)
-            if(c instanceof Identifier) {
+            if(c instanceof Model.kinds.Identifier) {
                 var entityRef = c.entity; // anchor or nexus
                 var edgeCount = 0, edgeEntity = null;
                 if(c.node && c.node.edges) {
@@ -504,13 +503,13 @@ export var Model = {
                 }
             }
             // Tie validation
-            if(c instanceof Tie) {
+            if(c instanceof Model.kinds.Tie) {
                 // Roles uniqueness by (mnemonic, roleName)
                 var rolePairs = Object.create(null);
                 var edges = c.node.edges || [];
                 for(var te=0; te<edges.length; te++) {
                     var roleComp = self.nodeToComponent(edges[te]);
-                    if(!(roleComp instanceof Role)) continue;
+                    if(!(roleComp instanceof Model.kinds.Role)) continue;
                     var otherNode = edges[te].otherNode === c.node ? edges[te].node : edges[te].otherNode;
                     var otherComp = self.nodeToComponent(otherNode);
                     var key = (otherComp ? otherComp.mnemonic : '?') + '|' + roleComp.role;
@@ -522,7 +521,7 @@ export var Model = {
         // 3. Role edge reciprocity / identifier constraints
         for(var r=0; r < this.components.length; r++) {
             var rc = this.components[r];
-            if(rc instanceof Role) {
+            if(rc instanceof Model.kinds.Role) {
                 // Ensure its edge exists in both node edge arrays
                 var nodeA = rc.node.node; var nodeB = rc.node.otherNode;
                 if(nodeA.edges.indexOf(rc.node) < 0 || nodeB.edges.indexOf(rc.node) < 0)
@@ -642,15 +641,15 @@ export var Model = {
                 knot = components[i];
         }
         if(anchor && tie) {
-            this.addComponent(new Role(tie, anchor, false));
+            this.addComponent(new Model.kinds.Role(tie, anchor, false));
         }
         else if (attribute && knot) {
             attribute.setKnotted(true);
-            this.addComponent(new Role(attribute, knot, false));
+            this.addComponent(new Model.kinds.Role(attribute, knot, false));
         }
         else if (tie && knot) {
             tie.setKnotted(true);
-            this.addComponent(new Role(tie, knot, false));
+            this.addComponent(new Model.kinds.Role(tie, knot, false));
         }
         this.recordState();
         Model.surroundings.layout(true);
@@ -684,11 +683,11 @@ export var Model = {
                 this.lastAngle = (this.lastAngle + 0.5) % 14;
                 dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
                 dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-                knot = new Knot(node.xPosition + dx, node.yPosition + dy);
+                knot = new Model.kinds.Knot(node.xPosition + dx, node.yPosition + dy);
                 if(component.dataRange)
                     knot.dataRange = component.dataRange;
                 this.addComponent(knot);
-                this.addComponent(new Role(component, knot, true));
+                this.addComponent(new Model.kinds.Role(component, knot, true));
                 component.setKnotted(true);
             }
         }
@@ -893,9 +892,9 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            var attribute = new Attribute(node.xPosition + dx, node.yPosition + dy);
+            var attribute = new Model.kinds.Attribute(node.xPosition + dx, node.yPosition + dy);
             this.addComponent(attribute);
-            this.addComponent(new Role(attribute, component, true));
+            this.addComponent(new Model.kinds.Role(attribute, component, true));
         }
         this.recordState();
         this.refresh();
@@ -914,10 +913,10 @@ export var Model = {
             }
             xAverage /= components.length;
             yAverage /= components.length;
-            tie = new Tie(xAverage, yAverage, false);
+            tie = new Model.kinds.Tie(xAverage, yAverage, false);
             this.addComponent(tie);
             for(i = 0; i < components.length; i++)
-                this.addComponent(new Role(tie, components[i], true));
+                this.addComponent(new Model.kinds.Role(tie, components[i], true));
         }
         // single anchor selected
         else {
@@ -925,11 +924,11 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             var dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             var dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            tie = new Tie(anchor.node.xPosition + dx, anchor.node.yPosition + dy, false);
+            tie = new Model.kinds.Tie(anchor.node.xPosition + dx, anchor.node.yPosition + dy, false);
             this.addComponent(tie);
-            var role = new Role(tie, anchor, true);
+            var role = new Model.kinds.Role(tie, anchor, true);
             this.addComponent(role);
-            role = new Role(tie, anchor, true);
+            role = new Model.kinds.Role(tie, anchor, true);
             this.addComponent(role);
         }
         this.recordState();
@@ -945,9 +944,9 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            var anchor = new Anchor(node.xPosition + dx, node.yPosition + dy);
+            var anchor = new Model.kinds.Anchor(node.xPosition + dx, node.yPosition + dy);
             this.addComponent(anchor);
-            this.addComponent(new Role(component, anchor, true));
+            this.addComponent(new Model.kinds.Role(component, anchor, true));
         }
         this.recordState();
         this.refresh();
@@ -962,13 +961,13 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            var tie = new Tie(node.xPosition + dx, node.yPosition + dy, false);
+            var tie = new Model.kinds.Tie(node.xPosition + dx, node.yPosition + dy, false);
             this.addComponent(tie);
-            var role = new Role(tie, component, true);
+            var role = new Model.kinds.Role(tie, component, true);
             this.addComponent(role);
-            var anchor = new Anchor(node.xPosition + 2*dx, node.yPosition + 2*dy);
+            var anchor = new Model.kinds.Anchor(node.xPosition + 2*dx, node.yPosition + 2*dy);
             this.addComponent(anchor);
-            role = new Role(tie, anchor, true);
+            role = new Model.kinds.Role(tie, anchor, true);
             this.addComponent(role);
         }
         this.recordState();
@@ -984,9 +983,9 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            var nexus = new Nexus(node.xPosition + dx, node.yPosition + dy);
+            var nexus = new Model.kinds.Nexus(node.xPosition + dx, node.yPosition + dy);
             this.addComponent(nexus);
-            var role = new Role(nexus, component, true);
+            var role = new Model.kinds.Role(nexus, component, true);
             this.addComponent(role);
         }
         this.recordState();
@@ -1002,9 +1001,9 @@ export var Model = {
             this.lastAngle = (this.lastAngle + 0.5) % 14;
             dx = 2 * LayoutEngine.normalDistance * Math.cos(this.lastAngle);
             dy = 2 * LayoutEngine.normalDistance * Math.sin(this.lastAngle);
-            var knot = new Knot(node.xPosition + dx, node.yPosition + dy);
+            var knot = new Model.kinds.Knot(node.xPosition + dx, node.yPosition + dy);
             this.addComponent(knot);
-            this.addComponent(new Role(component, knot, true));
+            this.addComponent(new Model.kinds.Role(component, knot, true));
         }
         this.recordState();
         this.refresh();
@@ -1106,14 +1105,12 @@ export var Model = {
         for(var i = 0; i < this.components.length; i++) {
             component = this.components[i];
             if(component.imploded) {
-                SVGLayer.hide('keys');
                 allExloded = false;
                 break;
             }
         }                
-        if(allExloded) {
-            SVGLayer.show('keys');
-        }
+        // the key routes are drawn when no anchor is imploded
+        Model.surroundings.showKeys(allExloded);
         this.refresh();
         if(startEngine == null || startEngine)
             Model.surroundings.layout(true);

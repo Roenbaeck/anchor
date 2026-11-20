@@ -1,6 +1,5 @@
 // Wiring: what the controls in the markup do, said with data attributes instead of code in the markup.
 import { Actions } from './Actions.js';
-import { Settings } from './Settings.js';
 import { init } from './init.js';
 //   data-action="Actions.newModel"         clicking the element (or pressing Enter or Space on it, if it can be reached with
 //                                          Tab) calls that function, with the object it belongs to as this

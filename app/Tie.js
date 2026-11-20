@@ -4,7 +4,6 @@ import { UniqueIdentity } from './UniqueIdentity.js';
 import { Editables } from './Editables.js';
 import { Component } from './Component.js';
 import { Role } from './Role.js';
-import { Settings } from './Settings.js';
 export function Tie(x, y, historized) {
     this.id = UniqueIdentity.nextId();
     // call the parent constructor
@@ -366,7 +365,7 @@ Tie.prototype = {
     },
     contextualName: function() {
         var name;
-        if(Settings.showMnemonics) {
+        if(Component.showMnemonics) {
             name = this.toString();
             if(this.historized && (this.restatable || this.idempotent)) {
                 name += ' (';
